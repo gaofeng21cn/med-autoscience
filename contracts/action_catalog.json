@@ -19,7 +19,7 @@
       "human_gate_ids": [
         "study_user_decision_gate"
       ],
-      "input_schema_ref": "contracts/schemas/v1/mas-action.input.schema.json",
+      "input_schema_ref": "contracts/schemas/v1/mas-action.input.schema.json#/$defs/submit_study_task",
       "output_schema_ref": "contracts/schemas/v1/mas-action.output.schema.json",
       "owner": "med-autoscience",
       "source_command": {
@@ -61,6 +61,20 @@
         "profile_ref",
         "study_id",
         "task_intent"
+      ],
+      "required_fields": [
+        "profile_ref",
+        "study_id",
+        "task_intent"
+      ],
+      "optional_fields": [
+        "entry_mode",
+        "journal_target",
+        "constraints",
+        "evidence_boundary",
+        "trusted_inputs",
+        "reference_papers",
+        "first_cycle_outputs"
       ]
     },
     {
@@ -82,7 +96,7 @@
       "human_gate_ids": [
         "study_user_decision_gate"
       ],
-      "input_schema_ref": "contracts/schemas/v1/mas-action.input.schema.json",
+      "input_schema_ref": "contracts/schemas/v1/mas-action.input.schema.json#/$defs/launch_study",
       "output_schema_ref": "contracts/schemas/v1/mas-action.output.schema.json",
       "owner": "med-autoscience",
       "source_command": {
@@ -123,6 +137,16 @@
       "workspace_locator_fields": [
         "profile_ref",
         "study_id"
+      ],
+      "required_fields": [
+        "profile_ref",
+        "study_id"
+      ],
+      "optional_fields": [
+        "entry_mode",
+        "allow_stopped_relaunch",
+        "explicit_user_wakeup",
+        "force"
       ]
     },
     {
@@ -142,7 +166,7 @@
       },
       "effect": "read_only",
       "human_gate_ids": [],
-      "input_schema_ref": "contracts/schemas/v1/mas-action.input.schema.json",
+      "input_schema_ref": "contracts/schemas/v1/mas-action.input.schema.json#/$defs/study_progress",
       "output_schema_ref": "contracts/schemas/v1/mas-action.output.schema.json",
       "owner": "med-autoscience",
       "source_command": {
@@ -183,6 +207,13 @@
       "workspace_locator_fields": [
         "profile_ref",
         "study_id"
+      ],
+      "required_fields": [
+        "profile_ref",
+        "study_id"
+      ],
+      "optional_fields": [
+        "entry_mode"
       ]
     },
     {
@@ -209,7 +240,7 @@
       },
       "effect": "read_only",
       "human_gate_ids": [],
-      "input_schema_ref": "contracts/schemas/v1/mas-action.input.schema.json",
+      "input_schema_ref": "contracts/schemas/v1/mas-action.input.schema.json#/$defs/study_state_matrix",
       "output_schema_ref": "contracts/schemas/v1/mas-action.output.schema.json",
       "owner": "med-autoscience",
       "source_command": {
@@ -249,6 +280,13 @@
       "title": "Materialize MAS study state matrix",
       "workspace_locator_fields": [
         "profile_ref"
+      ],
+      "required_fields": [
+        "profile_ref"
+      ],
+      "optional_fields": [
+        "study_ids",
+        "entry_mode"
       ]
     },
     {
@@ -271,7 +309,7 @@
       },
       "effect": "read_only",
       "human_gate_ids": [],
-      "input_schema_ref": "contracts/schemas/v1/mas-action.input.schema.json",
+      "input_schema_ref": "contracts/schemas/v1/mas-action.input.schema.json#/$defs/export_inspection_package",
       "output_schema_ref": "contracts/schemas/v1/mas-action.output.schema.json",
       "owner": "med-autoscience",
       "source_command": {
@@ -312,6 +350,14 @@
       "workspace_locator_fields": [
         "profile_ref",
         "study_id"
+      ],
+      "required_fields": [
+        "profile_ref",
+        "study_id"
+      ],
+      "optional_fields": [
+        "publication_profile",
+        "force_materialize"
       ]
     },
     {
@@ -338,7 +384,7 @@
       },
       "effect": "read_only",
       "human_gate_ids": [],
-      "input_schema_ref": "contracts/schemas/v1/mas-action.input.schema.json",
+      "input_schema_ref": "contracts/schemas/v1/mas-action.input.schema.json#/$defs/publication_aftercare_plan",
       "output_schema_ref": "contracts/schemas/v1/mas-action.output.schema.json",
       "owner": "med-autoscience",
       "source_command": {
@@ -378,6 +424,12 @@
       "title": "Plan publication aftercare progression",
       "workspace_locator_fields": [
         "study_root"
+      ],
+      "required_fields": [
+        "study_root"
+      ],
+      "optional_fields": [
+        "quest_root"
       ]
     },
     {
@@ -400,7 +452,7 @@
       "human_gate_ids": [
         "delivery_sync_authority_gate"
       ],
-      "input_schema_ref": "contracts/schemas/v1/mas-action.input.schema.json",
+      "input_schema_ref": "contracts/schemas/v1/mas-action.input.schema.json#/$defs/delivery_authority_backfill_apply",
       "output_schema_ref": "contracts/schemas/v1/mas-action.output.schema.json",
       "owner": "med-autoscience",
       "source_command": {
@@ -440,6 +492,13 @@
       "title": "Apply controller-gated delivery manifest backfill",
       "workspace_locator_fields": [
         "workspace_roots"
+      ],
+      "required_fields": [
+        "workspace_roots"
+      ],
+      "optional_fields": [
+        "apply",
+        "authority_snapshot"
       ]
     },
     {
@@ -464,7 +523,7 @@
       },
       "effect": "read_only",
       "human_gate_ids": [],
-      "input_schema_ref": "contracts/schemas/v1/mas-action.input.schema.json",
+      "input_schema_ref": "contracts/schemas/v1/mas-action.input.schema.json#/$defs/external_learning_adoption_closure",
       "output_schema_ref": "contracts/schemas/v1/mas-action.output.schema.json",
       "owner": "med-autoscience",
       "source_command": {
@@ -502,7 +561,9 @@
         }
       },
       "title": "Inspect external learning adoption closure",
-      "workspace_locator_fields": []
+      "workspace_locator_fields": [],
+      "required_fields": [],
+      "optional_fields": []
     },
     {
       "action_id": "display_pack_capability_discover",
@@ -525,7 +586,7 @@
       },
       "effect": "read_only",
       "human_gate_ids": [],
-      "input_schema_ref": "contracts/schemas/v1/mas-action.input.schema.json",
+      "input_schema_ref": "contracts/schemas/v1/mas-action.input.schema.json#/$defs/display_pack_capability_discover",
       "output_schema_ref": "contracts/schemas/v1/mas-action.output.schema.json",
       "owner": "med-autoscience",
       "source_command": {
@@ -564,7 +625,14 @@
         }
       },
       "title": "Discover MAS Display Pack capability",
-      "workspace_locator_fields": []
+      "workspace_locator_fields": [],
+      "required_fields": [],
+      "optional_fields": [
+        "repo_root",
+        "paper_root",
+        "include_templates",
+        "opl_descriptor_output_dir"
+      ]
     },
     {
       "action_id": "display_pack_figure_plan",
@@ -587,7 +655,7 @@
       },
       "effect": "read_only",
       "human_gate_ids": [],
-      "input_schema_ref": "contracts/schemas/v1/mas-action.input.schema.json",
+      "input_schema_ref": "contracts/schemas/v1/mas-action.input.schema.json#/$defs/display_pack_figure_plan",
       "output_schema_ref": "contracts/schemas/v1/mas-action.output.schema.json",
       "owner": "med-autoscience",
       "source_command": {
@@ -628,6 +696,14 @@
       "title": "Plan a Display Pack figure",
       "workspace_locator_fields": [
         "figure_request"
+      ],
+      "required_fields": [
+        "figure_request"
+      ],
+      "optional_fields": [
+        "repo_root",
+        "paper_root",
+        "max_recommendations"
       ]
     },
     {
@@ -652,7 +728,7 @@
       },
       "effect": "read_only",
       "human_gate_ids": [],
-      "input_schema_ref": "contracts/schemas/v1/mas-action.input.schema.json",
+      "input_schema_ref": "contracts/schemas/v1/mas-action.input.schema.json#/$defs/display_pack_orchestrate",
       "output_schema_ref": "contracts/schemas/v1/mas-action.output.schema.json",
       "owner": "med-autoscience",
       "source_command": {
@@ -691,7 +767,20 @@
         }
       },
       "title": "Orchestrate a Display Pack figure",
-      "workspace_locator_fields": []
+      "workspace_locator_fields": [],
+      "required_fields": [],
+      "optional_fields": [
+        "repo_root",
+        "paper_root",
+        "current_owner_delta",
+        "claim_ref",
+        "data_ref",
+        "paper_target",
+        "intent",
+        "figure_request",
+        "max_recommendations",
+        "check_runtime_dependencies"
+      ]
     },
     {
       "action_id": "display_pack_preflight",
@@ -714,7 +803,7 @@
       },
       "effect": "read_only",
       "human_gate_ids": [],
-      "input_schema_ref": "contracts/schemas/v1/mas-action.input.schema.json",
+      "input_schema_ref": "contracts/schemas/v1/mas-action.input.schema.json#/$defs/display_pack_preflight",
       "output_schema_ref": "contracts/schemas/v1/mas-action.output.schema.json",
       "owner": "med-autoscience",
       "source_command": {
@@ -753,7 +842,15 @@
         }
       },
       "title": "Preflight a Display Pack figure",
-      "workspace_locator_fields": []
+      "workspace_locator_fields": [],
+      "required_fields": [],
+      "optional_fields": [
+        "repo_root",
+        "paper_root",
+        "template_id",
+        "figure_request",
+        "check_runtime_dependencies"
+      ]
     },
     {
       "action_id": "display_pack_render",
@@ -779,7 +876,7 @@
       },
       "effect": "mutating",
       "human_gate_ids": [],
-      "input_schema_ref": "contracts/schemas/v1/mas-action.input.schema.json",
+      "input_schema_ref": "contracts/schemas/v1/mas-action.input.schema.json#/$defs/display_pack_render",
       "output_schema_ref": "contracts/schemas/v1/mas-action.output.schema.json",
       "owner": "med-autoscience",
       "source_command": {
@@ -820,6 +917,14 @@
       "title": "Render a Display Pack figure receipt",
       "workspace_locator_fields": [
         "paper_root"
+      ],
+      "required_fields": [
+        "paper_root"
+      ],
+      "optional_fields": [
+        "repo_root",
+        "figure_request",
+        "visual_audit_review"
       ]
     },
     {
@@ -848,7 +953,7 @@
       },
       "effect": "read_only",
       "human_gate_ids": [],
-      "input_schema_ref": "contracts/schemas/v1/mas-action.input.schema.json",
+      "input_schema_ref": "contracts/schemas/v1/mas-action.input.schema.json#/$defs/scientific_capability_registry",
       "output_schema_ref": "contracts/schemas/v1/mas-action.output.schema.json",
       "owner": "med-autoscience",
       "source_command": {
@@ -888,6 +993,16 @@
       "title": "Resolve or invoke scientific capabilities",
       "workspace_locator_fields": [
         "mode"
+      ],
+      "required_fields": [
+        "mode"
+      ],
+      "optional_fields": [
+        "capability_id",
+        "current_owner_delta",
+        "study_root",
+        "apply",
+        "payload"
       ]
     },
     {
@@ -935,7 +1050,7 @@
       },
       "effect": "read_only",
       "human_gate_ids": [],
-      "input_schema_ref": "contracts/schemas/v1/mas-action.input.schema.json",
+      "input_schema_ref": "contracts/schemas/v1/mas-action.input.schema.json#/$defs/research_integrity_gate_input",
       "output_schema_ref": "contracts/schemas/v1/mas-action.output.schema.json",
       "owner": "med-autoscience",
       "source_command": {
@@ -973,7 +1088,28 @@
         }
       },
       "title": "Build Research Integrity gate input",
-      "workspace_locator_fields": []
+      "workspace_locator_fields": [],
+      "required_fields": [],
+      "optional_fields": [
+        "payload",
+        "reference_checks",
+        "reference",
+        "references",
+        "claim_spans",
+        "claim",
+        "claims",
+        "citation_refs",
+        "evidence_refs",
+        "reference_attestation_refs",
+        "manuscript_sections",
+        "manuscript",
+        "numeric_facts",
+        "display_facts",
+        "provider_evidence",
+        "reference_attestations",
+        "display_to_claim_map",
+        "reporting_guideline_expectations"
+      ]
     },
     {
       "action_id": "research_integrity_reference_verification",
@@ -1020,7 +1156,7 @@
       },
       "effect": "read_only",
       "human_gate_ids": [],
-      "input_schema_ref": "contracts/schemas/v1/mas-action.input.schema.json",
+      "input_schema_ref": "contracts/schemas/v1/mas-action.input.schema.json#/$defs/research_integrity_reference_verification",
       "output_schema_ref": "contracts/schemas/v1/mas-action.output.schema.json",
       "owner": "med-autoscience",
       "source_command": {
@@ -1058,7 +1194,18 @@
         }
       },
       "title": "Build Research Integrity reference verification payload",
-      "workspace_locator_fields": []
+      "workspace_locator_fields": [],
+      "required_fields": [],
+      "optional_fields": [
+        "payload",
+        "reference",
+        "references",
+        "provider_evidence",
+        "provider_receipts",
+        "source_refs",
+        "reference_manager_ref",
+        "manuscript_ref"
+      ]
     },
     {
       "action_id": "research_integrity_review_publication_gate_stage_hook",
@@ -1111,7 +1258,7 @@
       },
       "effect": "read_only",
       "human_gate_ids": [],
-      "input_schema_ref": "contracts/schemas/v1/mas-action.input.schema.json",
+      "input_schema_ref": "contracts/schemas/v1/mas-action.input.schema.json#/$defs/research_integrity_review_publication_gate_stage_hook",
       "output_schema_ref": "contracts/schemas/v1/mas-action.output.schema.json",
       "owner": "med-autoscience",
       "source_command": {
@@ -1149,7 +1296,34 @@
         }
       },
       "title": "Trigger Research Integrity review/publication gate hook",
-      "workspace_locator_fields": []
+      "workspace_locator_fields": [],
+      "required_fields": [],
+      "optional_fields": [
+        "payload",
+        "stage_id",
+        "stage_event",
+        "stage_hook_ref",
+        "reference",
+        "references",
+        "provider_evidence",
+        "provider_receipts",
+        "source_refs",
+        "reference_manager_ref",
+        "manuscript_ref",
+        "claim_spans",
+        "claim",
+        "claims",
+        "citation_refs",
+        "evidence_refs",
+        "reference_attestation_refs",
+        "manuscript_sections",
+        "manuscript",
+        "numeric_facts",
+        "display_facts",
+        "reference_attestations",
+        "display_to_claim_map",
+        "reporting_guideline_expectations"
+      ]
     },
     {
       "action_id": "mainline_status",
@@ -1168,7 +1342,7 @@
       },
       "effect": "read_only",
       "human_gate_ids": [],
-      "input_schema_ref": "contracts/schemas/v1/mas-action.input.schema.json",
+      "input_schema_ref": "contracts/schemas/v1/mas-action.input.schema.json#/$defs/mainline_status",
       "output_schema_ref": "contracts/schemas/v1/mas-action.output.schema.json",
       "owner": "med-autoscience",
       "source_command": {
@@ -1206,7 +1380,9 @@
         }
       },
       "title": "Inspect MAS mainline status",
-      "workspace_locator_fields": []
+      "workspace_locator_fields": [],
+      "required_fields": [],
+      "optional_fields": []
     },
     {
       "action_id": "mainline_phase",
@@ -1225,7 +1401,7 @@
       },
       "effect": "read_only",
       "human_gate_ids": [],
-      "input_schema_ref": "contracts/schemas/v1/mas-action.input.schema.json",
+      "input_schema_ref": "contracts/schemas/v1/mas-action.input.schema.json#/$defs/mainline_phase",
       "output_schema_ref": "contracts/schemas/v1/mas-action.output.schema.json",
       "owner": "med-autoscience",
       "source_command": {
@@ -1263,7 +1439,11 @@
         }
       },
       "title": "Inspect MAS mainline phase",
-      "workspace_locator_fields": []
+      "workspace_locator_fields": [],
+      "required_fields": [],
+      "optional_fields": [
+        "selector"
+      ]
     },
     {
       "action_id": "domain_handler_export",
@@ -1282,7 +1462,7 @@
       },
       "effect": "read_only",
       "human_gate_ids": [],
-      "input_schema_ref": "contracts/schemas/v1/mas-action.input.schema.json",
+      "input_schema_ref": "contracts/schemas/v1/mas-action.input.schema.json#/$defs/domain_handler_export",
       "output_schema_ref": "contracts/schemas/v1/mas-action.output.schema.json",
       "owner": "med-autoscience",
       "source_command": {
@@ -1322,6 +1502,13 @@
       "title": "Export MAS domain-handler projection",
       "workspace_locator_fields": [
         "profile_ref"
+      ],
+      "required_fields": [
+        "profile_ref"
+      ],
+      "optional_fields": [
+        "study_ids",
+        "opl_production_proof_ref"
       ]
     },
     {
@@ -1341,7 +1528,7 @@
       },
       "effect": "mutating",
       "human_gate_ids": [],
-      "input_schema_ref": "contracts/schemas/v1/mas-action.input.schema.json",
+      "input_schema_ref": "contracts/schemas/v1/mas-action.input.schema.json#/$defs/domain_handler_dispatch",
       "output_schema_ref": "contracts/schemas/v1/mas-action.output.schema.json",
       "owner": "med-autoscience",
       "source_command": {
@@ -1381,7 +1568,11 @@
       "title": "Dispatch MAS domain-handler task",
       "workspace_locator_fields": [
         "task_ref"
-      ]
+      ],
+      "required_fields": [
+        "task_ref"
+      ],
+      "optional_fields": []
     }
   ],
   "authority_boundary": {

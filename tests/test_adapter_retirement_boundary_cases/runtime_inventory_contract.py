@@ -12,7 +12,7 @@ RETAINED_TAILS = {
     "stage_outcome_authority",
     "runtime_health_kernel",
     "progress_portal_study_workbench_overview_action_projection",
-    "agent_tool_arsenal_scientific_capability_registry",
+    "scientific_capability_registry_metadata",
     "runtime_lifecycle_payload_retention",
     "runtime_storage_maintenance",
 }

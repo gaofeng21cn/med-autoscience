@@ -75,7 +75,7 @@ REQUIRED_RETAINED_SURFACES = {
         "body_free_workbench_source_projection",
         "opl:hosted-workbench-shell",
     ),
-    "agent_tool_arsenal_scientific_capability_registry": (
+    "scientific_capability_registry_metadata": (
         "retained_read_only_projection",
         "declarative_capability_metadata_projection",
         "opl:capability-runtime",

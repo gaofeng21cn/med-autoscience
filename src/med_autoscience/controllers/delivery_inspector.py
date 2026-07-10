@@ -490,17 +490,8 @@ def inspect_study_delivery(
             "gate_freshness_handshake": delivery_status.get("gate_freshness_handshake"),
             "current_package_freshness": current_package_freshness or None,
         },
-        "next_sync_command": (
-            "medautosci study delivery-sync "
-            f"--paper-root {paper_root} "
-            f"--stage submission_minimal "
-            f"--publication-profile {resolved_publication_profile}"
-        ),
-        "next_inspection_export_command": (
-            "medautosci publication export-inspection-package "
-            f"--profile {Path(profile_ref).expanduser().resolve() if profile_ref is not None else '<profile>'} "
-            f"--study-id {resolved_study_root.name}"
-        ),
+        "next_sync_owner_surface_ref": "mas:study_delivery_sync",
+        "next_inspection_export_action_ref": "action_catalog:export_inspection_package",
         "wording": {
             "source": "submission_minimal = controller-authorized source",
             "mirror": "current_package = human-facing mirror",

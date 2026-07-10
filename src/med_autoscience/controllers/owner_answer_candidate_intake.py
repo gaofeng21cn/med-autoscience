@@ -410,29 +410,19 @@ def _governed_owner_response_transport(spec: CandidateSpec) -> dict[str, Any]:
                 "return_to_ai_reviewer_workflow_payload.json"
             ),
             "owner_authored_field": "record_payload",
-            "transport_command": (
-                "medautosci publication materialize-ai-reviewer-record "
-                "--profile <profile.toml> "
-                f"--study-id {spec.study_id} "
-                "--payload-file <ai_reviewer_record_payload_authoring_target.json> "
-                "--entry-mode owner_consumption_payload_guard "
-                "--expected-owner ai_reviewer "
-                f"--expected-action-type {owner.get('action_type')} "
-                f"--expected-work-unit-id {owner.get('work_unit_id')} "
-                f"--expected-work-unit-fingerprint {owner.get('work_unit_fingerprint')} "
-                "--build-production-trace"
-            ),
-            "no_write_readback_command": (
-                "medautosci publication materialize-ai-reviewer-record "
-                "--profile <profile.toml> "
-                f"--study-id {spec.study_id} "
-                "--entry-mode owner_consumption_payload_guard "
-                "--expected-owner ai_reviewer "
-                f"--expected-action-type {owner.get('action_type')} "
-                f"--expected-work-unit-id {owner.get('work_unit_id')} "
-                f"--expected-work-unit-fingerprint {owner.get('work_unit_fingerprint')} "
-                "--build-production-trace --dry-run"
-            ),
+            "transport_owner_surface_ref": "mas:ai_reviewer_publication_eval_record_materialization",
+            "transport_request": {
+                "profile_ref": "<profile.toml>",
+                "study_id": spec.study_id,
+                "payload_ref": "<ai_reviewer_record_payload_authoring_target.json>",
+                "entry_mode": "owner_consumption_payload_guard",
+                "expected_owner": "ai_reviewer",
+                "expected_action_type": owner.get("action_type"),
+                "expected_work_unit_id": owner.get("work_unit_id"),
+                "expected_work_unit_fingerprint": owner.get("work_unit_fingerprint"),
+                "build_production_trace": True,
+            },
+            "no_write_readback_request": {"dry_run": True},
             "response_kind": "publication_eval_record_ref",
             "response_ref_source": "publication_eval_record_ref",
             "record_only_surface": True,
@@ -445,20 +435,21 @@ def _governed_owner_response_transport(spec: CandidateSpec) -> dict[str, Any]:
             "status": "available",
             "owner_surface": spec.owner_surface,
             "authoring_surface": "study_owner_gate_decision_record",
-            "transport_command": (
-                "medautosci study-owner-gate-decision "
-                "--profile <profile.toml> "
-                f"--study-id {spec.study_id} "
-                f"--action-type {owner.get('action_type')} "
-                f"--work-unit-id {owner.get('work_unit_id')} "
-                f"--work-unit-fingerprint {owner.get('work_unit_fingerprint')} "
-                "--blocker-type <current_blocker_type> "
-                "--decision <preserve_existing_stable_blocker|narrow_stable_blocker|"
-                "route_back_to_publication_owner|explicitly_supersede_stable_blocker> "
-                "--reason <owner_reason> "
-                f"--supersedes-owner-gate-decision-ref {spec.stable_blocker_ref or '<owner-gate-decision-ref>'} "
-                "--dry-run"
-            ),
+            "transport_owner_surface_ref": "mas:study_owner_gate_decision_record",
+            "transport_request": {
+                "profile_ref": "<profile.toml>",
+                "study_id": spec.study_id,
+                "action_type": owner.get("action_type"),
+                "work_unit_id": owner.get("work_unit_id"),
+                "work_unit_fingerprint": owner.get("work_unit_fingerprint"),
+                "blocker_type": "<current_blocker_type>",
+                "decision": "<owner_gate_decision>",
+                "reason": "<owner_reason>",
+                "supersedes_owner_gate_decision_ref": (
+                    spec.stable_blocker_ref or "<owner-gate-decision-ref>"
+                ),
+                "dry_run": True,
+            },
             "response_kind": "human_gate_ref",
             "response_ref_source": "human_gate_ref",
             "preserve_or_explicitly_supersede": spec.stable_blocker_ref,

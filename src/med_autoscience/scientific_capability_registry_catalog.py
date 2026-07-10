@@ -533,10 +533,10 @@ def _capabilities() -> list[dict[str, Any]]:
                 "OMA",
             ],
             current_delta_trigger_reason="current_delta_declared_reviewer_revision_feedbackops_or_oma_need",
-            invocation_kind="mas_cli_feedbackops_dispatch_readback",
+            invocation_kind="mas_domain_feedbackops_dispatch_request",
             callable_surface=(
-                "medautosci reviewer-revision-feedbackops-dispatch "
-                "--request <feedbackops_dispatch_request.json> --format json"
+                "med_autoscience.reviewer_revision_feedbackops_dispatch:"
+                "build_reviewer_revision_feedbackops_dispatch_request"
             ),
             output_refs=[
                 "artifacts/agent_lab/medical_manuscript_quality/latest_suite.json",
@@ -658,4 +658,3 @@ def _capability(
             "reason": "support_or_diagnostic_wildcards_must_not_become_mas_private_selectors",
         }
     return payload
-

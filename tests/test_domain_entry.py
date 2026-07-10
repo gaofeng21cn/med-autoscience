@@ -233,7 +233,13 @@ def test_action_catalog_targets_and_required_fields_match_real_domain_entry_disp
     for command, spec in contract_module.SERVICE_SAFE_DOMAIN_COMMANDS.items():
         action = actions[command.replace("-", "_")]
         target = contract_module.domain_entry_handler_target(command)
+        assert action["required_fields"] == list(spec.required_fields)
+        assert action["optional_fields"] == list(spec.optional_fields)
         assert action["workspace_locator_fields"] == list(spec.required_fields)
+        assert action["input_schema_ref"] == (
+            "contracts/schemas/v1/mas-action.input.schema.json#/$defs/"
+            f"{command.replace('-', '_')}"
+        )
         assert action["source_command"]["command"] == target
         for surface in ("cli", "mcp", "product_entry", "skill"):
             assert action["supported_surfaces"][surface]["command"] == target
@@ -249,6 +255,18 @@ def test_action_catalog_targets_and_required_fields_match_real_domain_entry_disp
         assert set(request) == {"command", *spec.required_fields}
         payload = entry.dispatch(request)
         assert payload["command"] == command
+
+        input_schema = json.loads(
+            (
+                Path(__file__).resolve().parents[1]
+                / "contracts/schemas/v1/mas-action.input.schema.json"
+            ).read_text(encoding="utf-8")
+        )["$defs"][command.replace("-", "_")]
+        assert input_schema["required"] == list(spec.required_fields)
+        assert set(input_schema["properties"]) == {
+            *spec.required_fields,
+            *spec.optional_fields,
+        }
 
     assert set(calls) == set(contract_module.SERVICE_SAFE_DOMAIN_COMMANDS)
     assert calls["scientific-capability-registry"]["args"] == ()

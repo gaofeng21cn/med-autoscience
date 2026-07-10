@@ -229,7 +229,9 @@ def test_mas_generic_substrate_adapter_projection_is_opaque_index_only() -> None
     contract = _contract()
     substrate = contract["generic_substrate_adapter_projection"]
 
-    assert substrate["descriptor_surface"] == "medautosci domain-handler export.opl_substrate_adapter"
+    assert substrate["descriptor_surface"] == (
+        "action_catalog:domain_handler_export/opl_substrate_adapter"
+    )
     assert substrate["surface_kind"] == "mas_opl_generic_substrate_adapter"
     assert substrate["mode"] == "opaque_index_only_refs"
     assert substrate["source_ref_families"] == [

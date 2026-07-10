@@ -36,7 +36,7 @@ def _legacy_inspection() -> dict:
             "exists": True,
             "root_audit_entries": ["submission_manifest.json"],
         },
-        "next_sync_command": "medautosci study delivery-sync --paper-root /workspace/studies/001/paper --stage submission_minimal",
+        "next_sync_owner_surface_ref": "mas:study_delivery_sync",
     }
 
 

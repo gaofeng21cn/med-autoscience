@@ -15,15 +15,7 @@ def test_owner_callable_dispatch_residue_cleanup_surface_is_physically_retired()
     ).exists()
     assert not (REPO_ROOT / "tests" / "test_owner_callable_dispatch_residue_cleanup.py").exists()
 
-    cli_text = "\n".join(
-        path.read_text(encoding="utf-8")
-        for path in sorted((SRC_ROOT / "cli").rglob("*.py"))
-    )
-    parser_text = (SRC_ROOT / "cli" / "parser.py").read_text(encoding="utf-8")
-    assert "_load_controller(\"owner_callable_dispatch_residue_cleanup\")" not in cli_text
-    assert "owner_callable_dispatch_residue_cleanup =" not in cli_text
-    assert "args.command == \"owner-callable-adapter-residue-cleanup\"" not in cli_text
-    assert "add_parser(\"owner-callable-adapter-residue-cleanup\"" not in parser_text
+    assert not any((SRC_ROOT / "cli").rglob("*.py"))
 
 
 def test_open_runtime_surfaces_cannot_use_active_callers_as_retention_reason() -> None:

@@ -62,7 +62,9 @@ def owner_route_handoff(
         "surface_kind": "mas_runtime_owner_route_handoff",
         "domain_truth_owner": "med-autoscience",
         "queue_owner": "one-person-lab",
-        "dispatch_surface": "medautosci domain-handler export -> medautosci domain-handler dispatch",
+        "dispatch_surface": (
+            "action_catalog:domain_handler_export -> action_catalog:domain_handler_dispatch"
+        ),
         "recommended_task_kind": "stage_outcome/opl-handoff",
         "study_id": study_id,
         "quest_id": quest_id,

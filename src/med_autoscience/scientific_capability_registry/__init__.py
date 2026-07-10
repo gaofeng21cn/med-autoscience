@@ -290,10 +290,10 @@ def invoke_scientific_capability(
                 ),
             }
         )
-    if capability["invocation_kind"] == "mas_cli_feedbackops_dispatch_readback":
+    if capability["invocation_kind"] == "mas_domain_feedbackops_dispatch_request":
         invocation.update(
             {
-                "status": "mas_cli_feedbackops_dispatch_available",
+                "status": "mas_domain_feedbackops_dispatch_available",
                 "request_only": False,
                 "descriptor_only": False,
                 "mas_local_capability_actuator": True,

@@ -37,8 +37,10 @@ def build_light_materializer_contract() -> dict[str, object]:
         "schema_version": 1,
         "owner": "MedAutoScience",
         "controller_ref": "med_autoscience.controllers.light_advisory_materializer.materialize_light_advisory_refs",
-        "cli_entry": "medautosci study light-advisory-materialize",
-        "flat_cli_entry": "medautosci light-advisory-materialize",
+        "automatic_hook_ref": (
+            "med_autoscience.controllers.light_advisory_materializer:"
+            "materialize_light_advisory_refs"
+        ),
         "writes": [
             "artifacts/stage_outputs/<stage>/advisory/light_external_pattern_refs.json",
             *[

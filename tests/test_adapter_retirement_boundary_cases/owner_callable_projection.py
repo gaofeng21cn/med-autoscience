@@ -484,7 +484,6 @@ def test_owner_action_execution_payloads_do_not_recommend_retired_private_cli_al
 
 def test_domain_owner_controller_refresh_public_wrapper_is_retired() -> None:
     dispatch_module = importlib.import_module("med_autoscience.controllers.stage_outcome_authority")
-    public_surface = importlib.import_module("med_autoscience.cli_public_surface")
 
     assert not hasattr(dispatch_module, "refresh_controller_decisions_for_current_publication_eval")
     assert "refresh_controller_decisions_for_current_publication_eval" not in getattr(
@@ -492,10 +491,7 @@ def test_domain_owner_controller_refresh_public_wrapper_is_retired() -> None:
         "__all__",
         (),
     )
-    assert (
-        "runtime",
-        "domain-owner-action-refresh-controller-decisions",
-    ) not in public_surface.GROUPED_COMMAND_ALIASES
+    assert importlib.util.find_spec("med_autoscience.cli_public_surface") is None
 
 
 def test_retired_domain_owner_refresh_controller_command_is_not_active_cli_surface() -> None:

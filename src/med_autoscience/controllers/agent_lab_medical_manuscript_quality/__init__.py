@@ -406,7 +406,7 @@ def _feedback_self_evolution_trigger(
             "opl_agent_lab": "opl agent-lab run --suite <suite_path> --json",
             "oma_improve": "opl-meta-agent.improve-from-external-agent-lab-suite",
             "oma_execute": "opl-meta-agent.execute-external-work-order",
-            "mas_readback": "medautosci paper-mission inspect --study-id <study_id> --format json",
+            "mas_readback": "paper_mission_readback_ref",
         },
         "owner_closeout_readback_refs": [
             "paper_mission_readback_ref",

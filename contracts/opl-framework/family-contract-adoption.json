@@ -181,7 +181,7 @@
     ]
   },
   "generic_substrate_adapter_projection": {
-    "descriptor_surface": "medautosci domain-handler export.opl_substrate_adapter",
+    "descriptor_surface": "action_catalog:domain_handler_export/opl_substrate_adapter",
     "surface_kind": "mas_opl_generic_substrate_adapter",
     "mode": "opaque_index_only_refs",
     "source_ref_families": [

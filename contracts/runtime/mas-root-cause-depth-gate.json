@@ -147,7 +147,7 @@
       "required_next_root_cause_boundary": "identify why saturated materials did not become owner receipt, route-back, typed blocker, human gate, or canonical delta"
     }
   },
-  "readback_command": "medautosci doctor root-cause-depth-gate --repo-root <repo> --format json",
+  "readback_ref": "policy:mas-root-cause-depth-gate",
   "report_template": {
     "context": "repair_lane_proposal",
     "symptom": "<visible blocker/status/stall>",

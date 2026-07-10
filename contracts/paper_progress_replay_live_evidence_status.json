@@ -142,9 +142,9 @@
       "OPL current-control or StageRun readback when an active run, admission, or provider claim exists",
       "MAS owner receipt, typed blocker, human gate, route-back evidence, publication gate, or paper/artifact delta refs"
     ],
-    "accepted_live_commands": [
-      "scripts/run-python-clean.sh -m med_autoscience.cli study progress --profile <profile> --study-id <study_id> --format json",
-      "scripts/run-python-clean.sh -m med_autoscience.cli paper-mission inspect --profile <profile> --study-id <study_id> --format json",
+    "accepted_live_entry_refs": [
+      "action_catalog:study_progress",
+      "paper_mission_readback_ref",
       "OPL current-control / StageRun readback command owned by OPL when provider/admission/running proof is claimed"
     ]
   },

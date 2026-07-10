@@ -145,7 +145,7 @@ def test_materialized_reviewer_revision_suite_projects_oma_pending_and_owner_cal
         "opl feedback read/reconcile",
         "opl-meta-agent improve-from-external-agent-lab-suite",
         "opl-meta-agent execute-external-work-order",
-        "medautosci paper-mission inspect owner closeout readback",
+        "med-autoscience paper_mission_readback_ref owner closeout consumption",
     ]
     assert dispatch_request["opl_feedback_submit"]["argv"][:2] == ["--target-agent", "mas"]
     assert dispatch_request["authority_boundary"]["can_write_study_truth"] is False
@@ -358,9 +358,7 @@ def test_reviewer_revision_intake_is_detected_and_summarized() -> None:
         "opl-meta-agent:oma-agent-evolution",
         "med-autoscience:owner_closeout_readback",
     ]
-    assert trigger["target_actions"]["mas_acceptance_readback"] == (
-        "medautosci paper-mission inspect --study-id <study_id> --format json"
-    )
+    assert trigger["target_actions"]["mas_acceptance_readback"] == "paper_mission_readback_ref"
     assert trigger["owner_closeout_readback_refs"] == [
         "paper_mission_readback_ref",
         "submission_authority_owner_gate_readback_ref",

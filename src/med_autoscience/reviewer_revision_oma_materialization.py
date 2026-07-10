@@ -56,9 +56,7 @@ def _oma_materialization_request_payload(
         target_skill_refs=target_skill_refs,
     )
     command_contract = "opl-meta-agent.improve-from-external-agent-lab-suite"
-    target_owner_closeout_ref = (
-        f"medautosci paper-mission inspect --study-id {request.get('study_id')} --format json"
-    )
+    target_owner_closeout_ref = f"paper_mission_readback_ref:{request.get('study_id')}"
     payload: dict[str, Any] = {
         "surface_kind": "mas_oma_external_suite_materialization_request",
         "schema_version": 1,
@@ -97,9 +95,9 @@ def _oma_materialization_request_payload(
                 "route_back_evidence_ref",
                 "human_gate_ref",
             ],
-            "readback_commands": [
+            "readback_refs": [
                 target_owner_closeout_ref,
-                "medautosci study progress --study-id <study_id> --format json",
+                "action_catalog:study_progress",
             ],
         },
         "authority_write_route_context": _oma_authority_write_route_context(request),

@@ -73,6 +73,13 @@ def test_opl_generated_interfaces_compile_mas_standard_pack() -> None:
     assert bundle["product_entry"]["status"] == "ready"
     assert bundle["openai_tool"]["status"] == "ready"
     assert bundle["ai_sdk"]["status"] == "ready"
+    first_cli = bundle["cli"]["descriptors"][0]
+    assert first_cli["binding_kind"] == "python_callable"
+    assert first_cli["callable_ref"] == (
+        "med_autoscience.domain_entry:MedAutoScienceDomainEntry.dispatch"
+    )
+    assert first_cli["request"] == {"command": first_cli["action_id"]}
+    assert set(first_cli["required_fields"]).isdisjoint(first_cli["optional_fields"])
     generated = json.loads(
         (REPO_ROOT / "contracts/stage_control_plane.json").read_text(encoding="utf-8")
     )

@@ -199,7 +199,8 @@ def test_b002_1055_governed_answer_target_fails_closed_without_governed_ref(tmp_
     transport = result["blocked_owner"]["governed_owner_response_transport"]
     assert transport["authoring_surface"] == "ai_reviewer_record_payload_authoring_target"
     assert transport["response_kind"] == "publication_eval_record_ref"
-    assert "--expected-owner ai_reviewer" in transport["no_write_readback_command"]
+    assert transport["transport_request"]["expected_owner"] == "ai_reviewer"
+    assert transport["no_write_readback_request"] == {"dry_run": True}
     assert transport["paper_progress_claim_allowed"] is False
 
 

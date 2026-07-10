@@ -387,7 +387,10 @@ def build_reviewer_revision_self_evolution_trigger(payload: dict[str, Any] | Non
             "bypass_allowed": fast_lane_requested,
             "bypass_reason": "text_only_fast_lane" if fast_lane_requested else None,
             "stable_suite_relative_path": "artifacts/agent_lab/medical_manuscript_quality/latest_suite.json",
-            "materialized_by": "medautosci submit-study-task reviewer_revision hook",
+            "materialized_by": (
+                "med_autoscience.controllers.agent_lab_medical_manuscript_quality:"
+                "materialize_medical_manuscript_quality_agent_lab_suite"
+            ),
             "contract_itself_triggers_execution": False,
         },
         "fast_lane_policy": {
@@ -397,13 +400,13 @@ def build_reviewer_revision_self_evolution_trigger(payload: dict[str, Any] | Non
         },
         "target_actions": {
             "mas_suite_builder": (
-                "medautosci agent-lab-medical-manuscript-quality-suite "
-                "--study-root <study_root> --reviewer-feedback-ref <feedback_ref> --apply"
+                "med_autoscience.controllers.agent_lab_medical_manuscript_quality:"
+                "materialize_medical_manuscript_quality_agent_lab_suite"
             ),
             "opl_agent_lab": "opl agent-lab run --suite <suite_path> --json",
             "oma_materialization": "opl-meta-agent.improve-from-external-agent-lab-suite",
             "opl_work_order_execution": "opl-meta-agent.execute-external-work-order",
-            "mas_acceptance_readback": "medautosci paper-mission inspect --study-id <study_id> --format json",
+            "mas_acceptance_readback": "paper_mission_readback_ref",
         },
         "owner_closeout_readback_refs": [
             "paper_mission_readback_ref",
@@ -481,7 +484,7 @@ def build_reviewer_revision_feedbackops_dispatch_request(payload: dict[str, Any]
             "opl feedback read/reconcile",
             "opl-meta-agent improve-from-external-agent-lab-suite",
             "opl-meta-agent execute-external-work-order",
-            "medautosci paper-mission inspect owner closeout readback",
+            "med-autoscience paper_mission_readback_ref owner closeout consumption",
         ],
         "opl_feedback_submit": {
             "command": "opl feedback submit",
@@ -499,15 +502,15 @@ def build_reviewer_revision_feedbackops_dispatch_request(payload: dict[str, Any]
                 "--idempotency-key",
                 trigger["idempotency_key"],
                 "--source-ref",
-                "medautosci submit-study-task reviewer_revision",
+                "mas_action:submit_study_task/reviewer_revision",
                 "--json",
             ],
             "writes_target_domain_truth": False,
         },
-        "readback_commands": [
+        "readback_refs": [
             "opl feedback read --json",
             "opl feedback reconcile --json",
-            "medautosci paper-mission inspect --study-id <study_id> --format json",
+            "paper_mission_readback_ref",
         ],
         "opl_execution_authorization_refs": list(OPL_EXECUTION_AUTHORIZATION_REFS),
         "required_packet_refs": list(trigger["required_packet_refs"]),

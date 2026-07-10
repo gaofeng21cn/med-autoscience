@@ -80,7 +80,10 @@ def test_delivery_inspector_reports_v2_source_mirror_and_read_only_policy(tmp_pa
     assert result["zip"]["exists"] is True
     assert result["freshness"]["verdict"] == "current"
     assert result["source_signature"]["delivery"] == result["source_signature"]["evaluated"]
-    assert "medautosci study delivery-sync" in result["next_sync_command"]
+    assert result["next_sync_owner_surface_ref"] == "mas:study_delivery_sync"
+    assert result["next_inspection_export_action_ref"] == (
+        "action_catalog:export_inspection_package"
+    )
     with zipfile.ZipFile(study_root / "manuscript" / "current_package.zip") as archive:
         names = set(archive.namelist())
     assert "audit/submission_manifest.json" in names
@@ -315,7 +318,7 @@ def test_delivery_inspector_uses_stage_native_authority_source_when_projected_so
     assert result["source_package"]["root"] == str(source_root.resolve())
     assert result["source_package"]["layout_status"] == "v2"
     assert result["source_signature"]["source_package"] == "stage-native-signature"
-    assert result["next_sync_command"].startswith("medautosci study delivery-sync")
+    assert result["next_sync_owner_surface_ref"] == "mas:study_delivery_sync"
 
 
 def test_delivery_inspector_marks_legacy_root_audit_files_without_mutation(tmp_path: Path) -> None:
@@ -473,5 +476,5 @@ def test_delivery_inspector_reports_source_mirror_and_legacy_upgrade_contract(tm
     assert result["freshness"]["verdict"] == "missing"
     assert result["mutation_policy"]["read_only"] is True
     assert result["mutation_policy"]["writes_package"] is False
-    assert "medautosci study delivery-sync" in result["next_sync_command"]
+    assert result["next_sync_owner_surface_ref"] == "mas:study_delivery_sync"
     assert markdown.strip()

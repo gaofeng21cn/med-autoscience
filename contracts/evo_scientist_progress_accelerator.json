@@ -156,9 +156,9 @@
     "projection_ref": "med_autoscience.evo_scientist_learning_projection.build_evo_scientist_learning_projection",
     "writer_ref": "med_autoscience.runtime_protocol.evo_scientist_sidecar_refs.write_evo_scientist_sidecar_observation",
     "automatic_hook": "study_progress materialize_read_model_artifacts after current owner action and current execution envelope are projected",
-    "cli_entrypoints": [
-      "medautosci evo-scientist-sidecar observe --study-root <study> --apply",
-      "medautosci evo-scientist-sidecar read-latest --study-root <study>"
+    "callable_entrypoints": [
+      "med_autoscience.runtime_protocol.evo_scientist_sidecar_refs:observe_current_owner_payload",
+      "med_autoscience.runtime_protocol.evo_scientist_sidecar_refs:read_latest_evo_scientist_sidecar_projection"
     ],
     "runtime_ref_root": "artifacts/runtime/evo_scientist_sidecar",
     "latest_ref": "artifacts/runtime/evo_scientist_sidecar/latest.json",

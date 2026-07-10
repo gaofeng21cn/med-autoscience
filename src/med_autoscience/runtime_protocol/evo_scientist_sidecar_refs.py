@@ -81,9 +81,10 @@ def build_evo_scientist_sidecar_execution_surface() -> dict[str, Any]:
             "study_progress materialize_read_model_artifacts after current owner action "
             "and current execution envelope are projected"
         ),
-        "cli_entrypoints": [
-            "medautosci evo-scientist-sidecar observe --study-root <study> --apply",
-            "medautosci evo-scientist-sidecar read-latest --study-root <study>",
+        "callable_entrypoints": [
+            "med_autoscience.runtime_protocol.evo_scientist_sidecar_refs:observe_current_owner_payload",
+            "med_autoscience.runtime_protocol.evo_scientist_sidecar_refs:"
+            "read_latest_evo_scientist_sidecar_projection",
         ],
         "runtime_ref_root": str(RUNTIME_REF_ROOT),
         "latest_ref": str(LATEST_REF),
@@ -92,8 +93,8 @@ def build_evo_scientist_sidecar_execution_surface() -> dict[str, Any]:
         **diagnostic_ref_boundary(),
         "implemented_launch_points": [
             "after_current_owner_delta_materialized",
-            "after_executor_turn_or_subagent_completion_via_cli",
-            "after_receipt_or_typed_blocker_recorded_via_cli",
+            "after_executor_turn_or_subagent_completion",
+            "after_receipt_or_typed_blocker_recorded",
         ],
         "implemented_outputs": list(_OUTPUT_REF_KEYS),
         "nonblocking_contract": _nonblocking_contract(),

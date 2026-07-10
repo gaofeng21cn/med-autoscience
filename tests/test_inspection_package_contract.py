@@ -80,7 +80,7 @@ def test_delivery_inspection_projection_remains_observability_only_for_inspectio
                 "exists": True,
                 "layout_status": "v2",
             },
-            "next_sync_command": "medautosci study delivery-sync --paper-root /workspace/studies/001-risk/paper",
+            "next_sync_owner_surface_ref": "mas:study_delivery_sync",
         }
     )
 

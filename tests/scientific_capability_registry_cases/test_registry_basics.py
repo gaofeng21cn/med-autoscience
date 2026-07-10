@@ -90,8 +90,11 @@ def test_registry_resolves_reviewer_revision_feedbackops_oma_cli_dispatch() -> N
     }
     capability = selected["reviewer_revision_feedbackops_oma_work_order"]
 
-    assert capability["invocation_kind"] == "mas_cli_feedbackops_dispatch_readback"
-    assert "reviewer-revision-feedbackops-dispatch" in capability["callable_surface"]
+    assert capability["invocation_kind"] == "mas_domain_feedbackops_dispatch_request"
+    assert capability["callable_surface"] == (
+        "med_autoscience.reviewer_revision_feedbackops_dispatch:"
+        "build_reviewer_revision_feedbackops_dispatch_request"
+    )
     assert "candidate:reviewer_revision_coverage_audit_ref" in capability["output_refs"]
     assert capability["authority_boundary"]["can_write_domain_truth"] is False
     assert capability["authority_boundary"]["can_write_owner_receipt"] is False
