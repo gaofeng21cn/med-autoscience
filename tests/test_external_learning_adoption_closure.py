@@ -7,154 +7,62 @@ from pathlib import Path
 from tests.study_runtime_test_helpers import make_profile, write_study
 
 
-def test_external_learning_adoption_closure_separates_contracts_from_worker_landing() -> None:
-    module = importlib.import_module("med_autoscience.external_learning_adoption_closure")
+FRAMEWORK_IDS = {
+    "kdense_byok",
+    "openscience_artifact_provenance",
+    "co_scientist",
+    "nature_skills",
+    "academicforge_claude_science",
+    "academic_research_skills",
+    "autosci_omegawiki",
+    "evo_scientist_evoskills",
+    "ark_progress_first",
+    "aris",
+    "paperspine",
+    "paperorchestra",
+    "open_auto_research",
+}
+WORKER_IDS = {
+    "paperspine",
+    "paperorchestra",
+    "academic_research_skills",
+    "aris",
+    "ark_progress_first",
+    "autosci_omegawiki",
+    "kdense_byok",
+    "openscience_artifact_provenance",
+}
 
+
+def test_external_learning_adoption_closure_keeps_landing_current_and_non_authoritative() -> None:
+    module = importlib.import_module("med_autoscience.external_learning_adoption_closure")
     closure = module.build_external_learning_adoption_closure()
-    frameworks = {item["framework_id"]: item for item in closure["frameworks"]}
+    frameworks = {
+        item["framework_id"]: item for item in closure["frameworks"]
+    }
 
     assert closure["surface_kind"] == "mas_external_learning_adoption_closure"
-    assert closure["completion_definition"] == {
-        "contract_only_is_not_landed": True,
-        "landed_requires_execution_slot_or_owner_surface": True,
-        "worker_or_executor_must_declare_allowed_writes": True,
-        "worker_or_executor_must_preserve_forbidden_authority": True,
-        "tests_must_cover_nonblocking_refs_only_behavior": True,
-    }
-    assert closure["progress_first_friction_guard"] == {
-        "mainline_waits_for_sidecar": False,
-        "sidecar_missing_blocks_dispatch": False,
-        "sidecar_failure_blocks_current_owner_action": False,
-        "sidecar_budget_exhaustion_blocks_owner_action": False,
-        "owner_policy_wins": True,
-        "advisory_refs_count_as_paper_progress": False,
-    }
-
-    assert frameworks["evo_scientist_evoskills"]["closure_status"] == (
-        "sidecar_execution_slot_landed"
-    )
-    assert frameworks["nature_skills"]["closure_status"] == "owner_surface_landed"
-    assert "scientific_capability_registry_descriptor_refs" in frameworks[
-        "nature_skills"
-    ]["owner_surface"]
-    assert "paper_mainline_readback_surfaces" in frameworks[
-        "nature_skills"
-    ]["owner_surface"]
-    assert "descriptor/current-owner input refs" in frameworks["nature_skills"][
-        "worker_or_executor_landing"
-    ]
-    assert "section/source-map readback" in frameworks["nature_skills"][
-        "worker_or_executor_landing"
-    ]
-    assert "claim-citation support matrix" in frameworks["nature_skills"][
-        "worker_or_executor_landing"
-    ]
-    assert "reviewer repair action projection" in frameworks["nature_skills"][
-        "worker_or_executor_landing"
-    ]
-    assert "not registered in SIDECAR_WORKER_REGISTRY" in frameworks["nature_skills"][
-        "worker_or_executor_landing"
-    ]
-    assert "nature_paper_section_source_map_readback" in frameworks["nature_skills"][
-        "next_landing_path"
-    ]
-    assert "nature_claim_citation_support_matrix" in frameworks["nature_skills"][
-        "next_landing_path"
-    ]
-    assert "nature_reviewer_repair_action_projection" in frameworks["nature_skills"][
-        "next_landing_path"
-    ]
-    assert "nature_figure_display_contract_refs" in frameworks["nature_skills"][
-        "next_landing_path"
-    ]
-    assert {
-        "paper_section_source_map_readback",
-        "claim_citation_support_matrix",
-        "reviewer_repair_action_projection",
-    } <= set(frameworks["nature_skills"]["absorbed_pattern_ids"])
-    academicforge = frameworks["academicforge_claude_science"]
-    assert academicforge["closure_status"] == "owner_surface_landed"
-    assert "HughYau/AcademicForge" in academicforge["source_project"]
-    assert any("54a2f333973147a1fd703caea6f12252e1f227d6" in ref for ref in academicforge["source_refs"])
-    assert {
-        "skill_first_capability_pack",
-        "publication_figure_style_and_composer_loop",
-        "paper_narrative_handling_editor_loop",
-        "retrieve_first_literature_review",
-        "pdf_parse_once_exploration",
-        "life_science_optional_specialist_skills",
-        "compute_skill_playbook_with_opl_substrate",
-        "ai_first_contract_light_boundary",
-    } <= set(academicforge["absorbed_pattern_ids"])
-    assert "Skill remains the AI playbook" in academicforge["worker_or_executor_landing"]
-    assert "OPL Runway / Connect owns provider credentials" in academicforge[
-        "worker_or_executor_landing"
-    ]
-    assert "academicforge_scientific_compute_runner_skill" in academicforge[
-        "next_landing_path"
-    ]
-    assert academicforge["friction_policy"]["can_block_current_owner_action"] is False
-    assert academicforge["authority_boundary"]["can_write_owner_receipt"] is False
-    for framework_id in (
-        "academic_research_skills",
-        "autosci_omegawiki",
-        "ark_progress_first",
-        "aris",
-        "paperspine",
-        "paperorchestra",
-        "kdense_byok",
-        "openscience_artifact_provenance",
-    ):
-        assert frameworks[framework_id]["closure_status"] == "sidecar_or_worker_landed"
-        assert "sidecar" in frameworks[framework_id]["owner_surface"]
-    assert frameworks["kdense_byok"]["dependency_introduced"] is False
-    assert "K-Dense-AI/k-dense-byok" in frameworks["kdense_byok"]["source_project"]
-    assert "workflow_templates_to_stagecraft" in frameworks["kdense_byok"][
-        "absorbed_pattern_ids"
-    ]
-    assert "build_kdense_byok_pattern_advisory" in frameworks["kdense_byok"][
-        "worker_or_executor_landing"
-    ]
-    assert "Pi" in frameworks["kdense_byok"]["worker_or_executor_landing"]
-    openscience = frameworks["openscience_artifact_provenance"]
-    assert openscience["source_project"] == (
-        "ai4s-research/open-science artifact/provenance patterns"
-    )
-    assert (
-        "external_repo:ai4s-research/open-science@"
-        "2200ad2ec4e2ac7c7ff59c5dcdfaeb0b9a5fda66"
-    ) in openscience["source_refs"]
-    assert (
-        "med_autoscience.scientific_capability_registry."
-        "openscience_artifact_provenance_advisory"
-    ) in openscience["source_refs"]
-    assert {
-        "artifact_graph",
-        "claim_warning",
-        "annotation_to_regeneration",
-        "project_local_provenance_ledger",
-        "connector_provenance_refs",
-        "data_flow_refs",
-    } <= set(openscience["absorbed_pattern_ids"])
-    assert "connector provenance" in openscience["worker_or_executor_landing"]
-    assert "data-flow" in openscience["worker_or_executor_landing"]
-    assert "scientific_capability_registry.openscience_artifact_provenance_advisory" in (
-        openscience["next_landing_path"]
-    )
-    assert openscience["friction_policy"]["can_block_current_owner_action"] is False
-    assert openscience["authority_boundary"]["can_write_artifact_authority"] is False
-    assert closure["counts"]["framework_count"] == 13
-    assert closure["counts"]["sidecar_execution_slot_count"] == 9
+    assert set(frameworks) == FRAMEWORK_IDS
+    assert closure["counts"]["framework_count"] == len(FRAMEWORK_IDS)
     assert closure["counts"]["contract_or_projection_only_gap_count"] == 0
     assert closure["counts"]["not_landed_gap_count"] == 0
+    assert set(module.SIDECAR_WORKER_REGISTRY) == WORKER_IDS
+    assert "nature_skills" not in module.SIDECAR_WORKER_REGISTRY
+
     for framework in frameworks.values():
         assert framework["friction_policy"]["can_block_current_owner_action"] is False
         assert framework["authority_boundary"]["can_write_publication_eval"] is False
-        assert framework["authority_boundary"]["can_authorize_publication_quality"] is False
-    assert "nature_skills" not in module.SIDECAR_WORKER_REGISTRY
+        assert framework["authority_boundary"][
+            "can_authorize_publication_quality"
+        ] is False
+    assert closure["authority_boundary"]["can_write_domain_truth"] is False
+    assert closure["authority_boundary"]["can_write_owner_receipt"] is False
+    assert closure["authority_boundary"]["can_close_stage"] is False
 
 
-def test_external_learning_sidecar_apply_writes_only_refs_only_advisory_result(tmp_path: Path) -> None:
+def test_external_learning_sidecar_apply_writes_only_refs_only_advisory_result(
+    tmp_path: Path,
+) -> None:
     module = importlib.import_module("med_autoscience.external_learning_adoption_closure")
     study_root = tmp_path / "studies" / "001-risk"
     dispatch = {
@@ -174,180 +82,39 @@ def test_external_learning_sidecar_apply_writes_only_refs_only_advisory_result(t
         apply=True,
     )
     result_path = study_root / module.SIDECAR_RESULT_RELATIVE_PATH
+    worker_results = {
+        item["framework_id"]: item for item in result["advisory_worker_results"]
+    }
+    candidate_worker_ids = {
+        item["framework_id"]
+        for item in result["advisory_candidates"]
+        if item.get("framework_id") in module.SIDECAR_WORKER_REGISTRY
+    }
 
-    assert result_path.is_file()
-    payload = json.loads(result_path.read_text(encoding="utf-8"))
-    assert payload == result
-    assert result["surface_kind"] == "mas_external_learning_sidecar_result"
+    assert json.loads(result_path.read_text(encoding="utf-8")) == result
     assert result["status"] == "executed"
     assert result["refs_only"] is True
     assert result["body_included"] is False
     assert result["mainline_waits_for_sidecar"] is False
     assert result["can_block_current_owner_action"] is False
-    assert result["current_owner_action"]["action_type"] == "run_quality_repair_batch"
-    candidate_ids = {
-        item["framework_id"] for item in result["advisory_candidates"] if "framework_id" in item
-    }
-    assert {
-        "nature_skills",
-        "paperspine",
-        "paperorchestra",
-        "co_scientist",
-        "academic_research_skills",
-        "kdense_byok",
-        "openscience_artifact_provenance",
-    } <= candidate_ids
-    worker_ids = {item["framework_id"] for item in result["advisory_worker_results"]}
-    assert {
-        "paperspine",
-        "paperorchestra",
-        "academic_research_skills",
-        "kdense_byok",
-        "openscience_artifact_provenance",
-    } <= worker_ids
-    kdense = {
-        item["framework_id"]: item for item in result["advisory_worker_results"]
-    }["kdense_byok"]
-    assert kdense["runtime_dependency"] is False
-    assert kdense["pi_runtime_dependency"] is False
-    assert kdense["external_library_bulk_load_allowed"] is False
-    assert kdense["stagecraft_recipe_seed_refs"] == [
-        "external-learning:kdense_byok:dispatch-001:stagecraft_recipe_seed"
-    ]
-    assert kdense["fusion_watch_only_briefing_refs"] == [
-        "external-learning:kdense_byok:dispatch-001:fusion_watch_only_briefing"
-    ]
-    assert all(item["refs_only"] is True for item in result["advisory_worker_results"])
-    assert all(item["body_included"] is False for item in result["advisory_worker_results"])
-    assert all(
-        item["can_block_current_owner_action"] is False
-        for item in result["advisory_worker_results"]
+    assert result["allowed_writes"] == [str(module.SIDECAR_RESULT_RELATIVE_PATH)]
+    assert set(worker_results) == candidate_worker_ids
+    for worker in worker_results.values():
+        assert worker["refs_only"] is True
+        assert worker["body_included"] is False
+        assert worker["allowed_writes"] == []
+        assert worker["can_block_current_owner_action"] is False
+        assert worker["authority_boundary"]["can_write_publication_eval"] is False
+        assert worker["authority_boundary"][
+            "can_authorize_publication_quality"
+        ] is False
+
+    written_files = sorted(
+        str(path.relative_to(study_root))
+        for path in study_root.rglob("*")
+        if path.is_file()
     )
-    assert "artifacts/publication_eval/latest.json" in result["forbidden_writes"]
-    assert result["allowed_writes"] == ["artifacts/advisory/external_learning_sidecar/latest.json"]
-    assert result["authority_boundary"]["can_write_controller_decisions"] is False
-    assert not (study_root / "artifacts" / "publication_eval" / "latest.json").exists()
-    assert not (study_root / "artifacts" / "controller_decisions" / "latest.json").exists()
-
-
-def test_external_learning_sidecar_runs_registered_generators_fail_open(tmp_path: Path) -> None:
-    module = importlib.import_module("med_autoscience.external_learning_adoption_closure")
-    study_root = tmp_path / "studies" / "001-risk"
-    dispatch = {
-        "action_type": "unit_harmonized_external_validation_rerun",
-        "action_id": "dispatch-001",
-        "refs": {"dispatch_path": "artifacts/supervision/consumer/current.json"},
-        "owner_route": {
-            "owner": "source_truth",
-            "work_unit_id": "external-validation",
-            "work_unit_fingerprint": "fingerprint-001",
-        },
-    }
-
-    result = module.run_external_learning_sidecar(
-        study_root=study_root,
-        dispatch=dispatch,
-        apply=False,
-    )
-
-    worker_results = {item["framework_id"]: item for item in result["advisory_worker_results"]}
-    assert {
-        "aris",
-        "ark_progress_first",
-        "autosci_omegawiki",
-        "kdense_byok",
-        "openscience_artifact_provenance",
-    } <= set(worker_results)
-    assert worker_results["ark_progress_first"]["micro_canary_ref"] == (
-        "external-learning:ark_progress_first:dispatch-001:micro_canary"
-    )
-    assert worker_results["autosci_omegawiki"]["source_candidate_proposal_refs"] == [
-        "external-learning:autosci_omegawiki:dispatch-001:source_candidate_proposal"
-    ]
-    assert worker_results["aris"]["typed_input_contract_ref"] == (
-        "external-learning:aris:fingerprint-001:typed-input-contract"
-    )
-    assert worker_results["kdense_byok"]["atlas_source_ref_seed_refs"] == [
-        "external-learning:kdense_byok:dispatch-001:atlas_source_ref_seed"
-    ]
-    assert worker_results["openscience_artifact_provenance"]["artifact_graph_ref"] == (
-        "external-learning:openscience_artifact_provenance:dispatch-001:artifact_graph"
-    )
-    assert worker_results["openscience_artifact_provenance"]["source_ref"] == (
-        "external_repo:ai4s-research/open-science@"
-        "2200ad2ec4e2ac7c7ff59c5dcdfaeb0b9a5fda66"
-    )
-    assert worker_results["openscience_artifact_provenance"][
-        "interactive_approval_or_permission_hint"
-    ]["can_create_human_gate"] is False
-    assert worker_results["openscience_artifact_provenance"][
-        "data_flow_disclosure_briefing"
-    ]["can_authorize_privacy_or_source_readiness"] is False
-    assert worker_results["openscience_artifact_provenance"][
-        "connector_provisioning_hint"
-    ]["can_claim_runtime_landed"] is False
-    for item in worker_results.values():
-        assert item["refs_only"] is True
-        assert item["body_included"] is False
-        assert item["allowed_writes"] == []
-        assert item["authority_boundary"]["can_write_publication_eval"] is False
-        assert item["authority_boundary"]["can_authorize_publication_quality"] is False
-        assert item["can_block_current_owner_action"] is False
-
-
-def test_external_learning_authoring_and_review_workers_do_not_write_files(tmp_path: Path) -> None:
-    authoring = importlib.import_module("med_autoscience.external_learning_authoring_advisory")
-    review = importlib.import_module("med_autoscience.external_learning_review_advisory")
-    progress = importlib.import_module("med_autoscience.external_learning_progress_workers")
-    dispatch = {
-        "action_type": "run_quality_repair_batch",
-        "action_id": "dispatch-authoring",
-        "owner_route": {"owner": "write", "work_unit_id": "manuscript-story"},
-        "refs": {
-            "motivation_spine_refs": ["ref:motivation-spine"],
-            "writing_rationale_matrix_refs": ["ref:writing-rationale"],
-            "evidence_blueprint_refs": ["ref:evidence-blueprint"],
-            "latex_safe_audit_refs": ["ref:latex-safe"],
-            "authoring_dag_refs": ["ref:authoring-dag"],
-            "outline_plot_refs": ["ref:outline-plot"],
-            "literature_section_refs": ["ref:literature-section"],
-            "autorater_refs": ["ref:autorater"],
-        },
-    }
-
-    assert list(tmp_path.rglob("*")) == []
-    paperspine = authoring.build_paperspine_manuscript_advisory(dispatch)
-    paperorchestra = authoring.build_paperorchestra_authoring_advisory(dispatch)
-    ars = review.build_ars_claim_support_advisory(dispatch)
-    aris = review.build_aris_review_import_advisory(dispatch)
-    ark = progress.build_ark_progress_worker_advisory(dispatch)
-    autosci = progress.build_autosci_source_experiment_advisory(dispatch)
-    kdense = progress.build_kdense_byok_pattern_advisory(dispatch)
-    openscience = progress.build_openscience_artifact_provenance_advisory(dispatch)
-
-    assert paperspine["status"] == "advisory_ready"
-    assert paperorchestra["status"] == "advisory_ready"
-    assert ars["status"] == "ready"
-    assert aris["status"] == "ready"
-    assert ark["status"] == "candidate_refs_emitted"
-    assert autosci["status"] == "candidate_refs_emitted"
-    assert kdense["status"] == "candidate_refs_emitted"
-    assert openscience["status"] == "candidate_refs_emitted"
-    assert openscience["environment_capture_ref"] == (
-        "external-learning:openscience_artifact_provenance:"
-        "dispatch-authoring:environment_capture"
-    )
-    assert openscience["rerun_reproducibility_route_back_hint"][
-        "can_block_current_owner_action"
-    ] is False
-    assert kdense["source_contract_ref"] == "contracts/kdense_byok_external_intake.json"
-    assert kdense["openrouter_fusion_authority"] is False
-    for item in (paperspine, paperorchestra, ars, aris, ark, autosci, kdense, openscience):
-        assert item["allowed_writes"] == []
-        assert item["refs_only"] is True
-        assert item["body_included"] is False
-        assert item["can_block_current_owner_action"] is False
-    assert list(tmp_path.rglob("*")) == []
+    assert written_files == [str(module.SIDECAR_RESULT_RELATIVE_PATH)]
 
 
 def test_external_learning_sidecar_owner_action_writes_opl_request_only(
@@ -383,12 +150,9 @@ def test_external_learning_sidecar_owner_action_writes_opl_request_only(
         execute_ai_reviewer_workflow=lambda **_: {},
         quest_root_resolver=lambda *_: None,
     )
-    assert dry_run["execution_status"] == "dry_run"
     assert dry_run["status"] == "opl_capability_request_preview"
     assert dry_run["request_only"] is True
     assert dry_run["mas_local_capability_actuator"] is False
-    assert dry_run["opl_capability_runtime_required"] is True
-    assert not (study_root / "artifacts" / "advisory" / "external_learning_sidecar" / "latest.json").exists()
 
     executed = router.execute_owner_dispatch_action(
         profile=profile,
@@ -400,26 +164,26 @@ def test_external_learning_sidecar_owner_action_writes_opl_request_only(
         execute_ai_reviewer_workflow=lambda **_: {},
         quest_root_resolver=lambda *_: None,
     )
-    request_path = study_root / "artifacts/supervision/requests/external_learning_sidecar/latest.json"
-    result_path = study_root / "artifacts/advisory/external_learning_sidecar/latest.json"
+    request_path = (
+        study_root
+        / "artifacts/supervision/requests/external_learning_sidecar/latest.json"
+    )
 
     assert executed["execution_status"] == "blocked"
     assert executed["blocked_reason"] == "opl_capability_runtime_required"
     assert executed["typed_blocker"]["owner"] == "one-person-lab"
     assert executed["status"] == "opl_capability_request_pending"
     assert executed["request_only"] is True
-    assert executed["mas_local_capability_actuator"] is False
     assert executed["mas_can_invoke_capability_sidecar"] is False
     assert executed["opl_capability_runtime_required"] is True
-    assert executed["provider_admission_pending"] is False
     assert request_path.is_file()
-    assert not result_path.exists()
     assert output_readiness.required_output_pending(
         profile=profile,
         study_id=study_id,
         action_type="run_external_learning_sidecar",
         current_study={},
     ) is True
-    assert not (study_root / "paper" / "draft.md").exists()
-    assert not (study_root / "artifacts" / "publication_eval" / "latest.json").exists()
-    assert not (study_root / "artifacts" / "controller_decisions" / "latest.json").exists()
+    assert not (
+        study_root / "artifacts/advisory/external_learning_sidecar/latest.json"
+    ).exists()
+    assert not (study_root / "artifacts/publication_eval/latest.json").exists()

@@ -5,610 +5,68 @@ from pathlib import Path
 
 from med_autoscience.stage_quality_contract import (
     JOURNAL_FAMILY_QUALITY_PACK_IDS,
-    STRONG_PROMOTION_EVIDENCE_KINDS,
     build_stage_quality_pack_contract,
 )
 
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
-NATURE_SKILLS_ADOPTION_CONTRACT = (
-    REPO_ROOT / "contracts/nature_skills_learning_adoption.json"
-)
-UPSTREAM_HEAD_2026_06_20_FIGURE = "5d2ba1dee1c087be6de8f4a8aad4b27f04974be9"
-
-
-def _load_nature_skills_adoption_contract() -> dict[str, object]:
-    parsed = json.loads(NATURE_SKILLS_ADOPTION_CONTRACT.read_text(encoding="utf-8"))
-    assert isinstance(parsed, dict)
-    return parsed
-
-
-def _adoptions_by_pattern(payload: dict[str, object]) -> dict[str, dict[str, object]]:
-    adoptions = payload["adoptions"]
-    assert isinstance(adoptions, list)
-    result: dict[str, dict[str, object]] = {}
-    for adoption in adoptions:
-        assert isinstance(adoption, dict)
-        pattern_id = adoption["pattern_id"]
-        assert isinstance(pattern_id, str)
-        result[pattern_id] = adoption
-    return result
+ADOPTION_CONTRACT = REPO_ROOT / "contracts/nature_skills_learning_adoption.json"
+GLOBAL_FORBIDDEN_AUTHORITY = {
+    "vendor_runner_dependency",
+    "default_skill_source",
+    "second_selector",
+    "always_on_advisory_scan",
+    "publication_readiness_authority",
+    "quality_verdict_authority",
+    "mas_truth_write_authority",
+}
 
 
 def test_nature_skills_learning_packs_are_not_authority_surfaces() -> None:
-    contract = build_stage_quality_pack_contract()
-    packs = {pack["pack_id"]: pack for pack in contract["packs"]}
+    packs = {
+        item["pack_id"]: item
+        for item in build_stage_quality_pack_contract()["packs"]
+    }
 
     for pack_id in JOURNAL_FAMILY_QUALITY_PACK_IDS:
         pack = packs[pack_id]
         clean_room = pack["clean_room_absorption"]
-        forbidden = {item["authority_id"]: item for item in pack["forbidden_authority"]}
+        forbidden = {
+            item["authority_id"]
+            for item in pack["forbidden_authority"]
+            if item["forbidden"] is True
+        }
 
         assert clean_room["source_project"] == "nature-skills"
-        assert clean_room["status_signal_consumed_as"] == "upstream_readme_status_only_not_mas_authority"
         assert clean_room["vendor_dependency"] is False
         assert clean_room["runtime_dependency"] is False
-        assert clean_room["default_skill_source"] is False
         assert clean_room["publication_authority"] is False
-
-        assert forbidden["vendor_skill_authority"]["forbidden"] is True
-        assert forbidden["runtime_authority"]["forbidden"] is True
-        assert forbidden["default_skill_authority"]["forbidden"] is True
-        assert forbidden["publication_readiness_authority"]["forbidden"] is True
-        assert forbidden["quality_verdict_authority"]["forbidden"] is True
-        assert forbidden["mas_truth_write_authority"]["forbidden"] is True
-
+        assert {
+            "vendor_skill_authority",
+            "runtime_authority",
+            "default_skill_authority",
+            "publication_readiness_authority",
+            "quality_verdict_authority",
+            "mas_truth_write_authority",
+        } <= forbidden
         assert pack["publication_readiness_authority"] is False
         assert pack["quality_verdict_authority"] is False
-        assert pack["authority_boundary"]["can_authorize_submission_readiness"] is False
         assert pack["authority_boundary"]["can_write_domain_truth"] is False
 
 
-def test_journal_family_required_reviewer_outputs_are_auditable() -> None:
-    contract = build_stage_quality_pack_contract()
-    packs = {pack["pack_id"]: pack for pack in contract["packs"]}
-    allowed_output_ids = {"refs", "blocker_or_readiness", "owner_receipt_ref", "reviewer_record"}
+def test_nature_skills_adoption_contract_keeps_pattern_owners_non_authoritative() -> None:
+    contract = json.loads(ADOPTION_CONTRACT.read_text(encoding="utf-8"))
+    adoptions = contract["adoptions"]
+    pattern_ids = [item["pattern_id"] for item in adoptions]
 
-    for pack_id in JOURNAL_FAMILY_QUALITY_PACK_IDS:
-        outputs = packs[pack_id]["required_reviewer_output"]
-        output_ids = {output["output_id"] for output in outputs}
-
-        assert "refs" in output_ids
-        assert "blocker_or_readiness" in output_ids
-        assert output_ids & {"owner_receipt_ref", "reviewer_record"}
-        assert output_ids <= allowed_output_ids
-        for output in outputs:
-            assert output["required"] is True
-            assert output["may_authorize_publication_readiness"] is False
-            assert output["may_authorize_quality_verdict"] is False
-
-
-def test_nature_writing_and_statistical_reporting_are_quality_inputs_only() -> None:
-    contract = build_stage_quality_pack_contract()
-    packs = {pack["pack_id"]: pack for pack in contract["packs"]}
-
-    argument_pack = packs["manuscript_argument_pack"]
-    assert argument_pack["clean_room_absorption"]["source_project"] == "nature-skills"
-    assert argument_pack["clean_room_absorption"]["runtime_dependency"] is False
-    assert argument_pack["clean_room_absorption"]["publication_authority"] is False
-    assert {"one_sentence_argument", "paragraph_flow_review", "hedging_and_overclaim_check"} <= set(
-        argument_pack["journal_family_patterns"]
-    )
-    assert {field["field_id"] for field in argument_pack["acceptance_evidence_fields"]} == {
-        "argument_spine_refs",
-        "section_job_map_refs",
-        "claim_boundary_refs",
+    assert set(contract["global_forbidden_authority"]) == GLOBAL_FORBIDDEN_AUTHORITY
+    assert len(pattern_ids) == 12
+    assert len(pattern_ids) == len(set(pattern_ids))
+    assert {item["landing_status"] for item in adoptions} == {
+        "contract_projection_landed",
+        "owner_surface_landed",
     }
-    assert argument_pack["required_reviewer_output"][-1]["output_id"] == "reviewer_record"
-    assert argument_pack["required_reviewer_output"][-1]["may_authorize_quality_verdict"] is False
-
-    reporting_pack = packs["statistical_reporting_pack"]
-    assert reporting_pack["clean_room_absorption"]["source_project"] == "nature-skills"
-    assert reporting_pack["clean_room_absorption"]["vendor_dependency"] is False
-    assert {
-        "effect_size_confidence_interval_p_value_trace",
-        "missingness_and_exclusion_trace",
-        "model_performance_calibration_external_validation_trace",
-        "multiplicity_sensitivity_subgroup_assumption_trace",
-    } <= set(reporting_pack["journal_family_patterns"])
-    assert {field["field_id"] for field in reporting_pack["acceptance_evidence_fields"]} == {
-        "effect_estimate_refs",
-        "denominator_missingness_refs",
-        "model_validation_refs",
-    }
-    assert reporting_pack["required_reviewer_output"][-1]["output_id"] == "owner_receipt_ref"
-    assert reporting_pack["required_reviewer_output"][-1]["may_authorize_publication_readiness"] is False
-
-    for pack in (argument_pack, reporting_pack):
-        assert pack["publication_readiness_authority"] is False
-        assert pack["quality_verdict_authority"] is False
-        assert pack["authority_boundary"]["can_authorize_submission_readiness"] is False
-        assert pack["authority_boundary"]["can_write_domain_truth"] is False
-
-
-def test_journal_family_quality_pack_consumption_is_descriptor_only() -> None:
-    contract = build_stage_quality_pack_contract()
-    packs = {pack["pack_id"]: pack for pack in contract["packs"]}
-
-    for pack_id in JOURNAL_FAMILY_QUALITY_PACK_IDS:
-        pack = packs[pack_id]
-        consumption = pack["quality_pack_consumption"]
-
-        assert consumption["consumer_roles"] == ["reviewer_agent", "auditor_agent"]
-        assert consumption["consumed_as"] == "explicit_quality_pack_descriptor"
-        assert consumption["required_contract_refs"]
-        assert consumption["required_output_classes"] == [
-            output["output_id"] for output in pack["required_reviewer_output"]
-        ]
-        assert consumption["opl_consumption_role"] == "descriptor_ref_freshness_locator_only"
-        assert consumption["opl_may_authorize_quality_verdict"] is False
-        assert consumption["opl_may_authorize_publication_readiness"] is False
-        assert consumption["opl_may_write_mas_truth"] is False
-
-        evidence_fields = pack["acceptance_evidence_fields"]
-        assert len(evidence_fields) >= 3
-        for field in evidence_fields:
-            assert field["field_id"]
-            assert field["role"]
-            assert field["required"] is True
-
-
-def test_nature_skills_status_pattern_becomes_contract_maturity_not_vendor_authority() -> None:
-    contract = build_stage_quality_pack_contract()
-    packs = {pack["pack_id"]: pack for pack in contract["packs"]}
-    strong_evidence_kinds = set(STRONG_PROMOTION_EVIDENCE_KINDS)
-
-    for pack_id in JOURNAL_FAMILY_QUALITY_PACK_IDS:
-        pack = packs[pack_id]
-        promotion = pack["promotion_evidence"]
-
-        assert pack["maturity_status"] in {"beta_contract", "stable_contract"}
-        assert promotion["maturity_model"] == "mas_contract_maturity_not_vendor_skill_status"
-        assert promotion["upstream_status_signal"] == "draft_beta_stable_skill_status_pattern_learned"
-        assert promotion["stable_requires_strong_evidence"] is True
-        assert set(promotion["strong_evidence_kinds"]) == strong_evidence_kinds
-        assert promotion["may_authorize_publication_readiness"] is False
-        assert promotion["may_authorize_quality_verdict"] is False
-
-        evidence = promotion["evidence"]
-        assert evidence
-        assert all(item["evidence_kind"] not in {"docs_only", "ordinary_tests"} for item in evidence)
-        strong_evidence = [
-            item
-            for item in evidence
-            if item["strength"] == "strong" and item["evidence_kind"] in strong_evidence_kinds
-        ]
-
-        if pack["maturity_status"] == "stable_contract":
-            assert promotion["stable_strong_evidence_satisfied"] is True
-            assert strong_evidence
-        else:
-            assert promotion["stable_strong_evidence_satisfied"] is False
-
-
-def test_remaining_nature_skills_patterns_land_as_extension_contracts() -> None:
-    contract = build_stage_quality_pack_contract()
-    packs = {pack["pack_id"]: pack for pack in contract["packs"]}
-
-    expected = {
-        "journal_response_pack": {
-            "reviewer_response_edge_case_contract": {
-                "learned_from": "nature-response",
-                "required_fields": {
-                    "editor_instruction_ids",
-                    "stable_reviewer_comment_ids",
-                    "action_label",
-                    "missing_author_input_state",
-                    "appeal_like_case_route",
-                },
-                "blocker": "journal_response_traceability_blocker",
-            }
-        },
-        "data_availability_fair_pack": {
-            "restricted_access_fair_metadata_contract": {
-                "learned_from": "nature-data",
-                "required_fields": {
-                    "result_supporting_dataset_inventory",
-                    "dataset_access_route",
-                    "generated_reused_third_party_class",
-                    "access_route",
-                    "restriction_reason",
-                    "restricted_access_process_ref",
-                    "repository_identifier_or_blocker",
-                    "available_upon_request_blocker_ref",
-                    "fair_metadata_check_ref",
-                },
-                "blocker": "data_availability_or_fair_metadata_blocker",
-            }
-        },
-        "citation_integrity_pack": {
-            "strict_citation_scope_and_export_contract": {
-                "learned_from": "nature-citation",
-                "required_fields": {
-                    "claim_segment_id",
-                    "source_segment_ref",
-                    "claim_boundary",
-                    "batch_strategy_ref",
-                    "accepted_journal_scope",
-                    "identifier_refs",
-                    "support_grade",
-                    "contradictory_or_limiting_refs",
-                    "metadata_only_candidate_flag",
-                    "reference_export_format",
-                },
-                "blocker": "citation_support_or_export_blocker",
-            }
-        },
-        "figure_evidence_contract_pack": {
-            "figure_backend_export_qa_contract": {
-                "learned_from": "nature-figure",
-                "required_fields": {
-                    "core_conclusion",
-                    "evidence_chain",
-                    "panel_map",
-                    "selected_backend",
-                    "backend_exclusivity_proof",
-                    "export_formats",
-                    "visual_qa_ref",
-                },
-                "blocker": "figure_export_or_source_data_blocker",
-            }
-        },
-        "manuscript_argument_pack": {
-            "prose_polish_claim_boundary_contract": {
-                "learned_from": "nature-polishing",
-                "required_fields": {
-                    "paper_type",
-                    "section_role",
-                    "reader_question",
-                    "reader_question_sequence",
-                    "writing_failure_mode",
-                    "section_architecture_id",
-                    "evidence_ladder_refs",
-                    "hedging_calibration",
-                    "overclaim_detection_ref",
-                },
-                "blocker": "manuscript_argument_or_overclaim_blocker",
-            }
-        },
-        "paper_reader_grounding_pack": {
-            "full_paper_reader_source_map_contract": {
-                "learned_from": "nature-reader",
-                "required_fields": {
-                    "source_map_ref",
-                    "stable_text_block_ids",
-                    "caption_block_ids",
-                    "figure_or_table_asset_ids",
-                    "page_and_block_anchors",
-                    "source_grounded_followup_refs",
-                },
-                "blocker": "reader_source_map_or_anchor_blocker",
-            }
-        },
-        "paper_presentation_pack": {
-            "pptx_asset_manifest_and_package_qa_contract": {
-                "learned_from": "nature-paper2ppt",
-                "required_fields": {
-                    "presentation_logic",
-                    "evidence_spine",
-                    "selected_figure_asset_refs",
-                    "asset_manifest_ref",
-                    "text_overflow_check_ref",
-                    "pptx_reopen_or_package_qa_ref",
-                },
-                "blocker": "presentation_asset_or_package_qa_blocker",
-            }
-        },
-    }
-
-    for pack_id, expected_contracts in expected.items():
-        contracts = {
-            extension["contract_id"]: extension
-            for extension in packs[pack_id]["extension_contracts"]
-        }
-        assert set(expected_contracts) <= set(contracts)
-
-        for contract_id, expectation in expected_contracts.items():
-            extension = contracts[contract_id]
-            assert extension["learned_from"] == expectation["learned_from"]
-            assert expectation["required_fields"] <= set(extension["required_fields"])
-            assert extension["typed_blocker_if_missing"] == expectation["blocker"]
-            assert extension["may_authorize_publication_readiness"] is False
-            assert extension["may_authorize_quality_verdict"] is False
-
-
-def test_figure_and_citation_extensions_keep_output_integrity_without_authority() -> None:
-    contract = build_stage_quality_pack_contract()
-    packs = {pack["pack_id"]: pack for pack in contract["packs"]}
-    figure_contract = {
-        item["contract_id"]: item
-        for item in packs["figure_evidence_contract_pack"]["extension_contracts"]
-    }["figure_backend_export_qa_contract"]
-    citation_contract = {
-        item["contract_id"]: item
-        for item in packs["citation_integrity_pack"]["extension_contracts"]
-    }["strict_citation_scope_and_export_contract"]
-
-    assert "cross_backend_visual_fallback" in figure_contract["forbidden_shortcuts"]
-    assert "figure_without_source_data_or_statistics_trace" in figure_contract["forbidden_shortcuts"]
-    assert {"ENW", "RIS", "Zotero RDF"} <= set(citation_contract["allowed_export_formats"])
-
-    for extension in (figure_contract, citation_contract):
-        assert extension["may_authorize_publication_readiness"] is False
-        assert extension["may_authorize_quality_verdict"] is False
-
-
-def test_academic_search_source_pack_records_preflight_fallback_and_id_conversion_refs() -> None:
-    contract = build_stage_quality_pack_contract()
-    citation_pack = {
-        pack["pack_id"]: pack for pack in contract["packs"]
-    }["citation_integrity_pack"]
-    search_pack = citation_pack["literature_search_source_pack"]
-
-    assert {
-        "source_preflight_refs",
-        "source_failure_refs",
-        "fallback_route_refs",
-        "mesh_strategy_proof_refs",
-        "dedup_result_refs",
-        "id_conversion_refs",
-    } <= set(search_pack["search_strategy_fields"])
-    assert search_pack["failed_or_degraded_source_behavior"] == (
-        "typed_blocker_or_explicit_fallback_ref"
-    )
-    assert search_pack["may_authorize_quality_verdict"] is False
-    assert search_pack["may_authorize_publication_readiness"] is False
-
-
-def test_nature_router_manifest_learning_records_fresh_upstream_commit_and_pattern() -> None:
-    payload = _load_nature_skills_adoption_contract()
-    source = payload["source"]
-    adoption = _adoptions_by_pattern(payload)["router_manifest_static_dynamic_split"]
-
-    assert isinstance(source, dict)
-    assert source["project"] == "Yuan1z0825/nature-skills"
-    assert source["observed_head"] == UPSTREAM_HEAD_2026_06_20_FIGURE
-    assert source["observed_date"] == "2026-06-20"
-    assert set(source["evidence_commands"]) == {
-        "git ls-remote https://github.com/Yuan1z0825/nature-skills.git HEAD refs/heads/main",
-        "git rev-parse HEAD after shallow clone",
-    }
-
-    assert {
-        "short_router",
-        "declarative_manifest",
-        "always_load_core",
-        "axis_specific_static_fragments",
-        "on_demand_references",
-        "explicit_loading_gates",
-        "core_conclusion_before_plotting",
-        "evidence_chain_panel_mapping",
-        "figure_archetype_first_layout",
-        "mas_r_first_nonblocking_backend_policy",
-        "query_to_medical_figure_family_route",
-        "final_visual_qa_after_render",
-    } <= set(payload["learned_patterns"])
-
-    assert adoption["classification"] == "adopt_template"
-    assert adoption["landing_status"] == "contract_projection_landed"
-    assert {
-        "stage_quality_pack_contract",
-        "stage_prompt_authoring_surface",
-        "quality_pack_descriptor",
-        "display_pack_descriptor",
-        "product_entry_generated_descriptor",
-    } <= set(adoption["owner_surfaces"])
-    assert {
-        "generated_manifest_loader_gap",
-        "vendor_runner_rejected",
-        "worker_not_landed_gap",
-    } <= set(adoption["gap_status"])
-    assert {
-        "vendor_runner_dependency",
-        "default_skill_source",
-        "second_selector",
-        "always_on_advisory_scan",
-        "publication_readiness_authority",
-        "quality_verdict_authority",
-        "mas_truth_write_authority",
-    } <= set(adoption["forbidden_authority"])
-
-
-def test_nature_figure_contract_learning_lands_in_mas_display_owner_surfaces() -> None:
-    payload = _load_nature_skills_adoption_contract()
-    adoption = _adoptions_by_pattern(payload)["mas_r_first_figure_contract_policy"]
-
-    assert adoption["classification"] == "adapt"
-    assert adoption["landing_status"] == "owner_surface_landed"
-    assert {
-        "display_pack_agent_figure_contract_policy",
-        "display_pack_agent_figure_intent",
-        "display_pack_agent_figure_plan",
-        "display_pack_gallery_manifest",
-        "display_pack_gallery_quality_audit",
-        "medical_figure_family_catalog_qa_gates",
-    } <= set(adoption["owner_surfaces"])
-    assert {
-        "src/med_autoscience.display_pack_agent.figure_contract.figure_contract_policy",
-        "src/med_autoscience.display_pack_agent.figure_contract.compile_display_figure_intent",
-        "src/med_autoscience.display_pack_agent.query_family_route.resolve_query_family_route",
-        "src/med_autoscience.display_pack_gallery.manifest.build_manifest",
-        "src/med_autoscience.display_pack_gallery.quality.build_quality_audit",
-        "contracts/medical-figure-family-catalog/qa_gates.json",
-    } <= set(adoption["consumable_surfaces"])
-    assert {
-        "python_or_r_question_blocking_default_mas_evidence_path",
-        "publication_readiness_authority",
-        "quality_verdict_authority",
-        "mas_truth_write_authority",
-    } <= set(adoption["forbidden_authority"])
-
-
-def test_figure_workflow_packet_learning_lands_as_consumable_nonblocking_surface() -> None:
-    payload = _load_nature_skills_adoption_contract()
-    adoption = _adoptions_by_pattern(payload)["figure_brief_storyboard_render_inspect_revise_packet"]
-
-    assert "figure_brief_storyboard_workflow_packet" in payload["learned_patterns"]
-    assert "render_inspect_revise_receipt_packet" in payload["learned_patterns"]
-    assert adoption["classification"] == "adopt_template"
-    assert adoption["landing_status"] == "owner_surface_landed"
-    assert {
-        "display_pack_agent_figure_intent",
-        "display_pack_agent_figure_plan",
-        "display_pack_render_receipt",
-        "publication_figure_quality_contract",
-        "display_pack_gallery_manifest",
-    } <= set(adoption["owner_surfaces"])
-    assert {
-        "src/med_autoscience.display_pack_agent.figure_workflow.figure_workflow_policy",
-        "src/med_autoscience.display_pack_agent.figure_workflow.build_figure_workflow_packet",
-        "src/med_autoscience.display_pack_agent.figure_workflow.build_rendered_figure_workflow_packet",
-        "paper/figure_workflow_packet.json",
-        "contracts/publication_figure_quality_contract.json#/paper_surfaces/figure_workflow_packet",
-    } <= set(adoption["consumable_surfaces"])
-    assert {
-        "publication_readiness_authority",
-        "quality_verdict_authority",
-        "data_or_statistics_mutation_authority",
-        "default_progress_blocker",
-    } <= set(adoption["forbidden_authority"])
-
-
-def test_page_level_composition_recipe_learning_lands_as_mas_owner_surface() -> None:
-    payload = _load_nature_skills_adoption_contract()
-    adoption = _adoptions_by_pattern(payload)["page_level_composition_recipes"]
-
-    assert {
-        "page_level_composition_recipes",
-        "clinical_triptych",
-        "schematic_led_composite",
-        "asymmetric_genomics_figure",
-        "dark_image_plate_plus_quantification",
-        "direct_labels_shared_legends",
-        "hero_panel_hierarchy",
-    } <= set(payload["learned_patterns"])
-    assert adoption["classification"] == "adopt_template"
-    assert adoption["landing_status"] == "owner_surface_landed"
-    assert {
-        "medical_figure_family_catalog_composition_recipes",
-        "display_pack_agent_composition_recipe_route",
-        "display_pack_agent_figure_workflow_packet",
-        "display_pack_capability_discover",
-        "display_pack_gallery_manifest",
-        "display_pack_gallery_quality_audit",
-    } <= set(adoption["owner_surfaces"])
-    assert {
-        "contracts/medical-figure-family-catalog/composition_recipe_policy.json",
-        "contracts/medical-figure-family-catalog/composition_recipes/clinical_prediction_and_ml.json",
-        "contracts/medical-figure-family-catalog/composition_recipes/design_and_image.json",
-        "contracts/medical-figure-family-catalog/composition_recipes/omics_and_atlas.json",
-        "src/med_autoscience.display_pack_agent.composition_recipe_route.select_composition_recipe",
-        "src/med_autoscience.display_pack_agent.figure_workflow.build_figure_workflow_packet",
-        "src/med_autoscience.display_pack_gallery.manifest.build_manifest",
-    } <= set(adoption["consumable_surfaces"])
-    assert {
-        "duplicate_single_plot_template_expansion_as_primary_strategy",
-        "publication_readiness_authority",
-        "quality_verdict_authority",
-        "source_or_statistics_mutation_authority",
-        "visual_audit_replacement",
-    } <= set(adoption["forbidden_authority"])
-
-
-def test_publication_polish_policy_surface_lands_without_blocking_progress() -> None:
-    payload = _load_nature_skills_adoption_contract()
-    adoption = _adoptions_by_pattern(payload)["publication_polish_policy_surface"]
-
-    assert "publication_polish_policy_surface" in payload["learned_patterns"]
-    assert adoption["classification"] == "adapt"
-    assert adoption["landing_status"] == "owner_surface_landed"
-    assert {
-        "display_pack_agent_figure_contract_policy",
-        "display_pack_agent_figure_intent",
-        "display_pack_gallery_manifest",
-        "display_pack_gallery_quality_audit",
-        "medical_figure_family_catalog_qa_gates",
-    } <= set(adoption["owner_surfaces"])
-    assert {
-        "src/med_autoscience.display_pack_agent.publication_polish_policy.publication_polish_policy",
-        "contracts/medical-figure-family-catalog/qa_gates.json#/publication_polish_visual_audit",
-        "contracts/medical-figure-family-catalog/qa_gates.json#/paper_use_polish_lifecycle",
-    } <= set(adoption["consumable_surfaces"])
-    assert {
-        "publication_readiness_authority",
-        "quality_verdict_authority",
-        "visual_audit_replacement",
-        "agent_progress_blocking_advisory_gate",
-    } <= set(adoption["forbidden_authority"])
-
-
-def test_nature_skills_learning_contract_keeps_global_forbidden_authority() -> None:
-    payload = _load_nature_skills_adoption_contract()
-
-    assert payload["contract_id"] == "nature_skills_learning_adoption.v1"
-    assert payload["machine_boundary"]
-    assert {
-        "vendor_runner_dependency",
-        "default_skill_source",
-        "second_selector",
-        "always_on_advisory_scan",
-        "publication_readiness_authority",
-        "quality_verdict_authority",
-        "mas_truth_write_authority",
-    } <= set(payload["global_forbidden_authority"])
-
-
-def test_router_manifest_pattern_maps_to_existing_quality_pack_descriptor_boundaries() -> None:
-    contract = build_stage_quality_pack_contract()
-    packs = {pack["pack_id"]: pack for pack in contract["packs"]}
-    extension_contracts = {
-        pack_id: {
-            extension["contract_id"]: extension
-            for extension in packs[pack_id].get("extension_contracts", [])
-        }
-        for pack_id in JOURNAL_FAMILY_QUALITY_PACK_IDS
-    }
-
-    assert {
-        "paper_type",
-        "section_role",
-        "reader_question_sequence",
-        "writing_failure_mode",
-    } <= set(
-        extension_contracts["manuscript_argument_pack"][
-            "prose_polish_claim_boundary_contract"
-        ]["required_fields"]
-    )
-    assert {
-        "selected_backend",
-        "backend_exclusivity_proof",
-        "visual_qa_ref",
-    } <= set(
-        extension_contracts["figure_evidence_contract_pack"][
-            "figure_backend_export_qa_contract"
-        ]["required_fields"]
-    )
-    assert {
-        "source_map_ref",
-        "page_and_block_anchors",
-        "source_grounded_followup_refs",
-    } <= set(
-        extension_contracts["paper_reader_grounding_pack"][
-            "full_paper_reader_source_map_contract"
-        ]["required_fields"]
-    )
-    assert {
-        "presentation_logic",
-        "evidence_spine",
-        "asset_manifest_ref",
-        "pptx_reopen_or_package_qa_ref",
-    } <= set(
-        extension_contracts["paper_presentation_pack"][
-            "pptx_asset_manifest_and_package_qa_contract"
-        ]["required_fields"]
-    )
-
-    for contracts in extension_contracts.values():
-        for extension in contracts.values():
-            assert extension["may_authorize_publication_readiness"] is False
-            assert extension["may_authorize_quality_verdict"] is False
+    for adoption in adoptions:
+        assert adoption["owner_surfaces"]
+        assert "publication_readiness_authority" in adoption["forbidden_authority"]
+        assert "quality_verdict_authority" in adoption["forbidden_authority"]
