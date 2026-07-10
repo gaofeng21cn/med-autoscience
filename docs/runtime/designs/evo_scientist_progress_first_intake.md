@@ -48,7 +48,7 @@ Sidecar 的目标态从设计层面完整固定：
 - sidecar 与 ordinary progress parallel run；critical path 不等待 sidecar。
 - sidecar 缺失、失败、超时、预算耗尽或与 owner policy 冲突时，停止 sidecar，不停止 owner action。
 - sidecar 可以提交 hard-gate candidate ref；真正 gate 仍必须由 MAS owner surface、OPL Stage Transition Authority、independent reviewer/auditor、human gate 或 typed blocker materializer 产出。
-- 已落地执行入口：`med_autoscience.runtime_protocol.evo_scientist_sidecar_refs.write_evo_scientist_sidecar_observation`、`read_latest_evo_scientist_sidecar_projection`、`medautosci evo-scientist-sidecar observe/read-latest`、`study_progress` materialize hook、`refs_only_state_index_pilot` 的 `evo_scientist_sidecar_ref` family。
+- 已落地执行入口：`med_autoscience.runtime_protocol.evo_scientist_sidecar_refs.write_evo_scientist_sidecar_observation`、`read_latest_evo_scientist_sidecar_projection`、`medautosci evo-scientist-sidecar observe/read-latest` 和 `study_progress` materialize hook。observation 继续是 body-free file projection；旧 `refs_only_state_index_pilot` family 已退役，需要索引时由 OPL StateIndex owner 消费 source-adapter ref，不恢复 MAS-local persistence。
 - 后续生产扩面只能证明这些槽位按合同运行；不能把 resident daemon 缺失、sidecar completion、tool selector score、observation memory 或 lifecycle skill match 重新写成学习阶段、admission gate 或当前 owner action 的前置条件。
 
 ## 可吸收映射

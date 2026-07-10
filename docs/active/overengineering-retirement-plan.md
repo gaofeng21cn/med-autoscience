@@ -44,6 +44,25 @@ MAS 长期形态收敛为 `Declarative Medical Research Pack + OPL generated/hos
 | OE-11 | high | RuntimeHealth、lifecycle/storage/retention/cold-store maintenance 上收到 OPL observability/lifecycle/state-index。 | `runtime-platform-tail` | same-identity live readback；destructive operation ownership；restore/retention parity。 |
 | OE-12 | very-high | 物理收掉 legacy provider-admission/current-work-unit/paper-recovery/materializer next-action producer/diagnostic tail。 | `legacy-control-plane` | every active caller consumes canonical StageOutcome -> NextActionEnvelope + OPL readback；public/tombstone drift classified。 |
 
+### 2026-07-10 completion audit
+
+| ID | 状态 | 完成度 | 新鲜结构证据 | 剩余动作 |
+| --- | --- | ---: | --- | --- |
+| OE-01 | `done` | 100% | 无 caller runtime ports / outer-loop policy / package exports 已从 `main` 物理删除并通过 focused import 与 repo verify。 | 无。 |
+| OE-02 | `done` | 100% | 未消费 overlay、重复 display catalog/golden facade 已删除；active refs 已迁移。 | 无。 |
+| OE-03 | `done` | 100% | pilot、本地 SQLite persistence/inspection/replay、双层 adapter、旧 locator 与 `db_path` compatibility 已删除；只留单一 body-free source adapter。 | OPL live StateIndex owner readback仍属 runtime readiness，不影响 MAS repo-source retirement。 |
+| OE-04 | `done` | 100% | import-time editable dependency 注入已删除；root/worktree/installed-tool import proof 已完成。 | 无。 |
+| OE-05 | `done` | 100% | pytest ignore -> wildcard aggregate -> re-export 链已退役，原生 collection 恢复。 | 既有 8 个全仓 collection errors 由独立测试治理 lane 处理。 |
+| OE-06 | `partial` | 80% | MAS 私有 Python/R/workspace/plugin installer 已删除，clean tool build/import 已验证。 | OPL registry 仍有 installer path 残留；`ComplexHeatmap` 需 OPL env prepare 支持 Bioconductor。Owner: OPL host/runtime。 |
+| OE-07 | `done` | 100% | retirement inventory 收成 closed schema + no-authority/no-resurrection guard；StageOutcome、owner receipt、typed blocker 与 6 个 retained surface 映射受 adversarial tests 保护；live work-order bookkeeping 已删除。 | live observability/maintenance readback继续归 OPL runtime readiness。 |
+| OE-08 | `not_started` | 0% | Wave 2 未启动。 | 等 OPL hosted workbench/action-transport parity 与当前并发 owner 写集释放。 |
+| OE-09 | `not_started` | 0% | Wave 2 未启动。 | 等 hosted capability resolve/invoke parity；不得与当前 owner/test lane 重写同一写集。 |
+| OE-10 | `not_started` | 0% | Wave 2 未启动。 | 由 generated CLI/MCP owner lane 处理 public parity。 |
+| OE-11 | `not_started` | 0% | Wave 2 未启动。 | 由 runtime platform owner 提供 same-identity observability/lifecycle/storage readback。 |
+| OE-12 | `not_started` | 0% | Wave 2 未启动。 | 等 canonical StageOutcome -> NextActionEnvelope + OPL readback caller migration与 public/tombstone 分类。 |
+
+本 program 仍为 `active_plan`，不能因 Wave 1 已吸收而整体关闭。最新并发协调要求暂停 Wave 2，并把 CLI/owner/study-progress/publication-quality 的广泛测试组合治理交给独立 test-c lane；本 lane 不覆盖或回退其 worktree。
+
 ### Lane interfaces and absorption order
 
 - Wave 1：`low-risk-and-tests`、`bootstrap-and-provisioning`、`state-index-and-retirement` 并行；各自只改批准写集，提交后由 main session 独立复核、focused 验证并吸收。
@@ -88,15 +107,11 @@ MAS 长期形态收敛为 `Declarative Medical Research Pack + OPL generated/hos
 
 ## P0 runtime/control-plane tail 执行注记
 
-- 2026-07-06 active caller proof：`runtime_surface_retirement` 当前保留面按文件/函数归类，避免把 P0 runtime tail 写成泛化 blocker：
-  - `private_runtime_residue_validators.py` / `private_runtime_residue_maintenance_validators.py` / `runtime_health_kernel_validators.py`：被 `runtime_surface_retirement.py` 调用的 no-authority / minimal authority validator；只能验证 MAS 侧 forbidden authority、OPL takeover tail 和 physical-delete gate，不能写 study truth、owner receipt、typed blocker、human gate、runtime queue 或 provider attempt。
-  - `live_runtime_evidence_rollup.py::live_runtime_evidence_rollup_readback` 与 `public_root_commands.py live-runtime-evidence-rollup`：refs-only rollup readback；只能汇总 live-tail / live-gap evidence records 和 typed-blocker-required 状态，不能替代 live-runtime readiness、paper progress 或 production-ready evidence。
-  - `live_tail_work_orders.py` / `live_runtime_gap_work_orders.py`：typed-blocker evidence guard；保留 duplicate / unknown / malformed / forbidden-source validator，防止 docs、focused tests、queue empty 或 repo-source retirement 被误读为 live runtime evidence。
-  - `completion_evidence_layers.py` / `authority_flags.py` / `surface_helpers.py`：shared physical-delete gate helper；只服务 retirement audit 的 evidence-layer 分账和 forbidden-authority flag scan。
-- 本轮可安全删除的是旧 private runtime residue aggregate fixture；合同与测试引用已改为具体 case module：`runtime_surface_no_authority_audit.py`、`domain_authority_refs_index.py`。这只删除重复 collection/旧路径别名，不改变 runtime authority 语义。
-- 仍未删除的 runtime/control-plane helpers 均有 active caller 或 contract guard 作用；后续只能在对应 active caller 迁移、contract ref 改到 concrete module、focused tests 证明 no-forbidden-write 后继续物理收薄。
+- 2026-07-10 closeout：`runtime_surface_retirement` 已收为 `__init__.py` + `authority_flags.py` 两文件；closed inventory 固定 12 个 physically retired surface、6 个 retained authority/projection/maintenance surface，并拒绝 authority flag、集合缺项或 tombstone/replacement 漂移。
+- 旧 private-runtime validators、completion layers、live-tail/live-gap work-order generators、MAS Python/CLI evidence rollup 与 helper modules 已物理删除。`contracts/runtime/mas-live-runtime-evidence-rollup.json` 只保留 11 行 retired redirect tombstone，current live evidence intake/readback 归 OPL runtime owner。
+- 当前机器护栏归 compact retirement validator、`runtime_surface_no_authority_audit.py`、`runtime_inventory_contract.py` 与 completion-audit v2；它们只证明 repo-source no-authority / no-resurrection，不证明 live runtime readiness、paper progress 或 production readiness。
 - `current_execution_envelope.build_current_execution_envelope()` 已退役删除：该函数固定返回 `{}`，active callers 仅把其结果写回 legacy diagnostic projection；caller 已改为直接投影 `{}`，只保留 `build_current_execution_evidence()` 与 explicit retired authority boundary。
-- P0 runtime tail 复核结论：`runtime_surface_retirement.py` / validators、`live_runtime_evidence_rollup.py`、`live_tail_work_orders.py`、`live_runtime_gap_work_orders.py`、`current_work_unit.py` 和 legacy owner-callable receipt fallback 均仍有 active caller 或 fail-closed contract guard，不能按空 wrapper 删除。
+- `current_work_unit` 与 legacy owner-callable receipt fallback 不属于本 retirement package；后续只能按各自 active caller、authority contract 与 focused evidence 单独审计，不能反向恢复已删除的 wrapper/work-order 面。
 
 ## 停止条件
 
@@ -365,7 +380,7 @@ MAS 长期形态收敛为 `Declarative Medical Research Pack + OPL generated/hos
 ## 2026-07-06 Lane D test helper / old fixture / wrapper thinning evidence
 
 - Display golden CH / DEG / F 三套重复 `shared_base.py` 与 `golden_json_helpers.py` 已收敛到 `tests/display_shared_golden_regression_helpers.py`；各 case 目录只保留 thin `shared.py`，pytest 入口 `tests/test_display_{ch,deg,f}_golden_regression.py` 维持原 discovery 形状。
-- 旧 private runtime residue aggregate fixture 已删除；`contracts/runtime/mas-runtime-surface-retirement-inventory.json` 与 `contracts/paper_progress_transition_runtime_completion_audit.json` 的 evidence refs 改指 `runtime_surface_no_authority_audit.py` 与 `domain_authority_refs_index.py` surviving concrete cases。
+- 旧 private runtime residue aggregate fixture 与 `domain_authority_refs_index.py` concrete case 已删除；当前 evidence refs 只指向 surviving compact inventory/no-authority tests，不再保留 dead test path。
 - `quality_repair_batch.py` 直接从 `med_autoscience.lazy_module_proxy` import `lazy_controller_module`，旧 controller proxy wrapper 已删除。
 - 本 lane 只做 test/helper/wrapper 收薄与 evidence ref 更新，不写 study truth、paper body、owner receipts、typed blockers、human gates、runtime queues 或 provider attempts。
 

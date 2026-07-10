@@ -15,7 +15,7 @@ Review / repair / carry-forward 的质量循环读 [Progress-First Quality Loop]
 
 Stage Operating Layer 是 Progress-first 的第一读面：非终局 stage 首屏必须只读呈现 `stage_kernel_projection` 派生的 current stage、artifact roles、missing outputs、accepted receipts、semantic validation、consumability、lineage、retention / restore、current pointer、blocker、next owner 和 provider liveness。`stage_artifact_index` / Stage Deliverable Index 仍然重要，但它是 derived refs-only locator projection，不是 study truth、artifact truth、quality verdict 或 publication readiness authority。缺 `stage_kernel_projection` 时，Workbench / Progress Portal 必须 fail-closed 为 pending lane；不得从 `stage_artifact_index`、controller/read-model/currentness、telemetry、evidence-tail 或 repair 诊断推断 primary progress。
 
-SQLite / State Index Kernel 的读法同样只属于 operating index：`contracts/stage_artifact_kernel_adoption.json#/state_index_kernel_adoption` 声明 MAS 是 OPL SQLite sidecar 小文件治理的首要 candidate，但 SQLite 只能承载 refs、locator、cursor、checksum、source fingerprint、receipt/blocker/restore refs 和 bounded preview hash。`domain_authority_refs.sqlite`、paper work-unit outbox 或任何 legacy runtime lifecycle SQLite 不能作为 stage completion、paper progress、publication quality、artifact authority 或 owner receipt authority；它们只能加速查找、去重、恢复和 operator read-model rebuild。
+StateIndex 只属于 OPL operating index。MAS 通过 `opl_state_index_source_adapter` 发出 body-free refs、locator、checksum、source fingerprint、receipt/blocker 和 stage-artifact delta metadata，`local_persistence=absent`；旧 `domain_authority_refs.sqlite`、refs-only pilot、paper work-unit outbox 或 legacy runtime lifecycle SQLite 只能作为 history / migration / cleanup provenance，不能作为 stage completion、paper progress、publication quality、artifact authority、owner receipt authority 或 current readback。
 
 ## 非终局 stage outcome
 

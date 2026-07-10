@@ -63,7 +63,7 @@ Canonical durable surfaces 包括：
 - `studies/<study_id>/artifacts/controller/gate_clearing_batch/latest.json`
 - `studies/<study_id>/artifacts/runtime/health/latest.json`
 - `runtime/quests/<quest_id>/artifacts/reports/escalation/runtime_escalation_record.json`
-- `artifacts/runtime/domain_authority_refs.sqlite`
+- `runtime/artifacts/opl_state_index_source_adapter/authority_refs_source.json` semantic ref
 - `artifacts/runtime/lifecycle_migration/*`
 - `runtime/quests/<quest_id>/` materialization manifest
 - `runtime/restore_index/*`
@@ -74,7 +74,7 @@ Canonical durable surfaces 包括：
 - runtime health、escalation record 和 progress projection 是 diagnostic / projection surface，不替代 current owner ticket。
 - 旧 `domain_diagnostic_report` 只作为 legacy provenance / migration diagnostic 读取，不再列入 canonical durable surfaces，也不参与 stage completion 判断。
 - Git history、Git diff/log、workspace root Git、quest `.git`、worktree list、retired lifecycle SQLite 或 recovery-intent snapshots 不作为默认 runtime status surface。
-- Agent 查状态和做 lifecycle 操作时优先读 OPL current-control、MAS file authority、macro state / owner route、domain authority refs index、migration ledger、quest manifest 和 restore index。
+- Agent 查状态和做 lifecycle 操作时优先读 OPL current-control、MAS file authority、macro state / owner route、body-free StateIndex source-adapter refs、migration ledger、quest manifest 和 restore index；旧 MAS-local StateIndex SQLite 只作 history / cleanup provenance。
 
 ## Stable Runtime Entries
 

@@ -223,7 +223,7 @@ OPL 不解释 MAS paper recovery、publication quality 或 artifact authority；
 
 完成门：grep / tests / contract inventory 证明 projection surface 不再有 transition authority；旧入口只保留 tombstone/provenance 或 diagnostic。
 
-当前状态：2026-06-18 residue closeout 已把 `domain_authority_refs_index` 的 active callers固定为 body-free authority-ref indexing、no-active-authority caller 和 repo-level OPL `StateIndexKernel` replacement parity，并把 `domain_diagnostic_obligation_actuator` 固定为 consume-only readback projection / success-proof-gated fail-closed postcondition。2026-06-19 repo-source physical retirement first 之后，旧 MAS 私有 index / carrier / projection 的源码删除按 active caller migrated/deleted、replacement parity、no-forbidden-write、tombstone/provenance 和验证关闭；live OPL `StateIndexKernel`、`RecoveryObligationStore` / `SupervisorDecisionEngine` 接管，或 no-active production caller / owner-retirement evidence，只能关闭 runtime-readiness 与 production-readiness 尾项。
+当前状态：2026-07-10 已物理删除 MAS-local `domain_authority_refs_index`、refs-only SQLite pilot、persistence/inspection/replay API、旧 locator 与本地 rows projection；owner-route / stage-artifact metadata 通过 body-free `opl_state_index_source_adapter` 交给 OPL `StateIndexKernel`，`paper_progress_transition_refs` 直接保留 body-free JSONL 并交给 OPL `DomainProgressTransitionRuntime`。repo-source 删除由 replacement parity、no-forbidden-write、精确 tombstone 和 no-resurrection tests 固定；live OPL `StateIndexKernel`、`RecoveryObligationStore` / `SupervisorDecisionEngine` readback 仍只关闭 runtime-readiness 与 production-readiness 尾项。
 
 ### Lane 5：Live paper-line acceptance
 

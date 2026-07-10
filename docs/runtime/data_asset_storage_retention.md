@@ -43,7 +43,7 @@ Runtime retention 命令不得把这些对象当作 oversized payload、historic
 - provider attempt payload、large diagnostic JSONL、runtime report snapshot；
 - restore proof 中可外置的 detail arrays；
 - runtime lifecycle SQLite 的 externalized payload refs；
-- body-free domain authority refs index、cursor/index/outbox/receipt refs；
+- body-free authority-ref source metadata、OPL-owned cursor/index/outbox/receipt refs，以及明确归档的旧 MAS-local StateIndex artifacts；
 - 已验证 cold refs 中仍承诺 exact raw restore 的 legacy archive/body 对象。
 
 这些动作仍必须有 dry-run、receipt、hash/proof、cold ref 或 SQLite integrity proof。它们不授权 dataset body mutation、study truth、paper truth、publication verdict、current package 或 artifact authority。
@@ -67,7 +67,8 @@ SQLite 有两类完全不同的角色：
 
 | SQLite 类型 | 例子 | 处理方式 |
 | --- | --- | --- |
-| runtime refs / lifecycle SQLite | `artifacts/runtime/domain_authority_refs.sqlite`、`runtime_lifecycle.sqlite`、`mas_refs_only_state_index_pilot.sqlite` | 可按 runtime lifecycle payload retention、refs-only rebuild、`VACUUM INTO`、`PRAGMA integrity_check` 处理 |
+| OPL-owned runtime lifecycle SQLite | `runtime_lifecycle.sqlite` 等 owner-bound store | 只按 OPL-authorized runtime lifecycle maintenance、integrity 和 retention contract 处理 |
+| 历史 MAS-local StateIndex SQLite | `domain_authority_refs.sqlite`、`mas_refs_only_state_index_pilot.sqlite` | 只作 migration/archive/cleanup provenance；不得重建、compact 或恢复为 current MAS index |
 | dataset release SQLite | DPCC `standardized_longitudinal/**/indexed_working_copy.sqlite` | 作为 release output 或 rebuildable sidecar，由 `dataset_manifest.yaml` 和 study impact 决定保留/重建/冷归档 |
 
 不得因为文件扩展名是 `.sqlite` 就把 dataset release working copy 纳入 runtime lifecycle compact。runtime SQLite compact 不得改写 manifest、release body、study `dataset_inputs` 或 data asset projection authority。

@@ -1,235 +1,74 @@
 # Domain Authority Refs Index Guard
 
-Status: `standard_agent_purity_guard`
-Date: `2026-05-26`
+Status: `retired_local_index_body_free_source_adapter_guard`
+Date: `2026-07-10`
 Owner: `MedAutoScience domain authority refs boundary`
 Purpose: `domain_authority_refs_no_runtime_lifecycle_resurrection_guard`
 State: `active_support`
-Machine boundary: 本文是人读 owner / provenance guard。机器真相继续归 OPL current control state / provider attempt ledger、MAS domain authority refs index、owner receipts、typed blockers、artifact/source/quality refs、migration ledgers、restore indexes、archive manifests、runtime/controller surfaces 和 live workspace evidence。
+Machine boundary: 本文是人读 owner / provenance guard。机器真相继续归 OPL current control state / provider attempt ledger、MAS body-free StateIndex source adapter、owner receipts、typed blockers、artifact/source/quality refs、migration ledgers、restore indexes、archive manifests、runtime/controller surfaces 和 live workspace evidence。
 
 完整历史记录：[2026-05-08 runtime lifecycle SQLite migration full record](../history/program/runtime_lifecycle_sqlite_migration_program_2026_05_08_full_record.md)。
 
-## 当前定位
+## 当前结论
 
-本文是旧 runtime lifecycle SQLite 退役后的 active guard，不再是 broad planning board，也不再把 MAS SQLite / read-model / lifecycle surface 写成当前 runtime owner。它只保存 domain authority refs index、SQLite/file boundary、root/quest Git retirement、restore-proof archive 和 drift handling 的当前 guard。
+MAS-local StateIndex 已退役。当前实现只保留 `med_autoscience.runtime_protocol.opl_state_index_source_adapter`，向 OPL StateIndexKernel 发出 body-free ref metadata。
 
-当前职责：
+- `refs_only_state_index_pilot.py`、`domain_authority_refs_index.py`、本地 SQLite persistence / inspection / replay API、旧 locator 和无效果的 `db_path` 参数已物理删除。
+- active callers 不创建、打开、检查或重建 `domain_authority_refs.sqlite` / `mas_refs_only_state_index_pilot.sqlite`。
+- `source_adapter_contract()` / `source_adapter_manifest()` 固定 `local_persistence=absent`、`body_included=false` 和 `state_index_owner=one-person-lab`。
+- paper、study、publication、artifact、owner receipt 与 typed blocker truth 继续归 MAS authority surfaces；queue、attempt、lifecycle、generic state index、observability 和 workbench shell 归 OPL。
+- 旧 SQLite、pilot 报告和 dated canary 只可作为 history、migration、archive 或 cleanup provenance，不是 current adoption、runtime readiness、paper progress 或 owner readback。
 
-- 当前 active callers 只可通过 `med_autoscience.runtime_protocol.opl_state_index_source_adapter` 发出 OPL StateIndex source-adapter proof：owner receipt refs、typed blocker refs、artifact/source/status locator refs、restore/archive provenance refs；`db_path` 不再触发默认 SQLite 持久化；
-- OPL family adoption、product-entry persistence policy 与 lifecycle ledger 只消费 `source_adapter_manifest()` 暴露的 `/refs/state_index_source_adapter`；`domain_authority_refs.sqlite` 只可出现在 `legacy_sqlite_refs_index`，不得作为 current adoption projection 输入；
-- `med_autoscience.runtime_protocol.domain_authority_refs_index` 仅保留为历史 replay / local inspection / tombstone provenance 的低层 SQLite helper；当前 active controller 不再暴露 `persist_authority_refs_index` opt-in，不得把该 helper 作为默认 runtime/read-model 写面；
-- paper / study / publication / artifact truth 留在 MAS file authority 与 controller authority surfaces；
-- root Git 和 quest Git 不回到默认 MAS workspace/runtime lifecycle，也不作为 OPL stage/runtime attempt truth；
-- restore-proof archive、migration ledger、lifecycle export 和 explicit archive import 规则继续保留；
-- 新 drift 通过 current inventory、archive、restore proof 和 verification 处理。
+## 当前机器入口
 
-## 当前状态
-
-| 面 | 当前状态 | owner |
+| 面 | 当前入口 | 边界 |
 | --- | --- | --- |
-| OPL StateIndex source adapter | `opl_state_index_source_adapter_emitted_default` | body-free refs emitted for OPL StateIndexKernel; active callers do not receive a SQLite persistence parameter |
-| OPL family adoption source manifest | `source_adapter_manifest_projected` | current product-entry / family adoption reads `/refs/state_index_source_adapter`, not `domain_authority_refs.sqlite` |
-| Domain authority refs SQLite helper | `explicit_replay_local_inspection_only` | `artifacts/runtime/domain_authority_refs.sqlite` only with explicit persistence opt-in |
-| Runtime state canonical surface | `materialized_canonical_runtime_state` | `runtime/quests/<quest>/artifacts/runtime/state/runtime_state.json`; `.ds/runtime_state.json` is legacy compatibility/provenance only |
-| MAS refs-only state index pilot | `opt_in_storage_maintenance_pilot` | `artifacts/runtime/mas_refs_only_state_index_pilot.sqlite` indexes cursor/index/lifecycle/outbox/receipt refs only, replacing only the current `quest_root` slice on rebuild; it carries an OPL StateIndexKernel readback requirement and cannot satisfy that readback itself |
-| Restore-proof canary | `bounded_retain_source_canary` | `artifacts/runtime/runtime_storage_maintenance/restore_proof_canary/*.json` and bounded archive/restore proof refs |
-| Restore-proof compaction | `stopped_cold_bucket_compaction_available` | `.ds/runs` and `.ds/codex_homes` may be sharded into restore-proof archives after explicit cold-window gate |
-| Legacy `.ds` physical retirement | `retired_history_only` | Historical `legacy_ds_retirement/**` receipts, manifests, restore proofs and cold refs are provenance only; no public `.ds` retirement CLI/parser/controller remains |
-| Runtime/event/report history | `opl_owned_or_provenance_only` | OPL attempt/provider ledger for runtime truth; MAS refs index for owner receipts/blockers only |
-| Quest Git retirement | `current projects verified` | migration/cutover ledgers and restore manifests |
-| Workspace root Git retirement | `current projects verified` | workspace root Git retirement ledgers |
-| MAS-first new workspace layout | `landed` | workspace/bootstrap/profile contracts |
-| Explicit archive/import reference | `retained diagnostic` | MAS archive/provenance surfaces |
-| Live paper truth | `outside SQLite authority` | MAS study/publication/artifact owners |
+| MAS source adapter | `src/med_autoscience/runtime_protocol/opl_state_index_source_adapter.py` | 只发 body-free source refs，不持久化，不写 OPL runtime state |
+| OPL adoption manifest | `runtime/artifacts/opl_state_index_source_adapter/authority_refs_source.json` semantic ref | 由 `source_adapter_manifest()` 投影；不是 MAS-local database |
+| StateIndex adoption contract | `contracts/state_index_kernel_adoption.json`、`contracts/stage_artifact_kernel_adoption.json` | MAS role 仅为 source adapter；generic index owner 为 OPL |
+| Retirement inventory | `contracts/runtime/mas-runtime-surface-retirement-inventory.json` | 固定 12 个 physically retired surface 和 6 个 retained tail |
+| Historical migration record | `docs/history/program/runtime_lifecycle_sqlite_migration_program_2026_05_08_full_record.md` | provenance only，不恢复 current helper、pilot 或 CLI |
 
-## 当前机器合同入口
-
-本文只做人读 guard。当前机器合同和回归证据入口是：
-
-- `med_autoscience.runtime_protocol.opl_state_index_source_adapter.source_adapter_contract()`：声明 active caller 只生成 `opl_state_index_source_adapter_emitted` proof，不暴露 `persist_sqlite` 参数，不拥有 StateIndexKernel；
-- `med_autoscience.runtime_protocol.opl_state_index_source_adapter.source_adapter_manifest()`：声明 current OPL family adoption / product-entry persistence 读 `/refs/state_index_source_adapter`，不 inspect / read legacy SQLite payload；
-- `med_autoscience.runtime_protocol.domain_authority_refs_index.domain_authority_refs_index_contract()`：声明 legacy SQLite helper 的 `role=refs_only_domain_authority_receipt_index`、`generic_persistence_owner=one-person-lab`、`generic_runtime_owner=one-person-lab`，并固定 `default_record_behavior=source_adapter_emitted_no_default_sqlite_persistence`、`stores_body=false`、`stores_domain_truth=false`、`runtime_control_owner=one-person-lab`；
-- `med_autoscience.runtime_protocol.quest_state.materialize_runtime_state_surface()`：把 legacy `.ds/runtime_state.json` 物化到 canonical `artifacts/runtime/state/runtime_state.json`，报告只含路径、sha256、status 和 blocker，不含 runtime-state JSON body，不删除 legacy 文件；
-- `contracts/state_index_kernel_adoption.json#/mas_refs_only_pilot` 和 `contracts/stage_artifact_kernel_adoption.json#/state_index_kernel_adoption/mas_refs_only_pilot`：声明 MAS 当前只在 `runtime maintain-storage --refs-only-state-index-pilot` / `runtime storage-audit --apply --refs-only-state-index-pilot` 下写 opt-in SQLite pilot，路径为 `artifacts/runtime/mas_refs_only_state_index_pilot.sqlite`，只索引 cursor / index / lifecycle / outbox / receipt refs，并固定 `opl_state_index_kernel_readback_requirement.mas_can_satisfy_readback=false`；
-- `contracts/functional_privatization_audit.json` 和 `contracts/test-lane-manifest.json`：把 `domain_authority_refs_index` 固定为 domain authority refs 分类，不允许写回 generic runtime lifecycle / persistence owner；
-- `tests/test_runtime_protocol_quest_state.py`、`tests/test_opl_state_index_kernel.py`、`tests/test_adapter_retirement_boundary_cases/test_runtime_maintenance_boundary.py`、`tests/test_stage_artifact_kernel_adoption_contract.py`、`tests/test_opl_family_persistence_adapter.py`、`tests/test_opl_standard_pack.py`、`tests/test_test_lane_governance.py`：覆盖 runtime state canonical materialization、refs-only state-index parity、adapter retirement boundary、adoption surface、standard-agent purity boundary 和 test-lane manifest mirror。
-
-这些入口是当前 truth surface；本文的职责是解释边界和漂移处理，不新增 SQLite schema、runtime lifecycle engine、queue、attempt ledger 或 provider state 语义。
+`runtime_surface_retirement.REQUIRED_RETIRED_SURFACES` 固定每个 retired surface 的 `surface_id`、`replacement_ref`、`tombstone_ref` 和 `retained_mas_role=none`。validator 必须拒绝删除、重命名、错误 replacement、错误 tombstone 或重新赋予 MAS role。
 
 ## Authority Boundary
 
-MAS domain authority refs source-adapter proof may reference:
+body-free source adapter 可以引用：
 
-- owner receipt refs、typed blocker refs、domain intent / owner-route locator refs、artifact/source/status locator refs、cleanup/terminal gate receipt refs、archive refs、checksum refs、migration/export provenance 和 projection cache refs;
-- route lineage、workspace allocation、snapshot metadata、revision summaries 和 Canvas/progress projection refs，仅当它们可从 authority surfaces 重建且不承担 runtime attempt truth。
+- owner receipt、typed blocker、domain intent、owner route、artifact/source/status locator；
+- archive、checksum、migration/export provenance；
+- stage artifact delta ref metadata。
 
-MAS domain authority refs SQLite may persist those refs only when a caller explicitly opts in for historical replay or local inspection. Default active callers must not create or update this SQLite file.
+`paper_progress_transition_refs` 不属于 StateIndex adapter family；它直接保留 body-free policy-request receipt JSONL，由 OPL `DomainProgressTransitionRuntime` 消费。
 
-MAS domain authority refs source-adapter proof and opt-in SQLite must not hold or authorize:
+它不得持有或授权：
 
-- OPL queue / attempt ledger / provider state / retry-dead-letter / worker liveness / current control state;
-- medical quality, publication readiness, submission readiness, study truth, controller decision truth, AI reviewer verdict, evidence/review ledger truth, dataset manifest truth, canonical manuscript/package truth, or current-package edit authority.
+- OPL queue、attempt ledger、provider state、retry/dead-letter、worker liveness、current control state；
+- generic persistence、lifecycle、StateIndex 或 read-model ownership；
+- medical quality、publication/submission readiness、study truth、controller decision、AI reviewer verdict、dataset manifest、canonical manuscript/package 或 current-package mutation。
 
-MAS refs-only state index pilot has the same authority boundary. It may store path refs, file hashes, byte size, mtime, ref family, index version and rebuild epoch for canonical `artifacts/runtime/state/runtime_state.json`, legacy `.ds/runtime_state.json`, runtime cursor/index files, paper work-unit outbox receipts and runtime owner/dispatch receipt refs. Canonical runtime state is indexed as `lifecycle`; legacy `.ds/runtime_state.json` is indexed as `legacy_lifecycle` when canonical exists, and as `lifecycle` only during pre-materialization compatibility. A rebuild replaces only rows for the current `quest_root`, so one workspace SQLite can accumulate refs for multiple paper quests without cross-quest deletion. It must not store JSON body, manuscript body, artifact body, owner receipt authority, publication eval body, controller decision body, evidence/review ledger body, memory body or quality verdict. The pilot row count is not a stage-completion, paper-progress, publication-ready, artifact-authority, restore-ready, runtime-currentness, lifecycle-drive or next-action signal. Its report must expose the required OPL StateIndexKernel readback shape, but MAS cannot satisfy or synthesize that OPL readback.
+历史 `domain_authority_refs.sqlite`、`mas_refs_only_state_index_pilot.sqlite` 或相关报告即使仍存在于 workspace/archive，也不得被 active code inspect、replay、compact 或重建为 current MAS index。需要保留时只按 migration/archive/cleanup policy 处理；需要 current index/readback 时回到 OPL owner surface。
 
-Stable commands:
+## Drift 处理
 
-- `medautosci runtime maintain-storage --profile <profile> --study-id <study_id> --refs-only-state-index-pilot`
-- `medautosci runtime maintain-storage --profile <profile> --study-id <study_id> --refs-only-state-index-pilot --refs-only-state-index-only`
-- `medautosci runtime maintain-storage --profile <profile> --quest-root <quest_root> --refs-only-state-index-pilot`
-- `medautosci runtime maintain-storage --profile <profile> --quest-root <quest_root> --refs-only-state-index-pilot --refs-only-state-index-only`
-- `medautosci runtime maintain-storage --profile <profile> --study-id <study_id> --restore-proof-canary --restore-proof-canary-entry-limit <n> --restore-proof-bucket <bucket> --include-parked-controller-stop`
-- `medautosci runtime maintain-storage --profile <profile> --quest-root <quest_root> --restore-proof-canary --restore-proof-canary-entry-limit <n> --restore-proof-bucket <bucket> --include-parked-controller-stop`
-- `medautosci runtime maintain-storage --profile <profile> --study-id <study_id> --restore-proof-compaction --restore-proof-bucket runs --restore-proof-bucket codex_homes --restore-proof-max-shards <n> --include-parked-controller-stop`
-- `medautosci runtime maintain-storage --profile <profile> --quest-root <quest_root> --restore-proof-compaction --restore-proof-bucket runs --restore-proof-bucket codex_homes --restore-proof-max-shards <n> --include-parked-controller-stop`
-- `medautosci runtime storage-audit --profile <profile> --all-studies --apply --refs-only-state-index-pilot`
-- `medautosci historical-body-retention --root <workspace-or-subroot> --dry-run --cold-store-root <cold-store>`
-- `medautosci historical-body-retention --root <workspace-or-subroot> --apply --cold-store-root <cold-store>`
-- `medautosci historical-directory-retention --root <workspace-or-subroot> --dry-run --cold-store-root <cold-store>`
-- `medautosci historical-directory-retention --root <workspace-or-subroot> --apply --cold-store-root <cold-store>`
-- `medautosci restore-index-detail-retention --root <restore-index-root-or-json> --dry-run --cold-store-root <cold-store>`
-- `medautosci restore-index-detail-retention --root <restore-index-root-or-json> --apply --cold-store-root <cold-store>`
-- `medautosci runtime-lifecycle-payload-retention --db <runtime_lifecycle.sqlite> --dry-run --cold-store-root <cold-store>`
-- `medautosci runtime-lifecycle-payload-retention --db <runtime_lifecycle.sqlite> --apply --cold-store-root <cold-store> --compact --opl-maintenance-authorization <opl-authorization.json>`
-- `medautosci runtime-lifecycle-payload-retention --db <runtime_lifecycle.sqlite> --dry-run --cold-store-root <cold-store> --retire-cold-payloads`
-- `medautosci runtime-lifecycle-payload-retention --db <runtime_lifecycle.sqlite> --apply --cold-store-root <cold-store> --retire-cold-payloads --compact --opl-maintenance-authorization <opl-authorization.json>`
-- `medautosci runtime-lifecycle-payload-retention --db <runtime_lifecycle.sqlite> --dry-run --repair-stale-sidecars`
-- `medautosci runtime-lifecycle-payload-retention --db <runtime_lifecycle.sqlite> --apply --repair-stale-sidecars --opl-maintenance-authorization <opl-authorization.json>`
-- `medautosci retention-surface-housekeeping --root <workspace> --dry-run`
-- `medautosci retention-surface-housekeeping --root <workspace> --apply`
-- `medautosci cold-store-dedupe --root <cold-store> --dry-run --min-mb <n>`
-- `medautosci cold-store-dedupe --root <cold-store> --apply --min-mb <n>`
-- `medautosci cold-store-reference-audit --root <cold-store> --reference-root <workspace> --reference-root <cold-store> --dry-run --min-mb <n>`
-- `medautosci cold-store-reference-audit --root <cold-store> --reference-root <workspace> --reference-root <cold-store> --apply --min-mb <n>`
-- `medautosci semantic-cold-store-retention --root <cold-store> --reference-root <workspace-or-ref-dir> --dry-run --min-mb <n>`
-- `medautosci semantic-cold-store-retention --root <cold-store> --reference-root <workspace-or-ref-dir> --apply --retire-exact-raw-restore --min-mb <n>`
-- `medautosci semantic-cold-store-retention --root <cold-store> --reference-file-list <raw-ref-list> --dry-run --min-mb <n>`
-- `medautosci semantic-cold-store-retention --root <cold-store> --reference-file-list <raw-ref-list> --apply --retire-exact-raw-restore --min-mb <n> --max-objects <n>`
+发现旧 SQLite、pilot flag、helper import、CLI alias 或 locator 时：
 
-Use `--refs-only-state-index-only` when the purpose is to rebuild the refs-only SQLite pilot on a very large `.ds` tree. In that mode MAS intentionally skips legacy backend storage maintenance and recursive size summaries, records `legacy_backend_status=skipped_by_refs_only_state_index_only`, and writes `size_before` / `size_after` as explicit skipped summaries. This is the preferred live canary path for million-file runtime roots because it indexes refs without doing physical compaction, GC, body migration, paper mutation or artifact cleanup.
+1. 先确认是否存在 active caller。只有 active import、调用、参数或 current projection 才是 resurrection regression。
+2. 仅存在于 history、tombstone、migration receipt、archive manifest 或 cleanup provenance 时，保持历史语境，不恢复实现。
+3. active regression 统一迁回 `opl_state_index_source_adapter` 或 OPL StateIndex owner surface，并更新 retirement inventory/test。
+4. 涉及真实 workspace 删除或归档时，先绑定 owner、scope、hash/restore proof 和 fresh runtime readback；不要把 repo retirement 直接解释成 live workspace cleanup authorization。
+5. runtime/paper/currentness 结论分别从 OPL live readback 与 MAS owner surfaces读取，不能从旧 DB 文件是否存在推断。
 
-Every `runtime maintain-storage` call also attempts body-free canonical runtime-state materialization before runtime snapshot and SQLite indexing. The materialization path copies a valid legacy `.ds/runtime_state.json` into `artifacts/runtime/state/runtime_state.json`; if canonical already exists with the same hash it reports `already_materialized`, and if canonical has diverged with newer/same mtime it reports `canonical_runtime_state_diverged` rather than overwriting. This is a migration bridge away from the `.ds` name, not a permission to delete legacy `.ds/runtime_state.json` while direct legacy readers still exist.
+## 验证入口
 
-Use `--restore-proof-canary` when the purpose is to prove archive/restore mechanics on a bounded sample before any physical slimming. This canary samples at most `--restore-proof-canary-entry-limit` files or symlinks per selected runtime bucket, writes a bounded archive, source manifest, restore proof, plan and receipt under `artifacts/runtime/runtime_storage_maintenance/restore_proof_canary/`, and retains all source runtime payload. It records `actual_release_bytes=0`, `source_retained=true`, `mutated_runtime_payload=false`, and `pruned_paths=[]`. For parked `paused` / `stopped` roots it still requires `--include-parked-controller-stop`; do not use `--allow-live-runtime` to bypass this gate.
+- `scripts/run-pytest-clean.sh -q tests/test_adapter_retirement_boundary.py`
+- `scripts/run-pytest-clean.sh -q tests/test_opl_family_persistence_adapter.py`
+- `scripts/run-pytest-clean.sh -q tests/test_stage_artifact_kernel_adoption_contract.py`
+- `scripts/verify.sh`
+- `make test-meta`
 
-Use `--restore-proof-compaction` only for an explicit stopped-cold bucket scope. `runs` and `codex_homes` are compacted as child-level source groups, not as one giant archive, so `--restore-proof-max-shards <n>` can process a bounded shard window and be rerun until `remaining_source_group_count=0`. Each shard writes an archive, source manifest, restore proof and body-free `archive_refs` row before deleting the compacted source group. The selected bucket directory is removed only when it becomes empty. This is physical runtime payload compaction, not refs-only indexing, paper progress, publication readiness, artifact authority, memory cleanup or study truth mutation.
+focused tests、contracts 和 clean source scans 只证明 repo-source retirement guard；它们不证明 OPL live StateIndex readback、provider running、paper progress、publication readiness 或 production readiness。
 
-If a selected bucket contains empty child directories after all payload-bearing groups were already archived, rerun the same `--restore-proof-compaction` command. The `nothing_to_archive` result still prunes empty child directories and then the empty selected bucket directory. It must not remove any child that contains a file, symlink or other payload.
+## 历史内容归位
 
-Historical archive, nested bare `.ds` roots and quest-root `.ds` directories are no longer accepted by `runtime maintain-storage` as a separate legacy root. The former `runtime legacy-ds-retire` surface is now retired history only: existing `artifacts/runtime/restore_index/legacy_ds_retirement/**` and workspace `runtime/artifacts/legacy_ds_retirement/**` manifests, `legacy_ds.tar.gz`, restore proofs, retirement receipts and `.cold_ref.json` files remain restore/provenance evidence, but MAS no longer exposes a public `.ds` retirement CLI/parser/controller. Current handling uses canonical `artifacts/runtime/state/runtime_state.json`, OPL storage maintenance, `runtime maintain-storage` / `runtime storage-audit`, historical retention and semantic cold-store retention. MAS must not keep `.ds` or the raw legacy tar body as a long-term read layer, and must not reintroduce `.ds` public retirement aliases or compatibility commands.
-
-Historical retention commands are second-pass online slimming surfaces for workspaces that have already migrated into the new MAS layout. `historical-body-retention` externalizes large provenance/history/archive bodies and leaves inline refs or symlinks plus `.cold_ref.json`; `historical-directory-retention` moves complete legacy capsules to verified cold tar archives and leaves only `capsule.cold_ref.json`; `restore-index-detail-retention` moves large manifest/proof detail arrays out of online JSON while preserving counts, hashes and verified status; `runtime-lifecycle-payload-retention` externalizes large derived SQLite payload columns and can compact after integrity-gated mutation only when an OPL `opl_runtime_lifecycle_maintenance_authorization` proof binds the operation, maintenance surface, DB path, authorized outcome and authorization ref. Without that proof, apply returns `blocked_opl_runtime_lifecycle_maintenance_authorization_required` and does not open the SQLite mutation path, compact the DB or delete WAL/SHM sidecars. With explicit `--retire-cold-payloads`, the same authorized surface may retire already externalized `runtime_lifecycle_payload_retention_ref` cold object bodies into `runtime_lifecycle_payload_semantic_retention_ref` after rechecking the DB inline ref, cold-store root, `.cold_ref.json` and sha256; it updates `semantic_restore_policy`, clears raw restore commands and records that byte-for-byte payload body restore is no longer promised. `retention-surface-housekeeping` removes only known misplaced retention receipt directories created by this lifecycle surface. Cold-store commands operate on the offline store: `cold-store-dedupe` hardlinks byte-identical cold objects without rewriting refs, and `cold-store-reference-audit` classifies or deletes only cold objects not referenced by any scanned cold ref. These commands must not target `data/datasets/**`, owner receipts, typed blockers, latest pointers, study/publication truth, controller decisions, current packages or OPL current-control state.
-
-Online workspace size and cold store size are intentionally separate metrics. A successful apply may increase `/Users/gaofeng/workspace/.mas-cold-store` while decreasing the MAS paper workspace; that is expected as long as every moved body has a cold ref, sha256, receipt and restore command. Report storage state using four buckets: online workspace, cold store, dataset assets, and remaining non-dataset large files.
-
-Dataset assets use the stricter boundary in [Data Asset Storage Retention Runbook](./data_asset_storage_retention.md). In particular, DPCC `restricted_raw` / `deidentified_longitudinal` / `standardized_longitudinal` release bodies, release-local manifests, declared output contracts and dataset working-copy SQLite files are `data/datasets/**` body-plane assets. Runtime residue cleanup, restore-proof compaction, historical payload retention and runtime lifecycle SQLite compact must not mutate them. `manifest_refs` under `memory/portfolio/data_assets/**` is a controller-rebuildable locator/projection surface, not a body store or authority override.
-
-When cold store remains large after `.ds` physical retirement, first run dedupe and reference audit rather than deleting raw objects. If the audit shows most bytes are still referenced, the remaining size is an explicit exact-restore commitment. Further reduction goes through `semantic-cold-store-retention`: dry-run plans referenced legacy raw archive/body objects; apply requires `--retire-exact-raw-restore`, writes a semantic capsule and receipt, replaces the cold object body with a body-free semantic ref, and updates the source `.cold_ref.json` with `semantic_restore_policy` while clearing raw `restore_command`. Prefer a narrow raw-ref list generated from cold refs whose `surface_kind` is `legacy_ds_cold_archive_body_ref`, `historical_body_cold_ref`, `historical_directory_cold_ref`, or `legacy_ds_archive_cold_ref`; do not full-scan every JSON ref when only raw/body retirement is intended. This command intentionally does not process restore-index detail refs or runtime lifecycle payload refs in its first version; those remain under their existing detail/payload retention contracts.
-
-The safe live sequence for million-file `.ds` roots is:
-
-1. `--refs-only-state-index-pilot --refs-only-state-index-only` to rebuild refs-only SQLite without recursive size scan.
-2. `--restore-proof-canary --restore-proof-canary-entry-limit <small n> --restore-proof-bucket runs|codex_homes --include-parked-controller-stop` to produce bounded restore proof while retaining source payload.
-3. Sharded `--restore-proof-compaction --restore-proof-max-shards <n>` after owner/operator confirms the stopped-cold window and target bucket scope.
-4. Fresh inventory / owner-window confirmation if a new `.ds` drift appears, followed by canonical runtime-state or refs migration through current storage maintenance surfaces.
-5. Historical body/directory/detail/payload retention after `.ds` reaches zero and only legacy archive bodies or oversized derived payloads remain online.
-
-Verification:
-
-- `scripts/run-pytest-clean.sh tests/test_opl_state_index_kernel.py -q`
-- `scripts/run-pytest-clean.sh tests/test_adapter_retirement_boundary_cases/test_runtime_maintenance_boundary.py -q`
-- `scripts/run-pytest-clean.sh tests/test_cli_cases/runtime_storage_commands.py -q`
-- `scripts/run-pytest-clean.sh tests/test_stage_artifact_kernel_adoption_contract.py -q`
-- `scripts/run-pytest-clean.sh tests/test_historical_body_retention.py tests/test_historical_directory_retention.py tests/test_restore_index_detail_retention.py tests/test_retention_surface_housekeeping.py -q`
-
-Live canary evidence:
-
-- `2026-06-04` DM002 `002-dm-china-us-mortality-attribution` ran `runtime maintain-storage --refs-only-state-index-pilot --refs-only-state-index-only` against `/Users/gaofeng/workspace/Yang/DM-CVD-Mortality-Risk`.
-- Result: `status=maintained`, `legacy_backend_status=skipped_by_refs_only_state_index_only`, `quest_runtime_before.status=paused`, `quest_runtime_after.status=paused`, `active_run_id=null` before and after, and both size summaries were `status=skipped` with `skip_reason=refs_only_state_index_only`.
-- SQLite proof: `/Users/gaofeng/workspace/Yang/DM-CVD-Mortality-Risk/artifacts/runtime/mas_refs_only_state_index_pilot.sqlite` existed, table `small_file_refs` had 3 rows, ref families were `lifecycle=1` and `outbox=2`, `body_included` min/max were both `0`, and schema columns did not include `body`, `content` or `payload`.
-- Report refs: `studies/002-dm-china-us-mortality-attribution/artifacts/runtime/runtime_storage_maintenance/20260604T004827Z.json` and `studies/002-dm-china-us-mortality-attribution/artifacts/runtime/runtime_storage_maintenance/latest.json`.
-- Read this as storage/index evidence only. It is not a paper-progress, publication-ready, stage-completion, artifact-authority, restore-ready, retention, GC or compaction receipt.
-
-Live compaction evidence:
-
-- `2026-06-04` DM002 `002-dm-china-us-mortality-attribution` ran sharded restore-proof compaction against the stopped quest root `/Users/gaofeng/workspace/Yang/DM-CVD-Mortality-Risk/runtime/quests/002-dm-china-us-mortality-attribution`.
-- Scope was limited to `.ds/runs` and `.ds/codex_homes`; `study.yaml`, `publication_eval/latest.json`, `controller_decisions/latest.json`, manuscripts, paper source, memory body and artifact bodies were not compaction targets.
-- Fresh physical check after compaction read `.ds/runs` missing and `.ds/codex_homes` missing.
-- `domain_authority_refs.sqlite` contained `archive_ref_total=1811` for that quest root, with `runs=1191`, `codex_homes=620`, `other=0`, all as refs-only archive provenance.
-- Restore-proof archive root was `/Users/gaofeng/workspace/Yang/DM-CVD-Mortality-Risk/runtime/quests/002-dm-china-us-mortality-attribution/artifacts/runtime/runtime_storage_maintenance/restore_proof_archives/runtime_bucket_compaction`, observed size `19G`.
-- OPL Stage Folder closeout was materialized under `medautoscience/state-index-canary/dm-cvd/dm002-runtime-state-index`, stage `runtime_payload_compaction`, attempt `compaction-2026-06-04`, owner receipt ref `mas-runtime-storage-payload-compaction:002-dm-china-us-mortality-attribution:20260604T032820Z`.
-- Read this as runtime payload storage closure for the selected cold buckets. It is not paper progress, publication-ready status, owner-route success, domain-ready status, memory acceptance, artifact mutation authorization or production readiness.
-
-Full historical runtime payload closeout evidence:
-
-- `2026-06-04` all discovered MAS `.ds` quest roots and historical `.ds` archive residues under the known local MAS workspaces were inventoried. Coverage included AS biologics, DM-CVD, NF-PitNET, Obesity, the legacy DM003 `ops/med-the study team` orphan path, `runtime/archives/legacy_mds/**/.ds`, and nested `.ds/python_pycache/**/.ds` payload residues.
-- Fresh physical verification after compaction found no remaining `.ds/runs` or `.ds/codex_homes` bucket under `/Users/gaofeng/workspace/LinZM/as_biologics_workspace`, `/Users/gaofeng/workspace/Yang/DM-CVD-Mortality-Risk`, `/Users/gaofeng/workspace/Yang/NF-PitNET`, or `/Users/gaofeng/workspace/Yang/Obesity`.
-- Archive refs by quest root: DM002 `1811` (`runs=1191`, `codex_homes=620`), DM003 `1841` (`runs=1349`, `codex_homes=492`), DM004 `8` (`runs=4`, `codex_homes=4`), Obesity `1637` (`runs=968`, `codex_homes=669`). Other discovered roots had no `runs` / `codex_homes` payload to compact.
-- Legacy archive / nested `.ds` follow-through added `364` archive refs across historical owner roots. Final refs-only archive row scan across the four local MAS workspaces read `remaining_runs_or_codex_homes_count=0`, `archive_ref_row_total=6025`, and `archive_ref_quest_root_count=14`.
-- Refs-only SQLite index-only maintenance was run for the three newly compacted payload roots before physical compaction: DM003, DM004 and Obesity. The SQLite role remains refs-only and body-free.
-- OPL Stage Folder closeout was materialized under `medautoscience/state-index-full-migration/all-workspaces/historical-runtime-payload-compaction`, stage `all_runtime_payload_compaction`, attempt `full-migration-2026-06-04`, owner receipt ref `mas-runtime-storage-full-payload-compaction:all-discovered-runtime-quests:20260604T044000Z`.
-- Read this as full local historical runtime payload storage closure for discovered `runs` / `codex_homes` buckets. It is not paper progress, publication-ready status, owner-route success, domain-ready status, memory acceptance, artifact mutation authorization or production readiness.
-
-Canonical runtime state and active cache closeout evidence:
-
-- `2026-06-04` live maintenance materialized canonical `artifacts/runtime/state/runtime_state.json` for all active Yang MAS quest roots found under DM-CVD, Obesity and NF-PitNET: four DM-CVD quests, one Obesity quest and four NF-PitNET quests.
-- The three workspace-level refs-only SQLite pilots were rebuilt after the quest-slice indexing fix. Direct SQLite verification read DM-CVD `quest_count=4` with `family_counts={"lifecycle":4,"legacy_lifecycle":4}`, Obesity `quest_count=1` with `family_counts={"lifecycle":1,"legacy_lifecycle":1}`, and NF-PitNET `quest_count=4` with `family_counts={"lifecycle":4,"legacy_lifecycle":4}`. All had `body_included_values=[0]`.
-- Active runtime cache residue was compacted by restore-proof path for DM002, DM003, DM004 and Obesity `python_pycache` buckets. Fresh Yang-wide physical check after follow-through read no `.ds/runs`, `.ds/codex_homes` or `.ds/python_pycache` buckets.
-- Yang-wide `.git` count after full cleanup was `11`. The remaining entries are historical archive / uv-cache / framework-reference / PPT roots, not current MAS runtime payload explosion. Removing them needs a separate restore-proof or explicit archive-retirement policy; they are not paper progress blockers.
-- Fresh `study progress` for DM002 and DM003 after the storage migration succeeded through the MAS profile and new runtime-state surface. A later `stage-artifact-materialize --apply` run materialized both studies into `artifacts/stage_outputs/<stage_id>/`: each study now has 8 stage directories, stage-native refs files, and refs-only `stage_artifact_delta` rows in `/Users/gaofeng/workspace/Yang/DM-CVD-Mortality-Risk/artifacts/runtime/domain_authority_refs.sqlite.paper_work_unit_receipts`. A `2026-06-05` follow-up fixed the stage artifact read-model so retired same-folder contract files `owner_receipt.json` and `stage_artifact_manifest.json` are reported as `legacy_orphan_residue`, while unrelated orphan files still fail closed. Fresh `stage_artifact_index` reads both studies as `current_stage=08-publication_package_handoff`, all 8 stages `artifact_delta_present`, and `next_owner_action.action_type=publication_handoff_owner_gate` with required delta `publication_handoff_owner_receipt_or_typed_blocker`. This closes the stage-folder missing-output tail and exposes the terminal publication owner gate; it is still not a paper closure, quality verdict, publication-ready status, artifact mutation authorization, OPL queue release/resume, or current-package update.
-- After explicit user wakeup, OPL provider readiness was repaired and the current DM002/DM003 dispatch tasks were approved narrowly, not as a blanket approval of old waiting tasks. Post-approval OPL ticks selected one task per study and admitted running Temporal attempts: DM002 `sat_5d11d86ff9a1ee5b379030ee` for `run_quality_repair_batch`, DM003 `sat_fe0c6a536fc5c9e21bca6389` for `run_gate_clearing_batch`. Owner-route observe projected both as `running_provider_attempt=true`. This proves the migrated workspace can be located and continued through MAS/OPL surfaces; it is not a publication verdict, artifact mutation authorization or paper closure.
-- The current paper owner route must be read separately from the stage-folder kernel. A `2026-06-04` fresh `study-progress` read after stage materialization shows DM002 still has runtime envelope `current_stage=queued`, paper stage `publishability_gate_blocked`, next owner `ai_reviewer`, and running proof for `sat_5d11d86ff9a1ee5b379030ee` / `return_to_ai_reviewer_workflow`. The same read shows DM003 has runtime envelope `current_stage=queued`, paper stage `analysis-campaign`, next owner `external_supervisor`, action `run_gate_clearing_batch`, admission pending, and no current running provider proof. These are owner-route / publication-supervision states, not stage-directory missing-output blockers.
-
-Files and archives remain authoritative for:
-
-- `publication_eval/latest.json`, `controller_decisions/latest.json`, `progress_projection`, `domain_diagnostic_report`, study charter, evidence ledger, review ledger, manuscripts, tables, figures, packages, delivery mirrors, dataset manifests, restore manifests, archive payloads, owner receipts and typed blockers.
-
-OPL remains authoritative for generic stage/runtime control:
-
-- route hydration、queue、stage attempt ledger、provider start/query、retry/dead-letter、human gate transport、operator `current_control_state` 和 provider completion interpretation.
-
-## Current Drift Handling
-
-When a current or legacy workspace shows new `.ds`, quest `.git`, root `.git`, old MDS path, old runtime lifecycle SQLite payload, or legacy restore import diagnostic drift, the handling order is:
-
-1. Fresh inventory: identify state, owner, path class, file/byte counts, remotes/locks/worktrees when Git exists, and authority surfaces touched. OPL current control state owns live attempt/liveness truth.
-2. Safety gate: live/running/unknown-owner paths are audit-only unless an OPL control-state receipt plus MAS owner receipt / typed blocker confirms a safe window.
-3. Archive and restore proof: produce archive, manifest, sha256, restore command, source path list, and verification result before removal.
-4. Lifecycle export: preserve explicit read/restore diagnostics when needed.
-5. Verify: prove current MAS status/progress/domain authority refs still read from MAS authority and OPL current control state, not from root Git, quest Git, old `.ds`, old MDS path, or retired runtime lifecycle stores.
-
-Do not describe newly discovered drift as “the migration plan is still active” unless the root cause is a live writer or contract regression. Most post-closeout drift is a maintenance event under this P3a guard.
-
-## Relationship To P3 And P2
-
-P3a is now a retired-runtime-provenance guard for P3. It does not own product entry, MDS code absorb, no-history import, functional monolith closeout, OPL provider cutover, paper-loop acceptance, or MAS runtime scheduling.
-
-Reusable lessons from P3a may move upward into OPL framework primitives under P2:
-
-- domain authority refs ledger patterns;
-- artifact locator/index patterns;
-- retention and cleanup receipts;
-- restore-proof and migration ledger patterns;
-- provider cache/index cleanup gates.
-
-When lifted to OPL, these remain framework metadata and receipts. MAS study truth, publication truth, quality truth, artifact authority, owner receipts and typed blockers stay in MAS.
-
-## Verification And Evidence
-
-Use these evidence surfaces:
-
-- `artifacts/runtime/lifecycle_migration/*.json`;
-- workspace root Git retirement ledgers;
-- quest Git cutover ledgers;
-- restore manifests and sha256 records;
-- lifecycle export / domain authority refs records;
-- focused domain authority refs and repository hygiene tests;
-- live workspace read-only evidence when discussing a particular workspace.
-
-`git status`, Git log, quest Git refs, old worktree lists, retired runtime lifecycle SQLite rows, or recovery-intent snapshots are not MAS runtime status sources.
-
-## Historical Content Disposition
-
-The previous long record combined SQLite design rationale, dated workspace closeouts, root/quest Git cutover ledgers, schema sketches, lane tables, and implementation checklists. It has been archived as a full record because those details are useful provenance.
-
-Current readers should use this document for today’s domain authority refs boundary and retired-runtime drift process, then open the archived full record only when they need dated migration evidence, old lane names, schema rationale, or exact workspace closeout details. The archived full record is provenance only and must not be used to restore MAS-owned runtime lifecycle, read model, scheduler, worker lease or recovery intent control surfaces.
+旧 schema rationale、pilot 命令、SQLite canary、dated workspace closeout、quest/root Git cutover、restore-proof 数字和 DM002/DM003 当日状态已归入完整历史记录或对应 workspace receipt。当前读者只使用本文理解今天的 body-free adapter 与禁止复活边界；需要追溯时再读历史材料。

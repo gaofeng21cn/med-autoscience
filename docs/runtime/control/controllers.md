@@ -82,7 +82,6 @@ Machine boundary: Human-readable runtime control support only; runtime control t
 - `tests/test_progress_projection_evidence_adoption.py`
 - `tests/test_study_runtime_execution_control_intent_cases/`
 - `tests/test_study_runtime_execution_evidence_adoption_cases/`
-- `tests/test_adapter_retirement_boundary_cases/test_runtime_maintenance_boundary.py`
 - `tests/test_cli_cases/owner_route_handoff_command/test_export.py`
 - `tests/test_cli_cases/owner_route_handoff_command/test_dispatch.py`
 - `tests/test_delivery_inspector.py`

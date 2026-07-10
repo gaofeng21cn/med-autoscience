@@ -42,7 +42,7 @@ Hypothesis portfolio / evidence pack 进入 runtime 读面时，只能表现为 
 - [External Learning Adoption Closure Runbook](./control/external_learning_adoption_closure.md)：固定 Co-Scientist、Nature-skills、Academic Research Skills、AutoSci / OmegaWiki、EvoScientist / EvoSkills、ARK、ARIS、PaperSpine、Open Auto Research 等 external-learning intake 的完成口径。`adopt_contract` / reference intake / design doc 不等于 landed；只有进入 owner surface、read-model、worker/sidecar slot、callable/action catalog、quality pack consumer、controller-authorized soak 或等价 repo-native surface，且有验证证明 allowed writes / forbidden authority / nonblocking 边界，才算实际落地。
 - [Study runtime control surface](./control/study_runtime_control_surface.md)
 - [Study runtime orchestration](./control/study_runtime_orchestration.md)
-- [Domain Authority Refs Index Guard](./domain_authority_refs_index_guard.md)：domain authority refs、owner receipt、typed blocker、restore/archive provenance refs 和 SQLite/file boundary guard。
+- [Domain Authority Refs Index Guard](./domain_authority_refs_index_guard.md)：body-free StateIndex source refs、owner receipt、typed blocker、restore/archive provenance 和 legacy SQLite/file boundary guard。
 - [Data Asset Storage Retention Runbook](./data_asset_storage_retention.md)：固定 `data/datasets/**` 数据资产 body 与 runtime residue、cold-store、SQLite compact 的分账边界；OPL 只消费 locator/ref/projection，不持有 MAS 医学数据 authority。
 - [Study progress projection](./projections/study_progress_projection.md)
 
