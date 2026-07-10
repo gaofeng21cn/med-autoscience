@@ -49,8 +49,8 @@
       "contracts/foundry-agent-os-domain-kernel-manifest.json#/forbidden_authority_flags"
     ],
     "doc_refs": [
-      "docs/status.md#当前测试证据差距",
-      "docs/active/mas-ideal-state-gap-plan.md#测试--证据差距"
+      "docs/status.md#live-evidence-tail",
+      "docs/active/mas-ideal-state-gap-plan.md#live-evidence-tail"
     ],
     "next_verification_command_refs": [
       "scripts/run-pytest-clean.sh -q tests/test_live_stage_run_progress_evidence.py tests/test_mas_production_acceptance.py",

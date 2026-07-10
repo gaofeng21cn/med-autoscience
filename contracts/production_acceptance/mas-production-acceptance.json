@@ -146,7 +146,7 @@
         "body_included": false
       },
       {
-        "ref": "docs/active/mas-ideal-state-gap-plan.md#当前测试证据差距",
+        "ref": "docs/active/mas-ideal-state-gap-plan.md#live-evidence-tail",
         "role": "active_gap_plan_gate",
         "body_included": false
       },
@@ -834,12 +834,12 @@
         "body_included": false
       },
       {
-        "ref": "docs/status.md#当前测试证据差距",
+        "ref": "docs/status.md#live-evidence-tail",
         "role": "human_doc_progress_delta",
         "body_included": false
       },
       {
-        "ref": "docs/active/mas-ideal-state-gap-plan.md#当前测试证据差距",
+        "ref": "docs/active/mas-ideal-state-gap-plan.md#live-evidence-tail",
         "role": "human_doc_gap_delta",
         "body_included": false
       }
