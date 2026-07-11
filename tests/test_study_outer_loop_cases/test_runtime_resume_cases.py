@@ -137,6 +137,7 @@ def test_domain_diagnostic_report_outer_loop_prefers_active_task_intake_analysis
     profile = make_profile(tmp_path)
     study_root = write_study(profile.workspace_root, "001-risk")
     quest_root = profile.managed_runtime_home / "quests" / "quest-001"
+    _write_json(quest_root / "quest.yaml", {"quest_id": "quest-001", "study_id": study_root.name})
     runtime_escalation_ref = _write_runtime_escalation_record(module, quest_root, study_root)
     _write_charter(study_root)
     publication_eval_path = study_root / "artifacts" / "publication_eval" / "latest.json"
@@ -231,6 +232,7 @@ def test_domain_diagnostic_report_outer_loop_promotes_task_intake_generic_gate_s
     profile = make_profile(tmp_path)
     study_root = write_study(profile.workspace_root, "001-risk")
     quest_root = profile.managed_runtime_home / "quests" / "quest-001"
+    _write_json(quest_root / "quest.yaml", {"quest_id": "quest-001", "study_id": study_root.name})
     runtime_escalation_ref = _write_runtime_escalation_record(module, quest_root, study_root)
     _write_charter(study_root)
     publication_eval_path = study_root / "artifacts" / "publication_eval" / "latest.json"

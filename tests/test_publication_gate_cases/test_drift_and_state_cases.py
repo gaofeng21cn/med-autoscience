@@ -491,7 +491,6 @@ def test_build_gate_state_uses_newer_bound_study_paper_authority(tmp_path: Path)
     projected_paper_root = quest_root / "paper"
 
     write_text(quest_root / "quest.yaml", "quest_id: 003-paper\nstudy_id: 003-paper\n")
-    dump_json(quest_root / ".ds" / "runtime_state.json", {"quest_id": "003-paper", "status": "stopped"})
     dump_json(runtime_paper_root / "paper_bundle_manifest.json", {"schema_version": 1, "paper_branch": "paper/main"})
     dump_json(projected_paper_root / "paper_bundle_manifest.json", {"schema_version": 1, "paper_branch": "paper/main"})
     dump_json(

@@ -20,9 +20,6 @@ from med_autoscience.journal_requirements import (
 )
 from med_autoscience.policies import publication_gate as publication_gate_policy
 from med_autoscience.policies.medical_reporting_checklist import REPORTING_CHECKLIST_BLOCKER_KEYS
-from med_autoscience.runtime_protocol import (
-    quest_state,
-)
 from med_autoscience.controllers.study_paper_context import resolve_study_paper_context
 from med_autoscience.controllers import paper_artifacts
 from med_autoscience.adapters import report_store as runtime_protocol_report_store
@@ -56,10 +53,8 @@ from .discovery_and_drift import (
     _medical_surface_report_matches_study_root,
     find_latest_gate_report,
     find_latest_medical_publication_surface_report,
-    _write_drift_text_surfaces,
 )
 from .discovery_and_drift import (
-    detect_write_drift,
     _paper_line_open_supplementary_count,
     _paper_line_recommended_action,
     _paper_line_blocking_reasons,
@@ -364,8 +359,6 @@ def build_gate_report(state: GateState) -> dict[str, Any]:
             blockers.append("missing_post_main_publishability_gate")
         if state.missing_deliverables:
             blockers.append("missing_required_non_scalar_deliverables")
-        if state.write_drift_detected and not prior_gate_allows_write:
-            blockers.append("active_run_drifting_into_write_without_gate_approval")
     elif state.anchor_kind == "paper_bundle":
         allow_write = (
             state.compile_report_path is not None
@@ -568,11 +561,11 @@ def build_gate_report(state: GateState) -> dict[str, Any]:
         "gate_fingerprint": gate_fingerprint,
         "anchor_kind": state.anchor_kind,
         "anchor_path": str(state.anchor_path),
-        "quest_id": (state.main_result or {}).get("quest_id") or state.quest_root.name,
+        "quest_id": state.quest_id,
+        "study_id": state.study_id,
         "run_id": (
             (state.main_result or {}).get("run_id")
             or (state.paper_line_state or {}).get("paper_line_id")
-            or state.runtime_state.get("active_run_id")
         ),
         "main_result_path": str(state.main_result_path) if state.main_result_path else None,
         "paper_line_state_path": str(state.paper_line_state_path) if state.paper_line_state_path else None,
@@ -591,7 +584,6 @@ def build_gate_report(state: GateState) -> dict[str, Any]:
         ),
         "status": "blocked" if blockers else "clear",
         "blockers": blockers,
-        "write_drift_detected": state.write_drift_detected,
         "required_non_scalar_deliverables": list(
             (state.main_result or {}).get("metric_contract", {}).get("required_non_scalar_deliverables") or []
         ),

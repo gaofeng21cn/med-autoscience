@@ -16,7 +16,7 @@ def _find_pending_interaction_artifact_path(
     patterns = [f"artifacts/*/{resolved_interaction_id}.json"]
     for pattern in patterns:
         candidates.extend(quest_root.glob(pattern))
-    return quest_state.find_latest(candidates)
+    return max(candidates, key=lambda path: path.stat().st_mtime) if candidates else None
 
 
 def _controller_stop_source(stop_reason: str | None) -> str | None:

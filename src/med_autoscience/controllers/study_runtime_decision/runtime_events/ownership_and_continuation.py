@@ -142,7 +142,7 @@ def _load_json_dict_with_error(path: Path) -> tuple[dict[str, object], str | Non
 
 
 def _runtime_state_path(quest_root: Path) -> Path:
-    return quest_state.canonical_runtime_state_path(quest_root)
+    return quest_root.expanduser().resolve() / "artifacts" / "runtime" / "state" / "runtime_state.json"
 
 
 def _continuation_state_payload(

@@ -103,9 +103,9 @@ def _is_delivered_human_review_milestone_without_live_worker(
 def _opl_owner_route_handoff_without_live_worker(
     status: ProgressProjectionStatus,
     *,
-    audit_status: quest_state.QuestRuntimeLivenessStatus | None = None,
+    audit_status: StudyRuntimeAuditStatus | None = None,
 ) -> bool:
-    if audit_status is not None and audit_status is quest_state.QuestRuntimeLivenessStatus.LIVE:
+    if audit_status is not None and audit_status is StudyRuntimeAuditStatus.LIVE:
         return False
     try:
         continuation_state = status.continuation_state
@@ -131,9 +131,9 @@ def _opl_owner_route_handoff_without_live_worker(
 def _user_pause_contract_without_live_worker(
     status: ProgressProjectionStatus,
     *,
-    audit_status: quest_state.QuestRuntimeLivenessStatus | None = None,
+    audit_status: StudyRuntimeAuditStatus | None = None,
 ) -> bool:
-    if audit_status is not None and audit_status is quest_state.QuestRuntimeLivenessStatus.LIVE:
+    if audit_status is not None and audit_status is StudyRuntimeAuditStatus.LIVE:
         return False
     if (
         status.quest_status not in _LIVE_QUEST_STATUSES
@@ -151,9 +151,9 @@ def _user_pause_contract_without_live_worker(
 def _human_takeover_contract_requires_explicit_wakeup_without_live_worker(
     status: ProgressProjectionStatus,
     *,
-    audit_status: quest_state.QuestRuntimeLivenessStatus | None = None,
+    audit_status: StudyRuntimeAuditStatus | None = None,
 ) -> bool:
-    if audit_status is not None and audit_status is quest_state.QuestRuntimeLivenessStatus.LIVE:
+    if audit_status is not None and audit_status is StudyRuntimeAuditStatus.LIVE:
         return False
     if (
         status.quest_status not in _LIVE_QUEST_STATUSES
@@ -177,9 +177,9 @@ def _human_takeover_contract_requires_explicit_wakeup_without_live_worker(
 def _bare_paused_quest_requires_explicit_wakeup_without_live_worker(
     status: ProgressProjectionStatus,
     *,
-    audit_status: quest_state.QuestRuntimeLivenessStatus | None = None,
+    audit_status: StudyRuntimeAuditStatus | None = None,
 ) -> bool:
-    if audit_status is not None and audit_status is quest_state.QuestRuntimeLivenessStatus.LIVE:
+    if audit_status is not None and audit_status is StudyRuntimeAuditStatus.LIVE:
         return False
     if status.quest_status is not StudyRuntimeQuestStatus.PAUSED:
         return False
@@ -230,11 +230,11 @@ def _should_park_delivered_package_without_live_worker(
     status: ProgressProjectionStatus,
     *,
     study_root: Path,
-    audit_status: quest_state.QuestRuntimeLivenessStatus | None = None,
+    audit_status: StudyRuntimeAuditStatus | None = None,
 ) -> bool:
     if not _has_delivered_human_package_surface(study_root):
         return False
-    if audit_status is quest_state.QuestRuntimeLivenessStatus.LIVE:
+    if audit_status is StudyRuntimeAuditStatus.LIVE:
         return False
     if status.quest_status not in _LIVE_QUEST_STATUSES and status.quest_status not in _RESUMABLE_QUEST_STATUSES:
         return False
@@ -249,7 +249,7 @@ def _should_park_delivered_or_opl_handoff_package_without_live_worker(
     status: ProgressProjectionStatus,
     *,
     study_root: Path,
-    audit_status: quest_state.QuestRuntimeLivenessStatus | None = None,
+    audit_status: StudyRuntimeAuditStatus | None = None,
     manual_finish_compatibility_guard: bool = False,
 ) -> bool:
     return (

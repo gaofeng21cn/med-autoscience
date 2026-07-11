@@ -10,7 +10,6 @@ from med_autoscience.controllers import study_outer_loop
 from med_autoscience.controllers.paper_mission_owner_surface import opl_owner_route_handoff
 from med_autoscience.developer_supervisor_mode import DeveloperSupervisorMode
 from med_autoscience.profiles import WorkspaceProfile
-from med_autoscience.runtime_protocol import quest_state
 
 
 SUBMISSION_MILESTONE_PARK_SOURCE = "paper_mission_owner_surface_submission_milestone_park"
@@ -34,13 +33,6 @@ def _write_json(path: Path, payload: Mapping[str, Any]) -> None:
     path.write_text(json.dumps(dict(payload), ensure_ascii=False, indent=2, sort_keys=True) + "\n", encoding="utf-8")
 
 
-def _runtime_state_path(status: Mapping[str, Any]) -> Path | None:
-    quest_root = _text(status.get("quest_root"))
-    if quest_root is None:
-        return None
-    return quest_state.canonical_runtime_state_path(Path(quest_root))
-
-
 def _submission_milestone_runtime_owner_handoff(
     *,
     profile: WorkspaceProfile,
@@ -49,27 +41,36 @@ def _submission_milestone_runtime_owner_handoff(
     status: Mapping[str, Any],
     controller_decision: Mapping[str, Any],
 ) -> dict[str, Any]:
-    runtime_state_path = _runtime_state_path(status)
-    if runtime_state_path is None:
+    quest_root = _text(status.get("quest_root"))
+    if quest_root is None:
         return {
             "marked": False,
             "reason": "quest_root_missing",
         }
-    return opl_owner_route_handoff.mark_owner_route_handoff(
-        study_root=profile.studies_root / study_id,
-        runtime_state_path=runtime_state_path,
-        study_id=study_id,
-        quest_id=quest_id,
-        reason="submission_milestone_runtime_stop_required",
-        repair_kind="submission_milestone_runtime_owner_stop",
-        authorization=_mapping(controller_decision),
-        extra={
-            "requested_runtime_action": "stop",
+    return {
+        "marked": True,
+        "handoff": {
+            "surface_kind": "mas_submission_milestone_opl_action_request",
+            "study_id": study_id,
+            "quest_id": quest_id,
+            "quest_root": quest_root,
+            "requested_opl_action": "stop_stage_run",
             "source": SUBMISSION_MILESTONE_PARK_SOURCE,
             "runtime_root_ref": str(profile.runtime_root),
-            "submission_milestone_parking": True,
+            "owner_answer": dict(controller_decision),
+            "typed_blocker": {
+                "blocker_type": "opl_stage_run_stop_required",
+                "owner": "one-person-lab",
+                "domain_owner": "med-autoscience",
+                "reason": "submission_milestone_runtime_stop_required",
+            },
+            "authority_boundary": {
+                "mas_writes_runtime_state": False,
+                "mas_stops_stage_run": False,
+                "opl_writes_domain_truth": False,
+            },
         },
-    )
+    }
 
 
 def _write_submission_milestone_repair_lifecycle(

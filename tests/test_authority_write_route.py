@@ -373,6 +373,10 @@ def test_quality_repair_batch_derives_route_context_from_runtime_status(
         manuscript_family="prediction_model",
     )
     quest_id = "quest-001"
+    _write_json(
+        profile.runtime_root / quest_id / "quest.yaml",
+        {"quest_id": quest_id, "study_id": study_root.name},
+    )
     publication_eval_payload = {
         "schema_version": 1,
         "eval_id": f"publication-eval::{study_root.name}::{quest_id}::2026-04-22T08:00:00+00:00",

@@ -17,10 +17,7 @@ from med_autoscience.controllers.statistical_discipline_runtime import validate_
 from med_autoscience.policies import medical_disclosure_contract
 from med_autoscience.policies import medical_publication_surface as medical_surface_policy
 from med_autoscience.policies.medical_reporting_contract import display_story_role_for_requirement_key
-from med_autoscience.workspace_contracts import build_workspace_runtime_layout, resolve_runtime_root_from_quest_root
-from med_autoscience.runtime_protocol import (
-    quest_state,
-)
+from med_autoscience.workspace_contracts import resolve_runtime_root_from_quest_root
 from med_autoscience.controllers.study_paper_context import resolve_study_paper_context
 from med_autoscience.study_charter import read_study_charter, resolve_study_charter_ref
 
@@ -28,7 +25,8 @@ from med_autoscience.study_charter import read_study_charter, resolve_study_char
 @dataclass
 class SurfaceState:
     quest_root: Path
-    runtime_state: dict[str, Any]
+    quest_id: str
+    study_id: str
     paper_root: Path
     study_root: Path | None
     review_defaults_path: Path
@@ -201,24 +199,22 @@ def find_latest(paths: list[Path]) -> Path | None:
 
 
 def build_surface_state(quest_root: Path) -> SurfaceState:
-    runtime_state = quest_state.load_runtime_state(quest_root) or {}
-    paper_root = paper_artifacts.resolve_latest_paper_root(quest_root)
-    study_root: Path | None = None
-    try:
-        paper_context = resolve_study_paper_context(paper_root)
-    except (FileNotFoundError, ValueError):
-        paper_context = None
-    if paper_context is not None:
-        study_root = paper_context.study_root
-    if study_root is None:
-        study_root = resolve_study_root_from_live_quest_root(quest_root, runtime_state)
+    resolved_quest_root = quest_root.expanduser().resolve()
+    paper_root = paper_artifacts.resolve_latest_paper_root(resolved_quest_root)
+    paper_context = resolve_study_paper_context(paper_root)
+    if paper_context.quest_root != resolved_quest_root:
+        raise ValueError(
+            f"paper authority quest root does not match requested quest: {paper_context.quest_root} != {resolved_quest_root}"
+        )
+    study_root = paper_context.study_root
     medical_prose_review_path = resolve_medical_prose_review_path(
         paper_root=paper_root,
         study_root=study_root,
     )
     return SurfaceState(
-        quest_root=quest_root,
-        runtime_state=runtime_state,
+        quest_root=resolved_quest_root,
+        quest_id=paper_context.quest_id,
+        study_id=paper_context.study_id,
         paper_root=paper_root,
         study_root=study_root,
         review_defaults_path=paper_root / "latex" / "review_defaults.yaml",
@@ -282,37 +278,6 @@ def load_yaml_mapping(path: Path) -> dict[str, Any]:
     if not isinstance(payload, dict):
         return {}
     return payload
-
-
-def resolve_study_root_from_live_quest_root(quest_root: Path, runtime_state: dict[str, Any]) -> Path | None:
-    resolved_quest_root = Path(quest_root).expanduser().resolve()
-    workspace_root: Path | None = None
-    if len(resolved_quest_root.parents) >= 3:
-        candidate = resolved_quest_root.parents[2]
-        layout = build_workspace_runtime_layout(workspace_root=candidate)
-        if (
-            candidate.parent.name != "ops"
-            and resolved_quest_root.parent == layout.quests_root
-            and resolved_quest_root.parent.parent == layout.runtime_root
-        ):
-            workspace_root = layout.workspace_root
-    if workspace_root is None and (
-        len(resolved_quest_root.parents) >= 5
-        and resolved_quest_root.parent.name == "quests"
-        and resolved_quest_root.parent.parent.name == "runtime"
-        and resolved_quest_root.parents[3].name == "ops"
-    ):
-        workspace_root = resolved_quest_root.parents[4]
-    if workspace_root is None:
-        return None
-    quest_id = str(runtime_state.get("quest_id") or resolved_quest_root.name).strip()
-    if not quest_id:
-        return None
-    direct_study_root = (workspace_root / "studies" / quest_id).resolve()
-    if (direct_study_root / "study.yaml").exists():
-        return direct_study_root
-    return None
-
 
 
 def unique_hits(hits: list[dict[str, Any]]) -> list[dict[str, Any]]:

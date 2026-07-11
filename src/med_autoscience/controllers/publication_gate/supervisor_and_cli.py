@@ -26,9 +26,6 @@ from med_autoscience.journal_requirements import (
 )
 from med_autoscience.publication_profiles import GENERAL_MEDICAL_JOURNAL_PROFILE
 from med_autoscience.policies import publication_gate as publication_gate_policy
-from med_autoscience.runtime_protocol import (
-    quest_state,
-)
 from med_autoscience.controllers.study_paper_context import resolve_study_paper_context
 from med_autoscience.controllers import paper_artifacts
 from med_autoscience.adapters import report_store as runtime_protocol_report_store
@@ -59,10 +56,8 @@ from .discovery_and_drift import (
     _medical_surface_report_matches_study_root,
     find_latest_gate_report,
     find_latest_medical_publication_surface_report,
-    _write_drift_text_surfaces,
 )
 from .discovery_and_drift import (
-    detect_write_drift,
     _paper_line_open_supplementary_count,
     _paper_line_recommended_action,
     _paper_line_blocking_reasons,
@@ -96,7 +91,6 @@ from .discovery_and_drift import (
     gate_allows_write,
 )
 from .state_and_reports import (
-    resolve_write_drift_stdout_path,
     medical_publication_surface_report_current,
     medical_publication_surface_currentness_anchor,
     resolve_compile_report_path,
@@ -721,7 +715,6 @@ def run_controller(
         evidence_refs = [str(json_path)] if json_path is not None else []
         intervention = build_pending_user_message_handoff(
             quest_root=state.quest_root,
-            runtime_state=state.runtime_state,
             message=publication_gate_policy.build_intervention_message(report),
             source=source,
             evidence_refs=evidence_refs,

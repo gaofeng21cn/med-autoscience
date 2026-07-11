@@ -17,17 +17,13 @@ def dump_json(path: Path, payload: dict) -> None:
 
 def make_gate_quest(tmp_path: Path) -> Path:
     quest_root = tmp_path / "runtime" / "quests" / "q-policy"
+    (quest_root / "quest.yaml").parent.mkdir(parents=True, exist_ok=True)
+    (quest_root / "quest.yaml").write_text("quest_id: q-policy\nstudy_id: q-policy\n", encoding="utf-8")
+    study_root = tmp_path / "studies" / "q-policy"
+    (study_root / "study.yaml").parent.mkdir(parents=True, exist_ok=True)
+    (study_root / "study.yaml").write_text("study_id: q-policy\n", encoding="utf-8")
     dump_json(
-        quest_root / "artifacts" / "runtime" / "state" / "runtime_state.json",
-        {
-            "quest_id": "q-policy",
-            "status": "running",
-            "active_run_id": "run-1",
-            "active_interaction_id": "progress-1",
-        },
-    )
-    dump_json(
-        quest_root / "experiments" / "main" / "run-1" / "RESULT.json",
+        quest_root / "artifacts" / "results" / "main_result.json",
         {
             "quest_id": "q-policy",
             "run_id": "run-1",
@@ -51,14 +47,11 @@ def make_gate_quest(tmp_path: Path) -> Path:
 def make_surface_quest(tmp_path: Path) -> Path:
     quest_root = tmp_path / "runtime" / "quests" / "q-surface"
     paper_root = quest_root / "paper"
-    dump_json(
-        quest_root / "artifacts" / "runtime" / "state" / "runtime_state.json",
-        {
-            "quest_id": "q-surface",
-            "status": "running",
-            "active_interaction_id": "progress-1",
-        },
-    )
+    (quest_root / "quest.yaml").parent.mkdir(parents=True, exist_ok=True)
+    (quest_root / "quest.yaml").write_text("quest_id: q-surface\nstudy_id: q-surface\n", encoding="utf-8")
+    study_root = tmp_path / "studies" / "q-surface"
+    (study_root / "study.yaml").parent.mkdir(parents=True, exist_ok=True)
+    (study_root / "study.yaml").write_text("study_id: q-surface\n", encoding="utf-8")
     dump_json(
         paper_root / "paper_bundle_manifest.json",
         {"schema_version": 1},
@@ -82,8 +75,6 @@ def test_publication_gate_uses_policy_message_builder(tmp_path: Path, monkeypatc
     controller = importlib.import_module("med_autoscience.controllers.publication_gate")
     quest_root = make_gate_quest(tmp_path)
 
-    monkeypatch.setattr(controller.quest_state, "resolve_active_stdout_path", lambda *, quest_root, runtime_state: None)
-    monkeypatch.setattr(controller.quest_state, "read_recent_stdout_lines", lambda stdout_path: [])
     monkeypatch.setattr(controller, "find_latest_gate_report", lambda quest_root: None)
     monkeypatch.setattr(controller.publication_gate_policy, "build_intervention_message", lambda report: "POLICY_GATE_MSG")
 

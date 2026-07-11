@@ -596,6 +596,7 @@ def test_domain_diagnostic_report_outer_loop_keeps_current_write_task_intake_bef
     profile = make_profile(tmp_path)
     study_root = write_study(profile.workspace_root, "001-risk")
     quest_root = profile.managed_runtime_home / "quests" / "quest-001"
+    _write_json(quest_root / "quest.yaml", {"quest_id": "quest-001", "study_id": study_root.name})
     _write_charter(study_root)
     publication_eval_path = study_root / "artifacts" / "publication_eval" / "latest.json"
     _write_json(

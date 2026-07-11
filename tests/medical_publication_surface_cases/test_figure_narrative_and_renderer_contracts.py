@@ -45,6 +45,14 @@ from med_autoscience.controllers.medical_publication_surface import (
 )
 
 
+def test_build_surface_state_requires_explicit_quest_identity(tmp_path: Path) -> None:
+    quest_root = make_quest(tmp_path, medicalized=True, ama_defaults=True)
+    (quest_root / "quest.yaml").unlink()
+
+    with pytest.raises(FileNotFoundError, match="missing explicit identity contract"):
+        shared_base.build_surface_state(quest_root)
+
+
 def test_build_report_blocks_when_main_text_figure_is_not_used_in_results_narrative_map(tmp_path: Path) -> None:
     quest_root = make_quest(
         tmp_path,

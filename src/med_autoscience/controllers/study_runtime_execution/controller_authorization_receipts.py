@@ -1,35 +1,14 @@
 from __future__ import annotations
 
-import hashlib
+import json
 from pathlib import Path
 from typing import Any
 
 from med_autoscience.controllers import publication_work_unit_lifecycle
-from med_autoscience.controllers import control_intent
 
-from ..progress_projection import StudyRuntimeDecision, ProgressProjectionStatus
-from .controller_authorization_context import (
-    _WORK_UNIT_TARGET_CONTEXT_KEYS,
-    _controller_decision_authorization_identity,
-)
+from ..progress_projection import ProgressProjectionStatus
+from .controller_authorization_context import _controller_decision_authorization_identity
 from .control_intent_lifecycle import lifecycle_for_authorization
-
-
-_CONTROLLER_DECISION_AUTHORIZATION_STATE_KEY = "last_controller_decision_authorization"
-_CONTROLLER_DECISION_AUTHORIZATION_WAIT_ALLOWED_ACTIONS = {
-    "run_gate_clearing_batch",
-}
-_CONTROLLER_DECISION_AUTHORIZATION_WAIT_RECOVERY_ACTIONS = {
-    "request_opl_stage_attempt_relaunch",
-}
-_QUALITY_REPAIR_DOWNSTREAM_WORK_UNIT_IDS = {
-    "publication_gate_replay",
-    "submission_authority_sync_closure",
-    "submission_delivery_sync_closure",
-    "submission_minimal_refresh",
-}
-_CONTROL_INTENT_LIFECYCLE_STATE_KEY = "control_intent_lifecycle"
-_LIVE_CONTROLLER_REROUTE_RESTART_STATE_KEY = "last_live_controller_reroute_restart"
 
 
 def _text(value: object) -> str | None:
@@ -37,10 +16,7 @@ def _text(value: object) -> str | None:
     return text or None
 
 
-def _active_run_id_from_status_or_state(*, status: ProgressProjectionStatus, runtime_state: dict[str, Any]) -> str | None:
-    active_run_id = str(runtime_state.get("active_run_id") or "").strip()
-    if active_run_id:
-        return active_run_id
+def _active_run_id_from_status(*, status: ProgressProjectionStatus) -> str | None:
     payload = status.extras.get("runtime_liveness_audit")
     if isinstance(payload, dict):
         active_run_id = str(payload.get("active_run_id") or "").strip()
@@ -52,77 +28,6 @@ def _active_run_id_from_status_or_state(*, status: ProgressProjectionStatus, run
             if active_run_id:
                 return active_run_id
     return None
-
-
-def _controller_decision_authorization_already_relayed(
-    *,
-    runtime_state: dict[str, Any],
-    authorization_context: dict[str, Any],
-    active_run_id: str | None,
-) -> bool:
-    marker = runtime_state.get(_CONTROLLER_DECISION_AUTHORIZATION_STATE_KEY)
-    if not isinstance(marker, dict):
-        return False
-    current_active_run_id = _text(active_run_id)
-    marker_active_run_id = _text(marker.get("active_run_id"))
-    if current_active_run_id is not None and marker_active_run_id != current_active_run_id:
-        return False
-    if not _controller_target_context_matches(marker=marker, authorization_context=authorization_context):
-        return False
-    intent_match = _controller_intent_key_match(marker=marker, authorization_context=authorization_context)
-    if intent_match is not None:
-        return intent_match
-    return _controller_route_marker_match(marker=marker, authorization_context=authorization_context)
-
-
-def _controller_target_context_matches(
-    *,
-    marker: dict[str, Any],
-    authorization_context: dict[str, Any],
-) -> bool:
-    return all(
-        key not in authorization_context or marker.get(key) == authorization_context.get(key)
-        for key in _WORK_UNIT_TARGET_CONTEXT_KEYS
-    )
-
-
-def _controller_authorization_marker_lacks_target_context(
-    *,
-    runtime_state: dict[str, Any],
-    authorization_context: dict[str, Any],
-) -> bool:
-    marker = runtime_state.get(_CONTROLLER_DECISION_AUTHORIZATION_STATE_KEY)
-    if not isinstance(marker, dict):
-        return False
-    return any(
-        key in authorization_context and marker.get(key) != authorization_context.get(key)
-        for key in _WORK_UNIT_TARGET_CONTEXT_KEYS
-    )
-
-
-def _controller_intent_key_match(
-    *,
-    marker: dict[str, Any],
-    authorization_context: dict[str, Any],
-) -> bool | None:
-    expected_intent_key = str(authorization_context.get("control_intent_key") or "").strip()
-    marker_intent_key = str(marker.get("control_intent_key") or "").strip()
-    if not expected_intent_key or not marker_intent_key:
-        return None
-    return marker_intent_key == expected_intent_key
-
-
-def _controller_route_marker_match(
-    *,
-    marker: dict[str, Any],
-    authorization_context: dict[str, Any],
-) -> bool:
-    return (
-        str(marker.get("decision_id") or "").strip() == str(authorization_context.get("decision_id") or "").strip()
-        and str(marker.get("route_target") or "").strip() == str(authorization_context.get("route_target") or "").strip()
-        and str(marker.get("route_key_question") or "").strip()
-        == str(authorization_context.get("route_key_question") or "").strip()
-    )
 
 
 def _controller_decision_authorization_lifecycle(
@@ -178,140 +83,3 @@ def _closed_publication_work_unit_lifecycle(
         "gate_replay_status": payload.get("gate_replay_status"),
         "unit_statuses": list(payload.get("unit_statuses") or []),
     }
-
-
-def _controller_decision_authorization_dedupe_key(
-    *,
-    authorization_context: dict[str, Any],
-    active_run_id: str | None,
-) -> str:
-    intent_key = str(authorization_context.get("control_intent_key") or "").strip()
-    if intent_key:
-        return intent_key
-    canonical_payload = {
-        "decision_id": str(authorization_context.get("decision_id") or "").strip(),
-        "route_target": str(authorization_context.get("route_target") or "").strip(),
-        "route_key_question": str(authorization_context.get("route_key_question") or "").strip(),
-    }
-    encoded = json.dumps(canonical_payload, ensure_ascii=False, sort_keys=True, separators=(",", ":")).encode(
-        "utf-8"
-    )
-    return f"controller-decision-authorization:{hashlib.sha256(encoded).hexdigest()}"
-
-
-def _controller_work_unit_lifecycle_projection(lifecycle: dict[str, Any] | None) -> dict[str, Any]:
-    payload = lifecycle if isinstance(lifecycle, dict) else {}
-    return {
-        "lifecycle_state": str(payload.get("lifecycle_state") or "new").strip() or "new",
-        "latest_event_type": payload.get("latest_event_type"),
-        "delivery_blocked": bool(payload.get("delivery_blocked")),
-        "block_reason": payload.get("block_reason"),
-        "terminal_consumed": bool(payload.get("terminal_consumed")),
-    }
-
-
-def _runtime_state_awaits_artifact_delta_or_gate_replay(
-    *,
-    runtime_state: dict[str, Any],
-    authorization_context: dict[str, Any],
-) -> bool:
-    lifecycle = runtime_state.get(_CONTROL_INTENT_LIFECYCLE_STATE_KEY)
-    if not isinstance(lifecycle, dict):
-        return False
-    if str(lifecycle.get("state") or "").strip() != control_intent.AWAIT_ARTIFACT_DELTA_OR_GATE_REPLAY:
-        return False
-    lifecycle_key = str(lifecycle.get("control_intent_key") or "").strip()
-    current_key = str(authorization_context.get("control_intent_key") or "").strip()
-    return bool(lifecycle_key and current_key and lifecycle_key == current_key)
-
-
-def _controller_decision_authorization_allowed_while_waiting(
-    *,
-    status: ProgressProjectionStatus,
-    authorization_context: dict[str, Any],
-) -> bool:
-    controller_actions = {
-        str(action).strip()
-        for action in authorization_context.get("controller_actions") or ()
-        if str(action).strip()
-    }
-    if controller_actions & _CONTROLLER_DECISION_AUTHORIZATION_WAIT_ALLOWED_ACTIONS:
-        return True
-    if (
-        "run_quality_repair_batch" in controller_actions
-        and _quality_repair_authorization_has_current_work_unit(
-            status=status,
-            authorization_context=authorization_context,
-        )
-    ):
-        return True
-    if (
-        status.decision is StudyRuntimeDecision.RELAUNCH_STOPPED
-        and controller_actions & _CONTROLLER_DECISION_AUTHORIZATION_WAIT_RECOVERY_ACTIONS
-    ):
-        return True
-    return False
-
-
-def relay_controller_decision_authorization_to_runtime(
-    *,
-    status: ProgressProjectionStatus,
-    context: Any,
-    runtime_state: dict[str, Any],
-    authorization_context: dict[str, Any],
-    active_run_id: str | None,
-) -> dict[str, Any]:
-    action_summary = ", ".join(
-        str(action).strip()
-        for action in authorization_context.get("controller_actions") or ()
-        if str(action).strip()
-    )
-    work_unit_id = _text(authorization_context.get("work_unit_id"))
-    route_target = _text(authorization_context.get("route_target"))
-    route_key_question = _text(authorization_context.get("route_key_question"))
-    route_rationale = _text(authorization_context.get("route_rationale"))
-    text = (
-        "MAS controller 已授权当前 runtime 继续执行 controller decision。"
-        f" 动作：{action_summary or 'request_opl_stage_attempt'}。"
-        f" 路由：{route_target or 'controller'}。"
-        f" work unit：{work_unit_id or route_key_question or 'current_controller_decision'}。"
-    )
-    if route_key_question:
-        text += f" 关键问题：{route_key_question}。"
-    if route_rationale:
-        text += f" 理由：{route_rationale}。"
-    relay = {
-        "content": text,
-        "source": context.source,
-        "delivery_mode": "opl_owner_route_handoff",
-        "control_intent_key": authorization_context.get("control_intent_key"),
-        "controller_actions": list(authorization_context.get("controller_actions") or []),
-        "queue_owner": "one-person-lab",
-        "mas_writes_runtime_state": False,
-        "mas_submits_runtime_chat": False,
-        "required_closeout": "owner_receipt_or_typed_blocker",
-    }
-    status.extras["controller_decision_authorization_relay"] = relay
-    return relay
-
-
-def _quality_repair_authorization_has_current_work_unit(
-    *,
-    status: ProgressProjectionStatus,
-    authorization_context: dict[str, Any],
-) -> bool:
-    next_work_unit = authorization_context.get("next_work_unit")
-    if not isinstance(next_work_unit, dict):
-        return False
-    unit_id = _text(next_work_unit.get("unit_id"))
-    work_unit_fingerprint = _text(authorization_context.get("work_unit_fingerprint"))
-    if unit_id is None or work_unit_fingerprint is None:
-        return False
-    supervisor_payload = status.extras.get("publication_supervisor_state")
-    if (
-        isinstance(supervisor_payload, dict)
-        and bool(supervisor_payload.get("bundle_tasks_downstream_only"))
-        and unit_id in _QUALITY_REPAIR_DOWNSTREAM_WORK_UNIT_IDS
-    ):
-        return False
-    return True

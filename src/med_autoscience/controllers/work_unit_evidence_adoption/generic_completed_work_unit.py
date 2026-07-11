@@ -4,14 +4,9 @@ import json
 from pathlib import Path
 from typing import Any, Iterable
 
-from med_autoscience.runtime_protocol import quest_state
-
-
 RECOMMENDED_NEXT_ROUTE = "return_to_publication_gate_recheck"
 NEXT_OWNER = "publication_gate"
 PUBLICATION_GATE_RECHECK_WORK_UNIT = "publication_gate_recheck"
-CONTROLLER_DECISION_AUTHORIZATION_STATE_KEY = "last_controller_decision_authorization"
-RUNTIME_RELAY_DELIVERY_MODES = frozenset({"managed_runtime_chat", "queued_owner_message_delivery"})
 DELIVERED_EVENT_TYPE = "delivered"
 SKIPPED_DUPLICATE_EVENT_TYPE = "skipped_duplicate"
 MANUSCRIPT_SURFACE_REPAIR_WORK_UNITS = frozenset(
@@ -57,74 +52,6 @@ def report_candidates(
     active_run_candidates = [path for path in candidates if any(run_id in path.name for run_id in authorized_run_ids)]
     other_candidates = [path for path in candidates if path not in active_run_candidates]
     return tuple(active_run_candidates + other_candidates)
-
-
-def has_matching_relay_marker(
-    *,
-    quest_root: Path,
-    authorization_context: dict[str, Any],
-    active_run_id: str | None,
-    work_unit_target_context_keys: tuple[str, ...],
-) -> bool:
-    return _matching_relay_marker(
-        quest_root=quest_root,
-        authorization_context=authorization_context,
-        active_run_id=active_run_id,
-        work_unit_target_context_keys=work_unit_target_context_keys,
-        require_active_run_match=True,
-    ) is not None
-
-
-def relay_run_ids_for_authorization(
-    *,
-    quest_root: Path,
-    authorization_context: dict[str, Any],
-    active_run_id: str | None,
-    work_unit_target_context_keys: tuple[str, ...],
-) -> tuple[str, ...]:
-    marker = _matching_relay_marker(
-        quest_root=quest_root,
-        authorization_context=authorization_context,
-        active_run_id=active_run_id,
-        work_unit_target_context_keys=work_unit_target_context_keys,
-        require_active_run_match=False,
-    )
-    if marker is None:
-        return ()
-    return _unique_texts((_text(marker.get("active_run_id")),))
-
-
-def _matching_relay_marker(
-    *,
-    quest_root: Path,
-    authorization_context: dict[str, Any],
-    active_run_id: str | None,
-    work_unit_target_context_keys: tuple[str, ...],
-    require_active_run_match: bool,
-) -> dict[str, Any] | None:
-    runtime_state = quest_state.load_runtime_state(quest_root)
-    marker = runtime_state.get(CONTROLLER_DECISION_AUTHORIZATION_STATE_KEY)
-    if not isinstance(marker, dict):
-        return None
-    if _text(marker.get("delivery_mode")) not in RUNTIME_RELAY_DELIVERY_MODES:
-        return None
-    if _text(marker.get("message_id")) is None:
-        return None
-    current_active_run_id = _text(active_run_id)
-    marker_active_run_id = _text(marker.get("active_run_id"))
-    if require_active_run_match and current_active_run_id is not None and marker_active_run_id != current_active_run_id:
-        return None
-    if not _target_context_matches(
-        marker=marker,
-        authorization_context=authorization_context,
-        work_unit_target_context_keys=work_unit_target_context_keys,
-    ):
-        return None
-    if _intent_key_matches(marker=marker, authorization_context=authorization_context):
-        return marker
-    if _route_marker_matches(marker=marker, authorization_context=authorization_context):
-        return marker
-    return None
 
 
 def delivered_run_ids_for_business_key(
@@ -261,40 +188,6 @@ def is_completed_adoption_payload(payload: dict[str, Any]) -> bool:
 
 def authorization_is_publication_gate_recheck(authorization_context: dict[str, Any]) -> bool:
     return _text(authorization_context.get("work_unit_id")) == PUBLICATION_GATE_RECHECK_WORK_UNIT
-
-
-def _target_context_matches(
-    *,
-    marker: dict[str, Any],
-    authorization_context: dict[str, Any],
-    work_unit_target_context_keys: tuple[str, ...],
-) -> bool:
-    return all(
-        key not in authorization_context or marker.get(key) == authorization_context.get(key)
-        for key in work_unit_target_context_keys
-    )
-
-
-def _intent_key_matches(
-    *,
-    marker: dict[str, Any],
-    authorization_context: dict[str, Any],
-) -> bool:
-    expected = _text(authorization_context.get("control_intent_key"))
-    observed = _text(marker.get("control_intent_key"))
-    return expected is not None and observed == expected
-
-
-def _route_marker_matches(
-    *,
-    marker: dict[str, Any],
-    authorization_context: dict[str, Any],
-) -> bool:
-    return (
-        _text(marker.get("decision_id")) == _text(authorization_context.get("decision_id"))
-        and _text(marker.get("route_target")) == _text(authorization_context.get("route_target"))
-        and _text(marker.get("route_key_question")) == _text(authorization_context.get("route_key_question"))
-    )
 
 
 def report_timestamp(payload: dict[str, Any]) -> str | None:

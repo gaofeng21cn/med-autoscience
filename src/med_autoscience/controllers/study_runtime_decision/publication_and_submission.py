@@ -70,7 +70,6 @@ from med_autoscience.publication_eval_record import (
     PublicationEvalVerdict,
 )
 from med_autoscience.controllers import paper_artifacts
-from med_autoscience.runtime_protocol import quest_state
 from med_autoscience.study_charter import read_study_charter
 from med_autoscience.study_completion import StudyCompletionStateStatus
 from med_autoscience.study_manual_finish import (
@@ -827,15 +826,13 @@ def _materialize_publication_eval_from_gate_report(
 def _record_quest_runtime_audits(
     *,
     status: ProgressProjectionStatus,
-    quest_runtime: quest_state.QuestRuntimeSnapshot,
-) -> quest_state.QuestRuntimeLivenessStatus:
-    if quest_runtime.runtime_liveness_audit is not None:
-        runtime_liveness_audit = StudyRuntimeAuditRecord.from_payload(dict(quest_runtime.runtime_liveness_audit))
-        status.record_runtime_liveness_audit(runtime_liveness_audit)
-    if quest_runtime.bash_session_audit is not None:
-        bash_session_audit = StudyRuntimeAuditRecord.from_payload(dict(quest_runtime.bash_session_audit))
-        status.record_bash_session_audit(bash_session_audit)
-    return quest_runtime.runtime_liveness_status
+    runtime_liveness_audit: dict[str, object] | None,
+) -> StudyRuntimeAuditStatus:
+    if runtime_liveness_audit is None:
+        return StudyRuntimeAuditStatus.NONE
+    audit = StudyRuntimeAuditRecord.from_payload(dict(runtime_liveness_audit))
+    status.record_runtime_liveness_audit(audit)
+    return audit.status
 
 
 def _record_opl_domain_activity_ref(status: ProgressProjectionStatus) -> None:

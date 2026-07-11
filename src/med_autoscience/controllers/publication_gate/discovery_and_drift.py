@@ -25,9 +25,6 @@ from med_autoscience.publication_profiles import (
 )
 from med_autoscience.policies import publication_gate as publication_gate_policy
 from med_autoscience.policies.medical_reporting_checklist import REPORTING_CHECKLIST_BLOCKER_KEYS
-from med_autoscience.runtime_protocol import (
-    quest_state,
-)
 from med_autoscience.controllers import paper_artifacts
 from med_autoscience.controllers.study_paper_context import (
     resolve_study_paper_context,
@@ -125,7 +122,8 @@ def _append_unique(items: list[str], item: str) -> None:
 @dataclass
 class GateState:
     quest_root: Path
-    runtime_state: dict[str, Any]
+    quest_id: str
+    study_id: str
     study_root: Path | None
     charter_contract_linkage: dict[str, Any]
     anchor_kind: str
@@ -141,9 +139,6 @@ class GateState:
     latest_gate: dict[str, Any] | None
     latest_medical_publication_surface_path: Path | None
     latest_medical_publication_surface: dict[str, Any] | None
-    active_run_stdout_path: Path | None
-    recent_stdout_lines: list[str]
-    write_drift_detected: bool
     missing_deliverables: list[str]
     present_deliverables: list[str]
     paper_bundle_manifest_path: Path | None
@@ -300,48 +295,6 @@ def find_latest_medical_publication_surface_report(
             if _medical_surface_report_matches_study_root(payload, study_root=study_root):
                 return path
     return None
-
-
-def _write_drift_text_surfaces(line: str) -> list[str]:
-    try:
-        payload = json.loads(line)
-    except json.JSONDecodeError:
-        return [line]
-    if not isinstance(payload, dict):
-        return []
-    item = payload.get("item")
-    if not isinstance(item, dict):
-        return []
-    item_type = _non_empty_text(item.get("type"))
-    if item_type == "agent_message":
-        text = _non_empty_text(item.get("text"))
-        return [text] if text else []
-    if item_type != "mcp_tool_call":
-        return []
-    if _non_empty_text(item.get("server")) != "artifact":
-        return []
-    texts: list[str] = []
-    arguments = item.get("arguments")
-    if isinstance(arguments, dict):
-        if message := _non_empty_text(arguments.get("message")):
-            texts.append(message)
-    return texts
-
-
-def detect_write_drift(lines: list[str]) -> bool:
-    for line in lines:
-        if any(
-            re.search(pattern, line, flags=re.IGNORECASE)
-            for pattern in publication_gate_policy.WRITE_DRIFT_STRUCTURED_PATTERNS
-        ):
-            return True
-        for text in _write_drift_text_surfaces(line):
-            if any(
-                re.search(pattern, text, flags=re.IGNORECASE | re.MULTILINE)
-                for pattern in publication_gate_policy.WRITE_DRIFT_PATTERNS
-            ):
-                return True
-    return False
 
 
 def _paper_line_open_supplementary_count(paper_line_state: dict[str, Any] | None) -> int:

@@ -14,7 +14,6 @@ from .read_model_projection_assembly import (
     attach_status_read_model_projections,
 )
 from med_autoscience.controllers.study_runtime_types import ProgressProjectionStatus
-from med_autoscience.runtime_protocol import quest_state
 from med_autoscience.runtime_escalation_record import read_runtime_escalation_record_ref
 
 
@@ -26,15 +25,18 @@ def finalize_status_projection_shell(
     study_root: Path,
     quest_id: str,
     quest_root: Path,
-    quest_runtime: quest_state.QuestRuntimeSnapshot,
+    runtime_liveness_audit: dict[str, object] | None,
     router,
     entry_mode: str | None,
     sync_runtime_summary: bool,
     include_progress_projection: bool,
 ) -> ProgressProjectionStatus:
     """Attach refs-only runtime/read-model projections after MAS has chosen the decision."""
-    if quest_runtime.runtime_liveness_audit is not None or quest_runtime.bash_session_audit is not None:
-        router._record_quest_runtime_audits(status=status, quest_runtime=quest_runtime)
+    if runtime_liveness_audit is not None:
+        router._record_quest_runtime_audits(
+            status=status,
+            runtime_liveness_audit=runtime_liveness_audit,
+        )
     _record_execution_owner_guard(status=status, quest_root=quest_root)
     _record_supervisor_tick_audit(status=status, study_root=study_root)
     if not status.should_refresh_startup_hydration_for_runtime_hold():

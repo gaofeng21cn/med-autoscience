@@ -63,7 +63,6 @@ from med_autoscience.controllers.study_runtime_types import (
 from med_autoscience.policies.automation_ready import render_automation_ready_summary
 from med_autoscience.policies.controller_first import render_controller_first_summary
 from med_autoscience.profiles import WorkspaceProfile
-from med_autoscience.runtime_protocol import quest_state
 from med_autoscience.study_completion import (
     StudyCompletionState,
     StudyCompletionStateStatus,

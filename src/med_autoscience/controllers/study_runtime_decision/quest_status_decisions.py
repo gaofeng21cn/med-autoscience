@@ -42,12 +42,12 @@ from med_autoscience.controllers.study_runtime_decision.runtime_events.pending_i
 )
 from med_autoscience.controllers.study_runtime_types import (
     StudyRuntimeDecision,
+    StudyRuntimeAuditStatus,
     StudyRuntimeQuestStatus,
     StudyRuntimeReason,
     ProgressProjectionStatus,
     _RESUMABLE_QUEST_STATUSES,
 )
-from med_autoscience.runtime_protocol import quest_state
 
 _OPL_STAGE_ATTEMPT_ADMISSION_CLASSIFICATIONS = frozenset(
     {
@@ -84,7 +84,7 @@ def _apply_live_quest_status_decision(
     *,
     result: ProgressProjectionStatus,
     router: Any,
-    quest_runtime: Any,
+    runtime_liveness_audit: dict[str, object] | None,
     execution: dict[str, object],
     study_root: Path,
     study_id: str,
@@ -98,7 +98,10 @@ def _apply_live_quest_status_decision(
     explicit_resume_releases_pause_gate: bool,
     finalize_result: Callable[[], ProgressProjectionStatus],
 ) -> ProgressProjectionStatus:
-    audit_status = router._record_quest_runtime_audits(status=result, quest_runtime=quest_runtime)
+    audit_status = router._record_quest_runtime_audits(
+        status=result,
+        runtime_liveness_audit=runtime_liveness_audit,
+    )
     controller_owned_finalize_parking = _is_controller_owned_finalize_parking(result)
     human_review_milestone_parking = _is_human_review_milestone_parking(
         result,
@@ -148,13 +151,13 @@ def _apply_live_quest_status_decision(
             StudyRuntimeReason.QUEST_WAITING_FOR_SUBMISSION_METADATA,
         )
         return finalize_result()
-    if human_review_milestone_parking and audit_status is not quest_state.QuestRuntimeLivenessStatus.LIVE:
+    if human_review_milestone_parking and audit_status is not StudyRuntimeAuditStatus.LIVE:
         result.set_decision(
             StudyRuntimeDecision.BLOCKED,
             StudyRuntimeReason.QUEST_PARKED_ON_UNCHANGED_FINALIZE_STATE,
         )
         return finalize_result()
-    if audit_status is quest_state.QuestRuntimeLivenessStatus.UNKNOWN:
+    if audit_status is StudyRuntimeAuditStatus.UNKNOWN:
         if (
             domain_redrive_reason is not StudyRuntimeReason.DOMAIN_TRANSITION_AI_REVIEWER_RE_EVAL
             and manual_finish_compatibility_guard
@@ -177,7 +180,7 @@ def _apply_live_quest_status_decision(
                 status=result,
                 execution=execution,
             )
-    elif audit_status is quest_state.QuestRuntimeLivenessStatus.LIVE:
+    elif audit_status is StudyRuntimeAuditStatus.LIVE:
         if _apply_domain_transition_redrive_decision(
             result,
             reason=domain_redrive_reason,

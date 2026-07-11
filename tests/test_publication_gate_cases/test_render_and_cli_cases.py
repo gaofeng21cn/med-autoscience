@@ -126,12 +126,6 @@ def test_build_gate_report_keeps_blocker_logic_in_controller_after_adapter_patch
     module = importlib.import_module("med_autoscience.controllers.publication_gate")
     quest_root = make_quest(tmp_path, include_submission_minimal=False)
 
-    monkeypatch.setattr(
-        module.quest_state,
-        "resolve_active_stdout_path",
-        lambda *, quest_root, runtime_state: quest_root / ".ds" / "runs" / "run-1" / "stdout.jsonl",
-    )
-    monkeypatch.setattr(module.quest_state, "read_recent_stdout_lines", lambda stdout_path: ["route -> write"])
     monkeypatch.setattr(module.paper_artifacts, "resolve_artifact_manifest_from_main_result", lambda main_result: None)
     monkeypatch.setattr(module.paper_artifacts, "resolve_paper_bundle_manifest", lambda quest_root: None)
     monkeypatch.setattr(module.paper_artifacts, "resolve_submission_minimal_manifest", lambda paper_bundle_manifest_path: None)
@@ -146,110 +140,9 @@ def test_build_gate_report_keeps_blocker_logic_in_controller_after_adapter_patch
 
     assert report["status"] == "blocked"
     assert "missing_post_main_publishability_gate" in report["blockers"]
-    assert "active_run_drifting_into_write_without_gate_approval" in report["blockers"]
     assert "missing_required_non_scalar_deliverables" not in report["blockers"]
-def test_build_gate_report_ignores_live_agent_write_drift_when_active_run_differs_from_main_result(
-    tmp_path: Path,
-) -> None:
-    module = importlib.import_module("med_autoscience.controllers.publication_gate")
-    quest_root = make_quest(tmp_path, include_submission_minimal=False)
-    runtime_state_path = quest_root / ".ds" / "runtime_state.json"
-    runtime_state = json.loads(runtime_state_path.read_text(encoding="utf-8"))
-    runtime_state["active_run_id"] = "run-live-agent"
-    dump_json(runtime_state_path, runtime_state)
-    write_text(
-        quest_root / ".ds" / "runs" / "run-live-agent" / "stdout.jsonl",
-        json.dumps({"line": "route -> write"}) + "\n",
-    )
 
-    state = module.build_gate_state(quest_root)
-    report = module.build_gate_report(state)
 
-    assert state.active_run_stdout_path is None
-    assert state.recent_stdout_lines == []
-    assert report["status"] == "blocked"
-    assert "missing_post_main_publishability_gate" in report["blockers"]
-    assert "active_run_drifting_into_write_without_gate_approval" not in report["blockers"]
-def test_detect_write_drift_ignores_write_drift_gate_path_noise() -> None:
-    module = importlib.import_module("med_autoscience.controllers.publication_gate")
-
-    noisy_line = (
-        "progress watchdog note: route change needed after inspection; "
-        "cwd=.ds/worktrees/analysis-analysis-d47ce8e6-write-drift-gate"
-    )
-
-    assert module.detect_write_drift([noisy_line]) is False
-def test_detect_write_drift_ignores_stop_messages_about_write_stage() -> None:
-    module = importlib.import_module("med_autoscience.controllers.publication_gate")
-
-    control_line = (
-        "Hard control message: immediately stop the current transition into `write` / outline generation."
-    )
-
-    assert module.detect_write_drift([control_line]) is False
-def test_detect_write_drift_ignores_agent_messages_that_quote_examples() -> None:
-    module = importlib.import_module("med_autoscience.controllers.publication_gate")
-
-    quoted_example_line = json.dumps(
-        {
-            "type": "item.completed",
-            "item": {
-                "id": "item-1",
-                "type": "agent_message",
-                "text": "保留 `route -> write` 这类真阳性，但这里是在解释测试，不是真实路由切换。",
-            },
-        },
-        ensure_ascii=False,
-    )
-
-    assert module.detect_write_drift([quoted_example_line]) is False
-def test_detect_write_drift_ignores_non_artifact_tool_output_examples() -> None:
-    module = importlib.import_module("med_autoscience.controllers.publication_gate")
-
-    tool_output_line = json.dumps(
-        {
-            "type": "item.completed",
-            "item": {
-                "id": "item-2",
-                "type": "mcp_tool_call",
-                "server": "bash_exec",
-                "tool": "bash_exec",
-                "result": {
-                    "content": [
-                        {
-                            "type": "text",
-                            "text": "Next anchor: `write`\nroute -> write",
-                        }
-                    ]
-                },
-            },
-        },
-        ensure_ascii=False,
-    )
-
-    assert module.detect_write_drift([tool_output_line]) is False
-def test_detect_write_drift_accepts_structured_next_anchor_signal() -> None:
-    module = importlib.import_module("med_autoscience.controllers.publication_gate")
-
-    structured_signal_line = json.dumps(
-        {
-            "type": "item.completed",
-            "item": {
-                "id": "item-3",
-                "type": "mcp_tool_call",
-                "server": "artifact",
-                "tool": "activate_branch",
-                "result": {
-                    "structured_content": {
-                        "next_anchor": "write",
-                    }
-                },
-            },
-        },
-        ensure_ascii=False,
-    )
-
-    assert module.detect_write_drift([structured_signal_line]) is True
 def test_write_gate_files_uses_runtime_protocol_report_store(monkeypatch, tmp_path: Path) -> None:
     module = importlib.import_module("med_autoscience.controllers.publication_gate")
     quest_root = make_quest(tmp_path, include_submission_minimal=False)

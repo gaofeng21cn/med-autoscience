@@ -12,14 +12,12 @@ import yaml
 from med_autoscience.controllers import data_assets
 from med_autoscience.controllers.opl_pending_user_message_handoff import build_pending_user_message_handoff
 from med_autoscience.policies import data_asset_gate as data_asset_gate_policy
-from med_autoscience.runtime_protocol import quest_state
 from med_autoscience.adapters import report_store as runtime_protocol_report_store
 
 
 @dataclass
 class DataAssetGateState:
     quest_root: Path
-    runtime_state: dict[str, Any]
     workspace_root: Path
     study_id: str
     impact_report: dict[str, Any]
@@ -75,14 +73,12 @@ def find_study_report(impact_report: dict[str, Any], study_id: str) -> dict[str,
 
 
 def build_gate_state(quest_root: Path) -> DataAssetGateState:
-    runtime_state = quest_state.load_runtime_state(quest_root)
     workspace_root = resolve_workspace_root(quest_root)
     study_id = read_quest_id(quest_root)
     impact_report = data_assets.assess_data_asset_impact(workspace_root=workspace_root)
     study_report = find_study_report(impact_report, study_id)
     return DataAssetGateState(
         quest_root=quest_root,
-        runtime_state=runtime_state,
         workspace_root=workspace_root,
         study_id=study_id,
         impact_report=impact_report,
@@ -231,7 +227,6 @@ def run_controller(
     if json_path is not None and report["status"] in {"blocked", "advisory"}:
         intervention = build_pending_user_message_handoff(
             quest_root=state.quest_root,
-            runtime_state=state.runtime_state,
             message=data_asset_gate_policy.build_intervention_message(report),
             source=source,
             evidence_refs=[str(json_path)],

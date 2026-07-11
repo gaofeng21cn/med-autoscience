@@ -5,7 +5,6 @@ from . import state_and_reports as state_and_reports
 from . import supervisor_and_cli as supervisor_and_cli
 
 discovery_and_drift.__dict__.update({
-    "resolve_write_drift_stdout_path": state_and_reports.resolve_write_drift_stdout_path,
     "medical_publication_surface_report_current": state_and_reports.medical_publication_surface_report_current,
     "medical_publication_surface_currentness_anchor": state_and_reports.medical_publication_surface_currentness_anchor,
     "resolve_compile_report_path": state_and_reports.resolve_compile_report_path,
@@ -62,8 +61,6 @@ _medical_surface_report_matches_paper_root = discovery_and_drift._medical_surfac
 _medical_surface_report_matches_study_root = discovery_and_drift._medical_surface_report_matches_study_root
 find_latest_gate_report = discovery_and_drift.find_latest_gate_report
 find_latest_medical_publication_surface_report = discovery_and_drift.find_latest_medical_publication_surface_report
-_write_drift_text_surfaces = discovery_and_drift._write_drift_text_surfaces
-detect_write_drift = discovery_and_drift.detect_write_drift
 _paper_line_open_supplementary_count = discovery_and_drift._paper_line_open_supplementary_count
 _paper_line_recommended_action = discovery_and_drift._paper_line_recommended_action
 _paper_line_blocking_reasons = discovery_and_drift._paper_line_blocking_reasons
@@ -109,10 +106,8 @@ load_journal_requirements = discovery_and_drift.load_journal_requirements
 slugify_journal_name = discovery_and_drift.slugify_journal_name
 publication_gate_policy = discovery_and_drift.publication_gate_policy
 paper_artifacts = discovery_and_drift.paper_artifacts
-quest_state = discovery_and_drift.quest_state
 resolve_study_paper_context = discovery_and_drift.resolve_study_paper_context
 runtime_protocol_report_store = discovery_and_drift.runtime_protocol_report_store
-resolve_write_drift_stdout_path = state_and_reports.resolve_write_drift_stdout_path
 medical_publication_surface_report_current = state_and_reports.medical_publication_surface_report_current
 medical_publication_surface_currentness_anchor = state_and_reports.medical_publication_surface_currentness_anchor
 resolve_compile_report_path = state_and_reports.resolve_compile_report_path
@@ -145,7 +140,6 @@ __all__ = [
     "find_latest_parseable_json",
     "find_latest_gate_report",
     "find_latest_medical_publication_surface_report",
-    "detect_write_drift",
     "resolve_bundle_authority_paper_root",
     "resolve_submission_checklist_path",
     "load_submission_checklist",
@@ -160,7 +154,6 @@ __all__ = [
     "infer_submission_publication_profile",
     "collect_submission_surface_qc_failures",
     "gate_allows_write",
-    "resolve_write_drift_stdout_path",
     "medical_publication_surface_report_current",
     "medical_publication_surface_currentness_anchor",
     "resolve_compile_report_path",

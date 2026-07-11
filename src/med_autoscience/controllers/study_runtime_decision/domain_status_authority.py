@@ -22,7 +22,7 @@ from med_autoscience.controllers.progress_projection.runtime_result_types import
     StartupContractValidation,
     StartupContractValidationStatus,
 )
-from med_autoscience.runtime_protocol import quest_state as quest_state_protocol
+from med_autoscience.controllers.study_runtime_types import StudyRuntimeAuditStatus, StudyRuntimeQuestStatus
 from med_autoscience.workspace_contracts import build_workspace_runtime_layout_for_profile
 
 _OPL_CURRENT_CONTROL_STATE_STALE_AFTER_SECONDS = 10 * 60
@@ -159,26 +159,9 @@ def _parsed_utc_datetime(value: object) -> datetime | None:
     return parsed.astimezone(timezone.utc)
 
 
-def _pause_barrier_recorded_at(runtime_state: dict[str, object]) -> datetime | None:
-    candidates: list[datetime] = []
-    for key in ("last_manual_pause", "manual_hold", "human_takeover_contract"):
-        value = runtime_state.get(key)
-        if isinstance(value, dict):
-            parsed = _parsed_utc_datetime(value.get("recorded_at") or value.get("created_at"))
-            if parsed is not None:
-                candidates.append(parsed)
-    continuation_reason = str(runtime_state.get("continuation_reason") or "").strip()
-    if continuation_reason == "quest_waiting_for_explicit_wakeup_after_manual_hold":
-        parsed = _parsed_utc_datetime(runtime_state.get("continuation_updated_at") or runtime_state.get("updated_at"))
-        if parsed is not None:
-            candidates.append(parsed)
-    return max(candidates) if candidates else None
-
-
 def _truth_explicit_resume_releases_pause_gate(
     *,
     study_root: Path,
-    quest_root: Path,
     study_id: str,
 ) -> bool:
     snapshot = study_truth_kernel.rebuild_truth_snapshot(study_root=study_root, study_id=study_id)
@@ -197,10 +180,7 @@ def _truth_explicit_resume_releases_pause_gate(
     if str(latest_ref.get("event_type") or "").strip() != "explicit_resume":
         return False
     resume_at = _parsed_utc_datetime(latest_ref.get("recorded_at"))
-    pause_at = _pause_barrier_recorded_at(quest_state_protocol.load_runtime_state(quest_root))
-    if pause_at is None:
-        return True
-    return resume_at is not None and resume_at >= pause_at
+    return resume_at is not None
 
 
 def _status_state(
@@ -222,23 +202,21 @@ def _status_state(
     runtime_layout = build_workspace_runtime_layout_for_profile(profile)
     runtime_root = runtime_layout.runtime_root
     quest_root = runtime_layout.quest_root(quest_id)
-    quest_runtime = quest_state.inspect_quest_runtime(quest_root)
-    quest_exists = quest_runtime.quest_exists
-    quest_status = ProgressProjectionStatus._normalize_quest_status_field(quest_runtime.quest_status)
-    if _quest_status_allows_opl_liveness_projection(
-        quest_status
-    ) and opl_runtime_contract.is_opl_hosted_research_execution(execution):
-        runtime_liveness_projection = _opl_current_control_state_runtime_liveness_projection(
+    quest_exists = (quest_root / "quest.yaml").exists()
+    quest_status = StudyRuntimeQuestStatus.CREATED if quest_exists else None
+    runtime_liveness_audit: dict[str, object] | None = None
+    if quest_exists and opl_runtime_contract.is_opl_hosted_research_execution(execution):
+        runtime_liveness_audit = _opl_current_control_state_runtime_liveness_projection(
             profile=profile,
             study_root=study_root,
             study_id=study_id,
             quest_status=quest_status,
             enable_opl_live_provider_attempt_probe=enable_opl_live_provider_attempt_probe,
-        )
-        quest_runtime = quest_runtime.with_runtime_liveness_audit(
-            runtime_liveness_projection
-            or _unknown_opl_current_control_state_runtime_liveness(quest_status=quest_status)
-        )
+        ) or _unknown_opl_current_control_state_runtime_liveness(quest_status=quest_status)
+        snapshot = runtime_liveness_audit.get("snapshot")
+        if isinstance(snapshot, dict):
+            projected_status = ProgressProjectionStatus._normalize_quest_status_field(snapshot.get("status"))
+            quest_status = projected_status or quest_status
     contracts = router.inspect_workspace_contracts(profile)
     readiness = startup_data_readiness_controller.startup_data_readiness(workspace_root=profile.workspace_root)
     startup_boundary_gate = startup_boundary_gate_controller.evaluate_startup_boundary(
@@ -329,15 +307,14 @@ def _status_state(
     )
     explicit_resume_releases_pause_gate = _truth_explicit_resume_releases_pause_gate(
         study_root=study_root,
-        quest_root=quest_root,
         study_id=study_id,
     )
     _record_continuation_state_if_present(
         status=result,
         quest_root=quest_root,
-        active_run_id=_runtime_liveness_active_run_id(quest_runtime.runtime_liveness_audit),
+        active_run_id=_runtime_liveness_active_run_id(runtime_liveness_audit),
         live_opl_provider_attempt=(
-            _runtime_liveness_active_run_id(quest_runtime.runtime_liveness_audit) is not None
+            _runtime_liveness_active_run_id(runtime_liveness_audit) is not None
         ),
     )
     _record_controller_authorization_if_present(status=result, quest_root=quest_root, study_root=study_root)
@@ -371,7 +348,7 @@ def _status_state(
             study_root=study_root,
             quest_id=quest_id,
             quest_root=quest_root,
-            quest_runtime=quest_runtime,
+            runtime_liveness_audit=runtime_liveness_audit,
             router=router,
             entry_mode=entry_mode,
             sync_runtime_summary=sync_runtime_summary,
@@ -463,13 +440,16 @@ def _status_state(
             )
             return _finalize_result()
         if quest_status in _LIVE_QUEST_STATUSES:
-            audit_status = router._record_quest_runtime_audits(status=result, quest_runtime=quest_runtime)
-            if audit_status is quest_state.QuestRuntimeLivenessStatus.UNKNOWN:
+            audit_status = router._record_quest_runtime_audits(
+                status=result,
+                runtime_liveness_audit=runtime_liveness_audit,
+            )
+            if audit_status is StudyRuntimeAuditStatus.UNKNOWN:
                 result.set_decision(
                     StudyRuntimeDecision.BLOCKED,
                     StudyRuntimeReason.STUDY_COMPLETION_LIVE_RUNTIME_AUDIT_FAILED,
                 )
-            elif audit_status is quest_state.QuestRuntimeLivenessStatus.LIVE:
+            elif audit_status is StudyRuntimeAuditStatus.LIVE:
                 result.set_decision(
                     StudyRuntimeDecision.PAUSE_AND_COMPLETE,
                     StudyRuntimeReason.STUDY_COMPLETION_READY,
@@ -579,7 +559,7 @@ def _status_state(
         return _apply_live_quest_status_decision(
             result=result,
             router=router,
-            quest_runtime=quest_runtime,
+            runtime_liveness_audit=runtime_liveness_audit,
             execution=execution,
             study_root=study_root,
             study_id=study_id,
@@ -715,13 +695,6 @@ def _unknown_opl_current_control_state_runtime_liveness(
         "mas_provider_live_query_retired": True,
         "provider_completion_is_domain_completion": False,
         "snapshot": {"status": quest_status.value if quest_status is not None else None},
-    }
-
-
-def _quest_status_allows_opl_liveness_projection(quest_status: StudyRuntimeQuestStatus | None) -> bool:
-    return quest_status in _LIVE_QUEST_STATUSES or quest_status in {
-        StudyRuntimeQuestStatus.PAUSED,
-        StudyRuntimeQuestStatus.WAITING_FOR_USER,
     }
 
 
@@ -871,7 +844,7 @@ def _opl_current_control_state_handoff_liveness_projection(
         "handoff_generated_at": handoff_generated_at,
         "runtime_health": dict(runtime_health) if isinstance(runtime_health, dict) else {},
         "stage_progress_log": _stage_progress_log(study_entry.get("stage_progress_log")),
-        "snapshot": {"status": quest_status.value if quest_status is not None else None},
+        "snapshot": {"status": StudyRuntimeQuestStatus.ACTIVE.value},
     }
 
 

@@ -13,7 +13,6 @@ from med_autoscience.controllers.work_unit_evidence_adoption import (
 )
 
 
-_CONTROLLER_DECISION_AUTHORIZATION_STATE_KEY = "last_controller_decision_authorization"
 _WORK_UNIT_TARGET_CONTEXT_KEYS = (
     "specificity_targets",
     "work_unit_targets",
@@ -93,7 +92,6 @@ def existing_controller_work_unit_evidence_adoption(
 
 def _mark_controller_work_unit_evidence_adopted(
     *,
-    quest_root: Path,
     authorization_context: dict[str, Any],
     evidence_adoption: dict[str, Any],
     lifecycle: dict[str, Any],
@@ -144,7 +142,6 @@ def record_controller_work_unit_evidence_adoption(
     *,
     status: Any,
     study_root: Path,
-    quest_root: Path | None = None,
     identity: control_intent.ControlIntentIdentity,
     authorization_context: dict[str, Any],
     evidence_adoption: dict[str, Any],
@@ -186,13 +183,11 @@ def record_controller_work_unit_evidence_adoption(
         read_json_mapping=_read_json_mapping,
         write_json_mapping=_write_json_mapping,
     )
-    if quest_root is not None:
-        status.extras["controller_work_unit_evidence_adoption_ref"] = _mark_controller_work_unit_evidence_adopted(
-            quest_root=quest_root,
-            authorization_context=authorization_context,
-            evidence_adoption=evidence_adoption,
-            lifecycle=lifecycle,
-        )
+    status.extras["controller_work_unit_evidence_adoption_ref"] = _mark_controller_work_unit_evidence_adopted(
+        authorization_context=authorization_context,
+        evidence_adoption=evidence_adoption,
+        lifecycle=lifecycle,
+    )
 
 
 def _rebuild_repair_execution_evidence_for_completed_work_unit(
@@ -490,25 +485,7 @@ def adopt_controller_work_unit_evidence_if_present(
         events=business_key_events,
         decision_emitted_at=authorization_context.get("decision_emitted_at"),
     )
-    relay_run_ids = generic_completed_work_unit.relay_run_ids_for_authorization(
-        quest_root=quest_root,
-        authorization_context=authorization_context,
-        active_run_id=active_run_id,
-        work_unit_target_context_keys=_WORK_UNIT_TARGET_CONTEXT_KEYS,
-    )
-    authorized_run_ids = (*delivered_run_ids, *relay_run_ids)
-    has_matching_relay_marker = generic_completed_work_unit.has_matching_relay_marker(
-        quest_root=quest_root,
-        authorization_context=authorization_context,
-        active_run_id=active_run_id,
-        work_unit_target_context_keys=_WORK_UNIT_TARGET_CONTEXT_KEYS,
-    )
-    if (
-        not has_delivery_for_current_decision
-        and not has_delivery_for_same_business_key
-        and not has_matching_relay_marker
-        and not relay_run_ids
-    ):
+    if not has_delivery_for_current_decision and not has_delivery_for_same_business_key:
         return None
     if analysis_repair_adoption.authorization_matches(authorization_context):
         return _adopt_analysis_repair_evidence(
@@ -527,5 +504,5 @@ def adopt_controller_work_unit_evidence_if_present(
         identity=identity,
         active_run_id=active_run_id,
         source=source,
-        authorized_run_ids=authorized_run_ids,
+        authorized_run_ids=delivered_run_ids,
     )

@@ -3,7 +3,6 @@ from __future__ import annotations
 from typing import Any
 
 from med_autoscience.controllers import control_intent
-from med_autoscience.runtime_protocol import quest_state
 
 from ..progress_projection import StudyRuntimeDecision, StudyRuntimeReason, ProgressProjectionStatus, _LIVE_QUEST_STATUSES
 from .controller_authorization_context import (
@@ -14,16 +13,9 @@ from .controller_authorization_context import (
 )
 from .controller_authorization_messages import _controller_decision_authorization_message
 from .controller_authorization_receipts import (
-    _CONTROLLER_DECISION_AUTHORIZATION_WAIT_ALLOWED_ACTIONS,
-    _CONTROLLER_DECISION_AUTHORIZATION_WAIT_RECOVERY_ACTIONS,
-    _active_run_id_from_status_or_state,
-    _controller_authorization_marker_lacks_target_context,
+    _active_run_id_from_status,
     _closed_publication_work_unit_lifecycle,
-    _controller_decision_authorization_allowed_while_waiting,
-    _controller_decision_authorization_already_relayed,
     _controller_decision_authorization_lifecycle,
-    _runtime_state_awaits_artifact_delta_or_gate_replay,
-    relay_controller_decision_authorization_to_runtime,
 )
 from .work_unit_evidence_adoption import (
     adopt_controller_work_unit_evidence_if_present,
@@ -111,9 +103,7 @@ def _relay_controller_decision_authorization_if_required(
     if not _controller_decision_authorizes_runtime(authorization_context):
         return None
     assert authorization_context is not None
-    runtime_state = quest_state.load_runtime_state(context.quest_root)
-    runtime_state["quest_id"] = status.quest_id
-    active_run_id = _active_run_id_from_status_or_state(status=status, runtime_state=runtime_state)
+    active_run_id = _active_run_id_from_status(status=status)
     identity = _controller_decision_authorization_identity(authorization_context)
     if _owner_route_ref_already_projected_for_current_authorization(
         study_root=context.study_root,
@@ -140,7 +130,6 @@ def _relay_controller_decision_authorization_if_required(
             record_controller_work_unit_evidence_adoption(
                 status=status,
                 study_root=context.study_root,
-                quest_root=context.quest_root,
                 identity=identity,
                 authorization_context=authorization_context,
                 evidence_adoption=evidence_adoption,
@@ -149,45 +138,6 @@ def _relay_controller_decision_authorization_if_required(
         return False
 
     if adopt_current_evidence_if_present():
-        return None
-    if _runtime_state_awaits_artifact_delta_or_gate_replay(
-        runtime_state=runtime_state,
-        authorization_context=authorization_context,
-    ):
-        if _controller_decision_authorization_allowed_while_waiting(
-            status=status,
-            authorization_context=authorization_context,
-        ):
-            return relay_controller_decision_authorization_to_runtime(
-                status=status,
-                context=context,
-                runtime_state=runtime_state,
-                authorization_context=authorization_context,
-                active_run_id=active_run_id,
-            )
-        control_intent.append_skipped_duplicate_if_needed(
-            study_root=context.study_root,
-            identity=identity,
-            payload={
-                "reason": control_intent.AWAIT_ARTIFACT_DELTA_OR_GATE_REPLAY,
-                "active_run_id": active_run_id,
-                "source": context.source,
-            },
-        )
-        status.extras["controller_decision_authorization_deferred"] = {
-            "control_intent_key": authorization_context.get("control_intent_key"),
-            "reason": control_intent.AWAIT_ARTIFACT_DELTA_OR_GATE_REPLAY,
-            "allowed_actions": sorted(
-                _CONTROLLER_DECISION_AUTHORIZATION_WAIT_ALLOWED_ACTIONS
-                | _CONTROLLER_DECISION_AUTHORIZATION_WAIT_RECOVERY_ACTIONS
-            ),
-        }
-        return None
-    if _controller_decision_authorization_already_relayed(
-        runtime_state=runtime_state,
-        authorization_context=authorization_context,
-        active_run_id=active_run_id,
-    ):
         return None
     lifecycle = _controller_decision_authorization_lifecycle(
         study_root=context.study_root,
@@ -207,11 +157,7 @@ def _relay_controller_decision_authorization_if_required(
             "source": context.source,
         }
         return None
-    marker_lacks_target_context = _controller_authorization_marker_lacks_target_context(
-        runtime_state=runtime_state,
-        authorization_context=authorization_context,
-    )
-    if bool(lifecycle.get("delivery_blocked")) and not marker_lacks_target_context:
+    if bool(lifecycle.get("delivery_blocked")):
         if adopt_current_evidence_if_present():
             return None
         control_intent.append_skipped_duplicate_if_needed(
@@ -260,8 +206,7 @@ def adopt_controller_work_unit_evidence_for_current_authorization(
     if not _controller_decision_authorizes_runtime(authorization_context):
         return None
     assert authorization_context is not None
-    runtime_state = quest_state.load_runtime_state(context.quest_root)
-    active_run_id = _active_run_id_from_status_or_state(status=status, runtime_state=runtime_state)
+    active_run_id = _active_run_id_from_status(status=status)
     identity = _controller_decision_authorization_identity(authorization_context)
     evidence_adoption = adopt_controller_work_unit_evidence_if_present(
         study_root=context.study_root,
@@ -276,7 +221,6 @@ def adopt_controller_work_unit_evidence_for_current_authorization(
     record_controller_work_unit_evidence_adoption(
         status=status,
         study_root=context.study_root,
-        quest_root=context.quest_root,
         identity=identity,
         authorization_context=authorization_context,
         evidence_adoption=evidence_adoption,

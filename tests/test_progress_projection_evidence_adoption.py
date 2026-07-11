@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import importlib
 import json
+from datetime import datetime, timezone
 from pathlib import Path
 
 import pytest
@@ -37,16 +38,20 @@ def _setup_study(tmp_path: Path):
     )
     quest_root = profile.runtime_root / STUDY_ID
     write_text(quest_root / "quest.yaml", f"quest_id: {STUDY_ID}\nstudy_id: {STUDY_ID}\n")
-    state = {
-        "status": "active",
-        "active_run_id": None,
-        "pending_user_message_count": 0,
-        "continuation_policy": "auto",
-        "continuation_anchor": "decision",
-        "continuation_reason": "same_fingerprint_no_artifact_delta",
-    }
-    _write_json(quest_root / "artifacts" / "runtime" / "state" / "runtime_state.json", state)
-    _write_json(quest_root / ".ds" / "runtime_state.json", state)
+    _write_json(
+        profile.workspace_root / "runtime" / "artifacts" / "supervision" / "opl_current_control_state" / "latest.json",
+        {
+            "generated_at": datetime.now(timezone.utc).isoformat(),
+            "authority": "observability_only",
+            "studies": [{
+                "study_id": STUDY_ID,
+                "quest_id": STUDY_ID,
+                "active_run_id": "opl-stage-attempt://sat-evidence-adoption",
+                "running_provider_attempt": True,
+                "runtime_health": {"runtime_liveness_status": "live"},
+            }],
+        },
+    )
     return profile, study_root, quest_root
 
 

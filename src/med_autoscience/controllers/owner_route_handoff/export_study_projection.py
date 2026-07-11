@@ -4,7 +4,6 @@ from pathlib import Path
 from typing import Any, Mapping
 
 from med_autoscience.profiles import WorkspaceProfile
-from med_autoscience.runtime_protocol import quest_state
 from med_autoscience.controllers.study_transition_receipt_consumption.owner_callable_candidates import (
     latest_owner_callable_receipt_payload,
 )
@@ -197,10 +196,6 @@ def current_control_owner_route_handoff_record(
         return None
     runtime_health = mapping(matching.get("runtime_health"))
     quest_id = text(matching.get("quest_id")) or study_root.name
-    quest_root = text(matching.get("quest_root"))
-    runtime_state_path = text(matching.get("runtime_state_path"))
-    if runtime_state_path is None and quest_root is not None:
-        runtime_state_path = str(quest_state.canonical_runtime_state_path(Path(quest_root)))
     owner_route_handoff_ref = str(_OPL_CURRENT_CONTROL_REF)
     handoff = {
         "surface_kind": "mas_runtime_owner_route_handoff",
@@ -210,7 +205,6 @@ def current_control_owner_route_handoff_record(
         "recommended_task_kind": "stage_outcome/opl-handoff",
         "study_id": study_root.name,
         "quest_id": quest_id,
-        "runtime_state_path": runtime_state_path,
         "source": "opl_current_control_state_owner_route_handoff",
         "reason": reason,
         "repair_kind": text(runtime_health.get("canonical_runtime_action")) or reason,

@@ -55,7 +55,6 @@ from .patch_loop_closeout import (
 )
 from ..agent_lab_submission_assurance import build_submission_assurance_surfaces
 from ..publication_aftercare import build_publication_aftercare_plan
-from med_autoscience.runtime_protocol import quest_state
 
 
 FEEDBACKOPS_ACCEPTED_PROFILE = "target_agent_feedback_external_suite"
@@ -800,7 +799,6 @@ def _runtime_event_ledger(*, root: Path, study_id: str) -> dict[str, Any]:
 
 def _provider_switch_hygiene(*, root: Path, study_id: str) -> dict[str, Any]:
     provider_state_paths = (
-        quest_state.canonical_runtime_state_path(root),
         root / "artifacts" / "runtime" / "provider_state.json",
         root / "artifacts" / "runtime" / "provider_switch.json",
         root / "artifacts" / "runtime" / "provider_switch_hygiene.json",

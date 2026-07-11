@@ -254,34 +254,6 @@ def test_run_controller_reports_unresolved_dataset_ids_in_hard_block_message(tmp
     assert not (quest_root / ".ds" / "user_message_queue.json").exists()
 
 
-def test_build_gate_state_uses_runtime_protocol_quest_state(monkeypatch, tmp_path: Path) -> None:
-    module = importlib.import_module("med_autoscience.controllers.data_asset_gate")
-    workspace_root = tmp_path / "workspace"
-    study_id = "002-early-residual-risk"
-    quest_root = workspace_root / "ops" / "med-deepscientist" / "runtime" / "quests" / study_id
-    (quest_root / "quest.yaml").parent.mkdir(parents=True, exist_ok=True)
-    (quest_root / "quest.yaml").write_text(f"quest_id: {study_id}\n", encoding="utf-8")
-    (workspace_root / "studies" / study_id).mkdir(parents=True, exist_ok=True)
-    (workspace_root / "studies" / study_id / "study.yaml").write_text(f"study_id: {study_id}\n", encoding="utf-8")
-    seen: dict[str, object] = {}
-
-    def fake_load_runtime_state(path: Path) -> dict[str, object]:
-        seen["quest_root"] = path
-        return {"status": "patched", "quest_id": study_id}
-
-    monkeypatch.setattr(module.quest_state, "load_runtime_state", fake_load_runtime_state)
-    monkeypatch.setattr(
-        module.data_assets,
-        "assess_data_asset_impact",
-        lambda *, workspace_root: {"studies": [{"study_id": study_id, "status": "clear", "dataset_inputs": []}]},
-    )
-
-    state = module.build_gate_state(quest_root)
-
-    assert seen == {"quest_root": quest_root}
-    assert state.runtime_state["status"] == "patched"
-
-
 def test_build_gate_state_prefers_runtime_reentry_gate_study_id(tmp_path: Path, monkeypatch) -> None:
     module = importlib.import_module("med_autoscience.controllers.data_asset_gate")
     study_id = "002-early-residual-risk"

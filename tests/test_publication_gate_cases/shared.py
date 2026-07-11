@@ -125,22 +125,6 @@ def make_quest(
         },
     )
 
-    dump_json(
-        quest_root / ".ds" / "runtime_state.json",
-        {
-            "quest_id": quest_id,
-            "status": runtime_status,
-            "active_run_id": "run-1" if include_main_result else None,
-        },
-    )
-    dump_json(
-        quest_root / "artifacts" / "runtime" / "state" / "runtime_state.json",
-        {
-            "quest_id": quest_id,
-            "status": runtime_status,
-            "active_run_id": "run-1" if include_main_result else None,
-        },
-    )
     if include_main_result:
         main_result = {
             "quest_id": "002-early-residual-risk",

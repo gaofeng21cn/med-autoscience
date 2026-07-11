@@ -19,7 +19,6 @@ from med_autoscience.adapters import report_store as runtime_protocol_report_sto
 
 from .shared import (
     build_surface_state,
-    resolve_runtime_root_from_quest_root,
 )
 from .reporting import (
     _append_materialization_error,
@@ -75,11 +74,10 @@ def run_controller(
     stop_result = None
     intervention = None
     if apply and report["blockers"]:
-        current_status = str(state.runtime_state.get("status") or "").strip().lower()
-        if current_status in {"running", "active"} and daemon_url:
+        if daemon_url:
             stop_result = {
                 "status": "owner_route_required",
-                "reason": "opl_current_control_state_stop_required",
+                "reason": "opl_current_control_review_required",
                 "queue_owner": "one-person-lab",
                 "runtime_state_mutated": False,
                 "quest_id": report["quest_id"],
@@ -88,7 +86,6 @@ def run_controller(
         evidence_refs = [str(json_path)] if json_path is not None else []
         intervention = build_pending_user_message_handoff(
             quest_root=state.quest_root,
-            runtime_state=state.runtime_state,
             message=medical_surface_policy.build_intervention_message(report),
             source=source,
             evidence_refs=evidence_refs,

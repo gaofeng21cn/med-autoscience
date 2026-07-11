@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import pytest
+
 from tests.test_publication_gate_cases.shared import (
     annotations,
     importlib,
@@ -15,6 +17,15 @@ from tests.test_publication_gate_cases.shared import (
     write_primary_target,
     write_journal_requirements_snapshot,
 )
+
+
+def test_build_gate_state_requires_explicit_quest_identity(tmp_path: Path) -> None:
+    module = importlib.import_module("med_autoscience.controllers.publication_gate")
+    quest_root = make_quest(tmp_path, include_main_result=False, include_submission_minimal=False)
+    (quest_root / "quest.yaml").unlink()
+
+    with pytest.raises(FileNotFoundError, match="missing explicit identity contract"):
+        module.build_gate_state(quest_root)
 
 
 def test_build_gate_state_prefers_complete_bound_study_canonical_paper_when_branch_differs(
@@ -110,6 +121,8 @@ def test_build_gate_state_prefers_stage_native_body_authority_for_direct_study_r
     module = importlib.import_module("med_autoscience.controllers.publication_gate")
     study_root = tmp_path / "studies" / "003-stage-native"
     write_text(study_root / "study.yaml", "study_id: 003-stage-native\n")
+    quest_root = tmp_path / "runtime" / "quests" / "003-stage-native"
+    write_text(quest_root / "quest.yaml", "quest_id: 003-stage-native\nstudy_id: 003-stage-native\n")
     stage_native_paper_root = (
         study_root
         / "artifacts"
@@ -145,7 +158,7 @@ def test_build_gate_state_prefers_stage_native_body_authority_for_direct_study_r
         },
     )
 
-    state = module.build_gate_state(study_root)
+    state = module.build_gate_state(quest_root)
     report = module.build_gate_report(state)
 
     assert state.paper_root == stage_native_paper_root.resolve()
@@ -160,6 +173,8 @@ def test_build_gate_state_uses_stage_native_manifest_and_publication_surface_for
     module = importlib.import_module("med_autoscience.controllers.publication_gate")
     study_root = tmp_path / "studies" / "003-stage-native"
     write_text(study_root / "study.yaml", "study_id: 003-stage-native\n")
+    quest_root = tmp_path / "runtime" / "quests" / "003-stage-native"
+    write_text(quest_root / "quest.yaml", "quest_id: 003-stage-native\nstudy_id: 003-stage-native\n")
     stage_native_paper_root = (
         study_root
         / "artifacts"
@@ -220,7 +235,7 @@ def test_build_gate_state_uses_stage_native_manifest_and_publication_surface_for
         },
     )
 
-    state = module.build_gate_state(study_root)
+    state = module.build_gate_state(quest_root)
     report = module.build_gate_report(state)
 
     assert state.paper_root == stage_native_paper_root.resolve()

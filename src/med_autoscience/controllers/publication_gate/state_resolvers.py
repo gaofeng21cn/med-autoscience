@@ -20,10 +20,10 @@ from med_autoscience.journal_requirements import (
 from med_autoscience.publication_profiles import GENERAL_MEDICAL_JOURNAL_PROFILE
 from med_autoscience.policies import publication_gate as publication_gate_policy
 from med_autoscience.policies.medical_reporting_checklist import REPORTING_CHECKLIST_BLOCKER_KEYS
-from med_autoscience.runtime_protocol import (
-    quest_state,
+from med_autoscience.controllers.study_paper_context import (
+    resolve_study_paper_context,
+    resolve_study_root_from_quest_root,
 )
-from med_autoscience.controllers.study_paper_context import resolve_study_paper_context
 from med_autoscience.controllers import paper_artifacts
 from med_autoscience.adapters import report_store as runtime_protocol_report_store
 from med_autoscience.controllers.submission_package_layout import resolve_submission_manifest_path
@@ -56,10 +56,8 @@ from .discovery_and_drift import (
     _medical_surface_report_matches_study_root,
     find_latest_gate_report,
     find_latest_medical_publication_surface_report,
-    _write_drift_text_surfaces,
 )
 from .discovery_and_drift import (
-    detect_write_drift,
     _paper_line_open_supplementary_count,
     _paper_line_recommended_action,
     _paper_line_blocking_reasons,
@@ -93,19 +91,6 @@ from .discovery_and_drift import (
     gate_allows_write,
 )
 
-
-
-def resolve_write_drift_stdout_path(
-    *,
-    quest_root: Path,
-    runtime_state: dict[str, Any],
-    main_result: dict[str, Any] | None,
-) -> Path | None:
-    main_result_run_id = _non_empty_text((main_result or {}).get("run_id"))
-    active_run_id = _non_empty_text(runtime_state.get("active_run_id"))
-    if main_result is not None and (main_result_run_id is None or active_run_id != main_result_run_id):
-        return None
-    return quest_state.resolve_active_stdout_path(quest_root=quest_root, runtime_state=runtime_state)
 
 
 def medical_publication_surface_report_current(
@@ -335,11 +320,8 @@ def resolve_primary_anchor(
     paper_bundle_manifest_path: Path | None,
     paper_bundle_manifest: dict[str, Any] | None,
 ) -> tuple[str, Path, Path | None, dict[str, Any] | None]:
-    try:
-        main_result_path = quest_state.find_latest_main_result_path(quest_root)
-    except FileNotFoundError:
-        main_result_path = None
-    if main_result_path is not None:
+    main_result_path = quest_root.resolve() / "artifacts" / "results" / "main_result.json"
+    if main_result_path.exists():
         return "main_result", main_result_path, main_result_path, load_json(main_result_path)
     if paper_bundle_manifest_path is not None and paper_bundle_manifest is not None:
         return "paper_bundle", paper_bundle_manifest_path, None, None
@@ -347,7 +329,9 @@ def resolve_primary_anchor(
 
 
 def build_gate_state(quest_root: Path) -> GateState:
-    runtime_state = quest_state.load_runtime_state(quest_root)
+    resolved_quest_root = quest_root.expanduser().resolve()
+    study_id, explicit_study_root = resolve_study_root_from_quest_root(resolved_quest_root)
+    quest_id = resolved_quest_root.name
     paper_bundle_manifest_path = paper_artifacts.resolve_paper_bundle_manifest(quest_root)
     paper_bundle_manifest = load_json(paper_bundle_manifest_path) if paper_bundle_manifest_path else None
     projected_paper_line_state_path = (
@@ -383,6 +367,11 @@ def build_gate_state(quest_root: Path) -> GateState:
         paper_bundle_manifest_path = authoritative_bundle_manifest_path.resolve()
         paper_bundle_manifest = load_json(paper_bundle_manifest_path)
     study_root = _resolve_gate_study_root(paper_root=paper_root)
+    if study_root is not None and study_root != explicit_study_root:
+        raise ValueError(
+            f"paper authority study root does not match explicit quest identity: {study_root} != {explicit_study_root}"
+        )
+    study_root = explicit_study_root
     charter_contract_linkage = study_delivery_sync.build_charter_contract_linkage(
         study_root=study_root,
         evidence_ledger_path=None,
@@ -415,12 +404,6 @@ def build_gate_state(quest_root: Path) -> GateState:
     latest_medical_publication_surface = (
         load_json(latest_medical_publication_surface_path) if latest_medical_publication_surface_path else None
     )
-    stdout_path = resolve_write_drift_stdout_path(
-        quest_root=quest_root,
-        runtime_state=runtime_state,
-        main_result=main_result if anchor_kind == "main_result" else None,
-    )
-    recent_lines = quest_state.read_recent_stdout_lines(stdout_path)
     if main_result_path is not None and main_result is not None:
         present_deliverables, missing_deliverables = classify_deliverables(main_result_path, main_result)
     else:
@@ -462,8 +445,9 @@ def build_gate_state(quest_root: Path) -> GateState:
         else None
     )
     return GateState(
-        quest_root=quest_root,
-        runtime_state=runtime_state,
+        quest_root=resolved_quest_root,
+        quest_id=quest_id,
+        study_id=study_id,
         study_root=study_root,
         charter_contract_linkage=charter_contract_linkage,
         anchor_kind=anchor_kind,
@@ -479,9 +463,6 @@ def build_gate_state(quest_root: Path) -> GateState:
         latest_gate=latest_gate,
         latest_medical_publication_surface_path=latest_medical_publication_surface_path,
         latest_medical_publication_surface=latest_medical_publication_surface,
-        active_run_stdout_path=stdout_path,
-        recent_stdout_lines=recent_lines,
-        write_drift_detected=detect_write_drift(recent_lines),
         missing_deliverables=missing_deliverables,
         present_deliverables=present_deliverables,
         paper_bundle_manifest_path=paper_bundle_manifest_path,

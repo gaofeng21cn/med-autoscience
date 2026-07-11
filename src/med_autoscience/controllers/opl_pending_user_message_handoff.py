@@ -27,15 +27,13 @@ def _message_digest(message: str) -> str:
 def build_pending_user_message_handoff(
     *,
     quest_root: Path,
-    runtime_state: Mapping[str, Any] | None,
     message: str,
     source: str,
     evidence_refs: Iterable[str] | None = None,
     dedupe_key: str | None = None,
 ) -> dict[str, Any]:
     resolved_quest_root = Path(quest_root).expanduser().resolve()
-    state = runtime_state if isinstance(runtime_state, Mapping) else {}
-    quest_id = _text(state.get("quest_id")) or resolved_quest_root.name
+    quest_id = resolved_quest_root.name
     digest = _message_digest(message)
     handoff_id = _text(dedupe_key) or f"pending-user-message::{quest_id}::{digest[:16]}"
     return {

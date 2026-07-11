@@ -641,7 +641,8 @@ def build_surface_report(state: SurfaceState) -> dict[str, Any]:
         "schema_version": 1,
         "gate_kind": "medical_publication_surface_control",
         "generated_at": utc_now(),
-        "quest_id": str(state.runtime_state.get("quest_id") or state.quest_root.name),
+        "quest_id": state.quest_id,
+        "study_id": state.study_id,
         "status": "blocked" if blockers else "clear",
         "recommended_action": (
             medical_surface_policy.BLOCKED_RECOMMENDED_ACTION

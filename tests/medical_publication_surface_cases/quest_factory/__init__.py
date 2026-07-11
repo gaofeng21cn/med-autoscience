@@ -12,7 +12,7 @@ from tests.medical_publication_surface_cases.shared_base import (
     full_id,
     dump_json,
 )
-from tests.medical_publication_surface_cases.shared_base import _write_review_ledger
+from tests.medical_publication_surface_cases.shared_base import _write_review_ledger, _write_study_charter
 from tests.medical_publication_surface_cases.endpoint_provenance_fixture import write_endpoint_provenance_note_fixture
 from tests.medical_publication_surface_cases.figure_contract_fixtures import default_threshold_renderer_contract
 from tests.medical_publication_surface_cases.medical_writing_surfaces import write_medical_manuscript_blueprint_fixture, write_medical_prose_review_fixture
@@ -56,6 +56,15 @@ def make_quest(
 ) -> Path:
     quest_root = tmp_path / "runtime" / "quests" / "002-early-residual-risk"
     paper_root = quest_root / "paper"
+    (quest_root / "quest.yaml").parent.mkdir(parents=True, exist_ok=True)
+    (quest_root / "quest.yaml").write_text(
+        "quest_id: 002-early-residual-risk\nstudy_id: 002-early-residual-risk\n",
+        encoding="utf-8",
+    )
+    study_root = tmp_path / "studies" / "002-early-residual-risk"
+    (study_root / "study.yaml").parent.mkdir(parents=True, exist_ok=True)
+    (study_root / "study.yaml").write_text("study_id: 002-early-residual-risk\n", encoding="utf-8")
+    _write_study_charter(study_root)
     if include_methods_manifest is None:
         include_methods_manifest = medicalized
     if include_results_narrative_map is None:
@@ -105,15 +114,6 @@ def make_quest(
     if include_medical_prose_review is None:
         include_medical_prose_review = medicalized
 
-    runtime_state_payload = {
-        "quest_id": "002-early-residual-risk",
-        "status": "running",
-        "active_run_id": "run-1",
-        "active_interaction_id": "progress-1",
-        "pending_user_message_count": 0,
-    }
-    dump_json(quest_root / "artifacts" / "runtime" / "state" / "runtime_state.json", runtime_state_payload)
-    dump_json(quest_root / ".ds" / "runtime_state.json", runtime_state_payload)
     (quest_root / "baselines" / "local" / "baseline-1").mkdir(parents=True, exist_ok=True)
     (quest_root / "baselines" / "local" / "baseline-1" / "verification.md").write_text(
         "# Verification\n\n"
@@ -644,6 +644,8 @@ def make_quest(
         write_endpoint_provenance_note_fixture(paper_root)
     if include_medical_manuscript_blueprint:
         write_medical_manuscript_blueprint_fixture(paper_root)
+        write_medical_manuscript_blueprint_fixture(study_root / "paper")
     if include_medical_prose_review:
         write_medical_prose_review_fixture(paper_root, verdict=medical_prose_review_verdict)
+        write_medical_prose_review_fixture(study_root / "paper", verdict=medical_prose_review_verdict)
     return quest_root
