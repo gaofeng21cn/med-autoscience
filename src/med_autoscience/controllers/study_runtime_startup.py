@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 from importlib import import_module
-import inspect
 from pathlib import Path
 from typing import Any
 
@@ -13,13 +12,10 @@ from med_autoscience.controllers import (
     runtime_reentry_gate as runtime_reentry_gate_controller,
     startup_boundary_gate as startup_boundary_gate_controller,
 )
-from med_autoscience.controllers import quest_hydration as quest_hydration_controller
-from med_autoscience.controllers import startup_hydration_validation as startup_hydration_validation_controller
 from med_autoscience.controllers.study_runtime_types import (
     StudyRuntimeReentryGate,
     StudyRuntimeStartupBoundaryGate,
     StudyRuntimeStartupContextSyncResult,
-    ProgressProjectionStatus,
 )
 from med_autoscience.controller_summary import materialize_controller_summary
 from med_autoscience.policies.automation_ready import render_automation_ready_summary
@@ -305,53 +301,8 @@ def _build_create_payload(
     }
 
 
-def _runtime_reentry_requires_startup_hydration(runtime_reentry_gate: dict[str, Any]) -> bool:
-    return StudyRuntimeReentryGate.from_payload(runtime_reentry_gate).require_startup_hydration
-
-
 def _runtime_reentry_requires_managed_skill_audit(runtime_reentry_gate: dict[str, Any]) -> bool:
     return StudyRuntimeReentryGate.from_payload(runtime_reentry_gate).require_managed_skill_audit
-
-
-def _run_startup_hydration(
-    *,
-    quest_root: Path,
-    create_payload: dict[str, Any],
-    study_root: Path | None = None,
-    workspace_root: Path | None = None,
-) -> tuple[
-    quest_hydration_controller.StartupHydrationReport,
-    startup_hydration_validation_controller.StartupHydrationValidationReport,
-]:
-    router = _router_module()
-    build_hydration_payload = quest_hydration_controller.build_hydration_payload
-    build_hydration_payload_params = inspect.signature(build_hydration_payload).parameters
-    if (
-        study_root is not None
-        and workspace_root is not None
-        and "study_root" in build_hydration_payload_params
-        and "workspace_root" in build_hydration_payload_params
-    ):
-        hydration_payload = build_hydration_payload(
-            create_payload=create_payload,
-            study_root=study_root,
-            workspace_root=workspace_root,
-        )
-    else:
-        hydration_payload = build_hydration_payload(create_payload=create_payload)
-    hydration_result = router.quest_hydration_controller.run_hydration(
-        quest_root=quest_root,
-        hydration_payload=hydration_payload,
-    )
-    validation_result = router.startup_hydration_validation_controller.run_validation(quest_root=quest_root)
-    return (
-        quest_hydration_controller.StartupHydrationReport.from_payload(
-            ProgressProjectionStatus._require_dict_field("startup_hydration", hydration_result)
-        ),
-        startup_hydration_validation_controller.StartupHydrationValidationReport.from_payload(
-            ProgressProjectionStatus._require_dict_field("startup_hydration_validation", validation_result)
-        ),
-    )
 
 
 def _sync_existing_quest_startup_context(

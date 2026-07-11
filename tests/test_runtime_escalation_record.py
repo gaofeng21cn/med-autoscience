@@ -40,10 +40,9 @@ def test_runtime_escalation_record_from_payload_round_trips_minimal_shape() -> N
         "scope": "quest",
         "severity": "quest",
         "reason": "startup_boundary_not_ready_for_resume",
-        "recommended_actions": ["refresh_startup_hydration", "controller_review_required"],
+        "recommended_actions": ["controller_review_required"],
         "evidence_refs": [
-            "/tmp/runtime/quests/quest-001/artifacts/reports/startup/hydration_report.json",
-            "/tmp/runtime/quests/quest-001/artifacts/reports/startup/hydration_validation_report.json",
+            "/tmp/studies/001-risk/artifacts/supervision/opl_runtime_owner_handoff/latest.json",
         ],
         "runtime_context_refs": {
             "opl_runtime_context_ref": "/tmp/workspace/studies/001-risk/artifacts/supervision/opl_runtime_owner_handoff/latest.json"
@@ -67,10 +66,9 @@ def test_runtime_escalation_record_from_payload_round_trips_minimal_shape() -> N
         scope="quest",
         severity="quest",
         reason="startup_boundary_not_ready_for_resume",
-        recommended_actions=("refresh_startup_hydration", "controller_review_required"),
+        recommended_actions=("controller_review_required",),
         evidence_refs=(
-            "/tmp/runtime/quests/quest-001/artifacts/reports/startup/hydration_report.json",
-            "/tmp/runtime/quests/quest-001/artifacts/reports/startup/hydration_validation_report.json",
+            "/tmp/studies/001-risk/artifacts/supervision/opl_runtime_owner_handoff/latest.json",
         ),
         runtime_context_refs={
             "opl_runtime_context_ref": "/tmp/workspace/studies/001-risk/artifacts/supervision/opl_runtime_owner_handoff/latest.json"
@@ -136,7 +134,7 @@ def test_runtime_escalation_record_requires_summary_ref() -> None:
                 "scope": "quest",
                 "severity": "quest",
                 "reason": "startup_boundary_not_ready_for_resume",
-                "recommended_actions": ["refresh_startup_hydration", "controller_review_required"],
+                "recommended_actions": ["controller_review_required"],
                 "runtime_context_refs": {"opl_runtime_context_ref": "/tmp/workspace/studies/001-risk/artifacts/supervision/opl_runtime_owner_handoff/latest.json"},
             }
         )

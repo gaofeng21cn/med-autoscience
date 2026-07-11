@@ -18,9 +18,9 @@ from med_autoscience.controllers.medical_publication_surface.shared_base import 
 from ... import (
     analysis_harmonization_owner,
     ai_reviewer_publication_eval_workflow,
-    quest_hydration,
     domain_status_projection,
 )
+from ..._medical_display_surface_support import materialize_display_contract_surface
 from . import methodology_reframe_decision
 from . import external_learning_sidecar
 from . import medical_paper_readiness
@@ -354,7 +354,7 @@ def execute_artifact_display_materialization(
         return {
             "execution_status": "blocked" if apply else "dry_run",
             "blocked_reason": "medical_reporting_contract_missing",
-            "owner_callable_surface": "quest_hydration.materialize_display_contract_stubs",
+            "owner_callable_surface": "medical_display_surface_support.materialize_display_contract_surface",
             "next_owner": "artifact_os",
             "required_input_surface": str(reporting_contract_path),
         }
@@ -362,11 +362,11 @@ def execute_artifact_display_materialization(
         return {
             "execution_status": "dry_run",
             "blocked_reason": None,
-            "owner_callable_surface": "quest_hydration.materialize_display_contract_stubs+gate_clearing_batch.run_gate_clearing_batch",
+            "owner_callable_surface": "medical_display_surface_support.materialize_display_contract_surface+gate_clearing_batch.run_gate_clearing_batch",
             "paper_root": str(paper_root),
         }
     try:
-        stub_result = quest_hydration.materialize_display_contract_stubs(paper_root=paper_root)
+        stub_result = materialize_display_contract_surface(paper_root=paper_root)
     except (OSError, TypeError, ValueError, RuntimeError) as exc:
         return _blocked_display_materialization(exc=exc, paper_root=paper_root)
     gate_result = execute_current_package_freshness(profile=profile, study_id=study_id, apply=apply)
@@ -384,7 +384,7 @@ def _blocked_display_materialization(*, exc: Exception, paper_root: Path) -> dic
     return {
         "execution_status": "blocked",
         "blocked_reason": "display_contract_stub_materialization_failed",
-        "owner_callable_surface": "quest_hydration.materialize_display_contract_stubs",
+        "owner_callable_surface": "medical_display_surface_support.materialize_display_contract_surface",
         "next_owner": "artifact_os",
         "error": str(exc),
         "paper_root": str(paper_root),
@@ -402,7 +402,7 @@ def _display_materialization_result(
         **gate_result,
         "execution_status": "executed" if executed else "blocked",
         "blocked_reason": None if executed else gate_result.get("blocked_reason"),
-        "owner_callable_surface": "quest_hydration.materialize_display_contract_stubs+gate_clearing_batch.run_gate_clearing_batch",
+        "owner_callable_surface": "medical_display_surface_support.materialize_display_contract_surface+gate_clearing_batch.run_gate_clearing_batch",
         "owner_result": {
             "display_contract_stubs": stub_result,
             "gate_clearing_batch": owner_result or gate_result.get("owner_result"),

@@ -43,43 +43,6 @@ def make_profile(tmp_path: Path):
     )
 
 
-def make_startup_hydration_report(quest_root: Path) -> dict[str, object]:
-    return {
-        "status": "hydrated",
-        "recorded_at": "2026-04-03T09:00:00+00:00",
-        "quest_root": str(quest_root),
-        "entry_state_summary": f"Study root: {quest_root}",
-        "literature_report": {"record_count": 0},
-        "written_files": [str(quest_root / "paper" / "medical_analysis_contract.json")],
-        "report_path": str(quest_root / "artifacts" / "reports" / "startup" / "hydration_report.json"),
-    }
-
-
-def make_startup_hydration_validation_report(
-    quest_root: Path,
-    *,
-    status: str = "clear",
-    blockers: list[str] | None = None,
-) -> dict[str, object]:
-    return {
-        "status": status,
-        "recorded_at": "2026-04-03T09:05:00+00:00",
-        "quest_root": str(quest_root),
-        "blockers": blockers or [],
-        "contract_statuses": {
-            "medical_analysis_contract": "resolved",
-            "medical_reporting_contract": "resolved",
-        },
-        "checked_paths": {
-            "medical_analysis_contract_path": str(quest_root / "paper" / "medical_analysis_contract.json"),
-            "medical_reporting_contract_path": str(quest_root / "paper" / "medical_reporting_contract.json"),
-        },
-        "report_path": str(
-            quest_root / "artifacts" / "reports" / "startup" / "hydration_validation_report.json"
-        ),
-    }
-
-
 def make_startup_contract_validation_payload(
     *,
     status: str = "clear",
@@ -454,7 +417,6 @@ def write_study(
     runtime_reentry_required_paths: list[str] | None = None,
     runtime_reentry_execution_root: str | None = None,
     runtime_reentry_first_unit: str | None = None,
-    runtime_reentry_require_startup_hydration: bool | None = None,
     runtime_reentry_require_managed_skill_audit: bool | None = None,
     with_opl_runtime_handoff: bool = False,
 ) -> Path:
@@ -569,7 +531,6 @@ def write_study(
                 "    enabled: true",
                 f"    execution_root: {runtime_reentry_execution_root or 'analysis/clean_room_execution'}",
                 f"    first_runtime_unit: {runtime_reentry_first_unit or '00_entry_validation'}",
-                f"    require_startup_hydration: {'true' if runtime_reentry_require_startup_hydration else 'false'}",
                 f"    require_managed_skill_audit: {'true' if runtime_reentry_require_managed_skill_audit else 'false'}",
                 "    required_paths:",
             ]

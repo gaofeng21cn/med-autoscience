@@ -146,8 +146,6 @@ def build_category_specs(
             "tests/test_profiles.py",
             "tests/test_opl_runtime_contract.py",
             "tests/test_workspace_runtime_layout.py",
-            "tests/test_quest_hydration.py",
-            "tests/test_startup_hydration_validation.py",
             "tests/test_study_runtime_domain_status.py",
             "tests/test_study_decision_record.py",
             "tests/test_runtime_escalation_record.py",
@@ -163,8 +161,7 @@ def build_category_specs(
             f"{pytest_command} tests/test_opl_runtime_contract_no_provider_backend.py -q",
             f"{pytest_command} tests/test_adapter_retirement_boundary.py -q",
             (
-                f"{pytest_command} tests/test_quest_hydration.py tests/test_startup_hydration_validation.py "
-                "tests/test_study_runtime_domain_status.py tests/test_study_decision_record.py "
+                f"{pytest_command} tests/test_study_runtime_domain_status.py tests/test_study_decision_record.py "
                 "tests/test_runtime_escalation_record.py -q"
             ),
             "make test-meta",

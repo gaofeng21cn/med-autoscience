@@ -79,7 +79,7 @@ def validate_startup_contract_resolution(*, startup_contract: dict[str, Any]) ->
     )
 
 
-def should_refresh_startup_hydration_for_runtime_hold(status: dict[str, Any]) -> bool:
+def should_attach_runtime_escalation_ref(status: dict[str, Any]) -> bool:
     if not bool(status.get("quest_exists")):
         return False
     decision = str(status.get("decision") or "").strip()
@@ -229,8 +229,6 @@ def _status_state(
         study_root=study_root,
         study_payload=study_payload,
         execution=execution,
-        quest_root=quest_root if quest_exists else None,
-        enforce_startup_hydration=quest_status in _LIVE_QUEST_STATUSES,
     )
     completion_state = router._study_completion_state(study_root=study_root)
     result = ProgressProjectionStatus(

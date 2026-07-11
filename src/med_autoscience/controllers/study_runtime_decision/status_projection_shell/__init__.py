@@ -39,7 +39,7 @@ def finalize_status_projection_shell(
         )
     _record_execution_owner_guard(status=status, quest_root=quest_root)
     _record_supervisor_tick_audit(status=status, study_root=study_root)
-    if not status.should_refresh_startup_hydration_for_runtime_hold():
+    if not status.should_attach_runtime_escalation_ref():
         status.extras.pop("runtime_escalation_ref", None)
     else:
         runtime_escalation_ref = read_runtime_escalation_record_ref(quest_root=quest_root)

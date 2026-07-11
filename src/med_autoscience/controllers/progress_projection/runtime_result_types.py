@@ -326,15 +326,12 @@ class StudyRuntimeStartupBoundaryGate:
 @dataclass(frozen=True)
 class StudyRuntimeReentryGate:
     allow_runtime_entry: bool
-    require_startup_hydration: bool
     require_managed_skill_audit: bool
     payload: dict[str, Any]
 
     def __post_init__(self) -> None:
         if not isinstance(self.allow_runtime_entry, bool):
             raise TypeError("study runtime reentry allow_runtime_entry must be bool")
-        if not isinstance(self.require_startup_hydration, bool):
-            raise TypeError("study runtime reentry require_startup_hydration must be bool")
         if not isinstance(self.require_managed_skill_audit, bool):
             raise TypeError("study runtime reentry require_managed_skill_audit must be bool")
         object.__setattr__(self, "payload", dict(self.payload))
@@ -352,17 +349,13 @@ class StudyRuntimeReentryGate:
         if not isinstance(payload, dict):
             raise TypeError("study runtime reentry payload must be a mapping")
         allow_runtime_entry = payload.get("allow_runtime_entry", default_allow_runtime_entry)
-        require_startup_hydration = payload.get("require_startup_hydration", False)
         require_managed_skill_audit = payload.get("require_managed_skill_audit", False)
         if not isinstance(allow_runtime_entry, bool):
             raise TypeError("study runtime reentry allow_runtime_entry must be bool")
-        if not isinstance(require_startup_hydration, bool):
-            raise TypeError("study runtime reentry require_startup_hydration must be bool")
         if not isinstance(require_managed_skill_audit, bool):
             raise TypeError("study runtime reentry require_managed_skill_audit must be bool")
         return cls(
             allow_runtime_entry=allow_runtime_entry,
-            require_startup_hydration=require_startup_hydration,
             require_managed_skill_audit=require_managed_skill_audit,
             payload=dict(payload),
         )

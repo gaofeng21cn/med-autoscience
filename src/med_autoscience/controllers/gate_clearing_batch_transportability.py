@@ -114,7 +114,7 @@ def sync_transportability_reporting_surface(
     paper_root: Path,
     profile: WorkspaceProfile,
 ) -> dict[str, Any]:
-    from med_autoscience.controllers import quest_hydration
+    from med_autoscience.controllers._medical_display_surface_support import materialize_display_contract_surface
 
     contract = transportability_reporting_contract_required(study_root=study_root, profile=profile)
     if contract is None:
@@ -123,12 +123,11 @@ def sync_transportability_reporting_surface(
     written_files: list[str] = []
     if _write_json_if_changed(reporting_contract_path, contract):
         written_files.append(str(reporting_contract_path))
-    written_files.extend(
-        quest_hydration._write_display_surface_stubs(
-            paper_root=Path(paper_root),
-            reporting_contract=contract,
-        )
+    materialization = materialize_display_contract_surface(
+        paper_root=Path(paper_root),
+        reporting_contract=contract,
     )
+    written_files.extend(str(path) for path in materialization["written_files"])
     return {
         "status": "updated" if written_files else "current",
         "written_files": sorted(dict.fromkeys(written_files)),

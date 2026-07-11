@@ -11,11 +11,9 @@ from med_autoscience.controllers import (
     journal_shortlist as journal_shortlist_controller,
     medical_analysis_contract as medical_analysis_contract_controller,
     medical_reporting_contract as medical_reporting_contract_controller,
-    quest_hydration as quest_hydration_controller,
     runtime_reentry_gate as runtime_reentry_gate_controller,
     startup_boundary_gate as startup_boundary_gate_controller,
     startup_data_readiness as startup_data_readiness_controller,
-    startup_hydration_validation as startup_hydration_validation_controller,
 )
 from med_autoscience.controllers.study_runtime_completion import (
     _study_completion_state,
@@ -24,7 +22,7 @@ from med_autoscience.controllers.study_runtime_completion import (
 from med_autoscience.controllers.study_runtime_decision.domain_status_authority import (
     _status_payload,
     _status_state,
-    should_refresh_startup_hydration_for_runtime_hold,
+    should_attach_runtime_escalation_ref,
     validate_startup_contract_resolution,
 )
 from med_autoscience.controllers.study_runtime_decision.publication_and_submission import (
@@ -38,9 +36,7 @@ from med_autoscience.controllers.study_runtime_resolution import (
 from med_autoscience.controllers.study_runtime_startup import (
     _build_create_payload,
     _build_startup_contract,
-    _run_startup_hydration,
     _runtime_reentry_requires_managed_skill_audit,
-    _runtime_reentry_requires_startup_hydration,
     _sync_existing_quest_startup_context,
 )
 from med_autoscience.controllers.study_runtime_types import (

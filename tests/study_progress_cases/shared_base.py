@@ -259,7 +259,6 @@ def _write_runtime_escalation(quest_root: Path, study_root: Path) -> Path:
         "severity": "quest",
         "reason": "publishability_gate_blocked",
         "recommended_actions": [
-            "refresh_startup_hydration",
             "controller_review_required",
         ],
         "evidence_refs": [

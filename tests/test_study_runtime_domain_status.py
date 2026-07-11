@@ -91,7 +91,7 @@ def test_startup_contract_validation_rejects_unknown_status() -> None:
         ({"decision": "blocked", "quest_exists": False, "quest_status": "created", "reason": "startup_boundary_not_ready_for_resume"}, False),
     ],
 )
-def test_should_refresh_startup_hydration_for_runtime_hold(status: dict[str, object], expected: bool) -> None:
+def test_should_attach_runtime_escalation_ref(status: dict[str, object], expected: bool) -> None:
     owner, _types = _modules()
 
-    assert owner.should_refresh_startup_hydration_for_runtime_hold(status) is expected
+    assert owner.should_attach_runtime_escalation_ref(status) is expected

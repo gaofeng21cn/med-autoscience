@@ -91,7 +91,7 @@ def _write_runtime_escalation_record(
         scope="quest",
         severity="quest",
         reason="startup_boundary_not_ready_for_resume",
-        recommended_actions=("refresh_startup_hydration", "controller_review_required"),
+        recommended_actions=("controller_review_required",),
         evidence_refs=(
             str(study_root / "artifacts" / "supervision" / "opl_runtime_owner_handoff" / "latest.json"),
         ),
@@ -232,7 +232,6 @@ def _write_publication_eval(study_root: Path, quest_root: Path) -> dict[str, str
         "eval_id": payload["eval_id"],
         "artifact_path": str(study_root / "artifacts" / "publication_eval" / "latest.json"),
     }
-
 
 
 

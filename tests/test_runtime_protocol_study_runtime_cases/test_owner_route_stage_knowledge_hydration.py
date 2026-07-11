@@ -23,11 +23,11 @@ def _missing_reference_context_request() -> dict[str, object]:
     }
 
 
-def test_should_refresh_startup_hydration_for_runtime_hold_accepts_ai_reviewer_reference_context_gap() -> None:
+def test_runtime_escalation_ref_accepts_ai_reviewer_reference_context_gap() -> None:
     module = importlib.import_module("med_autoscience.controllers.domain_status_projection")
 
     assert (
-        module.should_refresh_startup_hydration_for_runtime_hold(
+        module.should_attach_runtime_escalation_ref(
             {
                 "decision": "handoff_required",
                 "quest_exists": True,
@@ -40,7 +40,7 @@ def test_should_refresh_startup_hydration_for_runtime_hold_accepts_ai_reviewer_r
     )
 
 
-def test_should_refresh_startup_hydration_for_runtime_hold_reads_ai_reviewer_reference_context_gap(
+def test_runtime_escalation_ref_reads_ai_reviewer_reference_context_gap(
     tmp_path: Path,
 ) -> None:
     module = importlib.import_module("med_autoscience.controllers.domain_status_projection")
@@ -53,7 +53,7 @@ def test_should_refresh_startup_hydration_for_runtime_hold_reads_ai_reviewer_ref
     )
 
     assert (
-        module.should_refresh_startup_hydration_for_runtime_hold(
+        module.should_attach_runtime_escalation_ref(
             {
                 "decision": "handoff_required",
                 "quest_exists": True,
@@ -66,7 +66,7 @@ def test_should_refresh_startup_hydration_for_runtime_hold_reads_ai_reviewer_ref
     )
 
 
-def test_should_refresh_startup_hydration_ignores_migrated_ai_reviewer_request_tombstone(
+def test_runtime_escalation_ref_ignores_migrated_ai_reviewer_request_tombstone(
     tmp_path: Path,
 ) -> None:
     module = importlib.import_module("med_autoscience.controllers.domain_status_projection")
@@ -88,7 +88,7 @@ def test_should_refresh_startup_hydration_ignores_migrated_ai_reviewer_request_t
     )
 
     assert (
-        module.should_refresh_startup_hydration_for_runtime_hold(
+        module.should_attach_runtime_escalation_ref(
             {
                 "decision": "handoff_required",
                 "quest_exists": True,

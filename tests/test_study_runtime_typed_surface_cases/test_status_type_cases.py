@@ -13,8 +13,6 @@ from tests.test_study_runtime_typed_surface_cases.shared import (
     make_publication_supervisor_state_payload,
     make_startup_context_sync_payload,
     make_startup_contract_validation_payload,
-    make_startup_hydration_report,
-    make_startup_hydration_validation_report,
     make_status_payload,
     pytest,
 )
@@ -339,7 +337,6 @@ def test_progress_projection_core_key_assignment_uses_typed_normalization() -> N
     }
     status["runtime_reentry_gate"] = {
         "allow_runtime_entry": False,
-        "require_startup_hydration": True,
         "require_managed_skill_audit": True,
     }
 
@@ -351,7 +348,6 @@ def test_progress_projection_core_key_assignment_uses_typed_normalization() -> N
     assert status.workspace_contracts_summary.overall_ready is False
     assert status.startup_data_readiness_report.has_unresolved_contract_for("001-risk") is True
     assert status.startup_boundary_gate_result.allow_compute_stage is False
-    assert status.runtime_reentry_gate_result.require_startup_hydration is True
     assert status.to_dict()["quest_root"] == "/tmp/runtime/quests/quest-002"
 
     with pytest.raises(TypeError, match="quest_exists"):
@@ -439,12 +435,6 @@ def test_progress_projection_records_structured_runtime_extras() -> None:
         status.record_startup_contract_validation({"status": "clear"})
     status.record_startup_contract_validation(make_startup_contract_validation_payload())
     status.record_startup_context_sync(make_startup_context_sync_payload())
-    with pytest.raises(ValueError, match="startup hydration payload"):
-        status.record_startup_hydration({"status": "hydrated"}, {"status": "clear"})
-    status.record_startup_hydration(
-        make_startup_hydration_report(Path("/tmp/runtime/quests/quest-001")),
-        make_startup_hydration_validation_report(Path("/tmp/runtime/quests/quest-001")),
-    )
     status.record_completion_sync(make_completion_sync_payload())
     status.record_bash_session_audit({"status": "live"})
 
@@ -453,14 +443,6 @@ def test_progress_projection_records_structured_runtime_extras() -> None:
     assert payload["analysis_bundle"] == {"ready": True}
     assert payload["startup_contract_validation"] == make_startup_contract_validation_payload()
     assert payload["startup_context_sync"] == make_startup_context_sync_payload()
-    assert payload["startup_hydration"]["status"] == "hydrated"
-    assert payload["startup_hydration"]["report_path"] == (
-        "/tmp/runtime/quests/quest-001/artifacts/reports/startup/hydration_report.json"
-    )
-    assert payload["startup_hydration_validation"]["status"] == "clear"
-    assert payload["startup_hydration_validation"]["report_path"] == (
-        "/tmp/runtime/quests/quest-001/artifacts/reports/startup/hydration_validation_report.json"
-    )
     assert payload["completion_sync"] == make_completion_sync_payload()
     assert payload["bash_session_audit"] == {"status": "live"}
 def test_progress_projection_records_typed_completion_sync_and_audits() -> None:
@@ -577,23 +559,6 @@ def test_startup_context_sync_result_requires_echoed_quest_id() -> None:
                 },
             }
         )
-def test_progress_projection_records_typed_startup_hydration_reports() -> None:
-    module = importlib.import_module("med_autoscience.controllers.domain_status_projection")
-    hydration_module = importlib.import_module("med_autoscience.controllers.quest_hydration")
-    validation_module = importlib.import_module("med_autoscience.controllers.startup_hydration_validation")
-    status = module.ProgressProjectionStatus.from_payload(make_status_payload(execution={"quest_id": "quest-001"}))
-    hydration_report = hydration_module.StartupHydrationReport.from_payload(
-        make_startup_hydration_report(Path("/tmp/runtime/quests/quest-001"))
-    )
-    validation_report = validation_module.StartupHydrationValidationReport.from_payload(
-        make_startup_hydration_validation_report(Path("/tmp/runtime/quests/quest-001"))
-    )
-
-    status.record_startup_hydration(hydration_report, validation_report)
-
-    payload = status.to_dict()
-    assert payload["startup_hydration"]["status"] == "hydrated"
-    assert payload["startup_hydration_validation"]["status"] == "clear"
 def test_progress_projection_records_typed_startup_contract_validation() -> None:
     module = importlib.import_module("med_autoscience.controllers.domain_status_projection")
     result_types = importlib.import_module("med_autoscience.controllers.progress_projection.runtime_result_types")
@@ -622,7 +587,6 @@ def test_progress_projection_exposes_typed_gate_and_completion_accessors() -> No
             },
             runtime_reentry_gate={
                 "allow_runtime_entry": False,
-                "require_startup_hydration": False,
                 "require_managed_skill_audit": True,
             },
             study_completion_contract={
@@ -653,7 +617,6 @@ def test_progress_projection_exposes_typed_gate_and_completion_accessors() -> No
     assert status.startup_boundary_gate_result.effective_custom_profile == "continue_existing_state"
     assert status.startup_boundary_gate_result.legacy_code_execution_allowed is False
     assert status.runtime_reentry_gate_result.allow_runtime_entry is False
-    assert status.runtime_reentry_gate_result.require_startup_hydration is False
     assert status.runtime_reentry_gate_result.require_managed_skill_audit is True
     assert status.startup_data_readiness_report.has_unresolved_contract_for("001-risk") is True
     assert status.study_completion_state.status is module.StudyCompletionStateStatus.RESOLVED
@@ -732,7 +695,7 @@ def test_progress_projection_records_continuation_state_payload() -> None:
     assert status.to_dict()["continuation_state"] == payload
     assert status.continuation_state.continuation_reason == "unchanged_finalize_state"
     assert status.continuation_state.continuation_policy == "wait_for_user_or_resume"
-def test_progress_projection_detects_blocked_hydration_refresh_candidate() -> None:
+def test_progress_projection_detects_runtime_escalation_ref_candidate() -> None:
     module = importlib.import_module("med_autoscience.controllers.domain_status_projection")
     status = module.ProgressProjectionStatus.from_payload(
         make_status_payload(
@@ -744,11 +707,11 @@ def test_progress_projection_detects_blocked_hydration_refresh_candidate() -> No
         )
     )
 
-    assert status.should_refresh_startup_hydration_for_runtime_hold() is True
+    assert status.should_attach_runtime_escalation_ref() is True
 
     status.set_decision("blocked", "workspace_contract_not_ready")
 
-    assert status.should_refresh_startup_hydration_for_runtime_hold() is False
+    assert status.should_attach_runtime_escalation_ref() is False
 
 
 def test_progress_projection_detects_owner_route_ai_reviewer_reference_context_hydration_gap() -> None:
@@ -778,7 +741,7 @@ def test_progress_projection_detects_owner_route_ai_reviewer_reference_context_h
         )
     )
 
-    assert status.should_refresh_startup_hydration_for_runtime_hold() is True
+    assert status.should_attach_runtime_escalation_ref() is True
 
 
 def test_runtime_binding_and_daemon_step_enums_remain_progress_projection_owned() -> None:

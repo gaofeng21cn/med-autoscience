@@ -121,7 +121,6 @@ _ACTION_LABELS = {
     "continue_bundle_stage": "继续当前投稿打包阶段。",
     "complete_bundle_stage": "完成当前投稿打包阶段。",
     "controller_review_required": "需要控制面重新判断下一步。",
-    "refresh_startup_hydration": "需要刷新运行前置上下文后再继续。",
     "human_confirmation_required": "等待用户明确确认下一步。",
     "supervise_runtime_only": "当前以监督托管运行时为主，不直接接管执行。",
 }

@@ -611,7 +611,7 @@ def test_survival_reporting_contract_hydration_and_materialization_use_semantic_
     monkeypatch,
 ) -> None:
     reporting_module = importlib.import_module("med_autoscience.controllers.medical_reporting_contract")
-    hydration_module = importlib.import_module("med_autoscience.controllers.quest_hydration")
+    display_support = importlib.import_module("med_autoscience.controllers._medical_display_surface_support")
     materialization_module = importlib.import_module("med_autoscience.controllers.display_surface_materialization")
     test_helpers = runpy.run_path(str(Path(__file__).with_name("test_display_surface_materialization.py")))
     dump_json = test_helpers["dump_json"]
@@ -634,16 +634,13 @@ def test_survival_reporting_contract_hydration_and_materialization_use_semantic_
         profile=profile,
     )
     quest_root = tmp_path / "runtime" / "quests" / "001-survival-reporting-e2e"
-    hydration_module.run_hydration(
-        quest_root=quest_root,
-        hydration_payload={
-            "medical_analysis_contract": {"study_archetype": "clinical_classifier", "endpoint_type": "time_to_event"},
-            "medical_reporting_contract": reporting_contract,
-            "entry_state_summary": "Study root: /tmp/studies/001-survival-reporting-e2e",
-            "literature_records": [],
-        },
-    )
     paper_root = quest_root / "paper"
+    paper_root.mkdir(parents=True, exist_ok=True)
+    dump_json(paper_root / "medical_reporting_contract.json", reporting_contract)
+    display_support.materialize_display_contract_surface(
+        paper_root=paper_root,
+        reporting_contract=reporting_contract,
+    )
     from tests.display_surface_materialization_cases.workspace_surface_fixtures import (
         _write_prepared_dependency_environment,
     )

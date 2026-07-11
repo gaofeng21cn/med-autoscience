@@ -7,8 +7,6 @@ from os import PathLike
 from pathlib import Path
 from typing import Any
 
-from med_autoscience.controllers.quest_hydration import StartupHydrationReport
-from med_autoscience.controllers.startup_hydration_validation import StartupHydrationValidationReport
 from med_autoscience.runtime_escalation_record import RuntimeEscalationRecordRef
 from med_autoscience.runtime_event_record import RuntimeEventRecordRef
 from med_autoscience.study_completion import (
@@ -258,12 +256,12 @@ class ProgressProjectionStatus(MutableMapping[str, Any]):
     def has_unresolved_contract_for(self, study_id: str) -> bool:
         return self.startup_data_readiness_report.has_unresolved_contract_for(study_id)
 
-    def should_refresh_startup_hydration_for_runtime_hold(self) -> bool:
+    def should_attach_runtime_escalation_ref(self) -> bool:
         from med_autoscience.controllers.domain_status_projection import (
-            should_refresh_startup_hydration_for_runtime_hold,
+            should_attach_runtime_escalation_ref,
         )
 
-        return should_refresh_startup_hydration_for_runtime_hold(self.to_dict())
+        return should_attach_runtime_escalation_ref(self.to_dict())
 
     def _record_dict_extra(self, key: str, value: Any) -> None:
         self.extras[key] = self._require_dict_field(key, value)
@@ -403,28 +401,6 @@ class ProgressProjectionStatus(MutableMapping[str, Any]):
             else StudyRuntimeProgressProjection.from_payload(value)
         )
         self._record_dict_extra("progress_projection", progress_projection.to_dict())
-
-    def record_startup_hydration(
-        self,
-        hydration_result: dict[str, Any] | StartupHydrationReport,
-        validation_result: dict[str, Any] | StartupHydrationValidationReport,
-    ) -> None:
-        hydration_report = (
-            hydration_result
-            if isinstance(hydration_result, StartupHydrationReport)
-            else StartupHydrationReport.from_payload(
-                self._require_dict_field("startup_hydration", hydration_result)
-            )
-        )
-        validation_report = (
-            validation_result
-            if isinstance(validation_result, StartupHydrationValidationReport)
-            else StartupHydrationValidationReport.from_payload(
-                self._require_dict_field("startup_hydration_validation", validation_result)
-            )
-        )
-        self._record_dict_extra("startup_hydration", hydration_report.to_dict())
-        self._record_dict_extra("startup_hydration_validation", validation_report.to_dict())
 
     @property
     def completion_sync_result(self) -> StudyCompletionSyncResult:
