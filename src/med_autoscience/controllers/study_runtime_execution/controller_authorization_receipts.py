@@ -7,8 +7,6 @@ from typing import Any
 from med_autoscience.controllers import publication_work_unit_lifecycle
 
 from ..progress_projection import ProgressProjectionStatus
-from .controller_authorization_context import _controller_decision_authorization_identity
-from .control_intent_lifecycle import lifecycle_for_authorization
 
 
 def _text(value: object) -> str | None:
@@ -28,20 +26,6 @@ def _active_run_id_from_status(*, status: ProgressProjectionStatus) -> str | Non
             if active_run_id:
                 return active_run_id
     return None
-
-
-def _controller_decision_authorization_lifecycle(
-    *,
-    study_root: Path,
-    authorization_context: dict[str, Any],
-    active_run_id: str | None = None,
-) -> dict[str, Any]:
-    return lifecycle_for_authorization(
-        study_root=study_root,
-        identity=_controller_decision_authorization_identity(authorization_context),
-        authorization_context=authorization_context,
-        active_run_id=active_run_id,
-    )
 
 
 def _closed_publication_work_unit_lifecycle(

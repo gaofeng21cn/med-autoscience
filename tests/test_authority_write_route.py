@@ -737,10 +737,6 @@ def test_quality_repair_batch_uses_runtime_authorization_for_submission_refresh_
                 "lane": "finalize",
                 "summary": "Refresh the stale submission_minimal package.",
             },
-            "control_intent_identity": {
-                "work_unit_id": "submission_minimal_refresh",
-                "blocker_authority_fingerprint": "publication-blockers::current",
-            },
         },
     }
     seen: dict[str, object] = {}

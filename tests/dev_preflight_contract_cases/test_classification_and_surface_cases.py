@@ -284,7 +284,6 @@ def test_classify_changed_files_matches_control_plane_surface() -> None:
             "src/med_autoscience/controllers/opl_provider_ready_adapter/__init__.py",
             "src/med_autoscience/controllers/owner_route_handoff/domain_handler_export.py",
             "src/med_autoscience/controllers/owner_route_handoff/dispatch_orchestration.py",
-            "src/med_autoscience/controllers/control_intent.py",
             "src/med_autoscience/controllers/control_identity.py",
             "src/med_autoscience/controllers/study_progress/projection.py",
             "src/med_autoscience/controllers/study_progress/projection_quality_surfaces.py",

@@ -5,7 +5,6 @@ import json
 from pathlib import Path
 from typing import Any
 
-from med_autoscience.controllers import control_intent
 from med_autoscience.publication_eval_specificity_targets import specificity_target_status
 from med_autoscience.study_decision_record import StudyDecisionRecord
 
@@ -398,24 +397,6 @@ def _stable_publication_authority_fingerprint(
     return f"authority:{hashlib.sha256(encoded).hexdigest()[:24]}"
 
 
-def _controller_decision_authorization_identity(
-    authorization_context: dict[str, Any],
-) -> control_intent.ControlIntentIdentity:
-    return control_intent.build_control_intent_identity(
-        study_id=str(authorization_context.get("study_id") or ""),
-        quest_id=str(authorization_context.get("quest_id") or "") or None,
-        route_target=str(authorization_context.get("route_target") or ""),
-        work_unit_id=str(
-            authorization_context.get("work_unit_id")
-            or authorization_context.get("route_key_question")
-            or ""
-        ),
-        blocker_authority_fingerprint=str(authorization_context.get("blocker_authority_fingerprint") or ""),
-        controller_actions=authorization_context.get("controller_actions") or (),
-        source_kind="controller_decision_authorization",
-    )
-
-
 def _load_controller_decision_authorization_context(*, study_root: Path) -> dict[str, Any] | None:
     decision_path = Path(study_root).expanduser().resolve() / "artifacts" / "controller_decisions" / "latest.json"
     record = _read_controller_decision_record(decision_path)
@@ -436,15 +417,6 @@ def _load_controller_decision_authorization_context(*, study_root: Path) -> dict
         record=record,
         work_unit_context=work_unit_context,
     )
-    intent_identity = control_intent.build_control_intent_identity(
-        study_id=record.study_id,
-        quest_id=record.quest_id,
-        route_target=route_fields["route_target"],
-        work_unit_id=route_fields["work_unit_id"],
-        blocker_authority_fingerprint=blocker_authority_fingerprint,
-        controller_actions=controller_actions,
-        source_kind="controller_decision_authorization",
-    )
     return _controller_decision_authorization_context_payload(
         decision_path=decision_path,
         record=record,
@@ -452,7 +424,6 @@ def _load_controller_decision_authorization_context(*, study_root: Path) -> dict
         work_unit_context=work_unit_context,
         controller_actions=controller_actions,
         blocker_authority_fingerprint=blocker_authority_fingerprint,
-        intent_identity=intent_identity,
     )
 
 
@@ -544,7 +515,6 @@ def _controller_decision_authorization_context_payload(
     work_unit_context: dict[str, Any],
     controller_actions: tuple[str, ...],
     blocker_authority_fingerprint: str,
-    intent_identity: control_intent.ControlIntentIdentity,
 ) -> dict[str, Any]:
     route_target = route_fields["route_target"]
     authorization_context: dict[str, Any] = {
@@ -568,8 +538,6 @@ def _controller_decision_authorization_context_payload(
         "next_work_unit": dict(work_unit_context.get("next_work_unit") or {}),
         "blocking_work_units": list(work_unit_context.get("blocking_work_units") or []),
         "blocker_authority_fingerprint": blocker_authority_fingerprint,
-        "control_intent_identity": intent_identity.to_dict(),
-        "control_intent_key": intent_identity.business_key,
     }
     for key in _WORK_UNIT_TARGET_CONTEXT_KEYS:
         if key in work_unit_context:

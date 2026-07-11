@@ -3,7 +3,6 @@ from __future__ import annotations
 from pathlib import Path
 from typing import Any, Mapping
 
-from med_autoscience.controllers import control_intent
 from med_autoscience.controllers import gate_clearing_batch
 from med_autoscience.controllers import gate_clearing_batch_blockers
 from med_autoscience.controllers import gate_clearing_batch_currentness
@@ -47,9 +46,6 @@ from med_autoscience.study_decision_record import StudyDecisionActionType, Study
 SCHEMA_VERSION = 1
 _QUALITY_REPAIR_CLOSURE_STATES = frozenset({"quality_repair_required"})
 _QUALITY_REPAIR_LANES = frozenset({"general_quality_repair", "quality_floor_blocker"})
-_ANALYSIS_REPAIR_WORK_UNIT_ID = "analysis_claim_evidence_repair"
-_ANALYSIS_REPAIR_ROUTE_TARGET = "analysis-campaign"
-_ANALYSIS_REPAIR_ACTION = StudyDecisionActionType.RUN_QUALITY_REPAIR_BATCH.value
 _QUALITY_REPAIR_BATCH_ALLOWED_WORK_UNIT_IDS = upstream_route_context.quality_repair_allowed_work_unit_ids(
     PUBLICATION_WORK_UNIT_REPAIR_IDS
 )
@@ -301,18 +297,11 @@ def _controller_route_context_for_authorization(
         if isinstance(next_work_unit, Mapping)
         else None
     )
-    identity = authorization.get("control_intent_identity")
-    identity_work_unit_id = (
-        _non_empty_text(identity.get("work_unit_id"))
-        if isinstance(identity, Mapping)
-        else None
-    )
     candidate_ids = [
         text
         for text in (
             next_work_unit_id,
             _non_empty_text(authorization.get("work_unit_id")),
-            identity_work_unit_id,
         )
         if text is not None
     ]
@@ -322,8 +311,6 @@ def _controller_route_context_for_authorization(
     if any(candidate_id != work_unit_id for candidate_id in candidate_ids):
         return None
     work_unit_fingerprint = _non_empty_text(authorization.get("work_unit_fingerprint"))
-    if work_unit_fingerprint is None and isinstance(identity, Mapping):
-        work_unit_fingerprint = _non_empty_text(identity.get("blocker_authority_fingerprint"))
     return {
         "controller_route_context": {
             "control_surface": "quality_repair_batch",
@@ -436,79 +423,6 @@ def _merge_route_contexts(*contexts: Mapping[str, Any] | None) -> dict[str, Any]
     )
 
 
-def _latest_owner_handoff(
-    *,
-    study_root: Path,
-    study_id: str,
-    quest_id: str,
-    work_unit_fingerprint: str | None,
-) -> dict[str, Any] | None:
-    if work_unit_fingerprint is None:
-        return None
-    identity = control_intent.build_control_intent_identity(
-        study_id=study_id,
-        quest_id=quest_id,
-        route_target=_ANALYSIS_REPAIR_ROUTE_TARGET,
-        work_unit_id=_ANALYSIS_REPAIR_WORK_UNIT_ID,
-        blocker_authority_fingerprint=work_unit_fingerprint,
-        controller_actions=(_ANALYSIS_REPAIR_ACTION,),
-        source_kind="controller_decision_authorization",
-    )
-    latest = None
-    for event in reversed(control_intent.events_for_business_key(study_root=study_root, business_key=identity.business_key)):
-        if _non_empty_text(event.get("event_type")) == "owner_handoff":
-            latest = event
-            break
-    if not isinstance(latest, Mapping):
-        return None
-    payload = latest.get("payload")
-    if not isinstance(payload, Mapping):
-        return None
-    next_work_unit = _non_empty_text(payload.get("next_work_unit"))
-    next_owner = _non_empty_text(payload.get("next_owner"))
-    if next_work_unit is None or next_owner is None:
-        return None
-    return {
-        "from_work_unit": _ANALYSIS_REPAIR_WORK_UNIT_ID,
-        "work_unit_fingerprint": work_unit_fingerprint,
-        "next_owner": next_owner,
-        "next_work_unit": next_work_unit,
-        "reason": _non_empty_text(payload.get("reason")),
-        "event_recorded_at": _non_empty_text(latest.get("recorded_at")),
-    }
-
-
-def _apply_owner_handoff_to_publication_work_units(
-    publication_work_unit_payload: Mapping[str, Any],
-    *,
-    owner_handoff: Mapping[str, Any] | None,
-) -> dict[str, Any]:
-    payload = dict(publication_work_unit_payload)
-    if not isinstance(owner_handoff, Mapping):
-        return payload
-    handoff_next_unit = _non_empty_text(owner_handoff.get("next_work_unit"))
-    current_next_work_unit = payload.get("next_work_unit")
-    if (
-        handoff_next_unit is None
-        or not isinstance(current_next_work_unit, Mapping)
-        or _non_empty_text(current_next_work_unit.get("unit_id")) != _ANALYSIS_REPAIR_WORK_UNIT_ID
-    ):
-        return payload
-    units = [dict(item) for item in payload.get("blocking_work_units") or [] if isinstance(item, Mapping)]
-    promoted_unit: dict[str, Any] | None = None
-    for unit in units:
-        if _non_empty_text(unit.get("unit_id")) == handoff_next_unit:
-            promoted_unit = unit
-            break
-    if promoted_unit is None:
-        return payload
-    remaining_units = [unit for unit in units if _non_empty_text(unit.get("unit_id")) != _ANALYSIS_REPAIR_WORK_UNIT_ID]
-    payload["blocking_work_units"] = remaining_units
-    payload["next_work_unit"] = promoted_unit
-    payload["controller_work_unit_owner_handoff"] = dict(owner_handoff)
-    return payload
-
-
 def _compact_publication_work_unit(value: object) -> dict[str, str] | None:
     if not isinstance(value, Mapping):
         return None
@@ -603,15 +517,6 @@ def build_quality_repair_batch_recommended_action(
     if not summary_payload or not _quality_repair_required(summary_payload):
         return None
 
-    publication_work_unit_payload = _apply_owner_handoff_to_publication_work_units(
-        publication_work_unit_payload,
-        owner_handoff=_latest_owner_handoff(
-            study_root=resolved_study_root,
-            study_id=resolved_study_root.name,
-            quest_id=quest_id,
-            work_unit_fingerprint=_non_empty_text(publication_work_unit_payload.get("fingerprint")),
-        ),
-    )
     quality_closure_truth, quality_execution_lane = _quality_repair_context(summary_payload)
     route_target = (
         _non_empty_text(quality_execution_lane.get("route_target"))

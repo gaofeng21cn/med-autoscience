@@ -7,7 +7,7 @@ from types import SimpleNamespace
 
 import pytest
 
-from tests.test_study_runtime_execution_control_intent_cases.helpers import (
+from tests.test_study_runtime_execution_authorization_cases.helpers import (
     _base_status_payload,
     _write_controller_decision_authorization,
     _write_publication_eval_authority,
@@ -36,11 +36,8 @@ def test_controller_authorization_prefers_publication_work_unit_over_stale_route
     )
     assert authorization_context["next_work_unit"]["unit_id"] == "analysis_claim_evidence_repair"
     assert authorization_context["blocking_work_units"][1]["unit_id"] == "submission_minimal_refresh"
-    assert authorization_context["control_intent_identity"]["work_unit_id"] == "analysis_claim_evidence_repair"
-    assert (
-        authorization_context["control_intent_identity"]["blocker_authority_fingerprint"]
-        == "publication-blockers::claim-story-figure"
-    )
+    assert authorization_context["work_unit_id"] == "analysis_claim_evidence_repair"
+    assert authorization_context["blocker_authority_fingerprint"] == "publication-blockers::claim-story-figure"
 
 def test_controller_authorization_carries_publication_specificity_targets_for_current_decision(
     tmp_path: Path,
@@ -111,7 +108,7 @@ def test_controller_authorization_prefers_current_decision_work_unit_over_stale_
     assert authorization_context["route_target"] == "finalize"
     assert authorization_context["next_work_unit"]["unit_id"] == "submission_minimal_refresh"
     assert authorization_context["blocking_work_units"][0]["unit_id"] == "manuscript_story_repair"
-    assert authorization_context["control_intent_identity"]["work_unit_id"] == "submission_minimal_refresh"
+    assert authorization_context["work_unit_id"] == "submission_minimal_refresh"
 
 
 def test_controller_authorization_accepts_ai_reviewer_workflow_runtime_action(
@@ -175,8 +172,8 @@ def test_controller_authorization_projects_finalize_route_for_controller_owned_s
     assert authorization_context["route_key_question"].startswith("submission_authority_sync_closure:")
     assert authorization_context["work_unit_id"] == "submission_authority_sync_closure"
     assert authorization_context["next_work_unit"]["unit_id"] == "submission_authority_sync_closure"
-    assert authorization_context["control_intent_identity"]["route_target"] == "finalize"
-    assert authorization_context["control_intent_identity"]["work_unit_id"] == "submission_authority_sync_closure"
+    assert authorization_context["route_target"] == "finalize"
+    assert authorization_context["work_unit_id"] == "submission_authority_sync_closure"
 
 
 def test_controller_authorization_keeps_record_route_over_review_only_publication_work_unit(
@@ -208,8 +205,8 @@ def test_controller_authorization_keeps_record_route_over_review_only_publicatio
     assert authorization_context["next_work_unit"] == {}
     assert authorization_context["blocking_work_units"] == []
     assert authorization_context["work_unit_fingerprint"] is None
-    assert authorization_context["control_intent_identity"]["route_target"] == "analysis-campaign"
-    assert authorization_context["control_intent_identity"]["work_unit_id"] != "publication_gate_blocker_review"
+    assert authorization_context["route_target"] == "analysis-campaign"
+    assert authorization_context["work_unit_id"] != "publication_gate_blocker_review"
 
 
 def test_controller_authorization_converts_gate_replay_targets_to_upstream_paper_repair(
@@ -244,4 +241,4 @@ def test_controller_authorization_converts_gate_replay_targets_to_upstream_paper
         "metric",
         "source_path",
     }
-    assert authorization_context["control_intent_identity"]["work_unit_id"] == "analysis_claim_evidence_repair"
+    assert authorization_context["work_unit_id"] == "analysis_claim_evidence_repair"

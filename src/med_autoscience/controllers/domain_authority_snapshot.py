@@ -26,16 +26,6 @@ PAPER_WRITE_ACTIONS = frozenset(
     }
 )
 BUNDLE_ACTIONS = frozenset({"direct_bundle_build", "direct_compiled_bundle_proofing"})
-LEDGER_BLOCKING_STATES = frozenset(
-    {
-        "closed",
-        "needs_specificity",
-        "opl_runtime_handoff_required",
-        "await_artifact_delta",
-        "await_artifact_delta_or_gate_replay",
-        "gate_reread_required",
-    }
-)
 BASE_ALLOWED_ACTIONS = (
     "read_runtime_status",
     "probe_runtime_liveness",
@@ -212,18 +202,6 @@ def _publication_eval_payload(payload: Mapping[str, Any]) -> dict[str, Any]:
     return {}
 
 
-def _control_intent_lifecycle_state(payload: Mapping[str, Any]) -> str | None:
-    for key in ("control_intent", "control_intent_lifecycle"):
-        direct = _mapping(payload.get(key))
-        if direct:
-            return (
-                _text(direct.get("lifecycle_state"))
-                or _text(direct.get("state"))
-                or _text(direct.get("latest_event_type"))
-            )
-    return None
-
-
 def _control_state(blocking_reasons: list[str], runtime_action: str) -> str:
     if "publication_eval.ai_reviewer_required" in blocking_reasons:
         return "blocked_quality_review"
@@ -231,8 +209,6 @@ def _control_state(blocking_reasons: list[str], runtime_action: str) -> str:
         return "blocked_runtime_escalation"
     if any(reason.startswith("controller_decision.") for reason in blocking_reasons):
         return "blocked_controller_decision"
-    if any(reason.startswith("ledger.") for reason in blocking_reasons):
-        return "blocked_ledger"
     if "study_truth_epoch_missing" in blocking_reasons or "runtime_health_epoch_missing" in blocking_reasons:
         return "needs_reconcile"
     if (
@@ -276,10 +252,6 @@ def build_authority_snapshot(status_payload: Mapping[str, Any]) -> dict[str, Any
     ):
         blocking_reasons.append("publication_eval.ai_reviewer_required")
         truth_action = "review_required"
-
-    control_intent_state = _control_intent_lifecycle_state(payload)
-    if control_intent_state in LEDGER_BLOCKING_STATES:
-        blocking_reasons.append(f"ledger.control_intent.{control_intent_state}")
 
     retry_budget = _int(health.get("retry_budget_remaining"))
     attempt_state = _text(health.get("attempt_state"))

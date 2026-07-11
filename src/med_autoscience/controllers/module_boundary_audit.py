@@ -141,7 +141,6 @@ MODULE_GROUPS: tuple[dict[str, Any], ...] = (
             "src/med_autoscience/controllers/study_truth_kernel.py",
             "src/med_autoscience/controllers/domain_authority_snapshot.py",
             "src/med_autoscience/controllers/opl_runtime_refs.py",
-            "src/med_autoscience/controllers/control_intent.py",
         ],
         "allowed_dependencies": ["quality_os", "runtime_authority_refs", "artifact_delivery", "observability_os"],
         "forbidden_dependencies": ["product_entry_projection", "mds_backend_oracle"],
