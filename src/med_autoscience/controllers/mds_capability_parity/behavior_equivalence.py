@@ -125,7 +125,7 @@ BEHAVIOR_EQUIVALENCE_SURFACES: tuple[dict[str, Any], ...] = (
         "title": "Live worker/session tracking",
         "equivalence_class": "purpose_equivalent_with_different_timing",
         "mds_behavior": {
-            "live_worker_state_registry": True,
+            "session_store": True,
             "worker_threads": True,
             "live_session_api": True,
         },

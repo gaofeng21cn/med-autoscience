@@ -27,6 +27,7 @@ from med_autoscience.paper_mission_opl_readback.route_identity import (
 OPL_DOMAIN_ID = OPL_DOMAIN_ROUTE_DOMAIN_ID
 OPL_RUNTIME_DOMAIN_ID = "medautoscience"
 LIVE_ATTEMPT_STATUSES = {"running", "checkpointed", "human_gate"}
+TERMINAL_ATTEMPT_STATUSES = {"blocked", "completed", "failed", "dead_lettered"}
 
 
 def matching_opl_runtime_payload_closeout(
@@ -36,7 +37,7 @@ def matching_opl_runtime_payload_closeout(
 ) -> tuple[dict[str, Any], str] | None:
     query = _stage_attempt_query(payload)
     attempt = _matching_opl_stage_attempt(carrier=carrier, query=query)
-    if attempt is None:
+    if attempt is None or not _attempt_is_terminal(attempt):
         return None
     for closeout_entry in reversed(_records(query.get("closeouts"))):
         closeout = _stage_attempt_closeout(
@@ -219,6 +220,8 @@ def _stage_attempt_closeout(
             if (impact_receipt := _first_mas_impact_receipt(carrier, packet, attempt))
             else {}
         ),
+        "task_id": _text(attempt.get("task_id")),
+        "task_status": _text(attempt.get("status")),
         "closeout_receipt_status": closeout_receipt_status,
         "route_impact": route_impact,
         "dispatch_ref": _first_text(locator.get("dispatch_ref"), attempt.get("dispatch_ref")),
@@ -265,6 +268,8 @@ def _stage_attempt_running_projection(
         ),
         "last_heartbeat_at": _text(provider_run.get("last_heartbeat_at")),
         "last_runner_event_kind": _text(provider_run.get("last_runner_event_kind")),
+        "task_id": _text(attempt.get("task_id")),
+        "task_status": _text(attempt.get("status")),
         "action_type": _first_text(locator.get("action_type"), attempt.get("action_type")),
         "runtime_readback_source": "opl_family_runtime_stage_attempt_query",
         "provider_completion_is_domain_completion": False,
@@ -286,6 +291,15 @@ def _attempt_is_live(attempt: Mapping[str, Any]) -> bool:
     return (
         _text(attempt.get("status")) in LIVE_ATTEMPT_STATUSES
         or _text(provider_run.get("provider_status")) in LIVE_ATTEMPT_STATUSES
+    )
+
+
+def _attempt_is_terminal(attempt: Mapping[str, Any]) -> bool:
+    provider_run = _mapping(attempt.get("provider_run"))
+    return (
+        _text(attempt.get("status")) in TERMINAL_ATTEMPT_STATUSES
+        or _text(provider_run.get("provider_status")) in TERMINAL_ATTEMPT_STATUSES
+        or _text(attempt.get("closeout_receipt_status")) == "accepted_typed_closeout"
     )
 
 

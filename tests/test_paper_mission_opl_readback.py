@@ -84,7 +84,7 @@ def test_opl_terminal_closeout_readback_consumes_scoped_stage_attempt_query(
     )
 
 
-def test_opl_stage_attempt_readback_requires_typed_closeout_refs() -> None:
+def test_opl_stage_attempt_readback_requires_typed_closeout_not_transport_terminal_status() -> None:
     payload = _opl_runtime_query_payload()
     query = payload["family_runtime_stage_attempt_query"]["stage_attempt_query"]
     attempt = query["attempt"]
@@ -101,9 +101,9 @@ def test_opl_stage_attempt_readback_requires_typed_closeout_refs() -> None:
     assert closeout is not None
     assert closeout[0]["closeout_receipt_status"] == "accepted_typed_closeout"
 
-    attempt["status"] = "transport_terminal"
-    attempt["provider_run"]["provider_status"] = "transport_terminal"
-    packet["status"] = "transport_terminal"
+    attempt["status"] = "dead_lettered"
+    attempt["provider_run"]["provider_status"] = "dead_lettered"
+    packet["status"] = "dead_lettered"
     attempt.pop("closeout_receipt_status")
     attempt.pop("closeout_refs")
     packet.pop("closeout_receipt_status")
