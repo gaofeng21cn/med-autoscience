@@ -1,21 +1,12 @@
 from __future__ import annotations
 
 from collections.abc import Mapping
-from pathlib import Path
 from typing import Any
 
-from med_autoscience.paper_mission_output_roots import (
-    PAPER_MISSION_STAGE_CLOSURE_RELPATH,
-    _assert_safe_stage_closure_output_root,
-)
 from med_autoscience.controllers.stage_closure_terminalizer import (
     stage_closure_decision_missing,
     stage_closure_signature,
     terminalize_stage_closure,
-)
-from med_autoscience.paper_mission_stage_closure_ledger import (
-    latest_paper_mission_stage_closure_decision_readback,
-    write_paper_mission_stage_closure_decision,
 )
 
 STAGE_CLOSURE_FORBIDDEN_AUTHORITY_WRITES = (
@@ -28,7 +19,6 @@ STAGE_CLOSURE_FORBIDDEN_AUTHORITY_WRITES = (
     "runtime queue/provider attempts",
     "Yang study truth surfaces",
     "Yang runtime authority surfaces",
-    "Yang output outside ops/medautoscience/paper_mission_stage_closure",
 )
 FORBIDDEN_AUTHORITY_CLAIMS = (
     "publication_ready",
@@ -61,21 +51,6 @@ NON_BLOCKING_STAGE_CLOSURE_STATUSES = frozenset(
 )
 
 
-def stage_closure_terminalizer_output_root(
-    *,
-    profile: Any,
-    output_root: str | Path | None,
-) -> Path:
-    if output_root is not None:
-        return Path(output_root).expanduser().resolve()
-    workspace_root = Path(profile.workspace_root).expanduser().resolve()
-    return (
-        workspace_root
-        / PAPER_MISSION_STAGE_CLOSURE_RELPATH
-        / "paper_mission_terminalize_stage"
-    )
-
-
 def stage_closure_decision_requires_reterminalize(
     decision: Mapping[str, Any],
     *,
@@ -94,15 +69,6 @@ def stage_closure_decision_requires_reterminalize(
         return False
     if current_package_is_submission_ready_clear(_mapping(current_package)):
         return True
-    if decision.get("source_surface_kind") == "paper_mission_stage_closure_ledger":
-        if (
-            _stage_closure_outcome_kind(decision) == "owner_receipt"
-            and _current_package_needs_mirror_sync(_mapping(current_package))
-        ):
-            return True
-        if _legacy_accepted_status_only_unknown_blocker(decision):
-            return True
-        return False
     if _optional_text(opl_closeout.get("status")) == "waiting_for_opl_runtime_live_readback":
         return True
     if outcome.get("transition_kind") == "route_back_candidate_checkpoint":
@@ -240,119 +206,15 @@ def terminalize_stage_closure_from_readback(
 
 def materialize_stage_closure_for_drive_readback(
     *,
-    profile: Any,
-    study_id: str,
-    consume_readback: Mapping[str, Any],
-    source: str,
-) -> tuple[dict[str, Any], dict[str, Any]]:
-    decision = terminalize_stage_closure_from_readback(consume_readback)
-    root = stage_closure_terminalizer_output_root(
-        profile=profile,
-        output_root=None,
-    )
-    _assert_safe_stage_closure_output_root(root)
-    output_manifest = write_paper_mission_stage_closure_decision(
-        output_root=root,
-        study_id=study_id,
-        decision=decision,
-        source_readback=consume_readback,
-        source=source,
-        forbidden_authority_writes=STAGE_CLOSURE_FORBIDDEN_AUTHORITY_WRITES,
-        forbidden_authority_claims=FORBIDDEN_AUTHORITY_CLAIMS,
-    )
-    refreshed = attach_stage_closure_ledger_to_drive_readback(
-        profile=profile,
-        consume_readback=consume_readback,
-    )
-    return refreshed, output_manifest
-
-
-def attach_stage_closure_ledger_to_drive_readback(
-    *,
-    profile: Any,
     consume_readback: Mapping[str, Any],
 ) -> dict[str, Any]:
-    transaction = _mapping(consume_readback.get("paper_mission_transaction"))
-    transaction_ref = _optional_text(transaction.get("transaction_id"))
-    study_id = str(consume_readback.get("study_id") or transaction.get("study_id") or "")
-    stage_closure_ledger_readback = latest_current_stage_closure_for_consumption(
-        workspace_root=Path(profile.workspace_root),
-        study_id=study_id,
-        transaction_ref=transaction_ref,
-        consume_readback=consume_readback,
-    )
-    if stage_closure_ledger_readback is None:
-        return dict(consume_readback)
+    decision = terminalize_stage_closure_from_readback(consume_readback)
     return {
         **dict(consume_readback),
-        "stage_closure_decision": stage_closure_ledger_readback,
-        "stage_closure_decision_ref": stage_closure_ledger_readback.get("decision_ref"),
-        "stage_closure_outcome": _mapping(
-            stage_closure_ledger_readback.get("outcome")
-        ).get("kind"),
-        "paper_mission_stage_closure_ledger_readback": stage_closure_ledger_readback,
+        "stage_closure_decision": decision,
+        "stage_closure_decision_ref": decision.get("decision_ref"),
+        "stage_closure_outcome": _mapping(decision.get("outcome")).get("kind"),
     }
-
-
-def latest_current_stage_closure_for_consumption(
-    *,
-    workspace_root: Path,
-    study_id: str,
-    transaction_ref: str | None,
-    consume_readback: Mapping[str, Any],
-) -> dict[str, Any] | None:
-    stage_closure_ledger_readback = latest_paper_mission_stage_closure_decision_readback(
-        workspace_root=workspace_root,
-        study_id=study_id,
-        transaction_ref=transaction_ref,
-    )
-    exact_transaction_match = stage_closure_ledger_readback is not None
-    latest_any_stage_closure = latest_paper_mission_stage_closure_decision_readback(
-        workspace_root=workspace_root,
-        study_id=study_id,
-        transaction_ref=None,
-    )
-    if _stage_closure_decision_newer(
-        candidate=latest_any_stage_closure,
-        current=stage_closure_ledger_readback,
-    ):
-        stage_closure_ledger_readback = latest_any_stage_closure
-        exact_transaction_match = False
-    if stage_closure_ledger_readback is None:
-        return None
-    if (
-        not exact_transaction_match
-        and _stage_closure_superseded_by_current_consumption(
-            consume_readback=consume_readback,
-            stage_closure_decision=stage_closure_ledger_readback,
-        )
-    ):
-        return None
-    return stage_closure_ledger_readback
-
-
-def _stage_closure_decision_newer(
-    *,
-    candidate: Mapping[str, Any] | None,
-    current: Mapping[str, Any] | None,
-) -> bool:
-    if candidate is None:
-        return False
-    if current is None:
-        return True
-    candidate_ref = _optional_text(candidate.get("decision_ref"))
-    current_ref = _optional_text(current.get("decision_ref"))
-    if candidate_ref is not None and candidate_ref == current_ref:
-        return False
-    candidate_mtime = _path_mtime(
-        _optional_text(candidate.get("source_ref")) or candidate_ref
-    )
-    current_mtime = _path_mtime(_optional_text(current.get("source_ref")) or current_ref)
-    if candidate_mtime is None:
-        return False
-    if current_mtime is None:
-        return True
-    return candidate_mtime > current_mtime
 
 
 def _current_package_needs_mirror_sync(current_package: Mapping[str, Any]) -> bool:
@@ -371,24 +233,6 @@ def _current_package_needs_mirror_sync(current_package: Mapping[str, Any]) -> bo
 def _stage_closure_outcome_kind(decision: Mapping[str, Any]) -> str | None:
     outcome = _mapping(decision.get("outcome"))
     return _first_text(outcome.get("kind"), decision.get("outcome_kind"))
-
-
-def _stage_closure_superseded_by_current_consumption(
-    *,
-    consume_readback: Mapping[str, Any],
-    stage_closure_decision: Mapping[str, Any],
-) -> bool:
-    consume_mtime = _path_mtime(_optional_text(consume_readback.get("source_ref")))
-    closure_mtime = _path_mtime(_optional_text(stage_closure_decision.get("source_ref")))
-    if consume_mtime is None or closure_mtime is None or consume_mtime <= closure_mtime:
-        return False
-    handoff = _mapping(consume_readback.get("opl_route_handoff"))
-    if _optional_text(consume_readback.get("route_handoff_status")) == "ready_for_opl_route_command":
-        return True
-    return (
-        _optional_text(handoff.get("handoff_status")) == "ready_for_opl_route_command"
-        and handoff.get("can_submit_to_opl_runtime") is True
-    )
 
 
 def stage_closure_source_readback_summary(
@@ -416,42 +260,7 @@ def _stage_closure_reterminalize_blockers(
     transaction: Mapping[str, Any],
 ) -> list[str]:
     blockers = stage_closure_readback_blockers(readback)
-    if not _existing_stage_closure_supersedes_transaction(
-        existing_stage_closure=existing_stage_closure,
-        transaction=transaction,
-    ):
-        return blockers
-    return [
-        blocker
-        for blocker in blockers
-        if blocker
-        not in {
-            "accepted_submission_milestone_candidate",
-            "route_back",
-            "paper_mission_stage_route_domain_gate_pending",
-        }
-    ]
-
-
-def _existing_stage_closure_supersedes_transaction(
-    *,
-    existing_stage_closure: Mapping[str, Any],
-    transaction: Mapping[str, Any],
-) -> bool:
-    existing_ref = _first_text(
-        _mapping(existing_stage_closure.get("identity")).get(
-            "paper_mission_transaction_ref"
-        ),
-        existing_stage_closure.get("paper_mission_transaction_ref"),
-    )
-    transaction_ref = _optional_text(transaction.get("transaction_id"))
-    return (
-        existing_stage_closure.get("source_surface_kind")
-        == "paper_mission_stage_closure_ledger"
-        and existing_ref is not None
-        and transaction_ref is not None
-        and existing_ref != transaction_ref
-    )
+    return blockers
 
 
 def stage_closure_readback_blockers(readback: Mapping[str, Any]) -> list[str]:
@@ -499,10 +308,6 @@ def stage_closure_delivery_readback(
     candidate = _mapping(readback.get("candidate_manifest"))
     output = _mapping(readback.get("output_manifest"))
     current_package = _mapping(readback.get("current_package"))
-    stale_route_blocked_reason = _existing_stage_closure_supersedes_transaction(
-        existing_stage_closure=_mapping(existing_stage_closure),
-        transaction=_mapping(transaction),
-    )
     return _compact_mapping(
         {
             "package_kind": _first_text(
@@ -530,10 +335,8 @@ def stage_closure_delivery_readback(
                 output.get("freshness"),
             ),
             "blocked_reason": _first_text(
-                None if stale_route_blocked_reason else readback.get("blocked_reason"),
-                None
-                if stale_route_blocked_reason
-                else _mapping(readback.get("terminal_owner_gate")).get("blocked_reason"),
+                readback.get("blocked_reason"),
+                _mapping(readback.get("terminal_owner_gate")).get("blocked_reason"),
             ),
             "current_package_exists": (
                 bool(current_package) or output.get("current_package_exists")
@@ -552,14 +355,6 @@ def stage_closure_opl_closeout(
     existing_stage_closure: Mapping[str, Any] | None = None,
     transaction: Mapping[str, Any] | None = None,
 ) -> dict[str, Any]:
-    existing = _mapping(existing_stage_closure)
-    if _existing_stage_closure_supersedes_transaction(
-        existing_stage_closure=existing,
-        transaction=_mapping(transaction),
-    ):
-        closeout = _mapping(existing.get("opl_closeout"))
-        if closeout:
-            return dict(closeout)
     carrier = _mapping(readback.get("opl_runtime_carrier_readback"))
     terminal_closeout = _mapping(carrier.get("terminal_closeout"))
     return _compact_mapping(
@@ -822,12 +617,3 @@ def _optional_text(value: object) -> str | None:
         return None
     text = str(value).strip()
     return text or None
-
-
-def _path_mtime(path_text: str | None) -> float | None:
-    if path_text is None:
-        return None
-    try:
-        return Path(path_text).expanduser().resolve().stat().st_mtime
-    except OSError:
-        return None

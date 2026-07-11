@@ -46,7 +46,6 @@ from med_autoscience.paper_mission_domain.materialized_owner_consumption import 
 from med_autoscience.paper_mission_domain.materialized_owner_repair_readback import (
     _owner_repair_receipt_consumption_readback,
     _owner_repair_receipt_is_newer,
-    _stage_closure_ledger_readback_for_output,
 )
 from med_autoscience.paper_mission_domain.one_shot_migration import (
     ONE_SHOT_MIGRATION_FORBIDDEN_AUTHORITY_WRITES,
@@ -75,7 +74,6 @@ from med_autoscience.paper_mission_domain.stage_closure_next_action import (
     next_action_for_stage_closure_decision as _next_action_for_stage_closure_decision,
 )
 from med_autoscience.paper_mission_domain.stage_closure_terminalizer import (
-    latest_current_stage_closure_for_consumption as _latest_current_stage_closure_for_consumption,
     stage_closure_decision_requires_reterminalize as _stage_closure_decision_requires_reterminalize,
     terminalize_stage_closure_from_readback as _terminalize_stage_closure_from_readback,
 )
@@ -92,9 +90,6 @@ from med_autoscience.paper_mission_domain.transaction_readback import (
 )
 from med_autoscience.paper_mission_domain.typed_blocker_resolution import (
     latest_typed_blocker_resolution_readback,
-)
-from med_autoscience.controllers.paper_mission_currentness import (
-    receipt_owner_consumption_superseded_by_stage_closure as _receipt_superseded_by_stage_closure,
 )
 from med_autoscience.controllers import study_domain_transition_table
 from med_autoscience.controllers.study_progress.canonical_next_action_selection import (
@@ -232,14 +227,11 @@ def build_materialized_mission_readback_if_available(
         or _optional_text((consumption_ledger_readback or {}).get("consume_candidate_status"))
         or _consume_candidate_status(mission, default_readback)
     )
-    stage_closure_ledger_readback = _latest_current_stage_closure_for_consumption(
-        workspace_root=Path(profile.workspace_root),
-        study_id=resolved_study_id,
-        transaction_ref=_optional_text(
-            transaction_readback["paper_mission_transaction"].get("transaction_id")
-        ),
-        consume_readback=consumption_ledger_readback or transaction_readback,
-    )
+    stage_closure_readback = _mapping(
+        (consumption_ledger_readback or transaction_readback).get(
+            "stage_closure_decision"
+        )
+    ) or None
     receipt_owner_consumption_readback = latest_receipt_owner_consumption_readback(
         workspace_root=Path(profile.workspace_root),
         study_id=resolved_study_id,
@@ -247,11 +239,6 @@ def build_materialized_mission_readback_if_available(
     if receipt_owner_consumption_readback is not None and _receipt_superseded_by_consumption(
         receipt_owner_consumption_readback=receipt_owner_consumption_readback,
         consumption_ledger_readback=consumption_ledger_readback,
-    ):
-        receipt_owner_consumption_readback = None
-    if receipt_owner_consumption_readback is not None and _receipt_superseded_by_stage_closure(
-        receipt_owner_consumption_readback=receipt_owner_consumption_readback,
-        stage_closure_ledger_readback=stage_closure_ledger_readback,
     ):
         receipt_owner_consumption_readback = None
     owner_repair_receipt_readback = _owner_repair_receipt_consumption_readback(
@@ -263,10 +250,6 @@ def build_materialized_mission_readback_if_available(
         current=receipt_owner_consumption_readback,
     ):
         receipt_owner_consumption_readback = owner_repair_receipt_readback
-    stage_closure_ledger_readback_for_output = _stage_closure_ledger_readback_for_output(
-        stage_closure_ledger_readback=stage_closure_ledger_readback,
-        receipt_owner_consumption_readback=receipt_owner_consumption_readback,
-    )
     typed_blocker_resolution_readback = latest_typed_blocker_resolution_readback(
         workspace_root=Path(profile.workspace_root),
         study_id=resolved_study_id,
@@ -286,8 +269,8 @@ def build_materialized_mission_readback_if_available(
                     ]
                 }
                 if receipt_owner_consumption_readback is not None
-                else {"stage_closure_decision": stage_closure_ledger_readback}
-                if stage_closure_ledger_readback is not None
+                else {"stage_closure_decision": stage_closure_readback}
+                if stage_closure_readback is not None
                 else {}
             ),
             "consume_candidate_status": effective_consume_candidate_status,
@@ -318,8 +301,8 @@ def build_materialized_mission_readback_if_available(
                         ]
                     }
                     if receipt_owner_consumption_readback is not None
-                    else {"stage_closure_decision": stage_closure_ledger_readback}
-                    if stage_closure_ledger_readback is not None
+                    else {"stage_closure_decision": stage_closure_readback}
+                    if stage_closure_readback is not None
                     else {}
                 ),
             }
@@ -635,15 +618,6 @@ def build_materialized_mission_readback_if_available(
                 ),
             }
             if consumption_ledger_readback is not None
-            else {}
-        ),
-        **(
-            {
-                "paper_mission_stage_closure_ledger_readback": (
-                    stage_closure_ledger_readback_for_output
-                )
-            }
-            if stage_closure_ledger_readback_for_output is not None
             else {}
         ),
         "consume_candidate_status": consume_candidate_status,

@@ -10,12 +10,6 @@ from med_autoscience.paper_mission_consumption_readback import (
 from med_autoscience.paper_mission_opl_readback import attach_opl_runtime_carrier_readback
 from med_autoscience.paper_mission_opl_carrier import paper_mission_opl_runtime_carrier
 from med_autoscience.paper_mission_transaction import PaperMissionTransactionContractError
-from med_autoscience.paper_mission_stage_closure_ledger import (
-    write_paper_mission_stage_closure_decision,
-)
-from med_autoscience.paper_mission_output_roots import (
-    _assert_safe_stage_closure_output_root,
-)
 from med_autoscience.paper_mission_domain.command_metadata import (
     action_intent as _action_intent,
 )
@@ -71,7 +65,6 @@ from med_autoscience.paper_mission_domain.stage_closure_terminalizer import (
     STAGE_CLOSURE_FORBIDDEN_AUTHORITY_WRITES,
     stage_closure_decision_requires_reterminalize as _stage_closure_decision_requires_reterminalize,
     stage_closure_source_readback_summary as _stage_closure_source_readback_summary,
-    stage_closure_terminalizer_output_root as _stage_closure_terminalizer_output_root,
     terminalize_stage_closure_from_readback as _terminalize_stage_closure_from_readback,
 )
 from med_autoscience.paper_mission_domain.stage_closure_next_action import (
@@ -144,33 +137,7 @@ def _build_stage_closure_terminalizer_readback(
                 "stage_closure_outcome": None,
             }
         decision = _terminalize_stage_closure_from_readback(terminalizer_source_readback)
-        terminalizer_status = (
-            "legacy_terminalizer_outcome_superseded"
-            if existing_decision
-            else "terminalizer_outcome_materialized"
-        )
-    output_manifest = None
-    resolved_output_root = _stage_closure_terminalizer_output_root(
-        profile=profile,
-        output_root=output_root,
-    )
-    if not dry_run:
-        root = resolved_output_root
-        _assert_safe_stage_closure_output_root(root)
-        output_manifest = write_paper_mission_stage_closure_decision(
-            output_root=root,
-            study_id=study_id,
-            decision=decision,
-            source_readback=source_readback,
-            source=source,
-            forbidden_authority_writes=STAGE_CLOSURE_FORBIDDEN_AUTHORITY_WRITES,
-            forbidden_authority_claims=STAGE_CLOSURE_FORBIDDEN_AUTHORITY_CLAIMS,
-        )
-        decision = {
-            **decision,
-            "decision_ref": output_manifest["stage_closure_decision_ref"],
-            "source_ref": output_manifest["stage_closure_decision_ref"],
-        }
+        terminalizer_status = "terminalizer_outcome_derived"
     return {
         "surface_kind": "paper_mission_stage_closure_terminalizer_readback",
         "schema_version": 1,
@@ -194,7 +161,6 @@ def _build_stage_closure_terminalizer_readback(
             source_readback
         ),
         **_stage_closure_receipt_passthrough(source_readback),
-        **({"output_manifest": output_manifest} if output_manifest is not None else {}),
         "authority_boundary": {
             "writes_authority": False,
             "writes_runtime": False,

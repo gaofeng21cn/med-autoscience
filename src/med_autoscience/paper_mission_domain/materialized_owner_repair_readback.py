@@ -136,65 +136,6 @@ def _owner_repair_receipt_consumption_readback(
     }
 
 
-def _stage_closure_ledger_readback_for_output(
-    *,
-    stage_closure_ledger_readback: Mapping[str, Any] | None,
-    receipt_owner_consumption_readback: Mapping[str, Any] | None,
-) -> Mapping[str, Any] | None:
-    if not _receipt_owner_consumption_is_owner_repair_delta(receipt_owner_consumption_readback):
-        return stage_closure_ledger_readback
-    receipt_decision = _mapping(receipt_owner_consumption_readback.get("stage_closure_decision"))
-    if not receipt_decision:
-        return stage_closure_ledger_readback
-    if _route_checkpoint_without_semantic_delta(stage_closure_ledger_readback):
-        return receipt_decision
-    if _owner_repair_receipt_is_newer(
-        candidate=receipt_owner_consumption_readback,
-        current=stage_closure_ledger_readback,
-    ):
-        return receipt_decision
-    return stage_closure_ledger_readback
-
-
-def _receipt_owner_consumption_is_owner_repair_delta(
-    receipt_owner_consumption_readback: Mapping[str, Any] | None,
-) -> bool:
-    receipt = _mapping(receipt_owner_consumption_readback)
-    if _optional_text(receipt.get("source")) == "study_controller_owner_repair_receipt":
-        return True
-    mas_consumption = _mapping(receipt.get("mas_receipt_consumption"))
-    return _optional_text(mas_consumption.get("status")) == "owner_consumed_mas_repair_delta"
-
-
-def _route_checkpoint_without_semantic_delta(
-    stage_closure_ledger_readback: Mapping[str, Any] | None,
-) -> bool:
-    stage_closure = _mapping(stage_closure_ledger_readback)
-    outcome = _mapping(stage_closure.get("outcome"))
-    if (
-        _optional_text(outcome.get("kind")) != "next_stage_transition"
-        or _optional_text(outcome.get("transition_kind"))
-        != "route_back_candidate_checkpoint"
-    ):
-        return False
-    return not _semantic_delta_has_refs(_mapping(stage_closure.get("semantic_delta")))
-
-
-def _semantic_delta_has_refs(semantic_delta: Mapping[str, Any]) -> bool:
-    for key in (
-        "paper_delta_refs",
-        "owner_decision_refs",
-        "reviewer_delta_refs",
-        "gate_delta_refs",
-        "delivery_delta_refs",
-        "semantic_delta_refs",
-    ):
-        value = semantic_delta.get(key)
-        if isinstance(value, list | tuple) and len(value) > 0:
-            return True
-    return False
-
-
 def _owner_repair_receipt_is_newer(
     *,
     candidate: Mapping[str, Any] | None,

@@ -654,22 +654,6 @@ def _preferred_terminal_stage_log_identities(
 ) -> list[dict[str, Any]]:
     identities: list[dict[str, Any]] = []
     workspace_root = Path(profile.workspace_root)
-    stage_closure_path = (
-        workspace_root
-        / "ops"
-        / "medautoscience"
-        / "paper_mission_stage_closure"
-        / "paper_mission_terminalize_stage"
-        / study_id
-        / "stage_closure_decision.json"
-    )
-    stage_closure = _read_json_object(stage_closure_path)
-    if identity := _preferred_terminal_stage_log_identity(
-        profile=profile,
-        payload=stage_closure,
-        source_path=stage_closure_path,
-    ):
-        identities.append(identity)
     receipt_root = (
         workspace_root
         / "ops"

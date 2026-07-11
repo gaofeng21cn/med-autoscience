@@ -56,7 +56,6 @@ from med_autoscience.paper_mission_domain.route_back_budget import (
     _record_paper_mission_route_back_budget_ledger,
 )
 from med_autoscience.paper_mission_domain.stage_closure_terminalizer import (
-    attach_stage_closure_ledger_to_drive_readback as _attach_stage_closure_ledger_to_drive_readback,
     materialize_stage_closure_for_drive_readback as _materialize_stage_closure_for_drive_readback,
 )
 from med_autoscience.paper_mission_output_roots import (
@@ -197,10 +196,6 @@ def build_paper_mission_drive_readback(
         source=f"{source}:drive:consume-candidate",
         enable_opl_live_probe=True,
     )
-    consume_readback = _attach_stage_closure_ledger_to_drive_readback(
-        profile=profile,
-        consume_readback=consume_readback,
-    )
     handoff = _mapping(
         _mapping(consume_readback.get("consume_output_manifest")).get(
             "opl_route_handoff"
@@ -218,15 +213,9 @@ def build_paper_mission_drive_readback(
         readback=consume_readback,
         handoff=handoff,
     )
-    stage_closure_output_manifest = None
     if stage_closure_decision_missing(initial_stage_closure_decision):
-        consume_readback, stage_closure_output_manifest = (
-            _materialize_stage_closure_for_drive_readback(
-                profile=profile,
-                study_id=study_id,
-                consume_readback=consume_readback,
-                source=f"{source}:drive:stage-closure-terminalizer",
-            )
+        consume_readback = _materialize_stage_closure_for_drive_readback(
+            consume_readback=consume_readback,
         )
         initial_stage_closure_decision = stage_closure_decision_projection(
             readback=consume_readback,
@@ -267,10 +256,6 @@ def build_paper_mission_drive_readback(
             consume_readback=consume_readback,
             opl_runtime_submission=opl_runtime_submission,
         )
-        consume_readback = _attach_stage_closure_ledger_to_drive_readback(
-            profile=profile,
-            consume_readback=consume_readback,
-        )
         handoff = _mapping(
             _mapping(consume_readback.get("consume_output_manifest")).get(
                 "opl_route_handoff"
@@ -301,9 +286,6 @@ def build_paper_mission_drive_readback(
         consume_readback = _mapping(final_round.get("consume_readback"))
         handoff = _mapping(final_round.get("opl_route_handoff"))
         opl_runtime_submission = _mapping(final_round.get("opl_runtime_submission"))
-        stage_closure_output_manifest = _mapping(
-            final_round.get("stage_closure_output_manifest")
-        ) or stage_closure_output_manifest
     stage_closure_decision = stage_closure_decision_projection(
         readback=consume_readback,
         handoff=handoff,
@@ -423,11 +405,6 @@ def build_paper_mission_drive_readback(
             "output_root": str(root),
             "candidate_package": package_readback["output_manifest"],
             "consumption_ledger": consume_readback.get("consume_output_manifest"),
-            **(
-                {"stage_closure": stage_closure_output_manifest}
-                if stage_closure_output_manifest
-                else {}
-            ),
             "route_back_budget_ledger_ref": followthrough[
                 "route_back_budget_ledger_ref"
             ],

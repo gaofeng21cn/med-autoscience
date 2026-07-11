@@ -15,13 +15,7 @@ from med_autoscience.paper_mission_consumption_readback import (
     latest_paper_mission_consumption_transaction_readback,
 )
 from tests.test_paper_mission_consumption_currentness_cases.receipt_owner_consumption import (
-    test_newer_route_checkpoint_stage_closure_supersedes_stale_route_checkpoint_receipt,
-    test_newer_non_route_stage_closure_supersedes_stale_route_checkpoint_receipt,
     test_receipt_owner_consumption_write_preserves_newer_route_checkpoint,
-    test_same_route_checkpoint_stage_closure_does_not_supersede_receipt,
-    test_same_route_checkpoint_with_missing_refs_does_not_supersede_receipt,
-    test_older_mismatched_route_checkpoint_stage_closure_does_not_supersede_newer_receipt,
-    test_thin_legacy_stage_closure_does_not_supersede_consumed_route_checkpoint_receipt,
 )
 from tests.test_paper_mission_consumption_currentness_cases.shared import (
     _patch_json,

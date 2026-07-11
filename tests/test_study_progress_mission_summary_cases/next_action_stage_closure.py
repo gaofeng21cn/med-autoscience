@@ -253,7 +253,7 @@ def test_top_level_next_legal_action_prefers_receipt_consumption_over_stage_repl
     assert payload["next_legal_action"] == "consume_opl_transition_receipt"
 
 
-def test_artifact_first_mission_summary_prefers_stage_closure_ledger_over_stale_progress_projection(
+def test_artifact_first_mission_summary_prefers_current_stage_closure_readback(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     module = importlib.import_module(
@@ -265,7 +265,7 @@ def test_artifact_first_mission_summary_prefers_stage_closure_ledger_over_stale_
     monkeypatch.setattr(module, "_latest_receipt_owner_consumption_readback", lambda **_: {})
     monkeypatch.setattr(
         module,
-        "_latest_stage_closure_ledger_readback",
+        "_current_stage_closure_readback",
         lambda **_: {
             "surface_kind": "mas_stage_closure_decision",
             "decision_ref": "/tmp/current-stage-closure.json",

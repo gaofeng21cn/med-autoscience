@@ -79,7 +79,6 @@ from .common import (
     _optional_text,
 )
 from .stage_closure_terminalizer import (
-    latest_current_stage_closure_for_consumption as _latest_current_stage_closure_for_consumption,
     stage_closure_decision_requires_reterminalize as _stage_closure_decision_requires_reterminalize,
     terminalize_stage_closure_from_readback as _terminalize_stage_closure_from_readback,
 )
@@ -214,9 +213,6 @@ def _sync_consumption_ledger_readback_deps() -> Any:
     module = _consumption_ledger_readback_module()
     module._latest_receipt_owner_consumption_readback = (
         _latest_receipt_owner_consumption_readback
-    )
-    module._latest_current_stage_closure_for_consumption = (
-        _latest_current_stage_closure_for_consumption
     )
     module._study_progress_paper_mission_overlay = (
         _study_progress_paper_mission_overlay

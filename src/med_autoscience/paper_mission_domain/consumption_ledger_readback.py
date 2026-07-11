@@ -37,7 +37,6 @@ from med_autoscience.paper_mission_domain.stage_closure_next_action import (
     next_action_for_stage_closure_decision as _next_action_for_stage_closure_decision,
 )
 from med_autoscience.paper_mission_domain.stage_closure_terminalizer import (
-    latest_current_stage_closure_for_consumption as _latest_current_stage_closure_for_consumption,
     stage_closure_decision_requires_reterminalize as _stage_closure_decision_requires_reterminalize,
     terminalize_stage_closure_from_readback as _terminalize_stage_closure_from_readback,
 )
@@ -61,7 +60,6 @@ from med_autoscience.controllers.study_progress.progress_first_payload import (
 from med_autoscience.controllers import study_domain_transition_table
 from med_autoscience.controllers.paper_mission_currentness import (
     receipt_owner_consumption_superseded_by_consumption as _receipt_superseded_by_consumption,
-    receipt_owner_consumption_superseded_by_stage_closure as _receipt_superseded_by_stage_closure,
 )
 from med_autoscience.controllers.stage_closure_terminalizer import (
     stage_closure_decision_missing,
@@ -204,25 +202,12 @@ def _consumption_ledger_inspect_readback(
         workspace_root=Path(profile.workspace_root),
         study_id=study_id,
     )
-    transaction_ref = _optional_text(
-        _mapping(transaction_readback.get("paper_mission_transaction")).get(
-            "transaction_id"
-        )
-    )
-    stage_closure_ledger_readback = _latest_current_stage_closure_for_consumption(
-        workspace_root=Path(profile.workspace_root),
-        study_id=study_id,
-        transaction_ref=transaction_ref,
-        consume_readback=consumption_readback,
-    )
+    stage_closure_readback = _mapping(
+        consumption_readback.get("stage_closure_decision")
+    ) or None
     if receipt_owner_consumption is not None and _receipt_superseded_by_consumption(
         receipt_owner_consumption_readback=receipt_owner_consumption,
         consumption_ledger_readback=consumption_readback,
-    ):
-        receipt_owner_consumption = None
-    if receipt_owner_consumption is not None and _receipt_superseded_by_stage_closure(
-        receipt_owner_consumption_readback=receipt_owner_consumption,
-        stage_closure_ledger_readback=stage_closure_ledger_readback,
     ):
         receipt_owner_consumption = None
     if receipt_owner_consumption is None:
@@ -230,7 +215,7 @@ def _consumption_ledger_inspect_readback(
             transaction_readback=transaction_readback,
             consumption_readback=consumption_readback,
             base_readback=base,
-            stage_closure_ledger_readback=stage_closure_ledger_readback,
+            stage_closure_decision=stage_closure_readback,
         )
         if route_back_projection is not None:
             return _merge_study_progress_overlay(
@@ -239,24 +224,21 @@ def _consumption_ledger_inspect_readback(
         transaction_output_fields = _transaction_readback_output_fields(
             transaction_readback
         )
-        if stage_closure_ledger_readback is not None:
+        if stage_closure_readback is not None:
             transaction_output_fields = {
                 **transaction_output_fields,
-                "stage_closure_decision": stage_closure_ledger_readback,
-                "stage_closure_decision_ref": stage_closure_ledger_readback.get(
+                "stage_closure_decision": stage_closure_readback,
+                "stage_closure_decision_ref": stage_closure_readback.get(
                     "decision_ref"
                 ),
                 "stage_closure_outcome": _mapping(
-                    stage_closure_ledger_readback.get("outcome")
+                    stage_closure_readback.get("outcome")
                 ).get("kind"),
-                "paper_mission_stage_closure_ledger_readback": (
-                    stage_closure_ledger_readback
-                ),
                 "durable_mission_stop_guard": _durable_mission_stop_guard(
                     consume_candidate_status=str(
                         consumption_readback.get("consume_candidate_status") or ""
                     ),
-                    stage_closure_decision=stage_closure_ledger_readback,
+                    stage_closure_decision=stage_closure_readback,
                 ),
             }
         return _merge_study_progress_overlay(
@@ -557,7 +539,7 @@ def _consumption_ledger_route_back_projection(
     transaction_readback: Mapping[str, Any],
     consumption_readback: Mapping[str, Any],
     base_readback: Mapping[str, Any],
-    stage_closure_ledger_readback: Mapping[str, Any] | None = None,
+    stage_closure_decision: Mapping[str, Any] | None = None,
 ) -> dict[str, Any] | None:
     if not _transaction_readback_has_route_back_owner_answer(transaction_readback):
         return None
@@ -574,8 +556,8 @@ def _consumption_ledger_route_back_projection(
         },
         "consume_candidate_status": consume_candidate_status,
         **(
-            {"stage_closure_decision": stage_closure_ledger_readback}
-            if stage_closure_ledger_readback
+            {"stage_closure_decision": stage_closure_decision}
+            if stage_closure_decision
             else {}
         ),
     }

@@ -632,113 +632,21 @@ def test_stage_closure_projection_exposes_terminalizer_outcome() -> None:
     assert decision["known_blockers"] == ["claim_evidence_consistency_failed"]
 
 
-def test_drive_stage_closure_uses_latest_study_ledger_when_transaction_ref_rotates(
-    tmp_path,
-) -> None:
+def test_drive_stage_closure_terminalizer_attaches_current_decision() -> None:
     commands = importlib.import_module(
         "med_autoscience.paper_mission_domain.stage_closure_terminalizer"
     )
-    ledger = importlib.import_module("med_autoscience.paper_mission_stage_closure_ledger")
-    profile = type("Profile", (), {"workspace_root": str(tmp_path)})()
-    study_id = "003-dpcc-primary-care-phenotype-treatment-gap"
-    output_root = (
-        tmp_path
-        / "ops"
-        / "medautoscience"
-        / "paper_mission_stage_closure"
-        / "run"
-    )
-    ledger.write_paper_mission_stage_closure_decision(
-        output_root=output_root,
-        study_id=study_id,
-        decision={
-            "outcome": {
-                "kind": "typed_blocker",
-                "next_owner": "MedAutoScience",
-            },
-            "known_blockers": ["paper_mission_stage_route_domain_gate_pending"],
-        },
-        source_readback=_route_back_consume_readback(
-            transaction_ref="paper-mission-transaction::old"
-        ),
-        source="pytest",
-        forbidden_authority_writes=("publication_eval/latest.json",),
-        forbidden_authority_claims=("submission_ready",),
-    )
-    current_readback = _route_back_consume_readback(
-        transaction_ref="paper-mission-transaction::new"
+    result = commands.materialize_stage_closure_for_drive_readback(
+        consume_readback=_route_back_consume_readback(),
     )
 
-    result = commands.attach_stage_closure_ledger_to_drive_readback(
-        profile=profile,
-        consume_readback=current_readback,
-    )
-    decision = result["stage_closure_decision"]
-
-    assert decision["projection_status"] == "terminalizer_outcome_observed"
-    assert decision["source_surface_kind"] == "paper_mission_stage_closure_ledger"
-    assert decision["paper_mission_transaction_ref"] == "paper-mission-transaction::old"
-    assert decision["decision_ref"].endswith(
-        f"/{study_id}/stage_closure_decision.json"
-    )
-
-
-def test_drive_stage_closure_ignores_old_fallback_ledger_when_new_consumption_can_route(
-    tmp_path,
-) -> None:
-    commands = importlib.import_module(
-        "med_autoscience.paper_mission_domain.stage_closure_terminalizer"
-    )
-    ledger = importlib.import_module("med_autoscience.paper_mission_stage_closure_ledger")
-    profile = type("Profile", (), {"workspace_root": str(tmp_path)})()
-    study_id = "003-dpcc-primary-care-phenotype-treatment-gap"
-    output_root = (
-        tmp_path
-        / "ops"
-        / "medautoscience"
-        / "paper_mission_stage_closure"
-        / "run"
-    )
-    output_manifest = ledger.write_paper_mission_stage_closure_decision(
-        output_root=output_root,
-        study_id=study_id,
-        decision={
-            "outcome": {
-                "kind": "typed_blocker",
-                "next_owner": "MedAutoScience",
-            },
-            "known_blockers": ["paper_mission_stage_route_domain_gate_pending"],
-        },
-        source_readback=_route_back_consume_readback(
-            transaction_ref="paper-mission-transaction::old"
-        ),
-        source="pytest",
-        forbidden_authority_writes=("publication_eval/latest.json",),
-        forbidden_authority_claims=("submission_ready",),
-    )
-    closure_ref = output_manifest["stage_closure_decision_ref"]
-    consume_ref = tmp_path / "ops" / "medautoscience" / "paper_mission_consumption_ledger" / "run" / study_id / "consume_record.json"
-    consume_ref.parent.mkdir(parents=True)
-    consume_ref.write_text("{}", encoding="utf-8")
-    os.utime(closure_ref, (2_000_000_000, 2_000_000_000))
-    os.utime(consume_ref, (3_000_000_000, 3_000_000_000))
-    current_readback = _route_back_consume_readback(
-        transaction_ref="paper-mission-transaction::new"
-    )
-    current_readback["source_ref"] = str(consume_ref)
-    current_readback["route_handoff_status"] = "ready_for_opl_route_command"
-    current_readback["opl_route_handoff"] = {
-        "handoff_status": "ready_for_opl_route_command",
-        "can_submit_to_opl_runtime": True,
+    assert result["stage_closure_decision"]["outcome"]["kind"] in {
+        "next_stage_transition",
+        "typed_blocker",
     }
-
-    result = commands.attach_stage_closure_ledger_to_drive_readback(
-        profile=profile,
-        consume_readback=current_readback,
-    )
-
-    assert "stage_closure_decision" not in result
-    assert result["source_ref"] == str(consume_ref)
+    assert result["stage_closure_outcome"] == result["stage_closure_decision"][
+        "outcome"
+    ]["kind"]
 
 
 def test_route_back_budget_ledger_escalates_same_signature_across_runs(tmp_path) -> None:

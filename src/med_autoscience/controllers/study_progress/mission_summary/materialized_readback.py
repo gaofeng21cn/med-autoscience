@@ -8,17 +8,10 @@ from typing import Any
 from med_autoscience.paper_mission_consumption_readback import (
     latest_paper_mission_consumption_transaction_readback,
 )
-from med_autoscience.paper_mission_stage_closure_ledger import (
-    latest_paper_mission_stage_closure_decision_readback,
-)
-from med_autoscience.paper_mission_domain.stage_closure_terminalizer import (
-    latest_current_stage_closure_for_consumption,
-)
 from med_autoscience.controllers.paper_mission_receipt_owner_consumption import (
     latest_receipt_owner_consumption_readback,
 )
 from med_autoscience.controllers.paper_mission_currentness import (
-    receipt_owner_consumption_superseded_by_stage_closure,
     receipt_owner_consumption_superseded_by_consumption,
 )
 from med_autoscience.paper_mission_opl_carrier import (
@@ -256,10 +249,8 @@ def _materialized_mission_summary(
                 "current_objective": current_objective,
                 "next_owner_or_human_decision": next_owner_or_human_decision,
             }
-    stage_closure_ledger_readback = _latest_stage_closure_ledger_readback(
+    stage_closure_readback = _current_stage_closure_readback(
         progress=progress,
-        study_id=study_id,
-        transaction_ref=_non_empty_text(effective_transaction.get("transaction_id")),
         consume_readback=consumption_ledger_readback,
     )
     receipt_owner_consumption_readback = _latest_receipt_owner_consumption_readback(
@@ -269,14 +260,6 @@ def _materialized_mission_summary(
     if receipt_owner_consumption_readback and receipt_owner_consumption_superseded_by_consumption(
         receipt_owner_consumption_readback=receipt_owner_consumption_readback,
         consumption_ledger_readback=consumption_ledger_readback,
-    ):
-        receipt_owner_consumption_readback = None
-    if (
-        receipt_owner_consumption_readback
-        and receipt_owner_consumption_superseded_by_stage_closure(
-            receipt_owner_consumption_readback=receipt_owner_consumption_readback,
-            stage_closure_ledger_readback=stage_closure_ledger_readback,
-        )
     ):
         receipt_owner_consumption_readback = None
     if receipt_owner_consumption_readback:
@@ -299,8 +282,8 @@ def _materialized_mission_summary(
                     ]
                 }
                 if receipt_owner_consumption_readback
-                else {"stage_closure_decision": stage_closure_ledger_readback}
-                if stage_closure_ledger_readback
+                else {"stage_closure_decision": stage_closure_readback}
+                if stage_closure_readback
                 else {}
             ),
             "consume_candidate_status": effective_consume_candidate_status,
@@ -345,7 +328,7 @@ def _materialized_mission_summary(
         "current_mission": current_mission or None,
         "consume_candidate_status": effective_consume_candidate_status,
         "stage_closure_decision": stage_closure_decision,
-        "stage_closure_ledger_readback": stage_closure_ledger_readback or None,
+        "current_stage_closure_readback": stage_closure_readback or None,
         "receipt_owner_consumption_readback": (
             receipt_owner_consumption_readback or None
         ),
@@ -448,29 +431,14 @@ def _latest_consumption_ledger_readback(
     ) or {}
 
 
-def _latest_stage_closure_ledger_readback(
+def _current_stage_closure_readback(
     *,
     progress: Mapping[str, Any],
-    study_id: str,
-    transaction_ref: str | None,
     consume_readback: Mapping[str, Any] | None = None,
 ) -> dict[str, Any]:
-    study_root = _materialized_study_root(progress=progress)
-    workspace_root = _workspace_root_from_study_root(study_root)
-    if workspace_root is None:
-        return {}
-    if consume_readback:
-        return latest_current_stage_closure_for_consumption(
-            workspace_root=workspace_root,
-            study_id=study_id,
-            transaction_ref=transaction_ref,
-            consume_readback=consume_readback,
-        ) or {}
-    return latest_paper_mission_stage_closure_decision_readback(
-        workspace_root=workspace_root,
-        study_id=study_id,
-        transaction_ref=transaction_ref,
-    ) or {}
+    return _mapping(_mapping(consume_readback).get("stage_closure_decision")) or _mapping(
+        progress.get("stage_closure_decision")
+    )
 
 
 def _latest_receipt_owner_consumption_readback(
