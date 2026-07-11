@@ -49,6 +49,7 @@ MAS 的 12 项过度设计结构目标已经落地：repo-local platform surface
 - hand-written CLI/MCP transport glue；
 - MAS runtime health/lifecycle/storage platform；
 - legacy next-action producer family。
+- MAS-local StageRun projector 与残留 `stage_artifact_index` 通用 ref/text helper；MAS 仅保留 stage profile、医学 taxonomy、owner receipt / typed blocker validator 与 authority function，通用 StageRun / artifact projection 由 OPL Stagecraft / Workspace 托管。
 
 `runtime_control/**`、`runtime_protocol/**` 与 MAS-local runtime-state authority/storage path 已清零；通用 runtime identity/readback 归 OPL StageRun、current-control 与 StateIndex refs owner。
 

@@ -364,6 +364,30 @@ def test_mas_compact_audit_declares_physically_absent_default_surfaces() -> None
     ]
 
 
+def test_mas_compact_audit_retires_private_stage_kernel_projection_helpers() -> None:
+    audit = json.loads(_read("contracts/functional_privatization_audit.json"))
+    retired = {
+        item["surface_id"]: item
+        for item in audit["retired_generated_surface_provenance"]
+    }
+
+    assert retired["mas_local_stage_run_and_artifact_projection_helpers"] == {
+        "surface_id": "mas_local_stage_run_and_artifact_projection_helpers",
+        "replacement_ref": "contracts/stage_artifact_kernel_adoption.json#/projection_boundary",
+        "provenance_refs": [
+            "contracts/stage_run_kernel_profile.json#/opl_contract_refs",
+            "contracts/stage_artifact_kernel_adoption.json#/projection_boundary",
+            "source-retirement:mas/a3/stage-run-and-artifact-projection-helpers",
+        ],
+    }
+    for path in (
+        "src/med_autoscience/controllers/stage_run_kernel.py",
+        "src/med_autoscience/controllers/stage_artifact_index/contract_refs.py",
+        "src/med_autoscience/controllers/stage_artifact_index/text_helpers.py",
+    ):
+        assert not (REPO_ROOT / path).exists()
+
+
 def test_mas_ars_learning_projection_declares_external_patterns_without_boundary_drift() -> None:
     contract = _contract()
     projection = contract["academic_research_skills_learning_projection"]

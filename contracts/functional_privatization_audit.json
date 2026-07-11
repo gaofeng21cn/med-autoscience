@@ -267,6 +267,15 @@
         "git:753239240761ca1430471d25e2731658f092e001..7ed2e5a3b4da21158547db68cf029e317b93a743#deleted-paths",
         "contracts/runtime/mas-runtime-surface-retirement-inventory.json"
       ]
+    },
+    {
+      "surface_id": "mas_local_stage_run_and_artifact_projection_helpers",
+      "replacement_ref": "contracts/stage_artifact_kernel_adoption.json#/projection_boundary",
+      "provenance_refs": [
+        "contracts/stage_run_kernel_profile.json#/opl_contract_refs",
+        "contracts/stage_artifact_kernel_adoption.json#/projection_boundary",
+        "source-retirement:mas/a3/stage-run-and-artifact-projection-helpers"
+      ]
     }
   ],
   "bridge_exit_gate": {
@@ -276,11 +285,13 @@
     "no_forbidden_write_refs": [
       "no-forbidden-write:mas/default-caller-deletion/generic_cli_mcp_product_wrappers/refs-only-boundary",
       "no-forbidden-write:mas/default-caller-deletion/workbench_portal_generic_shell/refs-only-boundary",
-      "no-forbidden-write:mas/default-caller-deletion/paper_mission_owner_surface_materialize_dispatch_shell/refs-only-boundary"
+      "no-forbidden-write:mas/default-caller-deletion/paper_mission_owner_surface_materialize_dispatch_shell/refs-only-boundary",
+      "no-forbidden-write:mas/default-caller-deletion/mas_local_stage_run_and_artifact_projection_helpers/refs-only-boundary"
     ],
     "provenance_refs": [
       "git:753239240761ca1430471d25e2731658f092e001..7ed2e5a3b4da21158547db68cf029e317b93a743#deleted-paths",
-      "contracts/runtime/mas-runtime-surface-retirement-inventory.json"
+      "contracts/runtime/mas-runtime-surface-retirement-inventory.json",
+      "source-retirement:mas/a3/stage-run-and-artifact-projection-helpers"
     ]
   }
 }
