@@ -12,7 +12,6 @@ from med_autoscience.controllers.paper_mission_owner_surface import current_trut
 from med_autoscience.controllers.paper_mission_owner_surface import evidence_adoption
 from med_autoscience.controllers.paper_mission_owner_surface import hard_methodology_currentness
 from med_autoscience.controllers.paper_mission_owner_surface import ai_reviewer_actions
-from med_autoscience.controllers.paper_mission_owner_surface import opl_owner_route_handoff
 from med_autoscience.controllers.paper_mission_owner_surface import parked_truth
 from med_autoscience.controllers.paper_mission_owner_surface import runtime_facts
 
@@ -28,7 +27,7 @@ def ai_reviewer_lifecycle_resolved(
         return ai_reviewer_assessment.get("missing") is not True
     if blocked_reason == ai_reviewer_actions.ANALYSIS_HARMONIZATION_COMPLETED_REVIEW_REASON:
         return _consumed_ai_reviewer_route_back(status) and _current_ai_reviewer_present(ai_reviewer_assessment)
-    if blocked_reason == opl_owner_route_handoff.OPL_STAGE_ATTEMPT_ADMISSION_REASON:
+    if blocked_reason == current_truth_owner.OPL_STAGE_ATTEMPT_ADMISSION_REASON:
         return (
             _consumed_ai_reviewer_route_back(status)
             and _text(lifecycle.get("next_owner")) == "external_supervisor"
@@ -50,7 +49,7 @@ def ai_reviewer_lifecycle_superseded_by_consumed_route_back(
     status: Mapping[str, Any] | None = None,
 ) -> bool:
     return (
-        _text(lifecycle.get("blocked_reason")) == opl_owner_route_handoff.OPL_STAGE_ATTEMPT_ADMISSION_REASON
+        _text(lifecycle.get("blocked_reason")) == current_truth_owner.OPL_STAGE_ATTEMPT_ADMISSION_REASON
         and _consumed_ai_reviewer_route_back(status)
         and _text(lifecycle.get("next_owner")) == "external_supervisor"
         and lifecycle.get("external_supervisor_required") is True

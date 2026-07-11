@@ -317,24 +317,9 @@ def _status_state(
             _runtime_liveness_active_run_id(runtime_liveness_audit) is not None
         ),
     )
-    _record_controller_authorization_if_present(status=result, quest_root=quest_root, study_root=study_root)
-    _record_blocked_closeout_if_present(status=result, quest_root=quest_root)
-    _record_blocked_closeout_supersession_if_present(
-        status=result,
-        study_root=study_root,
-        quest_root=quest_root,
-    )
     record_domain_transition_if_required(status=result, study_root=study_root)
-    _record_pending_user_interaction_if_required(
-        status=result,
-        runtime_root=runtime_root,
-        quest_root=quest_root,
-        quest_id=quest_id,
-        publication_gate_report=publication_gate_report,
-    )
     _record_interaction_arbitration_if_required(
         status=result,
-        quest_root=quest_root,
         execution=execution,
         submission_metadata_only=submission_metadata_only_wait,
         publication_gate_report=publication_gate_report,
@@ -605,7 +590,6 @@ def _status_state(
         return _apply_stopped_or_failed_quest_status_decision(
             result=result,
             execution=execution,
-            quest_root=quest_root,
             quest_status=quest_status,
             publication_gate_report=publication_gate_report,
             task_intake_releases_manual_finish_parking=task_intake_releases_manual_finish_parking,

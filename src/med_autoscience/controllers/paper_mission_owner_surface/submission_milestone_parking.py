@@ -7,7 +7,6 @@ from pathlib import Path
 from typing import Any
 
 from med_autoscience.controllers import study_outer_loop
-from med_autoscience.controllers.paper_mission_owner_surface import opl_owner_route_handoff
 from med_autoscience.developer_supervisor_mode import DeveloperSupervisorMode
 from med_autoscience.profiles import WorkspaceProfile
 

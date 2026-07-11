@@ -21,7 +21,6 @@ __all__ = [
     "StudyRuntimeQuestStatus",
     "StudyRuntimeReason",
     "StudyRuntimeReentryGate",
-    "StudyRuntimeSummaryAlignment",
     "StudyRuntimeStartupBoundaryGate",
     "StudyRuntimeStartupContextSyncResult",
     "StudyRuntimeStartupDataReadinessReport",

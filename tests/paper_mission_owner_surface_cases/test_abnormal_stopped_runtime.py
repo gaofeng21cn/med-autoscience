@@ -4,7 +4,6 @@ import importlib
 import json
 from pathlib import Path
 
-from tests.paper_mission_owner_surface_cases.owner_route_test_helpers import assert_owner_route_required
 from tests.study_runtime_test_helpers import make_profile, write_study
 
 

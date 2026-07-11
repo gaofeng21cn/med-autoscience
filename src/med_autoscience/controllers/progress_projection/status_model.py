@@ -32,7 +32,6 @@ from .enums_and_audits import (
 )
 from .enums_and_audits import (
     StudyRuntimeAutonomousRuntimeNotice,
-    StudyRuntimeSummaryAlignment,
     StudyRuntimeExecutionOwnerGuard,
     StudyRuntimePendingUserInteraction,
     StudyRuntimeInteractionArbitration,
@@ -463,13 +462,6 @@ class ProgressProjectionStatus(MutableMapping[str, Any]):
         return StudyRuntimeExecutionOwnerGuard.from_payload(payload)
 
     @property
-    def runtime_summary_alignment(self) -> StudyRuntimeSummaryAlignment:
-        payload = self.extras.get("runtime_summary_alignment")
-        if not isinstance(payload, dict):
-            raise KeyError("runtime_summary_alignment")
-        return StudyRuntimeSummaryAlignment.from_payload(payload)
-
-    @property
     def pending_user_interaction(self) -> StudyRuntimePendingUserInteraction:
         payload = self.extras.get("pending_user_interaction")
         if not isinstance(payload, dict):
@@ -544,17 +536,6 @@ class ProgressProjectionStatus(MutableMapping[str, Any]):
             else StudyRuntimeExecutionOwnerGuard.from_payload(value)
         )
         self._record_dict_extra("execution_owner_guard", execution_owner_guard.to_dict())
-
-    def record_runtime_summary_alignment(
-        self,
-        value: dict[str, Any] | StudyRuntimeSummaryAlignment,
-    ) -> None:
-        runtime_summary_alignment = (
-            value
-            if isinstance(value, StudyRuntimeSummaryAlignment)
-            else StudyRuntimeSummaryAlignment.from_payload(value)
-        )
-        self._record_dict_extra("runtime_summary_alignment", runtime_summary_alignment.to_dict())
 
     def record_pending_user_interaction(
         self,

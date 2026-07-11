@@ -118,7 +118,6 @@ def test_study_progress_does_not_project_abnormal_stopped_blocked_bundle_as_pack
                 "continuation_policy": "auto",
                 "continuation_anchor": "decision",
                 "continuation_reason": "quest_stopped_by_controller_guard",
-                "runtime_state_path": str(quest_root / ".ds" / "runtime_state.json"),
             },
         },
     )

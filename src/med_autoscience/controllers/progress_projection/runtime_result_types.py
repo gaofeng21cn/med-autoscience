@@ -28,7 +28,6 @@ from .enums_and_audits import (
 )
 from .enums_and_audits import (
     StudyRuntimeAutonomousRuntimeNotice,
-    StudyRuntimeSummaryAlignment,
     StudyRuntimeExecutionOwnerGuard,
     StudyRuntimePendingUserInteraction,
     StudyRuntimeInteractionArbitration,

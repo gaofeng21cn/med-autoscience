@@ -7,7 +7,6 @@ from pathlib import Path
 from tests.test_study_runtime_execution_control_intent_cases.helpers import (
     _write_controller_decision_authorization,
     _write_publication_eval_work_unit_authority,
-    _write_runtime_state,
 )
 
 
@@ -101,8 +100,6 @@ def test_rejects_completed_receipt_for_hard_unit_harmonization_target(
         + "\n",
         encoding="utf-8",
     )
-    _write_runtime_state(quest_root, {"status": "running", "active_run_id": None, "pending_user_message_count": 0})
-
     adoption_module = importlib.import_module(
         "med_autoscience.controllers.study_runtime_execution.work_unit_evidence_adoption"
     )

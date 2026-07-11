@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 from collections.abc import Iterable, Mapping
-from pathlib import Path
 from typing import Any
 
 from med_autoscience.controllers.paper_mission_owner_surface import completion_evidence
@@ -269,7 +268,7 @@ def _pending_user_message_opl_handoff_required(status: Mapping[str, Any]) -> boo
         and _text(continuation_state.get("continuation_anchor")) == "user_message_queue"
         and _text(continuation_state.get("continuation_reason"))
         == "opl_owner_route_resume_existing_pending_user_message"
-        and int(continuation_state.get("pending_user_message_count") or 0) > 0
+        and pending_user_messages.pending_count(continuation_state) > 0
     )
 
 
@@ -352,16 +351,7 @@ def _string_items(value: object) -> list[str]:
 
 
 def _pending_user_messages_block_redrive(continuation_state: Mapping[str, Any]) -> bool:
-    count = pending_user_messages.pending_count(continuation_state)
-    if count <= 0:
-        return False
-    runtime_state_path = _text(continuation_state.get("runtime_state_path"))
-    if runtime_state_path is None:
-        return True
-    return not pending_user_messages.only_control_plane_messages(
-        runtime_state_path=Path(runtime_state_path),
-        expected_count=count,
-    )
+    return pending_user_messages.pending_count(continuation_state) > 0
 
 
 def _progress_activity_timeout(progress: Mapping[str, Any]) -> dict[str, Any]:

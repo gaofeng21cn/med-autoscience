@@ -32,7 +32,6 @@ __all__ = [
     "StudyRuntimeQuestStatus",
     "StudyRuntimeReason",
     "StudyRuntimeReentryGate",
-    "StudyRuntimeSummaryAlignment",
     "StudyRuntimeStartupBoundaryGate",
     "StudyRuntimeStartupContextSyncResult",
     "StudyRuntimeStartupDataReadinessReport",
@@ -296,107 +295,6 @@ class StudyRuntimeAutonomousRuntimeNotice:
         )
 
 
-@dataclass(frozen=True)
-class StudyRuntimeSummaryAlignment:
-    source_of_truth: str
-    runtime_state_path: str
-    runtime_state_status: str | None
-    source_active_run_id: str | None
-    source_runtime_liveness_status: str | None
-    source_supervisor_tick_status: str | None
-    runtime_status_path: str
-    launch_report_exists: bool
-    launch_report_quest_status: str | None
-    launch_report_active_run_id: str | None
-    launch_report_runtime_liveness_status: str | None
-    launch_report_supervisor_tick_status: str | None
-    aligned: bool
-    mismatch_reason: str | None
-    status_sync_applied: bool
-    launch_report_stale: bool = False
-    stale_launch_report_active_run_id: str | None = None
-    stale_launch_report_runtime_liveness_status: str | None = None
-
-    def __post_init__(self) -> None:
-        for field_name in ("source_of_truth", "runtime_state_path", "runtime_status_path"):
-            value = getattr(self, field_name)
-            if not isinstance(value, str) or not value.strip():
-                raise TypeError(f"study runtime summary alignment {field_name} must be non-empty str")
-        for field_name in (
-            "runtime_state_status",
-            "source_active_run_id",
-            "source_runtime_liveness_status",
-            "source_supervisor_tick_status",
-            "launch_report_quest_status",
-            "launch_report_active_run_id",
-            "launch_report_runtime_liveness_status",
-            "launch_report_supervisor_tick_status",
-            "mismatch_reason",
-            "stale_launch_report_active_run_id",
-            "stale_launch_report_runtime_liveness_status",
-        ):
-            value = getattr(self, field_name)
-            if value is not None and not isinstance(value, str):
-                raise TypeError(f"study runtime summary alignment {field_name} must be str or None")
-        for field_name in ("launch_report_exists", "aligned", "status_sync_applied", "launch_report_stale"):
-            if not isinstance(getattr(self, field_name), bool):
-                raise TypeError(f"study runtime summary alignment {field_name} must be bool")
-
-    def to_dict(self) -> dict[str, Any]:
-        return {
-            "source_of_truth": self.source_of_truth,
-            "runtime_state_path": self.runtime_state_path,
-            "runtime_state_status": self.runtime_state_status,
-            "source_active_run_id": self.source_active_run_id,
-            "source_runtime_liveness_status": self.source_runtime_liveness_status,
-            "source_supervisor_tick_status": self.source_supervisor_tick_status,
-            "runtime_status_path": self.runtime_status_path,
-            "launch_report_exists": self.launch_report_exists,
-            "launch_report_quest_status": self.launch_report_quest_status,
-            "launch_report_active_run_id": self.launch_report_active_run_id,
-            "launch_report_runtime_liveness_status": self.launch_report_runtime_liveness_status,
-            "launch_report_supervisor_tick_status": self.launch_report_supervisor_tick_status,
-            "aligned": self.aligned,
-            "mismatch_reason": self.mismatch_reason,
-            "status_sync_applied": self.status_sync_applied,
-            "launch_report_stale": self.launch_report_stale,
-            "stale_launch_report_active_run_id": self.stale_launch_report_active_run_id,
-            "stale_launch_report_runtime_liveness_status": self.stale_launch_report_runtime_liveness_status,
-        }
-
-    @classmethod
-    def from_payload(cls, payload: dict[str, Any]) -> "StudyRuntimeSummaryAlignment":
-        if not isinstance(payload, dict):
-            raise TypeError("study runtime summary alignment payload must be a mapping")
-        return cls(
-            source_of_truth=str(payload.get("source_of_truth") or ""),
-            runtime_state_path=str(payload.get("runtime_state_path") or ""),
-            runtime_state_status=str(payload.get("runtime_state_status") or "").strip() or None,
-            source_active_run_id=str(payload.get("source_active_run_id") or "").strip() or None,
-            source_runtime_liveness_status=str(payload.get("source_runtime_liveness_status") or "").strip() or None,
-            source_supervisor_tick_status=str(payload.get("source_supervisor_tick_status") or "").strip() or None,
-            runtime_status_path=str(payload.get("runtime_status_path") or ""),
-            launch_report_exists=bool(payload.get("launch_report_exists")),
-            launch_report_quest_status=str(payload.get("launch_report_quest_status") or "").strip() or None,
-            launch_report_active_run_id=str(payload.get("launch_report_active_run_id") or "").strip() or None,
-            launch_report_runtime_liveness_status=(
-                str(payload.get("launch_report_runtime_liveness_status") or "").strip() or None
-            ),
-            launch_report_supervisor_tick_status=(
-                str(payload.get("launch_report_supervisor_tick_status") or "").strip() or None
-            ),
-            aligned=bool(payload.get("aligned")),
-            mismatch_reason=str(payload.get("mismatch_reason") or "").strip() or None,
-            status_sync_applied=bool(payload.get("status_sync_applied")),
-            launch_report_stale=bool(payload.get("launch_report_stale")),
-            stale_launch_report_active_run_id=(
-                str(payload.get("stale_launch_report_active_run_id") or "").strip() or None
-            ),
-            stale_launch_report_runtime_liveness_status=(
-                str(payload.get("stale_launch_report_runtime_liveness_status") or "").strip() or None
-            ),
-        )
-
 
 @dataclass(frozen=True)
 class StudyRuntimeExecutionOwnerGuard:
@@ -642,7 +540,6 @@ class StudyRuntimeContinuationState:
     continuation_reason: str | None
     stop_reason: str | None
     pending_user_message_count: int
-    runtime_state_path: str
 
     def __post_init__(self) -> None:
         for field_name in (
@@ -656,8 +553,6 @@ class StudyRuntimeContinuationState:
             value = getattr(self, field_name)
             if value is not None and not isinstance(value, str):
                 raise TypeError(f"study runtime continuation state {field_name} must be str or None")
-        if not isinstance(self.runtime_state_path, str) or not self.runtime_state_path.strip():
-            raise TypeError("study runtime continuation state runtime_state_path must be non-empty str")
         if not isinstance(self.pending_user_message_count, int) or self.pending_user_message_count < 0:
             raise TypeError("study runtime continuation state pending_user_message_count must be non-negative int")
 
@@ -669,7 +564,6 @@ class StudyRuntimeContinuationState:
             "continuation_anchor": self.continuation_anchor,
             "continuation_reason": self.continuation_reason,
             "pending_user_message_count": self.pending_user_message_count,
-            "runtime_state_path": self.runtime_state_path,
         }
         if self.stop_reason is not None:
             payload["stop_reason"] = self.stop_reason
@@ -687,5 +581,4 @@ class StudyRuntimeContinuationState:
             continuation_reason=str(payload.get("continuation_reason") or "").strip() or None,
             stop_reason=str(payload.get("stop_reason") or "").strip() or None,
             pending_user_message_count=int(payload.get("pending_user_message_count") or 0),
-            runtime_state_path=str(payload.get("runtime_state_path") or ""),
         )

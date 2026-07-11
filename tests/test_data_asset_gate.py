@@ -19,14 +19,7 @@ def make_workspace_with_quest(
     workspace_root = tmp_path / "workspace"
     resolved_quest_id = quest_id or study_id
     quest_root = workspace_root / "ops" / "med-deepscientist" / "runtime" / "quests" / resolved_quest_id
-    dump_json(
-        quest_root / ".ds" / "runtime_state.json",
-        {
-            "quest_id": resolved_quest_id,
-            "status": "running",
-            "active_run_id": "run-1",
-        },
-    )
+    quest_root.mkdir(parents=True, exist_ok=True)
     quest_yaml_lines = [f"quest_id: {resolved_quest_id}"]
     if resolved_quest_id != study_id:
         quest_yaml_lines.extend(

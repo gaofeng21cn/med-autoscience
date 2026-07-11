@@ -148,7 +148,6 @@ def test_quality_repair_batch_repairs_missing_display_registry_for_existing_pape
     )
     quest_id = "quest-001"
     quest_root = profile.managed_runtime_quests_root / quest_id
-    _write_json(quest_root / "runtime_state.json", {"quest_id": quest_id, "status": "waiting_for_user"})
     (quest_root / "quest.yaml").parent.mkdir(parents=True, exist_ok=True)
     (quest_root / "quest.yaml").write_text(f"quest_id: {quest_id}\nstudy_id: {study_root.name}\n", encoding="utf-8")
     paper_root = study_root / "paper"
@@ -207,7 +206,7 @@ def test_quality_repair_batch_blocks_before_producer_without_authorized_canonica
     )
     quest_id = "quest-001"
     quest_root = profile.managed_runtime_quests_root / quest_id
-    _write_json(quest_root / "runtime_state.json", {"quest_id": quest_id, "status": "waiting_for_user"})
+    quest_root.mkdir(parents=True, exist_ok=True)
     (quest_root / "quest.yaml").write_text(
         f"quest_id: {quest_id}\nstudy_id: {study_root.name}\n",
         encoding="utf-8",

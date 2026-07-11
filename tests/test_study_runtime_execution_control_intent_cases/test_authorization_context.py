@@ -14,7 +14,6 @@ from tests.test_study_runtime_execution_control_intent_cases.helpers import (
     _write_publication_eval_gate_replay_with_specificity_targets,
     _write_publication_eval_review_only_authority,
     _write_publication_eval_work_unit_authority,
-    _write_runtime_state,
 )
 
 def test_controller_authorization_prefers_publication_work_unit_over_stale_route_text(tmp_path: Path) -> None:

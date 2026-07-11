@@ -50,7 +50,6 @@ from med_autoscience.controllers.study_runtime_types import (
     StudyRuntimeExecutionOwnerGuard,
     StudyRuntimeQuestStatus,
     StudyRuntimeReason,
-    StudyRuntimeSummaryAlignment,
     ProgressProjectionStatus,
     _LIVE_QUEST_STATUSES,
     _RESUMABLE_QUEST_STATUSES,

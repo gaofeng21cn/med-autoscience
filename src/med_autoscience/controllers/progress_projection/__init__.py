@@ -35,7 +35,6 @@ _LIVE_QUEST_STATUSES = enums_and_audits._LIVE_QUEST_STATUSES
 _RESUMABLE_QUEST_STATUSES = enums_and_audits._RESUMABLE_QUEST_STATUSES
 StudyRuntimeAuditRecord = enums_and_audits.StudyRuntimeAuditRecord
 StudyRuntimeAutonomousRuntimeNotice = enums_and_audits.StudyRuntimeAutonomousRuntimeNotice
-StudyRuntimeSummaryAlignment = enums_and_audits.StudyRuntimeSummaryAlignment
 StudyRuntimeExecutionOwnerGuard = enums_and_audits.StudyRuntimeExecutionOwnerGuard
 StudyRuntimePendingUserInteraction = enums_and_audits.StudyRuntimePendingUserInteraction
 StudyRuntimeInteractionArbitration = enums_and_audits.StudyRuntimeInteractionArbitration
@@ -82,7 +81,6 @@ __all__ = [
     "StudyRuntimeQuestStatus",
     "StudyRuntimeReason",
     "StudyRuntimeReentryGate",
-    "StudyRuntimeSummaryAlignment",
     "StudyRuntimeStartupBoundaryGate",
     "StudyRuntimeStartupContextSyncResult",
     "StudyRuntimeStartupDataReadinessReport",

@@ -92,7 +92,6 @@ def test_study_progress_keeps_human_review_milestone_parking_out_of_runtime_reco
                 "continuation_policy": "wait_for_user_or_resume",
                 "continuation_anchor": "decision",
                 "continuation_reason": "unchanged_publication_gate_state",
-                "runtime_state_path": str(quest_root / ".ds" / "runtime_state.json"),
             },
             "pending_user_interaction": {},
             "interaction_arbitration": None,

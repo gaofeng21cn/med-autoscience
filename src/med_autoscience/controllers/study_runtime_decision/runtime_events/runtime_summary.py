@@ -4,10 +4,11 @@ from collections.abc import Mapping
 from pathlib import Path
 from typing import Any
 
-if __name__ != "med_autoscience.controllers.study_runtime_decision":
-    from .human_gates import *  # noqa: F403
-
 from med_autoscience.controllers.opl_runtime_refs import resolve_opl_runtime_refs
+from med_autoscience.controllers.study_runtime_decision.publication_and_submission import (
+    _read_json_mapping,
+)
+from med_autoscience.controllers.study_runtime_types import ProgressProjectionStatus
 
 
 def _should_materialize_opl_runtime_owner_handoff_from_status(

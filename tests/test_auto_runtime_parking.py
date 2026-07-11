@@ -660,20 +660,6 @@ def test_study_progress_reads_dm002_malformed_publication_surface_blockers(
     quest_root = profile.runtime_root / study_id
     paper_root = helpers.write_synced_submission_delivery(study_root, quest_root)
     helpers.write_text(
-        quest_root / ".ds" / "runtime_state.json",
-        json.dumps(
-            {
-                "quest_id": study_id,
-                "study_id": study_id,
-                "status": "running",
-                "active_run_id": "run-dm002",
-            },
-            ensure_ascii=False,
-            indent=2,
-        )
-        + "\n",
-    )
-    helpers.write_text(
         quest_root / "artifacts" / "reports" / "medical_publication_surface" / "latest.json",
         json.dumps(
             {

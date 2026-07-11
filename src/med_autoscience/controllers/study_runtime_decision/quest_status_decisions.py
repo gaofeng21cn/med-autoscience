@@ -38,7 +38,6 @@ from med_autoscience.controllers.study_runtime_decision.runtime_events.ownership
 from med_autoscience.controllers.study_runtime_decision.runtime_events.pending_interactions import (
     _stopped_controller_owned_auto_recovery_context,
     _stopped_invalid_blocking_auto_resume_allowed,
-    _task_intake_override_allows_stopped_auto_resume,
 )
 from med_autoscience.controllers.study_runtime_types import (
     StudyRuntimeDecision,
@@ -453,7 +452,6 @@ def _apply_stopped_or_failed_quest_status_decision(
     *,
     result: ProgressProjectionStatus,
     execution: dict[str, object],
-    quest_root: Path,
     quest_status: StudyRuntimeQuestStatus,
     publication_gate_report: dict[str, object] | None,
     task_intake_releases_manual_finish_parking: bool,
@@ -472,7 +470,6 @@ def _apply_stopped_or_failed_quest_status_decision(
         return finalize_result()
     stopped_recovery_context = _stopped_controller_owned_auto_recovery_context(
         status=result,
-        quest_root=quest_root,
         publication_gate_report=publication_gate_report,
     )
     interaction_arbitration = result.extras.get("interaction_arbitration")
@@ -565,18 +562,6 @@ def _apply_stopped_or_failed_quest_status_decision(
     if (
         isinstance(stopped_recovery_context, dict)
         and str(stopped_recovery_context.get("recovery_mode") or "").strip() == "managed_auto_continuation"
-    ):
-        _set_stopped_resume_or_blocked_decision(
-            result=result,
-            execution=execution,
-            resume_reason=StudyRuntimeReason.QUEST_WAITING_ON_INVALID_BLOCKING,
-            blocked_reason=StudyRuntimeReason.QUEST_STOPPED_BUT_AUTO_RESUME_DISABLED,
-        )
-        return finalize_result()
-    if (
-        task_intake_releases_manual_finish_parking
-        and not task_intake_yields_to_submission_closeout
-        and _task_intake_override_allows_stopped_auto_resume(quest_root=quest_root)
     ):
         _set_stopped_resume_or_blocked_decision(
             result=result,

@@ -107,7 +107,6 @@ def test_study_progress_does_not_project_study_completed_when_completion_contrac
                 "continuation_policy": "auto",
                 "continuation_anchor": None,
                 "continuation_reason": None,
-                "runtime_state_path": str(quest_root / ".ds" / "runtime_state.json"),
             },
         },
     )

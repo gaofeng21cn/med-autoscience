@@ -580,7 +580,6 @@ def test_build_runtime_readback_outer_loop_tick_request_skips_autonomous_dispatc
             "continuation_policy": "wait_for_user_or_resume",
             "continuation_anchor": "decision",
             "continuation_reason": "paper_bundle_submitted",
-            "runtime_state_path": str(profile.runtime_root / "001-risk" / ".ds" / "runtime_state.json"),
         },
         "runtime_liveness_audit": {
             "status": "none",

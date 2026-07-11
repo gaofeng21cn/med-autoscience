@@ -53,14 +53,12 @@ def _stopped_runtime_redrive_arbitration_candidate(
 def _record_interaction_arbitration_if_required(
     *,
     status: ProgressProjectionStatus,
-    quest_root: Path,
     execution: dict[str, object],
     submission_metadata_only: bool,
     publication_gate_report: dict[str, object] | None,
 ) -> None:
     stopped_recovery_context = _stopped_controller_owned_auto_recovery_context(
         status=status,
-        quest_root=quest_root,
         publication_gate_report=publication_gate_report,
     )
     stopped_redrive_arbitration = _stopped_runtime_redrive_arbitration_candidate(

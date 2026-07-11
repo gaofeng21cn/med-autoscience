@@ -274,9 +274,3 @@ def _write_publication_eval_gate_replay_with_specificity_targets(study_root: Pat
         + "\n",
         encoding="utf-8",
     )
-
-
-def _write_runtime_state(quest_root: Path, payload: dict[str, object]) -> None:
-    runtime_state_path = quest_root / ".ds" / "runtime_state.json"
-    runtime_state_path.parent.mkdir(parents=True, exist_ok=True)
-    runtime_state_path.write_text(json.dumps(payload, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")

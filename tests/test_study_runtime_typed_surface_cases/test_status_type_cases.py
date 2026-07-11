@@ -726,7 +726,6 @@ def test_progress_projection_records_continuation_state_payload() -> None:
         "continuation_anchor": "decision",
         "continuation_reason": "unchanged_finalize_state",
         "pending_user_message_count": 0,
-        "runtime_state_path": "/tmp/runtime/quests/quest-001/.ds/runtime_state.json",
     }
     status.record_continuation_state(payload)
 

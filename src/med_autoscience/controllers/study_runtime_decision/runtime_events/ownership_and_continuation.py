@@ -1,12 +1,24 @@
 from __future__ import annotations
 
-if __name__ != "med_autoscience.controllers.study_runtime_decision":
-    from ..publication_and_submission import *  # noqa: F403
+import json
+from pathlib import Path
+
 from med_autoscience import opl_runtime_contract
-from med_autoscience.controllers.stage_outcome_authority import execution_surfaces
-from med_autoscience.controllers.paper_mission_owner_surface import hard_methodology_currentness
-from med_autoscience.controllers import analysis_harmonization_owner_result
-from med_autoscience.controllers import source_provenance_owner_result
+from med_autoscience.controllers.study_runtime_decision.publication_and_submission import (
+    _SUPERVISOR_ONLY_ALLOWED_ACTIONS,
+    _SUPERVISOR_ONLY_FORBIDDEN_ACTIONS,
+    _publication_gate_allows_direct_write,
+    _publication_gate_requires_live_runtime_reroute,
+    _publication_supervisor_current_required_action,
+    _publication_supervisor_requests_automated_continuation,
+)
+from med_autoscience.controllers.study_runtime_types import (
+    ProgressProjectionStatus,
+    StudyRuntimeAuditStatus,
+    StudyRuntimeContinuationState,
+    StudyRuntimeExecutionOwnerGuard,
+    _LIVE_QUEST_STATUSES,
+)
 
 
 def _publication_gate_allows_live_runtime_write_stage_resume(
@@ -141,249 +153,6 @@ def _load_json_dict_with_error(path: Path) -> tuple[dict[str, object], str | Non
     return payload, None
 
 
-def _runtime_state_path(quest_root: Path) -> Path:
-    return quest_root.expanduser().resolve() / "artifacts" / "runtime" / "state" / "runtime_state.json"
-
-
-def _continuation_state_payload(
-    *,
-    quest_root: Path,
-    quest_status: StudyRuntimeQuestStatus | None,
-    active_run_id: str | None = None,
-) -> dict[str, object] | None:
-    runtime_state_path = _runtime_state_path(quest_root)
-    runtime_state = _load_json_dict(runtime_state_path)
-    continuation_policy = str(runtime_state.get("continuation_policy") or "").strip() or None
-    continuation_anchor = str(runtime_state.get("continuation_anchor") or "").strip() or None
-    continuation_reason = str(runtime_state.get("continuation_reason") or "").strip() or None
-    stop_reason = str(runtime_state.get("stop_reason") or "").strip() or None
-    if continuation_policy is None and continuation_anchor is None and continuation_reason is None and stop_reason is None:
-        return None
-    resolved_active_run_id = str(runtime_state.get("active_run_id") or "").strip() or active_run_id
-    return {
-        "quest_status": str(runtime_state.get("status") or "").strip() or (quest_status.value if quest_status is not None else None),
-        "active_run_id": resolved_active_run_id,
-        "continuation_policy": continuation_policy,
-        "continuation_anchor": continuation_anchor,
-        "continuation_reason": continuation_reason,
-        "stop_reason": stop_reason,
-        "pending_user_message_count": int(runtime_state.get("pending_user_message_count") or 0),
-        "runtime_state_path": str(runtime_state_path),
-    }
-
-
-def _record_controller_authorization_if_present(
-    *,
-    status: ProgressProjectionStatus,
-    quest_root: Path,
-    study_root: Path | None = None,
-) -> None:
-    runtime_state = _load_json_dict(_runtime_state_path(quest_root))
-    authorization = runtime_state.get("last_controller_decision_authorization")
-    if isinstance(authorization, dict) and authorization:
-        if study_root is not None and _hard_methodology_handoff_supersedes_authorization(
-            study_root=study_root,
-            authorization=authorization,
-        ):
-            status.extras["superseded_controller_decision_authorization"] = {
-                "reason": "unit_harmonized_rerun_required",
-                "superseded_work_unit_id": str(authorization.get("work_unit_id") or "").strip() or None,
-                "superseded_work_unit_fingerprint": str(
-                    authorization.get("work_unit_fingerprint") or ""
-                ).strip()
-                or None,
-                "source_surface": "artifacts/controller/quality_repair_batch/latest.json",
-            }
-            return
-        status.extras["last_controller_decision_authorization"] = dict(authorization)
-
-
-def _hard_methodology_handoff_supersedes_authorization(
-    *,
-    study_root: Path,
-    authorization: dict[str, object],
-) -> bool:
-    work_unit_id = str(authorization.get("work_unit_id") or "").strip()
-    work_unit_fingerprint = str(authorization.get("work_unit_fingerprint") or "").strip()
-    if (
-        work_unit_id != "medical_prose_quality_analysis_source_documentation_repair"
-        and work_unit_fingerprint != "decision::methodology_reframe_route_decision"
-    ):
-        return False
-    root = Path(study_root).expanduser().resolve()
-    return hard_methodology_currentness.handoff_supersedes_paths(
-        source_ref=hard_methodology_currentness.quality_repair_handoff_path(root),
-        consumer_paths=(
-            analysis_harmonization_owner_result.result_path(study_root=root),
-            source_provenance_owner_result.result_path(study_root=root),
-            root / "artifacts" / "controller_decisions" / "latest.json",
-        ),
-    )
-
-
-def _blocked_closeout_payload(*, quest_root: Path) -> dict[str, object] | None:
-    runtime_state = _load_json_dict(_runtime_state_path(quest_root))
-    blocked_closeout = runtime_state.get("blocked_turn_closeout")
-    if not isinstance(blocked_closeout, dict):
-        return None
-    payload = {
-        "run_id": str(blocked_closeout.get("run_id") or "").strip() or None,
-        "closeout_path": str(blocked_closeout.get("closeout_path") or "").strip() or None,
-        "blocked_reason": str(blocked_closeout.get("blocked_reason") or "").strip() or None,
-        "next_owner": str(blocked_closeout.get("next_owner") or "").strip() or None,
-    }
-    if not any(payload.values()):
-        return None
-    return payload
-
-
-def _record_blocked_closeout_if_present(*, status: ProgressProjectionStatus, quest_root: Path) -> None:
-    payload = _blocked_closeout_payload(quest_root=quest_root)
-    if payload is None:
-        return
-    status.extras["blocked_turn_closeout"] = payload
-
-
-def _execution_latest_path(study_root: Path) -> Path:
-    return (
-        Path(study_root).expanduser().resolve()
-        / "artifacts"
-        / "supervision"
-        / "consumer"
-        / "owner_callable_adapter_receipt"
-        / "latest.json"
-    )
-
-
-def _datetime_value(value: object):
-    text = str(value or "").strip()
-    if not text:
-        return None
-    try:
-        return datetime.fromisoformat(text.replace("Z", "+00:00"))
-    except ValueError:
-        return None
-
-
-def _blocked_closeout_time(*, blocked_closeout: dict[str, object], runtime_state: dict[str, object]) -> object:
-    closeout_path_text = str(blocked_closeout.get("closeout_path") or "").strip()
-    if closeout_path_text:
-        closeout = _load_json_dict(Path(closeout_path_text).expanduser())
-        completed_at = closeout.get("completed_at")
-        if completed_at:
-            return completed_at
-    return runtime_state.get("continuation_updated_at")
-
-
-def _execution_is_later_than_closeout(
-    *,
-    execution: dict[str, object],
-    blocked_closeout: dict[str, object],
-    runtime_state: dict[str, object],
-) -> bool:
-    closeout_at = _datetime_value(_blocked_closeout_time(blocked_closeout=blocked_closeout, runtime_state=runtime_state))
-    execution_at = _datetime_value(execution.get("generated_at"))
-    if closeout_at is None or execution_at is None:
-        return False
-    return execution_at > closeout_at
-
-
-def _controller_action_types(runtime_state: dict[str, object]) -> set[str]:
-    authorization = runtime_state.get("last_controller_decision_authorization")
-    if not isinstance(authorization, dict):
-        return set()
-    values = authorization.get("controller_actions")
-    if not isinstance(values, list):
-        return set()
-    return {str(item).strip() for item in values if str(item or "").strip()}
-
-
-def _superseding_owner_callable_adapter_receipt(
-    *,
-    status: ProgressProjectionStatus,
-    study_root: Path,
-    runtime_state: dict[str, object],
-    blocked_closeout: dict[str, object],
-) -> dict[str, object] | None:
-    execution_path = _execution_latest_path(study_root)
-    payload = _load_json_dict(execution_path)
-    if not payload:
-        return None
-    if str(payload.get("surface") or "").strip() not in execution_surfaces.ACCEPTED_EXECUTION_LATEST_SURFACES:
-        return None
-    if int(payload.get("blocked_count") or 0) != 0:
-        return None
-    controller_actions = _controller_action_types(runtime_state)
-    if not controller_actions:
-        return None
-    blocked_run_id = str(blocked_closeout.get("run_id") or "").strip() or None
-    for item in payload.get("executions") or []:
-        if not isinstance(item, dict):
-            continue
-        action_type = str(item.get("action_type") or "").strip()
-        if action_type not in controller_actions:
-            continue
-        if str(item.get("execution_status") or "").strip() != "executed":
-            continue
-        if str(item.get("blocked_reason") or "").strip():
-            continue
-        if str(item.get("study_id") or "").strip() != status.study_id:
-            continue
-        if str(item.get("quest_id") or "").strip() not in {"", status.quest_id}:
-            continue
-        if not _execution_is_later_than_closeout(
-            execution=item,
-            blocked_closeout=blocked_closeout,
-            runtime_state=runtime_state,
-        ):
-            continue
-        return {
-            "source_surface": "owner_callable_adapter_receipt/latest.json",
-            "source_path": str(execution_path),
-            "superseded_run_id": blocked_run_id,
-            "execution_id": str(item.get("execution_id") or "").strip() or None,
-            "action_type": action_type,
-            "execution_status": "executed",
-            "generated_at": str(item.get("generated_at") or "").strip() or None,
-            "owner_callable_surface": str(item.get("owner_callable_surface") or "").strip() or None,
-        }
-    return None
-
-
-def _record_blocked_closeout_supersession_if_present(
-    *,
-    status: ProgressProjectionStatus,
-    study_root: Path,
-    quest_root: Path,
-) -> None:
-    blocked_closeout = status.extras.get("blocked_turn_closeout")
-    if not isinstance(blocked_closeout, dict):
-        return
-    runtime_state_path = _runtime_state_path(quest_root)
-    runtime_state = _load_json_dict(runtime_state_path)
-    supersession = _superseding_owner_callable_adapter_receipt(
-        status=status,
-        study_root=study_root,
-        runtime_state=runtime_state,
-        blocked_closeout=blocked_closeout,
-    )
-    if supersession is None:
-        return
-    status.extras.pop("blocked_turn_closeout", None)
-    status.extras["blocked_turn_closeout_supersession"] = supersession
-    status.record_continuation_state(
-        StudyRuntimeContinuationState.from_payload(
-            {
-                "quest_status": status.quest_status.value if status.quest_status is not None else None,
-                "active_run_id": None,
-                "continuation_policy": "auto",
-                "continuation_anchor": "decision",
-                "continuation_reason": "controller_work_unit_pending",
-                "pending_user_message_count": int(runtime_state.get("pending_user_message_count") or 0),
-                "runtime_state_path": str(runtime_state_path),
-            }
-        )
-    )
 
 
 def _record_continuation_state_if_present(
@@ -393,33 +162,19 @@ def _record_continuation_state_if_present(
     active_run_id: str | None = None,
     live_opl_provider_attempt: bool = False,
 ) -> None:
-    resolved_active_run_id = active_run_id
-    runtime_liveness = status.extras.get("runtime_liveness_audit")
-    live_opl_provider_attempt = live_opl_provider_attempt or (
-        isinstance(runtime_liveness, dict)
-        and str(runtime_liveness.get("source") or "").strip() == "opl_current_control_state_provider_attempt"
-        and str(runtime_liveness.get("status") or "").strip() == "live"
-        and str(runtime_liveness.get("active_run_id") or "").strip()
-    )
-    if resolved_active_run_id is None and live_opl_provider_attempt:
-        resolved_active_run_id = str(runtime_liveness.get("active_run_id") or "").strip() or None
-    payload = _continuation_state_payload(
-        quest_root=quest_root,
-        quest_status=status.quest_status,
-        active_run_id=resolved_active_run_id,
-    )
-    if payload is None:
+    _ = quest_root
+    if isinstance(status.extras.get("continuation_state"), dict):
         return
-    if live_opl_provider_attempt and resolved_active_run_id is not None:
-        payload = {
-            **payload,
-            "active_run_id": resolved_active_run_id,
-            "continuation_policy": "auto",
-            "continuation_anchor": "decision",
-            "continuation_reason": "controller_work_unit_pending",
-            "stop_reason": None,
-        }
-    status.record_continuation_state(StudyRuntimeContinuationState.from_payload(payload))
-
-
-__all__ = [name for name in globals() if not name.startswith("__")]
+    if not live_opl_provider_attempt or active_run_id is None:
+        return
+    status.record_continuation_state(
+        StudyRuntimeContinuationState(
+            quest_status=status.quest_status.value if status.quest_status is not None else None,
+            active_run_id=active_run_id,
+            continuation_policy=None,
+            continuation_anchor=None,
+            continuation_reason=None,
+            stop_reason=None,
+            pending_user_message_count=0,
+        )
+    )

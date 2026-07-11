@@ -1,7 +1,34 @@
 from __future__ import annotations
 
-if __name__ != "med_autoscience.controllers.study_runtime_decision":
-    from .ownership_and_continuation import *  # noqa: F403
+import json
+from pathlib import Path
+
+from med_autoscience.controller_confirmation_summary import (
+    materialize_controller_confirmation_summary,
+    read_controller_confirmation_summary,
+    stable_controller_confirmation_summary_path,
+)
+from med_autoscience.controllers.study_runtime_decision.publication_and_submission import (
+    _FINALIZE_PARKING_CONTINUATION_POLICY,
+    _FINALIZE_PARKING_CONTINUATION_REASON,
+    _HUMAN_CONFIRMATION_REQUIRED_ACTION,
+    _publication_supervisor_current_required_action,
+)
+from med_autoscience.controllers.study_runtime_decision.runtime_events.ownership_and_continuation import (
+    _load_json_dict,
+)
+from med_autoscience.controllers.study_runtime_types import (
+    ProgressProjectionStatus,
+    StudyRuntimeAuditStatus,
+    StudyRuntimeDecision,
+    StudyRuntimeQuestStatus,
+    StudyRuntimeReason,
+    _LIVE_QUEST_STATUSES,
+    _RESUMABLE_QUEST_STATUSES,
+)
+from med_autoscience.study_manual_finish import (
+    resolve_delivered_submission_package_manual_finish_contract,
+)
 
 
 def _is_controller_owned_finalize_parking(status: ProgressProjectionStatus) -> bool:
@@ -118,14 +145,15 @@ def _opl_owner_route_handoff_without_live_worker(
         and continuation_state.continuation_reason == "controller_work_unit_pending"
     ):
         return False
-    runtime_state = _load_json_dict(Path(continuation_state.runtime_state_path))
-    authorization = runtime_state.get("last_controller_decision_authorization")
-    if isinstance(authorization, dict):
-        source = str(authorization.get("source") or "").strip()
-        if source == "paper_mission_owner_surface_current_controller_authorization":
+    for key in (
+        "controller_decision_authorization_owner_route_ref",
+        "owner_route_handoff",
+        "runtime_owner_handoff",
+    ):
+        handoff = status.extras.get(key)
+        if isinstance(handoff, dict) and str(handoff.get("queue_owner") or "").strip() == "one-person-lab":
             return True
-    handoff = runtime_state.get("opl_runtime_owner_route_handoff")
-    return isinstance(handoff, dict) and str(handoff.get("queue_owner") or "").strip() == "one-person-lab"
+    return False
 
 
 def _user_pause_contract_without_live_worker(
@@ -161,12 +189,14 @@ def _human_takeover_contract_requires_explicit_wakeup_without_live_worker(
         and status.quest_status is not StudyRuntimeQuestStatus.STOPPED
     ):
         return False
+    contract = status.extras.get("human_takeover_contract")
+    if not isinstance(contract, dict):
+        receipt = status.extras.get("human_gate_receipt")
+        contract = receipt if isinstance(receipt, dict) else None
     try:
         continuation_state = status.continuation_state
     except KeyError:
         return False
-    runtime_state = _load_json_dict(Path(continuation_state.runtime_state_path))
-    contract = runtime_state.get("human_takeover_contract")
     return (
         continuation_state.active_run_id is None
         and isinstance(contract, dict)
@@ -183,22 +213,17 @@ def _bare_paused_quest_requires_explicit_wakeup_without_live_worker(
         return False
     if status.quest_status is not StudyRuntimeQuestStatus.PAUSED:
         return False
-    runtime_state = _load_json_dict(_runtime_state_path(Path(status.quest_root)))
-    if str(runtime_state.get("status") or "").strip().lower() != StudyRuntimeQuestStatus.PAUSED.value:
+    try:
+        continuation = status.continuation_state
+    except KeyError:
+        return True
+    if continuation.active_run_id is not None:
         return False
-    if str(runtime_state.get("active_run_id") or "").strip():
+    if continuation.stop_reason is not None:
         return False
-    if bool(runtime_state.get("worker_running")) or bool(runtime_state.get("worker_pending")):
+    if continuation.continuation_policy is not None or continuation.continuation_anchor is not None:
         return False
-    stop_reason = str(runtime_state.get("stop_reason") or "").strip() or None
-    if stop_reason is not None:
-        return False
-    continuation_policy = str(runtime_state.get("continuation_policy") or "").strip() or None
-    continuation_anchor = str(runtime_state.get("continuation_anchor") or "").strip() or None
-    continuation_reason = str(runtime_state.get("continuation_reason") or "").strip() or None
-    if continuation_policy is not None or continuation_anchor is not None:
-        return False
-    return continuation_reason in {None, "quest_paused"}
+    return continuation.continuation_reason in {None, "quest_paused"}
 
 
 def _has_delivered_human_package_surface(study_root: Path) -> bool:

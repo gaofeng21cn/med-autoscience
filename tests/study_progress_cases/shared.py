@@ -195,9 +195,4 @@ def status_payload_with_progress_projection(
         ),
     }
 
-
-def _runtime_state_path(quest_root: Path) -> Path:
-    return quest_root / "artifacts" / "runtime" / "state" / "runtime_state.json"
-
-
 __all__ = [name for name in globals() if not name.startswith("__") and name != "_module_reexport"]
