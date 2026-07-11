@@ -7,6 +7,9 @@ import subprocess
 from types import SimpleNamespace
 
 from med_autoscience.paper_mission_domain import opl_runtime_submission
+from med_autoscience.domain_route_profile import (
+    build_domain_route_family_runtime_request,
+)
 from med_autoscience.paper_mission_domain.followthrough_materialized_readback import (
     followthrough_transaction_for_readback,
 )
@@ -308,9 +311,7 @@ def test_semantic_progress_guard_allows_new_owner_receipt_delta() -> None:
 
 
 def test_opl_stage_route_request_carries_non_advancing_guard() -> None:
-    runtime_request = opl_runtime_submission._opl_stage_route_runtime_request_from_handoff(
-        _route_back_handoff()
-    )
+    runtime_request = build_domain_route_family_runtime_request(_route_back_handoff())
 
     assert runtime_request["taskKind"] == "domain_route/stage-route"
     assert runtime_request["dedupe_key"].startswith("domain-route:v1:mas:")
@@ -331,10 +332,10 @@ def test_opl_stage_route_request_dedupe_changes_with_candidate_content(
         json.dumps({"package": "submission", "version": 1}),
         encoding="utf-8",
     )
-    first = opl_runtime_submission._opl_stage_route_runtime_request_from_handoff(
+    first = build_domain_route_family_runtime_request(
         _route_back_handoff(candidate_ref=str(candidate_ref))
     )
-    same = opl_runtime_submission._opl_stage_route_runtime_request_from_handoff(
+    same = build_domain_route_family_runtime_request(
         _route_back_handoff(candidate_ref=str(candidate_ref))
     )
 
@@ -342,7 +343,7 @@ def test_opl_stage_route_request_dedupe_changes_with_candidate_content(
         json.dumps({"package": "submission", "version": 2}),
         encoding="utf-8",
     )
-    second = opl_runtime_submission._opl_stage_route_runtime_request_from_handoff(
+    second = build_domain_route_family_runtime_request(
         _route_back_handoff(candidate_ref=str(candidate_ref))
     )
 
@@ -367,8 +368,7 @@ def test_opl_stage_route_request_requires_request_idempotency_key() -> None:
     handoff.pop("request_idempotency_key")
 
     assert (
-        opl_runtime_submission._opl_stage_route_runtime_request_from_handoff(handoff)
-        is None
+        build_domain_route_family_runtime_request(handoff) is None
     )
 
 
@@ -737,6 +737,7 @@ def _route_back_handoff(
         "opl_route_command_ref": "/tmp/opl-route-command.json",
         "route_command_kind": "route_back",
         "route_target": "submission_milestone_candidate",
+        "declarative_target_stage_id": "07-independent_review_and_revision",
         "next_owner": "mission_executor",
         "workspace_root": "/tmp/dm-cvd-workspace",
         "request_idempotency_key": transaction_ref,
@@ -744,5 +745,6 @@ def _route_back_handoff(
         "opl_route_command": {
             "command_kind": "route_back",
             "target": "submission_milestone_candidate",
+            "declarative_target_stage_id": "07-independent_review_and_revision",
         },
     }

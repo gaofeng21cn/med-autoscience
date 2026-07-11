@@ -57,7 +57,7 @@ DECISION_KIND_TO_ROUTE_COMMAND = {
 }
 REQUIRED_DECISION_FIELDS_BY_KIND = {
     "advance": ("next_stage_id",),
-    "continue_same_stage": ("next_work_unit",),
+    "continue_same_stage": ("target_stage_id", "next_work_unit"),
     "route_back": ("target_stage_id", "repair_scope"),
     "typed_blocker": ("blocker_id", "unblock_condition"),
     "human_gate": ("question", "required_receipt"),
@@ -258,6 +258,7 @@ def stage_terminal_decision_for_consume_result(
             "status": status,
             "reason": default_reason,
             "next_owner": default_next_owner,
+            "target_stage_id": stage_id,
             "next_work_unit": default_next_work_unit,
         }
     _validate_stage_terminal_decision(decision)
@@ -315,6 +316,7 @@ def opl_route_command_for_terminal_decision(
             f"unsupported terminal decision kind for route command: {decision_kind}"
         )
     target = _route_target(terminal_decision)
+    declarative_target_stage_id = _declarative_target_stage_id(terminal_decision)
     command = {
         "command_kind": command_kind,
         "target": target,
@@ -328,6 +330,8 @@ def opl_route_command_for_terminal_decision(
             "completion as MAS paper authority completion."
         ),
     }
+    if declarative_target_stage_id is not None:
+        command["declarative_target_stage_id"] = declarative_target_stage_id
     _validate_opl_route_command_shape(decision=terminal_decision, route=command)
     return command
 
@@ -466,6 +470,8 @@ def _validate_opl_route_command_shape(
     _required_text(route, "source_terminal_decision_ref")
     _required_text(route, "stage_run_ref")
     _required_text(route, "runtime_owner")
+    if command_kind in {"start_next_stage", "resume_stage", "route_back"}:
+        _required_text(route, "declarative_target_stage_id")
 
 
 def _validate_paper_audit_pack_refs(audit_pack_refs: Mapping[str, Any]) -> None:
@@ -532,6 +538,15 @@ def _route_target(decision: Mapping[str, Any]) -> str:
     raise PaperMissionTransactionContractError(
         f"unsupported terminal decision kind for route target: {decision_kind}"
     )
+
+
+def _declarative_target_stage_id(decision: Mapping[str, Any]) -> str | None:
+    decision_kind = _required_text(decision, "decision_kind")
+    if decision_kind == "advance":
+        return _required_text(decision, "next_stage_id")
+    if decision_kind in {"continue_same_stage", "route_back"}:
+        return _optional_text(decision.get("target_stage_id"))
+    return None
 
 
 def _required_mapping(payload: Mapping[str, Any], field: str) -> dict[str, Any]:

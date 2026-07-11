@@ -37,7 +37,7 @@ from med_autoscience.controllers.stage_closure_terminalizer import (
 from med_autoscience.domain_route_profile import (
     DOMAIN_ID as DOMAIN_ROUTE_DOMAIN_ID,
     DOMAIN_ROUTE_TASK_KIND,
-    build_domain_route_runtime_request,
+    build_domain_route_family_runtime_request,
 )
 
 PACKAGED_OPL_BIN = Path("/Users/gaofeng/Library/Application Support/OPL/runtime/current/bin/opl")
@@ -67,7 +67,7 @@ def opl_runtime_submission_readback(
             "writes_runtime": False,
             "reason": "opl_route_handoff_not_ready",
         }
-    runtime_request = _opl_stage_route_runtime_request_from_handoff(handoff)
+    runtime_request = build_domain_route_family_runtime_request(handoff)
     if runtime_request is None:
         return {
             "status": "not_actionable",
@@ -359,25 +359,6 @@ def _opl_command_preview(command: list[str]) -> list[str]:
         if payload_index < len(preview):
             preview[payload_index] = "<json>"
     return preview
-
-
-def _opl_stage_route_runtime_request_from_handoff(
-    handoff: Mapping[str, Any],
-) -> dict[str, Any] | None:
-    payload = build_domain_route_runtime_request(handoff)
-    if payload is None:
-        return None
-    dedupe_key = _optional_text(_mapping(payload.get("route_identity")).get("dedupe_key"))
-    if dedupe_key is None:
-        return None
-    return {
-        "domainId": DOMAIN_ROUTE_DOMAIN_ID,
-        "taskKind": DOMAIN_ROUTE_TASK_KIND,
-        "dedupe_key": dedupe_key,
-        "priority": 100,
-        "source": "mas-domain-route",
-        "payload": payload,
-    }
 
 
 def semantic_progress_guard(

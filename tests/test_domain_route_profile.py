@@ -3,9 +3,9 @@ from __future__ import annotations
 import json
 from pathlib import Path
 
-from med_autoscience.paper_mission_domain import opl_runtime_submission
 from med_autoscience.domain_route_profile import (
     TASK_KIND_NORMALIZATION,
+    build_domain_route_family_runtime_request,
     build_domain_route_handoff_intake_readback,
     build_domain_route_profile,
     canonical_domain_task_kind,
@@ -19,11 +19,13 @@ def _handoff(candidate_ref: str) -> dict[str, object]:
         "opl_route_command_ref": f"{transaction_ref}#opl_route_command",
         "route_command_kind": "route_back",
         "route_target": "review_and_quality_gate",
+        "declarative_target_stage_id": "07-independent_review_and_revision",
         "request_idempotency_key": f"{transaction_ref}::request",
         "candidate_ref": candidate_ref,
         "opl_route_command": {
             "command_kind": "route_back",
             "target": "review_and_quality_gate",
+            "declarative_target_stage_id": "07-independent_review_and_revision",
         },
     }
 
@@ -45,6 +47,14 @@ def test_domain_route_profile_owns_legacy_mapping_before_generic_opl_intake() ->
     assert "writes_runtime_queue" in profile["forbidden_writes"]
     assert "typed_blocker_ref" in profile["receipt_labels"]["typed_blocker"]
     assert profile["authority_boundary"]["writes_domain_truth"] is False
+
+
+def test_tracked_domain_route_profile_matches_canonical_builder() -> None:
+    contract_path = Path(__file__).resolve().parents[1] / "contracts" / "domain_route_profile.json"
+
+    assert json.loads(contract_path.read_text(encoding="utf-8")) == (
+        build_domain_route_profile()
+    )
 
 
 def test_domain_task_kinds_normalize_only_at_the_mas_owned_profile_boundary() -> None:
@@ -78,6 +88,9 @@ def test_paper_mission_handoff_is_normalized_to_generic_domain_route(tmp_path: P
     assert request["domain_id"] == "mas"
     assert request["command_kind"] == "route_back"
     assert request["route_target"] == "review_and_quality_gate"
+    assert request["declarative_target_stage_id"] == (
+        "07-independent_review_and_revision"
+    )
     assert request["domain_route_transaction_ref"] == (
         "paper-mission-transaction::study-001"
     )
@@ -94,19 +107,54 @@ def test_paper_mission_handoff_is_normalized_to_generic_domain_route(tmp_path: P
 def test_runtime_submission_uses_generic_task_and_content_bound_dedupe(tmp_path: Path) -> None:
     candidate = tmp_path / "candidate.json"
     candidate.write_text(json.dumps({"version": 1}), encoding="utf-8")
-    first = opl_runtime_submission._opl_stage_route_runtime_request_from_handoff(
-        _handoff(str(candidate))
-    )
+    first = build_domain_route_family_runtime_request(_handoff(str(candidate)))
     candidate.write_text(json.dumps({"version": 2}), encoding="utf-8")
-    second = opl_runtime_submission._opl_stage_route_runtime_request_from_handoff(
-        _handoff(str(candidate))
-    )
+    second = build_domain_route_family_runtime_request(_handoff(str(candidate)))
 
     assert first is not None and second is not None
     assert first["domainId"] == "mas"
     assert first["taskKind"] == "domain_route/stage-route"
     assert first["payload"]["surface_kind"] == "opl_domain_route_runtime_request"
+    assert first["stageId"] == "07-independent_review_and_revision"
     assert first["dedupe_key"] != second["dedupe_key"]
+
+
+def test_runtime_request_rejects_missing_explicit_stage_without_route_target_inference(
+    tmp_path: Path,
+) -> None:
+    candidate = tmp_path / "candidate.json"
+    candidate.write_text(json.dumps({"version": 1}), encoding="utf-8")
+    handoff = _handoff(str(candidate))
+    handoff.pop("declarative_target_stage_id")
+    handoff["opl_route_command"].pop("declarative_target_stage_id")
+
+    readback = build_domain_route_handoff_intake_readback(handoff)
+
+    assert readback["status"] == "rejected"
+    assert readback["runtime_request"] is None
+    assert {
+        blocker["field"] for blocker in readback["blockers"]
+    } == {"declarative_target_stage_id"}
+
+
+def test_runtime_request_rejects_conflicting_explicit_stage_identity(
+    tmp_path: Path,
+) -> None:
+    candidate = tmp_path / "candidate.json"
+    candidate.write_text(json.dumps({"version": 1}), encoding="utf-8")
+    handoff = _handoff(str(candidate))
+    handoff["opl_route_command"]["declarative_target_stage_id"] = (
+        "06-manuscript_authoring"
+    )
+
+    readback = build_domain_route_handoff_intake_readback(handoff)
+
+    assert readback["status"] == "rejected"
+    assert readback["runtime_request"] is None
+    assert readback["blockers"][-1] == {
+        "reason": "domain_route_stage_identity_mismatch",
+        "field": "declarative_target_stage_id",
+    }
 
 
 def test_terminal_domain_route_discriminators_are_generic() -> None:

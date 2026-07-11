@@ -55,6 +55,10 @@
       "route_command_kind",
       "opl_route_command.command_kind"
     ],
+    "declarative_target_stage_id": [
+      "declarative_target_stage_id",
+      "opl_route_command.declarative_target_stage_id"
+    ],
     "domain_route_command_ref": "opl_route_command_ref",
     "domain_route_transaction_ref": "paper_mission_transaction_ref",
     "route_identity.request_idempotency_key": "request_idempotency_key",
@@ -95,6 +99,7 @@
     "canonical_task_kind",
     "command_kind",
     "route_target",
+    "declarative_target_stage_id",
     "route_identity",
     "attempt_identity",
     "domain_route_handoff_ref",

@@ -41,6 +41,7 @@
         "next_stage_id"
       ],
       "continue_same_stage": [
+        "target_stage_id",
         "next_work_unit"
       ],
       "route_back": [
@@ -71,6 +72,26 @@
       "stage_run_ref",
       "runtime_owner"
     ],
+    "required_fields_by_command_kind": {
+      "start_next_stage": [
+        "declarative_target_stage_id"
+      ],
+      "resume_stage": [
+        "declarative_target_stage_id"
+      ],
+      "route_back": [
+        "declarative_target_stage_id"
+      ]
+    },
+    "declarative_target_stage_contract": {
+      "field": "declarative_target_stage_id",
+      "source_fields": [
+        "stage_terminal_decision.next_stage_id",
+        "stage_terminal_decision.target_stage_id"
+      ],
+      "stage_pack_ref": "contracts/mas-paper-study-stage-pack.json",
+      "route_target_inference_forbidden": true
+    },
     "allowed_command_kinds": [
       "start_next_stage",
       "resume_stage",
@@ -98,6 +119,7 @@
       "domain_id",
       "command_kind",
       "route_target",
+      "declarative_target_stage_id",
       "route_identity",
       "attempt_identity",
       "domain_route_handoff_ref",

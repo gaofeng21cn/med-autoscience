@@ -333,6 +333,7 @@ def _paper_mission_transaction_payload(
             "source_terminal_decision_ref": f"{transaction_id}#stage_terminal_decision",
             "stage_run_ref": stage_run_ref,
             "runtime_owner": "one-person-lab",
+            "declarative_target_stage_id": "publication_gate_replay",
         }
         transaction_state = "accepted"
     elif decision_kind == "continue_same_stage":
@@ -341,6 +342,7 @@ def _paper_mission_transaction_payload(
             "status": "accepted_submission_milestone_candidate",
             "reason": "candidate accepted for continued paper-facing work",
             "next_owner": "mission_executor",
+            "target_stage_id": "08-publication_package_handoff",
             "next_work_unit": "continue paper-facing submission milestone work",
         }
         route_command = {
@@ -350,6 +352,7 @@ def _paper_mission_transaction_payload(
             "source_terminal_decision_ref": f"{transaction_id}#stage_terminal_decision",
             "stage_run_ref": stage_run_ref,
             "runtime_owner": "one-person-lab",
+            "declarative_target_stage_id": "08-publication_package_handoff",
         }
         transaction_state = "accepted_submission_milestone_candidate"
     elif decision_kind == "typed_blocker":
@@ -386,6 +389,7 @@ def _paper_mission_transaction_payload(
             "source_terminal_decision_ref": f"{transaction_id}#stage_terminal_decision",
             "stage_run_ref": stage_run_ref,
             "runtime_owner": "one-person-lab",
+            "declarative_target_stage_id": "paper-stage::gate-clearing",
         }
         transaction_state = "terminal_decision_recorded"
     fingerprint = (

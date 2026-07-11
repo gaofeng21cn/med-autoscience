@@ -64,6 +64,7 @@ def _valid_transaction(decision_kind: str = "advance") -> dict[str, object]:
         decision["next_stage_id"] = "publication_gate_replay"
     elif decision_kind == "continue_same_stage":
         decision["next_work_unit"] = "claim_evidence_repair"
+        decision["target_stage_id"] = "06-manuscript_authoring"
     elif decision_kind == "route_back":
         decision["target_stage_id"] = "gate_clearing_claim_evidence_repair"
         decision["repair_scope"] = "refresh claim evidence map"
@@ -117,6 +118,9 @@ def test_contract_declares_terminalizer_boundary() -> None:
     assert contract["opl_runtime_carrier"]["domain_route_profile_ref"] == (
         "contracts/domain_route_profile.json"
     )
+    assert contract["opl_route_command"]["required_fields_by_command_kind"][
+        "start_next_stage"
+    ] == ["declarative_target_stage_id"]
     assert "stage_run_identity" in contract["opl_runtime_carrier"][
         "forbidden_runtime_fields"
     ]
@@ -148,6 +152,25 @@ def test_transaction_maps_terminal_decision_to_opl_route_command(
     assert carrier["provider_admission_requires_opl_runtime_result"] is True
     assert transaction.authority_boundary["writes_runtime_queue"] is False
     assert transaction.authority_boundary["writes_provider_attempt"] is False
+
+
+def test_advance_transaction_exports_explicit_declarative_target_stage() -> None:
+    transaction = PaperMissionTransaction.from_payload(_valid_transaction("advance"))
+
+    assert transaction.opl_route_command["declarative_target_stage_id"] == (
+        transaction.stage_terminal_decision["next_stage_id"]
+    )
+
+
+def test_resume_transaction_rejects_missing_declarative_target_stage() -> None:
+    payload = _valid_transaction("continue_same_stage")
+    payload["stage_terminal_decision"].pop("target_stage_id")
+
+    with pytest.raises(
+        PaperMissionTransactionContractError,
+        match="target_stage_id must be a non-empty string",
+    ):
+        PaperMissionTransaction.from_payload(payload)
 
 
 def test_transaction_fails_closed_without_audit_family() -> None:
@@ -236,6 +259,7 @@ def test_terminal_decision_for_not_consumed_continues_same_stage() -> None:
     )
 
     assert decision["decision_kind"] == "continue_same_stage"
+    assert decision["target_stage_id"] == "gate_clearing_claim_evidence_repair"
     assert decision["next_work_unit"] == "claim_evidence_repair"
 
 

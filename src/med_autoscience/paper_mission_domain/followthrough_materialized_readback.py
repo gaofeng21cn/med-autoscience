@@ -252,6 +252,7 @@ def followthrough_transaction_for_readback(
         "status": "accepted_submission_milestone_candidate",
         "reason": reason,
         "next_owner": next_owner,
+        "target_stage_id": target_stage,
         "next_work_unit": next_work_unit,
         "source_route_back_evidence_ref": _optional_text(
             decision.get("route_back_evidence_ref")
@@ -382,6 +383,7 @@ def _typed_blocker_resolution_followthrough_transaction(
             "candidate for continued paper-facing package materialization."
         ),
         "next_owner": _first_text(action.get("next_owner"), "mas_authority_kernel"),
+        "target_stage_id": "08-publication_package_handoff",
         "next_work_unit": work_unit_id,
         "typed_blocker_resolution_ref": _first_text(
             resolution.get("source_ref"),

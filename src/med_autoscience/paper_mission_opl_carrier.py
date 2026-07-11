@@ -66,6 +66,15 @@ def paper_mission_opl_runtime_carrier(
         "domain_route_transaction_ref": transaction_id,
         "domain_route_command_ref": f"{transaction_id}#opl_route_command",
         "opl_route_command": deepcopy(route),
+        **(
+            {
+                "declarative_target_stage_id": _required_text(
+                    route, "declarative_target_stage_id"
+                )
+            }
+            if _optional_text(route.get("declarative_target_stage_id")) is not None
+            else {}
+        ),
         "stage_run_ref": stage_run_ref,
         "study_id": study_id,
         "action_type": _required_text(decision, "decision_kind"),
@@ -225,6 +234,13 @@ def _validate_carrier_identity(
         raise PaperMissionTransactionContractError(
             "paper mission OPL carrier route runtime_owner must match target runtime owner"
         )
+    command_kind = _required_text(route, "command_kind")
+    if command_kind in {"start_next_stage", "resume_stage", "route_back"}:
+        route_target_stage_id = _required_text(route, "declarative_target_stage_id")
+        if _required_text(payload, "declarative_target_stage_id") != route_target_stage_id:
+            raise PaperMissionTransactionContractError(
+                "paper mission OPL carrier declarative_target_stage_id must match route"
+            )
     idempotency_key = _required_text(payload, "idempotency_key")
     if _required_text(payload, "route_identity_key") != f"{transaction_ref}::route":
         raise PaperMissionTransactionContractError(

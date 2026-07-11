@@ -117,6 +117,10 @@ def build_domain_route_profile() -> dict[str, Any]:
         "field_mapping": {
             "command_kind": ["route_command_kind", "opl_route_command.command_kind"],
             "route_target": ["route_target", "opl_route_command.target"],
+            "declarative_target_stage_id": [
+                "declarative_target_stage_id",
+                "opl_route_command.declarative_target_stage_id",
+            ],
             "domain_route_transaction_ref": "paper_mission_transaction_ref",
             "domain_route_command_ref": "opl_route_command_ref",
             "route_identity.route_identity_key": "route_identity_key",
@@ -189,6 +193,7 @@ def build_domain_route_profile() -> dict[str, Any]:
             "canonical_task_kind",
             "command_kind",
             "route_target",
+            "declarative_target_stage_id",
             "route_identity",
             "attempt_identity",
             "domain_route_handoff_ref",
@@ -208,6 +213,9 @@ def build_domain_route_handoff_intake_readback(
     route = _mapping(handoff.get("opl_route_command"))
     command_kind = _first_text(handoff.get("route_command_kind"), route.get("command_kind"))
     route_target = _first_text(handoff.get("route_target"), route.get("target"))
+    handoff_target_stage_id = _text(handoff.get("declarative_target_stage_id"))
+    route_target_stage_id = _text(route.get("declarative_target_stage_id"))
+    declarative_target_stage_id = handoff_target_stage_id or route_target_stage_id
     transaction_ref = _text(handoff.get("domain_route_transaction_ref")) or _text(
         handoff.get("paper_mission_transaction_ref")
     )
@@ -238,6 +246,12 @@ def build_domain_route_handoff_intake_readback(
     blockers = _blockers(
         command_kind=command_kind,
         route_target=route_target,
+        declarative_target_stage_id=declarative_target_stage_id,
+        declarative_target_stage_mismatch=(
+            handoff_target_stage_id is not None
+            and route_target_stage_id is not None
+            and handoff_target_stage_id != route_target_stage_id
+        ),
         transaction_ref=transaction_ref,
         command_ref=command_ref,
         handoff_ref=handoff_ref,
@@ -271,6 +285,7 @@ def build_domain_route_handoff_intake_readback(
         "canonical_task_kind": DOMAIN_ROUTE_TASK_KIND,
         "command_kind": command_kind,
         "route_target": route_target,
+        "declarative_target_stage_id": declarative_target_stage_id,
         "route_identity": route_identity,
         "attempt_identity": attempt_identity,
         "domain_route_handoff_ref": handoff_ref,
@@ -315,6 +330,27 @@ def build_domain_route_runtime_request(
     handoff: Mapping[str, Any],
 ) -> dict[str, Any] | None:
     return build_domain_route_handoff_intake_readback(handoff)["runtime_request"]
+
+
+def build_domain_route_family_runtime_request(
+    handoff: Mapping[str, Any],
+) -> dict[str, Any] | None:
+    payload = build_domain_route_runtime_request(handoff)
+    if payload is None:
+        return None
+    dedupe_key = _text(_mapping(payload.get("route_identity")).get("dedupe_key"))
+    declarative_target_stage_id = _text(payload.get("declarative_target_stage_id"))
+    if dedupe_key is None or declarative_target_stage_id is None:
+        return None
+    return {
+        "domainId": DOMAIN_ID,
+        "taskKind": DOMAIN_ROUTE_TASK_KIND,
+        "stageId": declarative_target_stage_id,
+        "dedupe_key": dedupe_key,
+        "priority": 100,
+        "source": "mas-domain-route",
+        "payload": payload,
+    }
 
 
 def canonical_domain_task_kind(task_kind: object) -> str | None:
@@ -376,6 +412,8 @@ def _blockers(
     *,
     command_kind: str | None,
     route_target: str | None,
+    declarative_target_stage_id: str | None,
+    declarative_target_stage_mismatch: bool,
     transaction_ref: str | None,
     command_ref: str | None,
     handoff_ref: str | None,
@@ -394,11 +432,20 @@ def _blockers(
         "route_identity.request_idempotency_key": request_idempotency_key,
         "attempt_identity.attempt_idempotency_key": attempt_idempotency_key,
     }
+    if command_kind in RUNTIME_COMMAND_KINDS:
+        required["declarative_target_stage_id"] = declarative_target_stage_id
     for field, value in required.items():
         if value is None:
             blockers.append({"reason": "required_domain_route_field_missing", "field": field})
     if command_kind is not None and command_kind not in SUPPORTED_COMMAND_KINDS:
         blockers.append({"reason": "unsupported_domain_route_command", "field": "command_kind"})
+    if declarative_target_stage_mismatch:
+        blockers.append(
+            {
+                "reason": "domain_route_stage_identity_mismatch",
+                "field": "declarative_target_stage_id",
+            }
+        )
     return blockers
 
 
@@ -441,6 +488,12 @@ def _source_fingerprint(*, handoff: Mapping[str, Any], source_refs: list[str]) -
         "route_target": _first_text(
             handoff.get("route_target"),
             _mapping(handoff.get("opl_route_command")).get("target"),
+        ),
+        "declarative_target_stage_id": _first_text(
+            handoff.get("declarative_target_stage_id"),
+            _mapping(handoff.get("opl_route_command")).get(
+                "declarative_target_stage_id"
+            ),
         ),
     }
     encoded = json.dumps(payload, ensure_ascii=False, sort_keys=True, separators=(",", ":"))

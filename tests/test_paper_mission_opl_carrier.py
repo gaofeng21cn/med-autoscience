@@ -79,6 +79,10 @@ def test_paper_mission_opl_carrier_is_request_only_runtime_intent() -> None:
     assert carrier["domain_route_handoff_ref"].endswith("#domain_route_handoff")
     assert carrier["domain_route_command_ref"] == carrier["opl_route_command_ref"]
     assert carrier["opl_route_command"]["command_kind"] == "start_next_stage"
+    assert carrier["declarative_target_stage_id"] == "publication_gate_replay"
+    assert carrier["opl_route_command"]["declarative_target_stage_id"] == (
+        "publication_gate_replay"
+    )
     assert carrier["required_postcondition"]["mas_can_satisfy_readback"] is False
     assert carrier["provider_admission_pending"] is False
     assert carrier["provider_admission_requires_opl_runtime_result"] is True
@@ -137,5 +141,16 @@ def test_paper_mission_opl_carrier_rejects_aggregate_identity_mismatch() -> None
     with pytest.raises(
         PaperMissionTransactionContractError,
         match="aggregate_identity work_unit_fingerprint must match carrier",
+    ):
+        validate_paper_mission_opl_runtime_carrier(carrier)
+
+
+def test_paper_mission_opl_carrier_rejects_stage_identity_mismatch() -> None:
+    carrier = paper_mission_opl_runtime_carrier(_transaction())
+    carrier["declarative_target_stage_id"] = "other-stage"
+
+    with pytest.raises(
+        PaperMissionTransactionContractError,
+        match="declarative_target_stage_id must match route",
     ):
         validate_paper_mission_opl_runtime_carrier(carrier)
