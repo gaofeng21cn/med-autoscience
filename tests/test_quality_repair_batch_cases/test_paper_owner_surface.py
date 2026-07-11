@@ -240,3 +240,36 @@ def test_quality_repair_batch_blocks_before_producer_without_authorized_canonica
     )
     assert result["blocked_reason"] == "canonical_paper_inputs_rehydrate_required"
     producer.assert_not_called()
+
+
+def test_writer_handoff_materializes_dispatch_and_owner_request_without_carrier(
+    tmp_path: Path,
+) -> None:
+    module = importlib.import_module("med_autoscience.controllers.quality_repair_batch")
+    dispatch_path = tmp_path / "consumer" / "run_quality_repair_batch.json"
+    request_path = tmp_path / "requests" / "quality_repair_batch" / "latest.json"
+    handoff = {
+        "surface": "mas_domain_progress_transition_request_projection",
+        "study_id": "001-risk",
+        "quest_id": "quest-001",
+        "action_type": "run_quality_repair_batch",
+        "next_executable_owner": "write",
+        "dispatch_authority": "quality_repair_batch_writer_handoff",
+        "opl_domain_progress_transition_request": {
+            "surface_kind": "mas_domain_progress_transition_request",
+            "target_runtime_owner": "one-person-lab",
+        },
+        "refs": {
+            "dispatch_path": str(dispatch_path),
+            "request_path": str(request_path),
+        },
+    }
+
+    result = module._materialize_writer_worker_handoff(handoff)
+
+    assert result == str(dispatch_path)
+    assert json.loads(dispatch_path.read_text(encoding="utf-8")) == handoff
+    request = json.loads(request_path.read_text(encoding="utf-8"))
+    assert request["request_kind"] == "run_quality_repair_batch"
+    assert request["refs"] == handoff["refs"]
+    assert not (dispatch_path.parent / "immutable").exists()

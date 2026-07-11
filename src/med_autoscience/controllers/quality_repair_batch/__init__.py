@@ -9,7 +9,6 @@ from med_autoscience.controllers import gate_clearing_batch_currentness
 from med_autoscience.controllers import quality_repair_batch_upstream
 from med_autoscience.controllers import paper_repair_execution_evidence
 from med_autoscience.controllers import quality_repair_paper_owner_surface
-from med_autoscience.controllers import opl_stage_attempt_carrier_packets
 from med_autoscience.controllers import publication_work_units
 from med_autoscience.controllers import current_publication_eval
 from med_autoscience.lazy_module_proxy import lazy_controller_module
@@ -68,25 +67,17 @@ def story_surface_delta_blocker_supersedes_lifecycle(
 def _materialize_writer_worker_handoff(handoff: Mapping[str, Any] | None) -> str | None:
     if handoff is None:
         return None
-    refs = handoff.get("refs") if isinstance(handoff.get("refs"), Mapping) else {}
-    dispatch_path_text = _non_empty_text(refs.get("dispatch_path"))
+    handoff_refs = handoff.get("refs") if isinstance(handoff.get("refs"), Mapping) else {}
+    dispatch_path_text = _non_empty_text(handoff_refs.get("dispatch_path"))
     if dispatch_path_text is None:
         raise ValueError("writer_worker_handoff_missing_dispatch_path")
     dispatch_path = Path(dispatch_path_text).expanduser()
-    packet_handoff = opl_stage_attempt_carrier_packets.dispatch_with_immutable_packet_ref(
-        dispatch=handoff,
-        dispatch_path=dispatch_path,
-    )
-    _write_json(dispatch_path, packet_handoff)
-    refs = packet_handoff.get("refs") if isinstance(packet_handoff.get("refs"), Mapping) else {}
-    immutable_dispatch_path_text = _non_empty_text(refs.get("immutable_dispatch_path"))
-    if immutable_dispatch_path_text is not None:
-        _write_json(Path(immutable_dispatch_path_text).expanduser(), packet_handoff)
-    request_path_text = _non_empty_text(refs.get("request_path"))
+    _write_json(dispatch_path, handoff)
+    request_path_text = _non_empty_text(handoff_refs.get("request_path"))
     if request_path_text is not None:
         _write_json(
             Path(request_path_text).expanduser(),
-            writer_handoff.owner_request_from_handoff(packet_handoff),
+            writer_handoff.owner_request_from_handoff(handoff),
         )
     return str(dispatch_path)
 

@@ -6,7 +6,6 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
 
-from med_autoscience.controllers import opl_stage_attempt_carrier_packets
 from med_autoscience.controllers.owner_callable_closeout_contract import (
     owner_callable_typed_closeout_contract,
 )
@@ -556,17 +555,7 @@ def materialize_ai_reviewer_record_worker_handoff(
         ),
     )
     dispatch_path = Path(dispatch_path_text).expanduser()
-    packet_handoff = opl_stage_attempt_carrier_packets.dispatch_with_immutable_packet_ref(
-        dispatch=handoff,
-        dispatch_path=dispatch_path,
-    )
-    _write_json(dispatch_path, packet_handoff)
-    immutable_dispatch_path = opl_stage_attempt_carrier_packets.dispatch_stage_packet_path(
-        packet_handoff,
-        fallback_dispatch_path=dispatch_path,
-    )
-    if immutable_dispatch_path != dispatch_path:
-        _write_json(immutable_dispatch_path, packet_handoff)
+    _write_json(dispatch_path, handoff)
     return str(dispatch_path)
 
 

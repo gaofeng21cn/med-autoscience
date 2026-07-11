@@ -3,7 +3,6 @@ from __future__ import annotations
 from pathlib import Path
 from typing import Any, Mapping
 
-from med_autoscience.controllers import opl_stage_attempt_carrier_packets
 from med_autoscience.controllers.owner_route_handoff.export_study_projection import (
     mapping,
     read_json_object,
@@ -82,18 +81,13 @@ def current_control_transition_dispatch_refs(
     dispatch = read_json_object(dispatch_path)
     if not dispatch or text(dispatch.get("action_type")) != action_type:
         return {}
-    stage_packet_path = opl_stage_attempt_carrier_packets.dispatch_stage_packet_path(
-        dispatch,
-        fallback_dispatch_path=dispatch_path,
-    )
-    if not stage_packet_path.is_file():
+    stage_packet_refs = current_control_action_stage_packet_refs(dispatch)
+    if not stage_packet_refs:
         return {}
     dispatch_ref = workspace_relative(dispatch_path, workspace_root=profile.workspace_root)
-    stage_packet_ref = workspace_relative(stage_packet_path, workspace_root=profile.workspace_root)
     return {
         "dispatch_ref": dispatch_ref,
-        "stage_packet_ref": stage_packet_ref,
-        "stage_packet_refs": [stage_packet_ref],
+        **stage_packet_refs,
     }
 
 
