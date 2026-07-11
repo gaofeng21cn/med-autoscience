@@ -186,10 +186,12 @@ def paper_mission_opl_runtime_carrier_readback(
     terminal_closeout = _terminal_closeout_readback(
         closeout=closeout,
         closeout_ref=closeout_ref,
+        carrier=carrier,
     )
     opl_transition_receipt = _opl_transition_receipt_readback(
         closeout=closeout,
         closeout_ref=closeout_ref,
+        carrier=carrier,
     )
     receipt_evidence = _receipt_evidence_readback(
         closeout=closeout,
@@ -398,16 +400,9 @@ def _closeout_prefers_followthrough_identity(
     closeout: Mapping[str, Any],
     route_back: Mapping[str, Any],
 ) -> bool:
-    refs = {
-        ref
-        for ref in (
-            _text(closeout.get("paper_mission_transaction_ref")),
-            _text(closeout.get("stage_packet_ref")),
-            _text(route_back.get("paper_mission_transaction_ref")),
-            _text(route_back.get("stage_packet_ref")),
-        )
-        if ref is not None
-    }
+    refs = _closeout_route_identity_refs(closeout) | _closeout_route_identity_refs(
+        route_back
+    )
     return any("::followthrough::" in ref for ref in refs)
 
 
@@ -460,14 +455,8 @@ def _followthrough_route_back_supersedes_live_terminal(
 ) -> bool:
     if not _closeout_has_route_back_evidence(local_closeout):
         return False
-    local_route_ref = _first_text(
-        local_closeout.get("stage_packet_ref"),
-        local_closeout.get("paper_mission_transaction_ref"),
-    )
-    live_route_ref = _first_text(
-        live_closeout.get("stage_packet_ref"),
-        live_closeout.get("paper_mission_transaction_ref"),
-    )
+    local_route_ref = _closeout_route_identity_ref(local_closeout)
+    live_route_ref = _closeout_route_identity_ref(live_closeout)
     if not _route_ref_matches(local_route_ref, live_route_ref):
         return False
     if local_route_ref is None or "::followthrough::" not in local_route_ref:
@@ -475,6 +464,34 @@ def _followthrough_route_back_supersedes_live_terminal(
     return _closeout_semantic_priority(local_closeout, {}) >= _closeout_semantic_priority(
         live_closeout,
         {},
+    )
+
+
+def _closeout_route_identity_refs(closeout: Mapping[str, Any]) -> set[str]:
+    receipt = _mapping(closeout.get("opl_transition_receipt"))
+    return {
+        ref
+        for ref in (
+            _text(closeout.get("domain_route_handoff_ref")),
+            _text(closeout.get("domain_route_transaction_ref")),
+            _text(closeout.get("domain_route_command_ref")),
+            _text(receipt.get("domain_route_handoff_ref")),
+            _text(receipt.get("domain_route_transaction_ref")),
+            _text(receipt.get("domain_route_command_ref")),
+            _text(closeout.get("paper_mission_transaction_ref")),
+            _text(closeout.get("stage_packet_ref")),
+        )
+        if ref is not None
+    }
+
+
+def _closeout_route_identity_ref(closeout: Mapping[str, Any]) -> str | None:
+    receipt = _mapping(closeout.get("opl_transition_receipt"))
+    return _first_text(
+        closeout.get("domain_route_transaction_ref"),
+        receipt.get("domain_route_transaction_ref"),
+        closeout.get("paper_mission_transaction_ref"),
+        closeout.get("stage_packet_ref"),
     )
 
 

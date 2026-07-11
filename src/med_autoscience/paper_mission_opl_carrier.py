@@ -16,6 +16,7 @@ from med_autoscience.paper_mission_transaction import (
 
 SURFACE_KIND = "mas_domain_progress_transition_request"
 SOURCE_KIND = "paper_mission_transaction_opl_route_command"
+OPL_DOMAIN_ID = "mas"
 
 
 def paper_mission_opl_runtime_carrier(
@@ -54,12 +55,16 @@ def paper_mission_opl_runtime_carrier(
         "source_kind": SOURCE_KIND,
         "target_runtime_owner": transition_contract.RUNTIME_OWNER,
         "target_runtime_kind": transition_contract.RUNTIME_KIND,
+        "domain_id": OPL_DOMAIN_ID,
         "runtime_contract_ref": transition_contract.CONTRACT_REF,
         "projection_only": True,
         "transition_request_payload_scope": "identity_refs_and_contract_metadata_only",
         "paper_mission_transaction_ref": transaction_id,
         "stage_terminal_decision_ref": f"{transaction_id}#stage_terminal_decision",
         "opl_route_command_ref": f"{transaction_id}#opl_route_command",
+        "domain_route_handoff_ref": f"{transaction_id}#domain_route_handoff",
+        "domain_route_transaction_ref": transaction_id,
+        "domain_route_command_ref": f"{transaction_id}#opl_route_command",
         "opl_route_command": deepcopy(route),
         "stage_run_ref": stage_run_ref,
         "study_id": study_id,
@@ -125,10 +130,17 @@ def validate_paper_mission_opl_runtime_carrier(
         raise PaperMissionTransactionContractError(
             "paper mission OPL carrier target_runtime_kind must be DomainProgressTransitionRuntime"
         )
+    if _required_text(payload, "domain_id") != OPL_DOMAIN_ID:
+        raise PaperMissionTransactionContractError(
+            "paper mission OPL carrier domain_id must be mas"
+        )
     for field in (
         "paper_mission_transaction_ref",
         "stage_terminal_decision_ref",
         "opl_route_command_ref",
+        "domain_route_handoff_ref",
+        "domain_route_transaction_ref",
+        "domain_route_command_ref",
         "stage_run_ref",
         "study_id",
         "work_unit_id",
@@ -177,9 +189,14 @@ def _validate_carrier_identity(
     payload: Mapping[str, Any],
     route: Mapping[str, Any],
 ) -> None:
-    transaction_ref = _required_text(payload, "paper_mission_transaction_ref")
+    transaction_ref = _required_text(payload, "domain_route_transaction_ref")
     expected_stage_decision_ref = f"{transaction_ref}#stage_terminal_decision"
     expected_route_ref = f"{transaction_ref}#opl_route_command"
+    expected_handoff_ref = f"{transaction_ref}#domain_route_handoff"
+    if _required_text(payload, "paper_mission_transaction_ref") != transaction_ref:
+        raise PaperMissionTransactionContractError(
+            "paper mission OPL carrier paper_mission_transaction_ref must match domain route transaction"
+        )
     if _required_text(payload, "stage_terminal_decision_ref") != expected_stage_decision_ref:
         raise PaperMissionTransactionContractError(
             "paper mission OPL carrier stage_terminal_decision_ref must match transaction"
@@ -187,6 +204,14 @@ def _validate_carrier_identity(
     if _required_text(payload, "opl_route_command_ref") != expected_route_ref:
         raise PaperMissionTransactionContractError(
             "paper mission OPL carrier opl_route_command_ref must match transaction"
+        )
+    if _required_text(payload, "domain_route_handoff_ref") != expected_handoff_ref:
+        raise PaperMissionTransactionContractError(
+            "paper mission OPL carrier domain_route_handoff_ref must match transaction"
+        )
+    if _required_text(payload, "domain_route_command_ref") != expected_route_ref:
+        raise PaperMissionTransactionContractError(
+            "paper mission OPL carrier domain_route_command_ref must match transaction"
         )
     if _required_text(route, "source_terminal_decision_ref") != expected_stage_decision_ref:
         raise PaperMissionTransactionContractError(
@@ -268,6 +293,7 @@ def _optional_text(value: object) -> str | None:
 
 __all__ = [
     "SOURCE_KIND",
+    "OPL_DOMAIN_ID",
     "SURFACE_KIND",
     "paper_mission_opl_runtime_carrier",
     "validate_paper_mission_opl_runtime_carrier",

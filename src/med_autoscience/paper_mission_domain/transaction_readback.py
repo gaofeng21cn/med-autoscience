@@ -19,6 +19,9 @@ from med_autoscience.controllers.study_progress.canonical_owner_action_projectio
     submission_authority_owner_gate_readback,
 )
 from med_autoscience.paper_mission_opl_carrier import paper_mission_opl_runtime_carrier
+from med_autoscience.paper_mission_opl_readback.receipt_events import (
+    matches_receipt_bundle,
+)
 from med_autoscience.paper_mission_opl_readback import (
     attach_opl_runtime_carrier_readback,
     attach_paper_mission_next_action,
@@ -322,7 +325,8 @@ def _paper_mission_transaction_readback(
             readback["transaction_state"] = _transaction_state(owner_answer_transaction)
             readback["consume_candidate_status_override"] = "route_back"
             if not _carrier_readback_has_consumable_receipt(
-                _mapping(readback.get("opl_runtime_carrier_readback"))
+                _mapping(readback.get("opl_runtime_carrier_readback")),
+                request_carrier=_mapping(readback.get("opl_runtime_carrier")),
             ):
                 readback = attach_runtime_readback(
                     readback=readback,
@@ -771,11 +775,16 @@ def _next_stage_id_for_materialized(stage_id: str) -> str:
     return f"{stage_id}::next"
 
 
-def _carrier_readback_has_consumable_receipt(payload: Mapping[str, Any]) -> bool:
-    return bool(
-        _mapping(payload.get("opl_transition_receipt"))
-        and _mapping(payload.get("receipt_evidence"))
-        and _mapping(payload.get("mas_receipt_consumption"))
+def _carrier_readback_has_consumable_receipt(
+    payload: Mapping[str, Any],
+    *,
+    request_carrier: Mapping[str, Any],
+) -> bool:
+    return matches_receipt_bundle(
+        receipt=_mapping(payload.get("opl_transition_receipt")),
+        evidence=_mapping(payload.get("receipt_evidence")),
+        consumption=_mapping(payload.get("mas_receipt_consumption")),
+        carrier=request_carrier,
     )
 
 

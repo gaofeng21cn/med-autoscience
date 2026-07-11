@@ -10,16 +10,22 @@ from med_autoscience.paper_mission_opl_readback.primitives import (
     text_list as _text_list,
     text_value as _text,
 )
+from med_autoscience.paper_mission_opl_readback.receipt_events import (
+    OPL_DOMAIN_ROUTE_TRANSITION_RECEIPT_SURFACE_KIND,
+    matches_opl_transition_receipt,
+)
 
 
 def terminal_closeout_readback(
     *,
     closeout: Mapping[str, Any],
     closeout_ref: str,
+    carrier: Mapping[str, Any],
 ) -> dict[str, Any]:
     opl_transition_receipt = opl_transition_receipt_readback(
         closeout=closeout,
         closeout_ref=closeout_ref,
+        carrier=carrier,
     )
     receipt_evidence = receipt_evidence_readback(
         closeout=closeout,
@@ -108,35 +114,11 @@ def opl_transition_receipt_readback(
     *,
     closeout: Mapping[str, Any],
     closeout_ref: str,
+    carrier: Mapping[str, Any],
 ) -> dict[str, Any] | None:
     receipt = _mapping(closeout.get("opl_transition_receipt"))
-    if _text(receipt.get("surface_kind")) != "opl_transition_receipt":
-        route_back_evidence_ref = _route_back_evidence_ref(closeout)
-        if route_back_evidence_ref is None:
-            return None
-        stage_attempt_id = _text(closeout.get("stage_attempt_id"))
-        closeout_status = _first_text(closeout.get("status"), closeout.get("closeout_status"))
-        receipt = {
-            "surface_kind": "opl_transition_receipt",
-            "schema_version": 1,
-            "receipt_status": "route_back_evidence_closeout_observed",
-            "receipt_source": "stage_attempt_closeout_route_back_evidence",
-            "study_id": _text(closeout.get("study_id")),
-            "paper_mission_transaction_ref": _text(closeout.get("stage_packet_ref")),
-            "stage_attempt_id": stage_attempt_id,
-            "stage_attempt_ref": (
-                f"opl://stage-attempts/{stage_attempt_id}"
-                if stage_attempt_id
-                else None
-            ),
-            "runtime_closeout_ref": closeout_ref,
-            "blocked_reason": _first_text(
-                closeout.get("blocked_reason"),
-                closeout_status,
-            ),
-            "route_back_evidence_ref": route_back_evidence_ref,
-            "can_claim_paper_progress": False,
-        }
+    if not matches_opl_transition_receipt(receipt=receipt, carrier=carrier):
+        return None
     return {
         **dict(receipt),
         "role": "transport_receipt_only",
@@ -154,7 +136,10 @@ def receipt_evidence_readback(
     opl_transition_receipt: Mapping[str, Any] | None,
 ) -> dict[str, Any] | None:
     receipt = _mapping(opl_transition_receipt)
-    if _text(receipt.get("surface_kind")) != "opl_transition_receipt":
+    if (
+        _text(receipt.get("surface_kind"))
+        != OPL_DOMAIN_ROUTE_TRANSITION_RECEIPT_SURFACE_KIND
+    ):
         return None
     impact = _mapping(closeout.get("mas_impact_receipt"))
     route_back_evidence_ref = _first_text(
@@ -164,13 +149,18 @@ def receipt_evidence_readback(
     return {
         "surface_kind": "mas_receipt_evidence",
         "schema_version": 1,
-        "receipt_kind": "opl_transition_receipt",
+        "receipt_kind": OPL_DOMAIN_ROUTE_TRANSITION_RECEIPT_SURFACE_KIND,
         "receipt_ref": _first_text(
-            receipt.get("opl_transition_receipt_ref"),
+            receipt.get("domain_route_handoff_ref"),
             receipt.get("stage_attempt_ref"),
             receipt.get("runtime_closeout_ref"),
             closeout_ref,
         ),
+        "domain_route_handoff_ref": _text(receipt.get("domain_route_handoff_ref")),
+        "domain_route_transaction_ref": _text(
+            receipt.get("domain_route_transaction_ref")
+        ),
+        "domain_route_command_ref": _text(receipt.get("domain_route_command_ref")),
         "runtime_closeout_ref": _first_text(
             receipt.get("runtime_closeout_ref"),
             closeout_ref,

@@ -364,7 +364,9 @@ def test_canonical_next_action_envelope_drives_stage_native_dispatch_authority()
             "action_id": "next-action::dm003::repair",
             "idempotency_key": "request::dm003::repair",
             "action_family": "runtime.opl_route",
-            "expected_output_contract": {"output_kind": "opl_transition_receipt"},
+            "expected_output_contract": {
+                "output_kind": "opl_domain_route_transition_receipt"
+            },
         },
         opl_proof=opl_execution_authorization(study_id=STUDY_ID, action_type=ACTION_TYPE),
     )

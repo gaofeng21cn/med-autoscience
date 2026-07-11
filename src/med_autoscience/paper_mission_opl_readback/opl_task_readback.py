@@ -19,7 +19,10 @@ from med_autoscience.paper_mission_opl_readback.receipt_events import (
     event_opl_transition_receipt as _event_opl_transition_receipt,
     first_mas_impact_receipt as _first_mas_impact_receipt,
     first_opl_transition_receipt as _first_opl_transition_receipt,
+    matches_domain_route_identity as _matches_domain_route_identity,
     matches_receipt_command_kind as _matches_receipt_command_kind,
+    OPL_DOMAIN_ROUTE_DOMAIN_ID,
+    OPL_DOMAIN_ROUTE_TASK_KIND,
 )
 from med_autoscience.paper_mission_opl_readback.route_identity import (
     non_current_closeout_reason as _non_current_closeout_reason,
@@ -27,8 +30,8 @@ from med_autoscience.paper_mission_opl_readback.route_identity import (
 )
 
 
-OPL_STAGE_ROUTE_TASK_KIND = "domain_route/stage-route"
-OPL_DOMAIN_ID = "medautoscience"
+OPL_STAGE_ROUTE_TASK_KIND = OPL_DOMAIN_ROUTE_TASK_KIND
+OPL_DOMAIN_ID = OPL_DOMAIN_ROUTE_DOMAIN_ID
 
 
 def matching_opl_runtime_payload_closeout(
@@ -237,20 +240,12 @@ def matches_opl_task(
         return False
     if _text(task.get("task_kind")) != OPL_STAGE_ROUTE_TASK_KIND:
         return False
-    if _text(payload.get("study_id")) != _text(carrier.get("study_id")):
-        return False
     if _idempotency_refs_mismatch(
         expected_payload=carrier,
         observed_payload=payload,
     ):
         return False
-    if _text(payload.get("paper_mission_transaction_ref")) != _text(
-        carrier.get("paper_mission_transaction_ref")
-    ):
-        return False
-    if _text(payload.get("opl_route_command_ref")) != _text(
-        carrier.get("opl_route_command_ref")
-    ):
+    if not _matches_domain_route_identity(source=payload, carrier=carrier):
         return False
     command_kind = _carrier_command_kind(carrier)
     if not _matches_receipt_command_kind(
@@ -364,6 +359,11 @@ def _opl_task_terminal_closeout(
         "stage_attempt_id": stage_attempt_id,
         "work_unit_id": _text(carrier.get("work_unit_id")),
         "work_unit_fingerprint": _text(carrier.get("work_unit_fingerprint")),
+        "domain_route_handoff_ref": _text(carrier.get("domain_route_handoff_ref")),
+        "domain_route_transaction_ref": _text(
+            carrier.get("domain_route_transaction_ref")
+        ),
+        "domain_route_command_ref": _text(carrier.get("domain_route_command_ref")),
         "stage_packet_ref": _text(carrier.get("stage_terminal_decision_ref")),
         "provider_attempt_ref": (
             _text(stage_attempt.get("provider_attempt_ref"))
@@ -540,17 +540,13 @@ def _matches_opl_stage_attempt(
         return False
     if not locator:
         return True
-    if _text(locator.get("study_id")) != _text(carrier.get("study_id")):
-        return False
     if _idempotency_refs_mismatch(
         expected_payload=carrier,
         observed_payload=locator,
     ):
         return False
-    for field in ("paper_mission_transaction_ref", "opl_route_command_ref"):
-        carrier_value = _text(carrier.get(field))
-        if carrier_value is not None and _text(locator.get(field)) != carrier_value:
-            return False
+    if not _matches_domain_route_identity(source=locator, carrier=carrier):
+        return False
     command_kind = _carrier_command_kind(carrier)
     if not _matches_receipt_command_kind(
         carrier_command_kind=command_kind,

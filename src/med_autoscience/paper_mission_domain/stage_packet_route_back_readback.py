@@ -225,14 +225,6 @@ def _stage_packet_opl_runtime_carrier_readback(
         _optional_text(packet.get("blocked_reason"))
         or "paper_mission_stage_route_domain_gate_pending"
     )
-    receipt_ref = provider_attempt_ref or closeout_ref
-    receipt_evidence = {
-        "receipt_kind": "opl_transition_receipt",
-        "receipt_ref": receipt_ref,
-        "runtime_closeout_ref": closeout_ref,
-        "stage_attempt_ref": receipt_ref,
-        "can_claim_paper_progress": False,
-    }
     return {
         "surface_kind": "paper_mission_opl_runtime_carrier_readback",
         "schema_version": 1,
@@ -263,28 +255,6 @@ def _stage_packet_opl_runtime_carrier_readback(
             "provider_completion_is_domain_ready": False,
             "domain_completion_claimed": False,
             "domain_ready_claimed": False,
-        },
-        "opl_transition_receipt": {
-            "surface_kind": "opl_transition_receipt",
-            "receipt_status": "terminal_closeout_observed",
-            "role": "transport_receipt_only",
-            "stage_attempt_id": stage_attempt_id,
-            "stage_attempt_ref": receipt_ref,
-            "closeout_receipt_status": closeout_receipt_status,
-            "blocked_reason": blocked_reason,
-            "can_claim_paper_progress": False,
-        },
-        "receipt_evidence": receipt_evidence,
-        "mas_receipt_consumption": {
-            "surface_kind": "mas_receipt_consumption_projection",
-            "status": "requires_mas_owner_consumption",
-            "next_legal_action": (
-                "consume_route_back_checkpoint_or_materialize_terminalizer_outcome"
-            ),
-            "forbidden_next_action": "synonymous_route_back_redrive",
-            "receipt_ref": receipt_ref,
-            "runtime_closeout_ref": closeout_ref,
-            "durable_stop_allowed": False,
         },
     }
 

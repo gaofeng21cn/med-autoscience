@@ -21,8 +21,12 @@ from med_autoscience.controllers.paper_mission_receipt_owner_consumption.common 
 from med_autoscience.controllers.paper_mission_receipt_owner_consumption.readback_summary import (
     _carrier,
     _current_package_summary,
+    _request_carrier,
     _receipt_summary,
     _stage_closure_summary,
+)
+from med_autoscience.paper_mission_opl_readback.receipt_events import (
+    matches_receipt_bundle,
 )
 from med_autoscience.controllers.paper_mission_receipt_owner_consumption.storage import (
     _write_output_packet,
@@ -83,8 +87,11 @@ def _validate_readback(
     if _text(paper_mission_readback.get("study_id")) != study_id:
         mismatched.append("study_id")
     carrier = _carrier(paper_mission_readback)
+    request_carrier = _request_carrier(paper_mission_readback)
     if not carrier:
         missing.append("opl_runtime_carrier_readback")
+    if not request_carrier:
+        missing.append("opl_runtime_carrier")
     receipt = _mapping(carrier.get("opl_transition_receipt"))
     evidence = _mapping(carrier.get("receipt_evidence"))
     consumption = _mapping(carrier.get("mas_receipt_consumption"))
@@ -94,6 +101,19 @@ def _validate_readback(
         missing.append("opl_runtime_carrier_readback.receipt_evidence")
     if not consumption:
         missing.append("opl_runtime_carrier_readback.mas_receipt_consumption")
+    if (
+        receipt
+        and evidence
+        and consumption
+        and request_carrier
+        and not matches_receipt_bundle(
+            receipt=receipt,
+            evidence=evidence,
+            consumption=consumption,
+            carrier=request_carrier,
+        )
+    ):
+        mismatched.append("opl_runtime_carrier_readback.canonical_receipt_bundle")
     consumption_status = _text(consumption.get("status"))
     if (
         consumption

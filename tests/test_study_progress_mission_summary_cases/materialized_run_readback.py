@@ -346,10 +346,7 @@ def test_materialized_mission_summary_does_not_let_opl_closeout_override_stage_o
     assert summary["opl_runtime_carrier"]["carrier_status"] == (
         "waiting_for_opl_runtime_live_readback"
     )
-    assert summary["opl_transition_receipt"]["status"] == (
-        "not_requested_from_study_progress"
-    )
-    assert summary["opl_transition_receipt"]["can_change_stage_terminal_decision"] is False
+    assert "opl_transition_receipt" not in summary
     assert summary["opl_runtime_readback_status"] == (
         "not_requested_from_study_progress"
     )

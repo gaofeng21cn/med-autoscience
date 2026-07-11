@@ -228,11 +228,15 @@ def _closeout_from_route_back_evidence(
         "stage_id": text_value(route_back.get("stage_id"))
         or text_value(carrier.get("route_target")),
         "stage_attempt_id": text_value(route_back.get("stage_attempt_id")),
-        "stage_packet_ref": text_value(route_back.get("stage_packet_ref")),
-        "paper_mission_transaction_ref": text_value(
-            route_back.get("paper_mission_transaction_ref")
+        "domain_route_handoff_ref": text_value(
+            route_back.get("domain_route_handoff_ref")
         ),
-        "opl_route_command_ref": text_value(route_back.get("opl_route_command_ref")),
+        "domain_route_transaction_ref": text_value(
+            route_back.get("domain_route_transaction_ref")
+        ),
+        "domain_route_command_ref": text_value(
+            route_back.get("domain_route_command_ref")
+        ),
         "work_unit_id": text_value(route_back.get("work_unit_id"))
         or text_value(carrier.get("work_unit_id")),
         "work_unit_fingerprint": text_value(route_back.get("work_unit_fingerprint")),

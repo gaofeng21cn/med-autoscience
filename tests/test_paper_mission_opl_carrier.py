@@ -69,9 +69,15 @@ def test_paper_mission_opl_carrier_is_request_only_runtime_intent() -> None:
     assert carrier["surface_kind"] == "mas_domain_progress_transition_request"
     assert carrier["source_kind"] == "paper_mission_transaction_opl_route_command"
     assert carrier["target_runtime_kind"] == "DomainProgressTransitionRuntime"
+    assert carrier["domain_id"] == "mas"
     assert carrier["paper_mission_transaction_ref"].startswith(
         "paper-mission-transaction::002-dm-china-us-mortality-attribution"
     )
+    assert carrier["domain_route_transaction_ref"] == carrier[
+        "paper_mission_transaction_ref"
+    ]
+    assert carrier["domain_route_handoff_ref"].endswith("#domain_route_handoff")
+    assert carrier["domain_route_command_ref"] == carrier["opl_route_command_ref"]
     assert carrier["opl_route_command"]["command_kind"] == "start_next_stage"
     assert carrier["required_postcondition"]["mas_can_satisfy_readback"] is False
     assert carrier["provider_admission_pending"] is False

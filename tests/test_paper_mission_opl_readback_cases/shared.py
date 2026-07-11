@@ -24,6 +24,13 @@ def _opl_route_carrier() -> dict[str, object]:
             "paper-mission-transaction::dm002#stage_terminal_decision"
         ),
         "opl_route_command_ref": "paper-mission-transaction::dm002#opl_route_command",
+        "domain_route_handoff_ref": (
+            "paper-mission-transaction::dm002#domain_route_handoff"
+        ),
+        "domain_route_transaction_ref": "paper-mission-transaction::dm002",
+        "domain_route_command_ref": (
+            "paper-mission-transaction::dm002#opl_route_command"
+        ),
         "command_kind": "start_next_stage",
         "route_target": "publication_gate_replay",
         "opl_route_command": {
@@ -40,12 +47,16 @@ def _opl_runtime_task_payload() -> dict[str, object]:
             "surface_id": "opl_family_runtime_task",
             "task": {
                 "task_id": "frt-stage-route",
-                "domain_id": "medautoscience",
+                "domain_id": "mas",
                 "task_kind": "domain_route/stage-route",
                 "payload": {
-                    "study_id": "002-dm-china-us-mortality-attribution",
-                    "paper_mission_transaction_ref": "paper-mission-transaction::dm002",
-                    "opl_route_command_ref": (
+                    "surface_kind": "opl_domain_route_runtime_request",
+                    "runtime_request_kind": "domain_route_stage_route",
+                    "domain_route_handoff_ref": (
+                        "paper-mission-transaction::dm002#domain_route_handoff"
+                    ),
+                    "domain_route_transaction_ref": "paper-mission-transaction::dm002",
+                    "domain_route_command_ref": (
                         "paper-mission-transaction::dm002#opl_route_command"
                     ),
                     "command_kind": "start_next_stage",
@@ -89,13 +100,17 @@ def _opl_runtime_task_payload() -> dict[str, object]:
                             "typed-blocker:opl_runtime_live_readback_required",
                         ],
                         "opl_transition_receipt": {
-                            "surface_kind": "opl_transition_receipt",
+                            "surface_kind": "opl_domain_route_transition_receipt",
                             "schema_version": 1,
                             "receipt_status": "terminal_closeout_observed",
                             "role": "transport_receipt_only",
-                            "study_id": "002-dm-china-us-mortality-attribution",
-                            "paper_mission_transaction_ref": "paper-mission-transaction::dm002",
-                            "opl_route_command_ref": (
+                            "domain_id": "mas",
+                            "task_kind": "domain_route/stage-route",
+                            "domain_route_handoff_ref": (
+                                "paper-mission-transaction::dm002#domain_route_handoff"
+                            ),
+                            "domain_route_transaction_ref": "paper-mission-transaction::dm002",
+                            "domain_route_command_ref": (
                                 "paper-mission-transaction::dm002#opl_route_command"
                             ),
                             "command_kind": "start_next_stage",
@@ -122,14 +137,13 @@ def _opl_runtime_task_payload() -> dict[str, object]:
                             "blocked_reason": (
                                 "paper_mission_stage_route_domain_gate_pending"
                             ),
-                            "can_change_stage_terminal_decision": False,
-                            "can_select_next_owner": False,
                             "authority_boundary": {
-                                "writes_owner_receipt": False,
-                                "writes_typed_blocker": False,
-                                "writes_human_gate": False,
-                                "writes_current_package": False,
-                                "can_claim_paper_progress": False,
+                                "writes_domain_owner_receipt": False,
+                                "writes_domain_typed_blocker": False,
+                                "writes_domain_human_gate": False,
+                                "writes_domain_current_package": False,
+                                "can_select_next_owner": False,
+                                "can_claim_domain_progress": False,
                             },
                         },
                     },
@@ -152,9 +166,9 @@ def _opl_running_task_completed_attempt_payload() -> dict[str, object]:
             "status": "completed",
             "stage_id": "publication_gate_replay",
             "workspace_locator": {
-                "study_id": "002-dm-china-us-mortality-attribution",
-                "paper_mission_transaction_ref": "paper-mission-transaction::other",
-                "opl_route_command_ref": "paper-mission-transaction::other#opl_route_command",
+                "domain_route_handoff_ref": "paper-mission-transaction::other#domain_route_handoff",
+                "domain_route_transaction_ref": "paper-mission-transaction::other",
+                "domain_route_command_ref": "paper-mission-transaction::other#opl_route_command",
                 "command_kind": "start_next_stage",
                 "route_target": "publication_gate_replay",
             },
@@ -166,9 +180,11 @@ def _opl_running_task_completed_attempt_payload() -> dict[str, object]:
             "status": "completed",
             "stage_id": "publication_gate_replay",
             "workspace_locator": {
-                "study_id": "002-dm-china-us-mortality-attribution",
-                "paper_mission_transaction_ref": "paper-mission-transaction::dm002",
-                "opl_route_command_ref": (
+                "domain_route_handoff_ref": (
+                    "paper-mission-transaction::dm002#domain_route_handoff"
+                ),
+                "domain_route_transaction_ref": "paper-mission-transaction::dm002",
+                "domain_route_command_ref": (
                     "paper-mission-transaction::dm002#opl_route_command"
                 ),
                 "command_kind": "start_next_stage",
@@ -212,9 +228,11 @@ def _opl_running_task_running_attempt_payload() -> dict[str, object]:
             "status": "running",
             "stage_id": "publication_gate_replay",
             "workspace_locator": {
-                "study_id": "002-dm-china-us-mortality-attribution",
-                "paper_mission_transaction_ref": "paper-mission-transaction::dm002",
-                "opl_route_command_ref": (
+                "domain_route_handoff_ref": (
+                    "paper-mission-transaction::dm002#domain_route_handoff"
+                ),
+                "domain_route_transaction_ref": "paper-mission-transaction::dm002",
+                "domain_route_command_ref": (
                     "paper-mission-transaction::dm002#opl_route_command"
                 ),
                 "command_kind": "start_next_stage",
@@ -261,13 +279,15 @@ def _opl_transition_receipt(
     typed_runtime_blocker_ref: str = "typed-blocker:opl_runtime_live_readback_required",
 ) -> dict[str, object]:
     return {
-        "surface_kind": "opl_transition_receipt",
+        "surface_kind": "opl_domain_route_transition_receipt",
         "schema_version": 1,
         "receipt_status": "terminal_closeout_observed",
         "role": "transport_receipt_only",
-        "study_id": "002-dm-china-us-mortality-attribution",
-        "paper_mission_transaction_ref": "paper-mission-transaction::dm002",
-        "opl_route_command_ref": "paper-mission-transaction::dm002#opl_route_command",
+        "domain_id": "mas",
+        "task_kind": "domain_route/stage-route",
+        "domain_route_handoff_ref": "paper-mission-transaction::dm002#domain_route_handoff",
+        "domain_route_transaction_ref": "paper-mission-transaction::dm002",
+        "domain_route_command_ref": "paper-mission-transaction::dm002#opl_route_command",
         "command_kind": "start_next_stage",
         "route_target": "publication_gate_replay",
         "route_identity_key": "paper-mission-transaction::dm002::route",
@@ -287,15 +307,13 @@ def _opl_transition_receipt(
         ],
         "closeout_receipt_status": "accepted_typed_closeout",
         "blocked_reason": "paper_mission_stage_route_domain_gate_pending",
-        "can_change_stage_terminal_decision": False,
-        "can_select_next_owner": False,
-        "can_claim_paper_progress": False,
         "authority_boundary": {
-            "writes_owner_receipt": False,
-            "writes_typed_blocker": False,
-            "writes_human_gate": False,
-            "writes_current_package": False,
-            "can_claim_paper_progress": False,
+            "writes_domain_owner_receipt": False,
+            "writes_domain_typed_blocker": False,
+            "writes_domain_human_gate": False,
+            "writes_domain_current_package": False,
+            "can_select_next_owner": False,
+            "can_claim_domain_progress": False,
         },
     }
 
@@ -305,12 +323,14 @@ def _opl_queue_with_terminal_and_running_successor_payload() -> dict[str, object
     terminal["current_control_state"]["opl_transition_receipt"] = _opl_transition_receipt()
     successor = {
         "task_id": "frt-successor",
-        "domain_id": "medautoscience",
+        "domain_id": "mas",
         "task_kind": "domain_route/stage-route",
         "payload": {
-            "study_id": "002-dm-china-us-mortality-attribution",
-            "paper_mission_transaction_ref": "paper-mission-transaction::dm002",
-            "opl_route_command_ref": "paper-mission-transaction::dm002#opl_route_command",
+            "surface_kind": "opl_domain_route_runtime_request",
+            "runtime_request_kind": "domain_route_stage_route",
+            "domain_route_handoff_ref": "paper-mission-transaction::dm002#domain_route_handoff",
+            "domain_route_transaction_ref": "paper-mission-transaction::dm002",
+            "domain_route_command_ref": "paper-mission-transaction::dm002#opl_route_command",
             "command_kind": "start_next_stage",
             "route_target": "publication_gate_replay",
             "requeued_from_terminal_task_id": "frt-stage-route",
@@ -328,9 +348,9 @@ def _opl_queue_with_terminal_and_running_successor_payload() -> dict[str, object
             "executor_kind": "codex_cli",
             "task_id": "frt-successor",
             "workspace_locator": {
-                "study_id": "002-dm-china-us-mortality-attribution",
-                "paper_mission_transaction_ref": "paper-mission-transaction::dm002",
-                "opl_route_command_ref": "paper-mission-transaction::dm002#opl_route_command",
+                "domain_route_handoff_ref": "paper-mission-transaction::dm002#domain_route_handoff",
+                "domain_route_transaction_ref": "paper-mission-transaction::dm002",
+                "domain_route_command_ref": "paper-mission-transaction::dm002#opl_route_command",
                 "command_kind": "start_next_stage",
                 "route_target": "publication_gate_replay",
             },

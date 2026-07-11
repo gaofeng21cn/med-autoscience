@@ -11,7 +11,7 @@ LIVE_READBACK_COMPLETE_STATUS = "complete_transaction"
 PROVIDER_ADMISSION_OUTCOME = "provider_admission_enqueued_or_blocked"
 NON_ADVANCING_APPLY_OUTCOME = "non_advancing_apply_typed_blocker_ref"
 CONTRACT_REF = "contracts/opl_domain_progress_transition_runtime_contract.json"
-OPL_TRANSITION_RECEIPT_OUTPUT_KIND = "opl_transition_receipt"
+OPL_DOMAIN_ROUTE_TRANSITION_RECEIPT_OUTPUT_KIND = "opl_domain_route_transition_receipt"
 NEXT_ACTION_IDENTITY_FIELDS = (
     "action_id",
     "idempotency_key",
@@ -463,9 +463,11 @@ TRANSITION_SPINE_BOUNDARY_ABI: dict[str, dict[str, Any]] = {
 
 def opl_transition_receipt_expected_output_contract() -> dict[str, Any]:
     return {
-        "output_kind": OPL_TRANSITION_RECEIPT_OUTPUT_KIND,
+        "output_kind": OPL_DOMAIN_ROUTE_TRANSITION_RECEIPT_OUTPUT_KIND,
         "accepted_refs": [
-            "opl_transition_receipt_ref",
+            "domain_route_handoff_ref",
+            "domain_route_transaction_ref",
+            "domain_route_command_ref",
             "stage_attempt_ref",
             "runtime_closeout_ref",
             "typed_runtime_blocker_ref",
@@ -518,7 +520,8 @@ def next_action_identity_complete(next_action: Mapping[str, Any]) -> bool:
         and _text(identity.get("action_id")) is not None
         and _text(identity.get("idempotency_key")) is not None
         and _text(identity.get("action_family")) is not None
-        and _text(expected.get("output_kind")) == OPL_TRANSITION_RECEIPT_OUTPUT_KIND
+        and _text(expected.get("output_kind"))
+        == OPL_DOMAIN_ROUTE_TRANSITION_RECEIPT_OUTPUT_KIND
     )
 
 
@@ -820,7 +823,7 @@ __all__ = [
     "MAS_PROJECTION_CANNOT_REPLACE",
     "NEXT_ACTION_IDENTITY_FIELDS",
     "NON_ADVANCING_APPLY_OUTCOME",
-    "OPL_TRANSITION_RECEIPT_OUTPUT_KIND",
+    "OPL_DOMAIN_ROUTE_TRANSITION_RECEIPT_OUTPUT_KIND",
     "PROVIDER_ADMISSION_READBACK_IDENTITY_FIELDS",
     "PROVIDER_ADMISSION_READBACK_REQUEST_IDENTITY_FIELD",
     "PROVIDER_ADMISSION_OUTCOME",

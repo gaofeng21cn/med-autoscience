@@ -46,7 +46,7 @@
         "action_family",
         "expected_output_contract.output_kind"
       ],
-      "expected_output_kind": "opl_transition_receipt",
+      "expected_output_kind": "opl_domain_route_transition_receipt",
       "legacy_work_unit_id_role": "provenance_currentness_only",
       "legacy_attempt_id_role": "provenance_currentness_only",
       "exact_work_unit_id_authority": false
@@ -75,9 +75,11 @@
       "provider_completion_is_domain_completion": false
     },
     "expected_output_contract": {
-      "output_kind": "opl_transition_receipt",
+      "output_kind": "opl_domain_route_transition_receipt",
       "accepted_refs": [
-        "opl_transition_receipt_ref",
+        "domain_route_handoff_ref",
+        "domain_route_transaction_ref",
+        "domain_route_command_ref",
         "stage_attempt_ref",
         "runtime_closeout_ref",
         "typed_runtime_blocker_ref"
@@ -200,9 +202,11 @@
       "valid_shape_can_test_projection_rules_without_live_claim": true
     },
     "expected_output_contract": {
-      "output_kind": "opl_transition_receipt",
+      "output_kind": "opl_domain_route_transition_receipt",
       "accepted_refs": [
-        "opl_transition_receipt_ref",
+        "domain_route_handoff_ref",
+        "domain_route_transaction_ref",
+        "domain_route_command_ref",
         "stage_attempt_ref",
         "runtime_closeout_ref",
         "typed_runtime_blocker_ref"
@@ -243,9 +247,11 @@
       "authority=false"
     ],
     "expected_output_contract": {
-      "output_kind": "opl_transition_receipt",
+      "output_kind": "opl_domain_route_transition_receipt",
       "accepted_refs": [
-        "opl_transition_receipt_ref",
+        "domain_route_handoff_ref",
+        "domain_route_transaction_ref",
+        "domain_route_command_ref",
         "stage_attempt_ref",
         "runtime_closeout_ref",
         "typed_runtime_blocker_ref"
@@ -726,7 +732,7 @@
     "outbox_item_id_present_without_full_readback",
     "outbox_emitted_without_mas_owner_answer",
     "StageRun_identity_present_without_currentness_match",
-    "opl_transition_receipt_without_mas_receipt_consumer",
+    "opl_domain_route_transition_receipt_without_mas_receipt_consumer",
     "queue_terminal_status",
     "provider_attempt_terminal_status",
     "provider_completion_succeeded"

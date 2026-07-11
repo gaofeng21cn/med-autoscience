@@ -65,7 +65,9 @@ def test_domain_handler_exports_only_identity_complete_next_action() -> None:
         "owner": "write",
         "work_unit_id": "canonical-write-repair",
         "work_unit_fingerprint": "canonical-write-repair::fingerprint",
-        "expected_output_contract": {"output_kind": "opl_transition_receipt"},
+        "expected_output_contract": {
+            "output_kind": "opl_domain_route_transition_receipt"
+        },
     }
 
     assert module._export_current_owner_action(

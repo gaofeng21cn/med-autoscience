@@ -317,6 +317,11 @@ def _materialized_mission_summary(
         paper_mission_run=paper_mission_run,
         stage_closure_decision=stage_closure_decision,
     )
+    receipt = helpers._opl_transition_receipt(
+        progress=progress,
+        consumption_ledger_readback=consumption_ledger_readback,
+        carrier=carrier,
+    )
     summary = {
         "surface_kind": "artifact_first_paper_mission_summary",
         "schema_version": 1,
@@ -333,10 +338,7 @@ def _materialized_mission_summary(
         "opl_runtime_carrier": carrier,
         **({"opl_runtime_carrier_readback": carrier_readback} if carrier_readback else {}),
         "opl_runtime_readback_status": runtime_readback_status,
-        "opl_transition_receipt": helpers._opl_transition_receipt(
-            progress=progress,
-            consumption_ledger_readback=consumption_ledger_readback,
-        ),
+        **({"opl_transition_receipt": receipt} if receipt else {}),
         "transaction_state": transaction_state,
         "mission_state": mission_state,
         "current_objective": current_objective,

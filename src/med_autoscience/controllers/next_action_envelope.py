@@ -233,7 +233,7 @@ def compile_next_action_envelope(
             "current_executable_owner_action": "diagnostic_readback_only",
         },
         "completion_authority": "stage_outcome_only",
-        "runtime_receipt_authority": "opl_transition_receipt_only",
+        "runtime_receipt_authority": "opl_domain_route_transition_receipt_only",
     }
     for field in (
         "paper_facing_delta",
@@ -374,13 +374,19 @@ def expected_output_contract_for_family(action_family: str) -> dict[str, Any]:
         }
     if action_family == FAMILY_RUNTIME_OPL_ROUTE:
         return {
-            "output_kind": "opl_transition_receipt",
-            "accepted_refs": ["opl_transition_receipt_ref", "stage_attempt_ref", "runtime_closeout_ref"],
+            "output_kind": "opl_domain_route_transition_receipt",
+            "accepted_refs": [
+                "domain_route_handoff_ref",
+                "domain_route_transaction_ref",
+                "domain_route_command_ref",
+                "stage_attempt_ref",
+                "runtime_closeout_ref",
+            ],
         }
     if action_family == FAMILY_RUNTIME_WAIT_RECEIPT:
         return {
             "output_kind": "opl_runtime_readback",
-            "accepted_refs": ["opl_transition_receipt_ref", "typed_runtime_blocker_ref"],
+            "accepted_refs": ["domain_route_handoff_ref", "typed_runtime_blocker_ref"],
         }
     if action_family == FAMILY_HUMAN_APPROVAL:
         return {"output_kind": "human_gate_receipt", "accepted_refs": ["human_gate_ref"]}
@@ -394,7 +400,7 @@ def retry_or_stop_policy_for_family(action_family: str) -> dict[str, Any]:
         return {
             "retry_owner": "one-person-lab",
             "semantic_budget_resets_from_transport": False,
-            "stop_requires": "opl_transition_receipt_or_typed_runtime_blocker",
+            "stop_requires": "opl_domain_route_transition_receipt_or_typed_runtime_blocker",
         }
     if action_family in {FAMILY_BLOCKED_TYPED, FAMILY_HUMAN_APPROVAL, FAMILY_MISSION_COMPLETE}:
         return {"retry_owner": None, "retry_allowed": False, "stop_requires": "terminal_owner_result"}

@@ -26,7 +26,9 @@ def _canonical_next_action() -> dict[str, object]:
         "action_family": "runtime.opl_route",
         "work_unit_id": "canonical-owner-work",
         "work_unit_fingerprint": "sha256:canonical-owner-work",
-        "expected_output_contract": {"output_kind": "opl_transition_receipt"},
+        "expected_output_contract": {
+            "output_kind": "opl_domain_route_transition_receipt"
+        },
     }
 
 

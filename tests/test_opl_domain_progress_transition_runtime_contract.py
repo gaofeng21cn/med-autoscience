@@ -96,7 +96,7 @@ def test_opl_domain_progress_transition_runtime_contract_matches_helper_abi() ->
     assert contract["mas_request_contract"]["next_action_identity_policy"] == {
         "identity_source": "NextActionEnvelope",
         "required_next_action_identity_fields": list(helper.NEXT_ACTION_IDENTITY_FIELDS),
-        "expected_output_kind": helper.OPL_TRANSITION_RECEIPT_OUTPUT_KIND,
+        "expected_output_kind": helper.OPL_DOMAIN_ROUTE_TRANSITION_RECEIPT_OUTPUT_KIND,
         "legacy_work_unit_id_role": "provenance_currentness_only",
         "legacy_attempt_id_role": "provenance_currentness_only",
         "exact_work_unit_id_authority": False,
@@ -266,7 +266,9 @@ def test_next_action_identity_requires_receipt_output_kind_not_legacy_attempt_or
         "action_id": "next-action-001",
         "idempotency_key": "request::study::stage",
         "action_family": "runtime.opl_route",
-        "expected_output_contract": {"output_kind": "opl_transition_receipt"},
+        "expected_output_contract": {
+            "output_kind": "opl_domain_route_transition_receipt"
+        },
         "work_unit_id": "dm003_exact_stage_work_unit",
         "work_unit_fingerprint": "fingerprint::dm003",
         "attempt_idempotency_key": "attempt::legacy",
@@ -279,7 +281,9 @@ def test_next_action_identity_requires_receipt_output_kind_not_legacy_attempt_or
         "action_id": "next-action-001",
         "idempotency_key": "request::study::stage",
         "action_family": "runtime.opl_route",
-        "expected_output_contract": {"output_kind": "opl_transition_receipt"},
+        "expected_output_contract": {
+            "output_kind": "opl_domain_route_transition_receipt"
+        },
     }
     assert helper.next_action_identity_complete(next_action) is True
 
@@ -293,7 +297,9 @@ def test_next_action_identity_requires_receipt_output_kind_not_legacy_attempt_or
 
     assert handoff["next_action"] == helper.next_action_identity(next_action)
     assert handoff["next_action_identity_complete"] is True
-    assert handoff["expected_output_contract"]["output_kind"] == "opl_transition_receipt"
+    assert handoff["expected_output_contract"]["output_kind"] == (
+        "opl_domain_route_transition_receipt"
+    )
     assert handoff["runtime_receipt_authority"]["receipt_is_input_ref_only"] is True
     assert handoff["runtime_receipt_authority"]["can_claim_stage_complete"] is False
     assert handoff["runtime_receipt_authority"]["can_claim_paper_progress"] is False

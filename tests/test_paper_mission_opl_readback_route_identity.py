@@ -85,3 +85,62 @@ def test_matches_carrier_rejects_cross_route_closeout_even_with_opaque_idempoten
     }
 
     assert not matches_carrier(closeout=closeout, carrier=carrier)
+
+
+def test_matches_carrier_accepts_only_canonical_domain_route_refs() -> None:
+    transaction_ref = (
+        "paper-mission-transaction::003-dpcc-primary-care-phenotype-treatment-gap"
+        "::write::dm003_calendar_year_revision"
+    )
+    carrier = {
+        "study_id": "003-dpcc-primary-care-phenotype-treatment-gap",
+        "work_unit_id": "dm003_calendar_year_revision",
+        "work_unit_fingerprint": "sha256:current-revision",
+        "domain_route_handoff_ref": f"{transaction_ref}#domain_route_handoff",
+        "domain_route_transaction_ref": transaction_ref,
+        "domain_route_command_ref": f"{transaction_ref}#opl_route_command",
+        "idempotency_key": "003::write::calendar-year",
+        "request_idempotency_key": "003::write::calendar-year::opl-request",
+        "attempt_idempotency_key": "003::write::calendar-year::opl-attempt",
+        "command_kind": "route_back",
+        "route_target": "write",
+    }
+    closeout = {
+        "surface_kind": "stage_attempt_closeout_packet",
+        "study_id": carrier["study_id"],
+        "stage_id": "write",
+        "work_unit_id": "provider-opaque-work-unit",
+        "domain_route_handoff_ref": carrier["domain_route_handoff_ref"],
+        "domain_route_transaction_ref": carrier["domain_route_transaction_ref"],
+        "domain_route_command_ref": carrier["domain_route_command_ref"],
+        "authority_boundary": _record_only_boundary(),
+    }
+
+    assert matches_carrier(closeout=closeout, carrier=carrier)
+
+
+def test_matches_carrier_rejects_wrong_canonical_domain_route_ref() -> None:
+    transaction_ref = "paper-mission-transaction::003::write::current"
+    carrier = {
+        "study_id": "003-dpcc-primary-care-phenotype-treatment-gap",
+        "work_unit_id": "dm003_calendar_year_revision",
+        "work_unit_fingerprint": "sha256:current-revision",
+        "domain_route_handoff_ref": f"{transaction_ref}#domain_route_handoff",
+        "domain_route_transaction_ref": transaction_ref,
+        "domain_route_command_ref": f"{transaction_ref}#opl_route_command",
+        "command_kind": "route_back",
+        "route_target": "write",
+    }
+    closeout = {
+        "surface_kind": "stage_attempt_closeout_packet",
+        "study_id": carrier["study_id"],
+        "stage_id": "write",
+        "work_unit_id": carrier["work_unit_id"],
+        "work_unit_fingerprint": carrier["work_unit_fingerprint"],
+        "domain_route_handoff_ref": "paper-mission-transaction::other#domain_route_handoff",
+        "domain_route_transaction_ref": "paper-mission-transaction::other",
+        "domain_route_command_ref": "paper-mission-transaction::other#opl_route_command",
+        "authority_boundary": _record_only_boundary(),
+    }
+
+    assert not matches_carrier(closeout=closeout, carrier=carrier)

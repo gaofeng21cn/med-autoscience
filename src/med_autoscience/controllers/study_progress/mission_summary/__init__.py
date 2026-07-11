@@ -243,6 +243,11 @@ def build_artifact_first_mission_summary(
             ],
         )
     )
+    receipt = _opl_transition_receipt(
+        progress=progress,
+        consumption_ledger_readback=consumption_ledger_readback,
+        carrier=carrier,
+    )
     summary = {
         "surface_kind": "artifact_first_paper_mission_summary",
         "schema_version": 1,
@@ -258,10 +263,7 @@ def build_artifact_first_mission_summary(
         **({"opl_runtime_carrier_readback": carrier_readback} if carrier_readback else {}),
         "opl_runtime_readback_status": runtime_readback_status,
         "next_action": next_action,
-        "opl_transition_receipt": _opl_transition_receipt(
-            progress=progress,
-            consumption_ledger_readback=consumption_ledger_readback,
-        ),
+        **({"opl_transition_receipt": receipt} if receipt else {}),
         "transaction_state": _transaction_state(effective_transaction),
         "mission_state": mission_state,
         "consume_candidate_status": effective_consume_candidate_status,
@@ -408,7 +410,10 @@ def attach_artifact_first_mission_summary(
         updated.pop("next_action", None)
         updated.pop("canonical_next_action_source", None)
         updated = without_legacy_next_action_authority(updated)
-    updated["opl_transition_receipt"] = summary["opl_transition_receipt"]
+    if "opl_transition_receipt" in summary:
+        updated["opl_transition_receipt"] = summary["opl_transition_receipt"]
+    else:
+        updated.pop("opl_transition_receipt", None)
     updated["receipt_evidence"] = summary["receipt_evidence"]
     updated["mas_receipt_consumption"] = summary["mas_receipt_consumption"]
     updated["transaction_state"] = summary["transaction_state"]

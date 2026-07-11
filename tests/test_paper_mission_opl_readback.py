@@ -2,15 +2,21 @@ from __future__ import annotations
 
 from pathlib import Path
 
+import pytest
+
 from med_autoscience.paper_mission_opl_readback import (
     TERMINAL_READBACK_STATUS,
     WAITING_READBACK_STATUS,
     paper_mission_opl_runtime_carrier_readback,
 )
+from med_autoscience.paper_mission_opl_readback.receipt_events import (
+    matches_opl_transition_receipt,
+)
 from tests.test_paper_mission_opl_readback_cases.shared import (
     _carrier,
     _opl_route_carrier,
     _opl_runtime_task_payload,
+    _opl_transition_receipt,
     _write_closeout,
 )
 
@@ -104,7 +110,7 @@ def test_opl_terminal_closeout_readback_accepts_current_route_target_closeout(
     assert readback["terminal_closeout"]["stage_id"] == "publication_gate_replay"
 
 
-def test_opl_terminal_closeout_readback_accepts_transaction_bound_route_back_evidence(
+def test_opl_terminal_closeout_readback_ignores_legacy_only_route_back_closeout(
     tmp_path: Path,
 ) -> None:
     study_root = tmp_path / "study"
@@ -155,14 +161,12 @@ def test_opl_terminal_closeout_readback_accepts_transaction_bound_route_back_evi
         enable_opl_live_probe=False,
     )
 
-    assert readback["carrier_status"] == TERMINAL_READBACK_STATUS
-    assert readback["terminal_closeout"]["stage_attempt_id"] == "sat-route-back"
-    assert readback["opl_transition_receipt"]["receipt_status"] == (
-        "route_back_evidence_closeout_observed"
-    )
-    assert readback["mas_receipt_consumption"]["next_legal_action"] == (
-        "consume_route_back_checkpoint_or_materialize_terminalizer_outcome"
-    )
+    assert readback["carrier_status"] == WAITING_READBACK_STATUS
+    assert readback["runtime_readback_status"] == "missing"
+    assert "terminal_closeout" not in readback
+    assert "opl_transition_receipt" not in readback
+    assert "receipt_evidence" not in readback
+    assert "mas_receipt_consumption" not in readback
 
 
 def test_opl_terminal_closeout_readback_consumes_matching_opl_runtime_task(
@@ -185,6 +189,9 @@ def test_opl_terminal_closeout_readback_consumes_matching_opl_runtime_task(
     assert readback["opl_transition_receipt"]["receipt_status"] == (
         "terminal_closeout_observed"
     )
+    assert readback["opl_transition_receipt"]["surface_kind"] == (
+        "opl_domain_route_transition_receipt"
+    )
 
 
 def test_opl_terminal_closeout_readback_requires_transition_receipt(
@@ -204,3 +211,84 @@ def test_opl_terminal_closeout_readback_requires_transition_receipt(
     assert readback["runtime_readback_status"] == "missing"
     assert "terminal_closeout" not in readback
     assert "opl_transition_receipt" not in readback
+
+
+def test_opl_terminal_closeout_readback_rejects_old_receipt_kind(
+    tmp_path: Path,
+) -> None:
+    payload = _opl_runtime_task_payload()
+    receipt = payload["family_runtime_task"]["events"][0]["payload"][
+        "opl_transition_receipt"
+    ]
+    receipt["surface_kind"] = "opl_transition_receipt"
+
+    readback = paper_mission_opl_runtime_carrier_readback(
+        carrier=_opl_route_carrier(),
+        study_root=tmp_path / "study",
+        opl_runtime_payload=payload,
+        enable_opl_live_probe=False,
+    )
+
+    assert readback["carrier_status"] == WAITING_READBACK_STATUS
+    assert readback["runtime_readback_status"] == "missing"
+
+
+@pytest.mark.parametrize(
+    "mutate",
+    [
+        lambda receipt: receipt.__setitem__("surface_kind", "opl_transition_receipt"),
+        lambda receipt: receipt.pop("domain_id"),
+        lambda receipt: receipt.__setitem__(
+            "domain_route_transaction_ref",
+            "paper-mission-transaction::other",
+        ),
+        lambda receipt: receipt["authority_boundary"].__setitem__(
+            "can_select_next_owner",
+            True,
+        ),
+    ],
+)
+def test_shared_transition_receipt_matcher_rejects_noncanonical_receipts(mutate) -> None:
+    carrier = _opl_route_carrier()
+    receipt = _opl_transition_receipt()
+    mutate(receipt)
+
+    assert not matches_opl_transition_receipt(receipt=receipt, carrier=carrier)
+
+
+def test_shared_transition_receipt_matcher_accepts_raw_receipt_without_study_id() -> None:
+    receipt = _opl_transition_receipt()
+
+    assert "study_id" not in receipt
+    assert matches_opl_transition_receipt(
+        receipt=receipt,
+        carrier=_opl_route_carrier(),
+    )
+
+
+def test_local_closeout_does_not_wrap_incomplete_canonical_receipt(tmp_path: Path) -> None:
+    study_root = tmp_path / "study"
+    carrier = _opl_route_carrier()
+    receipt = _opl_transition_receipt()
+    receipt.pop("domain_id")
+    _write_closeout(
+        study_root,
+        {
+            "stage_id": "publication_gate_replay",
+            "domain_route_handoff_ref": carrier["domain_route_handoff_ref"],
+            "domain_route_transaction_ref": carrier["domain_route_transaction_ref"],
+            "domain_route_command_ref": carrier["domain_route_command_ref"],
+            "opl_transition_receipt": receipt,
+        },
+    )
+
+    readback = paper_mission_opl_runtime_carrier_readback(
+        carrier=carrier,
+        study_root=study_root,
+        enable_opl_live_probe=False,
+    )
+
+    assert readback["carrier_status"] == TERMINAL_READBACK_STATUS
+    assert "opl_transition_receipt" not in readback
+    assert "receipt_evidence" not in readback
+    assert "mas_receipt_consumption" not in readback

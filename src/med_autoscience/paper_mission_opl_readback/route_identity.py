@@ -11,7 +11,9 @@ from med_autoscience.paper_mission_opl_readback.primitives import (
     text_value as _text,
 )
 from med_autoscience.paper_mission_opl_readback.receipt_events import (
+    DOMAIN_ROUTE_RECEIPT_REF_FIELDS as _DOMAIN_ROUTE_RECEIPT_REF_FIELDS,
     carrier_route_target as _carrier_route_target,
+    matches_domain_route_identity as _matches_domain_route_identity,
 )
 
 
@@ -20,14 +22,7 @@ def payload_binds_route_identity(
     carrier: Mapping[str, Any],
     payload: Mapping[str, Any],
 ) -> bool:
-    expected_transaction_ref = _text(carrier.get("paper_mission_transaction_ref"))
-    expected_route_ref = _text(carrier.get("opl_route_command_ref"))
-    if expected_transaction_ref is None or expected_route_ref is None:
-        return False
-    return (
-        _text(payload.get("paper_mission_transaction_ref")) == expected_transaction_ref
-        and _text(payload.get("opl_route_command_ref")) == expected_route_ref
-    )
+    return _matches_domain_route_identity(source=payload, carrier=carrier)
 
 
 def matches_carrier(
@@ -168,6 +163,12 @@ def closeout_binds_route_identity(
     route_back: Mapping[str, Any] | None = None,
 ) -> bool:
     route_back = _mapping(route_back)
+    if _has_domain_route_identity(carrier):
+        return _canonical_closeout_binds_route_identity(
+            closeout=closeout,
+            carrier=carrier,
+            route_back=route_back,
+        )
     refs = {
         ref
         for ref in (
@@ -363,6 +364,12 @@ def closeout_binds_exact_route_identity(
     route_back: Mapping[str, Any] | None = None,
 ) -> bool:
     route_back = _mapping(route_back)
+    if _has_domain_route_identity(carrier):
+        return _canonical_closeout_binds_route_identity(
+            closeout=closeout,
+            carrier=carrier,
+            route_back=route_back,
+        )
     expected_transaction_refs = _carrier_transaction_refs(carrier)
     if not expected_transaction_refs:
         return False
@@ -433,6 +440,9 @@ def closeout_binds_exact_route_identity(
 
 
 def _carrier_route_identity_refs(carrier: Mapping[str, Any]) -> set[str]:
+    canonical_refs = _domain_route_refs(carrier)
+    if len(canonical_refs) == len(_DOMAIN_ROUTE_RECEIPT_REF_FIELDS):
+        return canonical_refs
     transaction_refs = _carrier_transaction_refs(carrier)
     return {
         ref
@@ -449,6 +459,9 @@ def _carrier_route_identity_refs(carrier: Mapping[str, Any]) -> set[str]:
 
 
 def _carrier_transaction_refs(carrier: Mapping[str, Any]) -> set[str]:
+    canonical_transaction_ref = _text(carrier.get("domain_route_transaction_ref"))
+    if canonical_transaction_ref is not None:
+        return {canonical_transaction_ref}
     refs = {
         ref
         for ref in (
@@ -544,10 +557,45 @@ def non_current_closeout_reason(value: object) -> bool:
 
 
 def carrier_has_opl_route_identity(carrier: Mapping[str, Any]) -> bool:
-    return (
+    base_identity_present = (
         _text(carrier.get("study_id")) is not None
         and _text(carrier.get("work_unit_id")) is not None
         and _text(carrier.get("work_unit_fingerprint")) is not None
-        and _text(carrier.get("paper_mission_transaction_ref")) is not None
+    )
+    if not base_identity_present:
+        return False
+    if _has_domain_route_identity(carrier):
+        return True
+    return (
+        _text(carrier.get("paper_mission_transaction_ref")) is not None
         and _text(carrier.get("opl_route_command_ref")) is not None
     )
+
+
+def _has_domain_route_identity(source: Mapping[str, Any]) -> bool:
+    return all(_text(source.get(field)) is not None for field in _DOMAIN_ROUTE_RECEIPT_REF_FIELDS)
+
+
+def _domain_route_refs(source: Mapping[str, Any]) -> set[str]:
+    return {
+        ref
+        for field in _DOMAIN_ROUTE_RECEIPT_REF_FIELDS
+        if (ref := _text(source.get(field))) is not None
+    }
+
+
+def _canonical_closeout_binds_route_identity(
+    *,
+    closeout: Mapping[str, Any],
+    carrier: Mapping[str, Any],
+    route_back: Mapping[str, Any],
+) -> bool:
+    for source in (
+        closeout,
+        route_back,
+        _mapping(closeout.get("opl_transition_receipt")),
+        _mapping(route_back.get("opl_transition_receipt")),
+    ):
+        if _matches_domain_route_identity(source=source, carrier=carrier):
+            return True
+    return False

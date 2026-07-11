@@ -4,6 +4,9 @@ from collections.abc import Mapping
 from typing import Any
 
 from med_autoscience.controllers.next_action_envelope import SURFACE_KIND
+from med_autoscience.paper_mission_opl_readback.receipt_events import (
+    matches_opl_transition_receipt,
+)
 
 
 def build_progress_first_monitoring_summary(payload: Mapping[str, Any]) -> dict[str, Any]:
@@ -49,14 +52,29 @@ def build_progress_first_monitoring_summary(payload: Mapping[str, Any]) -> dict[
 
 
 def _transition_receipt(payload: Mapping[str, Any]) -> dict[str, Any]:
+    carrier = _request_carrier(payload)
+    if not carrier:
+        return {}
     for value in (
         payload.get("opl_transition_receipt"),
         _mapping(payload.get("domain_transition")).get("opl_transition_receipt"),
         _mapping(payload.get("paper_mission_transaction_readback")).get("opl_transition_receipt"),
     ):
         receipt = _mapping(value)
-        if _text(receipt.get("surface_kind")) == "opl_transition_receipt":
+        if matches_opl_transition_receipt(receipt=receipt, carrier=carrier):
             return receipt
+    return {}
+
+
+def _request_carrier(payload: Mapping[str, Any]) -> dict[str, Any]:
+    for source in (
+        payload,
+        _mapping(payload.get("domain_transition")),
+        _mapping(payload.get("paper_mission_transaction_readback")),
+    ):
+        carrier = _mapping(source.get("opl_runtime_carrier"))
+        if carrier:
+            return carrier
     return {}
 
 

@@ -7,6 +7,8 @@ from med_autoscience.controllers.next_action_envelope import (
     compile_next_action_envelope,
 )
 
+from .receipt_events import matches_opl_transition_receipt
+
 
 def paper_mission_next_action_envelope(
     *,
@@ -38,6 +40,10 @@ def paper_mission_next_action_envelope(
     )
     carrier_readback = _mapping(opl_runtime_carrier_readback)
     transition_receipt = _mapping(carrier_readback.get("opl_transition_receipt"))
+    has_valid_transition_receipt = matches_opl_transition_receipt(
+        receipt=transition_receipt,
+        carrier=carrier,
+    )
     terminal_closeout = _mapping(carrier_readback.get("terminal_closeout"))
     mas_receipt_consumption = _mapping(carrier_readback.get("mas_receipt_consumption"))
     if not decision and not route:
@@ -134,14 +140,12 @@ def paper_mission_next_action_envelope(
                     ),
                     "next_owner": "mas_authority_kernel",
                 }
-                if _text(transition_receipt.get("surface_kind"))
-                == "opl_transition_receipt"
+                if has_valid_transition_receipt
                 else {}
             ),
             "next_owner": _first_text(
                 "mas_authority_kernel"
-                if _text(transition_receipt.get("surface_kind"))
-                == "opl_transition_receipt"
+                if has_valid_transition_receipt
                 else None,
                 handoff.get("next_owner"),
                 decision.get("next_owner"),

@@ -27,6 +27,60 @@ pytestmark = [pytest.mark.contract]
 REPO_ROOT = Path(__file__).resolve().parents[1]
 
 
+def _canonical_opl_carrier(
+    *,
+    transaction_ref: str,
+    route_target: str,
+    command_kind: str,
+) -> dict[str, object]:
+    return {
+        "surface_kind": "mas_domain_progress_transition_request",
+        "domain_id": "mas",
+        "domain_route_handoff_ref": f"{transaction_ref}#domain_route_handoff",
+        "domain_route_transaction_ref": transaction_ref,
+        "domain_route_command_ref": f"{transaction_ref}#opl_route_command",
+        "idempotency_key": f"{transaction_ref}::idempotency",
+        "request_idempotency_key": f"{transaction_ref}::request",
+        "attempt_idempotency_key": f"{transaction_ref}::attempt",
+        "command_kind": command_kind,
+        "route_target": route_target,
+        "opl_route_command": {
+            "command_kind": command_kind,
+            "target": route_target,
+        },
+    }
+
+
+def _canonical_opl_transition_receipt(
+    carrier: dict[str, object],
+    **overrides: object,
+) -> dict[str, object]:
+    return {
+        "surface_kind": "opl_domain_route_transition_receipt",
+        "role": "transport_receipt_only",
+        "domain_id": "mas",
+        "task_kind": "domain_route/stage-route",
+        "domain_route_handoff_ref": carrier["domain_route_handoff_ref"],
+        "domain_route_transaction_ref": carrier["domain_route_transaction_ref"],
+        "domain_route_command_ref": carrier["domain_route_command_ref"],
+        "idempotency_key": carrier["idempotency_key"],
+        "request_idempotency_key": carrier["request_idempotency_key"],
+        "attempt_idempotency_key": carrier["attempt_idempotency_key"],
+        "command_kind": carrier["command_kind"],
+        "route_target": carrier["route_target"],
+        "authority_boundary": {
+            "writes_domain_owner_receipt": False,
+            "writes_domain_typed_blocker": False,
+            "writes_domain_human_gate": False,
+            "writes_domain_current_package": False,
+            "can_select_next_owner": False,
+            "can_claim_domain_progress": False,
+        },
+        "can_claim_paper_progress": False,
+        **overrides,
+    }
+
+
 def test_contract_matches_runtime_action_families_and_forbids_exact_id_authority() -> None:
     contract = json.loads(
         (REPO_ROOT / "contracts" / "next_action_envelope_contract.json").read_text(
@@ -184,7 +238,9 @@ def test_runtime_route_envelope_keeps_opl_as_receipt_owner_not_stage_authority()
     assert envelope["owner"] == "one-person-lab"
     assert envelope["idempotency_key"] == "request::003::followthrough"
     assert envelope["executor_target"] == "opl_domain_progress_transition_runtime"
-    assert envelope["runtime_receipt_authority"] == "opl_transition_receipt_only"
+    assert envelope["runtime_receipt_authority"] == (
+        "opl_domain_route_transition_receipt_only"
+    )
     assert envelope["completion_authority"] == "stage_outcome_only"
     assert envelope["authority_boundary"]["can_submit_to_opl_runtime"] is True
     assert envelope["authority_boundary"]["can_write_runtime_queue"] is False
@@ -211,7 +267,7 @@ def test_opl_transition_receipt_owner_family_supersedes_runtime_route_redrive() 
             "action_family": FAMILY_PAPER_GATE_PUBLISHABILITY_REPLAY,
             "next_owner": "mas_authority_kernel",
             "opl_transition_receipt": {
-                "surface_kind": "opl_transition_receipt",
+                "surface_kind": "opl_domain_route_transition_receipt",
                 "receipt_status": "terminal_closeout_observed",
                 "can_claim_paper_progress": False,
             },
@@ -226,31 +282,38 @@ def test_opl_transition_receipt_owner_family_supersedes_runtime_route_redrive() 
 
 
 def test_paper_mission_projection_routes_typed_opl_receipt_to_typed_blocker_owner() -> None:
+    transaction_ref = "paper-mission-transaction::dm002::followthrough"
+    route_target = "submission_milestone_candidate::followthrough::followthrough-01"
+    carrier = _canonical_opl_carrier(
+        transaction_ref=transaction_ref,
+        route_target=route_target,
+        command_kind="resume_stage",
+    )
     envelope = paper_mission_next_action_envelope(
         transaction={
-            "transaction_id": "paper-mission-transaction::dm002::followthrough",
+            "transaction_id": transaction_ref,
             "study_id": "002-dm-china-us-mortality-attribution",
             "stage_id": "submission_milestone_candidate",
             "stage_terminal_decision": {
                 "decision_kind": "continue_same_stage",
-                "next_work_unit": "submission_milestone_candidate::followthrough::followthrough-01",
+                "next_work_unit": route_target,
             },
             "opl_route_command": {
                 "command_kind": "resume_stage",
-                "target": "submission_milestone_candidate::followthrough::followthrough-01",
+                "target": route_target,
                 "runtime_owner": "one-person-lab",
                 "route_target": "opl_runtime_live_readback",
             },
         },
+        opl_runtime_carrier=carrier,
         opl_runtime_carrier_readback={
             "surface_kind": "paper_mission_opl_runtime_carrier_readback",
             "carrier_status": "opl_runtime_terminal_readback_observed",
-            "opl_transition_receipt": {
-                "surface_kind": "opl_transition_receipt",
-                "receipt_status": "terminal_closeout_observed",
-                "typed_runtime_blocker_ref": "opl://stage-attempts/sat-typed/typed-blocker",
-                "can_claim_paper_progress": False,
-            },
+            "opl_transition_receipt": _canonical_opl_transition_receipt(
+                carrier,
+                receipt_status="terminal_closeout_observed",
+                typed_runtime_blocker_ref="opl://stage-attempts/sat-typed/typed-blocker",
+            ),
             "terminal_closeout": {
                 "surface_kind": "stage_attempt_closeout_packet",
                 "stage_attempt_ref": "opl://stage-attempts/sat-typed",
@@ -275,32 +338,77 @@ def test_paper_mission_projection_routes_typed_opl_receipt_to_typed_blocker_owne
     assert envelope["retry_or_stop_policy"]["retry_allowed"] is False
 
 
-def test_paper_mission_projection_does_not_repeat_consumed_route_checkpoint_owner_action() -> None:
+def test_paper_mission_projection_does_not_promote_incomplete_opl_receipt() -> None:
+    transaction_ref = "paper-mission-transaction::dm002::incomplete-receipt"
+    route_target = "submission_milestone_candidate::followthrough::followthrough-01"
+    carrier = _canonical_opl_carrier(
+        transaction_ref=transaction_ref,
+        route_target=route_target,
+        command_kind="resume_stage",
+    )
+
     envelope = paper_mission_next_action_envelope(
         transaction={
-            "transaction_id": "paper-mission-transaction::dm003::route-checkpoint",
+            "transaction_id": transaction_ref,
+            "study_id": "002-dm-china-us-mortality-attribution",
+            "stage_id": "submission_milestone_candidate",
+            "stage_terminal_decision": {
+                "decision_kind": "continue_same_stage",
+                "next_work_unit": route_target,
+            },
+            "opl_route_command": {
+                "command_kind": "resume_stage",
+                "target": route_target,
+                "runtime_owner": "one-person-lab",
+            },
+        },
+        opl_runtime_carrier=carrier,
+        opl_runtime_carrier_readback={
+            "opl_transition_receipt": {
+                "surface_kind": "opl_domain_route_transition_receipt",
+                "can_claim_paper_progress": False,
+            },
+        },
+    )
+
+    assert envelope is not None
+    assert envelope["owner"] == "one-person-lab"
+    assert envelope["executor_target"] == "opl_domain_progress_transition_runtime"
+
+
+def test_paper_mission_projection_does_not_repeat_consumed_route_checkpoint_owner_action() -> None:
+    transaction_ref = "paper-mission-transaction::dm003::route-checkpoint"
+    route_target = "submission_milestone_candidate::followthrough::followthrough-02"
+    carrier = _canonical_opl_carrier(
+        transaction_ref=transaction_ref,
+        route_target=route_target,
+        command_kind="resume_stage",
+    )
+    envelope = paper_mission_next_action_envelope(
+        transaction={
+            "transaction_id": transaction_ref,
             "study_id": "003-dpcc-primary-care-phenotype-treatment-gap",
             "stage_id": "submission_milestone_candidate",
             "stage_terminal_decision": {
                 "decision_kind": "continue_same_stage",
-                "next_work_unit": "submission_milestone_candidate::followthrough::followthrough-02",
+                "next_work_unit": route_target,
             },
             "opl_route_command": {
                 "command_kind": "resume_stage",
-                "target": "submission_milestone_candidate::followthrough::followthrough-02",
+                "target": route_target,
                 "runtime_owner": "one-person-lab",
                 "route_target": "opl_runtime_live_readback",
             },
         },
+        opl_runtime_carrier=carrier,
         opl_runtime_carrier_readback={
             "surface_kind": "paper_mission_opl_runtime_carrier_readback",
             "carrier_status": "opl_runtime_terminal_readback_observed",
-            "opl_transition_receipt": {
-                "surface_kind": "opl_transition_receipt",
-                "receipt_status": "route_back_evidence_closeout_observed",
-                "route_back_evidence_ref": "opl://stage-attempts/sat-route/route-back",
-                "can_claim_paper_progress": False,
-            },
+            "opl_transition_receipt": _canonical_opl_transition_receipt(
+                carrier,
+                receipt_status="domain_gate_pending",
+                route_back_evidence_ref="opl://stage-attempts/sat-route/route-back",
+            ),
             "terminal_closeout": {
                 "surface_kind": "stage_attempt_closeout_packet",
                 "stage_attempt_ref": "opl://stage-attempts/sat-route",

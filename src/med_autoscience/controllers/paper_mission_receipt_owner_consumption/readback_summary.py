@@ -11,6 +11,9 @@ from med_autoscience.controllers.paper_mission_receipt_owner_consumption.common 
     _text,
     _text_list,
 )
+from med_autoscience.paper_mission_opl_readback.receipt_events import (
+    matches_receipt_bundle,
+)
 
 def _stage_closure_summary(readback: Mapping[str, Any]) -> dict[str, Any]:
     decision = _effective_stage_closure_decision(readback)
@@ -359,6 +362,7 @@ def _ref_mtime(ref: str | None) -> float | None:
 
 
 def _carrier(readback: Mapping[str, Any]) -> Mapping[str, Any]:
+    request_carrier = _request_carrier(readback)
     current_carrier = dict(_mapping(readback.get("current_opl_runtime_carrier_readback")))
     terminal_carrier = dict(_mapping(readback.get("opl_runtime_carrier_readback")))
     carrier = current_carrier
@@ -371,14 +375,22 @@ def _carrier(readback: Mapping[str, Any]) -> Mapping[str, Any]:
     if _terminal_carrier_requires_consumption_after_current_consumed(
         current_carrier=current_carrier,
         terminal_carrier=terminal_carrier,
+        request_carrier=request_carrier,
     ):
         carrier = terminal_carrier
     if _terminal_carrier_is_newer_consumable_than_current(
         current_carrier=current_carrier,
         terminal_carrier=terminal_carrier,
+        request_carrier=request_carrier,
     ):
         carrier = terminal_carrier
-    if not _has_consumable_receipt(carrier) and _has_consumable_receipt(terminal_carrier):
+    if not _has_consumable_receipt(
+        carrier,
+        request_carrier=request_carrier,
+    ) and _has_consumable_receipt(
+        terminal_carrier,
+        request_carrier=request_carrier,
+    ):
         carrier = terminal_carrier
     if not carrier:
         carrier = terminal_carrier
@@ -387,11 +399,6 @@ def _carrier(readback: Mapping[str, Any]) -> Mapping[str, Any]:
             value = _mapping(readback.get(key))
             if value:
                 carrier[key] = value
-    if not _has_consumable_receipt(carrier):
-        synthetic = _synthetic_stage_closure_route_checkpoint_carrier(readback)
-        for key in ("terminal_closeout", "opl_transition_receipt", "receipt_evidence", "mas_receipt_consumption"):
-            if not _mapping(carrier.get(key)) and _mapping(synthetic.get(key)):
-                carrier[key] = _mapping(synthetic.get(key))
     return carrier
 
 
@@ -401,7 +408,11 @@ def _terminal_carrier_matches_stage_closure_decision(
     current_carrier: Mapping[str, Any],
     terminal_carrier: Mapping[str, Any],
 ) -> bool:
-    if not (_has_consumable_receipt(current_carrier) and _has_consumable_receipt(terminal_carrier)):
+    request_carrier = _request_carrier(readback)
+    if not (
+        _has_consumable_receipt(current_carrier, request_carrier=request_carrier)
+        and _has_consumable_receipt(terminal_carrier, request_carrier=request_carrier)
+    ):
         return False
     if _consumption_status(current_carrier) not in {
         "owner_consumed_route_checkpoint",
@@ -425,14 +436,15 @@ def _terminal_carrier_requires_consumption_after_current_consumed(
     *,
     current_carrier: Mapping[str, Any],
     terminal_carrier: Mapping[str, Any],
+    request_carrier: Mapping[str, Any],
 ) -> bool:
     current_ref = _carrier_closeout_ref(current_carrier)
     terminal_ref = _carrier_closeout_ref(terminal_carrier)
     if _ref_newer(candidate=current_ref, current=terminal_ref):
         return False
     return (
-        _has_consumable_receipt(current_carrier)
-        and _has_consumable_receipt(terminal_carrier)
+        _has_consumable_receipt(current_carrier, request_carrier=request_carrier)
+        and _has_consumable_receipt(terminal_carrier, request_carrier=request_carrier)
         and _consumption_status(current_carrier)
         in {
             "owner_consumed_route_checkpoint",
@@ -447,8 +459,12 @@ def _terminal_carrier_is_newer_consumable_than_current(
     *,
     current_carrier: Mapping[str, Any],
     terminal_carrier: Mapping[str, Any],
+    request_carrier: Mapping[str, Any],
 ) -> bool:
-    if not (_has_consumable_receipt(current_carrier) and _has_consumable_receipt(terminal_carrier)):
+    if not (
+        _has_consumable_receipt(current_carrier, request_carrier=request_carrier)
+        and _has_consumable_receipt(terminal_carrier, request_carrier=request_carrier)
+    ):
         return False
     if _consumption_status(current_carrier) != "requires_mas_owner_consumption":
         return False
@@ -491,71 +507,25 @@ def _consumption_status(carrier: Mapping[str, Any]) -> str:
     return _text(_mapping(carrier.get("mas_receipt_consumption")).get("status"))
 
 
-def _has_consumable_receipt(carrier: Mapping[str, Any]) -> bool:
-    return all(
-        _mapping(carrier.get(key))
-        for key in ("opl_transition_receipt", "receipt_evidence", "mas_receipt_consumption")
-    )
+def _request_carrier(readback: Mapping[str, Any]) -> Mapping[str, Any]:
+    for candidate in (
+        _mapping(readback.get("opl_runtime_carrier")),
+        _mapping(_mapping(readback.get("artifact_first_mission_summary")).get("opl_runtime_carrier")),
+        _mapping(_mapping(readback.get("opl_route_handoff")).get("opl_runtime_carrier")),
+    ):
+        if candidate:
+            return candidate
+    return {}
 
 
-def _synthetic_stage_closure_route_checkpoint_carrier(
-    readback: Mapping[str, Any],
-) -> dict[str, Any]:
-    next_action = _mapping(readback.get("next_action"))
-    if _text(next_action.get("action_family")) != "paper.stage_closure.owner_consumption":
-        return {}
-    decision = _effective_stage_closure_decision(readback, synthesize=False)
-    outcome = _mapping(decision.get("outcome"))
-    if _text(outcome.get("kind")) != "next_stage_transition":
-        return {}
-    if _text(outcome.get("transition_kind")) != "route_back_candidate_checkpoint":
-        return {}
-    opl_closeout = _mapping(decision.get("opl_closeout"))
-    stage_attempt_id = _first_text(opl_closeout.get("stage_attempt_id"))
-    stage_attempt_ref = _first_text(
-        decision.get("receipt_evidence_ref"),
-        outcome.get("receipt_evidence_ref"),
-        f"opl://stage-attempts/{stage_attempt_id}" if stage_attempt_id else None,
+def _has_consumable_receipt(
+    carrier: Mapping[str, Any],
+    *,
+    request_carrier: Mapping[str, Any],
+) -> bool:
+    return matches_receipt_bundle(
+        receipt=_mapping(carrier.get("opl_transition_receipt")),
+        evidence=_mapping(carrier.get("receipt_evidence")),
+        consumption=_mapping(carrier.get("mas_receipt_consumption")),
+        carrier=request_carrier,
     )
-    route_checkpoint_evidence_ref = _first_text(
-        decision.get("route_checkpoint_evidence_ref"),
-        outcome.get("route_checkpoint_evidence_ref"),
-        _route_checkpoint_evidence_ref_from_opl_closeout(
-            readback=readback,
-            stage_attempt_id=stage_attempt_id,
-        ),
-    )
-    if stage_attempt_ref is None and route_checkpoint_evidence_ref is None:
-        return {}
-    return {
-        **({"terminal_closeout": dict(opl_closeout)} if opl_closeout else {}),
-        "opl_transition_receipt": {
-            "surface_kind": "opl_transition_receipt",
-            "receipt_status": "terminal_closeout_observed",
-            "role": "transport_receipt_only",
-            "stage_attempt_id": stage_attempt_id,
-            "stage_attempt_ref": stage_attempt_ref,
-            "can_claim_paper_progress": False,
-        },
-        "receipt_evidence": {
-            "receipt_kind": "opl_transition_receipt",
-            "receipt_ref": stage_attempt_ref,
-            "stage_attempt_ref": stage_attempt_ref,
-            "runtime_closeout_ref": route_checkpoint_evidence_ref,
-            "route_checkpoint_evidence_ref": route_checkpoint_evidence_ref,
-            "can_claim_paper_progress": False,
-        },
-        "mas_receipt_consumption": {
-            "surface_kind": "mas_receipt_consumption_projection",
-            "status": "requires_mas_owner_consumption",
-            "next_legal_action": (
-                "consume_route_back_checkpoint_or_materialize_terminalizer_outcome"
-            ),
-            "receipt_ref": stage_attempt_ref,
-            "runtime_closeout_ref": route_checkpoint_evidence_ref,
-            "route_checkpoint_evidence_ref": route_checkpoint_evidence_ref,
-            "durable_stop_allowed": False,
-            "can_claim_paper_progress": False,
-            "can_claim_publication_ready": False,
-        },
-    }
