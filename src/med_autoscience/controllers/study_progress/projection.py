@@ -163,7 +163,7 @@ def build_study_progress_projection(
     input_paths = resolve_projection_input_paths(status=status, study_root=resolved_study_root)
     quest_id = input_paths.quest_id
     quest_root = input_paths.quest_root
-    launch_report_path = input_paths.launch_report_path
+    runtime_status_path = input_paths.runtime_status_path
     publication_eval_path = input_paths.publication_eval_path
     controller_decision_path = input_paths.controller_decision_path
     runtime_escalation_path = input_paths.runtime_escalation_path
@@ -496,7 +496,7 @@ def build_study_progress_projection(
     )
     latest_events = _latest_events(
         launch_report_payload=launch_report_payload,
-        launch_report_path=launch_report_path,
+        runtime_status_path=runtime_status_path,
         opl_runtime_owner_handoff_payload=opl_runtime_owner_handoff_payload,
         opl_runtime_owner_handoff_path=(
             opl_runtime_owner_handoff_path if opl_runtime_owner_handoff_payload is not None else None
@@ -645,7 +645,7 @@ def build_study_progress_projection(
         study_id=resolved_study_id,
         quest_id=quest_id,
         study_root=resolved_study_root,
-        launch_report_path=launch_report_path,
+        runtime_status_path=runtime_status_path,
         opl_runtime_owner_handoff_path=opl_runtime_owner_handoff_path,
         opl_runtime_owner_handoff_payload=opl_runtime_owner_handoff_payload,
         runtime_escalation_path=runtime_escalation_path,
@@ -794,7 +794,7 @@ def build_study_progress_projection(
         artifact_snapshot=ai_first_observability_snapshots["artifact_snapshot"],
     )
     refs = build_projection_refs(
-        launch_report_path=launch_report_path,
+        runtime_status_path=runtime_status_path,
         publication_eval_path=publication_eval_path,
         controller_decision_path=controller_decision_path,
         controller_confirmation_summary_path=controller_confirmation_summary_path,

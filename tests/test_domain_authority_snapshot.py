@@ -219,8 +219,15 @@ def test_authority_snapshot_is_embedded_in_status_projection(tmp_path) -> None:
             "quest_root": str(tmp_path / "runtime" / "quests" / "003-dpcc"),
             "quest_exists": True,
             "quest_status": "running",
-            "runtime_binding_path": str(tmp_path / "studies" / "003-dpcc" / "runtime_binding.yaml"),
-            "runtime_binding_exists": True,
+            "runtime_status_path": str(
+                tmp_path
+                / "studies"
+                / "003-dpcc"
+                / "artifacts"
+                / "supervision"
+                / "opl_runtime_owner_handoff"
+                / "latest.json"
+            ),
         }
     )
     status.extras["study_truth_snapshot"] = {

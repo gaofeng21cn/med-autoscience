@@ -705,6 +705,22 @@ def test_progress_projection_carries_truth_epoch_from_status_payload(tmp_path: P
     profile = make_profile(tmp_path)
     study_root = profile.workspace_root / "studies" / "004-invasive"
     study_root.mkdir(parents=True)
+    handoff_path = (
+        study_root / "artifacts" / "supervision" / "opl_runtime_owner_handoff" / "latest.json"
+    )
+    handoff_path.parent.mkdir(parents=True, exist_ok=True)
+    handoff_path.write_text(
+        json.dumps(
+            {
+                "surface_kind": "mas_opl_runtime_owner_handoff",
+                "schema_version": 1,
+                "status": "owner_receipt_written",
+                "runtime_owner": "one-person-lab",
+            }
+        )
+        + "\n",
+        encoding="utf-8",
+    )
     truth_snapshot = module.derive_truth_snapshot_from_status_payload(
         study_root=study_root,
         study_id="004-invasive",

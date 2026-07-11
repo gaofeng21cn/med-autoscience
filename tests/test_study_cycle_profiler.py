@@ -44,6 +44,13 @@ def _write_opl_handoff(path: Path, *, recorded_at: str, status: str = "owner_rec
     )
 
 
+def _write_study_identity(study_root: Path, *, study_id: str, quest_id: str) -> None:
+    (study_root / "study.yaml").write_text(
+        f"study_id: {study_id}\nexecution:\n  quest_id: {quest_id}\n",
+        encoding="utf-8",
+    )
+
+
 def test_study_cycle_profiler_builds_timing_profile_and_ignores_latest_alias(tmp_path: Path) -> None:
     module = importlib.import_module("med_autoscience.controllers.study_cycle_profiler")
     profile_path = tmp_path / "profile.local.toml"
@@ -54,17 +61,7 @@ def test_study_cycle_profiler_builds_timing_profile_and_ignores_latest_alias(tmp
     quest_root = workspace_root / "ops" / "med-deepscientist" / "runtime" / "quests" / "quest-001"
     study_root.mkdir(parents=True)
     quest_root.mkdir(parents=True)
-    (study_root / "runtime_binding.yaml").write_text(
-        "\n".join(
-            [
-                "study_id: 001-risk",
-                "quest_id: quest-001",
-                f"runtime_root: {workspace_root / 'ops' / 'med-deepscientist' / 'runtime' / 'quests'}",
-                "",
-            ]
-        ),
-        encoding="utf-8",
-    )
+    _write_study_identity(study_root, study_id="001-risk", quest_id="quest-001")
     _write_json(
         study_root / "artifacts" / "controller" / "task_intake" / "20260424T235500Z.json",
         {
@@ -183,17 +180,7 @@ def test_study_cycle_profiler_uses_current_manual_finishing_state_over_window_ch
     quest_root = workspace_root / "ops" / "med-deepscientist" / "runtime" / "quests" / "quest-004"
     study_root.mkdir(parents=True)
     quest_root.mkdir(parents=True)
-    (study_root / "runtime_binding.yaml").write_text(
-        "\n".join(
-            [
-                "study_id: 004-ready",
-                "quest_id: quest-004",
-                f"runtime_root: {workspace_root / 'ops' / 'med-deepscientist' / 'runtime' / 'quests'}",
-                "",
-            ]
-        ),
-        encoding="utf-8",
-    )
+    _write_study_identity(study_root, study_id="004-ready", quest_id="quest-004")
     _write_json(
         study_root / "artifacts" / "runtime" / "runtime_supervision" / "latest.json",
         {
@@ -409,17 +396,7 @@ def test_study_cycle_profiler_exposes_work_unit_lifecycle_replay_and_eval_lag(tm
     quest_root = workspace_root / "ops" / "med-deepscientist" / "runtime" / "quests" / "quest-003"
     study_root.mkdir(parents=True)
     quest_root.mkdir(parents=True)
-    (study_root / "runtime_binding.yaml").write_text(
-        "\n".join(
-            [
-                "study_id: 003-dpcc",
-                "quest_id: quest-003",
-                f"runtime_root: {workspace_root / 'ops' / 'med-deepscientist' / 'runtime' / 'quests'}",
-                "",
-            ]
-        ),
-        encoding="utf-8",
-    )
+    _write_study_identity(study_root, study_id="003-dpcc", quest_id="quest-003")
     _write_json(
         study_root / "artifacts" / "publication_eval" / "latest.json",
         {

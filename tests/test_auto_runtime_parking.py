@@ -473,7 +473,9 @@ def test_study_progress_task_intake_supersedes_prior_parked_projection(
     progress = importlib.import_module("med_autoscience.controllers.study_progress.projection")
     helpers = importlib.import_module("tests.study_runtime_test_helpers")
     profile = helpers.make_profile(tmp_path)
-    study_root = helpers.write_study(profile.workspace_root, "001-risk")
+    study_root = helpers.write_study(
+        profile.workspace_root, "001-risk", with_opl_runtime_handoff=True
+    )
     quest_root = profile.runtime_root / "quest-001"
     (quest_root / "artifacts" / "reports" / "publishability_gate").mkdir(parents=True, exist_ok=True)
     task_intake = importlib.import_module("med_autoscience.study_task_intake")
@@ -523,7 +525,11 @@ def test_study_progress_does_not_show_explicit_resume_when_runtime_recovery_is_r
     progress = importlib.import_module("med_autoscience.controllers.study_progress.projection")
     helpers = importlib.import_module("tests.study_runtime_test_helpers")
     profile = helpers.make_profile(tmp_path)
-    study_root = helpers.write_study(profile.workspace_root, "002-dm-china-us-mortality-attribution")
+    study_root = helpers.write_study(
+        profile.workspace_root,
+        "002-dm-china-us-mortality-attribution",
+        with_opl_runtime_handoff=True,
+    )
     quest_root = profile.runtime_root / "002-dm-china-us-mortality-attribution"
 
     monkeypatch.setattr(
@@ -567,7 +573,9 @@ def test_current_owner_action_supersedes_operator_explicit_resume_lane(
     helpers = importlib.import_module("tests.study_runtime_test_helpers")
     profile = helpers.make_profile(tmp_path)
     study_id = "003-dpcc-primary-care-phenotype-treatment-gap"
-    study_root = helpers.write_study(profile.workspace_root, study_id)
+    study_root = helpers.write_study(
+        profile.workspace_root, study_id, with_opl_runtime_handoff=True
+    )
     quest_root = profile.runtime_root / study_id
 
     monkeypatch.setattr(
@@ -646,7 +654,9 @@ def test_study_progress_reads_dm002_malformed_publication_surface_blockers(
     helpers = importlib.import_module("tests.study_runtime_test_helpers")
     profile = helpers.make_profile(tmp_path)
     study_id = "002-dm-china-us-mortality-attribution"
-    study_root = helpers.write_study(profile.workspace_root, study_id)
+    study_root = helpers.write_study(
+        profile.workspace_root, study_id, with_opl_runtime_handoff=True
+    )
     quest_root = profile.runtime_root / study_id
     paper_root = helpers.write_synced_submission_delivery(study_root, quest_root)
     helpers.write_text(

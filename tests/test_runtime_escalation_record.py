@@ -46,9 +46,9 @@ def test_runtime_escalation_record_from_payload_round_trips_minimal_shape() -> N
             "/tmp/runtime/quests/quest-001/artifacts/reports/startup/hydration_validation_report.json",
         ],
         "runtime_context_refs": {
-            "launch_report_path": "/tmp/workspace/studies/001-risk/artifacts/runtime/last_launch_report.json"
+            "opl_runtime_context_ref": "/tmp/workspace/studies/001-risk/artifacts/supervision/opl_runtime_owner_handoff/latest.json"
         },
-        "summary_ref": "/tmp/workspace/studies/001-risk/artifacts/runtime/last_launch_report.json",
+        "summary_ref": "/tmp/workspace/studies/001-risk/artifacts/supervision/opl_runtime_owner_handoff/latest.json",
         "artifact_path": "/tmp/runtime/quests/quest-001/artifacts/reports/escalation/runtime_escalation_record.json",
     }
 
@@ -73,9 +73,9 @@ def test_runtime_escalation_record_from_payload_round_trips_minimal_shape() -> N
             "/tmp/runtime/quests/quest-001/artifacts/reports/startup/hydration_validation_report.json",
         ),
         runtime_context_refs={
-            "launch_report_path": "/tmp/workspace/studies/001-risk/artifacts/runtime/last_launch_report.json"
+            "opl_runtime_context_ref": "/tmp/workspace/studies/001-risk/artifacts/supervision/opl_runtime_owner_handoff/latest.json"
         },
-        summary_ref="/tmp/workspace/studies/001-risk/artifacts/runtime/last_launch_report.json",
+        summary_ref="/tmp/workspace/studies/001-risk/artifacts/supervision/opl_runtime_owner_handoff/latest.json",
         artifact_path="/tmp/runtime/quests/quest-001/artifacts/reports/escalation/runtime_escalation_record.json",
     )
     assert record.to_dict() == payload
@@ -106,8 +106,8 @@ def test_runtime_escalation_writer_and_reader_preserve_quest_artifact_abi(tmp_pa
         "reason": "blocked",
         "recommended_actions": ["controller_review_required"],
         "evidence_refs": [],
-        "runtime_context_refs": {"launch_report_path": "/tmp/last_launch_report.json"},
-        "summary_ref": "/tmp/last_launch_report.json",
+        "runtime_context_refs": {"opl_runtime_context_ref": "/tmp/opl_runtime_owner_handoff.json"},
+        "summary_ref": "/tmp/opl_runtime_owner_handoff.json",
     }
     record = module.RuntimeEscalationRecord.from_payload(payload)
 
@@ -137,7 +137,7 @@ def test_runtime_escalation_record_requires_summary_ref() -> None:
                 "severity": "quest",
                 "reason": "startup_boundary_not_ready_for_resume",
                 "recommended_actions": ["refresh_startup_hydration", "controller_review_required"],
-                "runtime_context_refs": {"launch_report_path": "/tmp/workspace/studies/001-risk/artifacts/runtime/last_launch_report.json"},
+                "runtime_context_refs": {"opl_runtime_context_ref": "/tmp/workspace/studies/001-risk/artifacts/supervision/opl_runtime_owner_handoff/latest.json"},
             }
         )
 
@@ -160,6 +160,6 @@ def test_runtime_escalation_record_requires_recommended_actions() -> None:
                 "scope": "quest",
                 "severity": "quest",
                 "reason": "startup_boundary_not_ready_for_resume",
-                "summary_ref": "/tmp/workspace/studies/001-risk/artifacts/runtime/last_launch_report.json",
+                "summary_ref": "/tmp/workspace/studies/001-risk/artifacts/supervision/opl_runtime_owner_handoff/latest.json",
             }
         )

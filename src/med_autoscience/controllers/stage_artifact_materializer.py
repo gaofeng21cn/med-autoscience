@@ -34,7 +34,7 @@ _ROLE_SOURCE_CANDIDATES: dict[str, tuple[str, ...]] = {
         "artifacts/intake",
     ),
     "study_intake_owner_receipt": (
-        "runtime_binding.yaml",
+        "artifacts/supervision/opl_runtime_owner_handoff/latest.json",
         "artifacts/study_delivery_mirror",
         "artifacts/stage_knowledge/scout",
     ),

@@ -71,7 +71,6 @@ from med_autoscience.publication_eval_record import (
 )
 from med_autoscience.controllers import paper_artifacts
 from med_autoscience.runtime_protocol import quest_state
-from med_autoscience.runtime_protocol import study_runtime as study_runtime_protocol
 from med_autoscience.study_charter import read_study_charter
 from med_autoscience.study_completion import StudyCompletionStateStatus
 from med_autoscience.study_manual_finish import (

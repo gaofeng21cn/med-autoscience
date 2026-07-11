@@ -369,7 +369,15 @@ def test_progress_projection_normalizes_study_completion_contract_to_typed_state
     payload = make_status_payload(
         study_root=str(tmp_path / "studies" / "001-risk"),
         quest_root=str(tmp_path / "runtime" / "quests" / "quest-001"),
-        runtime_binding_path=str(tmp_path / "studies" / "001-risk" / "runtime_binding.yaml"),
+        runtime_status_path=str(
+            tmp_path
+            / "studies"
+            / "001-risk"
+            / "artifacts"
+            / "supervision"
+            / "opl_runtime_owner_handoff"
+            / "latest.json"
+        ),
         study_completion_contract={"status": "absent", "ready": False, "errors": []},
     )
 
@@ -439,11 +447,6 @@ def test_progress_projection_records_structured_runtime_extras() -> None:
     )
     status.record_completion_sync(make_completion_sync_payload())
     status.record_bash_session_audit({"status": "live"})
-    status.record_runtime_artifacts(
-        runtime_binding_path=Path("/tmp/studies/001-risk/runtime_binding.updated.yaml"),
-        launch_report_path=Path("/tmp/studies/001-risk/launch_report.json"),
-        startup_payload_path=Path("/tmp/runtime/startup_payloads/001-risk.json"),
-    )
 
     payload = status.to_dict()
 
@@ -460,9 +463,6 @@ def test_progress_projection_records_structured_runtime_extras() -> None:
     )
     assert payload["completion_sync"] == make_completion_sync_payload()
     assert payload["bash_session_audit"] == {"status": "live"}
-    assert payload["runtime_binding_path"] == "/tmp/studies/001-risk/runtime_binding.updated.yaml"
-    assert payload["launch_report_path"] == "/tmp/studies/001-risk/launch_report.json"
-    assert payload["startup_payload_path"] == "/tmp/runtime/startup_payloads/001-risk.json"
 def test_progress_projection_records_typed_completion_sync_and_audits() -> None:
     module = importlib.import_module("med_autoscience.controllers.domain_status_projection")
     status = module.ProgressProjectionStatus.from_payload(make_status_payload(execution={"quest_id": "quest-001"}))
@@ -660,31 +660,6 @@ def test_progress_projection_exposes_typed_gate_and_completion_accessors() -> No
     assert status.study_completion_state.ready is True
     assert status.study_completion_state.contract is not None
     assert status.study_completion_state.contract.status.value == "completed"
-def test_progress_projection_records_runtime_artifacts_with_binding_existence(tmp_path: Path) -> None:
-    module = importlib.import_module("med_autoscience.controllers.domain_status_projection")
-    binding_path = tmp_path / "studies" / "001-risk" / "runtime_binding.yaml"
-    launch_report_path = tmp_path / "studies" / "001-risk" / "artifacts" / "runtime" / "last_launch_report.json"
-    startup_payload_path = tmp_path / "runtime" / "startup_payloads" / "001-risk.json"
-    status = module.ProgressProjectionStatus.from_payload(
-        make_status_payload(
-            study_root=str(tmp_path / "studies" / "001-risk"),
-            quest_root=str(tmp_path / "runtime" / "quests" / "quest-001"),
-            runtime_binding_path=str(binding_path),
-            runtime_binding_exists=False,
-        )
-    )
-
-    status.record_runtime_artifacts(
-        runtime_binding_path=binding_path,
-        launch_report_path=launch_report_path,
-        startup_payload_path=startup_payload_path,
-    )
-
-    payload = status.to_dict()
-
-    assert payload["runtime_binding_exists"] is False
-    assert payload["launch_report_path"] == str(launch_report_path)
-    assert payload["startup_payload_path"] == str(startup_payload_path)
 def test_progress_projection_records_autonomous_runtime_notice_payload() -> None:
     module = importlib.import_module("med_autoscience.controllers.domain_status_projection")
     status = module.ProgressProjectionStatus.from_payload(make_status_payload())
@@ -702,7 +677,7 @@ def test_progress_projection_records_autonomous_runtime_notice_payload() -> None
             "quest_session_api_url": "http://127.0.0.1:20999/api/quests/001-risk/session",
             "monitoring_available": True,
             "monitoring_error": None,
-            "launch_report_path": "/tmp/studies/001-risk/artifacts/runtime/last_launch_report.json",
+            "runtime_status_path": "/tmp/studies/001-risk/artifacts/supervision/opl_runtime_owner_handoff/latest.json",
         }
     )
 
@@ -718,7 +693,7 @@ def test_progress_projection_records_autonomous_runtime_notice_payload() -> None
         "quest_session_api_url": "http://127.0.0.1:20999/api/quests/001-risk/session",
         "monitoring_available": True,
         "monitoring_error": None,
-        "launch_report_path": "/tmp/studies/001-risk/artifacts/runtime/last_launch_report.json",
+        "runtime_status_path": "/tmp/studies/001-risk/artifacts/supervision/opl_runtime_owner_handoff/latest.json",
     }
 def test_progress_projection_records_execution_owner_guard_payload() -> None:
     module = importlib.import_module("med_autoscience.controllers.domain_status_projection")

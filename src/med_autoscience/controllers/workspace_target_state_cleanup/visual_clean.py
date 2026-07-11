@@ -32,13 +32,6 @@ STUDY_ACTIVE_ROOTS = {
     "_archive": "study_archive_provenance",
 }
 
-STUDY_ACTIVE_LOCATOR_TAILS = {
-    "runtime_binding.yaml": {
-        "role": "active_runtime_binding_locator_tail",
-        "reason": "runtime_binding.yaml remains an active MAS runtime locator until the runtime-binding control-surface migration lands",
-    },
-}
-
 OPS_ACTIVE_ROOTS = {
     "medautoscience": "canonical_mas_workspace_ops_entry",
     "data_assets": "workspace_data_asset_ops",
@@ -156,20 +149,6 @@ def study_visual_cleanup_plan(
                         source=entry,
                         role=STUDY_ACTIVE_ROOTS[name],
                         decision="keep_active_study_root",
-                    )
-                )
-                continue
-            if name in STUDY_ACTIVE_LOCATOR_TAILS:
-                tail = STUDY_ACTIVE_LOCATOR_TAILS[name]
-                actions.append(
-                    _study_action(
-                        workspace_root=workspace_root,
-                        study_id=study_id,
-                        source=entry,
-                        role=str(tail["role"]),
-                        decision="keep_active_locator_tail",
-                        blocker_id="runtime_binding_control_surface_migration_pending",
-                        reason=str(tail["reason"]),
                     )
                 )
                 continue

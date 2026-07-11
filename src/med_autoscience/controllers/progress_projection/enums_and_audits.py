@@ -7,7 +7,6 @@ from os import PathLike
 from pathlib import Path
 from typing import Any
 
-from med_autoscience.runtime_protocol import study_runtime as study_runtime_protocol
 from med_autoscience.study_completion import (
     StudyCompletionState,
     StudyCompletionStateStatus,
@@ -245,14 +244,14 @@ class StudyRuntimeAutonomousRuntimeNotice:
     quest_session_api_url: str | None
     monitoring_available: bool
     monitoring_error: str | None
-    launch_report_path: str
+    runtime_status_path: str
 
     def __post_init__(self) -> None:
         if not isinstance(self.required, bool):
             raise TypeError("study runtime autonomous notice required must be bool")
         if not isinstance(self.monitoring_available, bool):
             raise TypeError("study runtime autonomous notice monitoring_available must be bool")
-        for field_name in ("notice_key", "notification_reason", "quest_id", "quest_status", "launch_report_path"):
+        for field_name in ("notice_key", "notification_reason", "quest_id", "quest_status", "runtime_status_path"):
             value = getattr(self, field_name)
             if not isinstance(value, str) or not value.strip():
                 raise TypeError(f"study runtime autonomous notice {field_name} must be non-empty str")
@@ -274,7 +273,7 @@ class StudyRuntimeAutonomousRuntimeNotice:
             "quest_session_api_url": self.quest_session_api_url,
             "monitoring_available": self.monitoring_available,
             "monitoring_error": self.monitoring_error,
-            "launch_report_path": self.launch_report_path,
+            "runtime_status_path": self.runtime_status_path,
         }
 
     @classmethod
@@ -293,7 +292,7 @@ class StudyRuntimeAutonomousRuntimeNotice:
             quest_session_api_url=str(payload.get("quest_session_api_url") or "").strip() or None,
             monitoring_available=bool(payload.get("monitoring_available")),
             monitoring_error=str(payload.get("monitoring_error") or "").strip() or None,
-            launch_report_path=str(payload.get("launch_report_path") or ""),
+            runtime_status_path=str(payload.get("runtime_status_path") or ""),
         )
 
 
@@ -305,7 +304,7 @@ class StudyRuntimeSummaryAlignment:
     source_active_run_id: str | None
     source_runtime_liveness_status: str | None
     source_supervisor_tick_status: str | None
-    launch_report_path: str
+    runtime_status_path: str
     launch_report_exists: bool
     launch_report_quest_status: str | None
     launch_report_active_run_id: str | None
@@ -319,7 +318,7 @@ class StudyRuntimeSummaryAlignment:
     stale_launch_report_runtime_liveness_status: str | None = None
 
     def __post_init__(self) -> None:
-        for field_name in ("source_of_truth", "runtime_state_path", "launch_report_path"):
+        for field_name in ("source_of_truth", "runtime_state_path", "runtime_status_path"):
             value = getattr(self, field_name)
             if not isinstance(value, str) or not value.strip():
                 raise TypeError(f"study runtime summary alignment {field_name} must be non-empty str")
@@ -351,7 +350,7 @@ class StudyRuntimeSummaryAlignment:
             "source_active_run_id": self.source_active_run_id,
             "source_runtime_liveness_status": self.source_runtime_liveness_status,
             "source_supervisor_tick_status": self.source_supervisor_tick_status,
-            "launch_report_path": self.launch_report_path,
+            "runtime_status_path": self.runtime_status_path,
             "launch_report_exists": self.launch_report_exists,
             "launch_report_quest_status": self.launch_report_quest_status,
             "launch_report_active_run_id": self.launch_report_active_run_id,
@@ -376,7 +375,7 @@ class StudyRuntimeSummaryAlignment:
             source_active_run_id=str(payload.get("source_active_run_id") or "").strip() or None,
             source_runtime_liveness_status=str(payload.get("source_runtime_liveness_status") or "").strip() or None,
             source_supervisor_tick_status=str(payload.get("source_supervisor_tick_status") or "").strip() or None,
-            launch_report_path=str(payload.get("launch_report_path") or ""),
+            runtime_status_path=str(payload.get("runtime_status_path") or ""),
             launch_report_exists=bool(payload.get("launch_report_exists")),
             launch_report_quest_status=str(payload.get("launch_report_quest_status") or "").strip() or None,
             launch_report_active_run_id=str(payload.get("launch_report_active_run_id") or "").strip() or None,

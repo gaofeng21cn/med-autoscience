@@ -78,7 +78,7 @@ def read_projection_surface_payloads(
         )
     )
     return ProjectionSurfacePayloads(
-        launch_report_payload=_read_json_object(paths.launch_report_path),
+        launch_report_payload=_read_json_object(paths.runtime_status_path),
         controller_decision_payload=controller_decision_payload,
         controller_confirmation_summary_path=controller_confirmation_summary_path,
         controller_confirmation_summary=controller_confirmation_summary,

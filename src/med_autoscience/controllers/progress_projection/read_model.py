@@ -49,8 +49,6 @@ def status_to_dict(status: Any) -> dict[str, Any]:
         "quest_root": status.quest_root,
         "quest_exists": status.quest_exists,
         "quest_status": status.quest_status.value if status.quest_status is not None else None,
-        "runtime_binding_path": status.runtime_binding_path,
-        "runtime_binding_exists": status.runtime_binding_exists,
         "workspace_contracts": status.workspace_contracts,
         "startup_data_readiness": status.startup_data_readiness,
         "startup_boundary_gate": status.startup_boundary_gate,

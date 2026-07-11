@@ -262,7 +262,7 @@ def test_delivery_sync_does_not_derive_submission_authority_from_projection_surf
             runtime_status_ref=str(
                 study_root / "artifacts" / "supervision" / "opl_runtime_owner_handoff" / "latest.json"
             ),
-            runtime_artifact_ref=str(study_root / "artifacts" / "runtime" / "last_launch_report.json"),
+            runtime_artifact_ref=str(study_root / "artifacts" / "supervision" / "opl_runtime_owner_handoff" / "latest.json"),
             runtime_escalation_record_ref=None,
             runtime_readback_report_ref=None,
             health_status="unknown",

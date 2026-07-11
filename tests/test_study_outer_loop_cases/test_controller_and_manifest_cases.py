@@ -5,7 +5,7 @@ from tests.test_study_outer_loop_cases.shared import (
     _write_charter,
     _write_publication_eval,
     _write_runtime_escalation_record,
-    _write_runtime_event_record,
+    _write_runtime_event_fixture,
     importlib,
     json,
     make_profile,
@@ -171,7 +171,7 @@ def test_study_outer_loop_tick_reads_runtime_escalation_ref_from_runtime_event_c
     )
     quest_root = profile.managed_runtime_home / "quests" / "quest-001"
     runtime_escalation_ref = _write_runtime_escalation_record(module, quest_root, study_root)
-    runtime_event_ref = _write_runtime_event_record(
+    runtime_event_ref = _write_runtime_event_fixture(
         quest_root,
         study_root,
         runtime_escalation_ref=runtime_escalation_ref,
@@ -216,7 +216,7 @@ def test_study_outer_loop_tick_reads_runtime_escalation_ref_from_runtime_event_c
 
     assert result["runtime_escalation_ref"] == runtime_escalation_ref
     assert result["runtime_status"]["runtime_event_id"] == runtime_event_ref["event_id"]
-def test_study_outer_loop_tick_falls_back_to_status_surface_when_runtime_event_ref_is_missing(
+def test_study_outer_loop_tick_fails_closed_without_explicit_opl_runtime_ref(
     monkeypatch,
     tmp_path: Path,
 ) -> None:
@@ -258,27 +258,25 @@ def test_study_outer_loop_tick_falls_back_to_status_surface_when_runtime_event_r
         },
     )
 
-    result = module.study_outer_loop_tick(
-        profile=profile,
-        study_id="001-risk",
-        charter_ref=charter_ref,
-        publication_eval_ref=publication_eval_ref,
-        decision_type="continue_same_line",
-        requires_human_confirmation=False,
-        controller_actions=[
-            {
-                "action_type": "request_opl_stage_attempt",
-                "payload_ref": str(study_root / "artifacts" / "controller_decisions" / "latest.json"),
-            }
-        ],
-        reason="Publication eval keeps the study on the same line.",
-    )
-
-    assert result["runtime_escalation_ref"] == runtime_escalation_ref
-    assert result["runtime_status"] == {
-        "decision": "resume",
-        "reason": "publication_quality_gap",
-    }
+    with pytest.raises(
+        ValueError,
+        match="requires an explicit OPL current-control, transition-receipt, owner-handoff, or runtime-event ref",
+    ):
+        module.study_outer_loop_tick(
+            profile=profile,
+            study_id="001-risk",
+            charter_ref=charter_ref,
+            publication_eval_ref=publication_eval_ref,
+            decision_type="continue_same_line",
+            requires_human_confirmation=False,
+            controller_actions=[
+                {
+                    "action_type": "request_opl_stage_attempt",
+                    "payload_ref": str(study_root / "artifacts" / "controller_decisions" / "latest.json"),
+                }
+            ],
+            reason="Publication eval keeps the study on the same line.",
+        )
 def test_study_outer_loop_tick_fails_closed_when_runtime_event_quest_identity_mismatches_status(
     monkeypatch,
     tmp_path: Path,
@@ -298,7 +296,7 @@ def test_study_outer_loop_tick_fails_closed_when_runtime_event_quest_identity_mi
     )
     quest_root = profile.managed_runtime_home / "quests" / "quest-001"
     runtime_escalation_ref = _write_runtime_escalation_record(module, quest_root, study_root)
-    runtime_event_ref = _write_runtime_event_record(
+    runtime_event_ref = _write_runtime_event_fixture(
         quest_root,
         study_root,
         quest_id="quest-other",
@@ -362,7 +360,7 @@ def test_study_outer_loop_tick_fails_closed_when_runtime_event_supervisor_tick_i
     )
     quest_root = profile.managed_runtime_home / "quests" / "quest-001"
     runtime_escalation_ref = _write_runtime_escalation_record(module, quest_root, study_root)
-    runtime_event_ref = _write_runtime_event_record(
+    runtime_event_ref = _write_runtime_event_fixture(
         quest_root,
         study_root,
         supervisor_tick_status="stale",

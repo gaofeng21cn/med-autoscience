@@ -86,7 +86,7 @@ def test_materialize_evaluation_summary_artifacts_writes_typed_stable_surfaces(t
                     / "runtime_escalation_record.json"
                 ).resolve()
             ),
-            "summary_ref": str((study_root / "artifacts" / "runtime" / "last_launch_report.json").resolve()),
+            "summary_ref": str((study_root / "artifacts" / "supervision" / "opl_runtime_owner_handoff" / "latest.json").resolve()),
         },
         "overall_verdict": "blocked",
         "primary_claim_status": "partial",
@@ -127,7 +127,7 @@ def test_materialize_evaluation_summary_artifacts_writes_typed_stable_surfaces(t
                     / "runtime_escalation_record.json"
                 ).resolve()
             ),
-            "summary_ref": str((study_root / "artifacts" / "runtime" / "last_launch_report.json").resolve()),
+            "summary_ref": str((study_root / "artifacts" / "supervision" / "opl_runtime_owner_handoff" / "latest.json").resolve()),
         },
         "promotion_gate_ref": {
             "gate_id": "promotion-gate::001-risk::quest-001::2026-04-05T06:05:00+00:00",

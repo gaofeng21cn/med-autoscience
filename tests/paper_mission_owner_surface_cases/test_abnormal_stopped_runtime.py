@@ -20,7 +20,12 @@ def test_scan_domain_routes_does_not_repair_paused_delivered_package_without_liv
     module = importlib.import_module("med_autoscience.controllers.paper_mission_owner_surface")
     monkeypatch.setenv("MAS_DEVELOPER_SUPERVISOR_GITHUB_LOGIN", "gaofeng21cn")
     profile = make_profile(tmp_path)
-    study_root = write_study(profile.workspace_root, "001-dm-cvd-mortality-risk", quest_id="quest-dm")
+    study_root = write_study(
+        profile.workspace_root,
+        "001-dm-cvd-mortality-risk",
+        quest_id="quest-dm",
+        with_opl_runtime_handoff=True,
+    )
     quest_root = profile.runtime_root / "quest-dm"
     _write_json(
         study_root / "manuscript" / "delivery_manifest.json",
@@ -88,7 +93,12 @@ def test_scan_domain_routes_prefers_current_ai_reviewer_publication_eval_over_st
     module = importlib.import_module("med_autoscience.controllers.paper_mission_owner_surface")
     monkeypatch.setenv("MAS_DEVELOPER_SUPERVISOR_GITHUB_LOGIN", "gaofeng21cn")
     profile = make_profile(tmp_path)
-    study_root = write_study(profile.workspace_root, "001-dm-cvd-mortality-risk", quest_id="quest-dm")
+    study_root = write_study(
+        profile.workspace_root,
+        "001-dm-cvd-mortality-risk",
+        quest_id="quest-dm",
+        with_opl_runtime_handoff=True,
+    )
     publication_eval_path = study_root / "artifacts" / "publication_eval" / "latest.json"
     _write_json(
         publication_eval_path,

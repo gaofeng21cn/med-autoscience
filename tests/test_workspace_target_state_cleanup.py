@@ -92,7 +92,11 @@ def test_workspace_target_state_cleanup_rewrites_refs_before_physical_moves(tmp_
     write_text(study_root / "brief.md", "Brief uses ../../refs/legacy and portfolio memory.\n")
     write_text(study_root / "analysis" / "scripts" / "prepare.py", 'INPUT = "datasets/master/v1"\n')
     provenance_files = {
-        study_root / "artifacts" / "runtime" / "last_launch_report.json": '{"source": "datasets/master/v1"}\n',
+        study_root
+        / "artifacts"
+        / "supervision"
+        / "opl_runtime_owner_handoff"
+        / "latest.json": '{"source": "datasets/master/v1"}\n',
         study_root
         / "artifacts"
         / "stage_knowledge"
@@ -128,7 +132,10 @@ def test_workspace_target_state_cleanup_rewrites_refs_before_physical_moves(tmp_
     assert "studies/003-dpcc/study.yaml" in candidate_files
     assert "studies/003-dpcc/brief.md" in candidate_files
     assert "studies/003-dpcc/analysis/scripts/prepare.py" in candidate_files
-    assert "studies/003-dpcc/artifacts/runtime/last_launch_report.json" not in candidate_files
+    assert (
+        "studies/003-dpcc/artifacts/supervision/opl_runtime_owner_handoff/latest.json"
+        not in candidate_files
+    )
     assert "studies/003-dpcc/artifacts/supervision/consumer/stage_attempt_closeouts/closeout.json" not in candidate_files
     assert "studies/003-dpcc/paper/draft.md" not in candidate_files
     assert "studies/003-dpcc/publication/current_package/package.json" not in candidate_files
@@ -253,7 +260,6 @@ def test_workspace_target_state_cleanup_visual_clean_archives_study_local_residu
         for action in visual_plan["study_actions"]
         if action["study_id"] == "003-dpcc"
     }
-    assert decisions["runtime_binding.yaml"] == "keep_active_locator_tail"
     assert decisions["manuscript"] == "archive"
     assert decisions["notes"] == "archive"
     assert decisions["experiments"] == "archive"
@@ -283,7 +289,6 @@ def test_workspace_target_state_cleanup_visual_clean_archives_study_local_residu
     assert not (study_root / "notes").exists()
     assert not (study_root / "experiments").exists()
     assert not (study_root / "submission_packages").exists()
-    assert (study_root / "runtime_binding.yaml").is_file()
     assert set(item.name for item in study_root.iterdir()) == {
         "STUDY_STATUS.md",
         "_archive",
@@ -294,10 +299,9 @@ def test_workspace_target_state_cleanup_visual_clean_archives_study_local_residu
         "paper",
         "paper.yaml",
         "publication",
-        "runtime_binding.yaml",
         "study.yaml",
     }
-    assert result["validation"]["study_visual_locator_tails"][0]["source"] == "runtime_binding.yaml"
+    assert result["validation"]["study_visual_locator_tails"] == []
 
 
 def test_workspace_target_state_cleanup_visual_clean_archives_ops_residue(tmp_path: Path) -> None:

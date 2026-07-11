@@ -18,7 +18,12 @@ def test_scan_domain_routes_can_project_without_overwriting_workspace_latest(
     monkeypatch.setenv("MAS_DEVELOPER_SUPERVISOR_GITHUB_LOGIN", "gaofeng21cn")
     profile = make_profile(tmp_path)
     study_id = "003-dpcc-primary-care-phenotype-treatment-gap"
-    study_root = write_study(profile.workspace_root, study_id, quest_id="quest-dpcc")
+    study_root = write_study(
+        profile.workspace_root,
+        study_id,
+        quest_id="quest-dpcc",
+        with_opl_runtime_handoff=True,
+    )
     quest_root = profile.runtime_root / "quest-dpcc"
     latest_path = (
         profile.workspace_root
@@ -83,7 +88,12 @@ def test_external_observe_scan_reads_progress_without_materializing_controller_d
     module = importlib.import_module("med_autoscience.controllers.paper_mission_owner_surface")
     profile = make_profile(tmp_path)
     study_id = "002-dm-china-us-mortality-attribution"
-    study_root = write_study(profile.workspace_root, study_id, quest_id=study_id)
+    study_root = write_study(
+        profile.workspace_root,
+        study_id,
+        quest_id=study_id,
+        with_opl_runtime_handoff=True,
+    )
     calls: dict[str, dict[str, object]] = {}
 
     def status_reader(**kwargs: object) -> dict[str, object]:
@@ -123,8 +133,18 @@ def test_persisted_single_study_scan_preserves_unscanned_study_handoff(
     profile = make_profile(tmp_path)
     retained_study_id = "002-dm-china-us-mortality-attribution"
     scanned_study_id = "003-dpcc-primary-care-phenotype-treatment-gap"
-    retained_root = write_study(profile.workspace_root, retained_study_id, quest_id="quest-dm002")
-    scanned_root = write_study(profile.workspace_root, scanned_study_id, quest_id="quest-dpcc")
+    retained_root = write_study(
+        profile.workspace_root,
+        retained_study_id,
+        quest_id="quest-dm002",
+        with_opl_runtime_handoff=True,
+    )
+    scanned_root = write_study(
+        profile.workspace_root,
+        scanned_study_id,
+        quest_id="quest-dpcc",
+        with_opl_runtime_handoff=True,
+    )
     scanned_quest_root = profile.runtime_root / "quest-dpcc"
     latest_path = (
         profile.workspace_root

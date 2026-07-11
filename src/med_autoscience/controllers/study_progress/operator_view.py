@@ -589,7 +589,7 @@ def _task_intake_override_event_summary(task_intake_progress_override: dict[str,
 def _latest_events(
     *,
     launch_report_payload: dict[str, Any] | None,
-    launch_report_path: Path,
+    runtime_status_path: Path,
     opl_runtime_owner_handoff_payload: dict[str, Any] | None,
     opl_runtime_owner_handoff_path: Path | None,
     runtime_escalation_payload: dict[str, Any] | None,
@@ -755,7 +755,7 @@ def _latest_events(
                 title="研究运行状态回写",
                 summary=summary,
                 source="launch_report",
-                artifact_path=launch_report_path,
+                artifact_path=runtime_status_path,
             )
             if item is not None:
                 events.append(item)

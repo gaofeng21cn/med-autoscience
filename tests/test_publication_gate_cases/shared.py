@@ -93,7 +93,6 @@ def make_quest(
     worktree_root.mkdir(parents=True, exist_ok=True)
     study_root.mkdir(parents=True, exist_ok=True)
     (study_root / "study.yaml").write_text("study_id: 002-early-residual-risk\n", encoding="utf-8")
-    (study_root / "runtime_binding.yaml").write_text("quest_id: 002-early-residual-risk\n", encoding="utf-8")
     (quest_root / "quest.yaml").write_text(
         dedent(
             """
@@ -406,4 +405,3 @@ def write_journal_requirements_snapshot(study_root: Path) -> None:
         study_root / "paper" / "journal_requirements" / "rheumatology-international" / "requirements.md",
         "# Requirements\n",
     )
-

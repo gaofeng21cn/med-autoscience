@@ -26,7 +26,6 @@ from med_autoscience.controller_summary import materialize_controller_summary
 from med_autoscience.policies.automation_ready import render_automation_ready_summary
 from med_autoscience.policies.controller_first import render_controller_first_summary
 from med_autoscience.profiles import WorkspaceProfile
-from med_autoscience.runtime_protocol import study_runtime as study_runtime_protocol
 from med_autoscience.startup_contract import compose_startup_contract
 from med_autoscience.study_charter import materialize_study_charter
 from med_autoscience.study_task_intake import (

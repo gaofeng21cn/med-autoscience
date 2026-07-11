@@ -6,7 +6,6 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Mapping
 
-import yaml
 
 from med_autoscience.profiles import WorkspaceProfile, load_profile
 from med_autoscience.domain_route_profile import (
@@ -230,23 +229,10 @@ def _canonical_paper_repair_quest_id(
     work_unit: Mapping[str, Any],
     study_id: str,
 ) -> str:
-    binding_quest_id = _quest_id_from_runtime_binding(study_root / "runtime_binding.yaml")
-    return (
-        binding_quest_id
-        or _text(payload.get("quest_id"))
-        or _text(work_unit.get("quest_id"))
-        or f"quest-{study_id}"
-    )
-
-
-def _quest_id_from_runtime_binding(path: Path) -> str | None:
-    try:
-        payload = yaml.safe_load(path.read_text(encoding="utf-8")) or {}
-    except (OSError, yaml.YAMLError):
-        return None
-    if not isinstance(payload, Mapping):
-        return None
-    return _text(payload.get("quest_id"))
+    quest_id = _text(payload.get("quest_id")) or _text(work_unit.get("quest_id"))
+    if quest_id is None:
+        raise ValueError(f"paper repair task for study {study_id} requires an explicit quest_id")
+    return quest_id
 
 
 def _execute_ai_reviewer_recheck(

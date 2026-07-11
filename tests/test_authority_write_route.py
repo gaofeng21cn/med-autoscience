@@ -386,7 +386,7 @@ def test_quality_repair_batch_derives_route_context_from_runtime_status(
             "publication_objective": "risk stratification validation",
         },
         "runtime_context_refs": {
-            "runtime_escalation_ref": str(study_root / "artifacts" / "runtime" / "last_launch_report.json"),
+            "runtime_escalation_ref": str(study_root / "artifacts" / "supervision" / "opl_runtime_owner_handoff" / "latest.json"),
             "main_result_ref": str(study_root / "artifacts" / "results" / "main_result.json"),
         },
         "delivery_context_refs": {
@@ -496,7 +496,7 @@ def test_quality_repair_batch_uses_paper_route_for_upstream_repair_under_downstr
                 "publication_objective": "risk stratification validation",
             },
             "runtime_context_refs": {
-                "runtime_escalation_ref": str(study_root / "artifacts" / "runtime" / "last_launch_report.json"),
+                "runtime_escalation_ref": str(study_root / "artifacts" / "supervision" / "opl_runtime_owner_handoff" / "latest.json"),
                 "main_result_ref": str(study_root / "artifacts" / "results" / "main_result.json"),
             },
             "delivery_context_refs": {
@@ -646,7 +646,7 @@ def test_quality_repair_batch_uses_runtime_authorization_for_submission_refresh_
             "publication_objective": "primary care phenotype treatment gap",
         },
         "runtime_context_refs": {
-            "runtime_escalation_ref": str(study_root / "artifacts" / "runtime" / "last_launch_report.json"),
+            "runtime_escalation_ref": str(study_root / "artifacts" / "supervision" / "opl_runtime_owner_handoff" / "latest.json"),
             "main_result_ref": str(study_root / "artifacts" / "results" / "main_result.json"),
         },
         "delivery_context_refs": {

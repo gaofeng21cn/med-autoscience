@@ -68,8 +68,9 @@ def test_study_progress_does_not_project_study_completed_when_completion_contrac
                 "freshness": "current",
                 "can_submit": True,
             },
-            "runtime_binding_path": str(study_root / "runtime_binding.yaml"),
-            "runtime_binding_exists": True,
+            "runtime_status_path": str(
+                study_root / "artifacts" / "supervision" / "opl_runtime_owner_handoff" / "latest.json"
+            ),
             "study_completion_contract": {
                 "ready": False,
                 "status": "incomplete",

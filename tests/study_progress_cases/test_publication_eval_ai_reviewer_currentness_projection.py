@@ -27,6 +27,22 @@ _AI_REVIEWER_DIMENSIONS = (
 )
 
 
+def _write_opl_runtime_owner_handoff(study_root: Path) -> Path:
+    path = study_root / "artifacts" / "supervision" / "opl_runtime_owner_handoff" / "latest.json"
+    _write_json(
+        path,
+        {
+            "surface_kind": "mas_opl_runtime_owner_handoff",
+            "schema_version": 1,
+            "recorded_at": "2026-04-12T09:49:00+00:00",
+            "status": "owner_receipt_written",
+            "runtime_owner": "one-person-lab",
+            "domain_owner": "med-autoscience",
+        },
+    )
+    return path
+
+
 def _valid_reviewer_operating_system(study_root: Path, quest_root: Path, *, eval_id: str) -> dict[str, object]:
     manuscript_ref = str(study_root / "paper" / "draft.md")
     evidence_ref = str(study_root / "paper" / "evidence_ledger.json")
@@ -285,6 +301,7 @@ def test_publication_runtime_refresh_does_not_demote_ai_reviewer_eval_to_mechani
     quest_root = tmp_path / "runtime" / "quests" / "quest-001"
     publication_eval_path = study_root / "artifacts" / "publication_eval" / "latest.json"
     gate_report_path = quest_root / "artifacts" / "reports" / "publishability_gate" / "latest.json"
+    _write_opl_runtime_owner_handoff(study_root)
     _write_json(
         publication_eval_path,
         {
@@ -404,6 +421,7 @@ def test_publication_runtime_refreshes_stale_evaluation_summary_without_runtime_
     )
     study_root = tmp_path / "study"
     quest_root = tmp_path / "runtime" / "quests" / "quest-001"
+    _write_opl_runtime_owner_handoff(study_root)
     _write_study_charter_and_controller_summary(study_root)
     publication_eval_path = _write_publication_eval(
         study_root,

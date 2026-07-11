@@ -55,7 +55,12 @@ def test_scan_domain_routes_does_not_count_control_surface_progress_as_artifact_
     monkeypatch.setenv("MAS_DEVELOPER_SUPERVISOR_GITHUB_LOGIN", "gaofeng21cn")
     profile = make_profile(tmp_path)
     study_id = "002-dm-china-us-mortality-attribution"
-    study_root = write_study(profile.workspace_root, study_id, quest_id="quest-dm002")
+    study_root = write_study(
+        profile.workspace_root,
+        study_id,
+        quest_id="quest-dm002",
+        with_opl_runtime_handoff=True,
+    )
     quest_root = profile.runtime_root / "quest-dm002"
     previous_route = {
         "surface": "domain_route_owner_route",

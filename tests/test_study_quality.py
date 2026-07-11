@@ -792,9 +792,9 @@ def test_evaluation_summary_materializes_study_quality_truth_on_durable_surface(
             "recommended_actions": ["return_to_controller", "review_publishability_gate"],
             "evidence_refs": [str(gate_report_path)],
             "runtime_context_refs": {
-                "launch_report_path": str(study_root / "artifacts" / "runtime" / "last_launch_report.json"),
+                "opl_runtime_context_ref": str(study_root / "artifacts" / "supervision" / "opl_runtime_owner_handoff" / "latest.json"),
             },
-            "summary_ref": str(study_root / "artifacts" / "runtime" / "last_launch_report.json"),
+            "summary_ref": str(study_root / "artifacts" / "supervision" / "opl_runtime_owner_handoff" / "latest.json"),
             "artifact_path": str(runtime_escalation_path),
         },
     )

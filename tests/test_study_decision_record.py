@@ -29,7 +29,7 @@ def _minimal_payload() -> dict[str, object]:
         "runtime_escalation_ref": {
             "record_id": "runtime-escalation::001-risk::quest-001::startup_boundary_not_ready_for_resume::2026-04-05T05:55:00+00:00",
             "artifact_path": "/tmp/runtime/quests/quest-001/artifacts/reports/escalation/runtime_escalation_record.json",
-            "summary_ref": "/tmp/workspace/studies/001-risk/artifacts/runtime/last_launch_report.json",
+            "summary_ref": "/tmp/workspace/studies/001-risk/artifacts/supervision/opl_runtime_owner_handoff/latest.json",
         },
         "publication_eval_ref": {
             "eval_id": "publication-eval::001-risk::quest-001::2026-04-05T05:58:00+00:00",
@@ -66,7 +66,7 @@ def test_study_decision_record_from_payload_round_trips_minimal_shape() -> None:
         runtime_escalation_ref=module.RuntimeEscalationRecordRef(
             record_id="runtime-escalation::001-risk::quest-001::startup_boundary_not_ready_for_resume::2026-04-05T05:55:00+00:00",
             artifact_path="/tmp/runtime/quests/quest-001/artifacts/reports/escalation/runtime_escalation_record.json",
-            summary_ref="/tmp/workspace/studies/001-risk/artifacts/runtime/last_launch_report.json",
+            summary_ref="/tmp/workspace/studies/001-risk/artifacts/supervision/opl_runtime_owner_handoff/latest.json",
         ),
         publication_eval_ref=module.StudyDecisionPublicationEvalRef(
             eval_id="publication-eval::001-risk::quest-001::2026-04-05T05:58:00+00:00",

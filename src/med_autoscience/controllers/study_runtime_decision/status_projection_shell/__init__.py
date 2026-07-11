@@ -10,16 +10,11 @@ from med_autoscience.controllers.study_runtime_decision.publication_and_submissi
 from med_autoscience.controllers.study_runtime_decision.runtime_events.ownership_and_continuation import (
     _record_execution_owner_guard,
 )
-from med_autoscience.controllers.study_runtime_decision.runtime_events.runtime_summary import (
-    _record_runtime_event,
-    _sync_runtime_summary_if_needed,
-)
 from .read_model_projection_assembly import (
     attach_status_read_model_projections,
 )
 from med_autoscience.controllers.study_runtime_types import ProgressProjectionStatus
 from med_autoscience.runtime_protocol import quest_state
-from med_autoscience.runtime_protocol import study_runtime as study_runtime_protocol
 from med_autoscience.runtime_escalation_record import read_runtime_escalation_record_ref
 
 
@@ -32,7 +27,6 @@ def finalize_status_projection_shell(
     quest_id: str,
     quest_root: Path,
     quest_runtime: quest_state.QuestRuntimeSnapshot,
-    runtime_context: study_runtime_protocol.StudyRuntimeContext,
     router,
     entry_mode: str | None,
     sync_runtime_summary: bool,
@@ -49,15 +43,6 @@ def finalize_status_projection_shell(
         runtime_escalation_ref = read_runtime_escalation_record_ref(quest_root=quest_root)
         if runtime_escalation_ref is not None:
             status.record_runtime_escalation_ref(runtime_escalation_ref)
-    if sync_runtime_summary:
-        _sync_runtime_summary_if_needed(
-            status=status,
-            runtime_context=runtime_context,
-        )
-    _record_runtime_event(
-        status=status,
-        runtime_context=runtime_context,
-    )
     _record_opl_domain_activity_ref(status)
     _record_auto_runtime_parked_projection(status)
     attach_status_read_model_projections(

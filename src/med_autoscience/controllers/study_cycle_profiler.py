@@ -186,11 +186,11 @@ def _resolve_study_root(
 
 
 def _resolve_quest_root(*, profile: WorkspaceProfile, study_root: Path, study_id: str) -> tuple[str | None, Path | None]:
-    binding = _read_yaml_mapping(study_root / "runtime_binding.yaml")
-    quest_id = _non_empty_text(binding.get("quest_id")) or study_id
-    runtime_root_text = _non_empty_text(binding.get("runtime_quests_root")) or _non_empty_text(binding.get("runtime_root"))
-    runtime_root = Path(runtime_root_text).expanduser().resolve() if runtime_root_text else profile.runtime_root
-    quest_root = (runtime_root / quest_id).expanduser().resolve() if quest_id else None
+    study_payload = _read_yaml_mapping(study_root / "study.yaml")
+    execution = study_payload.get("execution")
+    execution = execution if isinstance(execution, dict) else {}
+    quest_id = _non_empty_text(execution.get("quest_id")) or study_id
+    quest_root = (profile.runtime_root / quest_id).expanduser().resolve() if quest_id else None
     return quest_id, quest_root
 
 

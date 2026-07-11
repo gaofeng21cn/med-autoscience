@@ -47,14 +47,10 @@ from .human_gates import (
     _user_pause_contract_without_live_worker,
 )
 from .runtime_summary import (
-    _launch_report_runtime_liveness_status,
-    _launch_report_supervisor_tick_status,
     _opl_runtime_drop_detection_needed,
     _opl_runtime_recovery_projection_needed,
-    _record_runtime_event,
     _should_materialize_opl_runtime_owner_handoff_from_status,
     _status_payload_human_gate_required_for_opl_runtime_ref,
-    _sync_runtime_summary_if_needed,
 )
 from .pending_interactions import (
     _controller_stop_is_auto_recoverable,
@@ -113,14 +109,10 @@ __all__ = [
     "_should_park_delivered_package_without_live_worker",
     "_stale_progress_without_live_bash_sessions",
     "_user_pause_contract_without_live_worker",
-    "_launch_report_runtime_liveness_status",
-    "_launch_report_supervisor_tick_status",
     "_opl_runtime_drop_detection_needed",
     "_opl_runtime_recovery_projection_needed",
-    "_record_runtime_event",
     "_should_materialize_opl_runtime_owner_handoff_from_status",
     "_status_payload_human_gate_required_for_opl_runtime_ref",
-    "_sync_runtime_summary_if_needed",
     "_controller_stop_is_auto_recoverable",
     "_controller_stop_source",
     "_find_pending_interaction_artifact_path",

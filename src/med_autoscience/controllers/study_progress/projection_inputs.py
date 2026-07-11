@@ -12,7 +12,7 @@ from .shared import _candidate_path, _non_empty_text
 class ProjectionInputPaths:
     quest_id: str | None
     quest_root: Path | None
-    launch_report_path: Path
+    runtime_status_path: Path
     publication_eval_path: Path
     controller_decision_path: Path
     runtime_escalation_path: Path | None
@@ -30,10 +30,10 @@ def resolve_projection_input_paths(
 ) -> ProjectionInputPaths:
     quest_id = _non_empty_text(status.get("quest_id"))
     quest_root = _candidate_path(status.get("quest_root"))
-    launch_report_path = (
-        _candidate_path(status.get("launch_report_path"))
-        or study_root / "artifacts" / "runtime" / "last_launch_report.json"
+    opl_runtime_owner_handoff_path = (
+        study_root / "artifacts" / "supervision" / "opl_runtime_owner_handoff" / "latest.json"
     )
+    runtime_status_path = _candidate_path(status.get("runtime_status_path")) or opl_runtime_owner_handoff_path
     runtime_escalation_path = _candidate_path(
         ((status.get("runtime_escalation_ref") or {}).get("artifact_path"))
     )
@@ -44,14 +44,12 @@ def resolve_projection_input_paths(
     return ProjectionInputPaths(
         quest_id=quest_id,
         quest_root=quest_root,
-        launch_report_path=launch_report_path,
+        runtime_status_path=runtime_status_path,
         publication_eval_path=study_root / "artifacts" / "publication_eval" / "latest.json",
         controller_decision_path=study_root / "artifacts" / "controller_decisions" / "latest.json",
         runtime_escalation_path=runtime_escalation_path,
         runtime_readback_report_path=_latest_runtime_readback_report(quest_root),
-        opl_runtime_owner_handoff_path=(
-            study_root / "artifacts" / "supervision" / "opl_runtime_owner_handoff" / "latest.json"
-        ),
+        opl_runtime_owner_handoff_path=opl_runtime_owner_handoff_path,
         gate_clearing_batch_path=study_root / "artifacts" / "controller" / "gate_clearing_batch" / "latest.json",
         bash_summary_path=quest_root / ".ds" / "bash_exec" / "summary.json" if quest_root is not None else None,
         details_projection_path=(

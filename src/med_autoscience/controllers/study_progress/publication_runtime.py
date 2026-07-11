@@ -385,7 +385,7 @@ def _runtime_module_surface(
     study_id: str,
     quest_id: str | None,
     study_root: Path,
-    launch_report_path: Path,
+    runtime_status_path: Path,
     opl_runtime_owner_handoff_path: Path,
     opl_runtime_owner_handoff_payload: dict[str, Any] | None,
     runtime_escalation_path: Path | None,
@@ -463,9 +463,9 @@ def _runtime_module_surface(
         runtime_status_ref=(
             str(opl_runtime_owner_handoff_path.resolve())
             if opl_runtime_owner_handoff_payload is not None
-            else str(launch_report_path.resolve())
+            else str(runtime_status_path.resolve())
         ),
-        runtime_artifact_ref=str(launch_report_path.resolve()),
+        runtime_artifact_ref=str(runtime_status_path.resolve()),
         runtime_escalation_record_ref=(
             str(runtime_escalation_path.resolve()) if runtime_escalation_path is not None else None
         ),
@@ -691,8 +691,14 @@ def _materialize_missing_runtime_escalation_context_ref(
         / "runtime_escalation_context"
         / "latest.json"
     )
-    launch_report_path = study_root / "artifacts" / "runtime" / "last_launch_report.json"
-    summary_ref = launch_report_path if launch_report_path.exists() else artifact_path
+    runtime_status_path = (
+        study_root / "artifacts" / "supervision" / "opl_runtime_owner_handoff" / "latest.json"
+    )
+    if not runtime_status_path.exists():
+        raise FileNotFoundError(
+            "runtime escalation context materialization requires an OPL runtime owner handoff ref"
+        )
+    summary_ref = runtime_status_path
     payload = {
         "schema_version": 1,
         "record_id": f"runtime-escalation-context::{study_id}::{quest_id or 'unknown'}::not_available",

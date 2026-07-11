@@ -23,6 +23,7 @@ from med_autoscience.controllers.progress_projection.runtime_result_types import
     StartupContractValidationStatus,
 )
 from med_autoscience.runtime_protocol import quest_state as quest_state_protocol
+from med_autoscience.workspace_contracts import build_workspace_runtime_layout_for_profile
 
 _OPL_CURRENT_CONTROL_STATE_STALE_AFTER_SECONDS = 10 * 60
 _OPL_TERMINAL_SUCCESS_STATES = {"succeeded"}
@@ -218,16 +219,9 @@ def _status_state(
     explicit_opl_runtime_ref = opl_runtime_contract.explicit_opl_runtime_ref(execution)
     selected_entry_mode = str(entry_mode or execution.get("default_entry_mode") or "full_research").strip() or "full_research"
     quest_id = str(execution.get("quest_id") or study_id).strip() or study_id
-    runtime_context = study_runtime_protocol.resolve_study_runtime_context(
-        profile=profile,
-        study_root=study_root,
-        study_id=study_id,
-        quest_id=quest_id,
-    )
-    runtime_root = runtime_context.runtime_root
-    quest_root = runtime_context.quest_root
-    runtime_binding_path = runtime_context.runtime_binding_path
-    launch_report_path = runtime_context.launch_report_path
+    runtime_layout = build_workspace_runtime_layout_for_profile(profile)
+    runtime_root = runtime_layout.runtime_root
+    quest_root = runtime_layout.quest_root(quest_id)
     quest_runtime = quest_state.inspect_quest_runtime(quest_root)
     quest_exists = quest_runtime.quest_exists
     quest_status = ProgressProjectionStatus._normalize_quest_status_field(quest_runtime.quest_status)
@@ -271,8 +265,6 @@ def _status_state(
         quest_root=str(quest_root),
         quest_exists=quest_exists,
         quest_status=quest_status,
-        runtime_binding_path=str(runtime_binding_path),
-        runtime_binding_exists=runtime_binding_path.exists(),
         workspace_contracts=contracts,
         startup_data_readiness=readiness,
         startup_boundary_gate=startup_boundary_gate,
@@ -380,7 +372,6 @@ def _status_state(
             quest_id=quest_id,
             quest_root=quest_root,
             quest_runtime=quest_runtime,
-            runtime_context=runtime_context,
             router=router,
             entry_mode=entry_mode,
             sync_runtime_summary=sync_runtime_summary,

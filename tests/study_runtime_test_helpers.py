@@ -459,6 +459,7 @@ def write_study(
     runtime_reentry_first_unit: str | None = None,
     runtime_reentry_require_startup_hydration: bool | None = None,
     runtime_reentry_require_managed_skill_audit: bool | None = None,
+    with_opl_runtime_handoff: bool = False,
 ) -> Path:
     study_root = workspace_root / "studies" / study_id
     write_text(workspace_root / "ops" / "med-deepscientist" / "startup_briefs" / f"{study_id}.md", "# Startup brief\n")
@@ -586,10 +587,31 @@ def write_study(
         study_root / "study.yaml",
         "\n".join(lines),
     )
-    write_text(
-        study_root / "runtime_binding.yaml",
-        f"quest_id: {quest_id or study_id}\nstudy_id: {study_id}\n",
-    )
+    if with_opl_runtime_handoff:
+        write_text(
+            study_root
+            / "artifacts"
+            / "supervision"
+            / "opl_runtime_owner_handoff"
+            / "latest.json",
+            json.dumps(
+                {
+                    "surface_kind": "mas_opl_runtime_owner_handoff",
+                    "schema_version": 1,
+                    "recorded_at": "2026-04-03T09:00:00+00:00",
+                    "status": "owner_receipt_written",
+                    "runtime_owner": "one-person-lab",
+                    "domain_owner": "med-autoscience",
+                    "provider_completion_is_domain_completion": False,
+                    "queue_succeeded_is_domain_completion": False,
+                    "mas_materializes_runtime_supervision": False,
+                    "mas_runtime_read_model_retired": True,
+                },
+                ensure_ascii=False,
+                indent=2,
+            )
+            + "\n",
+        )
     write_text(
         study_root / "artifacts" / "controller" / "study_charter.json",
         json.dumps(
