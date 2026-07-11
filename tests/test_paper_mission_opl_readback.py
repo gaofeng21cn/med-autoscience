@@ -130,7 +130,13 @@ def test_opl_terminal_closeout_readback_rejects_retired_queue_payload(tmp_path: 
 def test_opl_live_probe_uses_scoped_list_then_attempt_query(monkeypatch, tmp_path: Path) -> None:
     carrier = _opl_route_carrier()
     commands: list[tuple[str, ...]] = []
-    terminal_attempt = _opl_stage_attempt()
+    terminal_attempt = {
+        "stage_attempt_id": "sat-terminal",
+        "domain_id": "medautoscience",
+        "study_id": carrier["study_id"],
+        "stage_id": "publication_gate_replay",
+        "status": "completed",
+    }
 
     def fake_run(_: Path, args: tuple[str, ...], *, timeout_seconds: float) -> dict[str, object]:
         commands.append(args)
@@ -188,7 +194,15 @@ def test_opl_live_probe_preserves_running_stage_attempt_precedence(monkeypatch, 
         if args[2] == "list":
             return {
                 "family_runtime_stage_attempts": {
-                    "attempts": [_opl_stage_attempt(stage_attempt_id="sat-running", status="running")]
+                    "attempts": [
+                        {
+                            "stage_attempt_id": "sat-running",
+                            "domain_id": "medautoscience",
+                            "study_id": carrier["study_id"],
+                            "stage_id": "publication_gate_replay",
+                            "status": "running",
+                        }
+                    ]
                 }
             }
         if args == ("family-runtime", "attempt", "query", "sat-running", "--json"):

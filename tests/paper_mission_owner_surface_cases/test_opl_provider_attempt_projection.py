@@ -64,6 +64,27 @@ def _attempt(
     }
 
 
+def _compact_attempt(attempt: dict[str, object]) -> dict[str, object]:
+    return {
+        key: attempt[key]
+        for key in (
+            "stage_attempt_id",
+            "domain_id",
+            "stage_id",
+            "status",
+            "task_id",
+            "provider_kind",
+            "workflow_id",
+            "closeout_receipt_status",
+        )
+        if key in attempt
+    } | {"study_id": _mapping(attempt.get("workspace_locator")).get("study_id")}
+
+
+def _mapping(value: object) -> dict[str, object]:
+    return dict(value) if isinstance(value, dict) else {}
+
+
 def _write_stage_attempt_closeout(
     *,
     profile,
@@ -110,7 +131,7 @@ def test_live_provider_attempt_reads_only_scoped_stage_attempts(monkeypatch, tmp
     def fake_run(_: Path, args: tuple[str, ...], *, timeout_seconds: float) -> dict[str, object]:
         commands.append(args)
         if args == _scoped_attempt_list_args(study_id):
-            return {"family_runtime_stage_attempts": {"attempts": [attempt]}}
+            return {"family_runtime_stage_attempts": {"attempts": [_compact_attempt(attempt)]}}
         if args == ("family-runtime", "attempt", "inspect", "sat-live", "--json"):
             return {"family_runtime_stage_attempt": {"attempt": attempt}}
         raise AssertionError(args)
@@ -163,7 +184,11 @@ def test_live_provider_attempt_skips_stage_attempt_with_mas_closeout(
     def fake_run(_: Path, args: tuple[str, ...], *, timeout_seconds: float) -> dict[str, object]:
         commands.append(args)
         if args == _scoped_attempt_list_args(study_id):
-            return {"family_runtime_stage_attempts": {"attempts": [closed, live]}}
+            return {
+                "family_runtime_stage_attempts": {
+                    "attempts": [_compact_attempt(closed), _compact_attempt(live)]
+                }
+            }
         if args == ("family-runtime", "attempt", "inspect", "sat-live", "--json"):
             return {"family_runtime_stage_attempt": {"attempt": live}}
         raise AssertionError(args)
@@ -190,15 +215,7 @@ def test_terminal_provider_attempt_uses_scoped_stage_attempt_inspect(
     )
     profile = make_profile(tmp_path)
     study_id = "003-dpcc-primary-care-phenotype-treatment-gap"
-    unrelated = _attempt(
-        profile=profile,
-        study_id=study_id,
-        stage_attempt_id="sat-unrelated",
-        status="completed",
-        action_type="run_gate_clearing_batch",
-        work_unit_id="publication_gate_replay",
-    )
-    preferred = _attempt(
+    terminal = _attempt(
         profile=profile,
         study_id=study_id,
         stage_attempt_id="sat-terminal",
@@ -209,9 +226,9 @@ def test_terminal_provider_attempt_uses_scoped_stage_attempt_inspect(
     def fake_run(_: Path, args: tuple[str, ...], *, timeout_seconds: float) -> dict[str, object]:
         commands.append(args)
         if args == _scoped_attempt_list_args(study_id):
-            return {"family_runtime_stage_attempts": {"attempts": [unrelated, preferred]}}
+            return {"family_runtime_stage_attempts": {"attempts": [_compact_attempt(terminal)]}}
         if args == ("family-runtime", "attempt", "inspect", "sat-terminal", "--json"):
-            return {"family_runtime_stage_attempt": {"attempt": preferred}}
+            return {"family_runtime_stage_attempt": {"attempt": terminal}}
         raise AssertionError(args)
 
     monkeypatch.setattr(module, "_opl_bin", lambda: Path("/tmp/opl"))
@@ -221,12 +238,6 @@ def test_terminal_provider_attempt_uses_scoped_stage_attempt_inspect(
         profile=profile,
         study_id=study_id,
         max_inspect_count=1,
-        preferred_actions=[
-            {
-                "action_type": "run_quality_repair_batch",
-                "work_unit_id": "medical_prose_write_repair",
-            }
-        ],
     )
 
     assert result is not None

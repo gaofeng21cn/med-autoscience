@@ -74,7 +74,7 @@ def matching_opl_stage_attempts_from_list(
         dict(attempt)
         for attempt in attempts
         if isinstance(attempt, Mapping)
-        and _matches_opl_stage_attempt(carrier=carrier, attempt=attempt)
+        and _matches_opl_stage_attempt_list_candidate(carrier=carrier, attempt=attempt)
     ]
 
 
@@ -90,6 +90,25 @@ def _matching_opl_stage_attempt(
 ) -> dict[str, Any] | None:
     attempt = _mapping(query.get("attempt"))
     return dict(attempt) if _matches_opl_stage_attempt(carrier=carrier, attempt=attempt) else None
+
+
+def _matches_opl_stage_attempt_list_candidate(
+    *,
+    carrier: Mapping[str, Any],
+    attempt: Mapping[str, Any],
+) -> bool:
+    if _text(attempt.get("domain_id")) != OPL_RUNTIME_DOMAIN_ID:
+        return False
+    if _text(attempt.get("stage_attempt_id")) is None:
+        return False
+    locator = _mapping(attempt.get("workspace_locator"))
+    study_id = _first_text(
+        attempt.get("study_id"),
+        attempt.get("quest_id"),
+        locator.get("study_id"),
+        locator.get("quest_id"),
+    )
+    return study_id == _text(carrier.get("study_id"))
 
 
 def _matches_opl_stage_attempt(
