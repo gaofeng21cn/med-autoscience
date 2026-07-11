@@ -719,6 +719,15 @@ def materialize_display_surface(*, paper_root: Path) -> dict[str, Any]:
                 repo_root=_REPO_ROOT,
                 template_id=spec.shell_id,
                 paper_root=resolved_paper_root,
+                inventory_scope=(
+                    "paper_derived_reference"
+                    if spec.shell_id
+                    in {
+                        item.shell_id
+                        for item in display_registry.list_paper_derived_reference_table_shell_specs()
+                    }
+                    else "canonical"
+                ),
             )
             render_result = dict(
                 render_callable(

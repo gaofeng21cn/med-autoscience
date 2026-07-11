@@ -118,12 +118,13 @@ def load_python_plugin_callable(
     repo_root: Path,
     template_id: str,
     paper_root: Path | None = None,
+    inventory_scope: str = "canonical",
 ) -> Callable[..., object]:
     runtime = resolve_display_template_runtime(
         repo_root=repo_root,
         template_id=template_id,
         paper_root=paper_root,
-        inventory_scope="canonical",
+        inventory_scope=inventory_scope,
     )
     if runtime.template_manifest.execution_mode != "python_plugin":
         raise ValueError(

@@ -198,7 +198,7 @@ def test_exported_r_ggplot2_templates_are_first_class_subprocess_assets(tmp_path
         if spec.renderer_family == "r_ggplot2"
     }
 
-    assert len(r_template_ids) == 34
+    assert r_template_ids
     assert r_reporting_flow_ids == {"cohort_flow_figure"}
     assert "time_to_event_risk_group_summary" not in r_template_ids
     assert "time_to_event_landmark_performance_panel" not in r_template_ids

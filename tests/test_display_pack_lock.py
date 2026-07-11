@@ -321,16 +321,11 @@ def test_build_display_pack_lock_payload_projects_canonical_default_renderers() 
         for item in template_entries.values()
         if item["renderer_family"] == "r_ggplot2"
         and item["execution_mode"] == "subprocess"
-        and item["entrypoint"] == "Rscript render.R --request {request_json}"
-        and item["render_script_path"].endswith(f"templates/{item['template_id']}/render.R")
-    ]
-    r_ggplot2_default_templates_with_candidate = [
-        item
-        for item in template_entries.values()
-        if item["renderer_family"] == "r_ggplot2"
-        and item["execution_mode"] == "subprocess"
-        and item["entrypoint"] == "Rscript render.R --request {request_json}"
-        and item["candidate_entrypoint"] == "Rscript render_candidate.R --request {request_json}"
+        and item["entrypoint"]
+        == (
+            f"Rscript ../../render.R --template {item['template_id']} "
+            "--mode {render_mode} --request {request_json}"
+        )
     ]
 
     expected_template_count = (
@@ -340,7 +335,8 @@ def test_build_display_pack_lock_payload_projects_canonical_default_renderers() 
     )
     assert len(template_entries) == expected_template_count
     assert len(r_ggplot2_default_templates) == len(display_registry.list_evidence_figure_specs()) + 1
-    assert len(r_ggplot2_default_templates_with_candidate) == 15
+    assert all(item["render_script_path"] is None for item in r_ggplot2_default_templates)
+    assert all(item["candidate_entrypoint"] is None for item in r_ggplot2_default_templates)
     assert "time_to_event_risk_group_summary" not in template_entries
     assert "time_to_event_discrimination_calibration_panel" not in template_entries
     assert "partial_dependence_ice_panel" not in template_entries
@@ -356,28 +352,23 @@ def test_build_display_pack_lock_payload_projects_canonical_default_renderers() 
     assert template_entries["time_dependent_roc_horizon"]["renderer_family"] == "r_ggplot2"
     assert template_entries["time_dependent_roc_horizon"]["execution_mode"] == "subprocess"
     assert template_entries["time_dependent_roc_horizon"]["entrypoint"] == (
-        "Rscript render.R --request {request_json}"
+        "Rscript ../../render.R --template time_dependent_roc_horizon "
+        "--mode {render_mode} --request {request_json}"
     )
-    assert template_entries["time_dependent_roc_horizon"]["render_script_path"].endswith(
-        "templates/time_dependent_roc_horizon/render.R"
-    )
-    assert len(template_entries["time_dependent_roc_horizon"]["render_script_sha256"]) == 64
-    assert template_entries["risk_layering_monotonic_bars"]["candidate_render_script_path"].endswith(
-        "templates/risk_layering_monotonic_bars/render_candidate.R"
-    )
+    assert template_entries["time_dependent_roc_horizon"]["render_script_path"] is None
+    assert template_entries["time_dependent_roc_horizon"]["render_script_sha256"] is None
     assert template_entries["cohort_flow_figure"]["kind"] == "illustration_shell"
     assert template_entries["cohort_flow_figure"]["renderer_family"] == "r_ggplot2"
     assert template_entries["cohort_flow_figure"]["execution_mode"] == "subprocess"
-    assert template_entries["cohort_flow_figure"]["entrypoint"] == "Rscript render.R --request {request_json}"
+    assert template_entries["cohort_flow_figure"]["entrypoint"] == (
+        "Rscript ../../render.R --template cohort_flow_figure "
+        "--mode {render_mode} --request {request_json}"
+    )
     assert display_registry.get_illustration_shell_spec("cohort_flow_figure").required_exports == ("png", "pdf")
     assert template_entries["submission_graphical_abstract"]["kind"] == "illustration_shell"
     assert template_entries["submission_graphical_abstract"]["renderer_family"] == "python"
-    assert template_entries["omics_volcano_panel"]["render_script_path"].endswith(
-        "templates/omics_volcano_panel/render.R"
-    )
-    assert template_entries["shap_summary_beeswarm"]["render_script_path"].endswith(
-        "templates/shap_summary_beeswarm/render.R"
-    )
+    assert template_entries["omics_volcano_panel"]["render_script_path"] is None
+    assert template_entries["shap_summary_beeswarm"]["render_script_path"] is None
     assert template_entries["table1_baseline_characteristics"]["kind"] == "table_shell"
     assert template_entries["table1_baseline_characteristics"]["entrypoint"] == (
         "fenggaolab_org_medical_display_core.table_shells:render_table_shell"
