@@ -822,10 +822,7 @@ def _owner_callable_receipt_ref(*, study_root: Path | None) -> str | None:
         latest_owner_callable_receipt_payload,
     )
 
-    payload, receipt_ref = latest_owner_callable_receipt_payload(
-        study_root=study_root,
-        allow_legacy_fallback=True,
-    )
+    payload, receipt_ref = latest_owner_callable_receipt_payload(study_root=study_root)
     return receipt_ref if payload is not None else None
 
 

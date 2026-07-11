@@ -75,13 +75,13 @@ def test_anti_loop_typed_closeout_supersedes_newer_stale_latest_execution_projec
         / "artifacts"
         / "supervision"
         / "consumer"
-        / "owner_callable_adapter_receipt"
+        / "owner_callable_adapter_receipts"
     )
     latest_execution_path = execution_root / "latest.json"
     _write_json(
         latest_execution_path,
         {
-            "surface": "owner_callable_dispatch_execution_study_latest",
+            "surface": "owner_callable_adapter_receipt_study_latest",
             "schema_version": 1,
             "generated_at": "2026-06-11T21:11:35+00:00",
             "study_id": study_id,
@@ -121,7 +121,14 @@ def test_anti_loop_typed_closeout_supersedes_newer_stale_latest_execution_projec
             ],
         },
     )
-    anti_loop_closeout_path = execution_root / "sat_82.closeout.json"
+    anti_loop_closeout_path = (
+        study_root
+        / "artifacts"
+        / "supervision"
+        / "consumer"
+        / "owner_callable_adapter_receipt"
+        / "sat_82.closeout.json"
+    )
     _write_json(
         anti_loop_closeout_path,
         {

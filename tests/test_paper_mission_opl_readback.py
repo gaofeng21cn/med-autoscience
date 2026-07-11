@@ -28,7 +28,7 @@ from tests.test_paper_mission_opl_readback_cases.shared import (
 )
 
 
-def test_opl_terminal_closeout_readback_observes_record_only_terminal_closeout(
+def test_opl_terminal_closeout_without_canonical_route_identity_is_unresolved(
     tmp_path: Path,
 ) -> None:
     study_root = tmp_path / "study"
@@ -39,10 +39,8 @@ def test_opl_terminal_closeout_readback_observes_record_only_terminal_closeout(
         study_root=study_root,
     )
 
-    assert readback["carrier_status"] == TERMINAL_READBACK_STATUS
-    assert readback["domain_ready_verdict"] == "domain_gate_pending"
-    assert readback["provider_completion_is_domain_completion"] is False
-    assert readback["can_claim_paper_progress"] is False
+    assert readback["carrier_status"] == WAITING_READBACK_STATUS
+    assert readback["runtime_readback_status"] == "missing"
 
 
 def test_opl_terminal_closeout_readback_requires_record_only_boundary(

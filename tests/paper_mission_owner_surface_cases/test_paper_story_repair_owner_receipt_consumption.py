@@ -54,7 +54,7 @@ def test_owner_callable_adapter_consumes_accepted_paper_story_repair_owner_recei
             "blocked_count": 0,
             "executions": [
                 {
-                    "surface": "owner_callable_dispatch_execution",
+                    "surface": "owner_callable_adapter_receipt",
                     "schema_version": 1,
                     "study_id": study_id,
                     "quest_id": study_id,

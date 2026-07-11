@@ -8,7 +8,7 @@ from typing import Any
 
 ACTION_TYPE = "run_quality_repair_batch"
 BLOCKED_REASON = "claim_evidence_alignment_required"
-OWNER_CALLABLE_RECEIPT_SURFACE = "artifacts/supervision/consumer/owner_callable_adapter_receipt/latest.json"
+OWNER_CALLABLE_RECEIPT_SURFACE = "artifacts/supervision/consumer/owner_callable_adapter_receipts/latest.json"
 CONSUMER_REQUEST_SURFACE = "artifacts/supervision/consumer/run_quality_repair_batch.json"
 REQUIRED_OUTPUT = (
     "claim-evidence map and evidence ledger alignment or "

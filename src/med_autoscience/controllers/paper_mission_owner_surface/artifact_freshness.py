@@ -12,7 +12,7 @@ OWNER = "artifact_os"
 REQUIRED_OUTPUT_SURFACE = "artifacts/controller/gate_clearing_batch/latest.json"
 DISPLAY_REGISTRY_SURFACE = "paper/display_registry.json"
 CURRENT_PACKAGE_FRESHNESS_SURFACE = "artifacts/controller/current_package_freshness/latest.json"
-OWNER_CALLABLE_RECEIPT_SURFACE = "artifacts/supervision/consumer/owner_callable_adapter_receipt/latest.json"
+OWNER_CALLABLE_RECEIPT_SURFACE = "artifacts/supervision/consumer/owner_callable_adapter_receipts/latest.json"
 AI_REVIEWER_FRESHNESS_MISMATCH_ERROR = "current_package_freshness_source_eval_id_mismatch"
 
 

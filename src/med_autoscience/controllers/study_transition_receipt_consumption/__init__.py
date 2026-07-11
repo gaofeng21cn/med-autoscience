@@ -55,7 +55,6 @@ def owner_callable_receipt_consumption(
     study_root: Path,
     owner_route: Mapping[str, Any],
     actions: Iterable[Mapping[str, Any]],
-    allow_legacy_fallback: bool = False,
 ) -> dict[str, Any]:
     current_action_types = _current_owner_route_action_types(owner_route=owner_route, actions=actions)
     if not current_action_types:
@@ -65,7 +64,6 @@ def owner_callable_receipt_consumption(
     for index, (execution, receipt_ref) in enumerate(
         owner_callable_receipt_candidates(
             study_root=study_root,
-            allow_legacy_fallback=allow_legacy_fallback,
         )
     ):
         action_type = _text(execution.get("action_type"))
@@ -357,14 +355,12 @@ def owner_callable_receipt_nonconsumable_closeout(
     study_root: Path,
     owner_route: Mapping[str, Any],
     actions: Iterable[Mapping[str, Any]],
-    allow_legacy_fallback: bool = False,
 ) -> dict[str, Any]:
     current_action_types = _current_owner_route_action_types(owner_route=owner_route, actions=actions)
     if not current_action_types:
         return {}
     for execution, receipt_ref in owner_callable_receipt_candidates(
         study_root=study_root,
-        allow_legacy_fallback=allow_legacy_fallback,
     ):
         action_type = _text(execution.get("action_type"))
         if action_type not in current_action_types:

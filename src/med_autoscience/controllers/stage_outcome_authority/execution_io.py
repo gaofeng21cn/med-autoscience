@@ -61,10 +61,7 @@ def execution_history_path(profile: WorkspaceProfile, study_id: str) -> Path:
 def execution_latest_payload(
     profile: WorkspaceProfile,
     study_id: str,
-    *,
-    allow_legacy_fallback: bool = False,
 ) -> dict[str, Any] | None:
-    _ = allow_legacy_fallback
     return read_json_object(execution_latest_path(profile, study_id))
 
 

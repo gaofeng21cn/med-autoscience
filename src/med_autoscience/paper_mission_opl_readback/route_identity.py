@@ -4,7 +4,6 @@ from collections.abc import Mapping
 from typing import Any
 
 from med_autoscience.paper_mission_opl_readback.primitives import (
-    first_text as _first_text,
     idempotency_refs as _idempotency_refs,
     mapping as _mapping,
     text_list as _text_list,
@@ -42,48 +41,31 @@ def matches_carrier(
         carrier=carrier,
         route_back=route_back,
     )
-    closeout_fingerprint = _text(closeout.get("work_unit_fingerprint"))
     if not has_route_identity or not binds_route_identity:
-        if _text(closeout.get("work_unit_id")) != _text(carrier.get("work_unit_id")):
-            return False
-        if closeout_fingerprint is not None and closeout_fingerprint != _text(
-            carrier.get("work_unit_fingerprint")
-        ):
-            return False
+        return False
     if not closeout_matches_route_target(
         closeout=closeout,
         carrier=carrier,
         route_back=route_back,
     ):
         return False
-    same_work_unit_route_back = _same_work_unit_route_back_candidate(
-        closeout=closeout,
-        carrier=carrier,
-        route_back=route_back,
-        binds_route_identity=binds_route_identity,
-    )
-    if has_route_identity and (
+    if (
         non_current_closeout_reason(closeout.get("blocked_reason"))
-        or (not binds_route_identity and not same_work_unit_route_back)
         or (
             not closeout_binds_exact_route_identity(
                 closeout=closeout,
                 carrier=carrier,
                 route_back=route_back,
             )
-            and not same_work_unit_route_back
             and closeout_idempotency_mismatches_carrier(
                 closeout=closeout,
                 carrier=carrier,
             )
         )
-        or (
-            not same_work_unit_route_back
-            and closeout_lacks_current_candidate_binding(
-                closeout=closeout,
-                carrier=carrier,
-                route_back=route_back,
-            )
+        or closeout_lacks_current_candidate_binding(
+            closeout=closeout,
+            carrier=carrier,
+            route_back=route_back,
         )
     ):
         return False
@@ -96,27 +78,6 @@ def matches_carrier(
     if closeout.get("domain_ready_claimed") is True:
         return False
     return closeout_is_record_only(closeout)
-
-
-def _same_work_unit_route_back_candidate(
-    *,
-    closeout: Mapping[str, Any],
-    carrier: Mapping[str, Any],
-    route_back: Mapping[str, Any],
-    binds_route_identity: bool,
-) -> bool:
-    if binds_route_identity:
-        return False
-    if _text(closeout.get("work_unit_id")) != _text(carrier.get("work_unit_id")):
-        return False
-    closeout_fingerprint = _text(closeout.get("work_unit_fingerprint"))
-    if closeout_fingerprint is not None and closeout_fingerprint != _text(
-        carrier.get("work_unit_fingerprint")
-    ):
-        return False
-    if not closeout_has_route_back_evidence(closeout):
-        return False
-    return closeout_candidate_refs(closeout, route_back) != set()
 
 
 def closeout_is_record_only(closeout: Mapping[str, Any]) -> bool:
@@ -162,32 +123,10 @@ def closeout_binds_route_identity(
     carrier: Mapping[str, Any],
     route_back: Mapping[str, Any] | None = None,
 ) -> bool:
-    route_back = _mapping(route_back)
-    if _has_domain_route_identity(carrier):
-        return _canonical_closeout_binds_route_identity(
-            closeout=closeout,
-            carrier=carrier,
-            route_back=route_back,
-        )
-    refs = {
-        ref
-        for ref in (
-            _text(closeout.get("stage_packet_ref")),
-            _text(closeout.get("paper_mission_transaction_ref")),
-            _text(closeout.get("opl_route_command_ref")),
-            _text(closeout.get("route_command_ref")),
-            _text(route_back.get("stage_packet_ref")),
-            _text(route_back.get("paper_mission_transaction_ref")),
-            _text(route_back.get("opl_route_command_ref")),
-            *_text_list(closeout.get("closeout_refs")),
-        )
-        if ref is not None
-    }
-    expected_refs = _carrier_route_identity_refs(carrier)
-    return any(
-        route_ref_matches(observed_ref, expected_ref)
-        for observed_ref in refs
-        for expected_ref in expected_refs
+    return _has_domain_route_identity(carrier) and _canonical_closeout_binds_route_identity(
+        closeout=closeout,
+        carrier=carrier,
+        route_back=_mapping(route_back),
     )
 
 
@@ -363,188 +302,15 @@ def closeout_binds_exact_route_identity(
     carrier: Mapping[str, Any],
     route_back: Mapping[str, Any] | None = None,
 ) -> bool:
-    route_back = _mapping(route_back)
-    if _has_domain_route_identity(carrier):
-        return _canonical_closeout_binds_route_identity(
-            closeout=closeout,
-            carrier=carrier,
-            route_back=route_back,
-        )
-    expected_transaction_refs = _carrier_transaction_refs(carrier)
-    if not expected_transaction_refs:
-        return False
-    closeout_transaction_ref = _first_text(
-        closeout.get("paper_mission_transaction_ref"),
-        route_back.get("paper_mission_transaction_ref"),
+    return _has_domain_route_identity(carrier) and _canonical_closeout_binds_route_identity(
+        closeout=closeout,
+        carrier=carrier,
+        route_back=_mapping(route_back),
     )
-    if any(
-        route_ref_matches(closeout_transaction_ref, expected_transaction_ref)
-        for expected_transaction_ref in expected_transaction_refs
-    ):
-        return True
-    stage_packet_ref = _first_text(
-        closeout.get("stage_packet_ref"),
-        route_back.get("stage_packet_ref"),
-    )
-    if closeout_has_route_back_evidence(closeout) and any(
-        route_ref_matches(stage_packet_ref, expected_transaction_ref)
-        for expected_transaction_ref in expected_transaction_refs
-    ):
-        return True
-    expected_stage_refs = {
-        ref
-        for ref in (
-            _text(carrier.get("stage_terminal_decision_ref")),
-            *(
-                f"{transaction_ref}#stage_terminal_decision"
-                for transaction_ref in expected_transaction_refs
-            ),
-        )
-        if ref is not None
-    }
-    if any(
-        route_ref_matches_same_fragment(stage_packet_ref, expected_stage_ref)
-        for expected_stage_ref in expected_stage_refs
-    ):
-        return True
-    expected_route_refs = {
-        ref
-        for ref in (
-            _text(carrier.get("opl_route_command_ref")),
-            *(
-                f"{transaction_ref}#opl_route_command"
-                for transaction_ref in expected_transaction_refs
-            ),
-        )
-        if ref is not None
-    }
-    closeout_refs = {
-        ref
-        for ref in (
-            _text(closeout.get("stage_packet_ref")),
-            _text(closeout.get("paper_mission_transaction_ref")),
-            _text(closeout.get("opl_route_command_ref")),
-            _text(closeout.get("route_command_ref")),
-            _text(route_back.get("stage_packet_ref")),
-            _text(route_back.get("paper_mission_transaction_ref")),
-            _text(route_back.get("opl_route_command_ref")),
-            *_text_list(closeout.get("closeout_refs")),
-        )
-        if ref is not None
-    }
-    return bool(expected_route_refs) and any(
-        route_ref_matches_same_fragment(ref, expected_route_ref)
-        for ref in closeout_refs
-        for expected_route_ref in expected_route_refs
-    )
-
-
-def _carrier_route_identity_refs(carrier: Mapping[str, Any]) -> set[str]:
-    canonical_refs = _domain_route_refs(carrier)
-    if len(canonical_refs) == len(_DOMAIN_ROUTE_RECEIPT_REF_FIELDS):
-        return canonical_refs
-    transaction_refs = _carrier_transaction_refs(carrier)
-    return {
-        ref
-        for ref in (
-            _text(carrier.get("paper_mission_transaction_ref")),
-            _text(carrier.get("stage_terminal_decision_ref")),
-            _text(carrier.get("opl_route_command_ref")),
-            *transaction_refs,
-            *(f"{ref}#stage_terminal_decision" for ref in transaction_refs),
-            *(f"{ref}#opl_route_command" for ref in transaction_refs),
-        )
-        if ref is not None
-    }
-
-
-def _carrier_transaction_refs(carrier: Mapping[str, Any]) -> set[str]:
-    canonical_transaction_ref = _text(carrier.get("domain_route_transaction_ref"))
-    if canonical_transaction_ref is not None:
-        return {canonical_transaction_ref}
-    refs = {
-        ref
-        for ref in (
-            _text(carrier.get("paper_mission_transaction_ref")),
-            _legacy_stage_run_transaction_ref(carrier),
-        )
-        if ref is not None
-    }
-    return refs
-
-
-def _legacy_stage_run_transaction_ref(carrier: Mapping[str, Any]) -> str | None:
-    stage_run_ref = _text(carrier.get("stage_run_ref"))
-    if stage_run_ref is None:
-        return None
-    prefix = "opl-stage-run://"
-    if not stage_run_ref.startswith(prefix):
-        return None
-    stage_run_id = stage_run_ref.removeprefix(prefix)
-    if not stage_run_id:
-        return None
-    return f"paper-mission-transaction::{stage_run_id}"
 
 
 def route_ref_matches(left: str | None, right: str | None) -> bool:
-    if left is None or right is None:
-        return False
-    if left == right:
-        return True
-    return _paper_mission_transaction_refs_match(left, right)
-
-
-def route_ref_matches_same_fragment(left: str | None, right: str | None) -> bool:
-    if left is None or right is None:
-        return False
-    if left == right:
-        return True
-    left_base, left_fragment = _split_route_ref(left)
-    right_base, right_fragment = _split_route_ref(right)
-    if left_fragment != right_fragment:
-        return False
-    return _paper_mission_transaction_refs_match(left_base, right_base)
-
-
-def _split_route_ref(value: str) -> tuple[str, str | None]:
-    base, separator, fragment = value.partition("#")
-    return base, fragment if separator else None
-
-
-def _paper_mission_transaction_refs_match(left: str, right: str) -> bool:
-    left_base = left.split("#", 1)[0]
-    right_base = right.split("#", 1)[0]
-    if left_base == right_base:
-        return True
-    if (
-        _normalize_paper_mission_transaction_ref(left_base)
-        == _normalize_paper_mission_transaction_ref(right_base)
-    ):
-        return True
-    left_parts = left_base.split("::")
-    right_parts = right_base.split("::")
-    if len(left_parts) < 5 or len(left_parts) != len(right_parts):
-        return False
-    if left_parts[0] != "paper-mission-transaction":
-        return False
-    if right_parts[0] != "paper-mission-transaction":
-        return False
-    return left_parts[2:] == right_parts[2:]
-
-
-def _normalize_paper_mission_transaction_ref(value: str) -> str:
-    parts = value.split("::")
-    if not parts or parts[0] != "paper-mission-transaction":
-        return value
-    normalized: list[str] = []
-    index = 0
-    while index < len(parts):
-        if parts[index] == "followthrough":
-            index += 2 if index + 1 < len(parts) else 1
-            continue
-        normalized.append(parts[index])
-        index += 1
-    return "::".join(normalized)
+    return left is not None and left == right
 
 
 def non_current_closeout_reason(value: object) -> bool:
@@ -564,24 +330,11 @@ def carrier_has_opl_route_identity(carrier: Mapping[str, Any]) -> bool:
     )
     if not base_identity_present:
         return False
-    if _has_domain_route_identity(carrier):
-        return True
-    return (
-        _text(carrier.get("paper_mission_transaction_ref")) is not None
-        and _text(carrier.get("opl_route_command_ref")) is not None
-    )
+    return _has_domain_route_identity(carrier)
 
 
 def _has_domain_route_identity(source: Mapping[str, Any]) -> bool:
     return all(_text(source.get(field)) is not None for field in _DOMAIN_ROUTE_RECEIPT_REF_FIELDS)
-
-
-def _domain_route_refs(source: Mapping[str, Any]) -> set[str]:
-    return {
-        ref
-        for field in _DOMAIN_ROUTE_RECEIPT_REF_FIELDS
-        if (ref := _text(source.get(field))) is not None
-    }
 
 
 def _canonical_closeout_binds_route_identity(

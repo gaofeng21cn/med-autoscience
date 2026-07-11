@@ -184,9 +184,7 @@ def _terminal_stage_logs_from_execution_latest(
     if not isinstance(payload, Mapping):
         return []
     surface = _non_empty_text(payload.get("surface"))
-    if surface not in execution_surfaces.ACCEPTED_EXECUTION_LATEST_SURFACES and (
-        surface != execution_surfaces.LEGACY_EXECUTION_STUDY_LATEST_SURFACE
-    ):
+    if surface not in execution_surfaces.ACCEPTED_EXECUTION_LATEST_SURFACES:
         return []
     if _non_empty_text(payload.get("study_id")) not in {None, study_id}:
         return []

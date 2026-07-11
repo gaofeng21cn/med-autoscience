@@ -10,8 +10,6 @@ from med_autoscience.controllers.owner_callable_closeout_contract import (
 )
 from med_autoscience.controllers.stage_outcome_authority.execution_surfaces import (
     ACCEPTED_EXECUTION_LATEST_SURFACES,
-    LEGACY_EXECUTION_STUDY_LATEST_SURFACE,
-    LEGACY_EXECUTION_SURFACE,
     OWNER_CALLABLE_RECEIPT_STUDY_LATEST_SURFACE,
     OWNER_CALLABLE_RECEIPT_SURFACE,
 )
@@ -19,7 +17,6 @@ from med_autoscience.controllers.stage_outcome_authority.execution_surfaces impo
 
 EXECUTED_STATUSES = frozenset({"executed"})
 EXECUTION_REF = Path("artifacts/supervision/consumer/owner_callable_adapter_receipts/latest.json")
-LEGACY_EXECUTION_REF = Path("artifacts/supervision/consumer/owner_callable_adapter_receipt/latest.json")
 CLOSEOUT_ROOT_REFS = (
     Path("artifacts/supervision/consumer/owner_callable_adapter_receipt"),
     Path("artifacts/supervision/consumer/stage_attempt_closeouts"),
@@ -38,13 +35,9 @@ STAGE_OUTCOME_OPL_HANDOFF_TASK_KIND = "stage_outcome/opl-handoff"
 def owner_callable_receipt_candidates(
     *,
     study_root: Path,
-    allow_legacy_fallback: bool = False,
 ) -> list[tuple[Mapping[str, Any], str]]:
     resolved_study_root = Path(study_root).expanduser().resolve()
-    receipt, receipt_ref = _latest_execution_receipt(
-        resolved_study_root,
-        allow_legacy_fallback=allow_legacy_fallback,
-    )
+    receipt, receipt_ref = _latest_execution_receipt(resolved_study_root)
     candidates: list[tuple[Mapping[str, Any], str]] = []
     if _accepted_execution_receipt(receipt):
         candidates.extend(
@@ -62,13 +55,9 @@ def owner_callable_receipt_candidates(
 def latest_owner_callable_receipt_payload(
     *,
     study_root: Path,
-    allow_legacy_fallback: bool = False,
 ) -> tuple[dict[str, Any] | None, str]:
     resolved_study_root = Path(study_root).expanduser().resolve()
-    receipt, receipt_ref = _latest_execution_receipt(
-        resolved_study_root,
-        allow_legacy_fallback=allow_legacy_fallback,
-    )
+    receipt, receipt_ref = _latest_execution_receipt(resolved_study_root)
     if not _accepted_execution_receipt(receipt):
         return None, str(receipt_ref)
     payload = dict(receipt)
@@ -86,21 +75,14 @@ def latest_owner_callable_receipt_payload(
     payload.setdefault("execution_ledger_authority", False)
     payload.setdefault("attempt_lifecycle_authority", False)
     payload.setdefault("queue_authority", False)
-    if receipt_ref == LEGACY_EXECUTION_REF:
-        payload.setdefault("legacy_surface_alias", "owner_callable_dispatch_execution_study_latest")
-        payload.setdefault("legacy_wire_surface", "owner_callable_dispatch_execution_study_latest")
     return payload, str(receipt_ref)
 
 
 def latest_owner_callable_receipt_candidates(
     *,
     study_root: Path,
-    allow_legacy_fallback: bool = False,
 ) -> list[tuple[Mapping[str, Any], str]]:
-    receipt, receipt_ref = latest_owner_callable_receipt_payload(
-        study_root=study_root,
-        allow_legacy_fallback=allow_legacy_fallback,
-    )
+    receipt, receipt_ref = latest_owner_callable_receipt_payload(study_root=study_root)
     if receipt is None:
         return []
     candidates: list[tuple[Mapping[str, Any], str]] = []
@@ -166,26 +148,8 @@ def _execution_from_receipt(execution: Mapping[str, Any]) -> dict[str, Any]:
 
 def _latest_execution_receipt(
     study_root: Path,
-    *,
-    allow_legacy_fallback: bool = False,
 ) -> tuple[dict[str, Any] | None, Path]:
-    canonical = _read_json_object(study_root / EXECUTION_REF)
-    if canonical is not None:
-        return canonical, EXECUTION_REF
-    if not allow_legacy_fallback:
-        return None, EXECUTION_REF
-    legacy = _read_json_object(study_root / LEGACY_EXECUTION_REF)
-    if legacy is not None and not _text(legacy.get("surface")):
-        legacy = {
-            **legacy,
-            "surface": LEGACY_EXECUTION_STUDY_LATEST_SURFACE,
-            "legacy_wire_surface": LEGACY_EXECUTION_STUDY_LATEST_SURFACE,
-            "canonical_surface": OWNER_CALLABLE_RECEIPT_STUDY_LATEST_SURFACE,
-            "projection_authority": False,
-            "attempt_lifecycle_authority": False,
-            "queue_authority": False,
-        }
-    return legacy, LEGACY_EXECUTION_REF
+    return _read_json_object(study_root / EXECUTION_REF), EXECUTION_REF
 
 
 def _accepted_execution_receipt(receipt: Mapping[str, Any] | None) -> bool:
@@ -200,15 +164,8 @@ def _accepted_execution_receipt(receipt: Mapping[str, Any] | None) -> bool:
 def _canonical_owner_callable_receipt(execution: Mapping[str, Any]) -> dict[str, Any]:
     normalized = dict(execution)
     surface = _text(normalized.get("surface"))
-    canonical_surface = _text(normalized.get("canonical_surface"))
     if surface == OWNER_CALLABLE_RECEIPT_SURFACE:
         normalized["canonical_surface"] = OWNER_CALLABLE_RECEIPT_SURFACE
-        return normalized
-    if surface == LEGACY_EXECUTION_SURFACE or canonical_surface == OWNER_CALLABLE_RECEIPT_SURFACE:
-        normalized["surface"] = OWNER_CALLABLE_RECEIPT_SURFACE
-        normalized["canonical_surface"] = OWNER_CALLABLE_RECEIPT_SURFACE
-        normalized.setdefault("legacy_surface_alias", LEGACY_EXECUTION_SURFACE)
-        normalized.setdefault("legacy_wire_surface", LEGACY_EXECUTION_SURFACE)
     return normalized
 
 
@@ -287,15 +244,7 @@ def _execution_from_stage_closeout(
         owner_receipt=owner_receipt,
         domain_execution=domain_execution,
     )
-    explicit_user_stage_log = _stage_closeout_user_stage_log(closeout)
-    user_stage_log = explicit_user_stage_log or _fallback_stage_closeout_user_stage_log(
-        closeout=closeout,
-        action_type=action_type,
-        owner_receipt=owner_receipt,
-        domain_execution=domain_execution,
-        repair_evidence=repair_evidence,
-        blocked_reason=closeout_blocked_reason,
-    )
+    user_stage_log = _stage_closeout_user_stage_log(closeout)
     missing_user_stage_log_fields = _missing_user_stage_log_fields(
         action_type=action_type,
         user_stage_log=user_stage_log,
@@ -311,8 +260,6 @@ def _execution_from_stage_closeout(
     return {
         "surface": OWNER_CALLABLE_RECEIPT_SURFACE,
         "canonical_surface": OWNER_CALLABLE_RECEIPT_SURFACE,
-        "legacy_surface_alias": LEGACY_EXECUTION_SURFACE,
-        "legacy_wire_surface": LEGACY_EXECUTION_SURFACE,
         "schema_version": 1,
         "study_id": _text(closeout.get("study_id")),
         "quest_id": _text(closeout.get("quest_id")),
@@ -352,15 +299,12 @@ def _execution_from_stage_closeout(
         "stage_closeout_surface_kind": _text(closeout.get("surface_kind")),
         "stage_closeout_status": _text(closeout.get("status")),
         "stage_closeout_refs": _text_list(closeout.get("closeout_refs")),
-        "legacy_stage_run_abi_role": "opl_stagerun_closeout_provenance_identity_recovery_only",
-        "stage_closeout_packet_role": "terminal_closeout_provenance_and_identity_recovery",
         "stage_closeout_packets_can_authorize_provider_admission": False,
         "stage_closeout_packets_can_authorize_execution": False,
         "stage_closeout_packets_can_create_provider_attempt": False,
         "stage_closeout_packets_can_create_opl_event_outbox_or_stage_run": False,
         "stage_closeout_packets_can_claim_running_or_progress": False,
         "stage_closeout_packets_can_satisfy_current_receipt_without_owner_result": False,
-        "dispatch_ref_stage_packet_identity_recovery_is_authority": False,
         "provider_admission_authority": False,
         "execution_authority": False,
         "attempt_lifecycle_authority": False,
@@ -446,85 +390,6 @@ def _stage_closeout_user_stage_log(closeout: Mapping[str, Any]) -> Mapping[str, 
         if value:
             return value
     return {}
-
-
-def _fallback_stage_closeout_user_stage_log(
-    *,
-    closeout: Mapping[str, Any],
-    action_type: str,
-    owner_receipt: Mapping[str, Any],
-    domain_execution: Mapping[str, Any],
-    repair_evidence: Mapping[str, Any],
-    blocked_reason: str,
-) -> dict[str, Any]:
-    changed_surfaces = [
-        _text(item.get("path"))
-        for item in _mapping_list(repair_evidence.get("changed_artifact_refs"))
-        if _text(item.get("path"))
-    ]
-    status = _text(owner_receipt.get("status")) or _text(closeout.get("route_outcome")) or _text(closeout.get("status"))
-    outcome = "typed_blocker" if blocked_reason else status
-    deliverable_count = 1 if changed_surfaces else 0
-    platform_repair_count = 0 if changed_surfaces else (1 if blocked_reason else 0)
-    return {
-        "surface_kind": "mas_paper_facing_stage_log_summary",
-        "schema_version": 1,
-        "status": "available",
-        "stage_name": _text(closeout.get("work_unit_id")) or action_type,
-        "problem_summary": (
-            f"{action_type} ended with typed blocker {blocked_reason}."
-            if blocked_reason
-            else f"{action_type} produced closeout refs for the current owner route."
-        ),
-        "stage_goal": _text(owner_receipt.get("required_output_surface"))
-        or _text(domain_execution.get("required_output_surface"))
-        or f"Complete the owner-authorized {action_type} work unit or return a typed blocker.",
-        "stage_work_done": [
-            _text(owner_receipt.get("publication_eval_record_ref"))
-            or _text(owner_receipt.get("owner_callable_surface"))
-            or _text(repair_evidence.get("status"))
-            or _text(closeout.get("route_outcome"))
-            or _text(closeout.get("status"))
-            or "terminal closeout observed"
-        ],
-        "paper_work_done": [
-            _text(owner_receipt.get("publication_eval_record_ref"))
-            or _text(owner_receipt.get("owner_callable_surface"))
-            or _text(repair_evidence.get("status"))
-            or _text(closeout.get("route_outcome"))
-            or _text(closeout.get("status"))
-            or "terminal closeout observed"
-        ],
-        "changed_stage_surfaces": changed_surfaces,
-        "changed_paper_surfaces": changed_surfaces,
-        "outcome": outcome,
-        "remaining_blockers": [blocked_reason] if blocked_reason else [],
-        "duration": {"status": "missing", "value": None},
-        "token_usage": {"status": "missing", "value": None, "total_tokens": None},
-        "cost": {"status": "missing", "value": None, "total_cost": None},
-        "usage_refs": [],
-        "cost_refs": [],
-        "progress_delta_classification": (
-            "deliverable_progress"
-            if changed_surfaces
-            else ("typed_blocker" if blocked_reason else "platform_repair")
-        ),
-        "deliverable_progress_delta": {"count": deliverable_count, "token_usage_total": None},
-        "paper_progress_delta": {"count": deliverable_count, "token_usage_total": None},
-        "platform_repair_delta": {"count": platform_repair_count, "token_usage_total": None},
-        "next_forced_delta": {
-            "required_delta_kind": "paper_progress_delta_or_typed_blocker",
-            "work_unit_id": _text(closeout.get("work_unit_id")) or action_type,
-            "owner_action": {
-                "next_owner": _text(closeout.get("next_owner")) or _text(owner_receipt.get("owner")),
-                "action_type": action_type,
-                "work_unit_id": _text(closeout.get("work_unit_id")) or action_type,
-            },
-            "reason": f"typed_blocker::{blocked_reason}" if blocked_reason else "terminal_closeout_observed",
-        },
-        "evidence_refs": _text_list(closeout.get("closeout_refs")),
-        "fallback_source": "stage_closeout_structured_fields",
-    }
 
 
 def _missing_user_stage_log_fields(
@@ -914,7 +779,6 @@ def _text(value: object) -> str:
 
 __all__ = [
     "EXECUTION_REF",
-    "LEGACY_EXECUTION_REF",
     "owner_callable_receipt_candidates",
     "latest_owner_callable_receipt_candidates",
     "latest_owner_callable_receipt_payload",
