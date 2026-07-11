@@ -295,7 +295,7 @@ def write_synced_submission_delivery(
     quest_id = quest_root.name
     worktree_root = quest_root / ".ds" / "worktrees" / "paper-main"
     paper_root = worktree_root / "paper"
-    submission_root = paper_root / "submission_minimal"
+    submission_root = study_root / "submission"
     current_package_root = study_root / "manuscript" / "current_package"
     current_package_zip = study_root / "manuscript" / "current_package.zip"
     compiled_markdown_path = paper_root / "build" / "review_manuscript.md"
@@ -401,6 +401,10 @@ def write_synced_submission_delivery(
             json.dumps({"status": "external_metadata_gap"}, ensure_ascii=False, indent=2) + "\n",
         )
     write_text(current_package_zip, "zip placeholder")
+    write_text(
+        current_package_root / "figure_visual_audit_receipt.json",
+        json.dumps({"schema_version": 1, "status": "clear"}, ensure_ascii=False, indent=2) + "\n",
+    )
     write_text(
         study_root / "manuscript" / "delivery_manifest.json",
         json.dumps(

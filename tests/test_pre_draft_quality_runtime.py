@@ -7,6 +7,7 @@ from typing import Any
 
 from tests.reviewer_os_fixture_helpers import (
     claim_evidence_alignment_digest,
+    clear_sci_clinical_registry_review,
     ready_claim_evidence_alignment_gate,
 )
 
@@ -220,6 +221,10 @@ def _reviewer_operating_system(study_root: Path) -> dict[str, Any]:
             },
         },
         "claim_evidence_alignment": claim_alignment,
+        "sci_clinical_registry_review": clear_sci_clinical_registry_review(
+            manuscript_ref=manuscript_ref,
+            evidence_ref=input_bundle["evidence_ledger"],
+        ),
         "publication_quality_readiness": {
             "surface_kind": "publication_quality_authority_kernel_v1",
             "status": "ready",

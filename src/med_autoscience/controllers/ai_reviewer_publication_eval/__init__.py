@@ -9,7 +9,11 @@ from med_autoscience.publication_eval_latest import (
 )
 from med_autoscience.publication_eval_record import PublicationEvalRecord
 
-from . import ai_reviewer_publication_eval_workflow, domain_status_projection, paper_authority_migration
+from med_autoscience.controllers import (
+    ai_reviewer_publication_eval_workflow,
+    domain_status_projection,
+    paper_authority_migration,
+)
 from .common import _mapping, _optional_text
 from .planning_helpers import (
     _ai_reviewer_record_authoring_target_payload,
@@ -33,10 +37,15 @@ from .record_materialization import (
     _materialize_ai_reviewer_publication_eval_record,
     _normalize_publication_eval_record,
 )
-from .stage_outcome_authority.action_execution import ai_reviewer_request_refs
-from .domain_action_request_lifecycle import read_ai_reviewer_request, stable_ai_reviewer_request_path
-from .study_progress import projection as study_progress_projection
-from .study_runtime_resolution import _execution_payload, _resolve_study
+from med_autoscience.controllers.domain_action_request_lifecycle import (
+    read_ai_reviewer_request,
+    stable_ai_reviewer_request_path,
+)
+from med_autoscience.controllers.stage_outcome_authority.action_execution import (
+    ai_reviewer_request_refs,
+)
+from med_autoscience.controllers.study_progress import projection as study_progress_projection
+from med_autoscience.controllers.study_runtime_resolution import _execution_payload, _resolve_study
 
 __all__ = [
     "materialize_ai_reviewer_publication_eval",

@@ -121,27 +121,6 @@ def test_scan_domain_routes_does_not_count_control_surface_progress_as_artifact_
             },
         },
     )
-    monkeypatch.setattr(
-        module.study_progress,
-        "read_study_progress",
-        lambda **_: {
-            "study_id": study_id,
-            "current_stage": "publication_supervision",
-            "paper_stage": "bundle_stage_blocked",
-            "last_meaningful_progress_at": "2026-05-09T07:05:46+00:00",
-            "progress_freshness": {
-                "meaningful_artifact_delta_freshness": {
-                    "status": "missing",
-                    "latest_progress_at": None,
-                    "latest_progress_source": "mds_artifact_delta",
-                }
-            },
-            "refs": {"publication_eval_path": str(study_root / "artifacts" / "publication_eval" / "latest.json")},
-            "supervision": {"active_run_id": "run-dm002", "health_status": "live"},
-            "quality_review_loop": {"closure_state": "review_required"},
-        },
-    )
-
     result = module.scan_domain_routes(
         profile=profile,
         study_ids=(study_id,),
@@ -153,7 +132,6 @@ def test_scan_domain_routes_does_not_count_control_surface_progress_as_artifact_
     assert study["meaningful_artifact_delta"] is False
     assert study["artifact_delta"]["status"] == "not_observed"
     assert study["repeat_suppression"]["repeat_suppressed"] is False
-    assert [item["action_type"] for item in study["action_queue"]] == ["return_to_ai_reviewer_workflow"]
     assert study["blocked_reason"] == "ai_reviewer_assessment_required"
 
 

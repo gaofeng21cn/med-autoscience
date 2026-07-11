@@ -73,6 +73,29 @@ def _replay_case() -> dict[str, object]:
     }
 
 
+def _bundle_build_route_context() -> dict[str, object]:
+    return {
+        "authority_snapshot": {
+            "surface": "authority_snapshot",
+            "dispatch_gate": {
+                "state": "open",
+                "dispatch_allowed": True,
+                "blocking_reasons": [],
+            },
+            "route_authorization": {
+                "authorized": True,
+                "paper_write_allowed": True,
+                "bundle_build_allowed": True,
+                "runtime_recovery_allowed": True,
+            },
+            "authority_refs": {
+                "study_truth": {"epoch": "truth-1"},
+                "runtime_health": {"epoch": "runtime-1"},
+            },
+        }
+    }
+
+
 def test_fast_lane_manifest_requires_quality_enforcement_and_replay() -> None:
     module = importlib.import_module("med_autoscience.controllers.fast_lane_executor")
 
@@ -82,6 +105,7 @@ def test_fast_lane_manifest_requires_quality_enforcement_and_replay() -> None:
         repair_units=_repair_units(),
         quality_ledger_enforcement=_quality_ledger_enforcement(),
         replay_case=_replay_case(),
+        route_context=_bundle_build_route_context(),
     )
 
     assert manifest["surface"] == "fast_lane_execution_manifest"
@@ -296,6 +320,7 @@ def test_fast_lane_manifest_blocks_when_quality_enforcer_blocks() -> None:
         repair_units=_repair_units(),
         quality_ledger_enforcement=_quality_ledger_enforcement(allowed=False),
         replay_case={},
+        route_context=_bundle_build_route_context(),
     )
 
     assert manifest["manifest_state"] == "blocked_by_quality_ledger"
@@ -355,6 +380,7 @@ def test_fast_lane_manifest_blocks_gate_relaxation_even_if_allowed_flag_is_true(
             "repairable_blockers": ["publication_eval_must_fix_gap"],
         },
         replay_case={},
+        route_context=_bundle_build_route_context(),
     )
 
     assert manifest["manifest_state"] == "blocked_by_quality_ledger"
