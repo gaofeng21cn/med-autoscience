@@ -90,7 +90,7 @@ def terminalize_stage_closure_from_readback(
     outcome = _mapping(existing_stage_closure.get("outcome"))
     current_package = _mapping(readback.get("current_package"))
     current_package_clear = current_package_is_submission_ready_clear(current_package)
-    repair_budget = _mapping(readback.get("route_back_budget")) or _mapping(
+    repair_budget = _mapping(
         _mapping(readback.get("stage_closure_decision")).get("repair_budget")
     )
     gate_replay = {

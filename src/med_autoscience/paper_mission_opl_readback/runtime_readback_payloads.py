@@ -208,7 +208,6 @@ def mas_receipt_consumption_readback(
         "receipt_evidence_ref": _text(evidence.get("receipt_ref")),
         "typed_runtime_blocker_ref": typed_runtime_blocker_ref,
         "route_back_evidence_ref": route_back_evidence_ref,
-        "forbidden_next_action": "synonymous_route_back_redrive",
         "durable_stop_allowed": False,
         "can_claim_paper_progress": False,
         "can_claim_publication_ready": False,

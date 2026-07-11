@@ -36,7 +36,6 @@ def paper_mission_inspect_projection_fields(
             "repair_budget": _first_mapping(
                 _mapping(decision.get("repair_budget")),
                 _mapping(projection_fields.get("repair_budget")),
-                _mapping(projection_fields.get("route_back_budget")),
             )
             or None,
             "stage_closure": _compact_mapping(
@@ -61,7 +60,6 @@ def paper_mission_inspect_projection_fields(
                     "repair_budget": _first_mapping(
                         _mapping(decision.get("repair_budget")),
                         _mapping(projection_fields.get("repair_budget")),
-                        _mapping(projection_fields.get("route_back_budget")),
                     )
                     or None,
                 }
@@ -127,13 +125,6 @@ def paper_mission_materialized_projection_fields(
             "paper_facing_delta_ref": _first_text(
                 owner_answer.get("paper_facing_delta_ref"),
                 decision.get("paper_facing_delta_ref"),
-            ),
-            "semantic_progress_signature": owner_answer.get(
-                "semantic_progress_signature"
-            ),
-            "route_back_budget": owner_answer.get("route_back_budget"),
-            "mission_executor_fallback_action": owner_answer.get(
-                "mission_executor_fallback_action"
             ),
             "carry_forward_risk_receipt_ref": owner_answer.get(
                 "carry_forward_risk_receipt_ref"

@@ -178,7 +178,6 @@ def _mas_receipt_consumption(
         "surface_kind": "mas_receipt_consumption_projection",
         "status": "not_requested_from_study_progress",
         "next_legal_action": "request_opl_runtime_readback",
-        "forbidden_next_action": "synonymous_route_back_redrive",
         "durable_stop_allowed": False,
         "can_claim_paper_progress": False,
         "can_claim_publication_ready": False,

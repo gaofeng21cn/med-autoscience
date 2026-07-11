@@ -22,9 +22,6 @@ from med_autoscience.paper_mission_domain.command_metadata import (
     action_intent as _action_intent,
     mutation_policy as _mutation_policy,
 )
-from med_autoscience.paper_mission_domain.followthrough_materialized_readback import (
-    paper_mission_followthrough_source_readback,
-)
 from med_autoscience.paper_mission_domain.materialized_mission_readback import (
     build_materialized_mission_readback_if_available,
 )
@@ -141,17 +138,7 @@ def build_materialized_candidate_package_readback(
 ) -> dict[str, Any]:
     if output_root is None:
         raise ValueError("--output-root is required for package-candidate")
-    readback = (
-        _paper_mission_followthrough_source_readback(
-            readback=source_readback_override,
-            profile=profile,
-            profile_ref=profile_ref,
-            study_id=study_id,
-            source=source,
-        )
-        if source_readback_override is not None
-        else None
-    )
+    readback = _explicit_candidate_source_readback(source_readback_override)
     if readback is None:
         readback = build_materialized_mission_readback_if_available(
             profile=profile,
@@ -174,13 +161,7 @@ def build_materialized_candidate_package_readback(
             enable_opl_live_probe=enable_opl_live_probe,
             opl_bin=opl_bin,
         )
-        readback = _paper_mission_followthrough_source_readback(
-            readback=inspect_readback,
-            profile=profile,
-            profile_ref=profile_ref,
-            study_id=study_id,
-            source=source,
-        )
+        readback = _explicit_candidate_source_readback(inspect_readback)
     if readback is None:
         raise ValueError(
             "package-candidate requires a materialized PaperMissionRun under "
@@ -310,30 +291,15 @@ def build_materialized_candidate_package_readback(
     }
 
 
-def _paper_mission_followthrough_source_readback(
-    *,
+def _explicit_candidate_source_readback(
     readback: Mapping[str, Any] | None,
-    profile: Any,
-    profile_ref: str | Path,
-    study_id: str,
-    source: str,
 ) -> dict[str, Any] | None:
-    return paper_mission_followthrough_source_readback(
-        readback=readback,
-        profile=profile,
-        profile_ref=profile_ref,
-        study_id=study_id,
-        source=source,
-        contract_ref=PAPER_MISSION_CONTRACT_REF,
-        contract_version=PAPER_MISSION_CONTRACT_VERSION,
-        candidate_package_forbidden_authority_writes=(
-            CANDIDATE_PACKAGE_FORBIDDEN_AUTHORITY_WRITES
-        ),
-        forbidden_authority_claims=FORBIDDEN_AUTHORITY_CLAIMS,
-        action_intent=_action_intent,
-        paper_mission_transaction_readback=_paper_mission_transaction_readback,
-        transaction_readback_output_fields=_transaction_readback_output_fields,
-    )
+    payload = dict(readback or {})
+    if not isinstance(payload.get("paper_mission_run"), Mapping):
+        return None
+    if not isinstance(payload.get("paper_mission_transaction"), Mapping):
+        return None
+    return payload
 
 
 __all__ = [

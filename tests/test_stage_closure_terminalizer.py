@@ -55,7 +55,7 @@ def test_current_package_mirror_stale_routes_to_mirror_sync_without_bundle_autho
     decision = terminalize_stage_closure(
         study_id="003-dm-china-us-mortality-attribution",
         stage_id="publication_supervision",
-        work_unit_id="submission_milestone_candidate::followthrough::followthrough-02",
+        work_unit_id="submission_milestone_candidate",
         work_unit_fingerprint="dm003-followthrough",
         gate_replay={"gate_replay_status": "blocked"},
         delivery_readback={
@@ -270,7 +270,7 @@ def test_route_back_checkpoint_supersedes_old_typed_blocker_resolution_action() 
     decision = terminalize_stage_closure(
         study_id="obesity_multicenter_phenotype_atlas",
         stage_id="write",
-        work_unit_id="submission_milestone_candidate::followthrough::followthrough-02",
+        work_unit_id="submission_milestone_candidate",
         work_unit_fingerprint="paper-mission::obesity::write::route-back",
         identity={
             "paper_mission_transaction_ref": (
@@ -324,7 +324,7 @@ def test_route_back_checkpoint_supersedes_old_typed_blocker_resolution_action() 
         "consume_route_back_checkpoint_or_materialize_terminalizer_outcome"
     )
     assert action["work_unit_id"] == (
-        "submission_milestone_candidate::followthrough::followthrough-02"
+        "submission_milestone_candidate"
     )
 
 
@@ -480,7 +480,7 @@ def test_delivery_known_blockers_block_owner_receipt_when_current_package_cannot
     decision = terminalize_stage_closure(
         study_id="002-dm-china-us-mortality-attribution",
         stage_id="publication_supervision",
-        work_unit_id="submission_milestone_candidate::followthrough::followthrough-02",
+        work_unit_id="submission_milestone_candidate",
         work_unit_fingerprint="dm002-current-package-authority",
         gate_replay={"gate_replay_status": "blocked"},
         delivery_readback={

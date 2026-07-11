@@ -151,7 +151,6 @@ def test_compile_envelope_from_stage_outcome_uses_family_as_authority() -> None:
         "current_executable_owner_action"
     ] == "diagnostic_readback_only"
     assert envelope["idempotency_key"] == "owner-route::dm002::repair"
-    assert envelope["semantic_progress_signature"] == "sig-dm002"
 
 
 def test_new_study_exact_work_unit_id_is_diagnostic_when_family_is_canonical() -> None:
@@ -187,7 +186,6 @@ def test_new_study_exact_work_unit_id_is_diagnostic_when_family_is_canonical() -
         "output_kind": "ai_reviewer_publication_eval",
         "accepted_refs": ["publication_eval_record_ref", "publication_eval_latest_ref"],
     }
-    assert envelope["semantic_progress_signature"] == "sig-dm004-family-route"
 
 
 def test_unknown_action_family_fails_closed_to_typed_blocker() -> None:
@@ -211,7 +209,6 @@ def test_unknown_action_family_fails_closed_to_typed_blocker() -> None:
     assert envelope["owner"] == "mas_authority_kernel"
     assert envelope["executor_target"] == "mas_authority_kernel"
     assert envelope["work_unit_id"] == work_unit_id
-    assert envelope["retry_or_stop_policy"]["retry_allowed"] is False
     assert envelope["authority_boundary"]["can_submit_to_opl_runtime"] is False
 
 
@@ -221,14 +218,14 @@ def test_runtime_route_envelope_keeps_opl_as_receipt_owner_not_stage_authority()
         stage_id="submission_milestone_candidate",
         stage_outcome={
             "outcome": {"kind": "next_stage_transition"},
-            "work_unit_id": "submission_milestone_candidate::followthrough::followthrough-02",
+            "work_unit_id": "submission_milestone_candidate",
         },
         route_command={
             "command_kind": "resume_stage",
             "runtime_owner": "one-person-lab",
-            "request_idempotency_key": "request::003::followthrough",
-            "attempt_idempotency_key": "attempt::003::followthrough",
-            "work_unit_id": "submission_milestone_candidate::followthrough::followthrough-02",
+            "request_idempotency_key": "request::003::submission",
+            "attempt_idempotency_key": "attempt::003::submission",
+            "work_unit_id": "submission_milestone_candidate",
             "route_target": "opl_runtime_live_readback",
         },
     )
@@ -236,7 +233,7 @@ def test_runtime_route_envelope_keeps_opl_as_receipt_owner_not_stage_authority()
     assert envelope["action_family"] == FAMILY_RUNTIME_OPL_ROUTE
     assert envelope["action_kind"] == "submit_to_opl_runtime"
     assert envelope["owner"] == "one-person-lab"
-    assert envelope["idempotency_key"] == "request::003::followthrough"
+    assert envelope["idempotency_key"] == "request::003::submission"
     assert envelope["executor_target"] == "opl_domain_progress_transition_runtime"
     assert envelope["runtime_receipt_authority"] == (
         "opl_domain_route_transition_receipt_only"
@@ -245,7 +242,6 @@ def test_runtime_route_envelope_keeps_opl_as_receipt_owner_not_stage_authority()
     assert envelope["authority_boundary"]["can_submit_to_opl_runtime"] is True
     assert envelope["authority_boundary"]["can_write_runtime_queue"] is False
     assert envelope["authority_boundary"]["can_write_provider_attempt"] is False
-    assert envelope["retry_or_stop_policy"]["semantic_budget_resets_from_transport"] is False
 
 
 def test_opl_transition_receipt_owner_family_supersedes_runtime_route_redrive() -> None:
@@ -254,13 +250,13 @@ def test_opl_transition_receipt_owner_family_supersedes_runtime_route_redrive() 
         stage_id="submission_milestone_candidate",
         stage_outcome={
             "outcome": {"kind": "next_stage_transition"},
-            "work_unit_id": "submission_milestone_candidate::followthrough::followthrough-02",
+            "work_unit_id": "submission_milestone_candidate",
         },
         route_command={
             "command_kind": "resume_stage",
             "runtime_owner": "one-person-lab",
-            "request_idempotency_key": "request::003::followthrough",
-            "work_unit_id": "submission_milestone_candidate::followthrough::followthrough-02",
+            "request_idempotency_key": "request::003::submission",
+            "work_unit_id": "submission_milestone_candidate",
             "route_target": "opl_runtime_live_readback",
         },
         owner_route={
@@ -282,8 +278,8 @@ def test_opl_transition_receipt_owner_family_supersedes_runtime_route_redrive() 
 
 
 def test_paper_mission_projection_routes_typed_opl_receipt_to_typed_blocker_owner() -> None:
-    transaction_ref = "paper-mission-transaction::dm002::followthrough"
-    route_target = "submission_milestone_candidate::followthrough::followthrough-01"
+    transaction_ref = "paper-mission-transaction::dm002::submission"
+    route_target = "submission_milestone_candidate"
     carrier = _canonical_opl_carrier(
         transaction_ref=transaction_ref,
         route_target=route_target,
@@ -323,7 +319,6 @@ def test_paper_mission_projection_routes_typed_opl_receipt_to_typed_blocker_owne
                 "status": "requires_mas_owner_consumption",
                 "next_legal_action": "record_typed_blocker",
                 "typed_runtime_blocker_ref": "opl://stage-attempts/sat-typed/typed-blocker",
-                "forbidden_next_action": "synonymous_route_back_redrive",
             },
         },
     )
@@ -335,12 +330,11 @@ def test_paper_mission_projection_routes_typed_opl_receipt_to_typed_blocker_owne
     assert envelope["executor_target"] == "mas_authority_kernel"
     assert envelope["expected_output_contract"]["accepted_refs"] == ["typed_blocker_ref"]
     assert envelope["authority_boundary"]["can_submit_to_opl_runtime"] is False
-    assert envelope["retry_or_stop_policy"]["retry_allowed"] is False
 
 
 def test_paper_mission_projection_does_not_promote_incomplete_opl_receipt() -> None:
     transaction_ref = "paper-mission-transaction::dm002::incomplete-receipt"
-    route_target = "submission_milestone_candidate::followthrough::followthrough-01"
+    route_target = "submission_milestone_candidate"
     carrier = _canonical_opl_carrier(
         transaction_ref=transaction_ref,
         route_target=route_target,
@@ -436,7 +430,6 @@ def test_terminal_owner_outcomes_compile_to_stop_or_human_families() -> None:
     )
 
     assert typed["action_family"] == FAMILY_BLOCKED_TYPED
-    assert typed["retry_or_stop_policy"]["retry_allowed"] is False
     assert human["action_family"] == FAMILY_HUMAN_APPROVAL
     assert human["expected_output_contract"]["accepted_refs"] == ["human_gate_ref"]
 
@@ -489,7 +482,6 @@ def test_authorized_submission_ready_owner_receipt_compiles_to_mission_complete(
     assert envelope["action_kind"] == "complete_mission"
     assert envelope["owner"] == "MedAutoScience"
     assert envelope["executor_target"] == "mas_terminal"
-    assert envelope["retry_or_stop_policy"]["retry_allowed"] is False
     assert envelope["authority_boundary"]["can_submit_to_opl_runtime"] is False
 
 

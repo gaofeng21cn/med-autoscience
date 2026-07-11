@@ -567,7 +567,7 @@ def test_submission_blocker_gate_readback_ignores_stale_submission_ready_closeou
                             "materialize_submission_ready_owner_verdict_or_human_gate"
                         ),
                         "work_unit_id": (
-                            "submission_milestone_candidate::followthrough::followthrough-01"
+                            "submission_milestone_candidate"
                         ),
                         "work_unit_fingerprint": "older-submission-ready-fingerprint",
                     },

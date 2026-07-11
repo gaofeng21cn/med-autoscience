@@ -180,7 +180,6 @@ def build_materialized_mission_readback_if_available(
                 else {}
             ),
             "consume_candidate_status": effective_consume_candidate_status,
-            "route_back_budget": projection_fields.get("route_back_budget"),
             "current_package": projection_fields.get("current_package"),
         },
         handoff=_mapping(transaction_readback.get("opl_route_handoff")),
@@ -195,7 +194,6 @@ def build_materialized_mission_readback_if_available(
             {
                 **transaction_readback,
                 "consume_candidate_status": consume_candidate_status,
-                "route_back_budget": projection_fields.get("route_back_budget"),
                 "current_package": projection_fields.get("current_package"),
                 **(
                     {"stage_closure_decision": stage_closure_readback}

@@ -25,25 +25,14 @@ from .domain_transition_redrive_stop import (
     drive_domain_transition_redrive_block_payload as _drive_domain_transition_redrive_block_payload,
     drive_domain_transition_redrive_stop_readback as _drive_domain_transition_redrive_stop_readback,
 )
-from .followthrough import (
-    paper_mission_drive_followthrough as _paper_mission_drive_followthrough,
-)
 from med_autoscience.paper_mission_domain.drive_helpers import (
-    paper_mission_drive_followthrough_empty as _paper_mission_drive_followthrough_empty,
     paper_mission_drive_output_roots as _paper_mission_drive_output_roots,
     paper_mission_drive_result as _paper_mission_drive_result,
-    paper_mission_mas_owned_executor_delta_checkpoint as _paper_mission_mas_owned_executor_delta_checkpoint,
 )
 from med_autoscience.paper_mission_domain.opl_runtime_submission import (
     opl_runtime_submission_readback as _opl_runtime_submission_readback,
     refresh_consume_readback_after_opl_submission as _refresh_consume_readback_after_opl_submission,
-    semantic_progress_guard as _paper_mission_semantic_progress_guard,
     stage_closure_missing_runtime_submission as _stage_closure_missing_runtime_submission,
-)
-from med_autoscience.paper_mission_domain.route_back_budget import (
-    _load_paper_mission_route_back_budget_ledger,
-    _paper_mission_route_back_budget_ledger_path,
-    _record_paper_mission_route_back_budget_ledger,
 )
 from med_autoscience.paper_mission_domain.stage_closure_terminalizer import (
     materialize_stage_closure_for_drive_readback as _materialize_stage_closure_for_drive_readback,
@@ -80,14 +69,6 @@ def build_paper_mission_drive_readback(
     )
     root = output_roots["root"]
     package_root = output_roots["candidate_package"]
-    route_back_budget_ledger_ref = _paper_mission_route_back_budget_ledger_path(
-        ledger_root=package_root,
-        study_id=study_id,
-    )
-    route_back_budget_ledger = _load_paper_mission_route_back_budget_ledger(
-        ledger_ref=route_back_budget_ledger_ref,
-        study_id=study_id,
-    )
     next_action_source_readback = _drive_next_action_source_readback(
         profile=profile,
         profile_ref=profile_ref,
@@ -167,30 +148,9 @@ def build_paper_mission_drive_readback(
             readback=consume_readback,
             handoff=handoff,
         )
-    initial_progress_guard = _paper_mission_semantic_progress_guard(
-        consume_readback=consume_readback,
-        handoff=handoff,
-        route_back_budget_ledger=route_back_budget_ledger,
-    )
-    route_back_budget_ledger = _record_paper_mission_route_back_budget_ledger(
-        ledger=route_back_budget_ledger,
-        ledger_ref=route_back_budget_ledger_ref,
-        progress_guard=initial_progress_guard,
-        consume_readback=consume_readback,
-        handoff=handoff,
-        trigger="drive-initial",
-        source=source,
-    )
     if stage_closure_decision_missing(initial_stage_closure_decision):
         opl_runtime_submission = _stage_closure_missing_runtime_submission(
             initial_stage_closure_decision
-        )
-        followthrough = _paper_mission_drive_followthrough_empty(
-            route_back_budget_ledger=route_back_budget_ledger,
-            route_back_budget_ledger_ref=route_back_budget_ledger_ref,
-            progress_guard=initial_progress_guard,
-            stage_closure_decision=initial_stage_closure_decision,
-            stop_reason="stage_closure_decision_missing",
         )
     else:
         opl_runtime_submission = _opl_runtime_submission_readback(
@@ -203,46 +163,15 @@ def build_paper_mission_drive_readback(
             opl_runtime_submission=opl_runtime_submission,
         )
         handoff = _mapping(consume_readback.get("opl_route_handoff")) or handoff
-        followthrough = _paper_mission_drive_followthrough(
-            profile=profile,
-            profile_ref=profile_ref,
-            study_id=study_id,
-            root=root,
-            package_root=package_root,
-            source=source,
-            opl_bin=opl_bin,
-            submit_opl_runtime=runtime_submit_requested,
-            initial_package_readback=package_readback,
-            initial_consume_readback=consume_readback,
-            initial_handoff=handoff,
-            initial_opl_runtime_submission=opl_runtime_submission,
-            initial_progress_guard=initial_progress_guard,
-            route_back_budget_ledger=route_back_budget_ledger,
-            route_back_budget_ledger_ref=route_back_budget_ledger_ref,
-            consume_candidate_readback_builder=consume_candidate_readback_builder,
-        )
-    if followthrough["rounds"]:
-        final_round = _mapping(followthrough["rounds"][-1])
-        package_readback = _mapping(final_round.get("candidate_package_readback"))
-        consume_readback = _mapping(final_round.get("consume_readback"))
-        handoff = _mapping(final_round.get("opl_route_handoff"))
-        opl_runtime_submission = _mapping(final_round.get("opl_runtime_submission"))
     stage_closure_decision = stage_closure_decision_projection(
         readback=consume_readback,
         handoff=handoff,
         opl_runtime_submission=opl_runtime_submission,
     )
-    mas_executor_delta = _paper_mission_mas_owned_executor_delta_checkpoint(
-        package_readback=package_readback,
-        consume_readback=consume_readback,
-        handoff=handoff,
-        progress_guard=followthrough["semantic_progress_guard"],
-    )
     drive_result = _paper_mission_drive_result(
         consume_readback=consume_readback,
         handoff=handoff,
         opl_runtime_submission=opl_runtime_submission,
-        mas_owned_executor_delta=mas_executor_delta,
         stage_closure_decision=stage_closure_decision,
     )
     return {
@@ -289,35 +218,16 @@ def build_paper_mission_drive_readback(
         "terminal_owner_gate_owner_answer_readback": consume_readback.get(
             "terminal_owner_gate_owner_answer_readback"
         ),
-        "semantic_progress_signature": consume_readback.get(
-            "semantic_progress_signature"
-        ),
-        "route_back_budget": consume_readback.get("route_back_budget"),
-        "mission_executor_fallback_action": consume_readback.get(
-            "mission_executor_fallback_action"
-        ),
         "carry_forward_risk_receipt_ref": consume_readback.get(
             "carry_forward_risk_receipt_ref"
         ),
         "opl_route_handoff": handoff or None,
         "opl_runtime_submission": opl_runtime_submission,
-        "followthrough": followthrough,
         "stage_closure_decision": stage_closure_decision,
         "stage_closure_decision_ref": stage_closure_decision.get("decision_ref"),
         "stage_closure_outcome": _mapping(stage_closure_decision.get("outcome")).get(
             "kind"
         ),
-        "semantic_progress_guard": followthrough["semantic_progress_guard"],
-        "non_advancing_route_back": followthrough["non_advancing_route_back"],
-        "route_back_budget_ledger": followthrough["route_back_budget_ledger"],
-        "route_back_budget_ledger_ref": followthrough["route_back_budget_ledger_ref"],
-        "mas_owned_executor_delta": mas_executor_delta,
-        "mas_owned_executor_stage": _mapping(mas_executor_delta).get(
-            "mas_owned_executor_stage"
-        ),
-        "requires_mas_owned_executor_delta": followthrough[
-            "requires_mas_owned_executor_delta"
-        ],
         "transaction_state": consume_readback["transaction_state"],
         "consume_candidate_status": consume_readback["consume_candidate_status"],
         "next_owner_or_human_decision": consume_readback[
@@ -340,10 +250,6 @@ def build_paper_mission_drive_readback(
             "mode": "paper_mission_drive",
             "output_root": str(root),
             "candidate_package": package_readback["output_manifest"],
-            "route_back_budget_ledger_ref": followthrough[
-                "route_back_budget_ledger_ref"
-            ],
-            "followthrough_round_count": followthrough["round_count"],
             "writes_authority": False,
             "writes_yang_authority": False,
             "writes_paper_body": False,
@@ -394,13 +300,6 @@ def _drive_direct_next_action_readback(
         opl_runtime_submission=opl_runtime_submission,
         carrier_readback=carrier_readback,
     )
-    followthrough = _paper_mission_drive_followthrough_empty(
-        route_back_budget_ledger={},
-        route_back_budget_ledger_ref=output_root / "route_back_budget.json",
-        progress_guard={},
-        stage_closure_decision={},
-        stop_reason="domain_transition_direct_stage_attempt",
-    )
     writes_runtime = bool(opl_runtime_submission.get("writes_runtime"))
     return {
         "surface_kind": "paper_mission_drive_readback",
@@ -435,7 +334,6 @@ def _drive_direct_next_action_readback(
         "opl_runtime_readback_status": carrier_readback["carrier_status"],
         "opl_route_handoff": handoff,
         "opl_runtime_submission": opl_runtime_submission,
-        "followthrough": followthrough,
         "transaction_state": "domain_transition_direct_stage_attempt",
         "consume_candidate_status": "not_applicable_domain_transition_direct",
         "next_owner_or_human_decision": {
@@ -466,7 +364,6 @@ def _drive_direct_next_action_readback(
             "writes_runtime": writes_runtime,
             "candidate_package": None,
             "consumption_ledger": None,
-            "followthrough_round_count": 0,
         },
         "forbidden_authority_claims": list(forbidden_authority_claims),
         "drive_result": drive_result,
@@ -571,7 +468,6 @@ def _drive_owner_action_stop_readback(
             current_opl_owner_consumption.get("next_legal_action")
         )
         or _optional_text(next_action.get("action_type")),
-        "forbidden_next_action": "synonymous_route_back_redrive",
         "can_submit_to_opl_runtime": False,
         "can_claim_paper_progress": False,
         "can_claim_runtime_ready": False,

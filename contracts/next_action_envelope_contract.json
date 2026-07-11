@@ -18,8 +18,7 @@
     "executor_target",
     "expected_output_contract",
     "authority_boundary",
-    "idempotency_key",
-    "semantic_progress_signature"
+    "idempotency_key"
   ],
   "allowed_action_families": [
     "paper.write.prose_repair",
@@ -37,7 +36,6 @@
   "identity_policy": {
     "action_id_role": "stable envelope identity",
     "idempotency_key_role": "runtime and owner callable replay identity",
-    "semantic_progress_signature_role": "semantic loop budget identity",
     "exact_work_unit_id_role": "provenance and currentness only, never authority"
   },
   "authority_boundary_required": {

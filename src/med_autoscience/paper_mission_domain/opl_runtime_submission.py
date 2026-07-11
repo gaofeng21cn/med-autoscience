@@ -17,15 +17,6 @@ from med_autoscience.paper_mission_domain.common import (
     _parse_json_object,
     _stable_sha256,
 )
-from med_autoscience.paper_mission_domain.route_back_budget import (
-    NON_ADVANCING_ROUTE_BACK_REQUIRED_OUTPUTS,
-    _paper_mission_progress_refs_for_guard,
-    _paper_mission_required_executor_delta_present,
-    _paper_mission_route_back_budget_status,
-    _paper_mission_route_request_progress_guard,
-    _paper_mission_semantic_progress_signature_payload,
-    _paper_mission_mas_owned_executor_stage_packet,
-)
 from med_autoscience.paper_mission_domain.transaction_readback import (
     _consume_candidate_status_for_transaction_readback,
     _paper_mission_transaction_readback,
@@ -321,81 +312,6 @@ def _opl_command_preview(command: list[str]) -> list[str]:
     return preview
 
 
-def semantic_progress_guard(
-    *,
-    consume_readback: Mapping[str, Any],
-    handoff: Mapping[str, Any],
-    previous_guard: Mapping[str, Any] | None = None,
-    route_back_budget_ledger: Mapping[str, Any] | None = None,
-) -> dict[str, Any]:
-    signature_payload = _paper_mission_semantic_progress_signature_payload(
-        consume_readback=consume_readback,
-        handoff=handoff,
-    )
-    signature = _stable_sha256(signature_payload)
-    previous_signature = _optional_text(_mapping(previous_guard).get("signature"))
-    semantic_progress_observed = (
-        previous_signature is None or previous_signature != signature
-    )
-    has_required_delta = _paper_mission_required_executor_delta_present(
-        consume_readback=consume_readback,
-        handoff=handoff,
-    )
-    budget_status = _paper_mission_route_back_budget_status(
-        signature=signature,
-        signature_payload=signature_payload,
-        ledger=route_back_budget_ledger,
-        has_required_delta=has_required_delta,
-    )
-    status = (
-        "semantic_progress_observed"
-        if (semantic_progress_observed and not budget_status["budget_exhausted"])
-        or has_required_delta
-        else "non_advancing_route_back"
-    )
-    result = {
-        "surface_kind": "paper_mission_semantic_progress_guard",
-        "schema_version": 1,
-        "status": status,
-        "signature": signature,
-        "previous_signature": previous_signature,
-        "signature_payload": signature_payload,
-        "progress_refs": _paper_mission_progress_refs_for_guard(
-            consume_readback=consume_readback,
-            handoff=handoff,
-        ),
-        "semantic_progress_observed": semantic_progress_observed,
-        "required_executor_delta_present": has_required_delta,
-        "route_back_budget": budget_status,
-        "required_executor_outputs": list(NON_ADVANCING_ROUTE_BACK_REQUIRED_OUTPUTS),
-        "can_claim_paper_progress": False,
-        "can_claim_submission_ready": False,
-        "can_claim_runtime_ready": False,
-    }
-    if status == "non_advancing_route_back":
-        executor_stage = _paper_mission_mas_owned_executor_stage_packet(
-            signature=signature,
-            signature_payload=signature_payload,
-        )
-        result.update(
-            {
-                "reason": (
-                    "MAS observed a route-back/domain-gate handoff with the same "
-                    "semantic progress signature and no new owner decision, "
-                    "human gate, paper-facing delta, typed blocker, owner receipt, "
-                    "or route-back evidence ref."
-                ),
-                "requires_mas_owned_executor_delta": True,
-                "required_next_executor_stage": executor_stage["stage_type"],
-                "mas_owned_executor_stage": executor_stage,
-                "next_legal_actions": list(NON_ADVANCING_ROUTE_BACK_REQUIRED_OUTPUTS),
-                "stop_same_semantic_redrive": True,
-                "owner_surface": "med-autoscience PaperMissionRun / MAS authority",
-            }
-        )
-    return result
-
-
 def drive_result_status(
     *,
     handoff_ready: bool,
@@ -452,6 +368,5 @@ __all__ = [
     "drive_result_status",
     "opl_runtime_submission_readback",
     "refresh_consume_readback_after_opl_submission",
-    "semantic_progress_guard",
     "stage_closure_missing_runtime_submission",
 ]

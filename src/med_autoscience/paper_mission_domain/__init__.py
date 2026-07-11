@@ -46,9 +46,6 @@ from .projection_fields import (
 from .one_shot_migration import (
     build_one_shot_migration_cli_readback as _build_one_shot_migration_cli_readback_impl,
 )
-from .opl_runtime_submission import (
-    semantic_progress_guard as _paper_mission_semantic_progress_guard,
-)
 from .stage_closure_next_action import (
     merge_stage_closure_typed_blocker_gate_fields as _merge_stage_closure_typed_blocker_gate_fields,
     next_action_for_stage_closure_decision as _next_action_for_stage_closure_decision,

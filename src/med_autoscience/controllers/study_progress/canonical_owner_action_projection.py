@@ -29,7 +29,6 @@ def build_canonical_owner_action_projection(payload: Mapping[str, Any]) -> dict[
     )
     fingerprint = (
         _non_empty_text(next_action.get("work_unit_fingerprint"))
-        or _non_empty_text(next_action.get("semantic_progress_signature"))
         or _non_empty_text(next_action.get("action_id"))
     )
     source_ref = _non_empty_text(next_action.get("outcome_ref")) or _first_ref(
@@ -233,7 +232,6 @@ def submission_authority_owner_gate_readback(
         "action_type": action_type,
         "work_unit_id": _non_empty_text(next_action.get("work_unit_id")),
         "work_unit_fingerprint": _non_empty_text(next_action.get("work_unit_fingerprint"))
-        or _non_empty_text(next_action.get("semantic_progress_signature"))
         or _non_empty_text(next_action.get("action_id")),
     }
     if any(value is None for value in expected.values()):

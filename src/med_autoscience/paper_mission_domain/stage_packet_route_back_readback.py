@@ -130,7 +130,7 @@ def _paper_mission_transaction_stage_id(
     if not transaction_ref.startswith(prefix) or suffix not in transaction_ref:
         return None
     stage_segment = transaction_ref[len(prefix) : transaction_ref.index(suffix)]
-    return stage_segment.split("::followthrough::", 1)[0] if stage_segment else None
+    return stage_segment or None
 
 
 def _stage_packet_transaction_priority(
@@ -143,10 +143,6 @@ def _stage_packet_transaction_priority(
         return 0
     if stage_packet_ref == current_transaction_ref:
         return 1
-    if stage_packet_ref.startswith(f"{current_transaction_ref}::followthrough::"):
-        return 2
-    if current_transaction_ref.startswith(f"{stage_packet_ref}::followthrough::"):
-        return 1
     current_stage = _paper_mission_transaction_stage_id(
         current_transaction_ref, study_id=study_id
     )
@@ -155,10 +151,6 @@ def _stage_packet_transaction_priority(
     )
     if current_stage is None or stage_packet_stage is None:
         return 0
-    if stage_packet_stage.startswith(f"{current_stage}::followthrough::"):
-        return 2
-    if current_stage.startswith(f"{stage_packet_stage}::followthrough::"):
-        return 1
     return 0
 
 

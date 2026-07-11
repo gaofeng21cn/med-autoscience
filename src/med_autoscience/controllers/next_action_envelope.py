@@ -216,12 +216,6 @@ def compile_next_action_envelope(
         "expected_output_contract": expected_output_contract_for_family(family),
         "authority_boundary": _authority_boundary(family, authority_boundary),
         "idempotency_key": idempotency_key,
-        "semantic_progress_signature": (
-            _text(outcome.get("decision_signature"))
-            or _text(outcome.get("semantic_progress_signature"))
-            or _stable_key("semantic-progress", resolved_study_id, resolved_stage_id, family, work_unit_id)
-        ),
-        "retry_or_stop_policy": retry_or_stop_policy_for_family(family),
         "supersedes_refs": _text_items(outcome.get("supersedes_refs")),
         "diagnostic_refs": _diagnostic_refs(diagnostic_refs, outcome, route, owner),
         "authority_source": "mas_next_action_compiler",
@@ -395,22 +389,6 @@ def expected_output_contract_for_family(action_family: str) -> dict[str, Any]:
     return {"output_kind": "mission_terminal_receipt", "accepted_refs": ["mission_package_ref"]}
 
 
-def retry_or_stop_policy_for_family(action_family: str) -> dict[str, Any]:
-    if action_family in {FAMILY_RUNTIME_OPL_ROUTE, FAMILY_RUNTIME_WAIT_RECEIPT}:
-        return {
-            "retry_owner": "one-person-lab",
-            "semantic_budget_resets_from_transport": False,
-            "stop_requires": "opl_domain_route_transition_receipt_or_typed_runtime_blocker",
-        }
-    if action_family in {FAMILY_BLOCKED_TYPED, FAMILY_HUMAN_APPROVAL, FAMILY_MISSION_COMPLETE}:
-        return {"retry_owner": None, "retry_allowed": False, "stop_requires": "terminal_owner_result"}
-    return {
-        "retry_owner": "MedAutoScience",
-        "semantic_budget_resets_from_transport": False,
-        "stop_requires": "semantic_delta_owner_receipt_typed_blocker_or_human_gate",
-    }
-
-
 def _authority_boundary(action_family: str, authority_boundary: Mapping[str, Any] | None) -> dict[str, Any]:
     boundary = dict(authority_boundary or {})
     boundary.setdefault("can_claim_stage_complete", False)
@@ -572,5 +550,4 @@ __all__ = [
     "compile_next_action_envelope",
     "expected_output_contract_for_family",
     "resolve_action_family",
-    "retry_or_stop_policy_for_family",
 ]

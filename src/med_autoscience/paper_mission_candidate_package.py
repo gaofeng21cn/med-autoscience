@@ -644,13 +644,12 @@ def _carry_forward_risk_receipt(
             f"{_text(readback.get('study_id')) or 'unknown-study'}:"
             f"{hashlib.sha256(basis.encode('utf-8')).hexdigest()[:16]}"
         ),
-        "risk_kind": "synonymous_route_back_redrive",
-        "forbidden_next_action": "synonymous_route_back_redrive",
-        "required_owner_fallback_action": _next_legal_action(
+        "risk_kind": "route_back_owner_resolution_required",
+        "required_owner_action": _next_legal_action(
             blocker_kind=blocker_kind
         ),
         "source_route_back_evidence_ref": route_back_ref,
-        "fallback_priority": [
+        "owner_resolution_priority": [
             "paper_facing_delta",
             "owner_decision",
             "carry_forward_risk_receipt",

@@ -285,11 +285,7 @@ def _normalize_stage_closure_decision(
             ),
             "outcome": _compact({**outcome, "kind": outcome_kind}),
             "outcome_kind": outcome_kind,
-            "repair_budget": _first_mapping(
-                _mapping(payload.get("repair_budget")),
-                _mapping(payload.get("route_back_budget")),
-            )
-            or None,
+            "repair_budget": _mapping(payload.get("repair_budget")) or None,
             "package_kind": _text(payload.get("package_kind")),
             "known_blockers": blockers,
             "projection_status": "terminalizer_outcome_observed",
@@ -361,11 +357,7 @@ def _missing_stage_closure_decision(
                 "next_action": "run_stage_closure_terminalizer",
             },
             "outcome_kind": "stage_closure_decision_missing",
-            "repair_budget": _first_mapping(
-                _mapping(readback.get("route_back_budget")),
-                _mapping(decision.get("repair_budget")),
-            )
-            or None,
+            "repair_budget": _mapping(decision.get("repair_budget")) or None,
             "package_kind": _first_text(
                 readback.get("package_kind"),
                 _mapping(readback.get("candidate_manifest")).get("package_kind"),

@@ -355,13 +355,6 @@ def _paper_mission_transaction_readback(
     )
     owner_answer = _mapping(readback.get("terminal_owner_gate_owner_answer_readback"))
     if owner_answer:
-        readback["semantic_progress_signature"] = owner_answer.get(
-            "semantic_progress_signature"
-        )
-        readback["route_back_budget"] = owner_answer.get("route_back_budget")
-        readback["mission_executor_fallback_action"] = owner_answer.get(
-            "mission_executor_fallback_action"
-        )
         readback["carry_forward_risk_receipt_ref"] = owner_answer.get(
             "carry_forward_risk_receipt_ref"
         )
@@ -559,13 +552,6 @@ def _transaction_readback_output_fields(
         ),
         "terminal_owner_gate_owner_answer_readback": transaction_readback.get(
             "terminal_owner_gate_owner_answer_readback"
-        ),
-        "semantic_progress_signature": transaction_readback.get(
-            "semantic_progress_signature"
-        ),
-        "route_back_budget": transaction_readback.get("route_back_budget"),
-        "mission_executor_fallback_action": transaction_readback.get(
-            "mission_executor_fallback_action"
         ),
         "carry_forward_risk_receipt_ref": transaction_readback.get(
             "carry_forward_risk_receipt_ref"

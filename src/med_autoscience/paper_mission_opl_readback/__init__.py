@@ -311,9 +311,6 @@ def _local_route_back_closeout_supersedes_live_terminal(
     if _closeout_is_live_runtime_terminal(
         closeout=live_closeout,
         closeout_ref=live_ref,
-    ) and not _followthrough_route_back_supersedes_live_terminal(
-        live_closeout=live_closeout,
-        local_closeout=local_closeout,
     ):
         return False
     return True
@@ -379,7 +376,7 @@ def _closeout_candidate_priority(
 ) -> tuple[int, float, int, int]:
     route_back = _mapping(route_back)
     return (
-        1 if _closeout_prefers_followthrough_identity(closeout, route_back) else 0,
+        0,
         closeout_path.stat().st_mtime,
         1
         if _closeout_binds_exact_route_identity(
@@ -390,16 +387,6 @@ def _closeout_candidate_priority(
         else 0,
         _closeout_semantic_priority(closeout, route_back),
     )
-
-
-def _closeout_prefers_followthrough_identity(
-    closeout: Mapping[str, Any],
-    route_back: Mapping[str, Any],
-) -> bool:
-    refs = _closeout_route_identity_refs(closeout) | _closeout_route_identity_refs(
-        route_back
-    )
-    return any("::followthrough::" in ref for ref in refs)
 
 
 def _closeout_semantic_priority(
@@ -442,25 +429,6 @@ def _closeout_semantic_priority(
     ):
         score += 1
     return score
-
-
-def _followthrough_route_back_supersedes_live_terminal(
-    *,
-    live_closeout: Mapping[str, Any],
-    local_closeout: Mapping[str, Any],
-) -> bool:
-    if not _closeout_has_route_back_evidence(local_closeout):
-        return False
-    local_route_ref = _closeout_route_identity_ref(local_closeout)
-    live_route_ref = _closeout_route_identity_ref(live_closeout)
-    if not _route_ref_matches(local_route_ref, live_route_ref):
-        return False
-    if local_route_ref is None or "::followthrough::" not in local_route_ref:
-        return False
-    return _closeout_semantic_priority(local_closeout, {}) >= _closeout_semantic_priority(
-        live_closeout,
-        {},
-    )
 
 
 def _closeout_route_identity_refs(closeout: Mapping[str, Any]) -> set[str]:

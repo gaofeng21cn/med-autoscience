@@ -97,7 +97,6 @@ def _stage_closure_repair_budget(payload: Mapping[str, Any]) -> dict[str, Any]:
                 "repair_budget"
             )
         ),
-        _mapping(payload.get("route_back_budget")),
     )
     for candidate in candidates:
         budget = _normalize_repair_budget(candidate)

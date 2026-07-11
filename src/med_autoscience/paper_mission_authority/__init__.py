@@ -16,7 +16,6 @@ from .normalization import (
     text_list as _text_list,
     text_or_none as _text,
 )
-from med_autoscience.paper_mission_transaction import build_paper_mission_transaction
 
 
 SURFACE_KIND = "mas_paper_mission_candidate_consume_readback"
@@ -369,24 +368,13 @@ def _candidate_payload_from_submission_package(
             if _text(value)
         },
     }
-    owner_blocker_packet = _load_sidecar_json(
-        _text(package_sidecar_refs.get("owner_blocker_packet")),
-        base_path=base_path,
-    )
     embedded_transaction = _first_mapping(
         _mapping(candidate_payload.get("paper_mission_transaction")),
         _transaction_from_sidecar_refs(sidecar_refs, base_path=base_path),
         _transaction_from_sidecar_refs(package_sidecar_refs, base_path=base_path),
     )
-    continuation_transaction = _continuation_transaction_for_submission_package(
-        package=package,
-        candidate_payload=candidate_payload,
-        owner_blocker_packet=owner_blocker_packet,
-        package_ref=manifest_input.get("path") if manifest_input is not None else None,
-    )
     paper_mission_transaction = _submission_package_transaction_for_consume(
         embedded_transaction=embedded_transaction,
-        continuation_transaction=continuation_transaction,
         package_ref=manifest_input.get("path") if manifest_input is not None else None,
         requested_outcome=_first_text(
             candidate_payload.get("requested_outcome"),
@@ -407,12 +395,10 @@ def _candidate_payload_from_submission_package(
     normalized = {
         **candidate_payload,
         "candidate_id": candidate_id,
-        "mission_id": _canonical_followthrough_identity(
-            _first_text(
-                candidate_payload.get("mission_id"),
-                package.get("mission_id"),
-                "unknown_mission",
-            )
+        "mission_id": _first_text(
+            candidate_payload.get("mission_id"),
+            package.get("mission_id"),
+            "unknown_mission",
         ),
         "study_id": _first_text(
             candidate_payload.get("study_id"),
@@ -495,12 +481,10 @@ def _candidate_payload_from_submission_package(
 def _submission_package_transaction_for_consume(
     *,
     embedded_transaction: Mapping[str, Any],
-    continuation_transaction: Mapping[str, Any],
     package_ref: str | None,
     requested_outcome: str | None,
 ) -> dict[str, Any]:
     embedded = _mapping(embedded_transaction)
-    continuation = _mapping(continuation_transaction)
     embedded_decision = _mapping(embedded.get("stage_terminal_decision"))
     if _embedded_transaction_is_canonical_next_action(embedded):
         return embedded
@@ -511,11 +495,9 @@ def _submission_package_transaction_for_consume(
         and _transaction_idempotency_matches_ref(embedded, package_ref)
     ):
         return embedded
-    if requested_outcome == "accepted_candidate" and continuation:
-        return continuation
     if _text(embedded_decision.get("decision_kind")) not in {None, "route_back"}:
         return embedded
-    return _first_mapping(continuation, embedded)
+    return embedded
 
 
 def _embedded_transaction_is_canonical_next_action(transaction: Mapping[str, Any]) -> bool:
@@ -548,184 +530,6 @@ def _transaction_idempotency_matches_ref(
     )
     return idempotency_key is not None and ref in idempotency_key
 
-
-def _canonical_followthrough_identity(value: str | None) -> str | None:
-    if value is None:
-        return None
-    duplicated = "::followthrough::followthrough"
-    if duplicated not in value:
-        return value
-    return value.replace(duplicated, "::followthrough", 1)
-
-
-def _continuation_transaction_for_submission_package(
-    *,
-    package: Mapping[str, Any],
-    candidate_payload: Mapping[str, Any],
-    owner_blocker_packet: Mapping[str, Any],
-    package_ref: str | None = None,
-) -> dict[str, Any]:
-    blocker_kind = _text(owner_blocker_packet.get("blocker_kind"))
-    if blocker_kind not in {
-        "missing_opl_runtime_readback",
-        "domain_gate",
-        "route_back_without_blocker",
-        "typed_blocker",
-        "typed_blocker_owner_resolution",
-    }:
-        return {}
-    study_id = _first_text(candidate_payload.get("study_id"), package.get("study_id"))
-    mission_id = _canonical_followthrough_identity(
-        _first_text(candidate_payload.get("mission_id"), package.get("mission_id"))
-    )
-    if study_id is None or mission_id is None:
-        return {}
-    current_decision = _mapping(
-        _first_mapping(
-            owner_blocker_packet.get("current_terminal_decision"),
-            package.get("current_terminal_decision"),
-        )
-    )
-    stage_id = (
-        _first_text(
-            current_decision.get("target_stage_id"),
-            current_decision.get("next_stage_id"),
-            _mapping(owner_blocker_packet.get("terminal_owner_gate")).get("work_unit_id"),
-        )
-        or "submission_milestone_candidate"
-    )
-    stage_id = _submission_milestone_stage_identity(
-        stage_id=stage_id,
-        embedded_transaction=_mapping(candidate_payload.get("paper_mission_transaction")),
-        package_ref=package_ref
-        or _text(package.get("package_manifest_ref"))
-        or _text(candidate_payload.get("candidate_manifest_ref")),
-    )
-    stage_run_ref = f"paper-mission-package://{study_id}/{stage_id}"
-    reason = (
-        "Submission milestone candidate was consumed; missing OPL live "
-        "readback is preserved as runtime followthrough, not a paper blocker."
-    )
-    next_work_unit = (
-        "continue paper-facing submission milestone work and request OPL "
-        "route readback for the same PaperMissionTransaction"
-    )
-    if blocker_kind in {"domain_gate", "route_back_without_blocker", "typed_blocker"}:
-        reason = (
-            "MAS mission executor consumed route-back/domain-gate evidence as a "
-            "fresh paper-facing candidate and is continuing the PaperMission stage."
-        )
-        next_work_unit = (
-            _first_text(
-                current_decision.get("target_stage_id"),
-                current_decision.get("route_target"),
-                current_decision.get("next_work_unit"),
-                current_decision.get("work_unit_id"),
-                current_decision.get("repair_scope"),
-                "continue paper-facing route-back repair work",
-            )
-            or "continue paper-facing route-back repair work"
-        )
-    if blocker_kind in {"typed_blocker", "typed_blocker_owner_resolution"}:
-        reason = (
-            "MAS mission executor consumed typed-blocker owner-resolution context "
-            "as a fresh paper-facing candidate; typed blocker authority remains "
-            "unwritten until the owner answer is materialized."
-        )
-        next_work_unit = (
-            _first_text(
-                current_decision.get("target_stage_id"),
-                current_decision.get("route_target"),
-                current_decision.get("next_work_unit"),
-                current_decision.get("work_unit_id"),
-                current_decision.get("repair_scope"),
-                "continue paper-facing typed-blocker owner-resolution work",
-            )
-            or "continue paper-facing typed-blocker owner-resolution work"
-        )
-    terminal_decision = {
-        "decision_kind": "continue_same_stage",
-        "status": "accepted_submission_milestone_candidate",
-        "reason": reason,
-        "next_owner": "mission_executor",
-        "target_stage_id": "finalize_and_publication_handoff",
-        "next_work_unit": next_work_unit,
-        **(
-            {"source_route_back_evidence_ref": route_back_ref}
-            if (
-                route_back_ref := _first_text(
-                    _mapping(owner_blocker_packet.get("evidence_refs")).get(
-                        "route_back_evidence_ref"
-                    ),
-                    current_decision.get("route_back_evidence_ref"),
-                )
-            )
-            is not None
-            else {}
-        ),
-    }
-    return build_paper_mission_transaction(
-        mission_id=mission_id,
-        study_id=study_id,
-        stage_id=stage_id,
-        stage_run_ref=stage_run_ref or f"paper-mission-package://{study_id}",
-        terminal_decision=terminal_decision,
-        artifact_delta_refs=_artifact_delta_refs_for_submission_package(
-            candidate_payload=candidate_payload,
-            package=package,
-        ),
-        paper_audit_pack_refs=_paper_audit_pack_refs_for_submission_package(
-            candidate_payload=candidate_payload,
-            package=package,
-        ),
-        idempotency_basis=_submission_milestone_transaction_idempotency_basis(
-            package=package,
-            candidate_payload=candidate_payload,
-        ),
-    )
-
-
-def _submission_milestone_transaction_idempotency_basis(
-    *,
-    package: Mapping[str, Any],
-    candidate_payload: Mapping[str, Any],
-) -> str:
-    return "::".join(
-        [
-            "submission-milestone-candidate-consumed",
-            _text(package.get("package_manifest_ref"))
-            or _text(package.get("owner_consumption_request_ref"))
-            or "package-ref-missing",
-            _text(candidate_payload.get("candidate_manifest_ref"))
-            or _text(candidate_payload.get("candidate_id"))
-            or "candidate-ref-missing",
-            _text(
-                _mapping(candidate_payload.get("paper_mission_transaction")).get(
-                    "transaction_id"
-                )
-            )
-            or "transaction-ref-missing",
-        ]
-    )
-
-
-def _submission_milestone_stage_identity(
-    *,
-    stage_id: str,
-    embedded_transaction: Mapping[str, Any],
-    package_ref: str | None,
-) -> str:
-    transaction_id = _text(embedded_transaction.get("transaction_id")) or ""
-    marker = "::followthrough::"
-    if marker not in transaction_id:
-        package_ref_text = package_ref or ""
-        match = re.search(r"/(followthrough-[^/]+)/", package_ref_text)
-        if match is None:
-            return stage_id
-        return f"{stage_id}{marker}{match.group(1)}"
-    if marker in stage_id:
-        return stage_id
-    return f"{stage_id}{marker}{transaction_id.rsplit(marker, 1)[-1]}"
 
 
 def _load_sidecar_json(
@@ -798,32 +602,6 @@ def _source_readiness_refs_from_package(
         )
     return _dedupe(refs)
 
-
-def _artifact_delta_refs_for_submission_package(
-    *,
-    candidate_payload: Mapping[str, Any],
-    package: Mapping[str, Any],
-) -> list[dict[str, str]]:
-    refs = _candidate_artifact_refs_from_package(
-        candidate_payload=candidate_payload,
-        package=package,
-        sidecar_refs=_mapping(package.get("artifact_refs")),
-    )
-    return [
-        {
-            "ref_id": f"submission_milestone_artifact::{index}",
-            "ref_kind": "submission_milestone_candidate_artifact",
-            "uri": ref,
-        }
-        for index, ref in enumerate(refs, start=1)
-    ] or [
-        {
-            "ref_id": "submission_milestone_artifact::package_manifest",
-            "ref_kind": "submission_milestone_candidate_package",
-            "uri": _text(package.get("package_manifest_ref"))
-            or "submission-milestone-package://missing-ref",
-        }
-    ]
 
 
 def _paper_audit_pack_refs_for_submission_package(

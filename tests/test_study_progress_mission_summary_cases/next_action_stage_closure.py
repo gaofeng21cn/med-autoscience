@@ -236,7 +236,6 @@ def test_top_level_next_legal_action_prefers_receipt_consumption_over_stage_repl
                 "surface_kind": "mas_receipt_consumption_projection",
                 "status": "requires_mas_owner_consumption",
                 "next_legal_action": "consume_opl_transition_receipt",
-                "forbidden_next_action": "synonymous_route_back_redrive",
             },
             "stage_closure_decision": {
                 "projection_status": "terminalizer_outcome_observed",
