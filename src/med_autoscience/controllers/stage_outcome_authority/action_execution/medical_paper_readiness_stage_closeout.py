@@ -9,14 +9,10 @@ from typing import Any
 
 from med_autoscience.controllers import medical_paper_readiness as readiness_surface
 
-from . import publication_handoff_stage_projection as stage_projection
-
-
 STAGE_ID = "08-publication_package_handoff"
-STAGE_ROOT_RELATIVE_PATH = Path("artifacts/stage_outputs") / STAGE_ID
-STAGE_MANIFEST_RELATIVE_PATH = STAGE_ROOT_RELATIVE_PATH / "stage_manifest.json"
-OWNER_RECEIPT_RELATIVE_PATH = STAGE_ROOT_RELATIVE_PATH / "receipts" / "owner_receipt.json"
-TYPED_BLOCKER_RELATIVE_PATH = STAGE_ROOT_RELATIVE_PATH / "receipts" / "typed_blocker.json"
+READINESS_ROOT_RELATIVE_PATH = Path("artifacts/medical_paper")
+OWNER_RECEIPT_RELATIVE_PATH = READINESS_ROOT_RELATIVE_PATH / "readiness_owner_receipt.json"
+TYPED_BLOCKER_RELATIVE_PATH = READINESS_ROOT_RELATIVE_PATH / "readiness_typed_blocker.json"
 
 
 def materialize_stage_native_owner_answer(
@@ -46,13 +42,6 @@ def materialize_stage_native_owner_answer(
             binding=binding,
             apply=apply,
         )
-    manifest_path = study_root / STAGE_MANIFEST_RELATIVE_PATH
-    if not manifest_path.is_file():
-        return _blocked(
-            reason="stage_manifest_missing",
-            binding=binding,
-            apply=apply,
-        )
     if not apply:
         return {
             "surface_kind": "medical_paper_readiness_stage_native_closeout",
@@ -75,27 +64,6 @@ def materialize_stage_native_owner_answer(
         )
         _write_json(study_root / OWNER_RECEIPT_RELATIVE_PATH, receipt)
         _unlink_if_exists(study_root / TYPED_BLOCKER_RELATIVE_PATH)
-        _update_stage_manifest(
-            study_root=study_root,
-            terminal_status="completed",
-            owner_receipt_refs=["receipts/owner_receipt.json"],
-            typed_blocker_refs=[],
-            closeout_binding=binding,
-        )
-        stage_projection.write_stage_current_projection(
-            study_root=study_root,
-            owner="publication_gate_owner",
-            action="publication_handoff_owner_gate",
-            reason="medical_paper_readiness_surface_ready",
-            source_ref=OWNER_RECEIPT_RELATIVE_PATH.as_posix(),
-            owner_answer_kind="owner_receipt",
-            stage_status="success",
-            terminal_outcome_kind="owner_receipt",
-            terminal_outcome_ref=OWNER_RECEIPT_RELATIVE_PATH.as_posix(),
-            closeout_binding=binding,
-            authority_boundary=_authority_boundary(),
-            next_action=None,
-        )
         return _materialized(
             terminal_kind="owner_receipt",
             written_ref=OWNER_RECEIPT_RELATIVE_PATH.as_posix(),
@@ -111,27 +79,6 @@ def materialize_stage_native_owner_answer(
     )
     _write_json(study_root / TYPED_BLOCKER_RELATIVE_PATH, blocker)
     _unlink_if_exists(study_root / OWNER_RECEIPT_RELATIVE_PATH)
-    _update_stage_manifest(
-        study_root=study_root,
-        terminal_status="blocked",
-        owner_receipt_refs=[],
-        typed_blocker_refs=["receipts/typed_blocker.json"],
-        closeout_binding=binding,
-    )
-    stage_projection.write_stage_current_projection(
-        study_root=study_root,
-        owner="MedAutoScience",
-        action="complete_medical_paper_readiness_surface",
-        reason=_blocker_reason(owner_result, owner_delta_result),
-        source_ref=TYPED_BLOCKER_RELATIVE_PATH.as_posix(),
-        owner_answer_kind="typed_blocker",
-        stage_status="blocked",
-        terminal_outcome_kind="typed_blocker",
-        terminal_outcome_ref=TYPED_BLOCKER_RELATIVE_PATH.as_posix(),
-        closeout_binding=binding,
-        authority_boundary=_authority_boundary(),
-        next_action=_mapping(_mapping(owner_result).get("guarded_operator_action_result")).get("next_action"),
-    )
     return _materialized(
         terminal_kind="typed_blocker",
         written_ref=TYPED_BLOCKER_RELATIVE_PATH.as_posix(),
@@ -265,34 +212,6 @@ def _typed_blocker_payload(
     }
 
 
-def _update_stage_manifest(
-    *,
-    study_root: Path,
-    terminal_status: str,
-    owner_receipt_refs: list[str],
-    typed_blocker_refs: list[str],
-    closeout_binding: Mapping[str, Any],
-) -> None:
-    manifest_path = study_root / STAGE_MANIFEST_RELATIVE_PATH
-    manifest = _read_json_object(manifest_path)
-    if not manifest:
-        return
-    manifest["stage_id"] = _text(manifest.get("stage_id")) or STAGE_ID
-    manifest["stage_run_id"] = _text(closeout_binding.get("stage_run_id"))
-    manifest["stage_run_ref"] = _text(closeout_binding.get("stage_run_ref"))
-    manifest["stage_manifest_ref"] = _text(closeout_binding.get("stage_manifest_ref"))
-    manifest["current_pointer_ref"] = _text(closeout_binding.get("current_pointer_ref"))
-    manifest["current_pointer_state"] = "current_pointer_promoted"
-    manifest["closeout_binding_refs"] = _text_list(closeout_binding.get("closeout_refs"))
-    manifest["source_fingerprint"] = _text(closeout_binding.get("source_fingerprint"))
-    manifest["work_unit_fingerprint"] = _text(closeout_binding.get("work_unit_fingerprint"))
-    manifest["closeout_binding"] = stage_projection.manifest_closeout_binding(closeout_binding)
-    manifest["owner_receipt_refs"] = owner_receipt_refs
-    manifest["typed_blocker_refs"] = typed_blocker_refs
-    manifest["terminal_status"] = terminal_status
-    _write_json(manifest_path, manifest)
-
-
 def _stage_native_closeout_binding(
     *,
     study_id: str,
@@ -351,7 +270,7 @@ def _closeout_binding_for_receipt(
     closeout_binding: Mapping[str, Any],
     receipt_ref: str,
 ) -> dict[str, Any]:
-    return {**stage_projection.manifest_closeout_binding(closeout_binding), "receipt_ref": receipt_ref}
+    return {**dict(closeout_binding), "receipt_ref": receipt_ref}
 
 
 def _terminal_kind(owner_delta_result: Mapping[str, Any]) -> str | None:
@@ -418,8 +337,8 @@ def _materialized(*, terminal_kind: str, written_ref: str, closeout_binding: Map
         "stage_id": STAGE_ID,
         "terminal_outcome_kind": terminal_kind,
         "written_ref": written_ref,
-        "stage_manifest_ref": STAGE_MANIFEST_RELATIVE_PATH.as_posix(),
-        "current_pointer_ref": stage_projection.CURRENT_POINTER_RELATIVE_PATH.as_posix(),
+        "stage_manifest_ref": _text(closeout_binding.get("stage_manifest_ref")),
+        "current_pointer_ref": _text(closeout_binding.get("current_pointer_ref")),
         "closeout_binding": _closeout_binding_for_receipt(
             closeout_binding=closeout_binding,
             receipt_ref=written_ref,
@@ -441,7 +360,7 @@ def _blocked(*, reason: str, binding: Mapping[str, Any], apply: bool) -> dict[st
 
 def _schema_refs() -> list[str]:
     return [
-        "contracts/stage_artifact_kernel_adoption.json#/semantic_consumability_gate",
+        "contracts/stage_run_kernel_profile.json#/stage_folder_manifest/closeout_contract",
         "contracts/mas-paper-study-stage-pack.json#/authority_boundary",
     ]
 
@@ -459,14 +378,6 @@ def _authority_boundary() -> dict[str, Any]:
         "can_authorize_publication_ready": False,
         "can_authorize_submission_ready": False,
     }
-
-
-def _read_json_object(path: Path) -> dict[str, Any]:
-    try:
-        payload = json.loads(path.read_text(encoding="utf-8"))
-    except (OSError, json.JSONDecodeError):
-        return {}
-    return dict(payload) if isinstance(payload, Mapping) else {}
 
 
 def _write_json(path: Path, payload: Mapping[str, Any]) -> None:

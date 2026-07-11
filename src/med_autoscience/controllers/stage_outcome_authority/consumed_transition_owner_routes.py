@@ -8,12 +8,12 @@ from med_autoscience.controllers.stage_outcome_authority import owner_route_poli
 
 from . import consumed_transition_currentness
 from . import owner_request_paths
-from . import stage_artifact_publication_handoff_currentness
+from . import publication_handoff_currentness
 
 
 def with_consumed_transition_owner_route(current_study: Mapping[str, Any]) -> dict[str, Any]:
     study = dict(current_study)
-    if stage_artifact_publication_handoff_currentness.is_current(study):
+    if publication_handoff_currentness.is_current(study):
         return study
     transition_route = consumed_transition_owner_route(study)
     if transition_route:
@@ -114,7 +114,7 @@ def matching_consumed_transition_route(
     current_study: Mapping[str, Any],
     dispatch: Mapping[str, Any],
 ) -> dict[str, Any] | None:
-    if stage_artifact_publication_handoff_currentness.is_current(current_study):
+    if publication_handoff_currentness.is_current(current_study):
         return None
     route = consumed_transition_owner_route(current_study)
     if not route:

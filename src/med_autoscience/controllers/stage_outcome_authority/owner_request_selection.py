@@ -10,7 +10,7 @@ from . import current_writer_handoff
 from . import owner_request_currentness
 from . import owner_request_paths
 from . import scan_route_currentness
-from . import stage_artifact_publication_handoff_currentness
+from . import publication_handoff_currentness
 
 
 OWNER_REQUEST_RELATIVE_PATHS = owner_request_paths.OWNER_REQUEST_RELATIVE_PATHS
@@ -134,7 +134,7 @@ def _owner_request_current_against_scan(
     if not current_study:
         return True
     if (
-        stage_artifact_publication_handoff_currentness.is_current(current_study)
+        publication_handoff_currentness.is_current(current_study)
         and _text(dispatch.get("action_type")) != "publication_handoff_owner_gate"
     ):
         return False

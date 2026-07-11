@@ -15,7 +15,7 @@ from . import persisted_handoff_selection
 from . import progress_blocking_selection
 from . import runtime_current_dispatch_selection
 from . import scan_route_currentness
-from . import stage_artifact_publication_handoff_currentness
+from . import publication_handoff_currentness
 from . import stage_native_dispatch_selection
 from . import terminal_closeout_owner_answer_dispatch
 
@@ -93,7 +93,7 @@ def consumed_transition_current_dispatches_only(
 ) -> list[dict[str, Any]]:
     if not scan_route_currentness.consumed_transition_owner_route(current_study):
         return dispatches
-    if stage_artifact_publication_handoff_currentness.is_current(current_study):
+    if publication_handoff_currentness.is_current(current_study):
         return dispatches
     current: list[dict[str, Any]] = []
     for dispatch in dispatches:

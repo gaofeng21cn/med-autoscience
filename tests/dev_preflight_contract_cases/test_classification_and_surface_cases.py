@@ -702,30 +702,6 @@ def test_classify_changed_files_matches_data_asset_display_and_overlay_contracts
     assert result.unclassified_changes == ()
 
 
-def test_classify_changed_files_matches_stage_kernel_pack_contract_surface() -> None:
-    module = importlib.import_module("med_autoscience.dev_preflight_contract")
-
-    result = module.classify_changed_files(
-        [
-            "contracts/README.md",
-            "contracts/mas-paper-study-stage-pack.json",
-            "contracts/stage_artifact_kernel_adoption.json",
-            "docs/active/stage_surface_standardization_program.md",
-            "src/med_autoscience/controllers/stage_artifact_index.py",
-            "tests/test_stage_artifact_index.py",
-            "tests/test_stage_artifact_kernel_adoption_contract.py",
-        ]
-    )
-
-    assert result.matched_categories == (
-        "root_governance_contract_surface",
-        "standard_agent_pack_surface",
-        "documentation_review_only",
-        "generic_python_smoke_surface",
-    )
-    assert result.unclassified_changes == ()
-
-
 def test_classify_changed_files_matches_production_acceptance_surface() -> None:
     module = importlib.import_module("med_autoscience.dev_preflight_contract")
 

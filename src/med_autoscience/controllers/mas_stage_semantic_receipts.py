@@ -15,7 +15,7 @@ MAS_STAGE_AUTHORITY_TYPES = (
 )
 
 REQUIRED_SCHEMA_REFS = (
-    "contracts/stage_artifact_kernel_adoption.json#/semantic_consumability_gate",
+    "contracts/stage_run_kernel_profile.json#/stage_folder_manifest/closeout_contract",
     "contracts/mas-paper-study-stage-pack.json#/authority_boundary",
 )
 

@@ -39,20 +39,14 @@ def test_paper_work_unit_lifecycle_contract_declares_publication_handoff_owner_g
     assert lifecycle is not None
     assert lifecycle["owner"] == "publication_gate_owner"
     assert lifecycle["allowed_writes"] == [
-        "artifacts/stage_outputs/08-publication_package_handoff/handoff_owner_receipt.json",
-        "artifacts/stage_outputs/08-publication_package_handoff/receipts/owner_receipt.json",
-        "artifacts/stage_outputs/08-publication_package_handoff/receipts/typed_blocker.json",
-        "artifacts/stage_outputs/08-publication_package_handoff/stage_manifest.json",
-        "artifacts/stage_outputs/08-publication_package_handoff/current.json",
-        "artifacts/stage_outputs/08-publication_package_handoff/projection/current_owner_delta.json",
+        "artifacts/publication_handoff/owner_receipt.json",
+        "artifacts/publication_handoff/typed_blocker.json",
     ]
     assert "artifacts/publication_eval/latest.json" in lifecycle["forbidden_writes"]
     assert "controller_decisions/latest.json" in lifecycle["forbidden_writes"]
     assert lifecycle["completion_proof"]["publication_ready_claim_authorized"] is False
     assert lifecycle["completion_proof"]["submission_ready_claim_authorized"] is False
-    assert lifecycle["completion_proof"]["terminal_projection_writer"] == (
-        "publication_handoff_stage_projection.py"
-    )
+    assert lifecycle["completion_proof"]["opl_consumes_action_result_refs"] is True
 
 
 def test_paper_work_unit_lifecycle_contract_declares_readiness_stage_native_closeout_writes() -> None:
@@ -69,22 +63,12 @@ def test_paper_work_unit_lifecycle_contract_declares_readiness_stage_native_clos
         "artifacts/medical_paper/*.json",
         "artifacts/medical_paper/actions/**",
         "artifacts/controller_decisions/latest.json",
-        "artifacts/stage_outputs/08-publication_package_handoff/receipts/owner_receipt.json",
-        "artifacts/stage_outputs/08-publication_package_handoff/receipts/typed_blocker.json",
-        "artifacts/stage_outputs/08-publication_package_handoff/stage_manifest.json",
-        "artifacts/stage_outputs/08-publication_package_handoff/current.json",
-        "artifacts/stage_outputs/08-publication_package_handoff/projection/current_owner_delta.json",
     ]
-    assert (
-        "artifacts/stage_outputs/08-publication_package_handoff/handoff_owner_receipt.json"
-        in lifecycle["forbidden_writes"]
-    )
+    assert "artifacts/stage_outputs/**" in lifecycle["forbidden_writes"]
     assert lifecycle["completion_proof"][
         "terminal_stage_owner_answer_requires_trusted_opl_binding"
     ] is True
-    assert lifecycle["completion_proof"]["terminal_projection_writer"] == (
-        "publication_handoff_stage_projection.py"
-    )
+    assert lifecycle["completion_proof"]["opl_consumes_action_result_refs"] is True
 
 
 def test_paper_work_unit_lifecycle_contract_declares_external_learning_sidecar_nonblocking() -> None:

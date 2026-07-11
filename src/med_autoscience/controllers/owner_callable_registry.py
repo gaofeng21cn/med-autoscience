@@ -45,19 +45,19 @@ _OWNER_CALLABLES: tuple[OwnerCallable, ...] = (
         action_type="publication_handoff_owner_gate",
         callable_surface="publication_handoff_owner_gate.evaluate_terminal_handoff",
         required_inputs=(
-            "stage_artifact_index.current_stage=08-publication_package_handoff",
+            "OPL StageRun/current-pointer/closeout refs",
             "artifacts/medical_paper/readiness.json",
             "artifacts/stage_outputs/08-publication_package_handoff/publication_package_manifest.json",
             "artifacts/stage_outputs/08-publication_package_handoff/publication_gate_receipt.json",
         ),
         required_outputs=(
-            "artifacts/stage_outputs/08-publication_package_handoff/handoff_owner_receipt.json",
+            "artifacts/publication_handoff/owner_receipt.json",
             "typed blocker:publication_handoff_owner_gate_blocked",
         ),
         artifact_delta_predicate="handoff_owner_receipt_or_typed_blocker_written",
         gate_replay_target=None,
         idempotency_scope="publication_handoff_owner_gate_work_unit",
-        source_fingerprint_scope="stage_artifact_index.next_owner_action.source_ref",
+        source_fingerprint_scope="opl_closeout_binding.source_fingerprint",
     ),
     OwnerCallable(
         owner="MedAutoScience",
@@ -75,7 +75,7 @@ _OWNER_CALLABLES: tuple[OwnerCallable, ...] = (
         artifact_delta_predicate="medical_paper_readiness_surface_completed_or_stable_blocker_recorded",
         gate_replay_target="publication_handoff_owner_gate.evaluate_terminal_handoff",
         idempotency_scope="medical_paper_readiness_surface_work_unit",
-        source_fingerprint_scope="stage_kernel_projection.current_owner_delta.source_ref",
+        source_fingerprint_scope="stage_run_current_owner_delta.source_ref",
     ),
     OwnerCallable(
         owner=external_learning_adoption_closure.SIDECAR_OWNER,
@@ -116,12 +116,8 @@ def paper_work_unit_lifecycle_contract() -> dict[str, Any]:
             "publication_handoff_owner_gate": {
                 "owner": "publication_gate_owner",
                 "allowed_writes": [
-                    "artifacts/stage_outputs/08-publication_package_handoff/handoff_owner_receipt.json",
-                    "artifacts/stage_outputs/08-publication_package_handoff/receipts/owner_receipt.json",
-                    "artifacts/stage_outputs/08-publication_package_handoff/receipts/typed_blocker.json",
-                    "artifacts/stage_outputs/08-publication_package_handoff/stage_manifest.json",
-                    "artifacts/stage_outputs/08-publication_package_handoff/current.json",
-                    "artifacts/stage_outputs/08-publication_package_handoff/projection/current_owner_delta.json",
+                    "artifacts/publication_handoff/owner_receipt.json",
+                    "artifacts/publication_handoff/typed_blocker.json",
                 ],
                 "forbidden_writes": [
                     "artifacts/publication_eval/latest.json",
@@ -129,29 +125,28 @@ def paper_work_unit_lifecycle_contract() -> dict[str, Any]:
                     "paper/**",
                     "paper/submission_minimal/**",
                     "manuscript/current_package/**",
+                    "artifacts/stage_outputs/**",
                 ],
                 "required_input_refs": [
-                    "stage_artifact_index.current_stage=08-publication_package_handoff",
+                    "OPL StageRun/current-pointer/closeout refs",
                     "artifacts/medical_paper/readiness.json",
                     "artifacts/stage_outputs/08-publication_package_handoff/publication_package_manifest.json",
                     "artifacts/stage_outputs/08-publication_package_handoff/publication_gate_receipt.json",
                 ],
                 "required_output_refs": [
-                    "artifacts/stage_outputs/08-publication_package_handoff/handoff_owner_receipt.json",
-                    "artifacts/stage_outputs/08-publication_package_handoff/receipts/typed_blocker.json",
+                    "artifacts/publication_handoff/owner_receipt.json",
+                    "artifacts/publication_handoff/typed_blocker.json",
                 ],
                 "completion_proof": {
                     "requires_owner_receipt_or_typed_blocker": True,
                     "required_refs": [
                         "owner_receipt_ref_or_typed_blocker_ref",
                         "readiness_ref",
-                        "terminal_stage_manifest_ref",
+                        "opl_stage_manifest_ref",
                     ],
                     "publication_ready_claim_authorized": False,
                     "submission_ready_claim_authorized": False,
-                    "terminal_projection_writer": (
-                        "publication_handoff_stage_projection.py"
-                    ),
+                    "opl_consumes_action_result_refs": True,
                 },
                 "next_owner_rules": {
                     "on_completed": ["human_gate", "controller_stop"],
@@ -165,18 +160,13 @@ def paper_work_unit_lifecycle_contract() -> dict[str, Any]:
                     "artifacts/medical_paper/*.json",
                     "artifacts/medical_paper/actions/**",
                     "artifacts/controller_decisions/latest.json",
-                    "artifacts/stage_outputs/08-publication_package_handoff/receipts/owner_receipt.json",
-                    "artifacts/stage_outputs/08-publication_package_handoff/receipts/typed_blocker.json",
-                    "artifacts/stage_outputs/08-publication_package_handoff/stage_manifest.json",
-                    "artifacts/stage_outputs/08-publication_package_handoff/current.json",
-                    "artifacts/stage_outputs/08-publication_package_handoff/projection/current_owner_delta.json",
                 ],
                 "forbidden_writes": [
                     "artifacts/publication_eval/latest.json",
                     "paper/**",
                     "paper/submission_minimal/**",
                     "manuscript/current_package/**",
-                    "artifacts/stage_outputs/08-publication_package_handoff/handoff_owner_receipt.json",
+                    "artifacts/stage_outputs/**",
                 ],
                 "required_input_refs": [
                     "artifacts/medical_paper/readiness.json",
@@ -185,6 +175,8 @@ def paper_work_unit_lifecycle_contract() -> dict[str, Any]:
                 ],
                 "required_output_refs": [
                     "artifacts/medical_paper/readiness.json",
+                    "artifacts/medical_paper/readiness_owner_receipt.json",
+                    "artifacts/medical_paper/readiness_typed_blocker.json",
                     "typed blocker:medical_paper_readiness_surface_input_required",
                 ],
                 "completion_proof": {
@@ -192,9 +184,7 @@ def paper_work_unit_lifecycle_contract() -> dict[str, Any]:
                     "publication_ready_claim_authorized": False,
                     "submission_ready_claim_authorized": False,
                     "terminal_stage_owner_answer_requires_trusted_opl_binding": True,
-                    "terminal_projection_writer": (
-                        "publication_handoff_stage_projection.py"
-                    ),
+                    "opl_consumes_action_result_refs": True,
                 },
                 "next_owner_rules": {
                     "on_completed": ["publication_gate_owner", "controller_stop"],

@@ -15,10 +15,6 @@ def _profile() -> dict[str, object]:
     return json.loads((REPO_ROOT / "contracts/stage_run_kernel_profile.json").read_text(encoding="utf-8"))
 
 
-def _adoption() -> dict[str, object]:
-    return json.loads((REPO_ROOT / "contracts/stage_artifact_kernel_adoption.json").read_text(encoding="utf-8"))
-
-
 def _controlled_canary_evidence() -> dict[str, object]:
     return json.loads((REPO_ROOT / "contracts/stage_run_canary_evidence.json").read_text(encoding="utf-8"))
 
@@ -402,16 +398,6 @@ def test_projection_surfaces_are_explicitly_forbidden_as_transition_authority() 
     ]
     assert projection["projection_can_write_truth"] is False
     assert projection["projection_can_authorize_next_stage"] is False
-
-
-def test_stage_artifact_kernel_adoption_links_stage_run_kernel_profile_as_refs_only_contract() -> None:
-    binding = _adoption()["stage_run_kernel_profile_binding"]
-
-    assert binding["profile_ref"] == "contracts/stage_run_kernel_profile.json"
-    assert binding["profile_role"] == "minimal_stage_native_state_shell"
-    assert binding["stage_run_kernel_is_mas_controller_system"] is False
-    assert binding["read_model_is_transition_authority"] is False
-    assert binding["terminal_transition_authority"] == "owner_receipt_or_typed_blocker"
 
 
 def test_stage_run_canary_requires_coscientist_refs_without_legacy_wrapper_authority() -> None:

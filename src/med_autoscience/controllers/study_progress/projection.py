@@ -49,7 +49,6 @@ from .projection_helpers import (
     _current_gate_clearing_eval_ids,
     _refresh_existing_projection_batch_followthroughs,
     _refresh_existing_projection_user_visible_status,
-    _stage_artifact_index_projection,
 )
 from . import ai_first_default_entry as _ai_first_default_entry, operator_view as _operator_view, progress_freshness as _progress_freshness, publication_runtime as _publication_runtime
 from . import progression as _progression, runtime_efficiency as _runtime_efficiency, shared as _shared
@@ -818,11 +817,6 @@ def build_study_progress_projection(
         if ai_reviewer_request_lifecycle is not None
         else None
     )
-    stage_artifact_index_projection = _stage_artifact_index_projection(
-        profile=profile,
-        study_id=resolved_study_id,
-        study_root=resolved_study_root,
-    )
     payload = assemble_study_progress_payload(
         generated_at=generated_at,
         study_id=resolved_study_id,
@@ -895,7 +889,6 @@ def build_study_progress_projection(
         repair_recommendation=repair_recommendation,
         ai_repair_lifecycle=ai_repair_lifecycle,
         publication_eval_payload=publication_eval_payload,
-        stage_artifact_index=stage_artifact_index_projection,
         autonomous_runtime_notice=autonomous_runtime_notice,
         execution_owner_guard=execution_owner_guard,
         supervisor_tick_audit=supervisor_tick_audit,

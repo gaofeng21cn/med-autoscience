@@ -27,7 +27,7 @@
     "rebuild_epoch"
   ],
   "domain_ref_sources": [
-    "contracts/stage_artifact_kernel_adoption.json",
+    "contracts/stage_run_kernel_profile.json",
     "contracts/workspace_lifecycle_policy.json",
     "contracts/generated_surface_handoff.json",
     "contracts/action_catalog.json"

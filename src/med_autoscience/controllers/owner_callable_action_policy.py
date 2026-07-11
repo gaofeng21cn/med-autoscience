@@ -198,8 +198,8 @@ REQUEST_OWNER_BY_ACTION_TYPE = {
 REQUEST_OUTPUT_SURFACE_BY_ACTION_TYPE = {
     "publication_gate_specificity_required": "artifacts/publication_eval/latest.json",
     "publication_handoff_owner_gate": (
-        "artifacts/stage_outputs/08-publication_package_handoff/handoff_owner_receipt.json "
-        "or artifacts/stage_outputs/08-publication_package_handoff/receipts/typed_blocker.json"
+        "artifacts/publication_handoff/owner_receipt.json "
+        "or artifacts/publication_handoff/typed_blocker.json"
     ),
     "current_package_freshness_required": "artifacts/controller/gate_clearing_batch/latest.json",
     "artifact_display_surface_materialization_required": "artifacts/controller/gate_clearing_batch/latest.json",

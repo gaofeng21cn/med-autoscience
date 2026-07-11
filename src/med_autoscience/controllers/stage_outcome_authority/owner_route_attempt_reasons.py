@@ -177,7 +177,7 @@ _REASON_REGISTRY = {
         owner="publication_gate_owner",
         allowed_actions=["publication_handoff_owner_gate"],
         required_output=(
-            "artifacts/stage_outputs/08-publication_package_handoff/handoff_owner_receipt.json "
+            "artifacts/publication_handoff/owner_receipt.json "
             "or typed blocker:publication_handoff_owner_gate_blocked"
         ),
         priority_class="delivery_or_human_handoff",

@@ -315,12 +315,8 @@ def current_owner_handoff_next_action(
 ) -> str | None:
     executable_owner_action = _user_facing_executable_owner_action(payload)
     redrive_transition = current_owner_redrive_domain_transition(payload)
-    if not (
-        redrive_transition
-        and _stage_artifact_index_owner_action(executable_owner_action)
-    ):
-        if current_step := owner_action_next_step(executable_owner_action):
-            return current_step
+    if current_step := owner_action_next_step(executable_owner_action):
+        return current_step
     if not redrive_transition:
         return _non_empty_text(user_visible.get("next_system_action")) or _non_empty_text(user_visible.get("next_step"))
     transition = _mapping_copy(payload.get("domain_transition"))
@@ -348,10 +344,6 @@ def current_owner_handoff_next_action(
         ):
             return route_summary
     return _non_empty_text(user_visible.get("next_system_action")) or _non_empty_text(user_visible.get("next_step"))
-
-
-def _stage_artifact_index_owner_action(action: Mapping[str, Any]) -> bool:
-    return _non_empty_text(action.get("source")) == "stage_artifact_index.next_owner_action"
 
 
 def _user_facing_executable_owner_action(payload: Mapping[str, Any]) -> dict[str, Any]:

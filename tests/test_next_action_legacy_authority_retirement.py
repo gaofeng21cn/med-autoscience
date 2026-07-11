@@ -113,7 +113,6 @@ def test_retired_successor_diagnostic_producers_stay_absent() -> None:
         "med_autoscience.controllers.study_progress.owner_action_diagnostics.non_advancing_terminal_closeout",
         "med_autoscience.controllers.study_progress.owner_action_diagnostics.paper_recovery",
         "med_autoscience.controllers.study_progress.owner_action_diagnostics.repair_progress",
-        "med_autoscience.controllers.study_progress.owner_action_diagnostics.stage_artifact_index",
         "med_autoscience.controllers.study_progress.owner_action_diagnostics.terminal_next_forced_delta",
     )
 

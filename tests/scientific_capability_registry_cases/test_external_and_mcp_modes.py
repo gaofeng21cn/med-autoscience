@@ -228,8 +228,10 @@ def test_scientific_capability_registry_builds_nonblocking_consumption_evidence_
         "artifacts/controller_decisions/latest.json",
         "paper",
         "package",
-        "artifacts/stage_outputs/08-publication_package_handoff/receipts/owner_receipt.json",
-        "artifacts/stage_outputs/08-publication_package_handoff/receipts/typed_blocker.json",
+        "artifacts/publication_handoff/owner_receipt.json",
+        "artifacts/publication_handoff/typed_blocker.json",
+        "artifacts/medical_paper/readiness_owner_receipt.json",
+        "artifacts/medical_paper/readiness_typed_blocker.json",
     ]
     assert not (study_root / "artifacts/publication_eval/latest.json").exists()
     assert not (study_root / "artifacts/controller_decisions/latest.json").exists()
@@ -265,7 +267,7 @@ def test_scientific_capability_registry_consumption_evidence_with_owner_refs_sta
             "source_ref": "projection/current_owner_delta.json",
         },
         owner_response_refs={
-            "owner_receipt_ref": "artifacts/stage_outputs/08-publication_package_handoff/receipts/owner_receipt.json",
+            "owner_receipt_ref": "artifacts/publication_handoff/owner_receipt.json",
             "reviewer_receipt_ref": "artifacts/reviewer/receipt.json",
             "route_back_evidence_ref": "artifacts/routes/route-back.json",
         },
@@ -273,7 +275,7 @@ def test_scientific_capability_registry_consumption_evidence_with_owner_refs_sta
 
     assert evidence["owner_consumption_status"] == "owner_response_refs_observed"
     assert evidence["owner_receipt_ref"] == (
-        "artifacts/stage_outputs/08-publication_package_handoff/receipts/owner_receipt.json"
+        "artifacts/publication_handoff/owner_receipt.json"
     )
     assert evidence["typed_blocker_ref"] is None
     assert evidence["reviewer_receipt_ref"] == "artifacts/reviewer/receipt.json"
@@ -283,10 +285,10 @@ def test_scientific_capability_registry_consumption_evidence_with_owner_refs_sta
     tail = evidence["standard_agent_feedback_loop_tail"]
     assert tail["owner_answer_or_typed_blocker_observed"] is True
     assert tail["real_target_owner_accepted_answer_or_typed_blocker_scaleout_ref"] == (
-        "artifacts/stage_outputs/08-publication_package_handoff/receipts/owner_receipt.json"
+        "artifacts/publication_handoff/owner_receipt.json"
     )
     assert tail["observed_owner_response_refs"] == [
-        "artifacts/stage_outputs/08-publication_package_handoff/receipts/owner_receipt.json",
+        "artifacts/publication_handoff/owner_receipt.json",
         "artifacts/reviewer/receipt.json",
         "artifacts/routes/route-back.json",
     ]

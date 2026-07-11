@@ -46,11 +46,11 @@ SOAK_STAGE_REF_HINTS: dict[str, tuple[str, ...]] = {
         "runtime/artifacts/supervision/opl_current_control_state/latest.json",
     ),
     "finalize_rebuild": (
-        "artifacts/stage_outputs/08-publication_package_handoff/handoff_owner_receipt.json",
+        "artifacts/publication_handoff/owner_receipt.json",
         "artifacts/stage_outputs/08-publication_package_handoff/publication_package_manifest.json",
     ),
     "final_pre_submission_audit": (
-        "artifacts/stage_outputs/08-publication_package_handoff/receipts/owner_receipt.json",
+        "artifacts/medical_paper/readiness_owner_receipt.json",
         "artifacts/stage_outputs/08-publication_package_handoff/publication_gate_receipt.json",
     ),
 }

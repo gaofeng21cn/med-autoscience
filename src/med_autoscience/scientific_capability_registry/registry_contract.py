@@ -53,8 +53,10 @@ FORBIDDEN_WRITE_CHECK_REFS = (
     "artifacts/controller_decisions/latest.json",
     "paper",
     "package",
-    "artifacts/stage_outputs/08-publication_package_handoff/receipts/owner_receipt.json",
-    "artifacts/stage_outputs/08-publication_package_handoff/receipts/typed_blocker.json",
+    "artifacts/publication_handoff/owner_receipt.json",
+    "artifacts/publication_handoff/typed_blocker.json",
+    "artifacts/medical_paper/readiness_owner_receipt.json",
+    "artifacts/medical_paper/readiness_typed_blocker.json",
 )
 FORBIDDEN_PATH_ABSENCE_REFS = (
     "artifacts/publication_eval/latest.json",

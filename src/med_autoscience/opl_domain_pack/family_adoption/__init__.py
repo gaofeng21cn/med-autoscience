@@ -32,10 +32,6 @@ from ..agent_pack_refs import (
     AGENT_STAGE_POLICY_REFS,
 )
 from .. import hypothesis_portfolio_pack
-from ..family_stage_artifact_index_projection import (
-    STAGE_ARTIFACT_INDEX_PROJECTION_REF,
-    stage_artifact_index_projection_descriptor,
-)
 from med_autoscience.opl_domain_pack import state_index_source_refs
 from med_autoscience.workspace_paths import PUBLICATION_ROUTE_MEMORY_RELPATH
 
@@ -152,7 +148,6 @@ def build_family_stage_control_plane_descriptor() -> dict[str, Any]:
             ),
             "stage_skill_surface_projection_source": STAGE_SKILL_SURFACE_PROJECTION_REF,
             "stage_deliverable_index_contract_source": STAGE_DELIVERABLE_INDEX_CONTRACT_REF,
-            "stage_artifact_index_projection_source": STAGE_ARTIFACT_INDEX_PROJECTION_REF,
             "packet_contract_surfaces": packet_surfaces,
             "quality_pack_contract_surfaces": list(stage_quality_contract.QUALITY_PACK_CONTRACT_SURFACES),
             "stage_knowledge_root": str(stage_knowledge_contract.STAGE_KNOWLEDGE_ROOT),
@@ -203,7 +198,6 @@ def build_family_stage_control_plane_descriptor() -> dict[str, Any]:
             "can_promote_memory_to_evidence": False,
         },
         "stage_deliverable_index": stage_deliverable_index,
-        "stage_artifact_index_projection": stage_artifact_index_projection_descriptor(),
         "quality_pack_contract": stage_quality_contract.build_stage_quality_pack_projection(),
         "stage_skill_surface_projection": (
             stage_skill_surface_projection.build_stage_skill_surface_projection()

@@ -8,22 +8,17 @@ from pathlib import Path
 from typing import Any
 
 from med_autoscience.controllers import medical_paper_readiness
-from med_autoscience.controllers import stage_artifact_index
 from med_autoscience.controllers.opl_execution_boundary import (
     first_trusted_opl_execution_authorization,
     typed_blocker as opl_execution_authorization_typed_blocker,
 )
 from med_autoscience.profiles import WorkspaceProfile
 
-from . import publication_handoff_stage_projection as stage_projection
-
-
 STAGE_ID = "08-publication_package_handoff"
 STAGE_ROOT_RELATIVE_PATH = Path("artifacts/stage_outputs") / STAGE_ID
-HANDOFF_RECEIPT_RELATIVE_PATH = STAGE_ROOT_RELATIVE_PATH / "handoff_owner_receipt.json"
-STAGE_RECEIPT_RELATIVE_PATH = STAGE_ROOT_RELATIVE_PATH / "receipts" / "owner_receipt.json"
-TYPED_BLOCKER_RELATIVE_PATH = STAGE_ROOT_RELATIVE_PATH / "receipts" / "typed_blocker.json"
-STAGE_MANIFEST_RELATIVE_PATH = STAGE_ROOT_RELATIVE_PATH / "stage_manifest.json"
+HANDOFF_ROOT_RELATIVE_PATH = Path("artifacts/publication_handoff")
+HANDOFF_RECEIPT_RELATIVE_PATH = HANDOFF_ROOT_RELATIVE_PATH / "owner_receipt.json"
+TYPED_BLOCKER_RELATIVE_PATH = HANDOFF_ROOT_RELATIVE_PATH / "typed_blocker.json"
 
 
 def execute_publication_handoff_owner_gate(
@@ -41,14 +36,23 @@ def execute_publication_handoff_owner_gate(
             reason="study_root_missing",
             owner_result=None,
         )
-    index = stage_artifact_index.build_stage_artifact_index(
-        study_id=study_id,
-        study_root=study_root,
-    )
     readiness = medical_paper_readiness.read_medical_paper_readiness_surface(
         study_root=study_root,
     )
-    decision = _handoff_decision(study_root=study_root, index=index, readiness=readiness)
+    closeout_binding = _trusted_closeout_binding(
+        dispatch=dispatch_payload,
+    )
+    if closeout_binding is None:
+        return _blocked_execution(
+            study_root=study_root,
+            reason="opl_execution_authorization_required",
+            owner_result=_authorization_required_result(study_root=study_root),
+        )
+    decision = _handoff_decision(
+        study_root=study_root,
+        readiness=readiness,
+        closeout_binding=closeout_binding,
+    )
     if not apply:
         return {
             "execution_status": "dry_run",
@@ -65,24 +69,11 @@ def execute_publication_handoff_owner_gate(
             },
             "quest_root": str(profile.runtime_root / study_id),
         }
-    closeout_binding = _trusted_closeout_binding(
-        dispatch=dispatch_payload,
-        study_id=study_id,
-        study_root=study_root,
-    )
-    if closeout_binding is None:
-        return _blocked_execution(
-            study_root=study_root,
-            reason="opl_execution_authorization_required",
-            owner_result=_authorization_required_result(study_root=study_root),
-        )
     if decision["status"] == "ready_for_human_submission_handoff":
         owner_result = _write_handoff_receipt(
-            profile=profile,
             study_id=study_id,
             study_root=study_root,
             decision=decision,
-            index=index,
             readiness=readiness,
             closeout_binding=closeout_binding,
         )
@@ -141,31 +132,32 @@ def _authorization_required_result(*, study_root: Path) -> dict[str, Any]:
 def _handoff_decision(
     *,
     study_root: Path,
-    index: Mapping[str, Any],
     readiness: Mapping[str, Any],
+    closeout_binding: Mapping[str, Any],
 ) -> dict[str, Any]:
-    terminal_stage = _terminal_stage(index)
-    if not terminal_stage:
-        return _decision(
-            status="typed_blocker_or_stop_loss",
-            reason="terminal_publication_handoff_stage_missing",
-            next_owner="MedAutoScience",
-            next_action="materialize_stage_artifact_delta",
+    closeout_refs = _text_list(closeout_binding.get("closeout_refs"))
+    missing_opl_refs = [
+        key
+        for key in (
+            "provider_attempt_ref",
+            "attempt_lease_ref",
+            "execution_authorization_decision_ref",
+            "stage_run_ref",
+            "stage_manifest_ref",
+            "current_pointer_ref",
+            "source_fingerprint",
         )
-    if _text(_mapping(index.get("current_stage")).get("stage_id")) != STAGE_ID:
+        if _text(closeout_binding.get(key)) is None
+    ]
+    if not closeout_refs:
+        missing_opl_refs.append("closeout_refs")
+    if missing_opl_refs:
         return _decision(
             status="typed_blocker_or_stop_loss",
-            reason="terminal_publication_handoff_stage_not_current",
-            next_owner=_text(_mapping(index.get("next_owner_action")).get("next_owner")) or "MedAutoScience",
-            next_action=_text(_mapping(index.get("next_owner_action")).get("action_type")) or "materialize_stage_artifact_delta",
-        )
-    if _text(terminal_stage.get("artifact_status")) != "artifact_delta_present":
-        return _decision(
-            status="typed_blocker_or_stop_loss",
-            reason=_text(_mapping(terminal_stage.get("artifact_classification")).get("fail_closed_reason"))
-            or "terminal_publication_handoff_artifact_delta_missing",
-            next_owner="MedAutoScience",
-            next_action="materialize_stage_artifact_delta",
+            reason="opl_stage_run_readback_refs_incomplete",
+            next_owner="one-person-lab",
+            next_action="opl_family_runtime_attempt_query",
+            missing_refs=missing_opl_refs,
         )
     if not readiness:
         return _decision(
@@ -214,16 +206,18 @@ def _handoff_decision(
 
 def _write_handoff_receipt(
     *,
-    profile: WorkspaceProfile,
     study_id: str,
     study_root: Path,
     decision: Mapping[str, Any],
-    index: Mapping[str, Any],
     readiness: Mapping[str, Any],
     closeout_binding: Mapping[str, Any],
 ) -> dict[str, Any]:
     generated_at = _utc_now()
-    artifact_refs = _terminal_artifact_refs(index)
+    artifact_refs = _handoff_artifact_refs(
+        study_root=study_root,
+        readiness=readiness,
+        closeout_binding=closeout_binding,
+    )
     receipt = _receipt_payload(
         study_root=study_root,
         study_id=study_id,
@@ -234,42 +228,17 @@ def _write_handoff_receipt(
         closeout_binding=closeout_binding,
     )
     receipt_path = study_root / HANDOFF_RECEIPT_RELATIVE_PATH
-    stage_receipt_path = study_root / STAGE_RECEIPT_RELATIVE_PATH
     receipt_binding = _closeout_binding_for_receipt(
         closeout_binding=closeout_binding,
         receipt_ref=HANDOFF_RECEIPT_RELATIVE_PATH.as_posix(),
     )
     receipt["closeout_binding"] = receipt_binding
     _write_json(receipt_path, receipt)
-    _write_json(stage_receipt_path, receipt)
     _unlink_if_exists(study_root / TYPED_BLOCKER_RELATIVE_PATH)
-    _update_stage_manifest(
-        study_root=study_root,
-        owner_receipt_refs=[
-            "handoff_owner_receipt.json",
-            "receipts/owner_receipt.json",
-        ],
-        typed_blocker_refs=[],
-        closeout_binding=receipt_binding,
-    )
-    stage_projection.write_stage_current_projection(
-        study_root=study_root,
-        owner="human_gate",
-        action="human_submission_decision",
-        reason="publication_handoff_owner_receipt_ready",
-        source_ref=HANDOFF_RECEIPT_RELATIVE_PATH.as_posix(),
-        owner_answer_kind="owner_receipt",
-        stage_status="success",
-        terminal_outcome_kind="owner_receipt",
-        terminal_outcome_ref=HANDOFF_RECEIPT_RELATIVE_PATH.as_posix(),
-        closeout_binding=receipt_binding,
-        authority_boundary=_authority_boundary(),
-    )
     return {
         "surface_kind": "publication_handoff_owner_gate_result",
         "status": "ready_for_human_submission_handoff",
         "owner_receipt_ref": str(receipt_path),
-        "stage_owner_receipt_ref": str(stage_receipt_path),
         "typed_blocker_ref": None,
         "closeout_binding": receipt_binding,
         "readiness_ref": str(medical_paper_readiness.stable_medical_paper_readiness_path(study_root=study_root)),
@@ -300,25 +269,7 @@ def _write_typed_blocker(
     )
     blocker["closeout_binding"] = blocker_binding
     _write_json(blocker_path, blocker)
-    _update_stage_manifest(
-        study_root=study_root,
-        owner_receipt_refs=[],
-        typed_blocker_refs=["receipts/typed_blocker.json"],
-        closeout_binding=blocker_binding,
-    )
-    stage_projection.write_stage_current_projection(
-        study_root=study_root,
-        owner=_text(decision.get("next_owner")) or "MedAutoScience",
-        action=_text(decision.get("next_action")) or "resolve_typed_blocker",
-        reason=_text(decision.get("reason")) or "publication_handoff_owner_gate_blocked",
-        source_ref=TYPED_BLOCKER_RELATIVE_PATH.as_posix(),
-        owner_answer_kind="typed_blocker",
-        stage_status="blocked",
-        terminal_outcome_kind="typed_blocker",
-        terminal_outcome_ref=TYPED_BLOCKER_RELATIVE_PATH.as_posix(),
-        closeout_binding=blocker_binding,
-        authority_boundary=_authority_boundary(),
-    )
+    _unlink_if_exists(study_root / HANDOFF_RECEIPT_RELATIVE_PATH)
     return {
         "surface_kind": "publication_handoff_owner_gate_result",
         "status": "typed_blocker_or_stop_loss",
@@ -450,48 +401,25 @@ def _typed_blocker_payload(
     }
 
 
-def _update_stage_manifest(
+def _handoff_artifact_refs(
     *,
     study_root: Path,
-    owner_receipt_refs: list[str],
-    typed_blocker_refs: list[str],
+    readiness: Mapping[str, Any],
     closeout_binding: Mapping[str, Any],
-) -> None:
-    path = study_root / STAGE_MANIFEST_RELATIVE_PATH
-    manifest = _read_json_object(path)
-    if not manifest:
-        return
-    if stage_run_id := _text(closeout_binding.get("stage_run_id")):
-        manifest["stage_run_id"] = stage_run_id
-    if stage_run_ref := _text(closeout_binding.get("stage_run_ref")):
-        manifest["stage_run_ref"] = stage_run_ref
-    manifest["stage_manifest_ref"] = _text(closeout_binding.get("stage_manifest_ref"))
-    manifest["current_pointer_ref"] = _text(closeout_binding.get("current_pointer_ref"))
-    manifest["closeout_binding_refs"] = _text_list(closeout_binding.get("closeout_refs"))
-    manifest["source_fingerprint"] = _text(closeout_binding.get("source_fingerprint"))
-    manifest["work_unit_fingerprint"] = _text(closeout_binding.get("work_unit_fingerprint"))
-    manifest["closeout_binding"] = stage_projection.manifest_closeout_binding(closeout_binding)
-    manifest["owner_receipt_refs"] = owner_receipt_refs
-    manifest["typed_blocker_refs"] = typed_blocker_refs
-    manifest["terminal_status"] = "blocked" if typed_blocker_refs else "completed"
-    _write_json(path, manifest)
-
-
-def _terminal_stage(index: Mapping[str, Any]) -> dict[str, Any]:
-    for stage in index.get("stages") or []:
-        if isinstance(stage, Mapping) and _text(stage.get("stage_id")) == STAGE_ID:
-            return dict(stage)
-    return {}
-
-
-def _terminal_artifact_refs(index: Mapping[str, Any]) -> list[str]:
-    terminal = _terminal_stage(index)
+) -> list[str]:
     refs = [
-        _text(item.get("ref"))
-        for item in terminal.get("observed_artifact_refs") or []
-        if isinstance(item, Mapping)
+        _readiness_ref(readiness=readiness, fallback_study_root=study_root),
+        (STAGE_ROOT_RELATIVE_PATH / "publication_package_manifest.json").as_posix(),
+        (STAGE_ROOT_RELATIVE_PATH / "publication_gate_receipt.json").as_posix(),
+        _text(closeout_binding.get("provider_attempt_ref")),
+        _text(closeout_binding.get("attempt_lease_ref")),
+        _text(closeout_binding.get("execution_authorization_decision_ref")),
+        _text(closeout_binding.get("stage_run_ref")),
+        _text(closeout_binding.get("stage_manifest_ref")),
+        _text(closeout_binding.get("current_pointer_ref")),
+        *_text_list(closeout_binding.get("closeout_refs")),
     ]
-    return [ref for ref in refs if ref is not None]
+    return list(dict.fromkeys(ref for ref in refs if ref is not None))
 
 
 def _missing_readiness_surfaces(readiness: Mapping[str, Any]) -> list[dict[str, Any]]:
@@ -532,7 +460,7 @@ def _decision(
 
 def _schema_refs() -> list[str]:
     return [
-        "contracts/stage_artifact_kernel_adoption.json#/semantic_consumability_gate",
+        "contracts/stage_run_kernel_profile.json#/stage_folder_manifest/closeout_contract",
         "contracts/mas-paper-study-stage-pack.json#/authority_boundary",
     ]
 
@@ -555,8 +483,6 @@ def _authority_boundary() -> dict[str, Any]:
 def _trusted_closeout_binding(
     *,
     dispatch: Mapping[str, Any],
-    study_id: str,
-    study_root: Path,
 ) -> dict[str, Any] | None:
     authorization = first_trusted_opl_execution_authorization(
         dispatch.get("opl_execution_authorization"),
@@ -570,6 +496,13 @@ def _trusted_closeout_binding(
         _mapping(dispatch.get("owner_route")).get("stage_attempt"),
     )
     if authorization is None:
+        return None
+    action_type = _first_text(
+        dispatch.get("action_type"),
+        _mapping(dispatch.get("prompt_contract")).get("action_type"),
+        _mapping(dispatch.get("owner_route")).get("action_type"),
+    )
+    if action_type != "publication_handoff_owner_gate":
         return None
     closeout_refs = _closeout_refs(dispatch=dispatch, authorization=authorization)
     provider_attempt_ref = _text(authorization.get("provider_attempt_ref"))
@@ -585,7 +518,7 @@ def _trusted_closeout_binding(
     stage_run_id = _binding_text(
         dispatch,
         "stage_run_id",
-        fallback=f"stage-run::{study_id}::{STAGE_ID}",
+        fallback=None,
     )
     return {
         "surface_kind": "publication_handoff_closeout_binding",
@@ -604,12 +537,12 @@ def _trusted_closeout_binding(
         "stage_manifest_ref": _binding_text(
             dispatch,
             "stage_manifest_ref",
-            fallback=STAGE_MANIFEST_RELATIVE_PATH.as_posix(),
+            fallback=None,
         ),
         "current_pointer_ref": _binding_text(
             dispatch,
             "current_pointer_ref",
-            fallback=stage_projection.CURRENT_POINTER_RELATIVE_PATH.as_posix(),
+            fallback=None,
         ),
         "closeout_refs": closeout_refs,
         "source_fingerprint": source_fingerprint,
@@ -633,7 +566,7 @@ def _closeout_binding_for_receipt(
     receipt_ref: str,
 ) -> dict[str, Any]:
     return {
-        **stage_projection.manifest_closeout_binding(closeout_binding),
+        **dict(closeout_binding),
         "receipt_ref": receipt_ref,
     }
 
@@ -718,14 +651,6 @@ def _readiness_ref(*, readiness: Mapping[str, Any], fallback_study_root: Path) -
             study_root=Path(_text(readiness.get("study_root")) or fallback_study_root)
         )
     )
-
-
-def _read_json_object(path: Path) -> dict[str, Any]:
-    try:
-        payload = json.loads(path.read_text(encoding="utf-8"))
-    except (OSError, json.JSONDecodeError):
-        return {}
-    return dict(payload) if isinstance(payload, Mapping) else {}
 
 
 def _write_json(path: Path, payload: Mapping[str, Any]) -> None:

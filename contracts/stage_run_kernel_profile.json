@@ -7,7 +7,6 @@
   "purpose": "Machine-readable StageRun Kernel profile for Stage Native execution: stage folder, stage_manifest, role artifacts, and MAS owner receipt or typed blocker.",
   "machine_boundary": "This profile defines a minimal StageRun state shell and authority boundary. It does not declare paper closure, publication readiness, domain readiness, quality readiness, artifact readiness, current_package freshness, or production readiness.",
   "source_design_ref": "human_doc:mas_opl_stage_native_state_machine",
-  "stage_artifact_kernel_adoption_ref": "contracts/stage_artifact_kernel_adoption.json",
   "stage_folder_contract_ref": "contracts/opl-framework/stage-artifact-runtime-contract.json",
   "owner_receipt_contract_ref": "contracts/owner_receipt_contract.json",
   "opl_contract_refs": {

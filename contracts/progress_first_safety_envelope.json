@@ -538,7 +538,6 @@
       ],
       "prevention_layers": [
         "artifact_locator_contract",
-        "stage_artifact_kernel_adoption",
         "stage_run_kernel_profile",
         "artifact_lifecycle_receipt_policy"
       ],

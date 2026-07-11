@@ -429,11 +429,7 @@ def _user_facing_executable_owner_action(payload: Mapping[str, Any]) -> dict[str
     action = _mapping_copy(payload.get("current_executable_owner_action"))
     if not is_canonical_owner_action_projection(action):
         return {}
-    if _non_empty_text(action.get("source")) != "stage_artifact_index.next_owner_action":
-        return action
-    if current_owner_handoff_action(payload) is not None or current_owner_redrive_domain_transition(payload):
-        return action
-    return {}
+    return action
 
 
 def _why_not_progressing(

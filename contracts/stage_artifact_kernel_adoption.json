@@ -31,195 +31,24 @@
   "kernel_refs": {
     "physical_stage_folder_source_of_truth": true,
     "derived_index_rebuildable": true,
-    "manifest_receipt_hash_required": true,
-    "current_pointer_promotion_required": true,
-    "semantic_receipt_validation_required": true,
-    "consumability_gate_required": true,
-    "lineage_event_refs_required": true,
-    "retention_restore_refs_required": true
-  },
-  "state_index_kernel_adoption": {
-    "surface_kind": "opl_state_index_kernel_sqlite_sidecar_adoption",
-    "version": "opl-state-index-kernel-sqlite-sidecar-adoption.v1",
-    "state_index_kernel_owner": "one-person-lab",
-    "sqlite_sidecar_owner": "one-person-lab",
-    "mas_role": "body_free_state_index_source_adapter",
-    "index_authority": "derived_refs_only_rebuildable_read_model",
-    "source_of_truth": "physical_stage_folder_files_mas_owned_truth_files_and_domain_owner_receipts",
-    "derived_index_rebuildable": true,
-    "small_file_compaction_target": true,
-    "compaction_targets": [
-      "legacy_ds_runtime_mirrors",
-      "runtime_lifecycle_refs",
-      "paper_work_unit_receipt_refs",
-      "owner_route_receipt_refs",
-      "dispatch_receipt_refs",
-      "artifact_locator_refs",
-      "retention_restore_refs",
-      "operator_read_model_projection"
-    ],
-    "allowed_sqlite_payload_roles": [
-      "ref",
-      "locator",
-      "cursor",
-      "checksum",
-      "content_hash",
-      "source_fingerprint",
-      "idempotency_key",
-      "receipt_ref",
-      "typed_blocker_ref",
-      "restore_proof_ref",
-      "bounded_preview_hash"
-    ],
-    "forbidden_sqlite_payloads": [
-      "study_truth_body",
-      "publication_eval_body",
-      "controller_decision_body",
-      "manuscript_body",
-      "paper_package_body",
-      "evidence_ledger_body",
-      "review_ledger_body",
-      "memory_body",
-      "artifact_body",
-      "publication_quality_verdict_body",
-      "artifact_authority_verdict_body",
-      "owner_receipt_authority"
-    ],
-    "mas_source_adapter_policy": {
-      "domain_authority_refs_role": "body_free_state_index_source_adapter",
-      "runtime_lifecycle_local_persistence_role": "retired",
-      "mas_can_claim_generic_persistence_engine": false,
-      "mas_can_claim_generic_lifecycle_owner": false,
-      "mas_can_claim_generic_queue_owner": false,
-      "mas_can_claim_generic_read_model_owner": false
-    },
-    "mas_refs_source_adapter": {
-      "surface_kind": "mas_opl_state_index_source_adapter",
-      "implementation_ref": "src/med_autoscience/opl_domain_pack/state_index_source_refs.py",
-      "manifest_ref": "runtime/artifacts/opl_state_index_source_adapter/authority_refs_source.json",
-      "source_families": [
-        "authority_ref_metadata",
-        "archive_refs",
-        "owner_route_receipts",
-        "dispatch_receipts",
-        "stage_artifact_delta_refs"
-      ],
-      "local_persistence": "absent",
-      "body_included": false,
-      "derived_index_rebuildable": true,
-      "state_index_owner": "one-person-lab",
-      "mas_state_index_authority": false,
-      "refs_projection_only": true,
-      "body_free": true,
-      "can_drive_lifecycle": false,
-      "can_select_next_action": false,
-      "can_authorize_currentness": false,
-      "can_authorize_provider_admission": false,
-      "replacement_owner_surface": "one-person-lab StateIndexKernel",
-      "opl_state_index_contract_active": true,
-      "retired_pilot_tombstone": "runtime:mas-refs-only-state-index-pilot-retired"
-    },
-    "authority_boundary": {
-      "mas_can_write_opl_state_index_kernel": false,
-      "mas_can_own_generic_sqlite_sidecar": false,
-      "opl_can_write_mas_study_truth": false,
-      "opl_can_write_publication_eval": false,
-      "opl_can_write_controller_decision": false,
-      "opl_can_write_manuscript_body": false,
-      "opl_can_write_memory_body": false,
-      "opl_can_write_artifact_body": false,
-      "opl_can_authorize_publication_quality": false,
-      "opl_can_authorize_artifact_mutation": false,
-      "sqlite_record_counts_as_stage_complete": false
-    }
-  },
-  "stage_run_kernel_profile_binding": {
-    "profile_ref": "contracts/stage_run_kernel_profile.json",
-    "profile_role": "minimal_stage_native_state_shell",
-    "stage_run_kernel_is_mas_controller_system": false,
-    "ordinary_progress_handoff_ref": "contracts/stage_run_kernel_profile.json#/ordinary_progress_handoff",
-    "ordinary_progress_handoff_role": "T0_progress_delta_receipt_policy_not_stage_artifact_completion",
-    "stage_native_principle": [
-      "stage_folder",
-      "stage_manifest",
-      "role_artifacts",
-      "owner_receipt_or_typed_blocker"
-    ],
-    "file_presence_counts_as_stage_complete": false,
-    "provider_completion_counts_as_domain_accepted": false,
-    "read_model_is_transition_authority": false,
-    "terminal_transition_authority": "owner_receipt_or_typed_blocker"
-  },
-  "current_pointer_promotion_model": {
-    "ordered_steps": [
-      "attempt_output",
-      "manifest_valid",
-      "receipt_accepted",
-      "domain_decision_receipt_valid",
-      "current_pointer_promoted",
-      "projection_rebuilt"
-    ],
-    "fail_closed_states": [
-      "attempt_output_required",
-      "manifest_required",
-      "receipt_required",
-      "current_pointer_stale",
-      "current_pointer_invalid_status",
-      "missing_domain_receipt",
-      "consumability_gate_failed"
-    ],
-    "current_pointer_is_read_from_physical_kernel": true,
-    "derived_projection_cannot_promote_pointer": true
-  },
-  "semantic_consumability_gate": {
-    "semantic_receipt_sources": [
-      "owner_receipt_refs",
-      "decision_receipt_refs",
-      "typed_blocker_refs"
-    ],
-    "required_consumability_checks": [
-      "role",
-      "hash",
-      "source",
-      "current_truth",
-      "receipt_authority",
-      "lineage",
-      "retention_restore",
-      "domain_validation"
-    ],
-    "manifest_validity_is_semantic_receipt_validity": false,
-    "typed_blocker_is_domain_outcome_not_runtime_failure": true
-  },
-  "lineage_retention_binding": {
-    "lineage_event_model": "stage_attempt_manifest_receipt_current_pointer",
-    "restore_contract_required_before_cleanup": true,
-    "cleanup_authorized_by_projection": false,
-    "current_pointer_to_orphan_artifact_is_forbidden": true
+    "manifest_receipt_hash_required": true
   },
   "domain_pack_binding": {
     "accepted_source_refs": [
       "agent/stages/manifest.json",
-      "contracts/foundry_agent_series.json",
-      "src/med_autoscience/controllers/stage_artifact_index.py",
-      "src/med_autoscience/controllers/opl_physical_stage_kernel.py"
+      "contracts/stage_run_kernel_profile.json"
     ],
     "domain_output_roles_are_interface": true,
-    "file_name_is_not_interface": true,
-    "domain_truth_owner": "med-autoscience"
+    "file_name_is_not_interface": true
   },
   "projection_boundary": {
     "derived_projection_refs": [
-      "stage_artifact_index",
-      "stage_kernel_projection",
-      "mas_opl_runtime_workbench_projection",
-      "app_workbench_artifact_drilldown",
-      "stage_kernel_projection.promotion",
-      "stage_kernel_projection.lineage_retention",
-      "mas_opl_runtime_workbench_projection.stage_operating_layer.cross_domain_soak"
+      "opl_current_control_state_handoff",
+      "family_runtime_stage_attempt_query",
+      "stage_run_current_owner_delta"
     ],
     "file_presence_only_counts_as": "orphan_or_historical",
-    "provider_completion_counts_as_progress": false,
-    "derived_index_authority": "rebuildable_projection_not_primary_truth"
+    "provider_completion_counts_as_progress": false
   },
   "authority_boundary": {
     "opl_can_create_domain_owner_receipt": false,
@@ -227,72 +56,5 @@
     "opl_can_write_memory_body": false,
     "opl_can_mutate_domain_artifact_body": false,
     "opl_can_authorize_quality_or_export": false
-  },
-  "domain_authority_retained": [
-    "study_truth",
-    "publication_quality_verdict",
-    "paper_artifact_authority",
-    "memory_accept_reject",
-    "owner_receipt",
-    "typed_blocker"
-  ],
-  "notes": [
-    "MAS consumes the OPL physical Stage Folder Kernel as the primary stage artifact truth when present.",
-    "stage_artifact_index remains a refs-only derived projection and cannot promote file presence, provider completion, or stale legacy outputs into current progress.",
-    "The body-free StateIndex source adapter emits refs for OPL ownership; semantic receipt validation, promotion audit, lineage/retention drilldown, and cross-domain soak remain read-only operating-layer surfaces.",
-    "These operating-layer surfaces expose refs, blockers, fail-closed reasons, and read-only readiness summaries; they do not write MAS truth, current pointer, publication eval, controller decisions, artifact body, memory body, or paper package body."
-  ],
-  "operating_layer_landed_surfaces": {
-    "semantic_receipt_validation": {
-      "surface_kind": "mas_stage_semantic_receipt_validation",
-      "implementation_ref": "src/med_autoscience/controllers/mas_stage_semantic_receipts.py",
-      "accepted_authority_types": [
-        "source_readiness",
-        "reviewer_quality",
-        "publication_gate",
-        "artifact_package_authority",
-        "memory_accept_reject",
-        "typed_blocker",
-        "medical_owner_receipt"
-      ],
-      "validation_scope": [
-        "receipt_ref",
-        "schema_refs",
-        "capability_refs",
-        "domain_semantic_refs"
-      ],
-      "receipt_body_read": false,
-      "ready_claims_allowed": false
-    },
-    "promotion_runtime_audit": {
-      "surface_kind": "opl_stage_current_pointer_promotion_audit",
-      "implementation_ref": "src/med_autoscience/controllers/opl_stage_promotion_runtime.py",
-      "projection_refs": [
-        "stage_kernel_projection.promotion",
-        "mas_opl_runtime_workbench_projection.stage_operating_layer.promotion"
-      ],
-      "read_only": true,
-      "writes_current_pointer": false,
-      "covers": [
-        "partial_commit",
-        "rollback_candidate",
-        "stale_pointer",
-        "orphan_output",
-        "historical_pointer_tombstone"
-      ]
-    },
-    "workbench_cross_domain_soak": {
-      "surface_kind": "mas_opl_stage_kernel_cross_domain_soak_projection",
-      "implementation_ref": "opl_app_workbench_shell_readback",
-      "required_domain_lanes": [
-        "MAS",
-        "MAG",
-        "OMA",
-        "RCA"
-      ],
-      "workbench_role": "read_only_projection",
-      "can_authorize_domain_readiness": false,
-      "can_authorize_artifact_mutation": false
-    }
   }
 }

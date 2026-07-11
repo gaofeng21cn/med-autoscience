@@ -80,7 +80,6 @@ from .typed_blocker_resolution_successor import (
 from ..repair_progress_projection import build_repair_progress_projection
 from ..research_pack_progress_projection import build_research_pack_progress_summary_projection
 from ..shared import _mapping_copy, _non_empty_text
-from ..stage_kernel_projection import stage_kernel_projection_from_artifact_index
 from ..user_visible_projection import build_user_visible_projection
 
 
@@ -157,7 +156,6 @@ def assemble_study_progress_payload(
     repair_recommendation: dict[str, Any],
     ai_repair_lifecycle: dict[str, Any] | None,
     publication_eval_payload: dict[str, Any] | None,
-    stage_artifact_index: dict[str, Any] | None,
     autonomous_runtime_notice: dict[str, Any],
     execution_owner_guard: dict[str, Any],
     supervisor_tick_audit: dict[str, Any],
@@ -290,11 +288,6 @@ def assemble_study_progress_payload(
         "refs": refs,
     }
     payload = _attach_opl_supervisor_decision_readback(payload, profile=profile)
-    if stage_artifact_index is not None:
-        payload["stage_artifact_index"] = dict(stage_artifact_index)
-        payload["stage_kernel_projection"] = stage_kernel_projection_from_artifact_index(
-            stage_artifact_index
-        )
     payload.update(build_progress_first_projection(payload))
     payload = _attach_fresh_domain_transition(
         payload=payload,

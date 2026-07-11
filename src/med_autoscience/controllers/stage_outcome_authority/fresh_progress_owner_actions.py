@@ -6,7 +6,7 @@ from typing import Any
 from med_autoscience.controllers.stage_outcome_authority import owner_route_policy as owner_route_part
 
 from . import consumed_transition_owner_routes
-from . import stage_artifact_publication_handoff_currentness
+from . import publication_handoff_currentness
 from . import stage_native_dispatch_selection
 
 
@@ -47,7 +47,7 @@ def fresh_progress_owner_action_selectable(
 ) -> bool:
     if (
         consumed_transition_owner_routes.consumed_transition_owner_route(current_study)
-        and not stage_artifact_publication_handoff_currentness.is_current(current_study)
+        and not publication_handoff_currentness.is_current(current_study)
     ):
         return False
     return dispatch_matches_fresh_progress_current_owner_action(

@@ -19,7 +19,7 @@ from med_autoscience.controllers.paper_mission_owner_surface import provider_rea
 from med_autoscience.controllers.paper_mission_owner_surface import publication_gate_actions, queue_slo
 from med_autoscience.controllers.paper_mission_owner_surface import request_packets
 from med_autoscience.controllers.paper_mission_owner_surface import runtime_facts, scan_output, status_projection
-from med_autoscience.controllers.paper_mission_owner_surface import stage_artifact_owner_actions, stale_redrive_resolution
+from med_autoscience.controllers.paper_mission_owner_surface import stale_redrive_resolution
 from med_autoscience.controllers.paper_mission_owner_surface import story_surface_delta_actions, study_identity
 from med_autoscience.controllers.paper_mission_owner_surface import submission_milestone_parking
 from med_autoscience.controllers.paper_mission_owner_surface import submission_milestone_projection, workspace_daemon
@@ -478,14 +478,6 @@ def _study_projection(
         gate_specificity=gate_specificity,
         ai_reviewer_assessment=ai_reviewer_assessment,
     )
-    actions = stage_artifact_owner_actions.action_queue_with_terminal_publication_handoff(
-        actions=actions,
-        progress=progress_payload,
-        study_id=study_id,
-        quest_id=resolved_quest_id,
-        decorate_action=_decorate_action,
-        publication_eval_payload=publication_eval_payload,
-    )
     artifact_blocked_action = artifact_freshness.blocked_action_from_gate_clearing(
         study_root=study_root,
         publication_eval_payload=publication_eval_payload,
@@ -767,10 +759,6 @@ def _study_projection(
         ),
     )
     runtime_health = provider_attempt_projection["runtime_health"]
-    stage_artifact_projection_fields = stage_artifact_owner_actions.projection_fields(
-        progress_payload,
-        actions=actions,
-    )
     return {
         "study_id": study_id,
         "handoff_generated_at": generated_at,
@@ -787,11 +775,6 @@ def _study_projection(
         "running_provider_attempt": provider_attempt_projection["running_provider_attempt"],
         "supervision_url": _text(supervision.get("browser_url")),
         "paper_stage": _text(progress_payload.get("paper_stage")),
-        **{
-            key: value
-            for key, value in stage_artifact_projection_fields.items()
-            if key != "current_executable_owner_action"
-        },
         "runtime_health": runtime_health,
         "meaningful_artifact_delta": artifact_freshness.meaningful_artifact_delta_observed(progress_payload),
         "artifact_delta": artifact_freshness.artifact_delta(progress_payload),

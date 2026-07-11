@@ -36,12 +36,8 @@
         "publication_handoff_owner_gate.evaluate_terminal_handoff"
       ],
       "allowed_writes": [
-        "artifacts/stage_outputs/08-publication_package_handoff/handoff_owner_receipt.json",
-        "artifacts/stage_outputs/08-publication_package_handoff/receipts/owner_receipt.json",
-        "artifacts/stage_outputs/08-publication_package_handoff/receipts/typed_blocker.json",
-        "artifacts/stage_outputs/08-publication_package_handoff/stage_manifest.json",
-        "artifacts/stage_outputs/08-publication_package_handoff/current.json",
-        "artifacts/stage_outputs/08-publication_package_handoff/projection/current_owner_delta.json"
+        "artifacts/publication_handoff/owner_receipt.json",
+        "artifacts/publication_handoff/typed_blocker.json"
       ],
       "cannot_lift_to_opl_reason": "The terminal publication handoff receipt signs MAS publication-route owner judgment; OPL may transport StageRun refs but cannot sign the domain owner answer.",
       "category": "owner_receipt_signer",
@@ -59,7 +55,8 @@
         "controller_decisions/latest.json",
         "paper/**",
         "paper/submission_minimal/**",
-        "manuscript/current_package/**"
+        "manuscript/current_package/**",
+        "artifacts/stage_outputs/**"
       ],
       "item_id": "owner_receipt_signer.publication_handoff_owner_gate",
       "no_active_caller": "not_required_for_retention_required_before_retirement",
@@ -68,8 +65,8 @@
         "Does not claim publication-ready or submission-ready by inventory presence."
       ],
       "output_refs": [
-        "artifacts/stage_outputs/08-publication_package_handoff/handoff_owner_receipt.json",
-        "artifacts/stage_outputs/08-publication_package_handoff/receipts/typed_blocker.json"
+        "artifacts/publication_handoff/owner_receipt.json",
+        "artifacts/publication_handoff/typed_blocker.json"
       ],
       "owner": "publication_gate_owner",
       "replacement_parity": "not_replaceable_by_OPL_generic_runtime_only_receipt_or_blocker_transport_allowed",
@@ -87,12 +84,7 @@
         "artifacts/medical_paper/readiness.json",
         "artifacts/medical_paper/*.json",
         "artifacts/medical_paper/actions/**",
-        "artifacts/controller_decisions/latest.json",
-        "artifacts/stage_outputs/08-publication_package_handoff/receipts/owner_receipt.json",
-        "artifacts/stage_outputs/08-publication_package_handoff/receipts/typed_blocker.json",
-        "artifacts/stage_outputs/08-publication_package_handoff/stage_manifest.json",
-        "artifacts/stage_outputs/08-publication_package_handoff/current.json",
-        "artifacts/stage_outputs/08-publication_package_handoff/projection/current_owner_delta.json"
+        "artifacts/controller_decisions/latest.json"
       ],
       "cannot_lift_to_opl_reason": "The blocker names missing medical-paper readiness refs and route-back conditions; OPL can carry the blocker ref but cannot decide the MAS domain shortcut being avoided.",
       "category": "typed_blocker_materializer",
@@ -110,13 +102,15 @@
         "paper/**",
         "paper/submission_minimal/**",
         "manuscript/current_package/**",
-        "artifacts/stage_outputs/08-publication_package_handoff/handoff_owner_receipt.json"
+        "artifacts/stage_outputs/**"
       ],
       "item_id": "typed_blocker_materializer.medical_paper_readiness_surface",
       "no_active_caller": "not_required_for_retention_required_before_retirement",
       "no_forbidden_write_proof": "required_no_write_to_study_truth_publication_eval_controller_decision_current_package_memory_body_artifact_body_owner_receipt_or_typed_blocker",
       "output_refs": [
         "artifacts/medical_paper/readiness.json",
+        "artifacts/medical_paper/readiness_owner_receipt.json",
+        "artifacts/medical_paper/readiness_typed_blocker.json",
         "typed blocker:medical_paper_readiness_surface_input_required"
       ],
       "owner": "MedAutoScience",

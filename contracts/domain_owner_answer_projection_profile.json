@@ -15,10 +15,8 @@
   "studies_dir_name": "studies",
   "projection_relative_path": [
     "artifacts",
-    "stage_outputs",
-    "08-publication_package_handoff",
-    "projection",
-    "current_owner_delta.json"
+    "publication_handoff",
+    "owner_receipt.json"
   ],
   "stage_native_owner_answer": {
     "canonical_projection": "domain_stage_native_owner_answer",
@@ -28,11 +26,11 @@
     "next_executable_owner": "medautoscience",
     "closeout_surface_kind": "medical_paper_readiness_stage_native_closeout",
     "stage_id": "08-publication_package_handoff",
-    "stage_outputs_fragment": "artifacts/stage_outputs/08-publication_package_handoff",
-    "owner_receipt_ref": "artifacts/stage_outputs/08-publication_package_handoff/receipts/owner_receipt.json",
-    "typed_blocker_ref": "artifacts/stage_outputs/08-publication_package_handoff/receipts/typed_blocker.json",
-    "relative_owner_receipt_ref": "receipts/owner_receipt.json",
-    "relative_typed_blocker_ref": "receipts/typed_blocker.json"
+    "stage_outputs_fragment": null,
+    "owner_receipt_ref": "artifacts/medical_paper/readiness_owner_receipt.json",
+    "typed_blocker_ref": "artifacts/medical_paper/readiness_typed_blocker.json",
+    "relative_owner_receipt_ref": "artifacts/medical_paper/readiness_owner_receipt.json",
+    "relative_typed_blocker_ref": "artifacts/medical_paper/readiness_typed_blocker.json"
   },
   "authority_boundary": {
     "refs_only": true,

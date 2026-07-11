@@ -32,10 +32,8 @@ def test_domain_owner_answer_projection_profile_is_domain_owned_and_refs_only() 
     assert profile["checkout_currentness_required"] is True
     assert profile["projection_relative_path"] == [
         "artifacts",
-        "stage_outputs",
-        "08-publication_package_handoff",
-        "projection",
-        "current_owner_delta.json",
+        "publication_handoff",
+        "owner_receipt.json",
     ]
     assert profile["authority_boundary"] == {
         "refs_only": True,

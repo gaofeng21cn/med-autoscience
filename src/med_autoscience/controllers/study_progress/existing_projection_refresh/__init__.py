@@ -4,7 +4,6 @@ from collections.abc import Callable, Mapping
 from pathlib import Path
 from typing import Any
 
-from med_autoscience.controllers.stage_artifact_index import build_stage_artifact_index
 from med_autoscience.profiles import WorkspaceProfile
 
 from ..delivery_inspection import attach_delivery_inspection_projection
@@ -175,20 +174,6 @@ def current_gate_clearing_eval_ids(
     return list(dict.fromkeys(text for value in values if (text := _non_empty_text(value))))
 
 
-def stage_artifact_index_projection(
-    *,
-    profile: WorkspaceProfile,
-    study_id: str,
-    study_root: Path,
-    build_stage_artifact_index_fn: Callable[..., dict[str, Any] | None] = build_stage_artifact_index,
-) -> dict[str, Any] | None:
-    del profile
-    payload = build_stage_artifact_index_fn(study_id=study_id, study_root=study_root)
-    if not isinstance(payload, dict) or payload.get("surface_kind") != "stage_artifact_index":
-        return None
-    return dict(payload)
-
-
 __all__ = [
     "current_gate_clearing_eval_ids",
     "current_redrive_top_level_next_action",
@@ -196,5 +181,4 @@ __all__ = [
     "refresh_existing_projection_current_owner_surfaces",
     "refresh_existing_projection_repair_progress",
     "refresh_existing_projection_user_visible_status",
-    "stage_artifact_index_projection",
 ]

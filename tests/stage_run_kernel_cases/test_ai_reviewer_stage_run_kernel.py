@@ -9,9 +9,6 @@ import pytest
 from med_autoscience.controllers.stage_run_kernel import (
     stage_run_kernel_projection_from_stage_folder,
 )
-from med_autoscience.controllers.study_progress.stage_kernel_projection import (
-    stage_kernel_projection_from_artifact_index,
-)
 
 
 pytestmark = pytest.mark.meta
@@ -120,7 +117,7 @@ def test_stage_run_kernel_accepts_manifest_backed_ai_reviewer_owner_receipt(
             "authority_type": "medical_owner_receipt",
             "receipt_ref": "mas-owner-receipt:dm003:ai-reviewer-rebuild:001",
             "schema_refs": [
-                "contracts/stage_artifact_kernel_adoption.json#/semantic_consumability_gate",
+                "contracts/stage_run_kernel_profile.json#/stage_folder_manifest/closeout_contract",
                 "contracts/mas-paper-study-stage-pack.json#/authority_boundary",
             ],
             "capability_refs": [
@@ -177,7 +174,7 @@ def test_stage_run_kernel_projects_manifest_backed_typed_blocker_as_current_owne
             "authority_type": "typed_blocker",
             "receipt_ref": "typed-blocker:dm003:ai-reviewer-rebuild:001",
             "schema_refs": [
-                "contracts/stage_artifact_kernel_adoption.json#/semantic_consumability_gate",
+                "contracts/stage_run_kernel_profile.json#/stage_folder_manifest/closeout_contract",
                 "contracts/mas-paper-study-stage-pack.json#/authority_boundary",
             ],
             "capability_refs": [
@@ -215,7 +212,6 @@ def test_stage_run_kernel_projects_manifest_backed_typed_blocker_as_current_owne
     assert projection["state_invariants"]["file_presence_counts_as_completion"] is False
     assert projection["state_invariants"]["provider_completed_counts_as_completion"] is False
 
-
 def test_stage_run_kernel_does_not_complete_from_outputs_or_provider_terminal_status(
     tmp_path: Path,
 ) -> None:
@@ -240,79 +236,3 @@ def test_stage_run_kernel_does_not_complete_from_outputs_or_provider_terminal_st
     ]
     assert projection["state_invariants"]["file_presence_counts_as_completion"] is False
     assert projection["state_invariants"]["provider_completed_counts_as_completion"] is False
-
-
-def test_stage_kernel_projection_prefers_stage_run_manifest_backed_typed_blocker(
-    tmp_path: Path,
-) -> None:
-    stage_root = _write_stage_folder(
-        tmp_path,
-        terminal_status="blocked",
-        typed_blocker={
-            "surface_kind": "mas_stage_typed_blocker",
-            "schema_version": 1,
-            "stage_id": STAGE_ID,
-            "attempt_id": ATTEMPT_ID,
-            "authority_type": "typed_blocker",
-            "receipt_ref": "typed-blocker:dm003:ai-reviewer-rebuild:001",
-            "schema_refs": [
-                "contracts/stage_artifact_kernel_adoption.json#/semantic_consumability_gate",
-                "contracts/mas-paper-study-stage-pack.json#/authority_boundary",
-            ],
-            "capability_refs": [
-                "contracts/mas-paper-study-stage-pack.json#/authority_boundary/mas_authority_functions/typed_blocker",
-            ],
-            "domain_semantic_refs": {
-                "typed_blocker_refs": [
-                    "typed-blocker:dm003:ai-reviewer-rebuild:001"
-                ],
-            },
-            "owner": "ai_reviewer",
-            "blocker_id": "ai_reviewer_closeout_packet_missing_currentness_trace",
-            "required_input": "current_manuscript.currentness_checks",
-            "blocked_surface": "ai_reviewer_publication_eval_rebuild",
-            "next_safe_action": "rerun_ai_reviewer_with_current_manuscript_binding",
-        },
-    )
-
-    projection = stage_kernel_projection_from_artifact_index(
-        {
-            "surface_kind": "stage_artifact_index",
-            "current_stage": {"stage_id": STAGE_ID},
-            "stages": [
-                {
-                    "stage_id": STAGE_ID,
-                    "stage_progress_status": "terminal_delivered",
-                    "required_output_refs": [
-                        {
-                            "role": "ai_reviewer_record",
-                            "ref": "outputs/ai_reviewer_record.json",
-                        }
-                    ],
-                    "stage_folder_contract": {
-                        "stage_folder_ref": str(stage_root),
-                        "manifest_ref": str(stage_root / "stage_manifest.json"),
-                    },
-                    "artifact_classification": {
-                        "current": ["outputs/ai_reviewer_record.json"],
-                        "owner_receipt_refs": [],
-                        "typed_blocker_refs": ["receipts/typed_blocker.json"],
-                        "semantic_validation": {"status": "blocked"},
-                        "consumability": {
-                            "status": "blocked",
-                            "failed_checks": ["domain_validation"],
-                        },
-                    },
-                }
-            ],
-        }
-    )
-
-    assert projection["stage_run_kernel"]["status"] == "TypedBlocked"
-    assert projection["stage_run_kernel"]["current_owner_delta"]["source_kind"] == "typed_blocker"
-    assert projection["current_owner_delta"] == projection["stage_run_kernel"]["current_owner_delta"]
-    assert projection["stage_run_kernel"]["evidence_projection"] == {
-        "latest_json_ref": None,
-        "latest_json_is_authority": False,
-        "outputs_present": ["outputs/ai_reviewer_record.json"],
-    }
