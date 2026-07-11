@@ -6,7 +6,6 @@ from typing import Any
 
 from med_autoscience.controllers.owner_callable_action_policy import FORBIDDEN_SURFACES
 from med_autoscience.controllers.runtime_ai_repair_policy import owner_callable_policy
-from med_autoscience.controllers import owner_route_repeat_policy
 
 
 def build(
@@ -23,7 +22,7 @@ def build(
     callable_surface: str,
     opl_execution_authorization: Mapping[str, Any] | None = None,
 ) -> dict[str, Any]:
-    repeat_key = owner_route_repeat_policy.repeat_key(owner_route)
+    work_unit_fingerprint = _text(owner_route.get("work_unit_fingerprint"))
     has_opl_authorization = bool(opl_execution_authorization)
     dispatch_status = "ready" if has_opl_authorization else "transition_request_pending"
     prompt_contract = {
@@ -36,8 +35,6 @@ def build(
         "idempotency_key": _text(owner_route.get("idempotency_key")),
         "prompt_budget": {"max_prompt_tokens": 6000},
         "compact_evidence_packet_ref": f"artifacts/supervision/compact_evidence_packets/{action_type}.json",
-        "do_not_repeat": True,
-        "repeat_suppression_key": repeat_key,
         "request_packet_ref": "artifacts/supervision/requests/ai_reviewer/latest.json",
         "source": surface,
         "opl_execution_authorization": dict(opl_execution_authorization or {}),
@@ -66,8 +63,7 @@ def build(
         "owner_route": dict(owner_route),
         "opl_execution_authorization": dict(opl_execution_authorization or {}),
         "idempotency_key": _text(owner_route.get("idempotency_key")),
-        "repeat_suppression_key": repeat_key,
-        "action_fingerprint": repeat_key,
+        "action_fingerprint": work_unit_fingerprint,
         "consumer_mutation_scope": "executor_dispatch_request_only",
         "prompt_contract": prompt_contract,
         "paper_package_mutation_allowed": False,

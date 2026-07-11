@@ -76,7 +76,6 @@ def projection_error_study(
             "codex_dispatch_count": 0,
         },
         "owner_route": {},
-        "repeat_suppression": {"repeat_suppressed": False, "why_not_applied": None},
         "why_not_applied": reason,
         "why_not_applied_timeline": why_not_applied_timeline,
         "escalation_reason": reason,

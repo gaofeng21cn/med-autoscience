@@ -4,7 +4,6 @@ from collections.abc import Mapping
 from typing import Any
 
 from med_autoscience.controllers.paper_progress_state import build_paper_progress_state
-from med_autoscience.controllers.owner_route_trace_projection import decision_trace_projection
 
 from .canonical_owner_action_projection import is_canonical_owner_action_projection, owner_action_next_step
 from .current_owner_handoff_projection import current_owner_handoff_action, current_owner_redrive_domain_transition
@@ -155,14 +154,6 @@ def build_user_visible_projection(payload: Mapping[str, Any]) -> dict[str, Any]:
             quality_owner_pending=quality_owner_pending,
         )
     )
-    trace_projection = decision_trace_projection(
-        payload,
-        _mapping_copy(payload.get("owner_route")),
-        _mapping_copy(payload.get("domain_transition")),
-        _mapping_copy(payload.get("controller_decision")),
-        _mapping_copy(payload.get("latest_controller_decision")),
-    )
-
     projection = {
         "surface": USER_VISIBLE_PROJECTION_SURFACE,
         "read_model": USER_VISIBLE_PROJECTION_READ_MODEL,
@@ -226,7 +217,6 @@ def build_user_visible_projection(payload: Mapping[str, Any]) -> dict[str, Any]:
             evidence=evidence,
         ),
     }
-    projection.update(trace_projection)
     return projection
 
 def _macro_state(payload: Mapping[str, Any]) -> dict[str, Any] | None:

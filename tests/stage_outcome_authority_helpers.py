@@ -96,8 +96,6 @@ def dispatch(
             "idempotency_key": route["idempotency_key"],
             "prompt_budget": {"max_prompt_tokens": 6000},
             "compact_evidence_packet_ref": f"artifacts/supervision/compact_evidence_packets/{action_type}.json",
-            "do_not_repeat": True,
-            "repeat_suppression_key": route["work_unit_fingerprint"],
             "forbidden_surfaces": [
                 "paper/**",
                 "manuscript/**",

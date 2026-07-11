@@ -257,18 +257,17 @@
       "authority_boundary": "paper_progress_read_model_owner_handoff_guard",
       "implementation_status": {
         "paper_progress_degradation_classifier": "landed",
-        "owner_handoff_repeat_suppression_closeout": "landed",
+        "opl_transition_receipt_current_identity_gate": "landed",
         "paper_progress_stall_safe_reconcile": "landed",
         "paper_progress_degradation_evidence": "landed_read_model",
         "production_blocker_impact_projection": "landed"
       },
       "production_degrading_overlays": [
         "owner_handoff_dispatch",
-        "repeat_suppression",
         "work_unit_redrive"
       ],
       "dry_run_dispatch_policy": "zero_codex_dispatch",
-      "apply_dispatch_guard": "fresh_owner_route_not_parked_not_completed_no_human_gate_no_missing_publication_gate_retry_budget_available_new_action_fingerprint",
+      "apply_dispatch_guard": "explicit_opl_execution_authorization_for_current_stage_run_identity",
       "projection_fields": [
         "affects_output",
         "next_owner",

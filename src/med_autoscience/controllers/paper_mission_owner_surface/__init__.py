@@ -25,7 +25,6 @@ from med_autoscience.controllers.paper_mission_owner_surface import submission_m
 from med_autoscience.controllers.paper_mission_owner_surface import submission_milestone_projection, workspace_daemon
 from med_autoscience.controllers.paper_mission_owner_surface import supervision_surfaces
 from med_autoscience.controllers.stage_outcome_authority import owner_route_policy as owner_route_part
-from med_autoscience.controllers import owner_route_repeat_policy
 from med_autoscience.opl_domain_pack import state_index_source_refs
 from med_autoscience.developer_supervisor_mode import (
     DeveloperSupervisorMode,
@@ -731,17 +730,6 @@ def _study_projection(
         blocked_reason = why_not_applied = None
         next_owner = "supervisor_only/live_provider_attempt"
         lifecycle = {}
-    repeat_guard = owner_route_repeat_policy.scan_repeat_suppression(
-        previous_payload=previous_payload,
-        study_id=study_id,
-        owner_route=owner_route,
-        current_meaningful_artifact_delta=artifact_freshness.meaningful_artifact_delta_observed(progress_payload),
-        required_output_pending=_required_output_pending(actions, ai_reviewer_assessment),
-    )
-    if repeat_guard["repeat_suppressed"]:
-        actions = []
-        why_not_applied = owner_route_repeat_policy.REPEAT_SUPPRESSED_REASON
-        blocked_reason = owner_route_repeat_policy.REPEAT_SUPPRESSED_REASON
     if developer_mode.safe_actions_enabled:
         request_packets.materialize_request_packets(
             study_root=study_root,
@@ -818,7 +806,6 @@ def _study_projection(
         "paper_progress_stall": paper_progress_stall_payload,
         "owner_route": owner_route,
         "owner_callable_receipt_consumption": owner_callable_receipt_consumption or None,
-        "repeat_suppression": repeat_guard,
         "why_not_applied": why_not_applied,
         "why_not_applied_timeline": _why_not_applied_timeline(why_not_applied),
         "escalation_reason": why_not_applied,
