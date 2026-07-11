@@ -199,6 +199,10 @@ def test_domain_handler_default_mainline_has_no_legacy_dispatch_active_caller(
     assert [task["task_kind"] for task in export["paper_mission_default_tasks"]] == [
         "domain_route/start-or-resume"
     ]
+    default_task = export["paper_mission_default_tasks"][0]
+    assert default_task["payload"]["declarative_target_stage_id"] == (
+        "direction_and_route_selection"
+    )
     assert not [
         task
         for task in export["pending_family_tasks"]

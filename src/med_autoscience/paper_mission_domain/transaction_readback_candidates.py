@@ -34,6 +34,7 @@ REVIEWER_REVISION_REQUESTED_ACTION_PREFIX = (
     "consume_external_sci_registry_review"
 )
 REVIEWER_REVISION_REQUESTED_ACTION_SUFFIX = "_as_reviewer_revision"
+PLACEHOLDER_STAGE_ID = "direction_and_route_selection"
 
 
 def _candidate_manifest_transaction(candidate: str | Path | None) -> dict[str, Any]:
@@ -246,7 +247,7 @@ def _placeholder_paper_mission_transaction(
     study_root: Path,
     consume_result: dict[str, Any],
 ) -> dict[str, Any]:
-    stage_id = f"paper-mission-cli::{paper_mission_command}"
+    stage_id = PLACEHOLDER_STAGE_ID
     stage_run_ref = f"paper-mission-cli://{study_id}/{paper_mission_command}"
     transaction_id = f"paper-mission-transaction::{study_id}::{paper_mission_command}::{_slug(mission_id)}"
     next_work_unit = objective or "paper mission no-write readback"
@@ -258,6 +259,7 @@ def _placeholder_paper_mission_transaction(
             "a no-write placeholder only."
         ),
         "next_owner": "mission_executor",
+        "target_stage_id": stage_id,
         "next_work_unit": next_work_unit,
         "authority_materialized": False,
         "consume_result_status": _optional_text(consume_result.get("status"))
@@ -270,6 +272,7 @@ def _placeholder_paper_mission_transaction(
         "source_terminal_decision_ref": f"{transaction_id}#stage_terminal_decision",
         "stage_run_ref": stage_run_ref,
         "runtime_owner": "one-person-lab",
+        "declarative_target_stage_id": stage_id,
         "authority_materialized": False,
     }
     transaction = {

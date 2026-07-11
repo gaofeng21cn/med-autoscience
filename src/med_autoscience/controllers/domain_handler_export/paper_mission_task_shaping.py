@@ -105,6 +105,9 @@ def paper_mission_start_or_resume_task(
                 "route_identity_key": text(carrier.get("route_identity_key")),
                 "attempt_idempotency_key": text(carrier.get("attempt_idempotency_key")),
                 "request_idempotency_key": text(carrier.get("request_idempotency_key")),
+                "declarative_target_stage_id": text(
+                    carrier.get("declarative_target_stage_id")
+                ),
                 "next_executable_owner": "med-autoscience",
                 "provider_attempt_or_lease_required": False,
                 "provider_completion_is_domain_completion": False,
