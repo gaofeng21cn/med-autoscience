@@ -79,6 +79,22 @@ def test_classify_changed_files_routes_display_docs_to_review_only() -> None:
     assert result.unclassified_changes == ()
 
 
+def test_classify_changed_files_routes_display_pack_config_to_publication_surface() -> None:
+    module = importlib.import_module("med_autoscience.dev_preflight_contract")
+
+    result = module.classify_changed_files(["config/display_packs.toml"])
+
+    assert result.matched_categories == ("display_publication_surface",)
+    assert result.unclassified_changes == ()
+    assert module.plan_commands_for_categories(result.matched_categories) == [
+        "scripts/run-pytest-clean.sh tests/display_schema_contract_cases -q",
+        "scripts/run-pytest-clean.sh tests/test_display_surface_materialization.py -q",
+        "scripts/run-pytest-clean.sh tests/test_display_layout_qc.py -q",
+        "scripts/run-pytest-clean.sh tests/test_publication_gate_cases -q",
+        "scripts/run-pytest-clean.sh tests/medical_publication_surface_cases -q",
+    ]
+
+
 def test_classify_changed_files_routes_branding_assets_to_review_only() -> None:
     module = importlib.import_module("med_autoscience.dev_preflight_contract")
 

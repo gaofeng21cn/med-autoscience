@@ -27,6 +27,12 @@ jobs:
         with:
           fetch-depth: 0
 
+      - name: Checkout MAS Scholar Skills display pack
+        uses: actions/checkout@v6
+        with:
+          repository: gaofeng21cn/mas-scholar-skills
+          path: .ci/mas-scholar-skills
+
       - name: Set up Python 3.12
         uses: actions/setup-python@v6
         with:

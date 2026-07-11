@@ -434,6 +434,56 @@ source_authority = false
         load_enabled_local_display_pack_records(repo_root)
 
 
+def test_display_pack_source_uses_fallback_when_primary_source_is_missing(tmp_path: Path) -> None:
+    repo_root = tmp_path / "repo"
+    repo_root.mkdir()
+    fallback_repo_root = repo_root / ".ci" / "mas-scholar-skills"
+    fallback_repo_root.mkdir(parents=True)
+    config_dir = repo_root / "config"
+    config_dir.mkdir()
+    (config_dir / "display_packs.toml").write_text(
+        """
+default_enabled_packs = ["fenggaolab.org.medical-display-core"]
+
+[[sources]]
+kind = "git_repo"
+pack_id = "fenggaolab.org.medical-display-core"
+path = "../missing-display-core-git"
+pack_subdir = "packs/medical-display-core"
+version = "0.1.0"
+
+[[sources]]
+kind = "git_repo"
+pack_id = "fenggaolab.org.medical-display-core"
+path = ".ci/mas-scholar-skills"
+pack_subdir = "packs/medical-display-core"
+version = "0.1.0"
+fallback = true
+""".strip()
+        + "\n",
+        encoding="utf-8",
+    )
+    fallback_pack_root = fallback_repo_root / "packs" / "medical-display-core"
+    _write_pack_manifest(
+        fallback_pack_root,
+        pack_id="fenggaolab.org.medical-display-core",
+        version="0.1.0",
+    )
+    _write_template_manifest(fallback_pack_root)
+    _git(fallback_repo_root, "init", "-b", "main")
+    _git(fallback_repo_root, "config", "user.name", "Test User")
+    _git(fallback_repo_root, "config", "user.email", "test@example.com")
+    _git(fallback_repo_root, "add", ".")
+    _git(fallback_repo_root, "commit", "-m", "Initial display pack")
+
+    records = load_enabled_local_display_pack_records(repo_root)
+
+    assert len(records) == 1
+    assert records[0].pack_root == fallback_pack_root
+    assert records[0].source_config.path == ".ci/mas-scholar-skills"
+    assert records[0].source_config.fallback is True
+
+
 def test_display_pack_source_uses_external_pack_when_available(tmp_path: Path) -> None:
     repo_root = tmp_path / "repo"
     repo_root.mkdir()
@@ -574,6 +624,13 @@ source_authority = false
 
 def test_repo_default_consumes_sibling_scholarskills_core_pack_when_available() -> None:
     selection = resolve_display_pack_selection(REPO_ROOT)
+    assert [
+        (source.path, source.fallback)
+        for source in selection.source_configs
+    ] == [
+        ("../mas-scholar-skills", False),
+        (".ci/mas-scholar-skills", True),
+    ]
     sibling_root = selection.source_configs[0].resolved_source_root
     sibling_pack_root = sibling_root / "packs" / "medical-display-core"
     if not (sibling_root / ".git").exists() or not (sibling_pack_root / "display_pack.toml").is_file():

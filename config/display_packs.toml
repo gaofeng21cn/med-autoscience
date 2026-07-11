@@ -12,3 +12,18 @@ source_ref = "mas-scholar-skills:packs/medical-display-core"
 source_version = "0.1.0"
 source_role = "generic_template_renderer_pack"
 source_authority = false
+
+# CI materializes the same public source inside the checkout because GitHub
+# Actions cannot place a secondary checkout beside GITHUB_WORKSPACE.
+[[sources]]
+kind = "git_repo"
+pack_id = "fenggaolab.org.medical-display-core"
+path = ".ci/mas-scholar-skills"
+pack_subdir = "packs/medical-display-core"
+version = "0.1.0"
+source_owner = "MAS Scholar Skills Display"
+source_ref = "mas-scholar-skills:packs/medical-display-core"
+source_version = "0.1.0"
+source_role = "generic_template_renderer_pack"
+source_authority = false
+fallback = true

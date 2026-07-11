@@ -54,6 +54,7 @@ def build_category_specs(
     spec_type(
         category_id="display_publication_surface",
         exact_paths=(
+            "config/display_packs.toml",
             "src/med_autoscience/display_registry.py",
             "src/med_autoscience/display_schema_contract/__init__.py",
             "src/med_autoscience/display_template_catalog.py",
