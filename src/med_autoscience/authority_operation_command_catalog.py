@@ -27,15 +27,6 @@ class AuthorityOperationCommand:
 
 AUTHORITY_OPERATION_COMMANDS: tuple[AuthorityOperationCommand, ...] = (
     AuthorityOperationCommand(
-        command="workspace-authority-migration-audit",
-        cli_command="workspace-authority-migration-audit",
-        mcp_mode="workspace_authority_migration_audit",
-        surface="workspace_authority_migration_audit",
-        description="Dry-run migration audit for workspace/study authority and lifecycle readiness.",
-        required_fields=("workspace_roots",),
-        dry_run_only=True,
-    ),
-    AuthorityOperationCommand(
         command="storage-governance-report",
         cli_command="storage-governance-report",
         mcp_mode="storage_governance_report",
@@ -54,25 +45,6 @@ AUTHORITY_OPERATION_COMMANDS: tuple[AuthorityOperationCommand, ...] = (
         optional_fields=("apply", "authority_snapshot"),
         contract_gated=True,
         read_only=False,
-    ),
-    AuthorityOperationCommand(
-        command="artifact-lifecycle-report",
-        cli_command="artifact-lifecycle-report",
-        mcp_mode="artifact_lifecycle_report",
-        surface="artifact_lifecycle_report",
-        description="Read-only bounded artifact lifecycle operations report.",
-        required_fields=("workspace_roots",),
-        optional_fields=("markdown", "deep", "max_files", "max_seconds"),
-    ),
-    AuthorityOperationCommand(
-        command="artifact-lifecycle-continuous-soak-summary",
-        cli_command="artifact-lifecycle-continuous-soak-summary",
-        mcp_mode="artifact_lifecycle_continuous_soak_summary",
-        surface="artifact_lifecycle_continuous_soak_summary",
-        description="Read-only installed smoke summary for migration, lifecycle, and storage governance planning.",
-        required_fields=("workspace_roots",),
-        optional_fields=("deep", "max_files", "max_seconds"),
-        dry_run_only=True,
     ),
 )
 

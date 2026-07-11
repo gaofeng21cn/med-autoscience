@@ -354,7 +354,7 @@ def test_resolve_submission_minimal_output_paths_from_review_package_contents_ma
     assert source_markdown_path == source_markdown
 
 
-def test_submission_minimal_artifact_authority_uses_lifecycle_kernel_shape(tmp_path: Path) -> None:
+def test_submission_minimal_artifact_authority_uses_mas_delivery_authority(tmp_path: Path) -> None:
     paper_bundle_manifest = tmp_path / "worktree" / "paper" / "paper_bundle_manifest.json"
     dump_json(paper_bundle_manifest, {"schema_version": 1})
     submission_manifest = {
@@ -370,11 +370,11 @@ def test_submission_minimal_artifact_authority_uses_lifecycle_kernel_shape(tmp_p
     )
 
     assert resolution["docx"]["role"] == "derived_projection"
-    assert resolution["docx"]["owner"] == "artifact_lifecycle_authority_kernel"
+    assert resolution["docx"]["owner"] == "medautoscience_delivery_artifact_authority"
     assert resolution["docx"]["authority_allowed"] == {"edit": False, "quality": False, "dispatch": False}
     assert resolution["docx"]["projection_currentness"] == "projection_only"
     assert resolution["pdf"]["role"] == "derived_projection"
-    assert resolution["pdf"]["owner"] == "artifact_lifecycle_authority_kernel"
+    assert resolution["pdf"]["owner"] == "medautoscience_delivery_artifact_authority"
     assert resolution["pdf"]["authority_allowed"] == {"edit": False, "quality": False, "dispatch": False}
     assert resolution["pdf"]["projection_currentness"] == "projection_only"
     assert resolution["submission_minimal_edit_source_allowed"] is False

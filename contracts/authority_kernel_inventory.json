@@ -203,7 +203,7 @@
       "active_caller_refs": [
         "agent/knowledge/source_readiness_and_artifact_authority.md",
         "agent/quality_gates/artifact_source_authority_gate.md",
-        "src/med_autoscience/controllers/artifact_lifecycle_inventory.py"
+        "src/med_autoscience/controllers/delivery_artifact_authority.py"
       ],
       "allowed_writes": [
         "artifacts/stage_outputs/06-manuscript_authoring/artifact_package_authority_receipt.json",

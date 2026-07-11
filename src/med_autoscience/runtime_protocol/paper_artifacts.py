@@ -12,7 +12,6 @@ from med_autoscience.runtime_protocol.topology import (
     resolve_study_root_from_quest_root,
 )
 
-from .artifact_authority import artifact_authority_record
 from .submission_package_layout import (
     legacy_submission_manifest_path,
     resolve_submission_manifest_path as resolve_package_submission_manifest_path,
@@ -39,6 +38,7 @@ _STAGE_NATIVE_BODY_PAPER_ROOT_RELPATH = (
     / "current_body"
     / "paper"
 )
+_DELIVERY_ARTIFACT_AUTHORITY_OWNER = "medautoscience_delivery_artifact_authority"
 
 
 def _resolve_path(path: Path) -> Path:
@@ -649,16 +649,13 @@ def _resolve_submission_surface_path(
 
 
 def _submission_minimal_authority_record(path: Path | None, *, artifact_format: str) -> dict[str, Any]:
-    if path is not None:
-        artifact = artifact_authority_record(path=path, study_root=path.parent)
-    else:
-        artifact = {
-            "role": "derived_projection",
-            "lifecycle": "rebuildable_projection",
-            "owner": "artifact_lifecycle_authority_kernel",
-            "authority_allowed": {"edit": False, "quality": False, "dispatch": False},
-            "projection_currentness": "projection_only",
-        }
+    artifact = {
+        "role": "derived_projection",
+        "lifecycle": "rebuildable_projection",
+        "owner": _DELIVERY_ARTIFACT_AUTHORITY_OWNER,
+        "authority_allowed": {"edit": False, "quality": False, "dispatch": False},
+        "projection_currentness": "projection_only",
+    }
     return {
         "path": str(path) if path is not None else None,
         "format": artifact_format,

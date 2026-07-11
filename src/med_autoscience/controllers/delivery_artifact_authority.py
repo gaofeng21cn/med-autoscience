@@ -2,81 +2,32 @@ from __future__ import annotations
 
 import json
 from pathlib import Path
-from typing import Any, Mapping, Sequence
+from typing import Any, Iterable, Mapping, Sequence
 
-from med_autoscience.controllers.artifact_lifecycle_authority_kernel import (
-    SCHEMA_VERSION,
-    ArtifactLifecycleAuthorityKernel,
-    classify_artifact_role,
-    is_generated_authority_suffix,
-    is_generated_authority_surface_path,
-)
 from med_autoscience.controllers.submission_package_layout import (
     AUDIT_DIRNAME,
     LEGACY_ROOT_AUDIT_RELATIVE_PATHS,
     REPRODUCIBILITY_DIRNAME,
     has_legacy_root_audit_files,
 )
-OPL_ARTIFACT_LIFECYCLE_INDEX = Path(
-    "control/opl/artifact_lifecycle/artifact_lifecycle_index.json"
-)
-OPL_ARTIFACT_LIFECYCLE_OWNER_REF = (
-    "one-person-lab:src/modules/workspace/workspace-artifact-lifecycle.ts"
-)
 
 
-def read_opl_artifact_lifecycle_refs(*, study_root: Path) -> dict[str, Any]:
-    """Read the OPL-owned lifecycle projection without rebuilding its inventory."""
-    resolved_study_root = _resolve_path(study_root)
-    index_path = resolved_study_root / OPL_ARTIFACT_LIFECYCLE_INDEX
-    index = _read_json_object(index_path)
-    return {
-        "schema_version": SCHEMA_VERSION,
-        "surface_kind": "mas_artifact_lifecycle_refs",
-        "status": "available" if index else "opl_projection_required",
-        "study_root": str(resolved_study_root),
-        "opl_artifact_lifecycle_index_ref": str(index_path),
-        "opl_owner_surface_ref": OPL_ARTIFACT_LIFECYCLE_OWNER_REF,
-        "refs": dict(index.get("refs") or {}) if isinstance(index.get("refs"), Mapping) else {},
-        "lifecycle_status": str(index.get("status") or "").strip() or None,
-        "authority_boundary": {
-            "refs_only": True,
-            "mas_rebuilds_generic_inventory": False,
-            "mas_scans_workspace_for_lifecycle": False,
-            "mas_can_authorize_artifact_mutation_from_projection": False,
-            "artifact_mutation_authority_owner": "MedAutoScience",
-        },
+SCHEMA_VERSION = 1
+GENERATED_DELIVERY_SURFACE_NAMES = frozenset(
+    {
+        "current_package",
+        "current_package.zip",
+        "submission_minimal",
     }
-
-
-def classify_artifact(
-    *,
-    path: Path,
-    study_root: Path,
-    quest_root: Path | None = None,
-    runtime_status: Mapping[str, Any] | None = None,
-) -> dict[str, Any]:
-    resolved_path = _resolve_path(path)
-    resolved_study_root = _resolve_path(study_root)
-    resolved_quest_root = _resolve_path(quest_root) if quest_root is not None else None
-    artifact = ArtifactLifecycleAuthorityKernel(
-        study_root=resolved_study_root,
-        quest_root=resolved_quest_root,
-        runtime_status=runtime_status,
-    ).classify(resolved_path)
-    delivery_package_layout = classify_delivery_package_layout(resolved_path)
-    if delivery_package_layout is None:
-        return artifact
-    return {
-        **artifact,
-        "delivery_package_layout_status": delivery_package_layout["status"],
-        "delivery_package_layout": delivery_package_layout,
-    }
+)
+GENERATED_DELIVERY_SURFACE_SUFFIXES = frozenset({".zip", ".pdf", ".docx"})
 
 
 def build_delivery_authority_sync(*, study_root: Path, paths: Sequence[Path]) -> dict[str, Any]:
     resolved_study_root = _resolve_path(study_root)
-    authority_paths = [path for path in paths if is_generated_authority_surface_path(_resolve_path(path))]
+    authority_paths = [
+        path for path in paths if is_generated_delivery_authority_path(_resolve_path(path))
+    ]
     return {
         "schema_version": SCHEMA_VERSION,
         "surface_kind": "delivery_authority_sync",
@@ -134,13 +85,16 @@ def classify_delivery_package_layout(path: Path) -> dict[str, Any] | None:
     resolved_path = _resolve_path(path)
     package_root, package_surface = _delivery_package_root_for_path(resolved_path)
     if package_root is None:
-        if not (is_generated_authority_surface_path(resolved_path) or is_generated_authority_suffix(resolved_path)):
+        if not is_generated_delivery_surface_path(resolved_path):
             return None
         package_root = resolved_path.parent
         package_surface = "generated_output"
 
     legacy_root_audit_files_present = has_legacy_root_audit_files(package_root)
-    v2_layout_present = (package_root / AUDIT_DIRNAME).exists() or (package_root / REPRODUCIBILITY_DIRNAME).exists()
+    v2_layout_present = (
+        (package_root / AUDIT_DIRNAME).exists()
+        or (package_root / REPRODUCIBILITY_DIRNAME).exists()
+    )
     status = "v2" if v2_layout_present else "legacy" if legacy_root_audit_files_present else "unknown"
     audit_root = package_root / AUDIT_DIRNAME
     reproducibility_root = package_root / REPRODUCIBILITY_DIRNAME
@@ -160,6 +114,82 @@ def classify_delivery_package_layout(path: Path) -> dict[str, Any] | None:
         "audit_guidance": _delivery_package_audit_guidance(status),
         "edit_source_allowed": False,
     }
+
+
+def summarize_delivery_manifests(manifests: Iterable[Path]) -> dict[str, Any]:
+    delivery_manifests = [
+        path for path in manifests if _is_delivery_manifest(path, _read_json_object(path))
+    ]
+    return {
+        "delivery_manifest_count": len(delivery_manifests),
+        "lifecycle_hook_present": any(
+            _delivery_manifest_lifecycle_hook_present(_read_json_object(path))
+            for path in delivery_manifests
+        ),
+        "source_signature_present": any(
+            _delivery_manifest_source_signature_present(_read_json_object(path))
+            for path in delivery_manifests
+        ),
+        "publication_refs_present": any(
+            _delivery_manifest_publication_refs_present(_read_json_object(path))
+            for path in delivery_manifests
+        ),
+    }
+
+
+def build_delivery_manifest_historical_backfill_plan(
+    delivery_manifest_summary: Mapping[str, Any],
+) -> dict[str, Any] | None:
+    if int(delivery_manifest_summary.get("delivery_manifest_count") or 0) == 0:
+        return None
+    missing_lifecycle_hook = not bool(delivery_manifest_summary.get("lifecycle_hook_present"))
+    missing_source_signature = not bool(delivery_manifest_summary.get("source_signature_present"))
+    missing_publication_refs = not bool(delivery_manifest_summary.get("publication_refs_present"))
+    missing_surfaces: list[str] = []
+    canonical_regeneration_path = ["refresh_canonical_manuscript_sources"]
+    if missing_lifecycle_hook:
+        missing_surfaces.append("delivery_manifest_lifecycle_hook")
+        canonical_regeneration_path.append("regenerate_delivery_manifest_lifecycle_hook")
+    if missing_source_signature:
+        missing_surfaces.append("source_signature")
+        canonical_regeneration_path.append("recompute_delivery_manifest_source_signature")
+    if missing_publication_refs:
+        missing_surfaces.append("publication_refs")
+        canonical_regeneration_path.append("relink_delivery_manifest_publication_refs")
+    if not missing_surfaces:
+        return None
+    canonical_regeneration_path.append("rerun_publication_gate")
+    return {
+        "plan_type": "delivery_manifest_historical_backfill",
+        "read_only": True,
+        "missing_surfaces": missing_surfaces,
+        "missing_lifecycle_hook": missing_lifecycle_hook,
+        "missing_source_signature": missing_source_signature,
+        "missing_publication_refs": missing_publication_refs,
+        "canonical_regeneration_path": canonical_regeneration_path,
+        "mutation_policy": {
+            "read_only": True,
+            "writes_workspace": False,
+            "manual_patch_allowed": False,
+            "allowed_mutating_actions": [],
+        },
+    }
+
+
+def is_generated_delivery_surface_path(path: Path) -> bool:
+    resolved_path = Path(path)
+    return (
+        is_generated_delivery_authority_path(resolved_path)
+        or resolved_path.suffix.lower() in GENERATED_DELIVERY_SURFACE_SUFFIXES
+    )
+
+
+def is_generated_delivery_authority_path(path: Path) -> bool:
+    resolved_path = Path(path)
+    return (
+        any(part in GENERATED_DELIVERY_SURFACE_NAMES for part in resolved_path.parts)
+        or resolved_path.name in GENERATED_DELIVERY_SURFACE_NAMES
+    )
 
 
 def _resolve_path(path: Path | None) -> Path:
@@ -212,9 +242,35 @@ def _delivery_package_audit_guidance(status: str) -> str:
     return "audit_and_reproducibility_locations_unknown"
 
 
+def _is_delivery_manifest(path: Path, payload: Mapping[str, Any]) -> bool:
+    return _text(payload.get("surface")) == "delivery_manifest" or path.name == "delivery_manifest.json"
+
+
+def _delivery_manifest_lifecycle_hook_present(payload: Mapping[str, Any]) -> bool:
+    lifecycle = payload.get("artifact_lifecycle")
+    return (
+        isinstance(lifecycle, Mapping)
+        and bool(lifecycle.get("authority_sync"))
+        and bool(lifecycle.get("lifecycle_roles"))
+    )
+
+
+def _delivery_manifest_source_signature_present(payload: Mapping[str, Any]) -> bool:
+    return bool(
+        _text(payload.get("source_signature"))
+        or _text(payload.get("delivery_source_signature"))
+    )
+
+
+def _delivery_manifest_publication_refs_present(payload: Mapping[str, Any]) -> bool:
+    for field_name in ("publication_refs", "delivery_context_refs", "publication_context_refs"):
+        refs = payload.get(field_name)
+        if isinstance(refs, Mapping) and any(_text(value) for value in refs.values()):
+            return True
+    return False
+
+
 def _read_json_object(path: Path) -> dict[str, Any]:
-    if not path.is_file():
-        return {}
     try:
         payload = json.loads(path.read_text(encoding="utf-8"))
     except (OSError, json.JSONDecodeError):
@@ -222,12 +278,18 @@ def _read_json_object(path: Path) -> dict[str, Any]:
     return dict(payload) if isinstance(payload, Mapping) else {}
 
 
+def _text(value: object) -> str | None:
+    text = str(value or "").strip()
+    return text or None
+
+
 __all__ = [
     "SCHEMA_VERSION",
     "build_delivery_authority_sync",
+    "build_delivery_manifest_historical_backfill_plan",
     "build_study_delivery_lifecycle_hook",
-    "classify_artifact",
-    "classify_artifact_role",
     "classify_delivery_package_layout",
-    "read_opl_artifact_lifecycle_refs",
+    "is_generated_delivery_authority_path",
+    "is_generated_delivery_surface_path",
+    "summarize_delivery_manifests",
 ]

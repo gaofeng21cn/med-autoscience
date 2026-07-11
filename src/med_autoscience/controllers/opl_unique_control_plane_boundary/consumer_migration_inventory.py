@@ -33,6 +33,16 @@ PRIVATE_GENERIC_TOKEN_RESIDUE_SPECS = (
         ),
     },
     {
+        "module_id": "artifact_lifecycle_storage_audit_shell",
+        "path": "src/med_autoscience/controllers/workspace_authority_migration_audit.py",
+        "forbidden_tokens": (
+            "def _iter_candidate_paths(",
+            "def _generated_delivery_paths(",
+            "def run_migration_audit(",
+            ".rglob(",
+        ),
+    },
+    {
         "module_id": "workspace_source_intake_shell",
         "path": "src/med_autoscience/controllers/workspace_literature.py",
         "forbidden_tokens": (
@@ -80,6 +90,30 @@ PRIVATE_GENERIC_TOKEN_RESIDUE_SPECS = (
 )
 
 RETIRED_PRIVATE_GENERIC_PATHS = (
+    (
+        "artifact_lifecycle_storage_audit_shell",
+        "src/med_autoscience/controllers/artifact_lifecycle_inventory.py",
+    ),
+    (
+        "artifact_lifecycle_storage_audit_shell",
+        "src/med_autoscience/controllers/artifact_lifecycle_authority_kernel.py",
+    ),
+    (
+        "artifact_lifecycle_storage_audit_shell",
+        "src/med_autoscience/controllers/artifact_lifecycle_operations_report/__init__.py",
+    ),
+    (
+        "artifact_lifecycle_storage_audit_shell",
+        "src/med_autoscience/controllers/workspace_authority_migration_audit.py",
+    ),
+    (
+        "artifact_lifecycle_storage_audit_shell",
+        "src/med_autoscience/controllers/continuous_soak_summary.py",
+    ),
+    (
+        "artifact_lifecycle_storage_audit_shell",
+        "src/med_autoscience/runtime_protocol/artifact_authority.py",
+    ),
     (
         "artifact_lifecycle_storage_audit_shell",
         (
@@ -733,13 +767,13 @@ _FUNCTIONAL_MODULE_INVENTORY = (
         "classification": "domain_authority_refs",
         "migration_class": "refs_only_domain_adapter",
         "code_paths": [
-            "src/med_autoscience/controllers/artifact_lifecycle_inventory.py",
-            "src/med_autoscience/controllers/artifact_lifecycle_operations_report/__init__.py",
-            "src/med_autoscience/controllers/artifact_lifecycle_authority_kernel.py",
+            "src/med_autoscience/controllers/delivery_artifact_authority.py",
+            "src/med_autoscience/controllers/delivery_authority_backfill_apply.py",
+            "src/med_autoscience/controllers/study_delivery_sync/",
         ],
-        "domain_ref_consumers": ["artifact lifecycle CLI/MCP", "product-entry artifact projection"],
-        "current_ref_status": "refs_only_artifact_lifecycle_adapter_mas_mutation_authority_active",
-        "migration_action": "declare_artifact_refs_audit_and_leave_mutation_authority_in_mas",
+        "domain_ref_consumers": ["study delivery sync", "controller-gated delivery manifest backfill"],
+        "current_ref_status": "generic_lifecycle_retired_domain_delivery_authority_active",
+        "migration_action": "retain_domain_delivery_authority_and_consume_opl_lifecycle_projection",
         "retention_reason": "Canonical manuscript/package mutation and rebuild proof are MAS artifact authority.",
         "opl_expected_primitives": ["opl_generic_artifact_lifecycle", "opl_artifact_locator", "opl_restore_retention_receipt_shell"],
         "mas_domain_authority_refs": ["artifact_authority", "current_package_authority"],

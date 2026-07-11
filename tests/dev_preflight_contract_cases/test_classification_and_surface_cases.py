@@ -280,8 +280,8 @@ def test_classify_changed_files_matches_control_plane_surface() -> None:
             "contracts/stage_control_plane.json",
             "scripts/real-paper-autonomy-soak-inventory.py",
             "src/med_autoscience/controllers/domain_authority_snapshot.py",
-            "src/med_autoscience/controllers/artifact_lifecycle_inventory.py",
-            "src/med_autoscience/controllers/artifact_lifecycle_operations_report/__init__.py",
+            "src/med_autoscience/controllers/delivery_artifact_authority.py",
+            "src/med_autoscience/controllers/delivery_authority_backfill_apply.py",
             "src/med_autoscience/controllers/opl_provider_ready_adapter/__init__.py",
             "src/med_autoscience/controllers/owner_route_handoff/domain_handler_export.py",
             "src/med_autoscience/controllers/owner_route_handoff/dispatch_orchestration.py",
@@ -293,8 +293,8 @@ def test_classify_changed_files_matches_control_plane_surface() -> None:
             "src/med_autoscience/controllers/study_delivery_sync/sync_orchestration.py",
             "src/med_autoscience/controllers/study_delivery_sync/sync_cli.py",
             "tests/test_autonomy_state_surface.py",
-            "tests/test_artifact_lifecycle_inventory.py",
-            "tests/test_artifact_lifecycle_operations_report.py",
+            "tests/test_delivery_artifact_authority.py",
+            "tests/test_delivery_authority_backfill_apply.py",
         ]
     )
 

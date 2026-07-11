@@ -3,7 +3,7 @@ from __future__ import annotations
 from pathlib import Path
 from typing import Any
 
-from med_autoscience.controllers.artifact_lifecycle_inventory import build_study_delivery_lifecycle_hook
+from med_autoscience.controllers.delivery_artifact_authority import build_study_delivery_lifecycle_hook
 from med_autoscience.controllers.submission_package_layout import (
     audit_path,
     build_submission_delivery_signature_block,

@@ -131,10 +131,7 @@
               "submit-study-task",
               "build-product-entry",
               "storage-governance-report",
-              "workspace-authority-migration-audit",
-              "delivery-authority-backfill-apply",
-              "artifact-lifecycle-report",
-              "artifact-lifecycle-continuous-soak-summary"
+              "delivery-authority-backfill-apply"
             ]
           }
         },

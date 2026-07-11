@@ -12,7 +12,7 @@ from med_autoscience.publication_profiles import (
     is_supported_publication_profile,
     normalize_publication_profile,
 )
-from med_autoscience.controllers.artifact_lifecycle_inventory import build_study_delivery_lifecycle_hook
+from med_autoscience.controllers.delivery_artifact_authority import build_study_delivery_lifecycle_hook
 from med_autoscience.controllers.authority_route_gate import (
     attach_authority_route_gate,
 )

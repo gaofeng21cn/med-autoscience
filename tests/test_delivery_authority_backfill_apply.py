@@ -33,6 +33,12 @@ def _write_contract(
     controller_decision: dict[str, object] | None = None,
     targets: list[dict[str, object]] | None = None,
 ) -> None:
+    if targets is None:
+        targets = [{
+            "delivery_manifest_path": _delivery_manifest(workspace_root)
+            .relative_to(workspace_root)
+            .as_posix()
+        }]
     (workspace_root / "delivery_authority_backfill_apply.json").write_text(
         json.dumps(
             {
@@ -48,7 +54,7 @@ def _write_contract(
                     "backfill_delivery_manifest_source_signature",
                     "backfill_delivery_manifest_publication_refs",
                 ],
-                **({"targets": targets} if targets is not None else {}),
+                "targets": targets,
             },
             ensure_ascii=False,
             indent=2,
@@ -92,6 +98,18 @@ def test_backfill_apply_default_plans_without_mutating(tmp_path: Path) -> None:
     assert json.loads(manifest_path.read_text(encoding="utf-8")) == before
 
 
+def test_backfill_apply_requires_contract_declared_targets_without_scanning(tmp_path: Path) -> None:
+    module = importlib.import_module("med_autoscience.controllers.delivery_authority_backfill_apply")
+    workspace_root = fixtures.build_migration_audit_fixture_legacy_delivery_manifest_backfill(tmp_path)
+    _write_contract(workspace_root, targets=[])
+
+    report = module.run_backfill_apply(workspace_roots=[workspace_root])
+
+    assert report["status"] == "blocked"
+    assert report["apply_plan"] == []
+    assert report["workspaces"][0]["blockers"] == ["delivery_manifest_targets_required"]
+
+
 def test_backfill_apply_true_fails_closed_without_contract_or_snapshot(tmp_path: Path) -> None:
     module = importlib.import_module("med_autoscience.controllers.delivery_authority_backfill_apply")
     workspace_root = fixtures.build_migration_audit_fixture_legacy_delivery_manifest_backfill(tmp_path)
@@ -99,9 +117,9 @@ def test_backfill_apply_true_fails_closed_without_contract_or_snapshot(tmp_path:
     report = module.run_backfill_apply(workspace_roots=[workspace_root], apply=True)
 
     assert report["status"] == "blocked"
-    blockers = report["apply_plan"][0]["blockers"]
-    assert "backfill_apply_contract_missing" in blockers
-    assert "authority_route_gate:authority_snapshot_missing" in blockers
+    assert report["apply_plan"] == []
+    assert report["workspaces"][0]["blockers"] == ["backfill_apply_contract_missing"]
+    assert report["authority_route_gate"]["blocking_reasons"] == ["authority_snapshot_missing"]
     assert report["action_counts"]["applied"] == 0
 
 

@@ -6,7 +6,7 @@ from collections.abc import Iterable, Mapping
 from pathlib import Path
 from typing import Any
 
-from med_autoscience.controllers.workspace_authority_migration_audit import (
+from med_autoscience.controllers.delivery_artifact_authority import (
     build_delivery_manifest_historical_backfill_plan,
     summarize_delivery_manifests,
 )
@@ -29,9 +29,11 @@ def run_backfill_apply(
     workspaces: list[dict[str, Any]] = []
     apply_plan: list[dict[str, Any]] = []
     applied_actions: list[dict[str, Any]] = []
+    workspace_blocker_count = 0
     for workspace_root in sorted(Path(root).expanduser().resolve() for root in workspace_roots):
         workspace = _workspace_plan(workspace_root=workspace_root, route_gate=route_gate)
         workspaces.append(workspace["workspace"])
+        workspace_blocker_count += len(workspace["workspace"]["blockers"])
         for action in workspace["actions"]:
             planned = dict(action)
             if apply and planned["eligible_for_apply"]:
@@ -42,7 +44,7 @@ def run_backfill_apply(
                     applied_actions.append(planned)
             apply_plan.append(planned)
 
-    blocked_count = sum(1 for action in apply_plan if action["blockers"])
+    blocked_count = workspace_blocker_count + sum(1 for action in apply_plan if action["blockers"])
     planned_count = sum(1 for action in apply_plan if action["eligible_for_apply"])
     applied_count = len(applied_actions)
     return {
@@ -104,14 +106,17 @@ def _route_gate(
 def _workspace_plan(*, workspace_root: Path, route_gate: Mapping[str, Any]) -> dict[str, Any]:
     contract_path = workspace_root / CONTRACT_NAME
     contract = _read_json(contract_path)
-    contract_actions = _contract_actions(contract)
     delivery_manifest_paths = _delivery_manifest_paths(workspace_root=workspace_root, contract=contract)
+    workspace_blockers = _workspace_blockers(
+        contract_path=contract_path,
+        contract=contract,
+        delivery_manifest_paths=delivery_manifest_paths,
+    )
     actions = [
         _plan_backfill_action(
             workspace_root=workspace_root,
             contract_path=contract_path,
             contract=contract,
-            contract_actions=contract_actions,
             route_gate=route_gate,
             manifest_path=manifest_path,
         )
@@ -124,6 +129,7 @@ def _workspace_plan(*, workspace_root: Path, route_gate: Mapping[str, Any]) -> d
             "contract_present": contract_path.exists(),
             "delivery_manifest_count": len(delivery_manifest_paths),
             "action_count": len(actions),
+            "blockers": workspace_blockers,
         },
         "actions": actions,
     }
@@ -134,7 +140,6 @@ def _plan_backfill_action(
     workspace_root: Path,
     contract_path: Path,
     contract: Mapping[str, Any],
-    contract_actions: set[str],
     route_gate: Mapping[str, Any],
     manifest_path: Path,
 ) -> dict[str, Any]:
@@ -313,6 +318,8 @@ def _target_blockers(*, workspace_root: Path, manifest_path: Path) -> list[str]:
         return ["target_outside_workspace"]
     if manifest_path.name != "delivery_manifest.json":
         return ["target_not_delivery_manifest"]
+    if not manifest_path.is_file():
+        return ["target_delivery_manifest_missing"]
     return []
 
 
@@ -329,16 +336,20 @@ def _status(*, applied_count: int, blocked_count: int, plan_count: int, contract
 
 
 def _delivery_manifest_paths(*, workspace_root: Path, contract: Mapping[str, Any]) -> list[Path]:
-    contract_targets = _contract_delivery_manifest_paths(workspace_root=workspace_root, contract=contract)
-    if contract_targets:
-        return contract_targets
-    if not workspace_root.exists():
-        return []
-    return sorted(
-        path
-        for path in workspace_root.rglob("delivery_manifest.json")
-        if ".git" not in path.parts and ".ds" not in path.parts
-    )
+    return _contract_delivery_manifest_paths(workspace_root=workspace_root, contract=contract)
+
+
+def _workspace_blockers(
+    *,
+    contract_path: Path,
+    contract: Mapping[str, Any],
+    delivery_manifest_paths: Iterable[Path],
+) -> list[str]:
+    if not contract_path.is_file():
+        return ["backfill_apply_contract_missing"]
+    if not isinstance(contract.get("targets"), list) or not list(delivery_manifest_paths):
+        return ["delivery_manifest_targets_required"]
+    return []
 
 
 def _contract_delivery_manifest_paths(*, workspace_root: Path, contract: Mapping[str, Any]) -> list[Path]:
@@ -353,10 +364,6 @@ def _contract_delivery_manifest_paths(*, workspace_root: Path, contract: Mapping
             manifest_path = workspace_root / manifest_path
         paths.append(manifest_path.resolve())
     return sorted(dict.fromkeys(paths))
-
-
-def _contract_actions(contract: Mapping[str, Any]) -> set[str]:
-    return set(_string_list(contract.get("action_allowlist")))
 
 
 def _read_json(path: Path) -> Mapping[str, Any]:

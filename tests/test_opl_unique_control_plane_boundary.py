@@ -198,12 +198,13 @@ def test_source_morphology_reopens_purity_gate_for_private_generic_symbol(
         repo_root=tmp_path
     )
 
-    assert morphology["active_private_generic_residue_count"] == 1
+    assert morphology["active_private_generic_residue_count"] >= 1
     assert morphology["active_private_generic_residue_module_ids"] == [
         "artifact_lifecycle_storage_audit_shell"
     ]
-    assert morphology["active_private_generic_residues"][0]["token"] == (
-        "def build_artifact_lifecycle_inventory("
+    assert any(
+        item["token"] == "def build_artifact_lifecycle_inventory("
+        for item in morphology["active_private_generic_residues"]
     )
     assert boundary["standard_agent_purity"]["status"] == (
         "standard_agent_source_shape_residue_or_scan_gap"
