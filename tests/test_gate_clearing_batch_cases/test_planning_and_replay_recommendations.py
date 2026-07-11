@@ -67,7 +67,7 @@ def test_build_gate_clearing_batch_recommended_action_promotes_blocked_bounded_a
     assert action["gate_clearing_batch_mapping_path"] == str(mapping_path)
     assert "scientific-anchor fields can be frozen" in action["gate_clearing_batch_reason"]
 
-def test_build_gate_clearing_batch_recommended_action_uses_managed_runtime_quest_root(
+def test_build_gate_clearing_batch_recommended_action_uses_explicit_runtime_locator(
     tmp_path: Path,
 ) -> None:
     module = importlib.import_module("med_autoscience.controllers.gate_clearing_batch")
@@ -88,7 +88,7 @@ def test_build_gate_clearing_batch_recommended_action_uses_managed_runtime_quest
         manuscript_family="prediction_model",
     )
     mapping_path = (
-        profile.managed_runtime_quests_root
+        profile.runtime_root
         / "quest-001"
         / "artifacts"
         / "analysis"

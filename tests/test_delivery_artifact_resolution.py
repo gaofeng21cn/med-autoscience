@@ -48,7 +48,9 @@ def test_resolve_latest_paper_root_prefers_newer_bound_study_canonical_paper(tmp
     study_paper_root = study_root / "paper"
 
     dump_json(runtime_paper_root / "paper_bundle_manifest.json", {"schema_version": 1, "paper_branch": "paper/main"})
-    (quest_root / "quest.yaml").write_text("quest_id: q001\nstudy_id: q001\n", encoding="utf-8")
+    (quest_root / "quest.yaml").write_text(
+        f"quest_id: q001\nstudy_id: q001\nstudy_root: {study_root}\n", encoding="utf-8"
+    )
     (study_root / "study.yaml").parent.mkdir(parents=True, exist_ok=True)
     (study_root / "study.yaml").write_text("study_id: q001\n", encoding="utf-8")
     write_complete_canonical_study_paper_surface(study_paper_root, paper_branch="paper/main")
@@ -70,7 +72,9 @@ def test_resolve_latest_paper_root_prefers_complete_bound_study_canonical_paper_
     study_paper_root = study_root / "paper"
 
     dump_json(runtime_paper_root / "paper_bundle_manifest.json", {"schema_version": 1, "paper_branch": "paper/main"})
-    (quest_root / "quest.yaml").write_text("quest_id: q001\nstudy_id: q001\n", encoding="utf-8")
+    (quest_root / "quest.yaml").write_text(
+        f"quest_id: q001\nstudy_id: q001\nstudy_root: {study_root}\n", encoding="utf-8"
+    )
     (study_root / "study.yaml").parent.mkdir(parents=True, exist_ok=True)
     (study_root / "study.yaml").write_text("study_id: q001\n", encoding="utf-8")
     write_complete_canonical_study_paper_surface(study_paper_root, paper_branch="main")
@@ -95,7 +99,9 @@ def test_resolve_latest_paper_root_prefers_stage_native_bound_study_body(tmp_pat
     )
 
     (quest_root / "quest.yaml").parent.mkdir(parents=True, exist_ok=True)
-    (quest_root / "quest.yaml").write_text("quest_id: q001\nstudy_id: q001\n", encoding="utf-8")
+    (quest_root / "quest.yaml").write_text(
+        f"quest_id: q001\nstudy_id: q001\nstudy_root: {study_root}\n", encoding="utf-8"
+    )
     (study_root / "study.yaml").parent.mkdir(parents=True, exist_ok=True)
     (study_root / "study.yaml").write_text("study_id: q001\n", encoding="utf-8")
     write_complete_canonical_study_paper_surface(stage_native_paper_root, paper_branch="paper/main")

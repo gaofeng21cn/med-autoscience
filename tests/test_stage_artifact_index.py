@@ -531,7 +531,6 @@ def test_stage_artifact_materializer_backfills_stage_native_refs_without_copying
     result = materialize_stage_artifact_delta(
         study_id="001-risk",
         study_root=study_root,
-        workspace_root=workspace_root,
         apply=True,
     )
 
@@ -617,7 +616,6 @@ def test_stage_artifact_materializer_keeps_terminal_publication_handoff_gate_ope
     result = materialize_stage_artifact_delta(
         study_id="001-risk",
         study_root=study_root,
-        workspace_root=workspace_root,
         apply=True,
     )
 
@@ -690,7 +688,6 @@ def test_stage_artifact_materializer_nonterminal_stage_closeout_does_not_require
     result = materialize_stage_artifact_delta(
         study_id="001-risk",
         study_root=study_root,
-        workspace_root=tmp_path / "workspace",
         stage_ids=("01-study_intake",),
         apply=True,
     )
@@ -723,7 +720,6 @@ def test_stage_artifact_materializer_bounds_directory_source_ref_sampling(tmp_pa
     result = materialize_stage_artifact_delta(
         study_id="001-risk",
         study_root=study_root,
-        workspace_root=tmp_path / "workspace",
         stage_ids=("01-study_intake",),
         apply=True,
     )

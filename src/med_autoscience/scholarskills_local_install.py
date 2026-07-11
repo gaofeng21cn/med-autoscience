@@ -193,12 +193,10 @@ def build_scholarskills_local_install_template() -> dict[str, Any]:
 def build_scholarskills_local_install_readback(
     *,
     workspace_root: Path | str,
-    runtime_quests_root: Path | str,
     quest_root: Path | str | None = None,
     apply: bool = False,
 ) -> dict[str, Any]:
     resolved_workspace_root = Path(workspace_root).expanduser().resolve()
-    resolved_runtime_quests_root = Path(runtime_quests_root).expanduser().resolve()
     workspace_skill_path = _target_skill_path(resolved_workspace_root)
     readback: dict[str, Any] = {
         "surface_kind": "mas_scholarskills_local_install_readback",
@@ -233,18 +231,7 @@ def build_scholarskills_local_install_readback(
         },
         "quest": {
             "scope": "quest",
-            "runtime_quests_root": str(resolved_runtime_quests_root),
-            "target_skill_path_template": str(
-                resolved_runtime_quests_root / "<quest_id>" / ".codex" / "skills" / SCHOLARSKILLS_SKILL_ID
-            ),
-            "target_skill_path_templates": {
-                skill_id: str(resolved_runtime_quests_root / "<quest_id>" / ".codex" / "skills" / skill_id)
-                for skill_id in SCHOLARSKILLS_DEFAULT_SKILL_IDS
-            },
-            "optional_target_skill_path_templates": {
-                skill_id: str(resolved_runtime_quests_root / "<quest_id>" / ".codex" / "skills" / skill_id)
-                for skill_id in SCHOLARSKILLS_OPTIONAL_SKILL_IDS
-            },
+            "locator_status": "explicit_quest_root_required",
             "sync_command_template": build_scholarskills_sync_command(
                 scope="quest",
                 target="<quest_root>",
@@ -285,7 +272,6 @@ def build_scholarskills_local_install_readback_for_profile(
 ) -> dict[str, Any]:
     return build_scholarskills_local_install_readback(
         workspace_root=Path(profile.workspace_root),
-        runtime_quests_root=Path(profile.runtime_root),
         quest_root=quest_root,
         apply=apply,
     )

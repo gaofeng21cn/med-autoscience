@@ -25,7 +25,6 @@ class WorkspaceRuntimeLayout:
     workspace_root: Path
     ops_root: Path
     runtime_root: Path
-    quests_root: Path
     archives_root: Path
     restore_index_root: Path
     runtime_artifacts_root: Path
@@ -36,9 +35,6 @@ class WorkspaceRuntimeLayout:
     config_env_example_path: Path
     readme_path: Path
     behavior_gate_path: Path
-
-    def quest_root(self, quest_id: str) -> Path:
-        return self.quests_root / quest_id
 
     def startup_payload_root(self, study_id: str) -> Path:
         return self.startup_payloads_root / study_id
@@ -63,7 +59,6 @@ def build_workspace_runtime_layout_for_profile(profile: WorkspaceProfile) -> Wor
         workspace_root=workspace_root,
         ops_root=workspace_root / "ops" / "mas" if runtime_root == workspace_root / "runtime" else runtime_root.parent,
         runtime_root=runtime_root,
-        quests_root=profile.managed_runtime_quests_root.expanduser().resolve(),
     )
 
 
@@ -72,19 +67,16 @@ def _build_workspace_runtime_layout(
     workspace_root: Path,
     ops_root: Path,
     runtime_root: Path,
-    quests_root: Path | None = None,
 ) -> WorkspaceRuntimeLayout:
     resolved_workspace_root = workspace_root.expanduser().resolve()
     resolved_ops_root = ops_root.expanduser().resolve()
     resolved_runtime_root = runtime_root.expanduser().resolve()
-    resolved_quests_root = (quests_root or resolved_runtime_root / "quests").expanduser().resolve()
     mas_first = resolved_runtime_root == resolved_workspace_root / "runtime"
     startup_root = resolved_runtime_root if mas_first else resolved_ops_root
     return WorkspaceRuntimeLayout(
         workspace_root=resolved_workspace_root,
         ops_root=resolved_ops_root,
         runtime_root=resolved_runtime_root,
-        quests_root=resolved_quests_root,
         archives_root=resolved_runtime_root / "archives",
         restore_index_root=resolved_runtime_root / "restore_index",
         runtime_artifacts_root=workspace_runtime_artifacts_root(resolved_workspace_root),
@@ -96,10 +88,6 @@ def _build_workspace_runtime_layout(
         readme_path=resolved_ops_root / "README.md",
         behavior_gate_path=resolved_ops_root / "behavior_equivalence_gate.yaml",
     )
-
-
-def resolve_runtime_root_from_quest_root(quest_root: Path) -> Path:
-    return Path(quest_root).expanduser().resolve().parent.parent
 
 
 def workspace_runtime_artifacts_root(workspace_root: Path) -> Path:
@@ -380,10 +368,8 @@ def _retired_behavior_gate_contract(gate_path: Path) -> dict[str, object]:
 
 def inspect_workspace_contracts(profile: WorkspaceProfile) -> dict[str, Any]:
     layout = build_workspace_runtime_layout_for_profile(profile)
-    runtime_root_expected = layout.quests_root
     runtime_checks: dict[str, bool] = {
-        "managed_runtime_quests_root_matches_layout": profile.managed_runtime_quests_root == runtime_root_expected,
-        "managed_runtime_quests_root_exists": profile.managed_runtime_quests_root.exists(),
+        "opl_runtime_locator_exists": profile.runtime_root.exists(),
         "managed_runtime_home_exists": profile.managed_runtime_home.exists(),
     }
     runtime_contract = {
@@ -392,12 +378,9 @@ def inspect_workspace_contracts(profile: WorkspaceProfile) -> dict[str, Any]:
         "issues": _collect_check_issues(runtime_checks, prefix="runtime_contract"),
         "runtime_root": str(profile.runtime_root),
         "managed_runtime_home": str(profile.managed_runtime_home),
-        "managed_runtime_quests_root": str(profile.managed_runtime_quests_root),
-        "runtime_root_expected": str(runtime_root_expected),
         "historical_fixture_ref": {
             "surface_kind": "historical_fixture_ref",
             "read_only": True,
-            "runtime_quests_root_matches_layout": profile.runtime_root == runtime_root_expected,
             "runtime_root_exists": profile.med_deepscientist_runtime_root.exists(),
             "runtime_root": str(profile.med_deepscientist_runtime_root),
         },

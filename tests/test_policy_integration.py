@@ -18,8 +18,10 @@ def dump_json(path: Path, payload: dict) -> None:
 def make_gate_quest(tmp_path: Path) -> Path:
     quest_root = tmp_path / "runtime" / "quests" / "q-policy"
     (quest_root / "quest.yaml").parent.mkdir(parents=True, exist_ok=True)
-    (quest_root / "quest.yaml").write_text("quest_id: q-policy\nstudy_id: q-policy\n", encoding="utf-8")
     study_root = tmp_path / "studies" / "q-policy"
+    (quest_root / "quest.yaml").write_text(
+        f"quest_id: q-policy\nstudy_id: q-policy\nstudy_root: {study_root}\n", encoding="utf-8"
+    )
     (study_root / "study.yaml").parent.mkdir(parents=True, exist_ok=True)
     (study_root / "study.yaml").write_text("study_id: q-policy\n", encoding="utf-8")
     dump_json(
@@ -48,8 +50,10 @@ def make_surface_quest(tmp_path: Path) -> Path:
     quest_root = tmp_path / "runtime" / "quests" / "q-surface"
     paper_root = quest_root / "paper"
     (quest_root / "quest.yaml").parent.mkdir(parents=True, exist_ok=True)
-    (quest_root / "quest.yaml").write_text("quest_id: q-surface\nstudy_id: q-surface\n", encoding="utf-8")
     study_root = tmp_path / "studies" / "q-surface"
+    (quest_root / "quest.yaml").write_text(
+        f"quest_id: q-surface\nstudy_id: q-surface\nstudy_root: {study_root}\n", encoding="utf-8"
+    )
     (study_root / "study.yaml").parent.mkdir(parents=True, exist_ok=True)
     (study_root / "study.yaml").write_text("study_id: q-surface\n", encoding="utf-8")
     dump_json(

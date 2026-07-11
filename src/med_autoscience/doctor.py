@@ -77,7 +77,7 @@ def render_doctor_report(report: DoctorReport) -> str:
         f"profile: {report.profile.name}",
         f"python_version: {report.python_version}",
         f"workspace_root: {report.profile.workspace_root}",
-        f"runtime_quests_root: {report.profile.runtime_root}",
+        f"opl_runtime_locator: {report.profile.runtime_root}",
         f"mas_runtime_home: {report.profile.managed_runtime_home}",
         f"studies_root: {report.profile.studies_root}",
         f"portfolio_root: {report.profile.portfolio_root}",
@@ -125,7 +125,7 @@ def render_profile(profile: WorkspaceProfile) -> str:
     lines = [
         f"name: {profile.name}",
         f"workspace_root: {profile.workspace_root}",
-        f"runtime_quests_root: {profile.runtime_root}",
+        f"opl_runtime_locator: {profile.runtime_root}",
         f"mas_runtime_home: {profile.managed_runtime_home}",
         f"studies_root: {profile.studies_root}",
         f"portfolio_root: {profile.portfolio_root}",

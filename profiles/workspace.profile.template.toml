@@ -5,7 +5,7 @@ name = "my-disease-workspace"
 workspace_root = "/ABS/PATH/TO/MEDICAL-WORKSPACE"
 
 # MAS-owned runtime quest 根目录；新 workspace 默认使用普通目录，不使用 quest Git。
-runtime_root = "/ABS/PATH/TO/MEDICAL-WORKSPACE/runtime/quests"
+runtime_root = "/ABS/PATH/TO/OPL-STAGE-LOCATOR"
 
 # 当前 workspace 的多 study 根目录。
 studies_root = "/ABS/PATH/TO/MEDICAL-WORKSPACE/studies"

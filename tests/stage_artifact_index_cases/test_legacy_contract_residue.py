@@ -56,7 +56,6 @@ def test_stage_artifact_index_keeps_publication_handoff_current_with_sidecar_res
     materialize_stage_artifact_delta(
         study_id="001-risk",
         study_root=study_root,
-        workspace_root=workspace_root,
         apply=True,
     )
     refs = [

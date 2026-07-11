@@ -99,10 +99,11 @@ def make_quest(
     (study_root / "study.yaml").write_text("study_id: 002-early-residual-risk\n", encoding="utf-8")
     (quest_root / "quest.yaml").write_text(
         dedent(
-            """
+            f"""
             quest_id: 002-early-residual-risk
             study_id: 002-early-residual-risk
-            """
+            study_root: {study_root}
+            f"""
         ).lstrip(),
         encoding="utf-8",
     )
@@ -111,6 +112,7 @@ def make_quest(
             """
             quest_id: 002-early-residual-risk
             study_id: 002-early-residual-risk
+            study_root: {study_root}
             """
         ).lstrip(),
         encoding="utf-8",

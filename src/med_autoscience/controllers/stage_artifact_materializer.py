@@ -178,16 +178,10 @@ def materialize_stage_artifact_delta(
     *,
     study_id: str,
     study_root: Path,
-    workspace_root: Path | None = None,
     stage_ids: Iterable[str] | None = None,
     apply: bool = False,
 ) -> dict[str, Any]:
     resolved_study_root = Path(study_root).expanduser().resolve()
-    resolved_workspace_root = (
-        Path(workspace_root).expanduser().resolve()
-        if workspace_root is not None
-        else _infer_workspace_root(resolved_study_root)
-    )
     selected_stage_ids = tuple(dict.fromkeys(str(item) for item in (stage_ids or ())))
     stage_specs = _selected_stage_specs(selected_stage_ids)
     generated_at = _utc_now()
@@ -195,7 +189,6 @@ def materialize_stage_artifact_delta(
         _materialize_stage(
             study_id=study_id,
             study_root=resolved_study_root,
-            workspace_root=resolved_workspace_root,
             stage_spec=stage_spec,
             generated_at=generated_at,
             apply=apply,
@@ -209,7 +202,6 @@ def materialize_stage_artifact_delta(
         "status": "materialized" if apply else "dry_run",
         "study_id": str(study_id),
         "study_root": str(resolved_study_root),
-        "workspace_root": str(resolved_workspace_root),
         "generated_at": generated_at,
         "domain_stage_pack_ref": _PAPER_STUDY_STAGE_PACK_REF,
         "selected_stage_ids": [str(item["stage_id"]) for item in stage_specs],
@@ -224,7 +216,6 @@ def _materialize_stage(
     *,
     study_id: str,
     study_root: Path,
-    workspace_root: Path,
     stage_spec: Mapping[str, Any],
     generated_at: str,
     apply: bool,
@@ -290,7 +281,6 @@ def _materialize_stage(
         _write_json(study_root / receipt_ref, receipt)
         index_result = state_index_source_refs.emit_stage_artifact_delta_source(
             study_root=study_root,
-            quest_root=workspace_root / "runtime" / "quests" / str(study_id),
             receipt=receipt,
             receipt_path=study_root / receipt_ref,
         )
@@ -713,12 +703,6 @@ def _load_paper_study_stage_pack() -> dict[str, Any]:
     if not isinstance(payload, Mapping) or payload.get("surface_kind") != "mas_paper_study_stage_pack":
         raise ValueError(f"invalid stage pack: {_PAPER_STUDY_STAGE_PACK_REF}")
     return dict(payload)
-
-
-def _infer_workspace_root(study_root: Path) -> Path:
-    if study_root.parent.name == "studies":
-        return study_root.parent.parent.resolve()
-    return study_root.parent.resolve()
 
 
 def _write_json(path: Path, payload: Mapping[str, Any]) -> None:

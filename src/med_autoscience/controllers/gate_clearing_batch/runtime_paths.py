@@ -3,11 +3,10 @@ from __future__ import annotations
 from pathlib import Path
 
 from med_autoscience.profiles import WorkspaceProfile, load_profile
-from med_autoscience.controllers.gate_clearing_batch.io_utils import non_empty_text, read_json
 
 
 def quest_root(profile: WorkspaceProfile, *, quest_id: str) -> Path:
-    return profile.managed_runtime_quests_root / quest_id
+    return profile.runtime_root / quest_id
 
 
 def _read_optional_config_env_value(*, path: Path, key: str) -> str | None:
@@ -72,8 +71,5 @@ def _scientific_anchor_mapping_candidates(*, quest_root: Path) -> list[Path]:
 
 
 def current_workspace_root(*, quest_root: Path, default: Path) -> Path:
-    research_state = read_json(quest_root / "artifacts" / "runtime" / "state" / "research_state.json")
-    raw = non_empty_text(research_state.get("current_workspace_root"))
-    if raw is None:
-        return default
-    return Path(raw).expanduser().resolve()
+    _ = quest_root
+    return Path(default).expanduser().resolve()

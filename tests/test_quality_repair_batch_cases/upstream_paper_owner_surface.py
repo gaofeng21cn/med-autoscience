@@ -102,7 +102,7 @@ def test_quality_repair_batch_routes_to_producer_and_materializes_owner_delta(
 def test_canonical_paper_owner_surface_rejects_untrusted_projection(tmp_path: Path) -> None:
     module = importlib.import_module("med_autoscience.controllers.quality_repair_paper_owner_surface")
     profile, study_root, quest_id = _study(tmp_path)
-    projected_root = profile.managed_runtime_quests_root / quest_id / "paper"
+    projected_root = profile.runtime_root / quest_id / "paper"
     (projected_root / "draft.md").parent.mkdir(parents=True, exist_ok=True)
     (projected_root / "draft.md").write_text("# Projected draft\n", encoding="utf-8")
     _write_json(projected_root / "medical_manuscript_blueprint.json", {"schema_version": 1, "sections": []})

@@ -90,7 +90,10 @@ def make_delivery_workspace(
     paper_root = quest_root / "paper"
     study_root = repo_root / "studies" / study_id
 
-    write_text(quest_root / "quest.yaml", f"quest_id: {quest_id}\nstudy_id: {study_id}\n")
+    write_text(
+        quest_root / "quest.yaml",
+        f"quest_id: {quest_id}\nstudy_id: {study_id}\nstudy_root: {study_root}\n",
+    )
     write_text(quest_root / "SUMMARY.md", "# Summary\nStudy complete.\n")
     write_text(quest_root / "status.md", "# Status\nCompleted.\n")
 
@@ -272,7 +275,6 @@ def make_draft_handoff_workspace_with_quick_review(tmp_path: Path) -> tuple[Path
     write_text(paper_root / "manuscript.docx", "docx draft review manuscript")
     write_text(paper_root / "build" / "review_manuscript.md", "# Review Manuscript\n\nCurrent draft bundle.\n")
     return paper_root, study_root
-
 
 
 

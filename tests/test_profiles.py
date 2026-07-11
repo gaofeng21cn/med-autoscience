@@ -115,7 +115,7 @@ def test_load_profile_uses_opl_runtime_defaults(tmp_path: Path) -> None:
             [
                 'name = "minimal"',
                 'workspace_root = "/tmp/workspace"',
-                'runtime_root = "/tmp/workspace/runtime/quests"',
+                'runtime_root = "/tmp/opl-stage-locator"',
                 'managed_runtime_home = "/tmp/workspace/runtime"',
                 'studies_root = "/tmp/workspace/studies"',
                 'portfolio_root = "/tmp/workspace/portfolio"',
@@ -170,7 +170,7 @@ def test_load_profile_accepts_historical_reference_tables_without_top_level_mds_
             [
                 'name = "historical-reference"',
                 'workspace_root = "/tmp/workspace"',
-                'runtime_root = "/tmp/workspace/runtime/quests"',
+                'runtime_root = "/tmp/opl-stage-locator"',
                 'managed_runtime_home = "/tmp/workspace/runtime"',
                 'studies_root = "/tmp/workspace/studies"',
                 'portfolio_root = "/tmp/workspace/portfolio"',
@@ -191,7 +191,7 @@ def test_load_profile_accepts_historical_reference_tables_without_top_level_mds_
     profiles = importlib.import_module("med_autoscience.profiles")
     profile = profiles.load_profile(profile_path)
 
-    assert profile.runtime_root == Path("/tmp/workspace/runtime/quests").resolve()
+    assert profile.runtime_root == Path("/tmp/opl-stage-locator").resolve()
     assert profile.med_deepscientist_runtime_root == Path("/tmp/workspace/legacy/mds-runtime").resolve()
     assert profile.med_deepscientist_repo_root == Path("/tmp/med-deepscientist").resolve()
 
@@ -218,7 +218,6 @@ def test_profile_to_dict_exposes_machine_readable_contract(tmp_path: Path) -> No
     assert contract["workspace_root"] == str(profile.workspace_root)
     assert contract["runtime_root"] == str(profile.runtime_root)
     assert contract["managed_runtime_home"] == str(profile.managed_runtime_home)
-    assert contract["managed_runtime_quests_root"] == str(profile.managed_runtime_quests_root)
     assert contract["studies_root"] == str(profile.studies_root)
     assert contract["portfolio_root"] == str(profile.portfolio_root)
     assert "med_deepscientist_runtime_root" not in contract
@@ -405,33 +404,7 @@ def test_profile_to_dict_exposes_scholarskills_local_install_readback(tmp_path: 
         str(workspace_root),
         "--json",
     ]
-    assert profile_readback["quest"]["runtime_quests_root"] == str(workspace_root / "runtime" / "quests")
-    assert profile_readback["quest"]["target_skill_path_template"] == (
-        str(workspace_root / "runtime" / "quests" / "<quest_id>" / ".codex" / "skills" / "mas-scholar-skills")
-    )
-    assert profile_readback["quest"]["target_skill_path_templates"]["medical-figure-design"] == (
-        str(workspace_root / "runtime" / "quests" / "<quest_id>" / ".codex" / "skills" / "medical-figure-design")
-    )
-    assert profile_readback["quest"]["target_skill_path_templates"]["medical-figure-style"] == (
-        str(workspace_root / "runtime" / "quests" / "<quest_id>" / ".codex" / "skills" / "medical-figure-style")
-    )
-    assert profile_readback["quest"]["target_skill_path_templates"]["medical-figure-composer"] == (
-        str(workspace_root / "runtime" / "quests" / "<quest_id>" / ".codex" / "skills" / "medical-figure-composer")
-    )
-    assert profile_readback["quest"]["target_skill_path_templates"]["medical-submission-prep"] == (
-        str(workspace_root / "runtime" / "quests" / "<quest_id>" / ".codex" / "skills" / "medical-submission-prep")
-    )
-    assert profile_readback["quest"]["optional_target_skill_path_templates"]["medical-causal-inference-plan"] == (
-        str(
-            workspace_root
-            / "runtime"
-            / "quests"
-            / "<quest_id>"
-            / ".codex"
-            / "skills"
-            / "medical-causal-inference-plan"
-        )
-    )
+    assert profile_readback["quest"]["locator_status"] == "explicit_quest_root_required"
     assert profile_readback["authority_boundary"]["writes_yang_authority"] is False
     assert profile_readback["authority_boundary"]["writes_runtime_authority"] is False
 
@@ -473,7 +446,7 @@ def test_render_profile_labels_backend_paths_as_diagnostics(tmp_path: Path) -> N
 
     rendered = doctor.render_profile(profile)
 
-    assert "runtime_quests_root: " in rendered
+    assert "opl_runtime_locator: " in rendered
     assert "mas_runtime_home: " in rendered
     assert "historical_fixture_runtime_root: " in rendered
     assert "controlled_backend_audit_repo_root: " in rendered
@@ -491,7 +464,7 @@ def test_load_profile_resolves_relative_paths_from_profile_location(tmp_path: Pa
             [
                 'name = "relative"',
                 'workspace_root = "../workspace"',
-                'runtime_root = "../workspace/runtime/quests"',
+                'runtime_root = "../workspace/opl-stage-locator"',
                 'studies_root = "../workspace/studies"',
                 'portfolio_root = "../workspace/portfolio"',
                 'hermes_agent_repo_root = "../../_external/hermes-agent"',
@@ -512,7 +485,7 @@ def test_load_profile_resolves_relative_paths_from_profile_location(tmp_path: Pa
     profile = profiles.load_profile(profile_path)
 
     assert profile.workspace_root == (profile_dir / "../workspace").resolve()
-    assert profile.runtime_root == (profile_dir / "../workspace/runtime/quests").resolve()
+    assert profile.runtime_root == (profile_dir / "../workspace/opl-stage-locator").resolve()
     assert profile.med_deepscientist_runtime_root == (profile_dir / "../workspace/runtime").resolve()
     assert profile.med_deepscientist_repo_root == (profile_dir / "../../med-deepscientist").resolve()
     assert profile.hermes_agent_repo_root == (profile_dir / "../../_external/hermes-agent").resolve()
@@ -526,7 +499,7 @@ def test_load_profile_rejects_invalid_default_submission_targets_shape(tmp_path:
             [
                 'name = "invalid-targets"',
                 'workspace_root = "/tmp/workspace"',
-                'runtime_root = "/tmp/workspace/runtime/quests"',
+                'runtime_root = "/tmp/opl-stage-locator"',
                 'studies_root = "/tmp/workspace/studies"',
                 'portfolio_root = "/tmp/workspace/portfolio"',
                 'med_deepscientist_runtime_root = "/tmp/workspace/runtime"',
@@ -551,7 +524,7 @@ def test_load_profile_treats_empty_med_deepscientist_repo_root_as_unconfigured(t
             [
                 'name = "empty-ds-repo"',
                 'workspace_root = "/tmp/workspace"',
-                'runtime_root = "/tmp/workspace/runtime/quests"',
+                'runtime_root = "/tmp/opl-stage-locator"',
                 'studies_root = "/tmp/workspace/studies"',
                 'portfolio_root = "/tmp/workspace/portfolio"',
                 'med_deepscientist_runtime_root = "/tmp/workspace/runtime"',
@@ -577,7 +550,7 @@ def test_load_profile_rejects_blank_research_route_bias_policy(tmp_path: Path) -
             [
                 'name = "blank-policy"',
                 'workspace_root = "/tmp/workspace"',
-                'runtime_root = "/tmp/workspace/runtime/quests"',
+                'runtime_root = "/tmp/opl-stage-locator"',
                 'studies_root = "/tmp/workspace/studies"',
                 'portfolio_root = "/tmp/workspace/portfolio"',
                 'med_deepscientist_runtime_root = "/tmp/workspace/runtime"',
@@ -602,7 +575,7 @@ def test_load_profile_rejects_invalid_legacy_code_execution_policy(tmp_path: Pat
             [
                 'name = "invalid-legacy-policy"',
                 'workspace_root = "/tmp/workspace"',
-                'runtime_root = "/tmp/workspace/runtime/quests"',
+                'runtime_root = "/tmp/opl-stage-locator"',
                 'studies_root = "/tmp/workspace/studies"',
                 'portfolio_root = "/tmp/workspace/portfolio"',
                 'med_deepscientist_runtime_root = "/tmp/workspace/runtime"',
@@ -627,7 +600,7 @@ def test_load_profile_does_not_restore_retired_execution_admission_fields(tmp_pa
             [
                 'name = "invalid-dev-supervisor"',
                 'workspace_root = "/tmp/workspace"',
-                'runtime_root = "/tmp/workspace/runtime/quests"',
+                'runtime_root = "/tmp/opl-stage-locator"',
                 'studies_root = "/tmp/workspace/studies"',
                 'portfolio_root = "/tmp/workspace/portfolio"',
                 'med_deepscientist_runtime_root = "/tmp/workspace/runtime"',
@@ -655,7 +628,7 @@ def test_load_profile_rejects_med_deepscientist_as_default_managed_backend(tmp_p
             [
                 'name = "mds-backend"',
                 'workspace_root = "/tmp/workspace"',
-                'runtime_root = "/tmp/workspace/runtime/quests"',
+                'runtime_root = "/tmp/opl-stage-locator"',
                 'studies_root = "/tmp/workspace/studies"',
                 'portfolio_root = "/tmp/workspace/portfolio"',
                 'med_deepscientist_runtime_root = "/tmp/workspace/runtime"',

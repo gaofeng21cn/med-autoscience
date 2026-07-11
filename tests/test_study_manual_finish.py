@@ -43,7 +43,11 @@ def test_resolve_effective_study_manual_finish_contract_prefers_explicit_study_y
         encoding="utf-8",
     )
     quest_root = profile.runtime_root / "001-risk"
-    write_submission_metadata_only_bundle(quest_root, blocking_item_ids=["author_metadata"])
+    write_submission_metadata_only_bundle(
+        quest_root,
+        study_root=study_root,
+        blocking_item_ids=["author_metadata"],
+    )
     write_auditable_current_package(study_root)
 
     contract = module.resolve_effective_study_manual_finish_contract(
@@ -137,6 +141,7 @@ def test_resolve_effective_study_manual_finish_contract_derives_submission_metad
     quest_root = profile.runtime_root / "001-risk"
     write_submission_metadata_only_bundle(
         quest_root,
+        study_root=study_root,
         blocking_item_ids=["author_metadata", "ethics_statement"],
     )
     write_synced_submission_delivery(study_root, quest_root)

@@ -36,7 +36,10 @@ def _setup_study(tmp_path: Path):
         minimum_sci_ready_evidence_package=["external_validation"],
     )
     quest_root = profile.runtime_root / STUDY_ID
-    write_text(quest_root / "quest.yaml", f"quest_id: {STUDY_ID}\nstudy_id: {STUDY_ID}\n")
+    write_text(
+        quest_root / "quest.yaml",
+        f"quest_id: {STUDY_ID}\nstudy_id: {STUDY_ID}\nstudy_root: {study_root}\n",
+    )
     _write_json(
         profile.workspace_root / "runtime" / "artifacts" / "supervision" / "opl_current_control_state" / "latest.json",
         {

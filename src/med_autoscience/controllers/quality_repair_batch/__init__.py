@@ -177,7 +177,7 @@ def _repair_candidates(
     include_downstream_delivery: bool = True,
 ) -> list[str]:
     candidates: list[str] = []
-    quest_root = profile.managed_runtime_quests_root / quest_id
+    quest_root = profile.runtime_root / quest_id
     _, mapping_payload = gate_clearing_batch._eligible_mapping_payload(
         quest_root=quest_root,
         study_root=study_root,
@@ -584,7 +584,7 @@ def run_quality_repair_batch(
             source_eval_id=current_eval_id,
         )
     )
-    quest_root = profile.managed_runtime_quests_root / quest_id
+    quest_root = profile.runtime_root / quest_id
     gate_state = gate_clearing_batch.publication_gate.build_gate_state(quest_root)
     gate_report = gate_clearing_batch.publication_gate.build_gate_report(gate_state)
     specificity_targets = _upstream_repair_specificity_targets(publication_eval_payload)

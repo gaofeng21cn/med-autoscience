@@ -201,7 +201,7 @@ def _status_state(
     quest_id = str(execution.get("quest_id") or study_id).strip() or study_id
     runtime_layout = build_workspace_runtime_layout_for_profile(profile)
     runtime_root = runtime_layout.runtime_root
-    quest_root = runtime_layout.quest_root(quest_id)
+    quest_root = profile.runtime_root / quest_id
     quest_exists = (quest_root / "quest.yaml").exists()
     quest_status = StudyRuntimeQuestStatus.CREATED if quest_exists else None
     runtime_liveness_audit: dict[str, object] | None = None

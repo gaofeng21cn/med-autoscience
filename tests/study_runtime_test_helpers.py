@@ -167,10 +167,18 @@ def make_partial_quest_recovery_payload(*, quest_id: str = "quest-001") -> dict[
     }
 
 
-def write_submission_metadata_only_bundle(quest_root: Path, *, blocking_item_ids: list[str]) -> None:
+def write_submission_metadata_only_bundle(
+    quest_root: Path,
+    *,
+    study_root: Path,
+    blocking_item_ids: list[str],
+) -> None:
     paper_root = quest_root / "paper"
     quest_id = quest_root.name
-    write_text(quest_root / "quest.yaml", f"quest_id: {quest_id}\nstudy_id: {quest_id}\n")
+    write_text(
+        quest_root / "quest.yaml",
+        f"quest_id: {quest_id}\nstudy_id: {study_root.name}\nstudy_root: {study_root}\n",
+    )
     write_text(
         paper_root / "paper_bundle_manifest.json",
         json.dumps(
@@ -280,7 +288,10 @@ def write_synced_submission_delivery(
     current_package_zip = study_root / "manuscript" / "current_package.zip"
     compiled_markdown_path = paper_root / "build" / "review_manuscript.md"
 
-    write_text(quest_root / "quest.yaml", f"quest_id: {quest_id}\nstudy_id: {study_id}\n")
+    write_text(
+        quest_root / "quest.yaml",
+        f"quest_id: {quest_id}\nstudy_id: {study_id}\nstudy_root: {study_root}\n",
+    )
     if not compiled_markdown_path.exists():
         write_text(compiled_markdown_path, "# Review Manuscript\n\nAuthority draft.\n")
     if not (paper_root / "paper_bundle_manifest.json").exists():

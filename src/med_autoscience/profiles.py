@@ -76,11 +76,6 @@ class WorkspaceProfile:
     def managed_runtime_home(self) -> Path:
         return self.runtime_root.parent
 
-    @property
-    def managed_runtime_quests_root(self) -> Path:
-        return self.runtime_root
-
-
 def _require_string(payload: dict[str, object], key: str) -> str:
     value = payload[key]
     if not isinstance(value, str):
@@ -363,7 +358,6 @@ def profile_to_dict(profile: WorkspaceProfile) -> dict[str, object]:
         "workspace_root": str(profile.workspace_root),
         "runtime_root": str(profile.runtime_root),
         "managed_runtime_home": str(profile.managed_runtime_home),
-        "managed_runtime_quests_root": str(profile.managed_runtime_quests_root),
         "studies_root": str(profile.studies_root),
         "portfolio_root": str(profile.portfolio_root),
         "source_provenance": {

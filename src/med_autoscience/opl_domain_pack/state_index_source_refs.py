@@ -42,14 +42,12 @@ def emit_owner_route_receipt_source(
 def emit_stage_artifact_delta_source(
     *,
     study_root: Path,
-    quest_root: Path,
     receipt: Mapping[str, Any],
     receipt_path: Path,
 ) -> dict[str, Any]:
     return _study_receipt_source(
         family="stage_artifact_delta_refs",
         study_root=study_root,
-        quest_root=quest_root,
         receipt=receipt,
         receipt_path=receipt_path,
     )
@@ -89,7 +87,6 @@ def _study_receipt_source(
     *,
     family: str,
     study_root: Path,
-    quest_root: Path,
     receipt: Mapping[str, Any],
     receipt_path: Path,
 ) -> dict[str, Any]:
@@ -112,7 +109,6 @@ def _study_receipt_source(
     result.update(
         {
             "study_root": str(Path(study_root).expanduser().resolve()),
-            "quest_root": str(Path(quest_root).expanduser().resolve()),
             "started_worker": False,
             "worker_start_ref": None,
             "outbox_record": False,

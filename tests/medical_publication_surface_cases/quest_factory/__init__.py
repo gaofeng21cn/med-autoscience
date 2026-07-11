@@ -56,9 +56,10 @@ def make_quest(
 ) -> Path:
     quest_root = tmp_path / "runtime" / "quests" / "002-early-residual-risk"
     paper_root = quest_root / "paper"
+    study_root = tmp_path / "studies" / "002-early-residual-risk"
     (quest_root / "quest.yaml").parent.mkdir(parents=True, exist_ok=True)
     (quest_root / "quest.yaml").write_text(
-        "quest_id: 002-early-residual-risk\nstudy_id: 002-early-residual-risk\n",
+        f"quest_id: 002-early-residual-risk\nstudy_id: 002-early-residual-risk\nstudy_root: {study_root}\n",
         encoding="utf-8",
     )
     study_root = tmp_path / "studies" / "002-early-residual-risk"

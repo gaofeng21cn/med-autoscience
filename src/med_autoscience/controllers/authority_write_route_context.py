@@ -7,7 +7,6 @@ from typing import Any
 from med_autoscience.controllers.next_action_envelope import FAMILY_PAPER_PACKAGE_SUBMISSION_MINIMAL
 from med_autoscience.controllers import domain_authority_snapshot, study_truth_kernel
 from med_autoscience.runtime_status_summary import read_runtime_status_summary
-from med_autoscience.controllers.study_paper_context import resolve_study_root_from_quest_root
 
 
 def route_context_from_study_authority_surfaces(*, study_root: Path) -> dict[str, Any]:
@@ -160,21 +159,10 @@ def _gate_clear_delivery_route_context(*, study_root: Path) -> dict[str, Any] | 
 
 
 def _current_runtime_publishability_gate(*, study_root: Path) -> dict[str, Any] | None:
-    resolved_study_root = study_root.resolve()
-    workspace_root = resolved_study_root.parent.parent
-    for quest_root in sorted((workspace_root / "runtime" / "quests").glob("*")):
-        if not quest_root.is_dir():
-            continue
-        binding = resolve_study_root_from_quest_root(quest_root)
-        if binding is None:
-            continue
-        _, bound_study_root = binding
-        if bound_study_root.resolve() != resolved_study_root:
-            continue
-        gate = _read_json_object(quest_root / "artifacts" / "reports" / "publishability_gate" / "latest.json")
-        if gate:
-            return gate
-    return None
+    gate = _read_json_object(
+        study_root.resolve() / "artifacts" / "reports" / "publishability_gate" / "latest.json"
+    )
+    return gate or None
 
 
 def _gate_signature_matches_delivery(*, study_root: Path, gate: dict[str, Any]) -> bool:

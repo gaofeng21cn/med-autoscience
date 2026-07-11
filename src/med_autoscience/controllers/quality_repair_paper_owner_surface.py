@@ -86,7 +86,7 @@ def prepare_canonical_paper_owner_surface_for_upstream_repair(
     if _canonical_paper_owner_surface_complete(canonical_paper_root):
         return {"status": "already_complete", "paper_root": str(canonical_paper_root)}
 
-    quest_root = profile.managed_runtime_quests_root / quest_id
+    quest_root = profile.runtime_root / quest_id
     projected_paper_root = quest_root / "paper"
     canonical_projection_inputs = [
         projected_paper_root / relpath

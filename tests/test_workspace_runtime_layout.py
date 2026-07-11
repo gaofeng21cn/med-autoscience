@@ -34,7 +34,6 @@ def test_workspace_runtime_layout_derives_med_deepscientist_roots(tmp_path: Path
     assert layout.workspace_root == profile.workspace_root
     assert layout.ops_root == profile.workspace_root / "ops" / "med-deepscientist"
     assert layout.runtime_root == profile.med_deepscientist_runtime_root
-    assert layout.quests_root == profile.runtime_root
     assert layout.bin_root == layout.ops_root / "bin"
     assert layout.startup_briefs_root == layout.ops_root / "startup_briefs"
     assert layout.startup_payloads_root == layout.ops_root / "startup_payloads"
@@ -43,19 +42,17 @@ def test_workspace_runtime_layout_derives_med_deepscientist_roots(tmp_path: Path
     assert layout.behavior_gate_path == layout.ops_root / "behavior_equivalence_gate.yaml"
 
 
-def test_workspace_runtime_layout_derives_quest_and_startup_payload_paths(tmp_path: Path) -> None:
+def test_workspace_runtime_layout_derives_startup_payload_paths(tmp_path: Path) -> None:
     module = importlib.import_module("med_autoscience.workspace_contracts")
 
     layout = module.build_workspace_runtime_layout(workspace_root=tmp_path / "workspace")
 
     assert layout.ops_root == tmp_path / "workspace" / "ops" / "mas"
     assert layout.runtime_root == tmp_path / "workspace" / "runtime"
-    assert layout.quests_root == tmp_path / "workspace" / "runtime" / "quests"
     assert layout.archives_root == tmp_path / "workspace" / "runtime" / "archives"
     assert layout.restore_index_root == tmp_path / "workspace" / "runtime" / "restore_index"
     assert layout.runtime_artifacts_root == tmp_path / "workspace" / "runtime" / "artifacts"
     assert layout.bin_root == tmp_path / "workspace" / "ops" / "mas" / "bin"
-    assert layout.quest_root("study-001") == layout.quests_root / "study-001"
     assert layout.startup_payload_root("study-001") == layout.startup_payloads_root / "study-001"
     assert layout.startup_brief_path("study-001") == layout.startup_briefs_root / "study-001.md"
 
@@ -83,7 +80,6 @@ def test_workspace_runtime_layout_for_profile_accepts_mas_first_runtime_root(tmp
 
     assert layout.ops_root == workspace_root / "ops" / "mas"
     assert layout.runtime_root == workspace_root / "runtime"
-    assert layout.quests_root == workspace_root / "runtime" / "quests"
     assert layout.config_env_path == workspace_root / "ops" / "mas" / "config.env"
     assert layout.bin_root == workspace_root / "ops" / "mas" / "bin"
 
@@ -112,12 +108,3 @@ def test_workspace_runtime_layout_rejects_hermes_active_runtime_ref(tmp_path: Pa
 
     with pytest.raises(ValueError, match="OPL owns runtime hydration"):
         profiles.load_profile(profile_path)
-
-
-def test_resolve_runtime_root_from_quest_root_returns_workspace_runtime_root(tmp_path: Path) -> None:
-    module = importlib.import_module("med_autoscience.workspace_contracts")
-    quest_root = tmp_path / "workspace" / "ops" / "med-deepscientist" / "runtime" / "quests" / "study-001"
-
-    assert module.resolve_runtime_root_from_quest_root(quest_root) == (
-        tmp_path / "workspace" / "ops" / "med-deepscientist" / "runtime"
-    )

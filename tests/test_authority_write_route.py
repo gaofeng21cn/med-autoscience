@@ -375,7 +375,7 @@ def test_quality_repair_batch_derives_route_context_from_runtime_status(
     quest_id = "quest-001"
     _write_json(
         profile.runtime_root / quest_id / "quest.yaml",
-        {"quest_id": quest_id, "study_id": study_root.name},
+        {"quest_id": quest_id, "study_id": study_root.name, "study_root": str(study_root)},
     )
     publication_eval_payload = {
         "schema_version": 1,

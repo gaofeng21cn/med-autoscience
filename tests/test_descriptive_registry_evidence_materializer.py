@@ -308,7 +308,7 @@ def test_materialized_reporting_audit_accepts_cohort_flow_shell(tmp_path: Path) 
     quest_root = tmp_path / "runtime" / "quests" / "obesity_multicenter_phenotype_atlas"
     (quest_root / "quest.yaml").parent.mkdir(parents=True, exist_ok=True)
     (quest_root / "quest.yaml").write_text(
-        "quest_id: obesity_multicenter_phenotype_atlas\nstudy_id: obesity_multicenter_phenotype_atlas\n",
+        f"quest_id: obesity_multicenter_phenotype_atlas\nstudy_id: obesity_multicenter_phenotype_atlas\nstudy_root: {study_root}\n",
         encoding="utf-8",
     )
     _write_json(paper_root / "paper_bundle_manifest.json", {"schema_version": 1, "paper_branch": "paper/main"})

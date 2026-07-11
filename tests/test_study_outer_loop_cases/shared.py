@@ -71,7 +71,10 @@ def _write_runtime_escalation_record(
     study_id = study_id or study_root.name
     quest_id = quest_id or quest_root.name
     escalation_records = importlib.import_module("med_autoscience.runtime_escalation_record")
-    _write_json(quest_root / "quest.yaml", {"quest_id": quest_id, "study_id": study_id})
+    _write_json(
+        quest_root / "quest.yaml",
+        {"quest_id": quest_id, "study_id": study_id, "study_root": str(study_root)},
+    )
     record = escalation_records.RuntimeEscalationRecord(
         schema_version=1,
         record_id=(
@@ -229,7 +232,6 @@ def _write_publication_eval(study_root: Path, quest_root: Path) -> dict[str, str
         "eval_id": payload["eval_id"],
         "artifact_path": str(study_root / "artifacts" / "publication_eval" / "latest.json"),
     }
-
 
 
 

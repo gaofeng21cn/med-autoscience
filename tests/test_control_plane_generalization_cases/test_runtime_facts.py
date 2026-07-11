@@ -236,7 +236,10 @@ def test_progress_projection_exposes_opl_domain_activity_ref(monkeypatch, tmp_pa
     study_root = profile.workspace_root / "studies" / "001-risk"
     write_text(study_root / "analysis" / "clean_room_execution" / "00_entry_validation" / "README.md", "# entry\n")
     quest_root = profile.runtime_root / "001-risk"
-    write_text(quest_root / "quest.yaml", "quest_id: 001-risk\nstudy_id: 001-risk\n")
+    write_text(
+        quest_root / "quest.yaml",
+        f"quest_id: 001-risk\nstudy_id: 001-risk\nstudy_root: {study_root}\n",
+    )
     monkeypatch.setattr(
         module,
         "inspect_workspace_contracts",

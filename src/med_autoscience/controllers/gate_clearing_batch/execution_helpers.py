@@ -285,7 +285,7 @@ def repair_paper_live_paths(
         if changed and isinstance(normalized, dict):
             path.write_text(json.dumps(normalized, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
             repaired_files.append(str(path))
-    quest_root = Path(getattr(profile, "managed_runtime_quests_root", resolved_workspace_root.parent.parent))
+    quest_root = Path(profile.runtime_root)
     return {
         "ok": True,
         "status": "updated" if repaired_files else "current",
