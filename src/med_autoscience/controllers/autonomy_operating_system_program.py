@@ -68,7 +68,6 @@ PROGRAM_LANES = (
         "primary_surfaces": (
             "study_charter.paper_quality_contract",
             "reporting_guideline_checklist.json",
-            "quality_gate_ledger_enforcement",
         ),
         "acceptance_gate": "paper quality is guideline-bound before draft and submission handoff",
     },
