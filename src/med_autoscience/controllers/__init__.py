@@ -1,6 +1,5 @@
 __all__ = [
     "ai_first_cross_study_completion",
-    "data_asset_gate",
     "data_assets",
     "data_asset_updates",
     "display_pack_surface_sync",
