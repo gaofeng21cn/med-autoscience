@@ -401,7 +401,6 @@ def _runtime_module_surface(
     supervisor_tick_audit: dict[str, Any],
     manual_finish_contract: dict[str, Any] | None,
     auto_runtime_parked: dict[str, Any] | None,
-    publication_gate_stationary: bool = False,
     materialize_read_model_artifacts: bool = True,
 ) -> dict[str, Any]:
     manual_finish_active = _manual_finish_active(manual_finish_contract)
@@ -428,8 +427,6 @@ def _runtime_module_surface(
     runtime_health_status = (
         "parked"
         if runtime_parked
-        else "publication_gate_blocked"
-        if publication_gate_stationary
         else (
             _non_empty_text(status.get("runtime_liveness_status")) or "none"
             if manual_finish_active

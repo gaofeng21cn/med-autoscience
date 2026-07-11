@@ -33,8 +33,6 @@ from ..opl_current_control_state_handoff_values import (
 from ..opl_current_control_state_handoff_identity import bind_live_attempt_to_handoff_identity
 from .lifecycle import (
     build_readonly_ai_repair_lifecycle_projection,
-    current_status_publication_gate_stationary,
-    current_status_suppresses_ai_repair_lifecycle,
     read_ai_repair_lifecycle,
 )
 from .non_advancing_readback import (

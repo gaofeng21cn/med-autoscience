@@ -11,7 +11,6 @@ from med_autoscience.controllers.paper_mission_owner_surface import action_decor
 from med_autoscience.controllers.paper_mission_owner_surface import ai_reviewer_actions
 from med_autoscience.controllers.paper_mission_owner_surface import completion_evidence
 from med_autoscience.controllers.paper_mission_owner_surface import current_truth_owner
-from med_autoscience.controllers.paper_mission_owner_surface import evidence_adoption
 from med_autoscience.controllers.paper_mission_owner_surface import parked_truth
 from med_autoscience.controllers.paper_mission_owner_surface import runtime_facts
 from med_autoscience.controllers.paper_mission_owner_surface.action_projection_helpers import (
@@ -112,8 +111,6 @@ def why_not_applied(
     ):
         return None
     lifecycle = _mapping(progress.get("ai_repair_lifecycle"))
-    if reason := evidence_adoption.why_not_applied(status):
-        return reason
     if gate_action := _gate_clearing_batch_action(actions):
         return _text(gate_action.get("reason")) or "run_gate_clearing_batch"
     if actions:

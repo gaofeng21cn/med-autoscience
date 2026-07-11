@@ -205,7 +205,7 @@ def test_arbitrate_waiting_for_user_redrives_callable_blocked_closeout_owner_wit
         submission_metadata_only=False,
         blocked_closeout={
             "run_id": "run-blocked",
-            "closeout_path": "/tmp/runtime/quests/quest-001/artifacts/runtime/turn_closeouts/run-blocked.json",
+            "closeout_path": "/tmp/runtime/artifacts/supervision/opl_current_control_state/latest.json#studies[0].owner_receipt_ref",
             "blocked_reason": "publication gate requires AI reviewer provenance",
             "next_owner": "ai_reviewer",
         },
@@ -219,7 +219,7 @@ def test_arbitrate_waiting_for_user_redrives_callable_blocked_closeout_owner_wit
         "valid_blocking": False,
         "kind": "turn_closeout",
         "decision_type": None,
-        "source_artifact_path": "/tmp/runtime/quests/quest-001/artifacts/runtime/turn_closeouts/run-blocked.json",
+        "source_artifact_path": "/tmp/runtime/artifacts/supervision/opl_current_control_state/latest.json#studies[0].owner_receipt_ref",
         "run_id": "run-blocked",
         "next_owner": "ai_reviewer",
         "blocked_reason": "publication gate requires AI reviewer provenance",
@@ -239,7 +239,7 @@ def test_arbitrate_waiting_for_user_blocks_unknown_blocked_closeout_owner_withou
         submission_metadata_only=False,
         blocked_closeout={
             "run_id": "run-blocked",
-            "closeout_path": "/tmp/runtime/quests/quest-001/artifacts/runtime/turn_closeouts/run-blocked.json",
+            "closeout_path": "/tmp/runtime/artifacts/supervision/opl_current_control_state/latest.json#studies[0].owner_receipt_ref",
             "blocked_reason": "external owner handoff",
             "next_owner": "unknown_external_owner",
         },
@@ -261,7 +261,7 @@ def test_arbitrate_waiting_for_user_redrives_mas_controller_route_authorization_
         submission_metadata_only=False,
         blocked_closeout={
             "run_id": "run-blocked",
-            "closeout_path": "/tmp/runtime/quests/quest-001/artifacts/runtime/turn_closeouts/run-blocked.json",
+            "closeout_path": "/tmp/runtime/artifacts/supervision/opl_current_control_state/latest.json#studies[0].owner_receipt_ref",
             "blocked_reason": "authority_route_blocked_bundle_build",
             "next_owner": "MAS/controller route authorization owner for bundle_build_allowed",
         },
@@ -283,7 +283,7 @@ def test_arbitrate_waiting_for_user_redrives_mas_controller_colon_owner() -> Non
         submission_metadata_only=False,
         blocked_closeout={
             "run_id": "run-blocked",
-            "closeout_path": "/tmp/runtime/quests/quest-001/artifacts/runtime/turn_closeouts/run-blocked.json",
+            "closeout_path": "/tmp/runtime/artifacts/supervision/opl_current_control_state/latest.json#studies[0].owner_receipt_ref",
             "blocked_reason": "canonical_artifact_delta_missing",
             "next_owner": (
                 "MAS/controller: redrive submission_minimal_refresh with a controller-owned "
@@ -307,7 +307,7 @@ def test_arbitrate_waiting_for_user_respects_delivered_package_oracle_over_block
         submission_metadata_only=False,
         blocked_closeout={
             "run_id": "run-old",
-            "closeout_path": "/tmp/runtime/quests/quest-001/artifacts/runtime/turn_closeouts/run-old.json",
+            "closeout_path": "/tmp/runtime/artifacts/supervision/opl_current_control_state/latest.json#studies[0].owner_receipt_ref",
             "blocked_reason": "old owner_handoff",
             "next_owner": "MAS/controller",
         },

@@ -313,11 +313,9 @@ def test_acceptance_exposes_paper_line_guarded_apply_scaleout_refs_without_body(
         "artifacts/runtime/owner_route/latest.json"
     )
     assert packets["progress_delta_ref"]["owner_surface"] == (
-        "artifacts/controller/repair_execution_evidence/latest.json"
+        "opl_current_control_state.stage_run.transition_receipt.progress_delta_refs"
     )
-    assert packets["progress_delta_ref"]["fallback_owner_surface"] == (
-        "artifacts/runtime/turn_closeouts/<active_run_id>.json"
-    )
+    assert "fallback_owner_surface" not in packets["progress_delta_ref"]
     assert packets["ai_reviewer_gate_receipt_ref"]["owner_surface"] == (
         "artifacts/publication_eval/latest.json"
     )

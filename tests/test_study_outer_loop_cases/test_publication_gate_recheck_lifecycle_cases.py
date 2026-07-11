@@ -100,7 +100,7 @@ def test_build_runtime_readback_outer_loop_tick_request_honors_closed_publicatio
             "terminal_consumed": True,
             "next_owner": "publication_gate",
             "recommended_next_route": "return_to_publication_gate_recheck",
-            "closed_by": "controller_work_unit_evidence_adoption",
+            "closed_by": "mas_owner_receipt",
         },
     )
     gate_report = {
@@ -322,7 +322,7 @@ def test_build_runtime_readback_outer_loop_tick_request_ignores_stale_publicatio
             "terminal_consumed": True,
             "next_owner": "publication_gate",
             "recommended_next_route": "return_to_publication_gate_recheck",
-            "closed_by": "controller_work_unit_evidence_adoption",
+            "closed_by": "mas_owner_receipt",
         },
     )
     gate_report = {

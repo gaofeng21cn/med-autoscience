@@ -271,7 +271,7 @@ def test_auto_runtime_parking_routes_blocked_closeout_to_named_owner() -> None:
                 "valid_blocking": True,
                 "kind": "turn_closeout",
                 "decision_type": None,
-                "source_artifact_path": "/tmp/runtime/turn_closeouts/run-blocked.json",
+                "source_artifact_path": "/tmp/runtime/artifacts/supervision/opl_current_control_state/latest.json#studies[0].owner_receipt_ref",
                 "run_id": "run-blocked",
                 "next_owner": "ai_reviewer",
                 "blocked_reason": "publication gate needs AI reviewer targets",

@@ -309,7 +309,7 @@ def test_scan_domain_routes_observes_only_fresh_artifact_delta_as_meaningful() -
             "meaningful_artifact_delta_freshness": {
                 "status": "stale",
                 "latest_progress_at": "2026-05-12T10:40:22+00:00",
-                "latest_progress_source": "runtime_turn_closeout",
+                "latest_progress_source": "opl_transition_receipt",
             }
         }
     }
@@ -318,7 +318,7 @@ def test_scan_domain_routes_observes_only_fresh_artifact_delta_as_meaningful() -
             "meaningful_artifact_delta_freshness": {
                 "status": "fresh",
                 "latest_progress_at": "2026-05-13T16:51:40+00:00",
-                "latest_progress_source": "runtime_turn_closeout",
+                "latest_progress_source": "opl_transition_receipt",
             }
         }
     }

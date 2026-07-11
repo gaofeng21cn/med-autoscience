@@ -9,7 +9,6 @@ from med_autoscience.controllers import provenance_limited_harmonization_owner_r
 from med_autoscience.controllers import source_provenance_owner_result
 from med_autoscience.controllers.paper_mission_owner_surface import completion_evidence
 from med_autoscience.controllers.paper_mission_owner_surface import current_truth_owner
-from med_autoscience.controllers.paper_mission_owner_surface import evidence_adoption
 from med_autoscience.controllers.paper_mission_owner_surface import hard_methodology_currentness
 from med_autoscience.controllers.paper_mission_owner_surface import ai_reviewer_actions
 from med_autoscience.controllers.paper_mission_owner_surface import parked_truth
@@ -247,17 +246,9 @@ def projection_block_state(
         and why_not_applied == current_truth_owner.OPL_STAGE_ATTEMPT_ADMISSION_REASON
     ):
         blocked_reason = why_not_applied
-    if why_not_applied in {evidence_adoption.RECHECK_REASON, evidence_adoption.OWNER_HANDOFF_REASON} or (
-        why_not_applied is not None and any(_text(action.get("reason")) == why_not_applied for action in actions)
-    ):
+    if why_not_applied is not None and any(_text(action.get("reason")) == why_not_applied for action in actions):
         blocked_reason = why_not_applied
-    next_owner = (
-        evidence_adoption.adopted_next_owner(status)
-        if blocked_reason == evidence_adoption.OWNER_HANDOFF_REASON
-        else next_owner_for_blocked_reason(blocked_reason)
-        if blocked_reason
-        else _text(lifecycle.get("next_owner"))
-    )
+    next_owner = next_owner_for_blocked_reason(blocked_reason) if blocked_reason else _text(lifecycle.get("next_owner"))
     external_supervisor_required = bool(
         lifecycle.get("external_supervisor_required")
         or any(_text(action.get("authority")) == "external_supervisor" for action in actions)
@@ -286,10 +277,6 @@ def next_owner_for_blocked_reason(blocked_reason: str | None) -> str:
         return "publication_gate_owner"
     if blocked_reason in {"medical_paper_readiness_not_ready", "medical_paper_readiness_missing"}:
         return "MedAutoScience"
-    if blocked_reason == evidence_adoption.RECHECK_REASON:
-        return "publication_gate"
-    if blocked_reason == evidence_adoption.OWNER_HANDOFF_REASON:
-        return "mas_controller"
     if blocked_reason in {
         "domain_transition_publication_gate_blocker",
         "run_gate_clearing_batch",

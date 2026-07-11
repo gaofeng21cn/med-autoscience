@@ -22,8 +22,6 @@ from .parked_projection import (
     projected_current_stage,
 )
 from .opl_current_control_state_handoff import build_readonly_ai_repair_lifecycle_projection as _build_readonly_ai_repair_lifecycle_projection
-from .opl_current_control_state_handoff import current_status_publication_gate_stationary as _current_status_publication_gate_stationary
-from .opl_current_control_state_handoff import current_status_suppresses_ai_repair_lifecycle as _current_status_suppresses_ai_repair_lifecycle
 from .opl_current_control_state_handoff import merge_live_attempt_observability_into_handoff as _merge_live_attempt_observability_into_handoff
 from .opl_current_control_state_handoff import opl_current_control_state_live_attempt_handoff_projection as _opl_current_control_state_live_attempt_handoff_projection
 from .opl_current_control_state_handoff import opl_current_control_state_study_handoff_projection as _opl_current_control_state_study_handoff_projection
@@ -556,26 +554,20 @@ def build_study_progress_projection(
         }
     )
     repair_recommendation = _mapping_copy((autonomy_slo_status or {}).get("repair_recommendation"))
-    ai_repair_lifecycle = None
-    if not _current_status_suppresses_ai_repair_lifecycle(status):
-        persisted_ai_repair_lifecycle = _read_ai_repair_lifecycle(study_root=resolved_study_root)
-        stale_opl_route_superseded = False
-        if _domain_truth_supersedes_ai_repair_lifecycle(
-            persisted_ai_repair_lifecycle,
-            latest_events=latest_events,
-        ):
-            persisted_ai_repair_lifecycle = None
-            stale_opl_route_superseded = True
-        if stale_opl_route_superseded:
-            ai_repair_lifecycle = None
-        else:
-            ai_repair_lifecycle = (
-                persisted_ai_repair_lifecycle
-                or _build_readonly_ai_repair_lifecycle_projection(
-                    study_root=resolved_study_root,
-                    status_payload=status,
-                )
+    persisted_ai_repair_lifecycle = _read_ai_repair_lifecycle(study_root=resolved_study_root)
+    if _domain_truth_supersedes_ai_repair_lifecycle(
+        persisted_ai_repair_lifecycle,
+        latest_events=latest_events,
+    ):
+        ai_repair_lifecycle = None
+    else:
+        ai_repair_lifecycle = (
+            persisted_ai_repair_lifecycle
+            or _build_readonly_ai_repair_lifecycle_projection(
+                study_root=resolved_study_root,
+                status_payload=status,
             )
+        )
     opl_current_control_state_handoff = _opl_current_control_state_study_handoff_projection(
         profile=profile,
         study_id=resolved_study_id,
@@ -638,7 +630,6 @@ def build_study_progress_projection(
         quest_root=quest_root,
         materialize_read_model_artifacts=materialize_read_model_artifacts,
     )
-    publication_gate_stationary = _current_status_publication_gate_stationary(status)
     runtime_module_surface = _runtime_module_surface(
         generated_at=generated_at,
         study_id=resolved_study_id,
@@ -660,7 +651,6 @@ def build_study_progress_projection(
         supervisor_tick_audit=supervisor_tick_audit,
         manual_finish_contract=manual_finish_contract,
         auto_runtime_parked=auto_runtime_parked,
-        publication_gate_stationary=publication_gate_stationary,
         materialize_read_model_artifacts=materialize_read_model_artifacts,
     )
     quality_projection = _quality_projection_surfaces(
@@ -731,7 +721,6 @@ def build_study_progress_projection(
         controller_decision_path=controller_decision_path,
     )
     supervision_health_status = _supervision_health_status(
-        publication_gate_stationary=publication_gate_stationary,
         auto_runtime_parked=auto_runtime_parked,
         runtime_facts=runtime_facts,
         runtime_health_status=runtime_health_status,

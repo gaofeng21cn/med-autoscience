@@ -11,7 +11,6 @@ from med_autoscience.controllers.paper_mission_owner_surface import ai_reviewer,
 from med_autoscience.controllers.paper_mission_owner_surface import block_state as block_state_part, completion_evidence
 from med_autoscience.controllers.paper_mission_owner_surface import current_controller_followthrough, current_truth_owner
 from med_autoscience.controllers.paper_mission_owner_surface import owner_callable_receipts, domain_authority_handoff
-from med_autoscience.controllers.paper_mission_owner_surface import evidence_adoption
 from med_autoscience.controllers.paper_mission_owner_surface import gate_specificity as gate_specificity_part
 from med_autoscience.controllers.paper_mission_owner_surface import lifecycle_projection, opl_provider_attempts
 from med_autoscience.controllers.paper_mission_owner_surface import parked_truth, paper_progress_stall_projection, path_utils
@@ -540,7 +539,6 @@ def _study_projection(
     }
     if submission_milestone_parked:
         lifecycle = _mapping(_mapping(submission_milestone_parked_refresh).get("repair_lifecycle"))
-    lifecycle = evidence_adoption.resolved_lifecycle(status_payload, lifecycle)
     if block_state_part.runtime_relaunch_lifecycle_resolved(
         status=status_payload,
         progress=progress_payload,
