@@ -8,9 +8,9 @@ from med_autoscience.publication_profiles import (
     FRONTIERS_FAMILY_HARVARD_PROFILE,
     GENERAL_MEDICAL_JOURNAL_PROFILE,
     JACS_PROFILE,
+    is_supported_publication_profile,
     normalize_publication_profile,
 )
-from med_autoscience.submission_targets import resolve_submission_target_contract
 
 
 MEDICAL_SUBMISSION_TARGET_FAMILY_BY_PUBLICATION_PROFILE: dict[str, str] = {
@@ -87,19 +87,39 @@ def resolve_manuscript_family(
     return None, "missing_manuscript_family_mapping"
 
 
-def resolve_primary_submission_target_context(*, study_root: Path, profile: WorkspaceProfile) -> dict[str, Any]:
-    contract = resolve_submission_target_contract(profile=profile, study_root=study_root)
-    primary_target = contract.primary_target
-    publication_profile = normalize_publication_profile(primary_target.publication_profile or "") or None
+def resolve_primary_submission_target_context(
+    *,
+    study_root: Path,
+    study_payload: dict[str, Any],
+    profile: WorkspaceProfile,
+) -> dict[str, Any]:
+    declared_targets = [
+        dict(target)
+        for target in study_payload.get("submission_targets", [])
+        if isinstance(target, dict)
+    ]
+    profile_targets = [dict(target) for target in profile.default_submission_targets]
+    targets = declared_targets or profile_targets or [
+        {"exporter_profile": profile.default_publication_profile, "primary": True}
+    ]
+    primary_target = next(
+        (target for target in reversed(targets) if target.get("primary") is True),
+        targets[0],
+    )
+    publication_profile = normalize_publication_profile(
+        normalized_string(primary_target.get("exporter_profile"))
+    ) or None
+    resolved = publication_profile is not None and is_supported_publication_profile(publication_profile)
+    source = "study_yaml" if declared_targets else "workspace_profile"
     target_context: dict[str, Any] = {
-        "primary_target_key": primary_target.target_key,
-        "primary_target_source": primary_target.source,
-        "primary_target_resolution_status": primary_target.resolution_status,
+        "primary_target_key": f"profile:{publication_profile}" if publication_profile else "profile:unresolved",
+        "primary_target_source": source,
+        "primary_target_resolution_status": "resolved_profile" if resolved else "needs_journal_resolution",
         "publication_profile": publication_profile,
-        "journal_name": primary_target.journal_name,
-        "official_guidelines_url": primary_target.official_guidelines_url,
+        "journal_name": normalized_string(primary_target.get("journal_name")) or None,
+        "official_guidelines_url": normalized_string(primary_target.get("official_guidelines_url")) or None,
     }
-    if primary_target.resolution_status != "resolved_profile" or publication_profile is None:
+    if not resolved:
         target_context["status"] = "unsupported"
         target_context["reason_code"] = "primary_submission_target_not_resolved_to_publication_profile"
         return target_context

@@ -91,7 +91,11 @@ def resolve_medical_reporting_contract_for_study(
     endpoint_type, endpoint_issue = resolve_endpoint_type(study_payload=study_payload)
     if endpoint_issue is not None:
         endpoint_type = None
-    target_context = resolve_primary_submission_target_context(study_root=study_root, profile=profile)
+    target_context = resolve_primary_submission_target_context(
+        study_root=study_root,
+        study_payload=study_payload,
+        profile=profile,
+    )
     supported_inputs = {
         "study_archetypes": list(SUPPORTED_STUDY_ARCHETYPES),
         "endpoint_types": list(SUPPORTED_ENDPOINT_TYPES),

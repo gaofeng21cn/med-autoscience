@@ -37,7 +37,11 @@ def resolve_medical_analysis_contract_for_study(
             study_archetype=study_archetype,
             default_by_archetype=DEFAULT_MANUSCRIPT_FAMILY_BY_ARCHETYPE,
         )
-    target_context = resolve_primary_submission_target_context(study_root=study_root, profile=profile)
+    target_context = resolve_primary_submission_target_context(
+        study_root=study_root,
+        study_payload=study_payload,
+        profile=profile,
+    )
     supported_inputs = {
         "study_archetypes": list(SUPPORTED_STUDY_ARCHETYPES),
         "endpoint_types": list(SUPPORTED_ENDPOINT_TYPES),

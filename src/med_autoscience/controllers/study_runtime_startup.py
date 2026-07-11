@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-from dataclasses import asdict
 from importlib import import_module
 import inspect
 from pathlib import Path
@@ -33,7 +32,6 @@ from med_autoscience.study_task_intake import (
     read_latest_task_intake,
     render_task_intake_runtime_context,
 )
-from med_autoscience.submission_targets import resolve_submission_target_contract
 
 
 SUPPORTED_STARTUP_CONTRACT_PROFILES = {"paper_required_autonomous"}
@@ -56,11 +54,6 @@ def _resolve_optional_path(*, anchor: Path, raw_path: object) -> Path | None:
     if not candidate.is_absolute():
         candidate = (anchor / candidate).resolve()
     return candidate
-
-
-def _serialize_submission_targets(profile: WorkspaceProfile, study_root: Path) -> list[dict[str, Any]]:
-    contract = resolve_submission_target_contract(profile=profile, study_root=study_root)
-    return [asdict(target) for target in contract.targets]
 
 
 def _has_explicit_submission_targets(study_payload: dict[str, Any]) -> bool:
@@ -226,7 +219,11 @@ def _build_startup_contract(
         "reporting_guideline_family": medical_reporting_contract_summary.get("reporting_guideline_family")
         if medical_reporting_contract_summary.get("status") == "resolved"
         else None,
-        "submission_targets": _serialize_submission_targets(profile, study_root)
+        "submission_targets": [
+            dict(target)
+            for target in study_payload.get("submission_targets", [])
+            if isinstance(target, dict)
+        ]
         if _has_explicit_submission_targets(study_payload)
         else [],
         "task_intake_ref": (
