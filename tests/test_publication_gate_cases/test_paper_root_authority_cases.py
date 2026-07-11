@@ -11,6 +11,7 @@ from tests.test_publication_gate_cases.shared import (
     dump_json,
     write_text,
     make_quest,
+    study_root_for_quest,
     write_primary_target,
     write_journal_requirements_snapshot,
 )
@@ -27,7 +28,7 @@ def test_build_gate_state_prefers_complete_bound_study_canonical_paper_when_bran
         include_submission_authority_inputs=False,
     )
     worktree_paper_root = quest_root / ".ds" / "worktrees" / "paper-run-1" / "paper"
-    study_root = tmp_path / "studies" / "002-early-residual-risk"
+    study_root = study_root_for_quest(quest_root)
     study_paper_root = study_root / "paper"
     dump_json(worktree_paper_root / "paper_bundle_manifest.json", {"schema_version": 1, "paper_branch": "paper/old"})
     dump_json(study_paper_root / "paper_bundle_manifest.json", {"schema_version": 1, "paper_branch": "main"})
@@ -60,7 +61,7 @@ def test_build_gate_state_falls_back_to_stage_native_body_authority_without_proj
     projected_manifest = quest_root / "paper" / "paper_bundle_manifest.json"
     if projected_manifest.exists():
         projected_manifest.unlink()
-    study_root = tmp_path / "studies" / "002-early-residual-risk"
+    study_root = study_root_for_quest(quest_root)
     stage_native_paper_root = (
         study_root
         / "artifacts"
@@ -255,7 +256,7 @@ def test_build_gate_state_ignores_recursive_compile_report_path_in_bound_study_m
         include_main_result=False,
         include_submission_authority_inputs=False,
     )
-    study_root = tmp_path / "studies" / "002-early-residual-risk"
+    study_root = study_root_for_quest(quest_root)
     study_paper_root = study_root / "paper"
     repeated_compile_path = (
         "studies/002-early-residual-risk/paper/"

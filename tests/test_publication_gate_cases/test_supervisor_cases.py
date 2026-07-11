@@ -7,6 +7,7 @@ from tests.test_publication_gate_cases.shared import (
     json,
     make_quest,
     os,
+    study_root_for_quest,
 )
 
 def test_build_gate_report_blocks_unmanaged_submission_surface_roots(tmp_path: Path) -> None:
@@ -273,7 +274,7 @@ def test_build_gate_report_inherits_blocked_medical_publication_surface_status(t
 def test_build_gate_report_blocks_when_study_charter_is_missing(tmp_path: Path) -> None:
     module = importlib.import_module("med_autoscience.controllers.publication_gate")
     quest_root = make_quest(tmp_path, include_submission_minimal=True)
-    study_root = tmp_path / "studies" / "002-early-residual-risk"
+    study_root = study_root_for_quest(quest_root)
     (study_root / "artifacts" / "controller" / "study_charter.json").unlink()
 
     state = module.build_gate_state(quest_root)
@@ -288,7 +289,7 @@ def test_build_gate_report_blocks_when_study_charter_is_missing(tmp_path: Path) 
 def test_build_gate_report_blocks_when_study_charter_is_invalid(tmp_path: Path) -> None:
     module = importlib.import_module("med_autoscience.controllers.publication_gate")
     quest_root = make_quest(tmp_path, include_submission_minimal=True)
-    study_root = tmp_path / "studies" / "002-early-residual-risk"
+    study_root = study_root_for_quest(quest_root)
     (study_root / "artifacts" / "controller" / "study_charter.json").write_text("{invalid\n", encoding="utf-8")
 
     state = module.build_gate_state(quest_root)
@@ -441,7 +442,7 @@ def test_build_gate_report_falls_back_to_same_study_surface_report_when_paper_ro
         include_submission_minimal=True,
         include_main_result=False,
     )
-    study_root = tmp_path / "studies" / "002-early-residual-risk"
+    study_root = study_root_for_quest(quest_root)
     projected_paper_root = quest_root / "paper"
     drifted_paper_root = quest_root / ".ds" / "worktrees" / "analysis-run-2" / "paper"
     drifted_paper_root.mkdir(parents=True, exist_ok=True)

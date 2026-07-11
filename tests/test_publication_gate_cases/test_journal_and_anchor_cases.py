@@ -7,6 +7,7 @@ from tests.test_publication_gate_cases.shared import (
     make_quest,
     os,
     shutil,
+    study_root_for_quest,
     write_text,
 )
 
@@ -254,14 +255,7 @@ def test_run_controller_materializes_stable_publication_eval_when_apply_clear(
     result = module.run_controller(quest_root=quest_root, apply=True)
 
     assert result["status"] == "clear"
-    latest_eval_path = (
-        tmp_path
-        / "studies"
-        / "002-early-residual-risk"
-        / "artifacts"
-        / "publication_eval"
-        / "latest.json"
-    )
+    latest_eval_path = study_root_for_quest(quest_root) / "artifacts" / "publication_eval" / "latest.json"
     assert latest_eval_path.is_file()
     payload = json.loads(latest_eval_path.read_text(encoding="utf-8"))
 

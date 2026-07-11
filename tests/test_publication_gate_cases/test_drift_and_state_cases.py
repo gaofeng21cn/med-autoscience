@@ -7,6 +7,7 @@ from tests.test_publication_gate_cases.shared import (
     json,
     make_quest,
     os,
+    study_root_for_quest,
     write_text,
 )
 
@@ -66,7 +67,7 @@ def test_build_gate_report_includes_blocking_artifact_refs_for_stale_authority(
         include_current_medical_publication_surface_report=True,
     )
     paper_root = quest_root / "paper"
-    manifest_path = tmp_path / "studies" / "002-early-residual-risk" / "submission" / "submission_manifest.json"
+    manifest_path = study_root_for_quest(quest_root) / "submission" / "submission_manifest.json"
     manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
     manifest["source_signature"] = "stale-source-signature"
     manifest["source_contract"] = {"source_signature": "stale-source-signature"}
@@ -482,13 +483,14 @@ def test_build_gate_state_uses_projected_paper_root_when_bundle_manifest_is_proj
 
 def test_build_gate_state_uses_newer_bound_study_paper_authority(tmp_path: Path) -> None:
     module = importlib.import_module("med_autoscience.controllers.publication_gate")
-    workspace_root = tmp_path / "workspace"
-    quest_root = workspace_root / "ops" / "med-deepscientist" / "runtime" / "quests" / "003-paper"
+    workspace_root = tmp_path / "workspace" / "ops" / "med-deepscientist"
+    quest_root = workspace_root / "runtime" / "quests" / "003-paper"
     runtime_paper_root = quest_root / ".ds" / "worktrees" / "paper-main" / "paper"
     study_root = workspace_root / "studies" / "003-paper"
     study_paper_root = study_root / "paper"
     projected_paper_root = quest_root / "paper"
 
+    write_text(quest_root / "quest.yaml", "quest_id: 003-paper\nstudy_id: 003-paper\n")
     dump_json(quest_root / ".ds" / "runtime_state.json", {"quest_id": "003-paper", "status": "stopped"})
     dump_json(runtime_paper_root / "paper_bundle_manifest.json", {"schema_version": 1, "paper_branch": "paper/main"})
     dump_json(projected_paper_root / "paper_bundle_manifest.json", {"schema_version": 1, "paper_branch": "paper/main"})

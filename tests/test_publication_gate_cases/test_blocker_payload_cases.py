@@ -5,6 +5,7 @@ import pytest
 from tests.test_publication_gate_cases.shared import (
     importlib,
     make_quest,
+    study_root_for_quest,
     write_journal_requirements_snapshot,
     write_primary_target,
 )
@@ -189,7 +190,7 @@ def test_build_gate_report_preserves_unique_publication_gate_owners(
     module = importlib.import_module("med_autoscience.controllers.publication_gate")
     quest_root = make_quest(tmp_path, **quest_kwargs)
     paper_root = quest_root / ".ds" / "worktrees" / "paper-run-1" / "paper"
-    study_root = tmp_path / "studies" / "002-early-residual-risk"
+    study_root = study_root_for_quest(quest_root)
     if journal_setup in {"target_only", "target_and_requirements"}:
         write_primary_target(paper_root)
     if journal_setup == "target_and_requirements":

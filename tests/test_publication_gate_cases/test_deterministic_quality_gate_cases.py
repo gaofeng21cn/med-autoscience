@@ -1,6 +1,13 @@
 from __future__ import annotations
 
-from tests.test_publication_gate_cases.shared import dump_json, importlib, json, make_quest, write_text
+from tests.test_publication_gate_cases.shared import (
+    dump_json,
+    importlib,
+    json,
+    make_quest,
+    study_root_for_quest,
+    write_text,
+)
 
 
 def test_deterministic_quality_gates_project_five_gate_classes_without_authorizing_quality(
@@ -73,7 +80,7 @@ def test_deterministic_quality_gates_keep_clear_projection_separate_from_ai_revi
         },
     )
 
-    study_root = tmp_path / "studies" / "002-early-residual-risk"
+    study_root = study_root_for_quest(quest_root)
     paper_root = quest_root / ".ds" / "worktrees" / "paper-run-1" / "paper"
     dump_json(
         paper_root / "evidence_ledger.json",
@@ -204,7 +211,7 @@ def test_literature_hygiene_blocker_keeps_publication_gate_blocked(
             "build/review_manuscript.md": "The manuscript cites the registry source [@ref1].\n",
         },
     )
-    study_root = tmp_path / "studies" / "002-early-residual-risk"
+    study_root = study_root_for_quest(quest_root)
     paper_root = quest_root / ".ds" / "worktrees" / "paper-run-1" / "paper"
     dump_json(
         paper_root / "evidence_ledger.json",

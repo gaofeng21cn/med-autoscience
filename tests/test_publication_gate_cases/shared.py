@@ -33,6 +33,10 @@ def write_text(path: Path, text: str) -> None:
     path.write_text(text, encoding="utf-8")
     _mirror_legacy_paper_write_to_projected_surface(path)
 
+def study_root_for_quest(quest_root: Path, study_id: str = "002-early-residual-risk") -> Path:
+    return quest_root.parents[2] / "studies" / study_id
+
+
 def bypass_submission_surface_qc(monkeypatch) -> None:
     state_resolvers = importlib.import_module(
         "med_autoscience.controllers.publication_gate.state_resolvers"
@@ -88,7 +92,7 @@ def make_quest(
     study_id = quest_id
     quest_root = tmp_path / "ops" / "med-deepscientist" / "runtime" / "quests" / "002-early-residual-risk"
     worktree_root = quest_root / ".ds" / "worktrees" / "paper-run-1"
-    study_root = tmp_path / "studies" / study_id
+    study_root = study_root_for_quest(quest_root, study_id)
 
     worktree_root.mkdir(parents=True, exist_ok=True)
     study_root.mkdir(parents=True, exist_ok=True)
