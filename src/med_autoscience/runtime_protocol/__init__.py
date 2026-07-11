@@ -13,7 +13,6 @@ from med_autoscience.runtime_escalation_record import (
     RuntimeEscalationTrigger,
 )
 _LAZY_EXPORTS = {
-    "PaperRootContext": ".topology",
     "QuestRuntimeSnapshot": ".quest_state",
     "StartupContractValidation": ".study_runtime",
     "StartupContractValidationStatus": ".study_runtime",
@@ -35,13 +34,7 @@ _LAZY_EXPORTS = {
     "read_runtime_escalation_record_ref": ".study_runtime",
     "read_runtime_event_record_ref": ".study_runtime",
     "resolve_active_stdout_path": ".quest_state",
-    "resolve_paper_root_context": ".topology",
-    "resolve_quest_root_from_worktree_root": ".topology",
-    "resolve_study_id_from_worktree_root": ".topology",
-    "resolve_study_root_from_paper_root": ".topology",
-    "resolve_study_root_from_quest_root": ".topology",
     "resolve_study_runtime_context": ".study_runtime",
-    "resolve_worktree_root_from_paper_root": ".topology",
     "should_refresh_startup_hydration_for_runtime_hold": ".study_runtime",
     "validate_startup_contract_resolution": ".study_runtime",
     "write_launch_report": ".study_runtime",

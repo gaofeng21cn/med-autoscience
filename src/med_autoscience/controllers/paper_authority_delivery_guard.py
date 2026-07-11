@@ -34,7 +34,7 @@ def delivery_write_blocked(*, study_root: Path) -> bool:
 
 
 def study_root_for_paper_delivery(*, paper_root: Path) -> Path:
-    from med_autoscience.runtime_protocol import resolve_study_root_from_paper_root
+    from med_autoscience.controllers.study_paper_context import resolve_study_root_from_paper_root
 
     resolved_paper_root = Path(paper_root).expanduser().resolve()
     try:

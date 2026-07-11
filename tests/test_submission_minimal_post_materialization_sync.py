@@ -4,7 +4,7 @@ import importlib
 from pathlib import Path
 from types import SimpleNamespace
 
-from med_autoscience.runtime_protocol.topology import PaperRootContext
+from med_autoscience.controllers.study_paper_context import StudyPaperContext
 
 
 def test_replay_post_submission_minimal_sync_restores_submission_minimal_after_gate_replay(monkeypatch, tmp_path: Path) -> None:
@@ -18,9 +18,9 @@ def test_replay_post_submission_minimal_sync_restores_submission_minimal_after_g
     current_package_manuscript.parent.mkdir(parents=True, exist_ok=True)
     submission_manuscript.write_text("# Fresh Submission\n\nfirst-pass revision retained\n", encoding="utf-8")
     current_package_manuscript.write_text("# Old Current Package\n\nfirst-pass revision missing\n", encoding="utf-8")
-    context = PaperRootContext(
+    context = StudyPaperContext(
         paper_root=paper_root,
-        worktree_root=tmp_path / "paper-run",
+        context_root=tmp_path / "runtime" / "quests" / "quest-001",
         quest_root=tmp_path / "runtime" / "quests" / "quest-001",
         quest_id="quest-001",
         study_id="001-risk",
@@ -28,7 +28,7 @@ def test_replay_post_submission_minimal_sync_restores_submission_minimal_after_g
     )
     calls: list[str] = []
 
-    monkeypatch.setattr(module, "resolve_paper_root_context", lambda _paper_root: context)
+    monkeypatch.setattr(module, "resolve_study_paper_context", lambda _paper_root: context)
     monkeypatch.setattr(
         module,
         "_resolve_profile_for_study_root",
@@ -97,9 +97,9 @@ def test_replay_post_submission_minimal_sync_restores_submission_minimal_after_g
 def test_replay_post_submission_minimal_sync_refreshes_gate_and_progress(monkeypatch, tmp_path: Path) -> None:
     module = importlib.import_module("med_autoscience.controllers.submission_minimal.post_materialization_sync")
     paper_root = tmp_path / "paper"
-    context = PaperRootContext(
+    context = StudyPaperContext(
         paper_root=paper_root,
-        worktree_root=tmp_path / "paper-run",
+        context_root=tmp_path / "runtime" / "quests" / "quest-001",
         quest_root=tmp_path / "runtime" / "quests" / "quest-001",
         quest_id="quest-001",
         study_id="001-risk",
@@ -115,7 +115,7 @@ def test_replay_post_submission_minimal_sync_refreshes_gate_and_progress(monkeyp
         "snapshot_ref": "/tmp/control-plane/latest.json",
     }
 
-    monkeypatch.setattr(module, "resolve_paper_root_context", lambda _paper_root: context)
+    monkeypatch.setattr(module, "resolve_study_paper_context", lambda _paper_root: context)
     monkeypatch.setattr(
         module,
         "_resolve_profile_for_study_root",
@@ -257,16 +257,16 @@ def test_replay_post_submission_minimal_sync_skips_progress_refresh_when_profile
 ) -> None:
     module = importlib.import_module("med_autoscience.controllers.submission_minimal.post_materialization_sync")
     paper_root = tmp_path / "paper"
-    context = PaperRootContext(
+    context = StudyPaperContext(
         paper_root=paper_root,
-        worktree_root=tmp_path / "paper-run",
+        context_root=tmp_path / "runtime" / "quests" / "quest-001",
         quest_root=tmp_path / "runtime" / "quests" / "quest-001",
         quest_id="quest-001",
         study_id="001-risk",
         study_root=tmp_path / "studies" / "001-risk",
     )
 
-    monkeypatch.setattr(module, "resolve_paper_root_context", lambda _paper_root: context)
+    monkeypatch.setattr(module, "resolve_study_paper_context", lambda _paper_root: context)
     monkeypatch.setattr(module, "_resolve_profile_for_study_root", lambda study_root: (None, None))
     monkeypatch.setattr(
         module,

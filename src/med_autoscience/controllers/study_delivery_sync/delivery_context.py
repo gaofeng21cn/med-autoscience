@@ -10,11 +10,11 @@ from med_autoscience.publication_profiles import (
     is_supported_publication_profile,
     normalize_publication_profile,
 )
-from med_autoscience.runtime_protocol.topology import (
+from med_autoscience.controllers.study_paper_context import (
     LEGACY_STUDY_AUTHORITY_ROOT_NAME,
     PREFERRED_STUDY_AUTHORITY_ROOT_NAME,
     STUDY_AUTHORITY_ROOT_NAMES,
-    resolve_paper_root_context,
+    resolve_study_paper_context,
 )
 from med_autoscience.study_charter import read_study_charter, resolve_study_charter_ref
 
@@ -167,7 +167,7 @@ def _resolve_study_owned_paper_context(paper_root: Path) -> tuple[Path, Path, st
 def _resolve_delivery_context(paper_root: Path) -> dict[str, Any]:
     resolved_paper_root = Path(paper_root).expanduser().resolve()
     try:
-        context = resolve_paper_root_context(resolved_paper_root)
+        context = resolve_study_paper_context(resolved_paper_root)
     except (FileNotFoundError, ValueError):
         direct_context = _resolve_study_owned_paper_context(resolved_paper_root)
         if direct_context is None:
@@ -175,7 +175,7 @@ def _resolve_delivery_context(paper_root: Path) -> dict[str, Any]:
         resolved_paper_root, study_root, study_id = direct_context
         return {
             "paper_root": resolved_paper_root,
-            "worktree_root": study_root,
+            "context_root": study_root,
             "quest_root": None,
             "quest_id": study_id,
             "study_id": study_id,
@@ -183,7 +183,7 @@ def _resolve_delivery_context(paper_root: Path) -> dict[str, Any]:
         }
     return {
         "paper_root": context.paper_root,
-        "worktree_root": context.worktree_root,
+        "context_root": context.context_root,
         "quest_root": context.quest_root,
         "quest_id": context.quest_id,
         "study_id": context.study_id,
@@ -275,15 +275,15 @@ def build_authority_source_relative_root(*, paper_root: Path, source_root: Path)
     return str(resolved_source_root)
 
 
-def resolve_finalize_resume_packet_source(*, paper_root: Path, worktree_root: Path) -> Path:
+def resolve_finalize_resume_packet_source(*, paper_root: Path, context_root: Path) -> Path:
     candidates = [
         paper_root / "finalize_resume_packet.md",
-        worktree_root / "handoffs" / "finalize_resume_packet.md",
+        context_root / "handoffs" / "finalize_resume_packet.md",
     ]
     for candidate in candidates:
         if candidate.exists():
             return candidate
     raise FileNotFoundError(
         "missing delivery source: no finalize resume packet found in "
-        f"{paper_root / 'finalize_resume_packet.md'} or {worktree_root / 'handoffs' / 'finalize_resume_packet.md'}"
+        f"{paper_root / 'finalize_resume_packet.md'} or {context_root / 'handoffs' / 'finalize_resume_packet.md'}"
     )

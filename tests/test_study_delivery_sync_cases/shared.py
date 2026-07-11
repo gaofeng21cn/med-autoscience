@@ -83,40 +83,18 @@ def make_delivery_workspace(
     tmp_path: Path,
     *,
     quest_id: str = "002-early-residual-risk",
-    runtime_reentry_study_id: str | None = None,
-    nest_runtime_reentry_under_startup_contract: bool = False,
+    study_id: str = "002-early-residual-risk",
 ) -> tuple[Path, Path]:
     repo_root = tmp_path / "repo"
-    quest_root = repo_root / "ops" / "med-deepscientist" / "runtime" / "quests" / quest_id
-    worktree_root = quest_root / ".ds" / "worktrees" / "paper-run-12345678"
-    paper_root = worktree_root / "paper"
-    study_root = repo_root / "studies" / "002-early-residual-risk"
+    quest_root = repo_root / "runtime" / "quests" / quest_id
+    paper_root = quest_root / "paper"
+    study_root = repo_root / "studies" / study_id
 
-    quest_yaml_lines = [
-        f"quest_id: {quest_id}",
-        "quest_root: /tmp/fake-quest-root",
-    ]
-    if runtime_reentry_study_id:
-        if nest_runtime_reentry_under_startup_contract:
-            quest_yaml_lines.extend(
-                [
-                    "startup_contract:",
-                    "  runtime_reentry_gate:",
-                    f"    study_id: {runtime_reentry_study_id}",
-                ]
-            )
-        else:
-            quest_yaml_lines.extend(
-                [
-                    "runtime_reentry_gate:",
-                    f"  study_id: {runtime_reentry_study_id}",
-                ]
-            )
-    write_text(worktree_root / "quest.yaml", "\n".join(quest_yaml_lines) + "\n")
-    write_text(worktree_root / "SUMMARY.md", "# Summary\nStudy complete.\n")
-    write_text(worktree_root / "status.md", "# Status\nCompleted.\n")
+    write_text(quest_root / "quest.yaml", f"quest_id: {quest_id}\nstudy_id: {study_id}\n")
+    write_text(quest_root / "SUMMARY.md", "# Summary\nStudy complete.\n")
+    write_text(quest_root / "status.md", "# Status\nCompleted.\n")
 
-    write_text(study_root / "study.yaml", "study_id: 002-early-residual-risk\n")
+    write_text(study_root / "study.yaml", f"study_id: {study_id}\n")
     write_text(study_root / "manuscript" / "README.md", "manuscript\n")
     write_text(study_root / "artifacts" / "README.md", "artifacts\n")
     write_study_charter(study_root)
@@ -252,58 +230,6 @@ def make_delivery_workspace(
     return paper_root, study_root
 
 
-def make_reentry_delivery_workspace(tmp_path: Path) -> tuple[Path, Path]:
-    repo_root = tmp_path / "repo"
-    quest_root = repo_root / "ops" / "med-deepscientist" / "runtime" / "quests" / "002-early-residual-risk-reentry-20260401"
-    worktree_root = quest_root / ".ds" / "worktrees" / "paper-run-12345678"
-    paper_root = worktree_root / "paper"
-    study_root = repo_root / "studies" / "002-early-residual-risk"
-
-    write_text(
-        worktree_root / "quest.yaml",
-        """quest_id: 002-early-residual-risk-reentry-20260401
-quest_root: /tmp/fake-quest-root
-status: active
-""",
-    )
-    write_text(
-        quest_root / "quest.yaml",
-        """quest_id: 002-early-residual-risk-reentry-20260401
-runtime_reentry_gate:
-  status: ready
-  study_id: 002-early-residual-risk
-  study_root: /tmp/repo/studies/002-early-residual-risk
-""",
-    )
-    write_text(worktree_root / "SUMMARY.md", "# Summary\nStudy complete.\n")
-    write_text(worktree_root / "status.md", "# Status\nCompleted.\n")
-
-    write_text(study_root / "study.yaml", "study_id: 002-early-residual-risk\n")
-    write_text(study_root / "manuscript" / "README.md", "manuscript\n")
-    write_text(study_root / "artifacts" / "README.md", "artifacts\n")
-
-    write_text(paper_root / "submission_minimal" / "manuscript.docx", "docx")
-    write_text(paper_root / "submission_minimal" / "paper.pdf", "%PDF-1.4\n")
-    dump_json(
-        paper_root / "submission_minimal" / "audit" / "submission_manifest.json",
-        {
-            "schema_version": 1,
-            "generated_at": "2026-04-03T01:00:00+00:00",
-            "citation_style": "AMA",
-            "manuscript": {
-                "docx_path": "paper/submission_minimal/manuscript.docx",
-                "pdf_path": "paper/submission_minimal/paper.pdf",
-            },
-        },
-    )
-    write_text(paper_root / "submission_minimal" / "figures" / "Figure1.pdf", "%PDF-1.4\n")
-    write_png(paper_root / "submission_minimal" / "figures" / "Figure1.png")
-    write_text(paper_root / "submission_minimal" / "tables" / "Table1.csv", "a,b\n1,2\n")
-    write_text(paper_root / "submission_minimal" / "tables" / "Table1.md", "| a | b |\n| --- | --- |\n| 1 | 2 |\n")
-
-    return paper_root, study_root
-
-
 def make_draft_handoff_workspace(tmp_path: Path) -> tuple[Path, Path]:
     paper_root, study_root = make_delivery_workspace(tmp_path)
     shutil.rmtree(paper_root / "submission_minimal")
@@ -346,8 +272,6 @@ def make_draft_handoff_workspace_with_quick_review(tmp_path: Path) -> tuple[Path
     write_text(paper_root / "manuscript.docx", "docx draft review manuscript")
     write_text(paper_root / "build" / "review_manuscript.md", "# Review Manuscript\n\nCurrent draft bundle.\n")
     return paper_root, study_root
-
-
 
 
 

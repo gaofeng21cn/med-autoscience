@@ -14,7 +14,7 @@ from med_autoscience.publication_profiles import (
     normalize_publication_profile,
 )
 from med_autoscience.study_charter import read_study_charter, resolve_study_charter_ref
-from med_autoscience.runtime_protocol.topology import resolve_paper_root_context
+from med_autoscience.controllers.study_paper_context import resolve_study_paper_context
 from med_autoscience.controllers.authority_write_route import (
     blocked_authority_write_payload,
     resolve_authority_write_route_context,

@@ -6,7 +6,7 @@ from pathlib import Path
 from typing import Any
 
 from med_autoscience.publication_profiles import is_supported_publication_profile, normalize_publication_profile
-from med_autoscience.runtime_protocol.topology import (
+from med_autoscience.controllers.study_paper_context import (
     LEGACY_STUDY_AUTHORITY_ROOT_NAME,
     PREFERRED_STUDY_AUTHORITY_ROOT_NAME,
     resolve_study_root_from_quest_root,

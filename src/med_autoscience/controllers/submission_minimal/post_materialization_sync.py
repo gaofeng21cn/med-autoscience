@@ -6,7 +6,7 @@ from typing import Any
 
 from med_autoscience.lazy_module_proxy import lazy_controller_module
 from med_autoscience.profiles import WorkspaceProfile, load_profile
-from med_autoscience.runtime_protocol import resolve_paper_root_context
+from med_autoscience.controllers.study_paper_context import resolve_study_paper_context
 
 
 publication_gate = lazy_controller_module("publication_gate")
@@ -76,7 +76,7 @@ def replay_post_submission_minimal_sync(
 ) -> dict[str, Any] | None:
     resolved_route_context = authority_route_context or route_context
     try:
-        context = resolve_paper_root_context(Path(paper_root).expanduser().resolve())
+        context = resolve_study_paper_context(Path(paper_root).expanduser().resolve())
     except (FileNotFoundError, ValueError):
         return None
 

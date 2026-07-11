@@ -28,8 +28,8 @@ from med_autoscience.publication_profiles import GENERAL_MEDICAL_JOURNAL_PROFILE
 from med_autoscience.policies import publication_gate as publication_gate_policy
 from med_autoscience.runtime_protocol import (
     quest_state,
-    resolve_paper_root_context,
 )
+from med_autoscience.controllers.study_paper_context import resolve_study_paper_context
 from med_autoscience.controllers import paper_artifacts
 from med_autoscience.adapters import report_store as runtime_protocol_report_store
 
@@ -462,7 +462,7 @@ def _materialize_publication_eval_latest(
     if state.paper_root is None:
         return None
     try:
-        paper_context = resolve_paper_root_context(state.paper_root)
+        paper_context = resolve_study_paper_context(state.paper_root)
     except (FileNotFoundError, ValueError):
         return None
     from med_autoscience.controllers.study_runtime_decision.publication_and_submission import (

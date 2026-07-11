@@ -235,7 +235,7 @@ def sync_draft_handoff_delivery(
 def sync_general_delivery(
     *,
     paper_root: Path,
-    worktree_root: Path,
+    context_root: Path,
     quest_id: str,
     study_id: str,
     study_root: Path,
@@ -340,9 +340,9 @@ def sync_general_delivery(
             )
         compatibility_mirrors = _sync_general_delivery_compatibility_mirrors(
             paper_root=paper_root,
-            worktree_root=worktree_root,
-            study_root=study_root,
+            context_root=context_root,
             source_root=source_root,
+            study_root=study_root,
             source_relative_root=source_relative_root,
             study_id=study_id,
             stage=normalized_stage,
@@ -386,7 +386,7 @@ def sync_general_delivery(
             ),
             "source": {
                 "paper_root": str(paper_root),
-                "worktree_root": str(worktree_root),
+                "context_root": str(context_root),
             },
             "controller_authorized_doctor_readme": current_package_readme_payload,
             "charter_contract_linkage": charter_contract_linkage,
@@ -432,7 +432,7 @@ def sync_general_delivery(
 def _sync_general_delivery_compatibility_mirrors(
     *,
     paper_root: Path,
-    worktree_root: Path,
+    context_root: Path,
     study_root: Path,
     source_root: Path,
     source_relative_root: str,
@@ -469,7 +469,7 @@ def _sync_general_delivery_compatibility_mirrors(
         )
 
     current_package_roots = (
-        worktree_root / "manuscript" / "current_package",
+        context_root / "manuscript" / "current_package",
         study_root / "manuscript" / "current_package",
     )
     seen_current_package_roots: set[Path] = set()
@@ -513,7 +513,7 @@ def _sync_general_delivery_compatibility_mirrors(
 def _sync_current_package_mirror_delivery(
     *,
     paper_root: Path,
-    worktree_root: Path,
+    context_root: Path,
     quest_id: str,
     study_id: str,
     study_root: Path,
@@ -595,7 +595,7 @@ def _sync_current_package_mirror_delivery(
         ),
         "source": {
             "paper_root": str(paper_root),
-            "worktree_root": str(worktree_root),
+            "context_root": str(context_root),
             "package_source_root": str(source_root),
         },
         "controller_authorized_doctor_readme": current_package_readme_payload,
@@ -641,7 +641,7 @@ def _sync_current_package_mirror_delivery(
 def sync_journal_specific_delivery(
     *,
     paper_root: Path,
-    worktree_root: Path,
+    context_root: Path,
     quest_id: str,
     study_id: str,
     study_root: Path,
@@ -795,7 +795,7 @@ def sync_journal_specific_delivery(
         ),
         "source": {
             "paper_root": str(paper_root),
-            "worktree_root": str(worktree_root),
+            "context_root": str(context_root),
             "package_source_root": str(source_root),
         },
         "controller_authorized_doctor_readme": current_package_readme_payload,

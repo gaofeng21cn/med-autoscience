@@ -7,7 +7,7 @@ from typing import Any
 from med_autoscience.controllers.next_action_envelope import FAMILY_PAPER_PACKAGE_SUBMISSION_MINIMAL
 from med_autoscience.controllers import domain_authority_snapshot, study_truth_kernel
 from med_autoscience.runtime_status_summary import read_runtime_status_summary
-from med_autoscience.runtime_protocol.topology import resolve_study_root_from_quest_root
+from med_autoscience.controllers.study_paper_context import resolve_study_root_from_quest_root
 
 
 def route_context_from_study_authority_surfaces(*, study_root: Path) -> dict[str, Any]:

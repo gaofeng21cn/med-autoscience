@@ -65,7 +65,7 @@ def _delivery_review_ledger_source(*, paper_root: Path, source_root: Path) -> Pa
 def sync_promoted_journal_delivery(
     *,
     paper_root: Path,
-    worktree_root: Path,
+    context_root: Path,
     quest_id: str,
     study_id: str,
     study_root: Path,
@@ -133,13 +133,13 @@ def sync_promoted_journal_delivery(
     if normalized_stage == "finalize":
         reset_directory(artifacts_final_root)
         copy_file(
-            source=worktree_root / "SUMMARY.md",
+            source=context_root / "SUMMARY.md",
             target=manuscript_root / "SUMMARY.md",
             category="closeout",
             copied_files=copied_files,
         )
         copy_file(
-            source=worktree_root / "status.md",
+            source=context_root / "status.md",
             target=manuscript_root / "status.md",
             category="closeout",
             copied_files=copied_files,
@@ -151,7 +151,7 @@ def sync_promoted_journal_delivery(
             copied_files=copied_files,
         )
         copy_file(
-            source=resolve_finalize_resume_packet_source(paper_root=paper_root, worktree_root=worktree_root),
+            source=resolve_finalize_resume_packet_source(paper_root=paper_root, context_root=context_root),
             target=manuscript_root / "finalize_resume_packet.md",
             category="closeout",
             copied_files=copied_files,

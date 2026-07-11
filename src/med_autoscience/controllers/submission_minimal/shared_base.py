@@ -21,7 +21,7 @@ from med_autoscience.controllers.paper_artifacts import (
     materialize_archived_reference_only_submission_surface_manifests,
     resolve_managed_submission_surface_roots,
 )
-from med_autoscience.runtime_protocol.topology import resolve_study_root_from_paper_root
+from med_autoscience.controllers.study_paper_context import resolve_study_root_from_paper_root
 
 from .export_renderers import export_docx, export_pdf
 from .profile_config import (

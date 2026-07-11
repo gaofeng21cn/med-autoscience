@@ -22,8 +22,8 @@ from med_autoscience.policies import publication_gate as publication_gate_policy
 from med_autoscience.policies.medical_reporting_checklist import REPORTING_CHECKLIST_BLOCKER_KEYS
 from med_autoscience.runtime_protocol import (
     quest_state,
-    resolve_paper_root_context,
 )
+from med_autoscience.controllers.study_paper_context import resolve_study_paper_context
 from med_autoscience.controllers import paper_artifacts
 from med_autoscience.adapters import report_store as runtime_protocol_report_store
 from med_autoscience.controllers.submission_package_layout import resolve_submission_manifest_path

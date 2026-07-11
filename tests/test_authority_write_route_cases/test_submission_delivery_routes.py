@@ -409,7 +409,7 @@ def test_delivery_sync_does_not_adopt_runtime_gate_as_submission_authority(tmp_p
     quest_root = study_root.parent.parent / "runtime" / "quests" / study_root.name
     (quest_root / "quest.yaml").parent.mkdir(parents=True, exist_ok=True)
     (quest_root / "quest.yaml").write_text(
-        f"quest_id: {study_root.name}\nruntime_reentry_gate:\n  study_id: {study_root.name}\n",
+        f"quest_id: {study_root.name}\nstudy_id: {study_root.name}\n",
         encoding="utf-8",
     )
     gate_path = quest_root / "artifacts" / "reports" / "publishability_gate" / "latest.json"
@@ -454,7 +454,7 @@ def test_delivery_sync_does_not_adopt_gate_clear_with_stale_source_signature(tmp
     quest_root = study_root.parent.parent / "runtime" / "quests" / study_root.name
     (quest_root / "quest.yaml").parent.mkdir(parents=True, exist_ok=True)
     (quest_root / "quest.yaml").write_text(
-        f"quest_id: {study_root.name}\nruntime_reentry_gate:\n  study_id: {study_root.name}\n",
+        f"quest_id: {study_root.name}\nstudy_id: {study_root.name}\n",
         encoding="utf-8",
     )
     gate_path = quest_root / "artifacts" / "reports" / "publishability_gate" / "latest.json"

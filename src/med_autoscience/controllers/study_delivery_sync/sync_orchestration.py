@@ -134,7 +134,7 @@ def sync_study_delivery(
     if not is_supported_publication_profile(normalized_publication_profile):
         raise ValueError(f"unsupported publication profile: {publication_profile}")
     context = _resolve_delivery_context(paper_root.resolve())
-    paper_root, worktree_root = context["paper_root"], context["worktree_root"]
+    paper_root, context_root = context["paper_root"], context["context_root"]
     quest_id, study_id, study_root = context["quest_id"], context["study_id"], context["study_root"]
     provided_route_context = authority_route_context or route_context
     write_route_context = with_study_authority_route_context(
@@ -197,7 +197,7 @@ def sync_study_delivery(
     if normalized_publication_profile == GENERAL_MEDICAL_JOURNAL_PROFILE and not submission_authority_allowed:
         result = sync_general_delivery(
             paper_root=paper_root,
-            worktree_root=worktree_root,
+            context_root=context_root,
             quest_id=quest_id,
             study_id=study_id,
             study_root=study_root,
@@ -217,7 +217,7 @@ def sync_study_delivery(
     if submission_authority_blocked:
         result = _sync_current_package_mirror_delivery(
             paper_root=paper_root,
-            worktree_root=worktree_root,
+            context_root=context_root,
             quest_id=quest_id,
             study_id=study_id,
             study_root=study_root,
@@ -239,7 +239,7 @@ def sync_study_delivery(
     )
     result = sync_journal_delivery(
         paper_root=paper_root,
-        worktree_root=worktree_root,
+        context_root=context_root,
         quest_id=quest_id,
         study_id=study_id,
         study_root=study_root,

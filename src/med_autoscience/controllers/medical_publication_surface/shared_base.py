@@ -20,8 +20,8 @@ from med_autoscience.policies.medical_reporting_contract import display_story_ro
 from med_autoscience.workspace_contracts import build_workspace_runtime_layout, resolve_runtime_root_from_quest_root
 from med_autoscience.runtime_protocol import (
     quest_state,
-    resolve_paper_root_context,
 )
+from med_autoscience.controllers.study_paper_context import resolve_study_paper_context
 from med_autoscience.study_charter import read_study_charter, resolve_study_charter_ref
 
 
@@ -205,7 +205,7 @@ def build_surface_state(quest_root: Path) -> SurfaceState:
     paper_root = paper_artifacts.resolve_latest_paper_root(quest_root)
     study_root: Path | None = None
     try:
-        paper_context = resolve_paper_root_context(paper_root)
+        paper_context = resolve_study_paper_context(paper_root)
     except (FileNotFoundError, ValueError):
         paper_context = None
     if paper_context is not None:

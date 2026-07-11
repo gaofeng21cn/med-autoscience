@@ -16,7 +16,7 @@ def test_sync_study_delivery_materializes_submission_root_and_keeps_manifest_und
     paper_root, study_root = make_delivery_workspace(
         tmp_path,
         quest_id="002-early-residual-risk-managed-20260402",
-        runtime_reentry_study_id="002-early-residual-risk",
+        study_id="002-early-residual-risk",
     )
 
     manifest = module.sync_study_delivery(

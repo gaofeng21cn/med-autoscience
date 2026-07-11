@@ -569,23 +569,11 @@ def make_stage_native_current_body_workspace(tmp_path: Path) -> Path:
         },
     )
     (study_root / "study.yaml").write_text("study_id: 003-dpcc\n", encoding="utf-8")
-    (study_root / "runtime_binding.yaml").write_text(
-        "\n".join(
-            [
-                "schema_version: 1",
-                "study_id: 003-dpcc",
-                "quest_id: 003-dpcc-managed",
-                "",
-            ]
-        ),
-        encoding="utf-8",
-    )
     quest_root = workspace_root / "runtime" / "quests" / "003-dpcc-managed"
     quest_root.mkdir(parents=True, exist_ok=True)
     (quest_root / "quest.yaml").write_text(
         "quest_id: 003-dpcc-managed\n"
-        "runtime_reentry_gate:\n"
-        "  study_id: 003-dpcc\n",
+        "study_id: 003-dpcc\n",
         encoding="utf-8",
     )
     write_open_authority_snapshots(study_root)

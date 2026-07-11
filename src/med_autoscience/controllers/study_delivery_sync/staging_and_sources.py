@@ -9,7 +9,7 @@ from med_autoscience.publication_profiles import (
     normalize_publication_profile,
 )
 from med_autoscience.study_charter import read_study_charter, resolve_study_charter_ref
-from med_autoscience.runtime_protocol.topology import resolve_paper_root_context
+from med_autoscience.controllers.study_paper_context import resolve_study_paper_context
 
 from .delivery_context import (
     FORMAL_PAPER_DELIVERY_RELATIVE_PATHS,
@@ -114,5 +114,5 @@ __all__ = [
     "normalize_publication_profile",
     "read_study_charter",
     "resolve_study_charter_ref",
-    "resolve_paper_root_context",
+    "resolve_study_paper_context",
 ]
