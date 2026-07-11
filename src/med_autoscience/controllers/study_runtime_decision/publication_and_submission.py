@@ -23,7 +23,7 @@ from med_autoscience.controllers import (
 )
 from med_autoscience.controllers.opl_runtime_refs import resolve_opl_runtime_refs
 from med_autoscience.controllers.submission_package_layout import resolve_submission_manifest_path
-from med_autoscience.runtime_protocol.workspace_artifacts import workspace_runtime_artifact_path
+from med_autoscience.workspace_contracts import workspace_runtime_artifact_path
 from med_autoscience.controllers.study_runtime_decision import publication_stop_loss
 from med_autoscience.controllers.study_runtime_decision.publication_eval_quality import (
     _publication_eval_gap_type,
@@ -70,7 +70,7 @@ from med_autoscience.publication_eval_record import (
     PublicationEvalRecord,
     PublicationEvalVerdict,
 )
-from med_autoscience.runtime_protocol import paper_artifacts
+from med_autoscience.controllers import paper_artifacts
 from med_autoscience.runtime_protocol import quest_state
 from med_autoscience.runtime_protocol import study_runtime as study_runtime_protocol
 from med_autoscience.study_charter import read_study_charter

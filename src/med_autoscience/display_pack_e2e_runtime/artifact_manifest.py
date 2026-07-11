@@ -35,7 +35,7 @@ def build_display_artifact_manifest_contract() -> dict[str, object]:
         "version": "mas-display-artifact-manifest-contract.v1",
         "owner": MAS_OWNER,
         "contract_ref": (
-            "med_autoscience.runtime_protocol.display_artifact_manifest."
+            "med_autoscience.display_pack_e2e_runtime.artifact_manifest."
             "build_display_artifact_manifest_contract"
         ),
         "clean_room_absorption": {

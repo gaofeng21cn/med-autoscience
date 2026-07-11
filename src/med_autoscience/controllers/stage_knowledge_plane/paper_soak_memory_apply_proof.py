@@ -6,7 +6,7 @@ from collections.abc import Mapping, Sequence
 from pathlib import Path
 from typing import Any
 
-from med_autoscience.runtime_protocol.workspace_artifacts import workspace_runtime_artifact_path
+from med_autoscience.workspace_contracts import workspace_runtime_artifact_path
 from med_autoscience.stage_knowledge_contract import (
     PAPER_SOAK_MEMORY_APPLY_PROOF_SURFACE,
     SCHEMA_VERSION,

@@ -351,7 +351,7 @@ generated surface 不应硬编码：
   - 新布局以 `runtime/quests/<quest_id>` 普通目录、SQLite runtime authority、canonical `artifacts/runtime/**` 和 manifest 为默认；旧 `ops/med-deepscientist/runtime/quests/<quest_id>/.ds/worktrees/<worktree>/paper` 只作为一次性 legacy intake / restore proof / diagnostic provenance 输入，不作为当前 reader 或 enrichment 输入
 - `med_autoscience.runtime_protocol.quest_state`
   - 管理 `runtime_state.json`、quest status、active quest 枚举、main `RESULT.json`、active `stdout.jsonl`
-- `med_autoscience.runtime_protocol.paper_artifacts`
+- `med_autoscience.controllers.paper_artifacts`
   - 管理 `paper_root`、bundle manifest、artifact manifest、submission outputs 这些 paper-facing 交付拓扑
 - `med_autoscience.runtime_protocol.user_message`
   - 管理 `.ds/user_message_queue.json`、interaction journal 与 pending message 计数

@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from med_autoscience.runtime_protocol.display_artifact_manifest import (
+from med_autoscience.display_pack_e2e_runtime.artifact_manifest import (
     REQUIRED_DISPLAY_ARTIFACT_FIELDS,
     build_display_artifact_manifest_contract,
     validate_display_artifact_manifest_entry,

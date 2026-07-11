@@ -5,7 +5,7 @@ import json
 from pathlib import Path
 from typing import Any, Mapping, Sequence
 
-from med_autoscience.controllers import portfolio_memory, workspace_literature
+from med_autoscience.controllers import portfolio_memory
 from med_autoscience.controllers.stage_knowledge_plane.publication_route_memory_seed import (
     apply_publication_route_memory_seed_fixture as _apply_publication_route_memory_seed_fixture,
 )
@@ -16,6 +16,7 @@ from med_autoscience.controllers.stage_knowledge_plane.publication_route_memory_
 from med_autoscience.controllers.stage_knowledge_plane.paper_soak_memory_apply_proof import (
     build_paper_soak_memory_apply_proof_projection as _build_paper_soak_memory_apply_proof_projection,
 )
+from med_autoscience.workspace_contracts import workspace_literature_status
 from med_autoscience.controllers.stage_knowledge_plane.research_frontier_board import (
     adopt_frontier_route_back_terminal_decision,
     build_research_frontier_board,
@@ -650,7 +651,7 @@ def _stage_input_refs(*, study_root: Path, workspace_root: Path, quest_root: Pat
         _file_ref("display_to_claim_map", study_root / "paper" / "display_to_claim_map.json"),
         _file_ref("study_reference_context", study_root / "artifacts" / "reference_context" / "latest.json"),
         _status_ref("portfolio_memory", portfolio_memory.portfolio_memory_status(workspace_root=workspace_root)),
-        _status_ref("workspace_literature", workspace_literature.workspace_literature_status(workspace_root=workspace_root)),
+        _status_ref("workspace_literature", workspace_literature_status(workspace_root=workspace_root)),
         _file_ref("literature_provider_runtime", study_root / "artifacts" / "medical_paper" / "literature_provider_runtime.json"),
         _file_ref("literature_intelligence_os", study_root / "artifacts" / "medical_paper" / "literature_intelligence_os.json"),
     ]

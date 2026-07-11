@@ -17,7 +17,7 @@ from med_autoscience.controllers.study_transition_receipt_consumption.missing_re
     is_blocked_typed_closeout,
 )
 from med_autoscience.profiles import WorkspaceProfile
-from med_autoscience.runtime_protocol.layout import build_workspace_runtime_layout_for_profile
+from med_autoscience.workspace_contracts import build_workspace_runtime_layout_for_profile
 
 from ..opl_current_control_state_handoff_values import (
     _copy_mapping_keys,

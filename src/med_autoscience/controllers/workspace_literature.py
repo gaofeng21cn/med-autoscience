@@ -5,12 +5,7 @@ from pathlib import Path
 from typing import Any, Mapping, Sequence
 
 from med_autoscience.literature_records import LiteratureRecord
-from med_autoscience.runtime_protocol.workspace_literature_status import (
-    OPL_CONNECT_OWNER_REF,
-    OPL_SOURCE_INTAKE_OWNER_REF,
-    WORKSPACE_LITERATURE_SCHEMA_VERSION,
-    workspace_literature_status,
-)
+from med_autoscience.workspace_contracts import workspace_literature_status as _workspace_literature_status
 
 
 def canonicalize_record_payload(*, raw_record: Mapping[str, object]) -> dict[str, object]:
@@ -45,7 +40,7 @@ def sync_workspace_literature(
     canonical_records = [canonicalize_record_payload(raw_record=record) for record in records]
     unique_records = _dedupe_records(canonical_records)
     return {
-        **workspace_literature_status(workspace_root=workspace_root),
+        **_workspace_literature_status(workspace_root=workspace_root),
         "surface_kind": "mas_literature_source_intake_request",
         "status": "opl_source_intake_required" if unique_records else "no_source_delta",
         "record_count": len(unique_records),
@@ -57,7 +52,7 @@ def sync_workspace_literature(
 
 
 def init_workspace_literature(*, workspace_root: Path) -> dict[str, object]:
-    status = workspace_literature_status(workspace_root=workspace_root)
+    status = _workspace_literature_status(workspace_root=workspace_root)
     return {
         **status,
         "status": "opl_source_intake_required",
@@ -189,11 +184,7 @@ def _require_dict(value: object, *, field: str) -> dict[str, object]:
 
 
 __all__ = [
-    "OPL_CONNECT_OWNER_REF",
-    "OPL_SOURCE_INTAKE_OWNER_REF",
-    "WORKSPACE_LITERATURE_SCHEMA_VERSION",
     "canonicalize_record_payload",
     "init_workspace_literature",
     "sync_workspace_literature",
-    "workspace_literature_status",
 ]

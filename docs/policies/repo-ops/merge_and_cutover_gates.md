@@ -68,7 +68,7 @@ Machine boundary: Human-readable repository policy only; enforceable truth remai
 - `tests/test_opl_runtime_contract.py`
 - `tests/test_opl_runtime_contract_no_provider_backend.py`
 - `tests/test_adapter_retirement_boundary.py`
-- `tests/test_runtime_protocol_layout.py`
+- `tests/test_workspace_runtime_layout.py`
 - `tests/test_runtime_protocol_study_runtime.py`
 - `tests/test_study_runtime_router.py`
 - `tests/test_dev_preflight_contract.py`

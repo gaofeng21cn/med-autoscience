@@ -10,7 +10,7 @@ def test_build_study_reference_context_writes_artifact_and_emits_opl_source_inta
     tmp_path: Path,
 ) -> None:
     module = importlib.import_module("med_autoscience.study_reference_context")
-    workspace_literature = importlib.import_module("med_autoscience.controllers.workspace_literature")
+    workspace_contracts = importlib.import_module("med_autoscience.workspace_contracts")
     study_root = tmp_path / "workspace" / "studies" / "001-risk"
     workspace_root = tmp_path / "workspace"
 
@@ -81,6 +81,6 @@ def test_build_study_reference_context_writes_artifact_and_emits_opl_source_inta
     persisted = json.loads(artifact_path.read_text(encoding="utf-8"))
     assert persisted["selected_record_ids"] == ["pmid:12345", "doi:10.1000/example-2"]
 
-    status = workspace_literature.workspace_literature_status(workspace_root=workspace_root)
+    status = workspace_contracts.workspace_literature_status(workspace_root=workspace_root)
     assert status["status"] == "opl_managed"
     assert status["record_count"] == 0

@@ -13,7 +13,7 @@ from med_autoscience.controllers import data_assets
 from med_autoscience.controllers.opl_pending_user_message_handoff import build_pending_user_message_handoff
 from med_autoscience.policies import data_asset_gate as data_asset_gate_policy
 from med_autoscience.runtime_protocol import quest_state
-from med_autoscience.runtime_protocol import report_store as runtime_protocol_report_store
+from med_autoscience.adapters import report_store as runtime_protocol_report_store
 
 
 @dataclass

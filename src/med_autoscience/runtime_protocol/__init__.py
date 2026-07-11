@@ -12,13 +12,6 @@ from med_autoscience.runtime_escalation_record import (
     RuntimeEscalationRecordRef,
     RuntimeEscalationTrigger,
 )
-from .layout import (
-    WorkspaceRuntimeLayout,
-    build_workspace_runtime_layout,
-    build_workspace_runtime_layout_for_profile,
-    resolve_runtime_root_from_quest_root,
-)
-
 _LAZY_EXPORTS = {
     "PaperRootContext": ".topology",
     "QuestRuntimeSnapshot": ".quest_state",
@@ -44,10 +37,6 @@ _LAZY_EXPORTS = {
     "read_runtime_escalation_record_ref": ".study_runtime",
     "read_runtime_event_record_ref": ".study_runtime",
     "resolve_active_stdout_path": ".quest_state",
-    "resolve_artifact_manifest": ".paper_artifacts",
-    "resolve_artifact_manifest_from_main_result": ".paper_artifacts",
-    "resolve_latest_paper_root": ".paper_artifacts",
-    "resolve_paper_bundle_manifest": ".paper_artifacts",
     "resolve_paper_root_context": ".topology",
     "resolve_quest_root_from_worktree_root": ".topology",
     "resolve_study_id_from_worktree_root": ".topology",
@@ -55,9 +44,6 @@ _LAZY_EXPORTS = {
     "resolve_study_root_from_quest_root": ".topology",
     "resolve_study_runtime_context": ".study_runtime",
     "resolve_study_runtime_paths": ".study_runtime",
-    "resolve_submission_minimal_artifact_authority": ".paper_artifacts",
-    "resolve_submission_minimal_manifest": ".paper_artifacts",
-    "resolve_submission_minimal_output_paths": ".paper_artifacts",
     "resolve_worktree_root_from_paper_root": ".topology",
     "should_refresh_startup_hydration_for_runtime_hold": ".study_runtime",
     "validate_startup_contract_resolution": ".study_runtime",
@@ -77,10 +63,6 @@ __all__ = [
     "RuntimeEscalationTrigger",
     "RuntimeEventRecord",
     "RuntimeEventRecordRef",
-    "WorkspaceRuntimeLayout",
-    "build_workspace_runtime_layout",
-    "build_workspace_runtime_layout_for_profile",
-    "resolve_runtime_root_from_quest_root",
     *_LAZY_EXPORTS,
 ]
 

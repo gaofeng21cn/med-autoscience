@@ -7,6 +7,7 @@ from typing import Any
 from med_autoscience import reference_papers
 from med_autoscience import startup_literature
 from med_autoscience.controllers import workspace_literature as workspace_literature_controller
+from med_autoscience.workspace_contracts import workspace_literature_status
 
 
 STUDY_REFERENCE_CONTEXT_SCHEMA_VERSION = 1
@@ -85,7 +86,7 @@ def build_study_reference_context(
         workspace_source_intake = workspace_literature_controller.init_workspace_literature(
             workspace_root=resolved_workspace_root
         )
-    workspace_status = workspace_literature_controller.workspace_literature_status(workspace_root=resolved_workspace_root)
+    workspace_status = workspace_literature_status(workspace_root=resolved_workspace_root)
 
     selections_by_id: dict[str, dict[str, str]] = {}
     records_by_id: dict[str, dict[str, object]] = {}

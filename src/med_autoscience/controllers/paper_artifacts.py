@@ -12,7 +12,7 @@ from med_autoscience.runtime_protocol.topology import (
     resolve_study_root_from_quest_root,
 )
 
-from .submission_package_layout import (
+from med_autoscience.controllers.submission_package_layout import (
     legacy_submission_manifest_path,
     resolve_submission_manifest_path as resolve_package_submission_manifest_path,
     submission_manifest_path as v2_submission_manifest_path,

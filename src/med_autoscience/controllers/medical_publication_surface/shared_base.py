@@ -11,15 +11,15 @@ from pathlib import Path
 from typing import Any
 
 from med_autoscience import display_registry
+from med_autoscience.adapters import report_store as runtime_protocol_report_store
+from med_autoscience.controllers import paper_artifacts
 from med_autoscience.controllers.statistical_discipline_runtime import validate_statistical_reviewer_audit
 from med_autoscience.policies import medical_disclosure_contract
 from med_autoscience.policies import medical_publication_surface as medical_surface_policy
 from med_autoscience.policies.medical_reporting_contract import display_story_role_for_requirement_key
-from med_autoscience.runtime_protocol.layout import build_workspace_runtime_layout, resolve_runtime_root_from_quest_root
+from med_autoscience.workspace_contracts import build_workspace_runtime_layout, resolve_runtime_root_from_quest_root
 from med_autoscience.runtime_protocol import (
-    paper_artifacts,
     quest_state,
-    report_store as runtime_protocol_report_store,
     resolve_paper_root_context,
 )
 from med_autoscience.study_charter import read_study_charter, resolve_study_charter_ref

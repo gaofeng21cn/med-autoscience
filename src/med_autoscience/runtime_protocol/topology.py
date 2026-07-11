@@ -5,7 +5,7 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
 
-from .layout import build_workspace_runtime_layout
+from med_autoscience.workspace_contracts import build_workspace_runtime_layout
 
 PREFERRED_STUDY_AUTHORITY_ROOT_NAME = "manuscript"
 LEGACY_STUDY_AUTHORITY_ROOT_NAME = "paper"

@@ -173,7 +173,7 @@ def _delivery_authority_context(
         if candidate.exists():
             return candidate, publication_profile
     if quest_root is not None:
-        from med_autoscience.runtime_protocol import paper_artifacts
+        from med_autoscience.controllers import paper_artifacts
 
         paper_bundle_manifest_path = paper_artifacts.resolve_paper_bundle_manifest(quest_root)
         if paper_bundle_manifest_path is not None:
@@ -451,7 +451,7 @@ def resolve_submission_metadata_only_manual_finish_contract(
     resolved_quest_root = Path(quest_root).expanduser().resolve()
     if not _autonomous_current_package_ready(study_root=resolved_study_root, quest_root=resolved_quest_root):
         return None
-    from med_autoscience.runtime_protocol import paper_artifacts
+    from med_autoscience.controllers import paper_artifacts
 
     paper_bundle_manifest_path = paper_artifacts.resolve_paper_bundle_manifest(resolved_quest_root)
     if paper_bundle_manifest_path is None:

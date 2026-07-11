@@ -7,7 +7,7 @@ from pathlib import Path
 
 from med_autoscience.adapters.literature import pubmed as pubmed_adapter
 from med_autoscience.controllers import literature_hydration as literature_hydration_controller
-from med_autoscience.runtime_protocol import report_store as runtime_protocol_report_store
+from med_autoscience.adapters import report_store as runtime_protocol_report_store
 
 
 def utc_now() -> str:

@@ -11,7 +11,8 @@ from med_autoscience.controllers._medical_display_surface_support import (
 )
 from med_autoscience.controllers import literature_hydration as literature_hydration_controller
 from med_autoscience import publication_display_contract
-from med_autoscience.runtime_protocol import paper_artifacts, study_runtime as study_runtime_protocol
+from med_autoscience.controllers import paper_artifacts
+from med_autoscience.runtime_protocol import study_runtime as study_runtime_protocol
 
 
 def _utc_now() -> str:

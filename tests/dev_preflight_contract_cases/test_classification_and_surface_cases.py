@@ -57,7 +57,7 @@ def test_classify_changed_files_matches_runtime_contract_surface() -> None:
             "tests/test_profiles.py",
             "tests/test_opl_runtime_contract.py",
             "tests/test_runtime_root_cause_depth_gate.py",
-            "tests/test_runtime_protocol_layout.py",
+            "tests/test_workspace_runtime_layout.py",
             "tests/test_runtime_protocol_study_runtime.py",
         ]
     )

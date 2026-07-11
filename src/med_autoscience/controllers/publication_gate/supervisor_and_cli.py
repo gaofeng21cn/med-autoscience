@@ -27,11 +27,11 @@ from med_autoscience.journal_requirements import (
 from med_autoscience.publication_profiles import GENERAL_MEDICAL_JOURNAL_PROFILE
 from med_autoscience.policies import publication_gate as publication_gate_policy
 from med_autoscience.runtime_protocol import (
-    paper_artifacts,
     quest_state,
     resolve_paper_root_context,
 )
-from med_autoscience.runtime_protocol import report_store as runtime_protocol_report_store
+from med_autoscience.controllers import paper_artifacts
+from med_autoscience.adapters import report_store as runtime_protocol_report_store
 
 from .discovery_and_drift import (
     PUBLICATION_SUPERVISOR_KEYS,

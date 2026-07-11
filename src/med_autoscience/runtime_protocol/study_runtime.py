@@ -20,8 +20,10 @@ from med_autoscience.runtime_escalation_record import (
 )
 from med_autoscience.study_decision_record import StudyDecisionRecord
 
-from .layout import build_workspace_runtime_layout_for_profile
-from .workspace_literature_status import workspace_literature_status
+from med_autoscience.workspace_contracts import (
+    build_workspace_runtime_layout_for_profile,
+    workspace_literature_status,
+)
 from .study_runtime_models import (
     StartupContractValidation,
     StartupContractValidationStatus,

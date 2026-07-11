@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import os
+from dataclasses import dataclass
 from pathlib import Path
 import shlex
 from typing import Any
@@ -9,11 +10,138 @@ import yaml
 
 from med_autoscience.med_deepscientist_repo_manifest import inspect_med_deepscientist_repo_manifest
 from med_autoscience.profiles import WorkspaceProfile
-from med_autoscience.runtime_protocol.layout import build_workspace_runtime_layout_for_profile
 
 
 _REQUIRED_OVERRIDE_FIELDS = ("id", "source_path", "status", "target_surface")
 _PLACEHOLDER_LAUNCHER_MARKERS = ("ABS/PATH", "PATH/TO")
+WORKSPACE_LITERATURE_SCHEMA_VERSION = 2
+OPL_CONNECT_OWNER_REF = "one-person-lab:src/modules/connect/opl-connect-scientific.ts"
+OPL_SOURCE_INTAKE_OWNER_REF = "one-person-lab:src/modules/workspace/workspace-source-material.ts"
+OPL_SOURCE_INGEST_COMMAND = "opl workspace source ingest"
+
+
+@dataclass(frozen=True)
+class WorkspaceRuntimeLayout:
+    workspace_root: Path
+    ops_root: Path
+    runtime_root: Path
+    quests_root: Path
+    archives_root: Path
+    restore_index_root: Path
+    runtime_artifacts_root: Path
+    bin_root: Path
+    startup_briefs_root: Path
+    startup_payloads_root: Path
+    config_env_path: Path
+    config_env_example_path: Path
+    readme_path: Path
+    behavior_gate_path: Path
+
+    def quest_root(self, quest_id: str) -> Path:
+        return self.quests_root / quest_id
+
+    def startup_payload_root(self, study_id: str) -> Path:
+        return self.startup_payloads_root / study_id
+
+    def startup_brief_path(self, study_id: str) -> Path:
+        return self.startup_briefs_root / f"{study_id}.md"
+
+
+def build_workspace_runtime_layout(*, workspace_root: Path) -> WorkspaceRuntimeLayout:
+    resolved_workspace_root = Path(workspace_root).expanduser().resolve()
+    return _build_workspace_runtime_layout(
+        workspace_root=resolved_workspace_root,
+        ops_root=resolved_workspace_root / "ops" / "mas",
+        runtime_root=resolved_workspace_root / "runtime",
+    )
+
+
+def build_workspace_runtime_layout_for_profile(profile: WorkspaceProfile) -> WorkspaceRuntimeLayout:
+    runtime_root = profile.managed_runtime_home.expanduser().resolve()
+    workspace_root = profile.workspace_root.expanduser().resolve()
+    return _build_workspace_runtime_layout(
+        workspace_root=workspace_root,
+        ops_root=workspace_root / "ops" / "mas" if runtime_root == workspace_root / "runtime" else runtime_root.parent,
+        runtime_root=runtime_root,
+        quests_root=profile.managed_runtime_quests_root.expanduser().resolve(),
+    )
+
+
+def _build_workspace_runtime_layout(
+    *,
+    workspace_root: Path,
+    ops_root: Path,
+    runtime_root: Path,
+    quests_root: Path | None = None,
+) -> WorkspaceRuntimeLayout:
+    resolved_workspace_root = workspace_root.expanduser().resolve()
+    resolved_ops_root = ops_root.expanduser().resolve()
+    resolved_runtime_root = runtime_root.expanduser().resolve()
+    resolved_quests_root = (quests_root or resolved_runtime_root / "quests").expanduser().resolve()
+    mas_first = resolved_runtime_root == resolved_workspace_root / "runtime"
+    startup_root = resolved_runtime_root if mas_first else resolved_ops_root
+    return WorkspaceRuntimeLayout(
+        workspace_root=resolved_workspace_root,
+        ops_root=resolved_ops_root,
+        runtime_root=resolved_runtime_root,
+        quests_root=resolved_quests_root,
+        archives_root=resolved_runtime_root / "archives",
+        restore_index_root=resolved_runtime_root / "restore_index",
+        runtime_artifacts_root=workspace_runtime_artifacts_root(resolved_workspace_root),
+        bin_root=resolved_ops_root / "bin",
+        startup_briefs_root=startup_root / "startup_briefs",
+        startup_payloads_root=startup_root / "startup_payloads",
+        config_env_path=resolved_ops_root / "config.env",
+        config_env_example_path=resolved_ops_root / "config.env.example",
+        readme_path=resolved_ops_root / "README.md",
+        behavior_gate_path=resolved_ops_root / "behavior_equivalence_gate.yaml",
+    )
+
+
+def resolve_runtime_root_from_quest_root(quest_root: Path) -> Path:
+    return Path(quest_root).expanduser().resolve().parent.parent
+
+
+def workspace_runtime_artifacts_root(workspace_root: Path) -> Path:
+    return Path(workspace_root).expanduser().resolve() / "runtime" / "artifacts"
+
+
+def workspace_runtime_artifact_path(workspace_root: Path, *parts: str) -> Path:
+    return workspace_runtime_artifacts_root(workspace_root).joinpath(*parts)
+
+
+def workspace_runtime_artifact_relative_path(*parts: str) -> Path:
+    return Path("runtime", "artifacts", *parts)
+
+
+def workspace_literature_status(*, workspace_root: Path) -> dict[str, object]:
+    resolved_workspace_root = Path(workspace_root).expanduser().resolve()
+    return {
+        "schema_version": WORKSPACE_LITERATURE_SCHEMA_VERSION,
+        "surface_kind": "mas_literature_source_refs",
+        "status": "opl_managed",
+        "workspace_root": str(resolved_workspace_root),
+        "workspace_literature_exists": False,
+        "workspace_literature_root": None,
+        "registry_path": None,
+        "references_bib_path": None,
+        "coverage_report_path": None,
+        "record_count": 0,
+        "references_bib_entry_count": 0,
+        "coverage": {"status": "opl_connect_or_workspace_receipt_required", "high_priority_missing": []},
+        "opl_owner_refs": {
+            "scientific_connector": OPL_CONNECT_OWNER_REF,
+            "source_intake": OPL_SOURCE_INTAKE_OWNER_REF,
+            "source_ingest_command": OPL_SOURCE_INGEST_COMMAND,
+        },
+        "authority_boundary": {
+            "transport_owner": "one-person-lab",
+            "domain_semantics_owner": "MedAutoScience",
+            "mas_writes_generic_source_registry": False,
+            "mas_materializes_workspace_bibtex": False,
+            "mas_materializes_workspace_coverage": False,
+        },
+    }
 
 
 def legacy_external_runtime_tombstone_contract() -> dict[str, object]:

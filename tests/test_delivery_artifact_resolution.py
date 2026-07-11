@@ -7,8 +7,8 @@ from pathlib import Path
 
 import pytest
 
-from med_autoscience.runtime_protocol import paper_artifacts
-from med_autoscience.runtime_protocol.paper_artifacts import (
+from med_autoscience.controllers import paper_artifacts
+from med_autoscience.controllers.paper_artifacts import (
     find_unmanaged_submission_surface_roots,
     resolve_archived_submission_surface_roots,
     resolve_artifact_manifest_from_main_result,

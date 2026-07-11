@@ -128,7 +128,7 @@ Lifecycle note: this file is a dated closure snapshot for the `001/003` anchor-p
 ## Cross-Paper Regression Evidence
 
 - repo targeted regression:
-  - `uv run pytest tests/test_runtime_protocol_paper_artifacts.py tests/test_figure_renderer_contract.py tests/test_time_to_event_direct_migration.py tests/test_display_layout_qc.py tests/test_display_surface_materialization.py tests/test_medical_publication_surface.py tests/test_display_schema_contract.py tests/test_medical_reporting_contract.py tests/test_medical_reporting_audit.py tests/test_medical_startup_contract_support.py tests/test_quest_hydration.py tests/test_startup_hydration_validation.py tests/test_submission_minimal_display_surface.py tests/test_publication_gate.py -q`
+  - `uv run pytest tests/test_delivery_artifact_resolution.py tests/test_figure_renderer_contract.py tests/test_time_to_event_direct_migration.py tests/test_display_layout_qc.py tests/test_display_surface_materialization.py tests/test_medical_publication_surface.py tests/test_display_schema_contract.py tests/test_medical_reporting_contract.py tests/test_medical_reporting_audit.py tests/test_medical_startup_contract_support.py tests/test_quest_hydration.py tests/test_startup_hydration_validation.py tests/test_submission_minimal_display_surface.py tests/test_publication_gate.py -q`
   - result: `171 passed`
 - cross-paper paper-root verification:
   - `001 paper root` closure-time `materialize-display-surface` clear

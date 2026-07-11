@@ -4,7 +4,7 @@ from pathlib import Path
 from typing import Any, Callable, Mapping
 
 from med_autoscience.profiles import WorkspaceProfile
-from med_autoscience.runtime_protocol.layout import build_workspace_runtime_layout_for_profile
+from med_autoscience.workspace_contracts import build_workspace_runtime_layout_for_profile
 from med_autoscience.workspace_paths import publication_route_memory_root
 
 

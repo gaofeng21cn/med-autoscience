@@ -7,8 +7,8 @@ from pathlib import Path
 from med_autoscience.controllers._medical_display_surface_support import resolve_required_display_surface_stub
 from med_autoscience.policies import medical_publication_surface as medical_surface_policy
 from med_autoscience.policies.medical_reporting_checklist import build_structured_reporting_checklist
-from med_autoscience.runtime_protocol import paper_artifacts
-from med_autoscience.runtime_protocol import report_store as runtime_protocol_report_store
+from med_autoscience.controllers import paper_artifacts
+from med_autoscience.adapters import report_store as runtime_protocol_report_store
 
 
 def utc_now() -> str:

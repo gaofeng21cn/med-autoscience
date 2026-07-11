@@ -52,7 +52,7 @@ def test_plan_commands_for_runtime_contract_surface_include_mas_runtime_proofs()
 
     assert "scripts/run-pytest-clean.sh tests/test_opl_runtime_contract.py -q" in commands
     assert "scripts/run-pytest-clean.sh tests/test_profiles.py -q" in commands
-    assert "scripts/run-pytest-clean.sh tests/test_runtime_protocol_layout.py -q" in commands
+    assert "scripts/run-pytest-clean.sh tests/test_workspace_runtime_layout.py -q" in commands
     assert "scripts/run-pytest-clean.sh tests/test_runtime_transport_hermes.py -q" not in commands
     assert "scripts/run-pytest-clean.sh tests/test_work_unit_runtime_contract.py -q" not in commands
     assert "make test-meta" in commands

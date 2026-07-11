@@ -13,7 +13,7 @@ CONTROL_PLANE_TESTS := \
 	tests/test_authority_route_gate.py \
 	tests/test_delivery_artifact_authority.py \
 	tests/test_storage_governance_policy_kernel.py \
-	tests/test_runtime_protocol_paper_artifacts.py \
+	tests/test_delivery_artifact_resolution.py \
 	tests/test_study_delivery_sync.py \
 	tests/test_delivery_authority_backfill_apply.py \
 	tests/test_truth_projection_surfaces.py \

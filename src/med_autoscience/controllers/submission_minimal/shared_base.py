@@ -17,7 +17,7 @@ from med_autoscience.publication_profiles import (
     is_frontiers_family_harvard_profile,
     normalize_publication_profile,
 )
-from med_autoscience.runtime_protocol.paper_artifacts import (
+from med_autoscience.controllers.paper_artifacts import (
     materialize_archived_reference_only_submission_surface_manifests,
     resolve_managed_submission_surface_roots,
 )

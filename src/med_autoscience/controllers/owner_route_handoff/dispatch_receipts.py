@@ -5,7 +5,7 @@ from pathlib import Path
 from typing import Any, Callable, Mapping
 
 from med_autoscience.profiles import WorkspaceProfile
-from med_autoscience.runtime_protocol.workspace_artifacts import workspace_runtime_artifact_path
+from med_autoscience.workspace_contracts import workspace_runtime_artifact_path
 
 
 JsonReader = Callable[[Path], dict[str, Any] | None]

@@ -47,7 +47,7 @@ from med_autoscience.publication_figure_quality_contract import (
     load_figure_style_reference_bundle,
     load_figure_visual_audit_receipt,
 )
-from med_autoscience.runtime_protocol.display_artifact_manifest import build_display_artifact_manifest
+from med_autoscience.display_pack_e2e_runtime.artifact_manifest import build_display_artifact_manifest
 
 
 PUBLICATION_MANIFEST_BASENAME = "display_pack_publication_manifest.json"

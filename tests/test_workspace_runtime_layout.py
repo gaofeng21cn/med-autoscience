@@ -29,7 +29,7 @@ def make_profile(tmp_path: Path):
 
 
 def test_workspace_runtime_layout_derives_med_deepscientist_roots(tmp_path: Path) -> None:
-    module = importlib.import_module("med_autoscience.runtime_protocol.layout")
+    module = importlib.import_module("med_autoscience.workspace_contracts")
     profile = make_profile(tmp_path)
 
     layout = module.build_workspace_runtime_layout_for_profile(profile)
@@ -47,7 +47,7 @@ def test_workspace_runtime_layout_derives_med_deepscientist_roots(tmp_path: Path
 
 
 def test_workspace_runtime_layout_derives_quest_and_startup_payload_paths(tmp_path: Path) -> None:
-    module = importlib.import_module("med_autoscience.runtime_protocol.layout")
+    module = importlib.import_module("med_autoscience.workspace_contracts")
 
     layout = module.build_workspace_runtime_layout(workspace_root=tmp_path / "workspace")
 
@@ -64,7 +64,7 @@ def test_workspace_runtime_layout_derives_quest_and_startup_payload_paths(tmp_pa
 
 
 def test_workspace_runtime_layout_for_profile_accepts_mas_first_runtime_root(tmp_path: Path) -> None:
-    module = importlib.import_module("med_autoscience.runtime_protocol.layout")
+    module = importlib.import_module("med_autoscience.workspace_contracts")
     profiles = importlib.import_module("med_autoscience.profiles")
     workspace_root = tmp_path / "workspace"
     profile = profiles.WorkspaceProfile(
@@ -121,7 +121,7 @@ def test_workspace_runtime_layout_rejects_hermes_active_runtime_ref(tmp_path: Pa
 
 
 def test_resolve_runtime_root_from_quest_root_returns_workspace_runtime_root(tmp_path: Path) -> None:
-    module = importlib.import_module("med_autoscience.runtime_protocol.layout")
+    module = importlib.import_module("med_autoscience.workspace_contracts")
     quest_root = tmp_path / "workspace" / "ops" / "med-deepscientist" / "runtime" / "quests" / "study-001"
 
     assert module.resolve_runtime_root_from_quest_root(quest_root) == (

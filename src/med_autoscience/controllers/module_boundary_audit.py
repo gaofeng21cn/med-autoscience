@@ -229,6 +229,7 @@ MODULE_GROUPS: tuple[dict[str, Any], ...] = (
             "src/med_autoscience/controllers/artifact_runtime_proof.py",
             "src/med_autoscience/controllers/delivery_artifact_authority.py",
             "src/med_autoscience/controllers/delivery_visibility.py",
+            "src/med_autoscience/controllers/paper_artifacts.py",
             "src/med_autoscience/controllers/delivery_visibility_projection.py",
             "src/med_autoscience/controllers/submission_package_layout.py",
         ],
