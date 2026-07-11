@@ -31,7 +31,7 @@ def build_authority_kernel_inventory() -> dict[str, Any]:
         "source_of_truth_refs": [
             "docs/runtime/designs/mas_opl_agent_os_target_operating_architecture.md",
             "docs/active/mas-ideal-state-gap-plan.md",
-            "src/med_autoscience/runtime_control/owner_callable_registry.py",
+            "src/med_autoscience/controllers/owner_callable_registry.py",
             "contracts/action_catalog.json",
             "contracts/foundry-agent-os-domain-kernel-manifest.json",
             "contracts/mas-paper-study-stage-pack.json",

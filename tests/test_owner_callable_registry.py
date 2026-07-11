@@ -4,7 +4,7 @@ import importlib
 
 
 def test_owner_callable_registry_exposes_paper_progress_slo_owners() -> None:
-    module = importlib.import_module("med_autoscience.runtime_control.owner_callable_registry")
+    module = importlib.import_module("med_autoscience.controllers.owner_callable_registry")
 
     registry = module.owner_callable_registry()
 
@@ -33,7 +33,7 @@ def test_owner_callable_registry_exposes_paper_progress_slo_owners() -> None:
 
 
 def test_owner_callable_registry_maps_actions_to_callable_surfaces() -> None:
-    module = importlib.import_module("med_autoscience.runtime_control.owner_callable_registry")
+    module = importlib.import_module("med_autoscience.controllers.owner_callable_registry")
 
     gate = module.owner_callable_for_action("run_gate_clearing_batch")
     ai_reviewer = module.owner_callable_for_action("return_to_ai_reviewer_workflow")

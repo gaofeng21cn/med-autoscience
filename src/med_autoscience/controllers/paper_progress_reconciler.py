@@ -7,7 +7,7 @@ from med_autoscience.controllers.owner_callable_adapter_projection import (
     domain_progress_transition_requests,
     legacy_owner_callable_adapter_refs,
 )
-from med_autoscience.runtime_control.owner_callable_registry import owner_callable_registry
+from med_autoscience.controllers.owner_callable_registry import owner_callable_registry
 
 from .paper_progress_state import build_paper_progress_state
 from .paper_progress_transition_refs import record_paper_progress_transition_ref

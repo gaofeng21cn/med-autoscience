@@ -3,7 +3,7 @@ from __future__ import annotations
 from pathlib import Path
 from typing import Any
 
-from med_autoscience.runtime_control import owner_callable_registry
+from med_autoscience.controllers.owner_callable_registry import owner_callable_registry
 
 
 def owner_token(value: str | None) -> str:

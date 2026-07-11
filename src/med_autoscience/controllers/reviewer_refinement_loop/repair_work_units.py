@@ -6,7 +6,7 @@ import re
 from pathlib import Path
 from typing import Any, Mapping
 
-from med_autoscience.runtime_control.owner_callable_registry import owner_callable_registry
+from med_autoscience.controllers.owner_callable_registry import owner_callable_registry
 
 
 EXECUTION_CONTRACT: dict[str, Any] = {

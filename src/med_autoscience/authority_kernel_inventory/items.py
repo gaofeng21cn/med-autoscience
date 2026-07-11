@@ -7,7 +7,7 @@ from med_autoscience.authority_kernel_inventory.schema import (
     OWNER,
     AuthorityKernelItem,
 )
-from med_autoscience.runtime_control.owner_callable_registry import (
+from med_autoscience.controllers.owner_callable_registry import (
     owner_callable_for_action,
     paper_work_unit_lifecycle_for_action,
 )
@@ -166,7 +166,7 @@ def _owner_callable_item(
         category=category,
         owner=_required_text(callable_payload.get("owner"), "owner"),
         surface_ref=(
-            "src/med_autoscience/runtime_control/owner_callable_registry.py::"
+            "src/med_autoscience/controllers/owner_callable_registry.py::"
             f"{action_type}"
         ),
         active_caller_refs=(

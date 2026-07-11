@@ -563,7 +563,7 @@ def _normalize_owner(owner: str | None) -> str | None:
 
 def _registered_callable_owners() -> set[str]:
     try:
-        from med_autoscience.runtime_control.owner_callable_registry import callable_owner_names
+        from med_autoscience.controllers.owner_callable_registry import callable_owner_names
     except ImportError:
         return set()
     return set(callable_owner_names())

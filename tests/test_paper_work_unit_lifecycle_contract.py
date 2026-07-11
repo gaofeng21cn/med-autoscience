@@ -4,7 +4,7 @@ import importlib
 
 
 def test_paper_work_unit_lifecycle_contract_declares_owner_writes_refs_and_completion_proof() -> None:
-    registry = importlib.import_module("med_autoscience.runtime_control.owner_callable_registry")
+    registry = importlib.import_module("med_autoscience.controllers.owner_callable_registry")
 
     contract = registry.paper_work_unit_lifecycle_contract()
     quality_repair = contract["work_units"]["run_quality_repair_batch"]
@@ -54,7 +54,7 @@ def test_paper_work_unit_lifecycle_contract_declares_owner_writes_refs_and_compl
 
 
 def test_paper_work_unit_lifecycle_contract_resolves_action_specific_entry() -> None:
-    registry = importlib.import_module("med_autoscience.runtime_control.owner_callable_registry")
+    registry = importlib.import_module("med_autoscience.controllers.owner_callable_registry")
 
     lifecycle = registry.paper_work_unit_lifecycle_for_action("return_to_ai_reviewer_workflow")
 
@@ -67,7 +67,7 @@ def test_paper_work_unit_lifecycle_contract_resolves_action_specific_entry() -> 
 
 
 def test_paper_work_unit_lifecycle_contract_declares_publication_handoff_owner_gate() -> None:
-    registry = importlib.import_module("med_autoscience.runtime_control.owner_callable_registry")
+    registry = importlib.import_module("med_autoscience.controllers.owner_callable_registry")
 
     lifecycle = registry.paper_work_unit_lifecycle_for_action("publication_handoff_owner_gate")
 
@@ -91,7 +91,7 @@ def test_paper_work_unit_lifecycle_contract_declares_publication_handoff_owner_g
 
 
 def test_paper_work_unit_lifecycle_contract_declares_readiness_stage_native_closeout_writes() -> None:
-    registry = importlib.import_module("med_autoscience.runtime_control.owner_callable_registry")
+    registry = importlib.import_module("med_autoscience.controllers.owner_callable_registry")
 
     lifecycle = registry.paper_work_unit_lifecycle_for_action(
         "complete_medical_paper_readiness_surface"
@@ -123,7 +123,7 @@ def test_paper_work_unit_lifecycle_contract_declares_readiness_stage_native_clos
 
 
 def test_paper_work_unit_lifecycle_contract_declares_external_learning_sidecar_nonblocking() -> None:
-    registry = importlib.import_module("med_autoscience.runtime_control.owner_callable_registry")
+    registry = importlib.import_module("med_autoscience.controllers.owner_callable_registry")
 
     lifecycle = registry.paper_work_unit_lifecycle_for_action("run_external_learning_sidecar")
 

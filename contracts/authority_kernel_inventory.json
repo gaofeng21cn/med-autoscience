@@ -74,7 +74,7 @@
       "owner": "publication_gate_owner",
       "replacement_parity": "not_replaceable_by_OPL_generic_runtime_only_receipt_or_blocker_transport_allowed",
       "retirement_gate": "retained until MAS authority owner supersedes with owner receipt, typed blocker, quality gate, human gate, or route-back evidence",
-      "surface_ref": "src/med_autoscience/runtime_control/owner_callable_registry.py::publication_handoff_owner_gate",
+      "surface_ref": "src/med_autoscience/controllers/owner_callable_registry.py::publication_handoff_owner_gate",
       "tombstone_or_provenance": "required_if_surface_is_later_retired",
       "upcollect_target": "OPL StageRun transports receipt refs only"
     },
@@ -122,7 +122,7 @@
       "owner": "MedAutoScience",
       "replacement_parity": "not_replaceable_by_OPL_generic_runtime_only_receipt_or_blocker_transport_allowed",
       "retirement_gate": "retained until MAS authority owner supersedes with owner receipt, typed blocker, quality gate, human gate, or route-back evidence",
-      "surface_ref": "src/med_autoscience/runtime_control/owner_callable_registry.py::complete_medical_paper_readiness_surface",
+      "surface_ref": "src/med_autoscience/controllers/owner_callable_registry.py::complete_medical_paper_readiness_surface",
       "tombstone_or_provenance": "required_if_surface_is_later_retired",
       "upcollect_target": "OPL StageRun carries typed blocker refs only"
     },
@@ -195,7 +195,7 @@
       "owner": "ai_reviewer",
       "replacement_parity": "not_replaceable_by_OPL_generic_runtime_only_receipt_or_blocker_transport_allowed",
       "retirement_gate": "retained until MAS authority owner supersedes with owner receipt, typed blocker, quality gate, human gate, or route-back evidence",
-      "surface_ref": "src/med_autoscience/runtime_control/owner_callable_registry.py::return_to_ai_reviewer_workflow",
+      "surface_ref": "src/med_autoscience/controllers/owner_callable_registry.py::return_to_ai_reviewer_workflow",
       "tombstone_or_provenance": "required_if_surface_is_later_retired",
       "upcollect_target": "OPL transports reviewer invocation and eval refs only"
     },
@@ -315,7 +315,7 @@
       "owner": "external_learning_sidecar",
       "replacement_parity": "not_replaceable_by_OPL_generic_runtime_only_receipt_or_blocker_transport_allowed",
       "retirement_gate": "retained until MAS authority owner supersedes with owner receipt, typed blocker, quality gate, human gate, or route-back evidence",
-      "surface_ref": "src/med_autoscience/runtime_control/owner_callable_registry.py::run_external_learning_sidecar",
+      "surface_ref": "src/med_autoscience/controllers/owner_callable_registry.py::run_external_learning_sidecar",
       "tombstone_or_provenance": "required_if_surface_is_later_retired",
       "upcollect_target": "OPL Capability Registry invokes advisory workers fail-open"
     },
@@ -434,7 +434,7 @@
   "source_of_truth_refs": [
     "docs/runtime/designs/mas_opl_agent_os_target_operating_architecture.md",
     "docs/active/mas-ideal-state-gap-plan.md",
-    "src/med_autoscience/runtime_control/owner_callable_registry.py",
+    "src/med_autoscience/controllers/owner_callable_registry.py",
     "contracts/action_catalog.json",
     "contracts/foundry-agent-os-domain-kernel-manifest.json",
     "contracts/mas-paper-study-stage-pack.json"
