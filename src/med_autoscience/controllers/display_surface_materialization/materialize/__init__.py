@@ -16,7 +16,7 @@ from .pre_materialized_tables import _dpcc_medication_capture_markdown_path, _ex
 from .visual_audit import _write_catalog_visual_audit_receipt, materialize_display_visual_audit
 from .workspace import _active_generated_illustration_paths_from_catalog, _claim_ids_for_table, _is_known_requirement_key, _load_display_shell_payload, _purpose_first_renderer_fields, _resolve_contract_backed_figure_contract_path, _resolve_requirement_key_from_shell
 from ..payload_loader import _load_evidence_display_payload
-from ..renderers import _load_layout_sidecar_or_raise, _prepare_python_illustration_output_paths, _prepare_python_render_output_paths, _prepare_table_shell_output_paths
+from ..renderers import _bind_renderer_layout_metric_abi, _load_layout_sidecar_or_raise, _prepare_python_illustration_output_paths, _prepare_python_render_output_paths, _prepare_table_shell_output_paths
 from ..source_hydration import hydrate_display_surface_sources_from_current_body
 from ..submission_graphical_abstract import _materialize_submission_graphical_abstract
 from ..validation_tables import _validate_cohort_flow_payload
@@ -841,6 +841,11 @@ def materialize_display_surface(*, paper_root: Path) -> dict[str, Any]:
                 output_svg_path=output_svg_path,
             )
             layout_sidecar = _load_layout_sidecar_or_raise(path=layout_sidecar_path, template_id=spec.template_id)
+            layout_sidecar = _bind_renderer_layout_metric_abi(
+                template_id=template_short_id,
+                display_payload=render_payload,
+                layout_sidecar=layout_sidecar,
+            )
             layout_sidecar["render_context"] = render_context
             dump_json(layout_sidecar_path, layout_sidecar)
             purpose_first_fields = _purpose_first_renderer_fields(layout_sidecar)

@@ -8,6 +8,65 @@ def _load_layout_sidecar_or_raise(*, path: Path, template_id: str) -> dict[str, 
         raise RuntimeError(f"renderer did not produce layout sidecar for `{template_id}`: {path}")
     return load_json(path)
 
+
+def _bind_renderer_layout_metric_abi(
+    *,
+    template_id: str,
+    display_payload: dict[str, Any],
+    layout_sidecar: dict[str, Any],
+) -> dict[str, Any]:
+    metrics = layout_sidecar.get("metrics")
+    if not isinstance(metrics, dict):
+        raise ValueError(f"layout sidecar for `{template_id}` must contain metrics")
+
+    if template_id == "time_dependent_roc_horizon":
+        metrics["time_horizon_months"] = display_payload["time_horizon_months"]
+        metrics["title"] = str(display_payload.get("title") or "").strip()
+        metrics["caption"] = str(display_payload.get("caption") or "").strip()
+    elif template_id in {"kaplan_meier_grouped", "cumulative_incidence_grouped"}:
+        metrics["annotation"] = str(display_payload.get("annotation") or "").strip()
+    elif template_id == "time_to_event_multihorizon_calibration_panel":
+        panel_boxes = {
+            str(box.get("box_id") or ""): box
+            for box in layout_sidecar.get("panel_boxes") or []
+            if isinstance(box, dict)
+        }
+        for panel in metrics.get("panels") or []:
+            panel_label = str(panel.get("panel_label") or "").strip()
+            panel_box = panel_boxes.get(f"panel_{panel_label}")
+            summaries = panel.get("calibration_summary") or []
+            if not isinstance(panel_box, dict) or not summaries:
+                continue
+            x0 = float(panel_box["x0"])
+            x1 = float(panel_box["x1"])
+            y0 = float(panel_box["y0"])
+            y1 = float(panel_box["y1"])
+            for row_index, summary in enumerate(summaries, start=1):
+                predicted = float(summary["predicted_risk"])
+                observed = float(summary["observed_risk"])
+                x_max = max(0.35, predicted, observed, 1e-6)
+                summary["predicted_x"] = min(
+                    x1 - 0.02,
+                    max(x0 + 0.02, x0 + 0.04 + (predicted / x_max) * (x1 - x0) * 0.82),
+                )
+                summary["observed_x"] = min(
+                    x1 - 0.02,
+                    max(x0 + 0.02, x0 + 0.04 + (observed / x_max) * (x1 - x0) * 0.82),
+                )
+                summary["y"] = y0 + (len(summaries) - row_index + 1) * (
+                    (y1 - y0) / (len(summaries) + 1)
+                )
+    elif template_id == "generalizability_subgroup_composite_panel":
+        for index, row in enumerate(metrics.get("overview_rows") or [], start=1):
+            row["label_box_id"] = f"overview_row_label_{index}"
+            row["support_label_box_id"] = f"overview_support_label_{index}"
+            row["metric_marker_box_id"] = f"overview_metric_marker_{index}"
+        for index, row in enumerate(metrics.get("subgroup_rows") or [], start=1):
+            row["label_box_id"] = f"subgroup_row_label_{index}"
+            row["estimate_box_id"] = f"subgroup_estimate_{index}"
+            row["ci_box_id"] = f"subgroup_ci_{index}"
+    return layout_sidecar
+
 def _centered_offsets(count: int, *, half_span: float = 0.28) -> list[float]:
     if count <= 1:
         return [0.0]
@@ -124,6 +183,7 @@ def _build_single_panel_layout_sidecar(
 
 __all__ = [
     "_load_layout_sidecar_or_raise",
+    "_bind_renderer_layout_metric_abi",
     "_centered_offsets",
     "_prepare_python_render_output_paths",
     "_prepare_python_illustration_output_paths",

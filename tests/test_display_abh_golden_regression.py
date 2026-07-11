@@ -196,14 +196,14 @@ def _build_abh_paper_proven_workspace(tmp_path: Path) -> Path:
                     "panel_label": "A",
                     "title": "Cohort and split",
                     "subtitle": "Locked analysis cohort",
-                    "rows": [{"cards": [{"card_id": "analytic", "title": "Analytic cohort", "value": "15,787", "detail": "Formal modeling cohort"}]}],
+                    "rows": [{"cards": [{"card_id": "analytic", "title": "Analytic cohort", "value": "15,787", "detail": "Formal modeling cohort", "evidence_ref": "analysis:cohort_flow"}]}],
                 },
                 {
                     "panel_id": "primary_endpoint",
                     "panel_label": "B",
                     "title": "Primary endpoint",
                     "subtitle": "Cardiovascular mortality",
-                    "rows": [{"cards": [{"card_id": "ridge", "title": "Validation C-index", "value": "0.857", "detail": "Primary five-year endpoint", "accent_role": "primary"}]}],
+                    "rows": [{"cards": [{"card_id": "ridge", "title": "Validation C-index", "value": "0.857", "detail": "Primary five-year endpoint", "accent_role": "primary", "evidence_ref": "analysis:primary_model_performance"}]}],
                 },
                 {
                     "panel_id": "supportive_context",

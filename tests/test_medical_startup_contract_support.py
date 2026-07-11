@@ -644,6 +644,11 @@ def test_survival_reporting_contract_hydration_and_materialization_use_semantic_
         },
     )
     paper_root = quest_root / "paper"
+    from tests.display_surface_materialization_cases.workspace_surface_fixtures import (
+        _write_prepared_dependency_environment,
+    )
+
+    _write_prepared_dependency_environment(paper_root)
     dump_json(paper_root / "figures" / "figure_catalog.json", {"schema_version": 1, "figures": []})
     dump_json(paper_root / "tables" / "table_catalog.json", {"schema_version": 1, "tables": []})
     dump_json(
