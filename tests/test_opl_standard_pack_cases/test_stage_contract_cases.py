@@ -48,15 +48,14 @@ def test_domain_owner_answer_projection_profile_is_domain_owned_and_refs_only() 
 
 
 def test_opl_standard_pack_declares_single_ordinary_default_stage() -> None:
-    stage_control_plane = _read_contract("stage_control_plane")
+    stage_manifest = json.loads(
+        (REPO_ROOT / "agent/stages/manifest.json").read_text(encoding="utf-8")
+    )
     profile = _read_contract("golden_path_profile")
 
-    default_stage_ids = [
-        stage["stage_id"]
-        for stage in stage_control_plane["stages"]
-        if stage.get("selected_executor", {}).get("default_executor") is True
-        and stage.get("selected_executor", {}).get("lane_kind") != "variant"
-    ]
+    stages = stage_manifest["stages"]
+    assert isinstance(stages, list)
+    default_stage_ids = [stages[0]["stage_id"]]
 
     assert default_stage_ids == profile["ordinary_path"]["stage_refs"] == [
         "direction_and_route_selection"

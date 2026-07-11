@@ -161,7 +161,7 @@
         "review_and_quality_gate",
         "finalize_and_publication_handoff"
       ],
-      "launch_surface": "codex_cli_launch_packet",
+      "launch_surface": "stage_contract.mandatory_pre_gate_checks",
       "readback_surface": "stage_contract.mandatory_pre_gate_checks",
       "triggered_action": "research-integrity-reference-verification",
       "trigger_points": [
@@ -574,7 +574,7 @@
       "review_and_quality_gate",
       "finalize_and_publication_handoff"
     ],
-    "launch_surface": "codex_cli_launch_packet",
+    "launch_surface": "stage_contract.mandatory_pre_gate_checks",
     "readback_surface": "stage_contract.mandatory_pre_gate_checks",
     "triggered_action": "research-integrity-reference-verification",
     "trigger_points": [
@@ -609,24 +609,24 @@
       "can_write_provider_attempt": false,
       "can_write_runtime_queue": false
     },
-      "mandatory_before_stage_completion": true,
-      "required_before_owner_receipt_or_typed_blocker": true,
-      "mandatory_gate_input": true,
-      "live_owner_consumption_claimed": false,
-      "paper_mission_subordination": {
-        "surface_kind": "mas_paper_mission_subordination",
-        "authority_owner": "MedAutoScience",
-        "mainline_route": [
-          "PaperMission",
-          "submission_authority",
-          "submission_authority_owner_gate_or_typed_blocker"
-        ],
-        "control_plane_role": "subordinate_input_or_advisory_only",
-        "can_start_parallel_mainline": false,
-        "can_bypass_submission_authority": false,
-        "can_close_without_owner_gate_or_typed_blocker": false
-      },
-      "authority_boundary": {
+    "mandatory_before_stage_completion": true,
+    "required_before_owner_receipt_or_typed_blocker": true,
+    "mandatory_gate_input": true,
+    "live_owner_consumption_claimed": false,
+    "paper_mission_subordination": {
+      "surface_kind": "mas_paper_mission_subordination",
+      "authority_owner": "MedAutoScience",
+      "mainline_route": [
+        "PaperMission",
+        "submission_authority",
+        "submission_authority_owner_gate_or_typed_blocker"
+      ],
+      "control_plane_role": "subordinate_input_or_advisory_only",
+      "can_start_parallel_mainline": false,
+      "can_bypass_submission_authority": false,
+      "can_close_without_owner_gate_or_typed_blocker": false
+    },
+    "authority_boundary": {
       "outputs_are_gate_inputs": true,
       "surface_authority": "mandatory_stage_hook_gate_input_only",
       "can_request_provider_lookup": true,
@@ -649,7 +649,7 @@
   },
   "completion_boundary": {
     "stage_launch_readback_surface": {
-      "launch_surface": "codex_cli_launch_packet.mandatory_pre_gate_checks",
+      "launch_surface": "stage_contract.mandatory_pre_gate_checks",
       "readback_surface": "stage_contract.mandatory_pre_gate_checks",
       "target_stage_ids": [
         "review_and_quality_gate",

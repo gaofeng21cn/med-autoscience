@@ -12,7 +12,7 @@
   "owner_callable_adapter": "codex_cli",
   "default_outer_loop": "current_owner_delta",
   "stage_attempt_strategy": "cognitive_kernel_stage_internal",
-  "stage_control_plane_ref": "contracts/stage_control_plane.json",
+  "stage_control_plane_ref": "opl-generated:family_stage_control_plane",
   "pack_compiler_input_ref": "contracts/pack_compiler_input.json",
   "stage_route_contract_ref": "agent/stages/stage_route_contract.yaml",
   "stage_native_semantic_pack_ref": "agent/stages/stage_native_semantic_pack.yaml",

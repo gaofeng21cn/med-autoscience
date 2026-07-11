@@ -7,7 +7,7 @@ Machine boundary: This file declares available medical research tool affordances
 
 ## Boundary
 
-MAS stage attempts may use tools to read declared study material, literature refs, dataset refs, analysis workspaces, manuscript drafts, figure outputs, and body-free evidence refs. Tool use stays inside the permission, credential, write-scope, side-effect, and forbidden-authority boundaries declared by `contracts/pack_compiler_input.json`, `contracts/stage_control_plane.json`, and MAS owner contracts.
+MAS stage attempts may use tools to read declared study material, literature refs, dataset refs, analysis workspaces, manuscript drafts, figure outputs, and body-free evidence refs. Tool use stays inside the permission, credential, write-scope, side-effect, and forbidden-authority boundaries declared by `contracts/pack_compiler_input.json`, `agent/stages/manifest.json`, the OPL-generated stage control plane, and MAS owner contracts.
 
 ## Affordances
 

@@ -138,7 +138,7 @@ def stage_launch_required_input(*, stage_id: str | None = None) -> dict[str, Any
         "hook_id": HOOK_ID,
         "command": HOOK_ID,
         "target_stage_ids": target_stage_ids,
-        "launch_surface": "codex_cli_launch_packet",
+        "launch_surface": "stage_contract.mandatory_pre_gate_checks",
         "readback_surface": "stage_contract.mandatory_pre_gate_checks",
         "triggered_action": TRIGGERED_ACTION,
         "trigger_points": list(TRIGGER_POINTS),

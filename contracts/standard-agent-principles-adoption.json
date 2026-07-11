@@ -71,7 +71,7 @@
       "domain_source_refs": [
         "contracts/domain_descriptor.json",
         "contracts/pack_compiler_input.json",
-        "contracts/stage_control_plane.json",
+        "agent/stages/manifest.json",
         "contracts/mas-paper-study-stage-pack.json",
         "contracts/action_catalog.json",
         "contracts/artifact_locator_contract.json",

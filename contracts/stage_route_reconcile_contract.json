@@ -99,7 +99,7 @@
     "contracts/stage_run_kernel_profile.json",
     "contracts/progress_first_safety_envelope.json",
     "contracts/foundry_agent_series.json",
-    "contracts/stage_control_plane.json"
+    "agent/stages/manifest.json"
   ],
   "external_engineering_principles": {
     "surface_kind": "stage_route_external_engineering_principles",

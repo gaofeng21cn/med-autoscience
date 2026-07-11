@@ -22,23 +22,22 @@ FORBIDDEN_READY_CLAIMS = {
 }
 
 
-def _stages_by_id(stage_plane: dict[str, object]) -> dict[str, dict[str, object]]:
-    stages = stage_plane["stages"]
+def _stages_by_id(stage_manifest: dict[str, object]) -> dict[str, dict[str, object]]:
+    stages = stage_manifest["stages"]
     assert isinstance(stages, list)
     return {stage["stage_id"]: stage for stage in stages}
 
 
-def _static_stage_control_plane() -> dict[str, object]:
+def _stage_manifest() -> dict[str, object]:
     return json.loads(
-        (REPO_ROOT / "contracts" / "stage_control_plane.json").read_text(encoding="utf-8")
+        (REPO_ROOT / "agent" / "stages" / "manifest.json").read_text(encoding="utf-8")
     )
 
 
-def test_stage_control_plane_keeps_six_top_level_stages_with_typed_subpacket_gates() -> None:
-    static_plane = _static_stage_control_plane()
-    static_stages = _stages_by_id(static_plane)
+def test_stage_manifest_keeps_six_top_level_stages_with_typed_subpacket_gates() -> None:
+    manifest_stages = _stages_by_id(_stage_manifest())
 
-    assert list(static_stages) == [
+    assert list(manifest_stages) == [
         "direction_and_route_selection",
         "baseline_and_evidence_setup",
         "bounded_analysis_campaign",
@@ -47,21 +46,23 @@ def test_stage_control_plane_keeps_six_top_level_stages_with_typed_subpacket_gat
         "finalize_and_publication_handoff",
     ]
 
-    for stage_id, stage in static_stages.items():
-        has_gate = "typed_cognitive_subpacket_gate" in stage
+    for stage_id, stage in manifest_stages.items():
+        extension = stage["stage_contract_extension"]
+        has_gate = "typed_cognitive_subpacket_gate" in extension
         assert has_gate is (stage_id in TARGET_GATES)
 
     for stage_id, packet_id in TARGET_GATES.items():
-        static_stage = static_stages[stage_id]
-        gate = static_stage["typed_cognitive_subpacket_gate"]
+        stage = manifest_stages[stage_id]
+        gate = stage["stage_contract_extension"]["typed_cognitive_subpacket_gate"]
 
-        assert static_stage["stage_contract"]["typed_cognitive_subpacket_gate"] == gate
-        assert static_stage["codex_cli_launch_packet"]["typed_cognitive_subpacket_gate"] == gate
         assert gate["surface_kind"] == "mas_typed_cognitive_subpacket_gate"
         assert gate["packet_id"] == packet_id
         assert gate["packet_required_before_stage_completion"] is True
         assert gate["readback_surface"] == "stage_contract.typed_cognitive_subpacket_gate"
-        assert gate["launch_surface"] == "codex_cli_launch_packet.typed_cognitive_subpacket_gate"
+        assert gate["launch_surface"] == "stage_contract.typed_cognitive_subpacket_gate"
+        assert gate["contract_source_ref"].startswith(
+            "agent/stages/manifest.json#/stages/"
+        )
         assert gate["consumed_ref_families"]
         assert gate["produced_ref_families"]
         assert gate["route_back_conditions"]

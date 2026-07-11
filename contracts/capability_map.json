@@ -1948,8 +1948,8 @@
         },
         {
           "ref_kind": "contract_ref",
-          "ref": "contracts/stage_control_plane.json",
-          "role": "stage_control_plane"
+          "ref": "agent/stages/manifest.json",
+          "role": "declarative_stage_manifest"
         }
       ],
       "sync_policy": "repo_local_default",
@@ -1966,11 +1966,11 @@
       ],
       "canonical_paths": [
         "agent/prompts/",
-        "contracts/stage_control_plane.json"
+        "agent/stages/manifest.json"
       ],
       "target_repo_file_hints": [
         "agent/prompts/",
-        "contracts/stage_control_plane.json"
+        "agent/stages/manifest.json"
       ],
       "authority_boundary": {
         "can_write_domain_truth": false,
@@ -1984,7 +1984,7 @@
       },
       "canonical_target_paths": [
         "agent/prompts/",
-        "contracts/stage_control_plane.json"
+        "agent/stages/manifest.json"
       ],
       "verification_refs": [
         "tests/test_stage_prompt_specialist_routes.py",

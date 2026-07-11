@@ -199,7 +199,7 @@
   },
   "domain_pack_binding": {
     "accepted_source_refs": [
-      "contracts/stage_control_plane.json",
+      "agent/stages/manifest.json",
       "contracts/foundry_agent_series.json",
       "src/med_autoscience/controllers/stage_artifact_index.py",
       "src/med_autoscience/controllers/opl_physical_stage_kernel.py"

@@ -188,7 +188,7 @@ Write scope:
 Write scope:
 
 - `contracts/pack_compiler_input.json`
-- `contracts/stage_control_plane.json`
+- `agent/stages/manifest.json` and the OPL-generated stage control plane
 - `contracts/action_catalog.json`
 - `contracts/foundry_agent_series.json`
 - `contracts/generated_surface_handoff.json`

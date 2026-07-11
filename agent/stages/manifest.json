@@ -1581,7 +1581,7 @@
             "display_table_figure_refs",
             "controller_decision_refs"
           ],
-          "contract_source_ref": "src/med_autoscience/opl_domain_pack/family_adoption/stage_descriptor.py::_stage_typed_cognitive_subpacket_gate",
+          "contract_source_ref": "agent/stages/manifest.json#/stages/3/stage_contract_extension/typed_cognitive_subpacket_gate",
           "forbidden_ready_claims": [
             "specialist_output_as_ready",
             "test_pass_as_ready",
@@ -1593,7 +1593,7 @@
             "journal_strategy_or_claim_expansion_requires_PI_decision",
             "external_source_or_credential_authority_required"
           ],
-          "launch_surface": "codex_cli_launch_packet.typed_cognitive_subpacket_gate",
+          "launch_surface": "stage_contract.typed_cognitive_subpacket_gate",
           "packet_id": "manuscript_packet",
           "packet_required_before_stage_completion": true,
           "packet_role": "canonical_manuscript_handoff_candidate",
@@ -2072,7 +2072,7 @@
             "research_integrity_gate_input_refs",
             "artifact_and_display_freshness_refs"
           ],
-          "contract_source_ref": "src/med_autoscience/opl_domain_pack/family_adoption/stage_descriptor.py::_stage_typed_cognitive_subpacket_gate",
+          "contract_source_ref": "agent/stages/manifest.json#/stages/4/stage_contract_extension/typed_cognitive_subpacket_gate",
           "forbidden_ready_claims": [
             "specialist_output_as_ready",
             "test_pass_as_ready",
@@ -2084,7 +2084,7 @@
             "official_go_stop_reroute_or_publication_strategy_decision_required",
             "external_release_or_submission_authorization_requested"
           ],
-          "launch_surface": "codex_cli_launch_packet.typed_cognitive_subpacket_gate",
+          "launch_surface": "stage_contract.typed_cognitive_subpacket_gate",
           "packet_id": "independent_review_packet",
           "packet_required_before_stage_completion": true,
           "packet_role": "independent_reviewer_auditor_gate_input",
@@ -2135,7 +2135,7 @@
             },
             "command": "research-integrity-review-publication-gate-stage-hook",
             "hook_id": "research-integrity-review-publication-gate-stage-hook",
-            "launch_surface": "codex_cli_launch_packet",
+            "launch_surface": "stage_contract.mandatory_pre_gate_checks",
             "live_owner_consumption_claimed": false,
             "mandatory_before_stage_completion": true,
             "mandatory_gate_input": true,
@@ -2648,7 +2648,7 @@
             "journal_requirement_refs",
             "human_gate_state_refs"
           ],
-          "contract_source_ref": "src/med_autoscience/opl_domain_pack/family_adoption/stage_descriptor.py::_stage_typed_cognitive_subpacket_gate",
+          "contract_source_ref": "agent/stages/manifest.json#/stages/5/stage_contract_extension/typed_cognitive_subpacket_gate",
           "forbidden_ready_claims": [
             "specialist_output_as_ready",
             "test_pass_as_ready",
@@ -2660,7 +2660,7 @@
             "external_submission_PI_journal_strategy_or_portal_action_required",
             "credential_or_irreversible_delivery_authorization_required"
           ],
-          "launch_surface": "codex_cli_launch_packet.typed_cognitive_subpacket_gate",
+          "launch_surface": "stage_contract.typed_cognitive_subpacket_gate",
           "packet_id": "publication_handoff_admission_packet",
           "packet_required_before_stage_completion": true,
           "packet_role": "publication_handoff_candidate_before_external_delivery",
@@ -2711,7 +2711,7 @@
             },
             "command": "research-integrity-review-publication-gate-stage-hook",
             "hook_id": "research-integrity-review-publication-gate-stage-hook",
-            "launch_surface": "codex_cli_launch_packet",
+            "launch_surface": "stage_contract.mandatory_pre_gate_checks",
             "live_owner_consumption_claimed": false,
             "mandatory_before_stage_completion": true,
             "mandatory_gate_input": true,

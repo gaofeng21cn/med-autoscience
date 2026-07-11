@@ -102,7 +102,7 @@ def build_evo_scientist_learning_projection() -> dict[str, Any]:
                 "owner_surface": "generated_default_caller_surfaces",
                 "target_surfaces": [
                     "agent/stages/stage_route_contract.yaml",
-                    "contracts/stage_control_plane.json",
+                    "agent/stages/manifest.json",
                     "test-lane manifests",
                 ],
                 "source_refs": [

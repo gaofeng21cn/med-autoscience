@@ -96,3 +96,7 @@ def test_stage_manifest_declares_domain_extensions_for_opl_generated_plane() -> 
 
         expected_late_fields = LATE_STAGE_EXTENSION_FIELDS.get(stage["stage_id"], set())
         assert expected_late_fields <= set(extension)
+
+
+def test_legacy_static_stage_control_plane_is_physically_retired() -> None:
+    assert not (REPO_ROOT / "contracts/stage_control_plane.json").exists()

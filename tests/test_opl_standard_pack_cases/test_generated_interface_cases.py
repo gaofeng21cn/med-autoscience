@@ -8,42 +8,6 @@ from pathlib import Path
 import pytest
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
-LIGHT_EXTERNAL_PATTERN_INTAKE_STAGE_IDS = {
-    "direction_and_route_selection",
-    "manuscript_authoring",
-    "review_and_quality_gate",
-    "finalize_and_publication_handoff",
-}
-
-
-def test_light_external_pattern_intake_projects_into_stage_surfaces_as_refs_only() -> None:
-    generated = json.loads(
-        (REPO_ROOT / "contracts/stage_control_plane.json").read_text(encoding="utf-8")
-    )
-    stages_by_id = {
-        stage["stage_id"]: stage for stage in generated["stages"]
-    }
-
-    assert LIGHT_EXTERNAL_PATTERN_INTAKE_STAGE_IDS <= set(stages_by_id)
-    for stage_id, stage in stages_by_id.items():
-        stage_has_light_intake = "external_pattern_intake_pack" in stage["quality_pack_refs"]
-        assert stage_has_light_intake is (stage_id in LIGHT_EXTERNAL_PATTERN_INTAKE_STAGE_IDS)
-        assert stage["quality_pack_projection"]["pack_refs"] == stage["quality_pack_refs"]
-        assert stage["codex_cli_launch_packet"]["quality_pack_refs"] == stage["quality_pack_refs"]
-
-        projection = stage["quality_pack_projection"]
-        assert projection["role"] == "quality_input_and_reviewer_rubric"
-        assert projection["opl_projection_boundary"] == "descriptor_ref_freshness_locator_only"
-        assert projection["publication_readiness_authority"] is False
-        assert projection["quality_verdict_authority"] is False
-        assert projection["runtime_permission_authority"] is False
-
-        skill_projection = stage["stage_skill_surface_projection"]
-        assert "external_pattern_intake_pack" in skill_projection["quality_pack_refs"]
-        skill_boundary = skill_projection["authority_boundary"]
-        assert skill_boundary["can_write_mas_truth"] is False
-        assert skill_boundary["can_authorize_publication_readiness"] is False
-        assert skill_boundary["can_authorize_quality_verdict"] is False
 
 
 def test_opl_generated_interfaces_compile_mas_standard_pack() -> None:
@@ -80,11 +44,11 @@ def test_opl_generated_interfaces_compile_mas_standard_pack() -> None:
     )
     assert first_cli["request"] == {"command": first_cli["action_id"]}
     assert set(first_cli["required_fields"]).isdisjoint(first_cli["optional_fields"])
-    generated = json.loads(
-        (REPO_ROOT / "contracts/stage_control_plane.json").read_text(encoding="utf-8")
+    stage_manifest = json.loads(
+        (REPO_ROOT / "agent/stages/manifest.json").read_text(encoding="utf-8")
     )
     assert {item["stage_id"] for item in bundle["stage_routes"]} == {
-        stage["stage_id"] for stage in generated["stages"]
+        stage["stage_id"] for stage in stage_manifest["stages"]
     }
 
 

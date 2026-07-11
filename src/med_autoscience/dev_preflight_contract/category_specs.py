@@ -412,7 +412,7 @@ def build_category_specs(
     spec_type(
         category_id="control_plane_surface",
         exact_paths=(
-            "contracts/stage_control_plane.json",
+            "agent/stages/manifest.json",
             "scripts/real-paper-autonomy-soak-inventory.py",
             "src/med_autoscience/controllers/opl_provider_ready_adapter/__init__.py",
             "src/med_autoscience/controllers/owner_route_handoff/domain_handler_export.py",

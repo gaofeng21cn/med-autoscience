@@ -103,22 +103,15 @@ def test_stage_quality_contract_exposes_descriptor_only_data_access_isolation_me
 
 
 def test_stage_control_metadata_projects_data_access_isolation_refs_without_authority() -> None:
-    import json
-    from pathlib import Path
+    from med_autoscience.stage_quality_contract import build_stage_quality_pack_projection
 
-    stage_control_plane = json.loads(
-        (Path(__file__).resolve().parents[1] / "contracts/stage_control_plane.json").read_text(
-            encoding="utf-8"
-        )
+    projection = build_stage_quality_pack_projection()
+    assert projection["data_access_ground_truth_isolation_ref"] == (
+        "/product_entry_manifest/stage_quality_pack_contract/data_access_ground_truth_isolation"
     )
-
-    for stage in stage_control_plane["stages"]:
-        assert stage["quality_pack_projection"]["data_access_ground_truth_isolation_ref"] == (
-            "/product_entry_manifest/stage_quality_pack_contract/data_access_ground_truth_isolation"
-        )
-        assert stage["quality_pack_projection"]["data_access_levels"] == [
-            "raw_source_intake",
-            "verified_evidence_only",
-            "reviewer_verdict_only",
-        ]
-        assert stage["quality_pack_projection"]["runtime_permission_authority"] is False
+    assert projection["data_access_levels"] == [
+        "raw_source_intake",
+        "verified_evidence_only",
+        "reviewer_verdict_only",
+    ]
+    assert projection["runtime_permission_authority"] is False

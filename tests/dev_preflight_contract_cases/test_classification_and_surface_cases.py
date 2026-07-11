@@ -277,7 +277,7 @@ def test_classify_changed_files_matches_control_plane_surface() -> None:
 
     result = module.classify_changed_files(
         [
-            "contracts/stage_control_plane.json",
+            "agent/stages/manifest.json",
             "scripts/real-paper-autonomy-soak-inventory.py",
             "src/med_autoscience/controllers/domain_authority_snapshot.py",
             "src/med_autoscience/controllers/delivery_artifact_authority.py",
@@ -299,6 +299,7 @@ def test_classify_changed_files_matches_control_plane_surface() -> None:
     )
 
     assert result.matched_categories == (
+        "standard_agent_pack_surface",
         "control_plane_surface",
     )
     assert result.unclassified_changes == ()

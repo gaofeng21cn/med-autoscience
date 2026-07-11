@@ -37,7 +37,7 @@
     "private_functional_surface_policy": "contracts/private_functional_surface_policy.json",
     "progress_first_safety_envelope": "contracts/progress_first_safety_envelope.json",
     "runtime_environment_requirement_profile": "contracts/runtime_environment_requirements.json",
-    "stage_control_plane": "contracts/stage_control_plane.json"
+    "stage_control_plane": "opl-generated:family_stage_control_plane"
   },
   "surface_kind": "domain_agent_descriptor"
 }

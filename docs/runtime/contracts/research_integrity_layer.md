@@ -54,7 +54,7 @@ MAS 同时暴露聚合消费面：
 
 稳定目标链路是：
 
-1. `review_and_quality_gate` 与 `finalize_and_publication_handoff` 的 stage control plane descriptor 在 `codex_cli_launch_packet.mandatory_pre_gate_checks` 写入 RI hook，且同一内容投影到 `stage_contract.mandatory_pre_gate_checks` 作为 readback / descriptor consumer。
+1. `review_and_quality_gate` 与 `finalize_and_publication_handoff` 的 manifest extension 声明 RI hook，OPL generated stage control plane 在 `stage_contract.mandatory_pre_gate_checks` 暴露同一内容给 launch/readback consumer。
 2. MAS domain provider lookup 根据 stage hook 请求查询 Crossref、PubMed、OpenAlex、Semantic Scholar、publisher 或 Crossmark evidence；已显式提供的 generic connector evidence 可先被归一化，但不替代 MAS 的 domain action。
 3. MAS Research Integrity Gate 消费 provider evidence、reference refs、claim refs、citation refs、display refs 和 manuscript facts，生成 `research_integrity_gate_input_bundle`，并保留输入 source refs 供 owner surface 追溯。
 4. AI reviewer 或 publication gate consumer 把该 bundle 当作 quality input，在 MAS owner surface 内决定 receipt、typed blocker、route-back 或 human gate。
@@ -66,7 +66,7 @@ MAS 同时暴露聚合消费面：
 本层允许声明：
 
 - RI gate-input callable / descriptor / contract 已同步。
-- `review_and_quality_gate` 与 `finalize_and_publication_handoff` 的 mandatory RI hook 已在 machine-readable contract、stage control plane、hook payload、`codex_cli_launch_packet.mandatory_pre_gate_checks` 和 `stage_contract.mandatory_pre_gate_checks` 中同步。
+- `review_and_quality_gate` 与 `finalize_and_publication_handoff` 的 mandatory RI hook 已在 machine-readable contract、manifest extension、hook payload 和 OPL generated `stage_contract.mandatory_pre_gate_checks` 中同步。
 - RI payload 可作为 AI reviewer / publication gate 的输入证据。
 - forbidden writes 已被合同、action catalog 和 domain entry 边界声明。
 

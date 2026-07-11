@@ -4,7 +4,7 @@ Status: `active_runtime_support`
 Owner: `MedAutoScience`
 Purpose: `stage_route_handoff_standard`
 State: `active_support`
-Machine boundary: 本文是 MAS 面向 OPL stage-led runtime 的人读标准。机器 truth 继续归 `agent/` semantic pack、`contracts/stage_control_plane.json`、`contracts/action_catalog.json`、`contracts/generated_surface_handoff.json`、domain-handler export/dispatch receipt、domain transition table、owner receipt、typed blocker、publication eval、controller decision 和真实 workspace artifact。
+Machine boundary: 本文是 MAS 面向 OPL stage-led runtime 的人读标准。机器 truth 继续归 `agent/` semantic pack、`opl-generated:family_stage_control_plane`、`contracts/action_catalog.json`、`contracts/generated_surface_handoff.json`、domain-handler export/dispatch receipt、domain transition table、owner receipt、typed blocker、publication eval、controller decision 和真实 workspace artifact。
 Date: `2026-05-26`
 
 ## 结论

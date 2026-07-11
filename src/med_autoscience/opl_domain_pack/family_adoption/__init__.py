@@ -32,23 +32,15 @@ from ..agent_pack_refs import (
     AGENT_STAGE_POLICY_REFS,
 )
 from .. import hypothesis_portfolio_pack
-from .stage_descriptor import (
-    STANDARD_STAGE_PACK_CONFORMANCE_VERSION,
-    build_stage_descriptor as _build_stage_descriptor,
-    plane_source_refs as _plane_source_refs,
-    stage_deliverable_index_projection as _stage_deliverable_index_projection,
-)
 from ..family_stage_artifact_index_projection import (
     STAGE_ARTIFACT_INDEX_PROJECTION_REF,
     stage_artifact_index_projection_descriptor,
 )
-from ..family_stage_pack import FAMILY_STAGE_PACK
 from med_autoscience.runtime_protocol import opl_state_index_source_adapter
 from med_autoscience.workspace_paths import PUBLICATION_ROUTE_MEMORY_RELPATH
 
 ADOPTION_SURFACE_KIND = "mas_opl_family_domain_authority_refs_adoption"
 FAMILY_STAGE_CONTROL_PLANE_DESCRIPTOR_KIND = "family_stage_control_plane_descriptor"
-FAMILY_STAGE_CONTROL_PLANE_KIND = "family_stage_control_plane"
 DOMAIN_MEMORY_DESCRIPTOR_KIND = "family_domain_memory_ref"
 SOURCE_CONTRACT_REF = "contracts/opl-framework/family-contract-adoption.json"
 DOMAIN_AUTHORITY_REFS_CONTRACT_REF = (
@@ -80,6 +72,31 @@ FORBIDDEN_OPL_AUTHORITY_SURFACES = (
     "paper/manuscript/current_package",
     "current_package.zip",
 )
+
+
+def _stage_deliverable_index_projection(stage_surface: Mapping[str, Any]) -> dict[str, Any]:
+    index = _mapping(stage_surface.get("stage_deliverable_index"))
+    return {
+        "surface_kind": index.get("surface_kind"),
+        "version": index.get("version"),
+        "role": index.get("role"),
+        "stage_count": index.get("stage_count"),
+        "locator_ref": "/product_entry_manifest/family_stage_control_plane_descriptor/stage_deliverable_index",
+        "stage_refs": list(index.get("stage_refs") or []),
+        "human_review_page_refs": list(index.get("human_review_page_refs") or []),
+        "source_refs": list(index.get("source_refs") or []),
+        "human_review_policy": _mapping(index.get("human_review_policy")),
+        "review_page_policy": _mapping(index.get("review_page_policy")),
+        "authority_boundary": _mapping(index.get("authority_boundary")),
+        "opl_projection_boundary": "read_only_locator_no_truth_write",
+        "auto_advance_boundary": {
+            "default_blocks_auto_advance": False,
+            "blocking_only_when": "mas_human_gate_boundary_triggered",
+            "opl_can_block_auto_advance": False,
+            "opl_can_mark_publication_ready": False,
+        },
+    }
+
 
 def build_family_stage_control_plane_descriptor() -> dict[str, Any]:
     route_contract_payload = load_stage_route_contract_payload()
@@ -360,65 +377,6 @@ def build_domain_memory_descriptor() -> dict[str, Any]:
     }
 
 
-def build_family_stage_control_plane(*, family_action_catalog: Mapping[str, Any]) -> dict[str, Any]:
-    descriptor = build_family_stage_control_plane_descriptor()
-    action_ids = {
-        str(action.get("action_id"))
-        for action in family_action_catalog.get("actions", [])
-        if isinstance(action, Mapping) and str(action.get("action_id") or "").strip()
-    }
-    stages = [_build_stage_descriptor(stage, descriptor=descriptor) for stage in FAMILY_STAGE_PACK]
-    missing_refs = sorted(
-        {
-            action_ref
-            for stage in stages
-            for action_ref in stage["allowed_action_refs"]
-            if action_ref not in action_ids
-        }
-    )
-    if missing_refs:
-        raise ValueError(f"MAS stage control plane allowed_action_refs missing from family_action_catalog: {missing_refs}")
-
-    return {
-        "surface_kind": FAMILY_STAGE_CONTROL_PLANE_KIND,
-        "version": "family-stage-control-plane.v1",
-        "plane_id": "med_autoscience_stage_control_plane",
-        "target_domain_id": "med-autoscience",
-        "owner": "MedAutoScience",
-        "source_refs": _plane_source_refs(descriptor),
-        "freshness": {
-            "freshness_kind": "product_entry_manifest_projection",
-            "source_observed_at_ref": "/product_entry_manifest/family_stage_control_plane_descriptor/route_contract_snapshot",
-            "refresh_policy": "rebuild_product_entry_manifest_before_opl_discovery",
-            "stale_if_source_refs_missing": True,
-        },
-        "stage_action_parity": {
-            "surface_kind": "family_stage_action_parity",
-            "status": "aligned",
-            "family_action_catalog_ref": "/product_entry_manifest/family_action_catalog",
-            "missing_action_refs": [],
-        },
-        "stage_pack_conformance_version": STANDARD_STAGE_PACK_CONFORMANCE_VERSION,
-        "authority_boundary": {
-            "domain_truth_owner": "MedAutoScience",
-            "route_contract_owner": "MedAutoScience",
-            "stage_knowledge_plane_owner": "MedAutoScience",
-            "publication_gate_owner": "MedAutoScience",
-            "opl_role": "projection_consumer_only",
-            "write_policy": "no_study_truth_writes",
-            "can_write_domain_truth": False,
-            "can_authorize_publication_quality": False,
-            "can_authorize_submission_readiness": False,
-        },
-        "stages": stages,
-        "notes": [
-            "Descriptor-only projection over existing MAS Stage-Led Autonomy routes.",
-            "OPL may index, inspect, display and dispatch MAS-exported guarded tasks only.",
-            "MAS keeps route contracts, evidence/review ledgers, publication gate and domain authority receipts.",
-        ],
-    }
-
-
 def build_opl_family_adoption_surface(
     *,
     workspace_root: Path,
@@ -528,10 +486,8 @@ def _mapping(value: object) -> Mapping[str, Any]:
 __all__ = [
     "ADOPTION_SURFACE_KIND",
     "DOMAIN_MEMORY_DESCRIPTOR_KIND",
-    "FAMILY_STAGE_CONTROL_PLANE_KIND",
     "FAMILY_STAGE_CONTROL_PLANE_DESCRIPTOR_KIND",
     "build_domain_memory_descriptor",
-    "build_family_stage_control_plane",
     "build_family_stage_control_plane_descriptor",
     "build_opl_family_adoption_surface",
     "build_product_entry_adoption_projection",

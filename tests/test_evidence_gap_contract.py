@@ -84,12 +84,12 @@ def test_evidence_gap_examples_cover_schema_and_forbid_high_order_claims() -> No
             assert decision["typed_blocker_eligibility"] is False
 
 
-def test_stage_control_plane_references_projection_only_evidence_gap_abi() -> None:
-    stage_plane = _json("contracts/stage_control_plane.json")
+def test_stage_manifest_references_projection_only_evidence_gap_abi() -> None:
+    stage_manifest = _json("agent/stages/manifest.json")
 
-    assert stage_plane["stages"]
-    for stage in stage_plane["stages"]:
-        gap_abi = stage["stage_contract"]["human_gate_progress_evidence"][
+    assert stage_manifest["stages"]
+    for stage in stage_manifest["stages"]:
+        gap_abi = stage["stage_contract_extension"]["human_gate_progress_evidence"][
             "evidence_gap_consumption_abi"
         ]
         assert gap_abi["contract_ref"] == "contracts/evidence-gap-consumption-abi.json"
