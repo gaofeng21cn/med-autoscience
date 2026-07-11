@@ -3,25 +3,23 @@ from __future__ import annotations
 import importlib
 
 
-def test_owner_callable_registry_exposes_paper_progress_slo_owners() -> None:
+EXPECTED_AUTHORITY_CALLABLES = {
+    "publication_handoff_owner_gate": "publication_gate_owner",
+    "complete_medical_paper_readiness_surface": "MedAutoScience",
+    "return_to_ai_reviewer_workflow": "ai_reviewer",
+    "run_external_learning_sidecar": "external_learning_sidecar",
+}
+
+
+def test_owner_callable_registry_contains_only_minimal_authority_callables() -> None:
     module = importlib.import_module("med_autoscience.controllers.owner_callable_registry")
 
     registry = module.owner_callable_registry()
 
-    assert set(registry) == {
-        "MedAutoScience",
-        "analysis_harmonization_owner",
-        "ai_reviewer",
-        "decision",
-        "publication_gate",
-        "publication_gate_owner",
-        "provenance_limited_harmonization_owner",
-        "quality_repair_batch",
-        "source_provenance_owner",
-        "gate_clearing_batch",
-        "delivery_sync",
-        "external_learning_sidecar",
-    }
+    assert len(registry) == 4
+    assert {payload["action_type"]: owner for owner, payload in registry.items()} == (
+        EXPECTED_AUTHORITY_CALLABLES
+    )
     for owner, payload in registry.items():
         assert payload["owner"] == owner
         assert payload["callable_surface"]
@@ -32,53 +30,36 @@ def test_owner_callable_registry_exposes_paper_progress_slo_owners() -> None:
         assert payload["source_fingerprint_scope"]
 
 
-def test_owner_callable_registry_maps_actions_to_callable_surfaces() -> None:
+def test_owner_callable_registry_rejects_domain_dispatch_actions() -> None:
     module = importlib.import_module("med_autoscience.controllers.owner_callable_registry")
 
-    gate = module.owner_callable_for_action("run_gate_clearing_batch")
-    ai_reviewer = module.owner_callable_for_action("return_to_ai_reviewer_workflow")
-    harmonization = module.owner_callable_for_action("unit_harmonized_external_validation_rerun")
-    provenance = module.owner_callable_for_action("recover_transport_model_provenance")
-    methodology_reframe = module.owner_callable_for_action("methodology_reframe_route_decision")
-    provenance_limited = module.owner_callable_for_action("provenance_limited_harmonization_audit")
-    delivery = module.owner_callable_for_action("sync_submission_minimal_delivery")
-    handoff = module.owner_callable_for_action("publication_handoff_owner_gate")
-    readiness = module.owner_callable_for_action("complete_medical_paper_readiness_surface")
-    external_learning = module.owner_callable_for_action("run_external_learning_sidecar")
-    controller_route = module.owner_callable_for_action("inspect_controller_route")
+    for action_type in (
+        "publication_gate_specificity_required",
+        "run_quality_repair_batch",
+        "unit_harmonized_external_validation_rerun",
+        "recover_transport_model_provenance",
+        "methodology_reframe_route_decision",
+        "provenance_limited_harmonization_audit",
+        "run_gate_clearing_batch",
+        "sync_submission_minimal_delivery",
+    ):
+        assert module.owner_callable_for_action(action_type) is None
 
-    assert gate["owner"] == "gate_clearing_batch"
-    assert gate["gate_replay_target"] == "publication_gate.run_controller"
-    assert ai_reviewer["owner"] == "ai_reviewer"
-    assert ai_reviewer["required_outputs"] == ("artifacts/publication_eval/latest.json",)
-    assert harmonization["owner"] == "analysis_harmonization_owner"
-    assert harmonization["artifact_delta_predicate"] == (
-        "unit_harmonized_rerun_evidence_or_analysis_owner_typed_blocker"
+
+def test_owner_callable_registry_matches_authority_inventory_exactly() -> None:
+    registry_module = importlib.import_module(
+        "med_autoscience.controllers.owner_callable_registry"
     )
-    assert provenance["owner"] == "source_provenance_owner"
-    assert provenance["required_outputs"] == (
-        "canonical transport model provenance bundle",
-        "typed blocker:transport_model_provenance_recovery_required",
-    )
-    assert methodology_reframe["owner"] == "decision"
-    assert methodology_reframe["callable_surface"] == "decision_owner.methodology_reframe_route_decision"
-    assert provenance_limited["owner"] == "provenance_limited_harmonization_owner"
-    assert provenance_limited["artifact_delta_predicate"] == "provenance_limited_audit_or_route_typed_blocker"
-    assert delivery["owner"] == "delivery_sync"
-    assert delivery["artifact_delta_predicate"] == "submission_source_or_current_package_freshness_proof"
-    assert handoff["owner"] == "publication_gate_owner"
-    assert handoff["required_outputs"] == (
-        "artifacts/stage_outputs/08-publication_package_handoff/handoff_owner_receipt.json",
-        "typed blocker:publication_handoff_owner_gate_blocked",
-    )
-    assert readiness["owner"] == "MedAutoScience"
-    assert readiness["callable_surface"] == "medical_paper_readiness.complete_medical_paper_readiness_surface"
-    assert external_learning["owner"] == "external_learning_sidecar"
-    assert external_learning["callable_surface"] == (
-        "external_learning_sidecar.run_external_learning_sidecar"
-    )
-    assert external_learning["required_outputs"] == (
-        "artifacts/advisory/external_learning_sidecar/latest.json",
-        "refs-only advisory candidates",
-    )
-    assert controller_route is None
+    inventory_module = importlib.import_module("med_autoscience.authority_kernel_inventory")
+
+    registry_actions = {
+        payload["action_type"] for payload in registry_module.owner_callable_registry().values()
+    }
+    inventory_actions = {
+        ref.removeprefix("owner_callable:")
+        for item in inventory_module.build_authority_kernel_inventory()["items"]
+        for ref in item["active_caller_refs"]
+        if ref.startswith("owner_callable:")
+    }
+
+    assert registry_actions == inventory_actions == set(EXPECTED_AUTHORITY_CALLABLES)

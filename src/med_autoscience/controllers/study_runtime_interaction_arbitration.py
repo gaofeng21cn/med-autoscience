@@ -3,8 +3,8 @@ from __future__ import annotations
 from typing import Any
 
 from med_autoscience.controllers import study_domain_transition_guard as domain_transition_guard
-from med_autoscience.controllers.study_progress import canonical_next_action_gate
 from med_autoscience.controllers.owner_callable_registry import callable_owner_names
+from med_autoscience.controllers.study_progress import canonical_next_action_gate
 
 
 _EXTERNAL_INPUT_DECISION_TYPES = frozenset(
@@ -13,7 +13,7 @@ _EXTERNAL_INPUT_DECISION_TYPES = frozenset(
         "external_secret_request",
     }
 )
-_CALLABLE_OWNER_TOKENS = frozenset(
+_AUTHORITY_CALLABLE_OWNER_TOKENS = frozenset(
     str(owner).strip().lower().replace("-", "_")
     for owner in callable_owner_names()
     if str(owner).strip()
@@ -371,7 +371,11 @@ def _blocked_closeout_owner_wait(blocked_closeout: dict[str, Any] | None) -> dic
     if closeout_path is None and next_owner is None:
         return None
     owner_token = _owner_token(next_owner)
-    if owner_token in _CALLABLE_OWNER_TOKENS or owner_token == "mas/controller" or owner_token.startswith("mas/controller "):
+    if (
+        owner_token in _AUTHORITY_CALLABLE_OWNER_TOKENS
+        or owner_token == "mas/controller"
+        or owner_token.startswith("mas/controller ")
+    ):
         return {
             "classification": "blocked_closeout_owner_redrive",
             "action": "resume",
@@ -385,7 +389,7 @@ def _blocked_closeout_owner_wait(blocked_closeout: dict[str, Any] | None) -> dic
             "next_owner": next_owner,
             "blocked_reason": _text(blocked_closeout.get("blocked_reason")),
             "controller_stage_note": (
-                "The latest MAS turn closeout parked execution for a registered callable owner; "
+                "The latest MAS turn closeout parked execution for a minimal authority callable owner; "
                 "resume the managed runtime or controller dispatch instead of projecting a user wait."
             ),
         }

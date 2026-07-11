@@ -6,7 +6,7 @@ import re
 from pathlib import Path
 from typing import Any, Mapping
 
-from med_autoscience.controllers.owner_callable_registry import owner_callable_registry
+from med_autoscience.controllers.owner_callable_registry import owner_callable_for_action
 
 
 EXECUTION_CONTRACT: dict[str, Any] = {
@@ -169,10 +169,15 @@ def _repair_work_unit(
 
 
 def _owner_contract(work_unit_type: str) -> dict[str, Any]:
-    registry = owner_callable_registry()
     if work_unit_type == "ai_reviewer_recheck":
-        return dict(registry["ai_reviewer"])
-    return dict(registry["quality_repair_batch"])
+        contract = owner_callable_for_action("return_to_ai_reviewer_workflow")
+        if contract is None:
+            raise ValueError("missing_ai_reviewer_authority_callable")
+        return contract
+    return {
+        "owner": "quality_repair_batch",
+        "callable_surface": "quality_repair_batch.run_quality_repair_batch",
+    }
 
 
 def _required_inputs(

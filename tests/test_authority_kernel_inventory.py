@@ -81,7 +81,7 @@ def test_authority_kernel_inventory_covers_required_categories_and_fields() -> N
     assert {item["category"] for item in items} == REQUIRED_CATEGORIES
     assert inventory["counts"]["item_count"] == len(REQUIRED_CATEGORIES)
     assert inventory["counts"]["category_count"] == len(REQUIRED_CATEGORIES)
-    assert inventory["counts"]["owner_callable_backed_count"] >= 4
+    assert inventory["counts"]["owner_callable_backed_count"] == 4
     assert inventory["counts"]["gap_count"] == 0
     assert inventory["gaps"] == []
 

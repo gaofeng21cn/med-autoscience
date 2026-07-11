@@ -456,6 +456,9 @@ def _controller_route_blocked(payload: Mapping[str, Any], blocking_reasons: list
 
 
 def _same_line_reactivation_active(payload: Mapping[str, Any]) -> bool:
+    domain_transition = _mapping(payload.get("domain_transition"))
+    if _text(domain_transition.get("decision_type")) == "route_back_same_line":
+        return True
     quality_truth = _mapping(payload.get("quality_closure_truth"))
     if _text(quality_truth.get("state")) == "quality_repair_required":
         return True
@@ -486,8 +489,6 @@ def _owner_callable_surface_missing(payload: Mapping[str, Any], next_owner: str 
         return False
     interaction = _mapping(payload.get("interaction_arbitration"))
     if _text(interaction.get("blocked_reason")) == "owner_callable_surface_missing":
-        return True
-    if next_owner and next_owner not in _registered_callable_owners():
         return True
     return "owner_callable_surface_missing" in _blocking_reasons(payload)
 
@@ -559,14 +560,6 @@ def _normalize_owner(owner: str | None) -> str | None:
     if owner == "mas_controller" or owner.startswith("MAS/controller"):
         return "MAS/controller"
     return owner
-
-
-def _registered_callable_owners() -> set[str]:
-    try:
-        from med_autoscience.controllers.owner_callable_registry import callable_owner_names
-    except ImportError:
-        return set()
-    return set(callable_owner_names())
 
 
 def _blocking_reasons(payload: Mapping[str, Any]) -> list[str]:
