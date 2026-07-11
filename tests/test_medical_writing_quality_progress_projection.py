@@ -20,7 +20,7 @@ def test_study_progress_projects_medical_writing_quality_surfaces(tmp_path: Path
     quest_root = profile.runtime_root / "quest-001"
     write_study(workspace_root, "001-risk", quest_id="quest-001")
     _write_json(
-        study_root / "artifacts" / "runtime" / "last_launch_report.json",
+        study_root / "artifacts" / "supervision" / "opl_runtime_owner_handoff" / "latest.json",
         {
             "schema_version": 1,
             "study_id": "001-risk",

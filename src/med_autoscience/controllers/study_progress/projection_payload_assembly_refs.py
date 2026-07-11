@@ -11,7 +11,7 @@ from med_autoscience.runtime_status_summary import stable_runtime_status_summary
 
 def build_projection_refs(
     *,
-    launch_report_path: Path,
+    runtime_status_path: Path,
     publication_eval_path: Path,
     controller_decision_path: Path,
     controller_confirmation_summary_path: Path,
@@ -39,7 +39,7 @@ def build_projection_refs(
     runtime_medical_publication_surface: dict[str, Any] | None,
 ) -> dict[str, Any]:
     return {
-        "launch_report_path": str(launch_report_path),
+        "runtime_status_path": str(runtime_status_path),
         "publication_eval_path": str(publication_eval_path),
         "controller_decision_path": str(controller_decision_path),
         "controller_confirmation_summary_path": (

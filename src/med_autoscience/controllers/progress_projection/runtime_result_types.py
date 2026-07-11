@@ -7,7 +7,6 @@ from os import PathLike
 from pathlib import Path
 from typing import Any
 
-from med_autoscience.runtime_protocol import study_runtime as study_runtime_protocol
 from med_autoscience.study_completion import (
     StudyCompletionState,
     StudyCompletionStateStatus,

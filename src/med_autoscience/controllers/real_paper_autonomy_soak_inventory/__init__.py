@@ -798,7 +798,7 @@ def _canonical_study_roots(profile: WorkspaceProfile) -> list[Path]:
 
 
 def _is_canonical_study_root(study_root: Path) -> bool:
-    return (study_root / "study.yaml").is_file() or (study_root / "runtime_binding.yaml").is_file()
+    return (study_root / "study.yaml").is_file()
 
 
 def _study_report(study_root: Path) -> dict[str, Any]:

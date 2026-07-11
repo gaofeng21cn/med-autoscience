@@ -16,6 +16,7 @@ def test_study_progress_projects_active_quest_without_live_run_as_recovery(
     study_root = write_study(
         profile.workspace_root,
         "001-risk",
+        with_opl_runtime_handoff=True,
         study_archetype="clinical_classifier",
         endpoint_type="time_to_event",
         manuscript_family="prediction_model",
@@ -40,8 +41,9 @@ def test_study_progress_projects_active_quest_without_live_run_as_recovery(
             "quest_root": str(quest_root),
             "quest_exists": True,
             "quest_status": "active",
-            "runtime_binding_path": str(study_root / "runtime_binding.yaml"),
-            "runtime_binding_exists": True,
+            "runtime_status_path": str(
+                study_root / "artifacts" / "supervision" / "opl_runtime_owner_handoff" / "latest.json"
+            ),
             "study_completion_contract": {},
             "decision": "noop",
             "reason": "quest_already_running",
@@ -92,6 +94,7 @@ def test_study_progress_projects_output_blocker_impact_from_runtime_continuity(
     study_root = write_study(
         profile.workspace_root,
         "001-risk",
+        with_opl_runtime_handoff=True,
         study_archetype="clinical_classifier",
         endpoint_type="time_to_event",
         manuscript_family="prediction_model",
@@ -182,6 +185,7 @@ def test_study_progress_ignores_retired_runtime_supervision_currentness(
     study_root = write_study(
         profile.workspace_root,
         "001-risk",
+        with_opl_runtime_handoff=True,
         study_archetype="clinical_classifier",
         endpoint_type="time_to_event",
         manuscript_family="prediction_model",
@@ -293,6 +297,7 @@ def test_study_progress_treats_opl_runtime_owner_handoff_as_refs_only(
     study_root = write_study(
         profile.workspace_root,
         "001-risk",
+        with_opl_runtime_handoff=True,
         study_archetype="clinical_classifier",
         endpoint_type="time_to_event",
         manuscript_family="prediction_model",

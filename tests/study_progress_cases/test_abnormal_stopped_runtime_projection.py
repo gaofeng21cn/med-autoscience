@@ -66,8 +66,9 @@ def test_study_progress_does_not_project_abnormal_stopped_blocked_bundle_as_pack
             "quest_root": str(quest_root),
             "quest_exists": True,
             "quest_status": "stopped",
-            "runtime_binding_path": str(study_root / "runtime_binding.yaml"),
-            "runtime_binding_exists": True,
+            "runtime_status_path": str(
+                study_root / "artifacts" / "supervision" / "opl_runtime_owner_handoff" / "latest.json"
+            ),
             "study_completion_contract": {},
             "decision": "resume",
             "reason": "quest_stopped_by_controller_guard",

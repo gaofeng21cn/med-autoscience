@@ -49,7 +49,6 @@ StrEnum = enums_and_audits.StrEnum
 PathLike = enums_and_audits.PathLike
 Path = enums_and_audits.Path
 Any = enums_and_audits.Any
-study_runtime_protocol = enums_and_audits.study_runtime_protocol
 StudyCompletionState = enums_and_audits.StudyCompletionState
 StudyCompletionStateStatus = enums_and_audits.StudyCompletionStateStatus
 StudyRuntimeAnalysisBundleResult = runtime_result_types.StudyRuntimeAnalysisBundleResult

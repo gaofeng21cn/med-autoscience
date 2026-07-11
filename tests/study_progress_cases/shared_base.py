@@ -9,9 +9,14 @@ from tests.study_runtime_test_helpers import (
     make_profile,
     write_auditable_current_package,
     write_synced_submission_delivery,
-    write_study,
+    write_study as _write_study,
     write_submission_metadata_only_bundle,
 )
+
+
+def write_study(*args: object, **kwargs: object) -> Path:
+    kwargs.setdefault("with_opl_runtime_handoff", True)
+    return _write_study(*args, **kwargs)
 
 
 def _write_json(path: Path, payload: object) -> None:
@@ -217,7 +222,9 @@ def _write_controller_decision(
             "artifact_path": str(
                 quest_root / "artifacts" / "reports" / "escalation" / "runtime_escalation_record.json"
             ),
-            "summary_ref": str(study_root / "artifacts" / "runtime" / "last_launch_report.json"),
+            "summary_ref": str(
+                study_root / "artifacts" / "supervision" / "opl_runtime_owner_handoff" / "latest.json"
+            ),
         },
         "publication_eval_ref": {
             "eval_id": "publication-eval::001-risk::quest-001::2026-04-10T09:09:00+00:00",
@@ -255,11 +262,17 @@ def _write_runtime_escalation(quest_root: Path, study_root: Path) -> Path:
             "refresh_startup_hydration",
             "controller_review_required",
         ],
-        "evidence_refs": [str(study_root / "artifacts" / "runtime" / "last_launch_report.json")],
+        "evidence_refs": [
+            str(study_root / "artifacts" / "supervision" / "opl_runtime_owner_handoff" / "latest.json")
+        ],
         "runtime_context_refs": {
-            "launch_report_path": str(study_root / "artifacts" / "runtime" / "last_launch_report.json")
+            "opl_runtime_context_ref": str(
+                study_root / "artifacts" / "supervision" / "opl_runtime_owner_handoff" / "latest.json"
+            )
         },
-        "summary_ref": str(study_root / "artifacts" / "runtime" / "last_launch_report.json"),
+        "summary_ref": str(
+            study_root / "artifacts" / "supervision" / "opl_runtime_owner_handoff" / "latest.json"
+        ),
         "artifact_path": str(
             quest_root / "artifacts" / "reports" / "escalation" / "runtime_escalation_record.json"
         ),
@@ -350,7 +363,9 @@ def _write_runtime_supervision(study_root: Path, quest_root: Path) -> Path:
         "next_action": "manual_intervention_required",
         "next_action_summary": "请回到 MAS 控制面确认当前托管运行策略，并决定是否暂停、重启或接管。",
         "refs": {
-            "launch_report_path": str(study_root / "artifacts" / "runtime" / "last_launch_report.json"),
+            "runtime_status_path": str(
+                study_root / "artifacts" / "supervision" / "opl_runtime_owner_handoff" / "latest.json"
+            ),
             "runtime_readback_report_path": str(quest_root / "artifacts" / "reports" / "runtime_readback" / "latest.json"),
         },
     }

@@ -86,14 +86,22 @@ def _write_runtime_escalation_record(
         severity="quest",
         reason="startup_boundary_not_ready_for_resume",
         recommended_actions=("refresh_startup_hydration", "controller_review_required"),
-        evidence_refs=(str(study_root / "artifacts" / "runtime" / "last_launch_report.json"),),
-        runtime_context_refs={"launch_report_path": str(study_root / "artifacts" / "runtime" / "last_launch_report.json")},
-        summary_ref=str(study_root / "artifacts" / "runtime" / "last_launch_report.json"),
+        evidence_refs=(
+            str(study_root / "artifacts" / "supervision" / "opl_runtime_owner_handoff" / "latest.json"),
+        ),
+        runtime_context_refs={
+            "opl_runtime_context_ref": str(
+                study_root / "artifacts" / "supervision" / "opl_runtime_owner_handoff" / "latest.json"
+            )
+        },
+        summary_ref=str(
+            study_root / "artifacts" / "supervision" / "opl_runtime_owner_handoff" / "latest.json"
+        ),
     )
     return escalation_records.write_runtime_escalation_record(quest_root=quest_root, record=record).ref().to_dict()
 
 
-def _write_runtime_event_record(
+def _write_runtime_event_fixture(
     quest_root: Path,
     study_root: Path,
     *,
@@ -107,8 +115,10 @@ def _write_runtime_event_record(
     supervisor_tick_status: str | None = "fresh",
     runtime_escalation_ref: dict[str, str] | None = None,
 ) -> dict[str, str]:
-    protocol = importlib.import_module("med_autoscience.runtime_protocol.study_runtime")
-    record = protocol.RuntimeEventRecord(
+    event_records = importlib.import_module("med_autoscience.runtime_event_record")
+    owner_handoff_path = study_root / "artifacts" / "supervision" / "opl_runtime_owner_handoff" / "latest.json"
+    record_path = quest_root / "artifacts" / "reports" / "runtime_events" / "explicit-test-event.json"
+    record = event_records.RuntimeEventRecord(
         schema_version=1,
         event_id=f"runtime-event::001-risk::{quest_id}::status_observed::2026-04-05T05:56:00+00:00",
         study_id="001-risk",
@@ -116,7 +126,7 @@ def _write_runtime_event_record(
         emitted_at="2026-04-05T05:56:00+00:00",
         event_source="progress_projection",
         event_kind="status_observed",
-        summary_ref=str(study_root / "artifacts" / "runtime" / "last_launch_report.json"),
+        summary_ref=str(owner_handoff_path),
         status_snapshot={
             "quest_status": quest_status,
             "decision": decision,
@@ -144,7 +154,9 @@ def _write_runtime_event_record(
             "runtime_escalation_ref": runtime_escalation_ref,
         },
     )
-    return protocol.write_runtime_event_record(quest_root=quest_root, record=record).ref().to_dict()
+    written = record.with_artifact_path(str(record_path))
+    _write_json(record_path, written.to_dict())
+    return written.ref().to_dict()
 
 
 def _write_charter(study_root: Path) -> dict[str, str]:
@@ -214,10 +226,6 @@ def _write_publication_eval(study_root: Path, quest_root: Path) -> dict[str, str
         "eval_id": payload["eval_id"],
         "artifact_path": str(study_root / "artifacts" / "publication_eval" / "latest.json"),
     }
-
-
-
-
 
 
 

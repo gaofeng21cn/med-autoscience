@@ -41,7 +41,7 @@ def test_quality_repair_batch_prefers_current_upstream_eval_over_stale_bundle_ro
             "publication_objective": "primary care phenotype treatment gap",
         },
         "runtime_context_refs": {
-            "runtime_escalation_ref": str(study_root / "artifacts" / "runtime" / "last_launch_report.json"),
+            "runtime_escalation_ref": str(study_root / "artifacts" / "supervision" / "opl_runtime_owner_handoff" / "latest.json"),
             "main_result_ref": str(study_root / "artifacts" / "results" / "main_result.json"),
         },
         "delivery_context_refs": {

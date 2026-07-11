@@ -4,6 +4,8 @@ import importlib
 import json
 from pathlib import Path
 
+import pytest
+
 from tests.study_runtime_test_helpers import (
     _clear_readiness_report,
     make_profile,
@@ -231,21 +233,25 @@ def test_read_only_study_progress_does_not_materialize_authority_or_status_artif
     forbidden = [
         study_root / "artifacts" / "publication_eval" / "latest.json",
         study_root / "artifacts" / "runtime" / "runtime_status_summary.json",
-        study_root / "artifacts" / "runtime" / "last_launch_report.json",
+        study_root / "artifacts" / "supervision" / "opl_runtime_owner_handoff" / "latest.json",
         study_root / "artifacts" / "controller" / "controller_summary.json",
         study_root / "artifacts" / "controller" / "study_charter.json",
         study_root / "artifacts" / "medical_paper" / "readiness.json",
         study_root / "artifacts" / "eval_hygiene" / "promotion_gate" / "latest.json",
+        study_root / "artifacts" / "eval_hygiene" / "runtime_escalation_context" / "latest.json",
     ]
     for path in forbidden:
         path.unlink(missing_ok=True)
     _patch_readiness(status_module, monkeypatch, profile)
 
-    result = progress_module.read_study_progress(
-        profile=profile,
-        study_id=STUDY_ID,
-        sync_runtime_summary=False,
-    )
+    with pytest.raises(
+        FileNotFoundError,
+        match="requires an OPL runtime owner handoff ref",
+    ):
+        progress_module.read_study_progress(
+            profile=profile,
+            study_id=STUDY_ID,
+            sync_runtime_summary=False,
+        )
 
-    assert result["study_id"] == STUDY_ID
     assert not any(path.exists() for path in forbidden)

@@ -57,9 +57,9 @@ def _stable_inputs(tmp_path: Path) -> dict[str, object]:
             str(quest_root / "artifacts" / "results" / "main_result.json"),
         ],
         "runtime_context_refs": {
-            "launch_report_path": str(study_root / "artifacts" / "runtime" / "last_launch_report.json"),
+            "opl_runtime_context_ref": str(study_root / "artifacts" / "supervision" / "opl_runtime_owner_handoff" / "latest.json"),
         },
-        "summary_ref": str(study_root / "artifacts" / "runtime" / "last_launch_report.json"),
+        "summary_ref": str(study_root / "artifacts" / "supervision" / "opl_runtime_owner_handoff" / "latest.json"),
         "artifact_path": str(runtime_escalation_path),
     }
     publication_eval_payload = {
@@ -239,7 +239,6 @@ def _write_reporting_contract_task_intake(study_root: Path) -> dict[str, object]
     }
     _write_json(study_root / "artifacts" / "controller" / "task_intake" / "latest.json", payload)
     return payload
-
 
 
 

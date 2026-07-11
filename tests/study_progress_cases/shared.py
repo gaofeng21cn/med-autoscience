@@ -133,8 +133,9 @@ def managed_research_progress_payload(
         execution=execution if execution is not None else managed_runtime_execution(quest_id),
         quest_exists=True,
         quest_status=quest_status,
-        runtime_binding_path=str(study_root / "runtime_binding.yaml"),
-        runtime_binding_exists=True,
+        runtime_status_path=str(
+            study_root / "artifacts" / "supervision" / "opl_runtime_owner_handoff" / "latest.json"
+        ),
         study_completion_contract={},
         decision=decision,
         reason=reason,

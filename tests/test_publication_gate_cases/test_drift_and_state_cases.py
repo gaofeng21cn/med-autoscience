@@ -502,7 +502,6 @@ def test_build_gate_state_uses_newer_bound_study_paper_authority(tmp_path: Path)
     )
     study_root.mkdir(parents=True, exist_ok=True)
     (study_root / "study.yaml").write_text("study_id: 003-paper\n", encoding="utf-8")
-    (study_root / "runtime_binding.yaml").write_text("quest_id: 003-paper\n", encoding="utf-8")
     dump_json(study_paper_root / "paper_bundle_manifest.json", {"schema_version": 1, "paper_branch": "paper/main"})
     dump_json(study_paper_root / "submission_minimal" / "submission_manifest.json", {"schema_version": 1})
     newer_time = (runtime_paper_root / "paper_bundle_manifest.json").stat().st_mtime + 60

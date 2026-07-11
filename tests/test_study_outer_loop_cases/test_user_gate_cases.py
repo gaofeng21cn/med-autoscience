@@ -86,13 +86,16 @@ def test_study_outer_loop_tick_materializes_runtime_escalation_ref_before_stop_r
         minimum_sci_ready_evidence_package=["external_validation", "decision_curve_analysis"],
     )
     quest_root = profile.managed_runtime_home / "quests" / "quest-001"
+    owner_handoff_path = (
+        study_root / "artifacts" / "supervision" / "opl_runtime_owner_handoff" / "latest.json"
+    )
     _write_json(
-        study_root / "artifacts" / "runtime" / "last_launch_report.json",
+        owner_handoff_path,
         {
+            "surface_kind": "mas_opl_runtime_owner_handoff",
             "recorded_at": "2026-04-05T06:10:00+00:00",
-            "decision": "noop",
-            "reason": "quest_already_running",
-            "quest_status": "running",
+            "runtime_owner": "one-person-lab",
+            "status": "owner_receipt_written",
         },
     )
     charter_ref = _write_charter(study_root)
@@ -109,6 +112,10 @@ def test_study_outer_loop_tick_materializes_runtime_escalation_ref_before_stop_r
             "quest_status": "active",
             "decision": "noop",
             "reason": "quest_already_running",
+            "supervisor_tick_audit": {
+                "status": "fresh",
+                "latest_report_path": str(owner_handoff_path),
+            },
             "execution": {
                 "quest_id": "quest-001",
                 "runtime_backend": "med_deepscientist",

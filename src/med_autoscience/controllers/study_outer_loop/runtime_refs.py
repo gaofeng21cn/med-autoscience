@@ -12,10 +12,8 @@ from med_autoscience.runtime_escalation_record import (
     RuntimeEscalationRecord,
     RuntimeEscalationRecordRef,
     RuntimeEscalationTrigger,
-    read_runtime_escalation_record_ref,
     write_runtime_escalation_record,
 )
-from med_autoscience.runtime_protocol import study_runtime as study_runtime_protocol
 
 
 def _runtime_status_summary(
@@ -134,34 +132,14 @@ def _managed_runtime_requires_event_ref(status: dict[str, Any]) -> bool:
 
 def _hydrate_managed_runtime_refs(status: dict[str, Any]) -> dict[str, Any]:
     hydrated = dict(status)
-    quest_root_text = str(hydrated.get("quest_root") or "").strip()
-    if not quest_root_text:
+    current_control = hydrated.get("opl_current_control_state")
+    if not isinstance(current_control, dict):
+        current_control = hydrated.get("current_control_state")
+    if not isinstance(current_control, dict):
         return hydrated
-    quest_root = Path(quest_root_text).expanduser().resolve()
-    if not isinstance(hydrated.get("runtime_event_ref"), dict):
-        runtime_event_ref = None
-        try:
-            runtime_event_ref = study_runtime_protocol.read_runtime_event_record_ref(quest_root=quest_root)
-        except (OSError, TypeError, ValueError, json.JSONDecodeError):
-            runtime_event_path = quest_root / "artifacts" / "reports" / "runtime_events" / "latest.json"
-            if runtime_event_path.exists():
-                raw_payload = json.loads(runtime_event_path.read_text(encoding="utf-8")) or {}
-                if isinstance(raw_payload, dict):
-                    raw_payload = dict(raw_payload)
-                    raw_payload.setdefault("artifact_path", str(runtime_event_path))
-                    try:
-                        runtime_event_ref = RuntimeEventRecord.from_payload(raw_payload).ref()
-                    except (TypeError, ValueError):
-                        try:
-                            runtime_event_ref = NativeRuntimeEventRecord.from_payload(raw_payload).ref()
-                        except (TypeError, ValueError):
-                            runtime_event_ref = None
-        if runtime_event_ref is not None:
-            hydrated["runtime_event_ref"] = runtime_event_ref.to_dict()
-    if not isinstance(hydrated.get("runtime_escalation_ref"), dict):
-        runtime_escalation_ref = read_runtime_escalation_record_ref(quest_root=quest_root)
-        if runtime_escalation_ref is not None:
-            hydrated["runtime_escalation_ref"] = runtime_escalation_ref.to_dict()
+    for key in ("runtime_event_ref", "runtime_escalation_ref"):
+        if not isinstance(hydrated.get(key), dict) and isinstance(current_control.get(key), dict):
+            hydrated[key] = dict(current_control[key])
     return hydrated
 
 
@@ -229,7 +207,6 @@ def _resolve_runtime_escalation_record(
         if not quest_root_text:
             raise ValueError("study_outer_loop_tick requires quest_root to materialize runtime_escalation_ref")
         quest_root = Path(quest_root_text).expanduser().resolve()
-        summary_path = (study_root / "artifacts" / "runtime" / "last_launch_report.json").resolve()
         runtime_event_payload = status.get("runtime_event_ref")
         runtime_event_path = (
             str(runtime_event_payload.get("artifact_path") or "").strip()
@@ -242,12 +219,29 @@ def _resolve_runtime_escalation_record(
             if isinstance(supervisor_tick_payload, dict)
             else ""
         )
+        opl_current_control = status.get("opl_current_control_state")
+        if not isinstance(opl_current_control, dict):
+            opl_current_control = status.get("current_control_state")
+        if not isinstance(opl_current_control, dict):
+            opl_current_control = {}
+        opl_context_ref = str(
+            opl_current_control.get("transition_receipt_ref")
+            or opl_current_control.get("receipt_ref")
+            or opl_current_control.get("current_control_state_ref")
+            or opl_runtime_owner_handoff_path
+            or runtime_event_path
+            or ""
+        ).strip()
+        if not opl_context_ref:
+            raise ValueError(
+                "study_outer_loop_tick requires an explicit OPL current-control, transition-receipt, owner-handoff, or runtime-event ref"
+            )
         evidence_refs = tuple(
             path
             for path in (
                 runtime_event_path,
                 opl_runtime_owner_handoff_path,
-                str(summary_path),
+                opl_context_ref,
             )
             if path
         )
@@ -271,10 +265,8 @@ def _resolve_runtime_escalation_record(
             reason=escalation_reason,
             recommended_actions=("controller_review_required",),
             evidence_refs=evidence_refs,
-            runtime_context_refs={
-                "launch_report_path": str(summary_path),
-            },
-            summary_ref=str(summary_path),
+            runtime_context_refs={"opl_runtime_context_ref": opl_context_ref},
+            summary_ref=opl_context_ref,
             artifact_path=None,
         )
         written_record = write_runtime_escalation_record(

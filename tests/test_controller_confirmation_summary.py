@@ -38,7 +38,7 @@ def _write_controller_decision(
             "runtime_escalation_ref": {
                 "record_id": "runtime-escalation::001-risk::quest-001::publishability_gate_blocked::2026-04-20T02:58:00+00:00",
                 "artifact_path": str(study_root / "ops" / "quest-001" / "runtime_escalation_record.json"),
-                "summary_ref": str(study_root / "artifacts" / "runtime" / "last_launch_report.json"),
+                "summary_ref": str(study_root / "artifacts" / "supervision" / "opl_runtime_owner_handoff" / "latest.json"),
             },
             "publication_eval_ref": {
                 "eval_id": "publication-eval::001-risk::quest-001::2026-04-20T02:59:00+00:00",

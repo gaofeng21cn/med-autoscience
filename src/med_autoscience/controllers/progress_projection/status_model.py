@@ -10,7 +10,7 @@ from typing import Any
 from med_autoscience.controllers.quest_hydration import StartupHydrationReport
 from med_autoscience.controllers.startup_hydration_validation import StartupHydrationValidationReport
 from med_autoscience.runtime_escalation_record import RuntimeEscalationRecordRef
-from med_autoscience.runtime_protocol import study_runtime as study_runtime_protocol
+from med_autoscience.runtime_event_record import RuntimeEventRecordRef
 from med_autoscience.study_completion import (
     StudyCompletionState,
     StudyCompletionStateStatus,
@@ -66,8 +66,6 @@ class ProgressProjectionStatus(MutableMapping[str, Any]):
     quest_root: str
     quest_exists: bool
     quest_status: StudyRuntimeQuestStatus | None
-    runtime_binding_path: str
-    runtime_binding_exists: bool
     workspace_contracts: dict[str, Any] = field(default_factory=dict)
     startup_data_readiness: dict[str, Any] = field(default_factory=dict)
     startup_boundary_gate: dict[str, Any] = field(default_factory=dict)
@@ -89,8 +87,6 @@ class ProgressProjectionStatus(MutableMapping[str, Any]):
         "quest_root",
         "quest_exists",
         "quest_status",
-        "runtime_binding_path",
-        "runtime_binding_exists",
         "workspace_contracts",
         "startup_data_readiness",
         "startup_boundary_gate",
@@ -117,8 +113,6 @@ class ProgressProjectionStatus(MutableMapping[str, Any]):
             quest_root=str(resolved_payload.get("quest_root") or ""),
             quest_exists=bool(resolved_payload.get("quest_exists")),
             quest_status=cls._normalize_quest_status_field(resolved_payload.get("quest_status")),
-            runtime_binding_path=str(resolved_payload.get("runtime_binding_path") or ""),
-            runtime_binding_exists=bool(resolved_payload.get("runtime_binding_exists")),
             workspace_contracts=dict(resolved_payload.get("workspace_contracts") or {}),
             startup_data_readiness=dict(resolved_payload.get("startup_data_readiness") or {}),
             startup_boundary_gate=dict(resolved_payload.get("startup_boundary_gate") or {}),
@@ -595,28 +589,6 @@ class ProgressProjectionStatus(MutableMapping[str, Any]):
         )
         self._record_dict_extra("continuation_state", continuation_state.to_dict())
 
-    def record_runtime_artifacts(
-        self,
-        *,
-        runtime_binding_path: str | PathLike[str],
-        launch_report_path: str | PathLike[str],
-        startup_payload_path: str | PathLike[str] | None,
-    ) -> None:
-        artifacts = study_runtime_protocol.StudyRuntimeArtifacts(
-            runtime_binding_path=Path(self._normalize_path_field("runtime_binding_path", runtime_binding_path)),
-            launch_report_path=Path(self._normalize_path_field("launch_report_path", launch_report_path)),
-            startup_payload_path=(
-                Path(self._normalize_path_field("startup_payload_path", startup_payload_path))
-                if startup_payload_path is not None
-                else None
-            ),
-        )
-        artifact_payload = artifacts.to_dict()
-        self.runtime_binding_path = str(artifacts.runtime_binding_path)
-        self.runtime_binding_exists = artifacts.runtime_binding_path.exists()
-        self.extras["launch_report_path"] = str(artifacts.launch_report_path)
-        self.extras["startup_payload_path"] = artifact_payload["startup_payload_path"]
-
     def record_runtime_escalation_ref(
         self,
         value: dict[str, Any] | RuntimeEscalationRecordRef,
@@ -632,12 +604,12 @@ class ProgressProjectionStatus(MutableMapping[str, Any]):
 
     def record_runtime_event_ref(
         self,
-        value: dict[str, Any] | study_runtime_protocol.RuntimeEventRecordRef,
+        value: dict[str, Any] | RuntimeEventRecordRef,
     ) -> None:
         runtime_event_ref = (
             value
-            if isinstance(value, study_runtime_protocol.RuntimeEventRecordRef)
-            else study_runtime_protocol.RuntimeEventRecordRef.from_payload(
+            if isinstance(value, RuntimeEventRecordRef)
+            else RuntimeEventRecordRef.from_payload(
                 self._require_dict_field("runtime_event_ref", value)
             )
         )
@@ -684,12 +656,6 @@ class ProgressProjectionStatus(MutableMapping[str, Any]):
             return
         if key == "quest_status":
             self.update_quest_runtime(quest_status=value)
-            return
-        if key == "runtime_binding_path":
-            self.runtime_binding_path = self._normalize_path_field("runtime_binding_path", value)
-            return
-        if key == "runtime_binding_exists":
-            self.runtime_binding_exists = self._require_bool_field("runtime_binding_exists", value)
             return
         if key == "study_completion_contract":
             self.study_completion_state = self._normalize_study_completion_state_field(

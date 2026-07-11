@@ -311,10 +311,6 @@ def test_materialized_reporting_audit_accepts_cohort_flow_shell(tmp_path: Path) 
         "quest_id: obesity_multicenter_phenotype_atlas\nstudy_id: obesity_multicenter_phenotype_atlas\n",
         encoding="utf-8",
     )
-    (study_root / "runtime_binding.yaml").write_text(
-        "quest_id: obesity_multicenter_phenotype_atlas\nstudy_id: obesity_multicenter_phenotype_atlas\n",
-        encoding="utf-8",
-    )
     _write_json(paper_root / "paper_bundle_manifest.json", {"schema_version": 1, "paper_branch": "paper/main"})
     (paper_root / "draft.md").write_text("# Draft\n\nDescriptive registry atlas.\n", encoding="utf-8")
     _write_json(paper_root / "medical_manuscript_blueprint.json", {"schema_version": 1})

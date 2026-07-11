@@ -50,7 +50,7 @@ def progress_supervision_fields(
         "supervisor_tick_required": bool(supervisor_tick_audit.get("required")),
         "supervisor_tick_summary": _non_empty_text(supervisor_tick_audit.get("summary")),
         "supervisor_tick_latest_recorded_at": _non_empty_text(supervisor_tick_audit.get("latest_recorded_at")),
-        "launch_report_path": refs["launch_report_path"],
+        "runtime_status_path": refs["runtime_status_path"],
     }
 
 

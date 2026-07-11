@@ -311,16 +311,6 @@ def resolve_study_root_from_live_quest_root(quest_root: Path, runtime_state: dic
     direct_study_root = (workspace_root / "studies" / quest_id).resolve()
     if (direct_study_root / "study.yaml").exists():
         return direct_study_root
-    studies_root = workspace_root / "studies"
-    if not studies_root.exists():
-        return None
-    for runtime_binding_path in sorted(studies_root.glob("*/runtime_binding.yaml")):
-        payload = load_yaml_mapping(runtime_binding_path)
-        if str(payload.get("quest_id") or "").strip() != quest_id:
-            continue
-        study_root = runtime_binding_path.parent.resolve()
-        if (study_root / "study.yaml").exists():
-            return study_root
     return None
 
 

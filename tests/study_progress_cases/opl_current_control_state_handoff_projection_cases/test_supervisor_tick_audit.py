@@ -67,8 +67,7 @@ def test_supervisor_tick_audit_uses_workspace_opl_current_control_state(
             "quest_root": str(profile.managed_runtime_home / "quests" / "quest-001"),
             "quest_exists": True,
             "quest_status": "running",
-            "runtime_binding_path": str(study_root / "runtime_binding.yaml"),
-            "runtime_binding_exists": True,
+            "runtime_status_path": str(handoff_path),
         }
     )
 

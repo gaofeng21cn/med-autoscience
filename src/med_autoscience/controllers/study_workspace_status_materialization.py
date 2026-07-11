@@ -306,7 +306,7 @@ def _migration_consumed_refs(*, study: Mapping[str, Any]) -> dict[str, Any]:
             "study.yaml",
             "brief.md",
             "protocol.md",
-            "runtime_binding.yaml",
+            "artifacts/supervision/opl_runtime_owner_handoff/latest.json",
         ],
         "current_truth_map_ref": f"{MIGRATION_MANIFEST_ROOT_RELPATH.as_posix()}/current_truth_map.json",
         "legacy_provenance_map_ref": f"{MIGRATION_MANIFEST_ROOT_RELPATH.as_posix()}/legacy_provenance_map.json",

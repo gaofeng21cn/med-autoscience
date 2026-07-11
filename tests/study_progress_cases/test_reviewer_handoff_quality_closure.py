@@ -155,8 +155,9 @@ def test_study_progress_verified_reviewer_handoff_surfaces_ai_reviewer_quality_c
             "quest_exists": True,
             "quest_status": "running",
             "runtime_liveness_status": "live",
-            "runtime_binding_path": str(study_root / "runtime_binding.yaml"),
-            "runtime_binding_exists": True,
+            "runtime_status_path": str(
+                study_root / "artifacts" / "supervision" / "opl_runtime_owner_handoff" / "latest.json"
+            ),
             "study_completion_contract": {},
             "decision": "noop",
             "reason": "quest_already_running",

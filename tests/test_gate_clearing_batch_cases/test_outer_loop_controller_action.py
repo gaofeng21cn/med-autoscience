@@ -43,7 +43,7 @@ def test_study_outer_loop_executes_gate_clearing_batch_controller_action(monkeyp
             "runtime_escalation_ref": {
                 "record_id": "runtime-escalation::001-risk::quest-001::publication_quality_gap::2026-04-21T12:42:39+00:00",
                 "artifact_path": str(quest_root / "artifacts" / "reports" / "escalation" / "runtime_escalation_record.json"),
-                "summary_ref": str(study_root / "artifacts" / "runtime" / "last_launch_report.json"),
+                "summary_ref": str(study_root / "artifacts" / "supervision" / "opl_runtime_owner_handoff" / "latest.json"),
             },
         },
     )
@@ -54,7 +54,7 @@ def test_study_outer_loop_executes_gate_clearing_batch_controller_action(monkeyp
             escalation_records.RuntimeEscalationRecordRef(
                 record_id="runtime-escalation::001-risk::quest-001::publication_quality_gap::2026-04-21T12:42:39+00:00",
                 artifact_path=str(quest_root / "artifacts" / "reports" / "escalation" / "runtime_escalation_record.json"),
-                summary_ref=str(study_root / "artifacts" / "runtime" / "last_launch_report.json"),
+                summary_ref=str(study_root / "artifacts" / "supervision" / "opl_runtime_owner_handoff" / "latest.json"),
             ),
             None,
         ),

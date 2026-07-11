@@ -23,7 +23,7 @@ def _minimal_payload(study_root: Path) -> dict[str, object]:
         "quest_id": "quest-001",
         "generated_at": "2026-04-20T04:46:03+00:00",
         "runtime_status_ref": str(study_root / "artifacts" / "runtime" / "runtime_supervision" / "latest.json"),
-        "runtime_artifact_ref": str(study_root / "artifacts" / "runtime" / "last_launch_report.json"),
+        "runtime_artifact_ref": str(study_root / "artifacts" / "supervision" / "opl_runtime_owner_handoff" / "latest.json"),
         "runtime_escalation_record_ref": str(
             study_root.parents[1]
             / "ops"
@@ -102,7 +102,7 @@ def test_materialize_runtime_status_summary_writes_stable_runtime_artifact(tmp_p
             quest_id="quest-001",
             generated_at="2026-04-20T04:46:03+00:00",
             runtime_status_ref=str(study_root / "artifacts" / "runtime" / "runtime_supervision" / "latest.json"),
-            runtime_artifact_ref=str(study_root / "artifacts" / "runtime" / "last_launch_report.json"),
+            runtime_artifact_ref=str(study_root / "artifacts" / "supervision" / "opl_runtime_owner_handoff" / "latest.json"),
             runtime_escalation_record_ref=str(
                 study_root.parents[1]
                 / "ops"

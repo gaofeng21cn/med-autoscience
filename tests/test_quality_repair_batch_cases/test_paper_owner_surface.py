@@ -28,7 +28,7 @@ def _write_blocked_publication_eval(study_root: Path, *, quest_id: str) -> dict[
             "publication_objective": "risk stratification external validation",
         },
         "runtime_context_refs": {
-            "runtime_escalation_ref": str(study_root / "artifacts" / "runtime" / "last_launch_report.json"),
+            "runtime_escalation_ref": str(study_root / "artifacts" / "supervision" / "opl_runtime_owner_handoff" / "latest.json"),
             "main_result_ref": str(study_root / "artifacts" / "results" / "main_result.json"),
         },
         "delivery_context_refs": {

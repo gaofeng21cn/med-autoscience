@@ -757,9 +757,9 @@ def _append_supervision_links(lines: list[str], payload: Mapping[str, Any]) -> N
         "browser_url": "监控入口",
         "quest_session_api_url": "会话接口",
         "active_run_id": "active_run_id",
-        "launch_report_path": "launch_report_path",
+        "runtime_status_path": "runtime_status_path",
     }
-    for key in ("browser_url", "quest_session_api_url", "active_run_id", "launch_report_path"):
+    for key in ("browser_url", "quest_session_api_url", "active_run_id", "runtime_status_path"):
         value = str(supervision.get(key) or "").strip()
         if value:
             lines.append(f"- {supervision_labels[key]}: `{value}`")

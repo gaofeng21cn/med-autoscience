@@ -18,8 +18,7 @@ def make_status_payload(**overrides: object) -> dict[str, object]:
         "quest_root": "/tmp/runtime/quests/quest-001",
         "quest_exists": True,
         "quest_status": "paused",
-        "runtime_binding_path": "/tmp/studies/001-risk/runtime_binding.yaml",
-        "runtime_binding_exists": True,
+        "runtime_status_path": "/tmp/studies/001-risk/artifacts/supervision/opl_runtime_owner_handoff/latest.json",
         "workspace_contracts": {"overall_ready": True},
         "startup_data_readiness": {"status": "clear"},
         "startup_boundary_gate": {"allow_compute_stage": True},
@@ -283,20 +282,19 @@ def make_progress_projection_payload() -> dict[str, object]:
             "supervisor_tick_required": True,
             "supervisor_tick_summary": "MAS 外环监管心跳新鲜。",
             "supervisor_tick_latest_recorded_at": "2026-04-11T00:59:00+00:00",
-            "launch_report_path": "/tmp/studies/001-risk/artifacts/runtime/last_launch_report.json",
+            "runtime_status_path": "/tmp/studies/001-risk/artifacts/supervision/opl_runtime_owner_handoff/latest.json",
         },
         "refs": {
-            "launch_report_path": "/tmp/studies/001-risk/artifacts/runtime/last_launch_report.json",
+            "runtime_status_path": "/tmp/studies/001-risk/artifacts/supervision/opl_runtime_owner_handoff/latest.json",
             "publication_eval_path": "/tmp/studies/001-risk/artifacts/publication_eval/latest.json",
             "controller_decision_path": "/tmp/studies/001-risk/artifacts/controller_decisions/latest.json",
-            "opl_runtime_owner_handoff_path": "/tmp/studies/001-risk/artifacts/runtime/opl_runtime_owner_handoff/latest.json",
+            "opl_runtime_owner_handoff_path": "/tmp/studies/001-risk/artifacts/supervision/opl_runtime_owner_handoff/latest.json",
             "runtime_escalation_path": None,
             "runtime_readback_report_path": "/tmp/runtime/quests/quest-001/artifacts/reports/domain_diagnostic_report/latest.json",
             "bash_summary_path": "/tmp/runtime/quests/quest-001/.ds/bash_exec/summary.json",
             "details_projection_path": "/tmp/runtime/quests/quest-001/.ds/projections/details.v1.json",
         },
     }
-
 
 
 
