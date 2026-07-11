@@ -38,6 +38,7 @@ def build_category_specs(
         exact_paths=(
             ".agents/plugins/marketplace.json",
             "plugins/med-autoscience/.codex-plugin/plugin.json",
+            "plugins/med-autoscience/bin/medautosci-mcp",
             "plugins/med-autoscience/skills/med-autoscience/SKILL.md",
             "tests/test_codex_plugin.py",
             "tests/test_codex_plugin_installer.py",
@@ -132,6 +133,7 @@ def build_category_specs(
             "contracts/runtime/mas-live-runtime-gap-work-orders.json",
             "contracts/runtime/mas-runtime-live-tail-work-orders.json",
             "contracts/runtime/mas-root-cause-depth-gate.json",
+            "contracts/runtime_environment_requirements.json",
             "src/med_autoscience/controllers/study_outer_loop/__init__.py",
             "src/med_autoscience/controllers/study_runtime_decision/__init__.py",
             "src/med_autoscience/controllers/study_runtime_resolution.py",
@@ -238,9 +240,13 @@ def build_category_specs(
         category_id="standard_agent_pack_surface",
         exact_paths=(
             "contracts/action_catalog.json",
+            "contracts/agent_tool_arsenal.json",
             "contracts/artifact_locator_contract.json",
             "contracts/authority_kernel_inventory.json",
+            "contracts/capability_map.json",
+            "contracts/domain_projection_profile.json",
             "contracts/domain_descriptor.json",
+            "contracts/domain_route_profile.json",
             "contracts/functional_privatization_audit.json",
             "contracts/generated_surface_handoff.json",
             "contracts/foundry_agent_series.json",
@@ -254,6 +260,7 @@ def build_category_specs(
             "contracts/progress_first_safety_envelope.json",
             "contracts/standard_agent_completion_acceptance.json",
             "contracts/standard_agent_completion_evidence_status.json",
+            "contracts/standard-agent-principles-adoption.json",
             "contracts/stage_artifact_kernel_adoption.json",
             "contracts/stage_route_reconcile_contract.json",
             "contracts/stage_run_kernel_profile.json",
@@ -269,6 +276,7 @@ def build_category_specs(
         ),
         prefix_paths=(
             "agent/knowledge/",
+            "agent/primary_skill/",
             "agent/prompts/",
             "agent/quality_gates/",
             "agent/skills/",
@@ -285,6 +293,10 @@ def build_category_specs(
                 "tests/test_stage_route_contract.py "
                 "tests/test_stage_route_reconcile_contract.py "
                 "tests/test_overlay_installer.py -q"
+            ),
+            (
+                f"{pytest_clean_runner} "
+                "tests/test_domain_route_profile.py -q"
             ),
             f"{pytest_clean_runner} tests/test_mas_workspace_domain_projection.py -q",
         ),
@@ -326,9 +338,25 @@ def build_category_specs(
         ),
     ),
     spec_type(
+        category_id="research_integrity_surface",
+        exact_paths=(
+            "contracts/research-integrity-layer.json",
+        ),
+        prefix_paths=(),
+        commands=(
+            (
+                f"{pytest_clean_runner} "
+                "tests/test_research_integrity_stage_hooks.py "
+                "tests/test_research_integrity_domain_entry.py "
+                "tests/test_research_integrity_provider_lookup.py -q"
+            ),
+        ),
+    ),
+    spec_type(
         category_id="production_acceptance_surface",
         exact_paths=(
             "contracts/agent_lab_handoff.json",
+            "contracts/hosted_ordinary_path_consumption.json",
             "contracts/production_acceptance/mas-production-acceptance.json",
             "tests/test_mas_production_acceptance.py",
             "tests/test_opl_standard_pack_cases/test_generated_interface_cases.py",
@@ -352,6 +380,7 @@ def build_category_specs(
             "scripts/run-pytest-clean.sh",
             "scripts/run-structure-quality-gate.sh",
             "scripts/verify.sh",
+            "scripts/opl-module-healthcheck.sh",
             "src/med_autoscience/dev_preflight.py",
             "src/med_autoscience/dev_preflight_contract/__init__.py",
             "tests/test_dev_preflight.py",
@@ -441,7 +470,10 @@ def build_category_specs(
     spec_type(
         category_id="paper_progress_transition_boundary_surface",
         exact_paths=(
+            "contracts/live_stage_run_progress_evidence.json",
             "contracts/opl_domain_progress_transition_runtime_contract.json",
+            "contracts/paper_autonomy_live_supervisor_canary_contract.json",
+            "contracts/paper_autonomy_supervisor_contract.json",
             "contracts/paper_progress_replay_live_evidence_status.json",
             "contracts/paper_progress_transition_runtime_completion_audit.json",
             "contracts/runtime/mas-runtime-surface-retirement-inventory.json",
@@ -457,7 +489,8 @@ def build_category_specs(
             (
                 f"{pytest_clean_runner} "
                 "tests/test_opl_transition_readback_contract.py "
-                "tests/test_mas_workspace_domain_projection.py -q"
+                "tests/test_mas_workspace_domain_projection.py "
+                "tests/test_live_stage_run_progress_evidence.py -q"
             ),
             (
                 f"{pytest_clean_runner} "

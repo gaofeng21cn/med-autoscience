@@ -9,7 +9,7 @@ globals().update({
 })
 
 
-_CURRENT_PACKAGE_MANIFEST_OVERLAY_KEYS = {
+_SUBMISSION_PACKAGE_MANIFEST_OVERLAY_KEYS = {
     "package_kind",
     "can_submit",
     "quality_gate_status",
@@ -19,15 +19,15 @@ _CURRENT_PACKAGE_MANIFEST_OVERLAY_KEYS = {
 }
 
 
-def _without_current_package_overlay(payload: dict) -> dict:
+def _without_submission_package_overlay(payload: dict) -> dict:
     return {
         key: value
         for key, value in payload.items()
-        if key not in _CURRENT_PACKAGE_MANIFEST_OVERLAY_KEYS
+        if key not in _SUBMISSION_PACKAGE_MANIFEST_OVERLAY_KEYS
     }
 
 
-def test_sync_study_delivery_mirrors_v2_source_manifest_into_v2_current_package(
+def test_sync_study_delivery_mirrors_v2_source_manifest_into_submission_root(
     tmp_path: Path,
 ) -> None:
     module = importlib.import_module("med_autoscience.controllers.study_delivery_sync")
@@ -40,26 +40,27 @@ def test_sync_study_delivery_mirrors_v2_source_manifest_into_v2_current_package(
         stage="submission_minimal",
     )
 
-    current_package_root = study_root / "manuscript" / "current_package"
-    mirrored_manifest_path = current_package_root / "audit" / "submission_manifest.json"
+    submission_root = study_root / "submission"
+    mirrored_manifest_path = submission_root / "audit" / "submission_manifest.json"
     mirrored_manifest = json.loads(mirrored_manifest_path.read_text(encoding="utf-8"))
 
     assert "audit/submission_manifest.json" in manifest["source_relative_paths"]
     assert "submission_manifest.json" not in manifest["source_relative_paths"]
     assert manifest["delivery_layout"]["layout_version"] == "submission-package.v2"
     assert manifest["delivery_layout"]["source_package_root"] == str(paper_root / "submission_minimal")
-    assert manifest["delivery_layout"]["human_package_root"] == str(current_package_root)
+    assert manifest["delivery_layout"]["human_package_root"] == str(submission_root)
     assert manifest["delivery_layout"]["audit_paths"]["submission_manifest"] == str(mirrored_manifest_path)
-    assert _without_current_package_overlay(mirrored_manifest) == source_manifest
+    assert _without_submission_package_overlay(mirrored_manifest) == source_manifest
     assert mirrored_manifest["package_kind"] == "current_package"
     assert mirrored_manifest["can_submit"] is False
     assert mirrored_manifest["quality_gate_status"] == "blocked"
     assert "authority_snapshot_missing" in mirrored_manifest["known_blockers"]
     assert mirrored_manifest["generated_from_current_source"] is True
-    assert not (current_package_root / "submission_manifest.json").exists()
-    assert not (current_package_root / "evidence_ledger.json").exists()
-    assert not (current_package_root / "review" / "review_ledger.json").exists()
-    assert not (current_package_root / "controller" / "study_charter.json").exists()
+    assert not (submission_root / "submission_manifest.json").exists()
+    assert not (submission_root / "evidence_ledger.json").exists()
+    assert not (submission_root / "review" / "review_ledger.json").exists()
+    assert not (submission_root / "controller" / "study_charter.json").exists()
+    assert manifest["compatibility_mirrors"] == []
 
 
 def test_sync_study_delivery_prefers_newer_submission_minimal_source_over_stale_mirror(
@@ -108,8 +109,8 @@ def test_sync_study_delivery_reads_legacy_source_manifest_but_writes_v2_mirror_l
     )
     status = module.describe_submission_delivery(paper_root=paper_root)
 
-    current_package_root = study_root / "manuscript" / "current_package"
-    mirrored_manifest_path = current_package_root / "audit" / "submission_manifest.json"
+    submission_root = study_root / "submission"
+    mirrored_manifest_path = submission_root / "audit" / "submission_manifest.json"
     copied_manifest_records = [
         record
         for record in manifest["copied_files"]
@@ -121,10 +122,11 @@ def test_sync_study_delivery_reads_legacy_source_manifest_but_writes_v2_mirror_l
     assert "audit/submission_manifest.json" not in manifest["source_relative_paths"]
     assert copied_manifest_records[0]["source_path"] == str(legacy_manifest_path.resolve())
     assert mirrored_manifest_path.exists()
-    assert not (current_package_root / "submission_manifest.json").exists()
+    assert not (submission_root / "submission_manifest.json").exists()
+    assert manifest["compatibility_mirrors"] == []
 
 
-def test_current_package_zip_has_shallow_v2_layout_without_embedded_package_root(
+def test_submission_zip_has_shallow_v2_layout_without_embedded_package_root(
     tmp_path: Path,
 ) -> None:
     module = importlib.import_module("med_autoscience.controllers.study_delivery_sync")
@@ -135,7 +137,7 @@ def test_current_package_zip_has_shallow_v2_layout_without_embedded_package_root
         stage="submission_minimal",
     )
 
-    with zipfile.ZipFile(study_root / "manuscript" / "current_package.zip") as archive:
+    with zipfile.ZipFile(study_root / "submission.zip") as archive:
         names = set(archive.namelist())
 
     assert "audit/submission_manifest.json" in names
@@ -210,8 +212,7 @@ def test_describe_submission_delivery_treats_role_specific_reproducibility_docs_
     mirror_signature_doc = json.loads(
         (
             study_root
-            / "manuscript"
-            / "current_package"
+            / "submission"
             / "reproducibility"
             / "source_signature.json"
         ).read_text(encoding="utf-8")

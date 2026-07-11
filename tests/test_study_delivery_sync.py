@@ -34,9 +34,9 @@ from .test_study_delivery_sync_cases.clean_migration_guard_cases import (
     test_sync_study_delivery_blocks_pending_clean_paper_authority_cutover,
 )
 from .test_study_delivery_sync_cases.v2_layout_and_legacy_cases import (
-    test_sync_study_delivery_mirrors_v2_source_manifest_into_v2_current_package,
+    test_sync_study_delivery_mirrors_v2_source_manifest_into_submission_root,
     test_sync_study_delivery_prefers_newer_submission_minimal_source_over_stale_mirror,
     test_sync_study_delivery_reads_legacy_source_manifest_but_writes_v2_mirror_layout,
-    test_current_package_zip_has_shallow_v2_layout_without_embedded_package_root,
+    test_submission_zip_has_shallow_v2_layout_without_embedded_package_root,
     test_describe_submission_delivery_treats_role_specific_reproducibility_docs_as_current,
 )

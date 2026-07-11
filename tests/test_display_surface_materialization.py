@@ -23,7 +23,7 @@ from tests.display_surface_materialization_cases.shared import (
 
 @pytest.fixture(autouse=True)
 def _fake_subprocess_display_renderer(monkeypatch):
-    use_current_scholarskills_display_pack(monkeypatch)
+    use_current_scholarskills_display_pack()
     materialize_module = importlib.import_module("med_autoscience.controllers.display_surface_materialization.materialize")
 
     def fake_subprocess_renderer(

@@ -2,7 +2,8 @@ from __future__ import annotations
 
 from pathlib import Path
 
-from med_autoscience import display_pack_loader, display_registry
+from med_autoscience import display_registry
+from med_autoscience.display_pack_paths import core_medical_display_pack_root
 
 from . import shared_base as _shared_base
 from . import registry_id_helpers as _registry_id_helpers
@@ -12,24 +13,14 @@ from . import layout_sidecar_fixtures as _layout_sidecar_fixtures
 
 def current_scholarskills_core_pack_root() -> Path:
     repo_root = Path(__file__).resolve().parents[2]
-    workspace_root = repo_root.parent.parent if repo_root.parent.name in {".worktrees", "_worktrees"} else repo_root.parent
-    return workspace_root / "mas-scholar-skills" / "packs" / "medical-display-core"
+    return core_medical_display_pack_root(repo_root)
 
 
-def use_current_scholarskills_display_pack(monkeypatch) -> Path:
+def use_current_scholarskills_display_pack() -> Path:
     pack_root = current_scholarskills_core_pack_root().resolve()
     source_root = pack_root.parents[1]
     if not (source_root / ".git").exists() or not (pack_root / "display_pack.toml").is_file():
         raise AssertionError(f"current ScholarSkills display pack is unavailable: {pack_root}")
-
-    original_resolver = display_pack_loader._resolve_git_repo_source_root
-
-    def resolve_git_repo_source_root(anchor_root: Path, raw_path: str) -> Path:
-        if raw_path == "../mas-scholar-skills":
-            return source_root
-        return original_resolver(anchor_root, raw_path)
-
-    monkeypatch.setattr(display_pack_loader, "_resolve_git_repo_source_root", resolve_git_repo_source_root)
     display_registry._active_template_manifests.cache_clear()
     display_registry._active_registry_state.cache_clear()
     return pack_root

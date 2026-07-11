@@ -168,7 +168,7 @@ def _resolve_python_package_root(package_name: str) -> Path:
 
 def _resolve_git_repo_source_root(anchor_root: Path, raw_path: str) -> Path:
     resolved = (anchor_root / raw_path).expanduser().resolve()
-    if (resolved / ".git").exists() or anchor_root.parent.name != ".worktrees":
+    if (resolved / ".git").exists() or anchor_root.parent.name not in {".worktrees", "_worktrees", ".codex-worktrees"}:
         return resolved
     repo_local_worktree_sibling = (
         anchor_root.parent.parent / raw_path

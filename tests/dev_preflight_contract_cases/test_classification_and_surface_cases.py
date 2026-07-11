@@ -354,12 +354,47 @@ def test_classify_changed_files_matches_paper_progress_transition_boundary_surfa
     assert (
         "scripts/run-pytest-clean.sh "
         "tests/test_opl_transition_readback_contract.py "
-        "tests/test_mas_workspace_domain_projection.py -q"
+        "tests/test_mas_workspace_domain_projection.py "
+        "tests/test_live_stage_run_progress_evidence.py -q"
     ) in planned_commands
     assert (
         "scripts/run-pytest-clean.sh "
         "tests/test_opl_domain_progress_transition_runtime_contract.py -q"
     ) in planned_commands
+
+
+def test_classify_changed_files_covers_current_contract_and_carrier_surfaces() -> None:
+    module = importlib.import_module("med_autoscience.dev_preflight_contract")
+
+    result = module.classify_changed_files(
+        [
+            "agent/primary_skill/SKILL.md",
+            "contracts/agent_tool_arsenal.json",
+            "contracts/capability_map.json",
+            "contracts/domain_projection_profile.json",
+            "contracts/domain_route_profile.json",
+            "contracts/hosted_ordinary_path_consumption.json",
+            "contracts/live_stage_run_progress_evidence.json",
+            "contracts/paper_autonomy_live_supervisor_canary_contract.json",
+            "contracts/paper_autonomy_supervisor_contract.json",
+            "contracts/research-integrity-layer.json",
+            "contracts/runtime_environment_requirements.json",
+            "contracts/standard-agent-principles-adoption.json",
+            "plugins/med-autoscience/bin/medautosci-mcp",
+            "scripts/opl-module-healthcheck.sh",
+        ]
+    )
+
+    assert result.matched_categories == (
+        "standard_agent_pack_surface",
+        "production_acceptance_surface",
+        "paper_progress_transition_boundary_surface",
+        "research_integrity_surface",
+        "runtime_contract_surface",
+        "codex_plugin_surface",
+        "family_shared_surface",
+    )
+    assert result.unclassified_changes == ()
 
 
 def test_classify_changed_files_matches_optional_provider_archive_audit_surface() -> None:
@@ -555,6 +590,7 @@ def test_classify_changed_files_matches_standard_agent_pack_surface() -> None:
             "tests/test_stage_route_reconcile_contract.py "
             "tests/test_overlay_installer.py -q"
         ),
+        "scripts/run-pytest-clean.sh tests/test_domain_route_profile.py -q",
         "scripts/run-pytest-clean.sh tests/test_mas_workspace_domain_projection.py -q",
     ]
 
@@ -604,6 +640,7 @@ def test_classify_changed_files_matches_external_learning_sidecar_surface() -> N
             "tests/test_stage_route_reconcile_contract.py "
             "tests/test_overlay_installer.py -q"
         ),
+        "scripts/run-pytest-clean.sh tests/test_domain_route_profile.py -q",
         "scripts/run-pytest-clean.sh tests/test_mas_workspace_domain_projection.py -q",
         (
             "scripts/run-pytest-clean.sh "

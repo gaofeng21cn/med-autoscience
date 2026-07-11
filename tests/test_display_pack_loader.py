@@ -524,11 +524,13 @@ source_authority = false
     assert records[0].source_config.fallback is False
 
 
+@pytest.mark.parametrize("worktree_container", (".worktrees", ".codex-worktrees"))
 def test_display_pack_source_resolves_workspace_sibling_from_shared_worktree_root(
     tmp_path: Path,
+    worktree_container: str,
 ) -> None:
     workspace_root = tmp_path / "workspace"
-    lane_root = workspace_root / ".worktrees" / "display-lane"
+    lane_root = workspace_root / worktree_container / "display-lane"
     scholarskills_root = workspace_root / "mas-scholar-skills"
     lane_root.mkdir(parents=True)
     scholarskills_root.mkdir(parents=True)
@@ -571,12 +573,12 @@ source_authority = false
 
 
 def test_repo_default_consumes_sibling_scholarskills_core_pack_when_available() -> None:
-    sibling_root = (REPO_ROOT / ".." / "mas-scholar-skills").resolve()
+    selection = resolve_display_pack_selection(REPO_ROOT)
+    sibling_root = selection.source_configs[0].resolved_source_root
     sibling_pack_root = sibling_root / "packs" / "medical-display-core"
     if not (sibling_root / ".git").exists() or not (sibling_pack_root / "display_pack.toml").is_file():
         pytest.skip("sibling mas-scholar-skills medical-display-core pack is not checked out")
 
-    selection = resolve_display_pack_selection(REPO_ROOT)
     records = load_enabled_local_display_pack_records(REPO_ROOT)
 
     assert selection.source_configs[0].path == "../mas-scholar-skills"

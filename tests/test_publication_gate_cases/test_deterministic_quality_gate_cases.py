@@ -183,7 +183,8 @@ def test_literature_hygiene_blocker_keeps_publication_gate_blocked(
         "can_sync_study_delivery",
         lambda *, paper_root: False,
     )
-    monkeypatch.setattr(module, "collect_submission_surface_qc_failures", lambda *args, **kwargs: [])
+    state_resolvers = importlib.import_module("med_autoscience.controllers.publication_gate.state_resolvers")
+    monkeypatch.setattr(state_resolvers, "collect_submission_surface_qc_failures", lambda *args, **kwargs: [])
     quest_root = make_quest(
         tmp_path,
         include_submission_minimal=True,
