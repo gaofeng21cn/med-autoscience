@@ -143,27 +143,6 @@
       "standardization_layer": "private_platform_residue_inventory"
     },
     {
-      "module_id": "opl_runtime_refs_projection",
-      "classification": "refs_only_domain_adapter",
-      "code_paths": [
-        "src/med_autoscience/controllers/mds_capability_parity/behavior_equivalence.py",
-        "src/med_autoscience/controllers/opl_provider_ready_adapter/provider_readiness.py",
-        "src/med_autoscience/controllers/paper_mission_owner_surface/opl_provider_attempts.py",
-        "src/med_autoscience/controllers/study_runtime_decision/publication_and_submission.py",
-        "src/med_autoscience/paper_mission_opl_readback/opl_task_readback.py",
-        "src/med_autoscience/reviewer_revision_oma_materialization.py",
-        "src/med_autoscience/runtime_control/owner_route_attempt_protocol.py"
-      ],
-      "active_callers": [
-        "MDS parity and provider-readiness diagnostics",
-        "paper publication and owner-route domain decisions",
-        "OMA work-order request projection"
-      ],
-      "migration_action": "expose_refs_only_to_opl_generated_surfaces",
-      "retention_reason": "These MAS adapters interpret medical-domain intent and project OPL provider, StageAttempt, Foundry work-order, owner-receipt, or typed-blocker refs. OPL exclusively owns queue, attempt persistence, retry, dead-letter, execution authorization, and worker lifecycle.",
-      "standardization_layer": "private_platform_residue_inventory"
-    },
-    {
       "module_id": "paper_progress_transition_refs",
       "classification": "refs_only_domain_adapter",
       "code_paths": [

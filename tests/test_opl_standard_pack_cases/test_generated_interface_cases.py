@@ -119,56 +119,6 @@ def test_opl_default_callers_project_mas_delete_evidence_as_pending_without_auth
     ) == 6
 
 
-def test_opl_conformance_classifies_mas_runtime_refs_as_domain_adapters() -> None:
-    opl_bin = Path(os.environ.get("OPL_BIN", "/Users/gaofeng/workspace/one-person-lab/bin/opl"))
-    if not opl_bin.exists():
-        pytest.skip(f"OPL binary missing: {opl_bin}")
-    opl_root = opl_bin.parents[1]
-
-    result = subprocess.run(
-        [
-            str(opl_bin),
-            "agents",
-            "conformance",
-            "--agent",
-            f"mas={REPO_ROOT}",
-            "--json",
-        ],
-        cwd=opl_root,
-        check=False,
-        text=True,
-        capture_output=True,
-    )
-
-    assert result.returncode == 0, result.stderr or result.stdout
-    report = json.loads(result.stdout)["standard_domain_agent_conformance"]
-    assert report["status"] == "passed"
-    source_behavior = report["reports"][0]["source_behavior_checks"]
-    assert source_behavior["status"] == "passed"
-    assert source_behavior["matches"] == []
-
-    expected_paths = {
-        "src/med_autoscience/controllers/mds_capability_parity/behavior_equivalence.py",
-        "src/med_autoscience/controllers/opl_provider_ready_adapter/provider_readiness.py",
-        "src/med_autoscience/controllers/paper_mission_owner_surface/opl_provider_attempts.py",
-        "src/med_autoscience/controllers/study_runtime_decision/publication_and_submission.py",
-        "src/med_autoscience/paper_mission_opl_readback/opl_task_readback.py",
-        "src/med_autoscience/reviewer_revision_oma_materialization.py",
-        "src/med_autoscience/runtime_control/owner_route_attempt_protocol.py",
-    }
-    allowed = {
-        entry["path"]: entry["audit_coverage"]
-        for entry in source_behavior["allowed_matches"]
-    }
-    assert expected_paths <= set(allowed)
-    for path in expected_paths:
-        assert any(
-            item["module_id"] == "opl_runtime_refs_projection"
-            and item["migration_class"] == "refs_only_domain_adapter"
-            for item in allowed[path]
-        )
-
-
 def test_opl_standard_scaffold_validates_mas_pack() -> None:
     opl_bin = Path(os.environ.get("OPL_BIN", "/Users/gaofeng/workspace/one-person-lab/bin/opl"))
     if not opl_bin.exists():
