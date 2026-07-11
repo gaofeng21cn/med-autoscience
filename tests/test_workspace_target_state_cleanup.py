@@ -21,9 +21,6 @@ def _write_profile(path: Path, profile) -> None:
                 f'med_deepscientist_repo_root = "{profile.med_deepscientist_repo_root}"',
                 'default_publication_profile = "general_medical_journal"',
                 'default_citation_style = "AMA"',
-                "enable_medical_overlay = true",
-                'medical_overlay_scope = "workspace"',
-                'medical_overlay_skills = ["scout"]',
                 'research_route_bias_policy = "high_plasticity_medical"',
                 'preferred_study_archetypes = ["clinical_classifier"]',
             ]

@@ -187,7 +187,7 @@
       "tests/test_display_pack_v2_contract.py"
     ],
     "required_commands_when_changed": [
-      "scripts/run-pytest-clean.sh tests/test_display_pack_v2_contract.py -q",
+      "make test-paths -- tests/test_display_pack_v2_contract.py -q",
       "git diff --check"
     ]
   }

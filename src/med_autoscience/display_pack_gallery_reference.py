@@ -28,17 +28,7 @@ Machine boundary: 本文由 `scripts/build-display-pack-gallery.py` 从本地 Ga
 - [生成状态](./display_pack_gallery_status.md)：从 manifest 生成的数量、路由和生成口径。
 - [质量审计](./display_pack_gallery_quality_audit.md)：从质量门生成的模板入库状态、风险项和论文使用前检查项。
 
-HTML、manifest、payload、layout sidecar、PNG/SVG/PDF 单图导出属于可再生成的本地输出，默认写入仓库忽略的 `outputs/display-pack-gallery/`。代码、payload 或 style 可能变化时运行默认增量构建：
-
-```bash
-./scripts/run-python-clean.sh scripts/build-display-pack-gallery.py
-```
-
-只调整 Gallery 文档组织、标题、索引或 PDF 打包，不需要重新渲染图资产时，运行 package-only 快速打包；`--publish-docs` 只生成本地 MAS template catalog 快照，不复制 gallery PDF、manifest 或单图资产到 docs，也不把该快照作为 tracked inventory truth：
-
-```bash
-./scripts/run-python-clean.sh scripts/build-display-pack-gallery.py --package-only
-```
+HTML、manifest、payload、layout sidecar、PNG/SVG/PDF 单图导出属于可再生成的本地输出，默认写入仓库忽略的 `outputs/display-pack-gallery/`。Gallery 只在 OPL 已准备的隔离环境中由 `scripts/build-display-pack-gallery.py` 生成；`--package-only` 只重建文档组织、标题、索引或 PDF 打包，不复制 gallery PDF、manifest 或单图资产到 docs，也不把本地快照作为 tracked inventory truth。
 
 ## 设计目的
 

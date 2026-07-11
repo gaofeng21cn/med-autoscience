@@ -17,9 +17,6 @@ def make_profile(tmp_path: Path):
         med_deepscientist_repo_root=tmp_path / "med-deepscientist",
         default_publication_profile="general_medical_journal",
         default_citation_style="AMA",
-        enable_medical_overlay=True,
-        medical_overlay_scope="workspace",
-        medical_overlay_skills=("scout", "idea", "decision", "write", "finalize"),
         research_route_bias_policy="high_plasticity_medical",
         preferred_study_archetypes=(
             "clinical_classifier",
@@ -65,22 +62,8 @@ def test_run_backend_audit_reports_audit_delta_available(monkeypatch, tmp_path: 
             studies_exists=True,
             portfolio_exists=True,
             med_deepscientist_runtime_exists=True,
-            medical_overlay_enabled=True,
-            medical_overlay_ready=True,
         ),
     )
-    monkeypatch.setattr(
-        module,
-        "describe_medical_overlay",
-        lambda **_: {
-            "all_targets_ready": True,
-            "targets": [
-                {"skill_id": "scout", "status": "overlay_applied"},
-                {"skill_id": "write", "status": "overlay_applied"},
-            ],
-        },
-    )
-
     result = module.run_backend_audit(profile, refresh=True)
 
     assert result["surface_kind"] == "backend_audit"
@@ -127,16 +110,8 @@ def test_run_backend_audit_blocks_dirty_repo(monkeypatch, tmp_path: Path) -> Non
             studies_exists=True,
             portfolio_exists=True,
             med_deepscientist_runtime_exists=True,
-            medical_overlay_enabled=True,
-            medical_overlay_ready=True,
         ),
     )
-    monkeypatch.setattr(
-        module,
-        "describe_medical_overlay",
-        lambda **_: {"all_targets_ready": True, "targets": [{"skill_id": "write", "status": "overlay_applied"}]},
-    )
-
     result = module.run_backend_audit(profile, refresh=False)
 
     assert result["decision"] == "blocked_dirty_repo"
@@ -178,16 +153,8 @@ def test_run_backend_audit_requests_branch_review_when_not_on_main(monkeypatch, 
             studies_exists=True,
             portfolio_exists=True,
             med_deepscientist_runtime_exists=True,
-            medical_overlay_enabled=True,
-            medical_overlay_ready=True,
         ),
     )
-    monkeypatch.setattr(
-        module,
-        "describe_medical_overlay",
-        lambda **_: {"all_targets_ready": True, "targets": [{"skill_id": "write", "status": "overlay_applied"}]},
-    )
-
     result = module.run_backend_audit(profile, refresh=False)
 
     assert result["decision"] == "needs_branch_review"
@@ -241,16 +208,8 @@ def test_run_backend_audit_accepts_clean_controlled_fork_on_main(monkeypatch, tm
             studies_exists=True,
             portfolio_exists=True,
             med_deepscientist_runtime_exists=True,
-            medical_overlay_enabled=True,
-            medical_overlay_ready=True,
         ),
     )
-    monkeypatch.setattr(
-        module,
-        "describe_medical_overlay",
-        lambda **_: {"all_targets_ready": True, "targets": [{"skill_id": "write", "status": "overlay_applied"}]},
-    )
-
     result = module.run_backend_audit(profile, refresh=False)
 
     assert result["decision"] == "up_to_date"
@@ -304,16 +263,8 @@ def test_run_backend_audit_routes_controlled_fork_updates_to_intake(monkeypatch,
             studies_exists=True,
             portfolio_exists=True,
             med_deepscientist_runtime_exists=True,
-            medical_overlay_enabled=True,
-            medical_overlay_ready=True,
         ),
     )
-    monkeypatch.setattr(
-        module,
-        "describe_medical_overlay",
-        lambda **_: {"all_targets_ready": True, "targets": [{"skill_id": "write", "status": "overlay_applied"}]},
-    )
-
     result = module.run_backend_audit(profile, refresh=True)
 
     assert result["decision"] == "audit_delta_available"
@@ -337,16 +288,8 @@ def test_run_backend_audit_reports_oracle_unavailable_when_repo_root_missing(mon
             studies_exists=True,
             portfolio_exists=True,
             med_deepscientist_runtime_exists=True,
-            medical_overlay_enabled=True,
-            medical_overlay_ready=True,
         ),
     )
-    monkeypatch.setattr(
-        module,
-        "describe_medical_overlay",
-        lambda **_: {"all_targets_ready": True, "targets": [{"skill_id": "write", "status": "overlay_applied"}]},
-    )
-
     result = module.run_backend_audit(profile, refresh=False)
 
     assert result["decision"] == "oracle_unavailable"
@@ -376,8 +319,6 @@ def test_run_backend_audit_blocks_when_behavior_gate_not_ready(monkeypatch, tmp_
             studies_exists=True,
             portfolio_exists=True,
             med_deepscientist_runtime_exists=True,
-            medical_overlay_enabled=True,
-            medical_overlay_ready=True,
             runtime_contract={"ready": True, "checks": {}},
             launcher_contract={"ready": True, "checks": {}},
             behavior_gate={
@@ -389,12 +330,6 @@ def test_run_backend_audit_blocks_when_behavior_gate_not_ready(monkeypatch, tmp_
             },
         ),
     )
-    monkeypatch.setattr(
-        module,
-        "describe_medical_overlay",
-        lambda **_: {"all_targets_ready": True, "targets": [{"skill_id": "write", "status": "overlay_applied"}]},
-    )
-
     result = module.run_backend_audit(profile, refresh=False)
 
     assert result["surface_kind"] == "backend_audit"
@@ -447,16 +382,8 @@ def test_run_backend_audit_exposes_repo_manifest(monkeypatch, tmp_path: Path) ->
             studies_exists=True,
             portfolio_exists=True,
             med_deepscientist_runtime_exists=True,
-            medical_overlay_enabled=True,
-            medical_overlay_ready=True,
         ),
     )
-    monkeypatch.setattr(
-        module,
-        "describe_medical_overlay",
-        lambda **_: {"all_targets_ready": True, "targets": [{"skill_id": "write", "status": "overlay_applied"}]},
-    )
-
     result = module.run_backend_audit(profile, refresh=False)
 
     assert result["repo_check"]["repo_manifest"] is manifest_blob
@@ -560,16 +487,8 @@ def test_run_backend_audit_blocks_when_controlled_fork_tracking_is_missing(monke
             studies_exists=True,
             portfolio_exists=True,
             med_deepscientist_runtime_exists=True,
-            medical_overlay_enabled=True,
-            medical_overlay_ready=True,
         ),
     )
-    monkeypatch.setattr(
-        module,
-        "describe_medical_overlay",
-        lambda **_: {"all_targets_ready": True, "targets": [{"skill_id": "write", "status": "overlay_applied"}]},
-    )
-
     result = module.run_backend_audit(profile, refresh=False)
 
     assert result["decision"] == "blocked_controlled_fork_upstream_tracking_missing"

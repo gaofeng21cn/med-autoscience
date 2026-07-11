@@ -37,8 +37,6 @@ from .enums_and_audits import (
 )
 from .runtime_result_types import (
     StudyRuntimeAnalysisBundleResult,
-    StudyRuntimeOverlayAudit,
-    StudyRuntimeOverlayResult,
     StudyRuntimeStartupContextSyncResult,
     StudyRuntimePartialQuestRecoveryResult,
     StudyRuntimeWorkspaceContractsSummary,
@@ -311,15 +309,6 @@ class ProgressProjectionStatus(MutableMapping[str, Any]):
         )
         self._record_dict_extra("analysis_bundle", analysis_bundle.to_dict())
 
-    def record_runtime_overlay(
-        self,
-        value: dict[str, Any] | StudyRuntimeOverlayResult,
-    ) -> None:
-        runtime_overlay = (
-            value if isinstance(value, StudyRuntimeOverlayResult) else StudyRuntimeOverlayResult.from_payload(value)
-        )
-        self._record_dict_extra("runtime_overlay", runtime_overlay.to_dict())
-
     def record_startup_contract_validation(
         self,
         value: dict[str, Any] | study_runtime_protocol.StartupContractValidation,
@@ -339,13 +328,6 @@ class ProgressProjectionStatus(MutableMapping[str, Any]):
         if not isinstance(payload, dict):
             raise KeyError("analysis_bundle")
         return StudyRuntimeAnalysisBundleResult.from_payload(payload)
-
-    @property
-    def runtime_overlay_result(self) -> StudyRuntimeOverlayResult:
-        payload = self.extras.get("runtime_overlay")
-        if not isinstance(payload, dict):
-            raise KeyError("runtime_overlay")
-        return StudyRuntimeOverlayResult.from_payload(payload)
 
     @property
     def partial_quest_recovery_result(self) -> StudyRuntimePartialQuestRecoveryResult:

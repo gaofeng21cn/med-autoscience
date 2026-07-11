@@ -5,8 +5,7 @@ import subprocess
 from typing import Any
 
 from med_autoscience.med_deepscientist_repo_manifest import inspect_med_deepscientist_repo_manifest
-from med_autoscience.doctor import build_doctor_report, overlay_request_from_profile
-from med_autoscience.overlay import describe_medical_overlay
+from med_autoscience.doctor import build_doctor_report
 from med_autoscience.profiles import WorkspaceProfile
 
 EXTERNAL_RUNTIME_OPTIONAL = True
@@ -142,24 +141,6 @@ def inspect_med_deepscientist_repo(*, repo_root: Path | None, refresh: bool = Fa
     return result
 
 
-def _overlay_summary(profile: WorkspaceProfile) -> dict[str, Any]:
-    if not profile.enable_medical_overlay:
-        return {
-            "enabled": False,
-            "all_targets_ready": False,
-            "target_statuses": {},
-        }
-    status = describe_medical_overlay(**overlay_request_from_profile(profile))
-    return {
-        "enabled": True,
-        "all_targets_ready": bool(status.get("all_targets_ready")),
-        "target_statuses": {
-            str(item.get("skill_id")): str(item.get("status"))
-            for item in status.get("targets", [])
-            if isinstance(item, dict) and item.get("skill_id")
-        },
-    }
-
 def _workspace_summary(profile: WorkspaceProfile) -> dict[str, Any]:
     doctor_report = build_doctor_report(profile)
     runtime_contract: dict[str, object]
@@ -186,8 +167,6 @@ def _workspace_summary(profile: WorkspaceProfile) -> dict[str, Any]:
         "studies_exists": doctor_report.studies_exists,
         "portfolio_exists": doctor_report.portfolio_exists,
         "med_deepscientist_runtime_exists": doctor_report.med_deepscientist_runtime_exists,
-        "medical_overlay_enabled": doctor_report.medical_overlay_enabled,
-        "medical_overlay_ready": doctor_report.medical_overlay_ready,
         "runtime_contract": runtime_contract,
         "launcher_contract": launcher_contract,
         "behavior_gate": behavior_gate,
@@ -198,7 +177,6 @@ def _determine_decision(
     *,
     repo_check: dict[str, Any],
     workspace_check: dict[str, Any],
-    overlay_check: dict[str, Any],
 ) -> tuple[str, list[str]]:
     actions: list[str] = []
     repo_manifest = repo_check.get("repo_manifest")
@@ -274,10 +252,6 @@ def _determine_decision(
             actions.append("review_backend_audit_delta_as_oracle_fixture")
         return "audit_delta_available", actions
 
-    if overlay_check["enabled"] and not overlay_check["all_targets_ready"]:
-        actions.append("reapply_medical_overlay")
-        return "overlay_reapply_needed", actions
-
     actions.append("no_upgrade_action_required")
     return "up_to_date", actions
 
@@ -301,18 +275,12 @@ def run_backend_audit(profile: WorkspaceProfile, *, refresh: bool = False) -> di
                 "refresh_attempted": refresh,
             },
             "workspace_check": workspace_check,
-            "overlay_check": {
-                "inspection_skipped": True,
-                "skip_reason": "blocked_by_behavior_equivalence_gate",
-            },
         }
 
-    overlay_check = _overlay_summary(profile)
     repo_check = inspect_med_deepscientist_repo(repo_root=profile.med_deepscientist_repo_root, refresh=refresh)
     decision, recommended_actions = _determine_decision(
         repo_check=repo_check,
         workspace_check=workspace_check,
-        overlay_check=overlay_check,
     )
     return {
         "surface_kind": "backend_audit",
@@ -324,5 +292,4 @@ def run_backend_audit(profile: WorkspaceProfile, *, refresh: bool = False) -> di
         "recommended_actions": recommended_actions,
         "repo_check": repo_check,
         "workspace_check": workspace_check,
-        "overlay_check": overlay_check,
     }

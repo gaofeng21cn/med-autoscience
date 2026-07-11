@@ -141,7 +141,7 @@ The actual code path is:
 - study payloads may carry `study_archetype` or `preferred_study_archetype`;
 - `_medical_contract_support.resolve_study_archetype()` selects the archetype from study payload or profile;
 - `medical_analysis_contract`, `medical_reporting_contract`, `medical_paper_readiness`, `medical_quality_operating_system`, and `statistical_discipline_runtime` use that archetype to choose or check analysis/reporting/readiness expectations;
-- `overlay/installer.py` renders the archetype prose into the local overlay prompt/context through `render_archetype_block()`.
+- `render_archetype_block()` remains a domain policy helper and testable source of archetype prose; the retired overlay installer no longer materializes it into local prompt/context. Any stage consumption must be explicit through the canonical stage prompt or knowledge packet.
 
 That means `study_archetypes.md` and `med_autoscience.policies.study_archetypes` were useful first-generation route hints, but they were not a memory body store, did not support workspace-specific accepted/rejected lessons, did not carry receipt provenance, and did not provide route-memory inventory/writeback management.
 

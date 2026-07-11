@@ -25,11 +25,11 @@ canonical id 是 `mas`。OPL 从 MAS pack、action catalog 与 schemas 生成或
 | ID | 原过度设计 | 当前处理 | 状态 | 当前证据入口 |
 | --- | --- | --- | --- | --- |
 | OE-01 | 无调用代码与空导出 | 删除无生产 caller 的 ports/policy 与无效 export | `done` | source caller scan、retirement diff |
-| OE-02 | 未消费的打包/生成资产 | 删除未被 installer 消费的 block 与 repo-tracked generated display catalog；MAS whitepaper builder 等待 OPL generic runner receiver | `partial` | package inventory、OPL runner receiver、docs link gate |
+| OE-02 | 未消费的打包/生成资产 | 删除未被 installer 消费的 block 与 repo-tracked generated display catalog；MAS whitepaper builder 已删除，OPL generic runner 消费 domain profile | `partial` | package inventory、OPL runner、最终 whitepaper bytes/render fingerprint |
 | OE-03 | MAS-local StateIndex pilot | 上收到 OPL StateIndex；MAS 只保留 body-free source refs，待 runtime substrate refs/hash parity closeout | `partial` | `contracts/generated_surface_handoff.json`、runtime tombstones、OPL StateIndex readback |
-| OE-04 | import-time editable bootstrap | 回归标准 Python packaging、`uv` native isolated execution 与 OPL workspace override；`sitecustomize.py` 和 clean runner 尚待删除 | `partial` | `pyproject.toml`、native `uv` no-project proof、bootstrap absence guard |
+| OE-04 | import-time editable bootstrap | 已删除 `sitecustomize.py` 和 clean runner；回归标准 Python packaging、`uv` native isolated no-project execution 与 OPL workspace override | `partial` | `pyproject.toml`、native `uv` checkout-zero-cache proof、bootstrap absence guard |
 | OE-05 | pytest wildcard 聚合收集 | 恢复 pytest 原生递归收集，删除 re-export plumbing | `done` | pytest collection、test-lane manifest |
-| OE-06 | 本地环境/installer/plugin provisioning | MAS 只声明 requirement profile并保留不安装、不修复、不授权 ready 的只读环境检查；OPL `env prepare/run` 负责 Python/R/Bioconductor 与 plugin sync；overlay installer 尚待 cutover | `partial` | `contracts/runtime_environment_requirements.json`、OPL Connect receipt、no-provisioning guard |
+| OE-06 | 本地环境/installer/plugin provisioning | MAS 只声明 requirement profile并保留不安装、不修复、不授权 ready 的只读环境检查；overlay installer 已删除，OPL `env prepare/run` 与 Connect 负责 Python/R/Bioconductor 和 skill sync | `partial` | `contracts/runtime_environment_requirements.json`、OPL Connect receipt、no-provisioning guard |
 | OE-07 | “退役系统的退役系统” | 收为 no-authority/tombstone guard；work-order/rollup/currentness 归 OPL；compact functional audit 的旧生成链尚待删除 | `partial` | compact audit contract、runtime retirement inventory、legacy tombstones |
 | OE-08 | repo-local Workbench/cockpit | 删除本地 UI/render shell；OPL hosted workbench 消费 body-free refs；cockpit compatibility caller 尚待退役 | `partial` | `contracts/domain_descriptor.json`、generated surface handoff、caller scan |
 | OE-09 | Tool Arsenal/Capability Runtime | action metadata 成为单一输入，由 OPL 生成 tool/interface surface | `done` | `contracts/action_catalog.json`、pack compiler input |
@@ -47,7 +47,7 @@ canonical id 是 `mas`。OPL 从 MAS pack、action catalog 与 schemas 生成或
 | --- | --- | --- | --- |
 | L1 | compact functional audit 与 OPL generic whitepaper runner receiver | `in_progress` | compact contract 动态消费、MAS builder 删除、最终 whitepaper bytes/render fingerprint |
 | L2 | static stage control plane 到 OPL generated plane | `in_progress` | 6-stage semantic parity、旧 Python/static producer caller 为零 |
-| L3 | overlay、installer、sitecustomize 与 clean runner cutover | `in_progress` | OPL Connect receipt consumer、native `uv` checkout-zero-cache proof、旧路径 caller 为零 |
+| L3 | overlay、installer、sitecustomize 与 clean runner cutover | `partial` | 已物理删除 MAS-local overlay、installer、`sitecustomize.py` 和 clean runner；仍需 OPL Connect receipt consumer、native `uv` checkout-zero-cache proof 与旧路径 caller 为零 |
 | L4 | runtime protocol substrate 迁移 | `in_progress` | 每 tranche caller 为零、StageRun/TransitionReceipt/StateIndex refs/hash parity、retry/dedupe/restart/dead-letter readback |
 | L5 | 双仓最终验证与 closeout | `not_started` | interfaces/default-callers/conformance、full verify、absorption audit、target-ref readback |
 

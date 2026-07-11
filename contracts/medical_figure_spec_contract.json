@@ -74,7 +74,7 @@
       "tests/test_medical_figure_spec_contract.py"
     ],
     "required_when_changed": [
-      "rtk ./scripts/run-pytest-clean.sh tests/test_medical_figure_spec_contract.py -q",
+      "rtk make test-paths -- tests/test_medical_figure_spec_contract.py -q",
       "rtk git diff --check"
     ]
   }

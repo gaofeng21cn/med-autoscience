@@ -8,7 +8,7 @@ Runtime modes: lightweight, managed
 ## Mode Contract
 - full_research: runtime=managed, scope=none
   preconditions: workspace/profile available
-  managed_entry_actions: doctor | bootstrap | overlay-status | request-opl-stage-attempt
+  managed_entry_actions: doctor | bootstrap | request-opl-stage-attempt
   lightweight_routes: (none)
   managed_routes: scout | idea | write | finalize
   startup_boundary_gated_routes: baseline | experiment | analysis-campaign
@@ -17,7 +17,7 @@ Runtime modes: lightweight, managed
   upgrade_triggers: (none)
 - literature_scout: runtime=lightweight, scope=early evidence framing
   preconditions: workspace/profile available
-  managed_entry_actions: doctor | bootstrap | overlay-status | request-opl-stage-attempt
+  managed_entry_actions: doctor | bootstrap | request-opl-stage-attempt
   lightweight_routes: scout
   managed_routes: scout | idea | write | finalize
   startup_boundary_gated_routes: baseline | experiment | analysis-campaign
@@ -26,7 +26,7 @@ Runtime modes: lightweight, managed
   upgrade_triggers: hypothesis viability confirmed
 - idea_exploration: runtime=lightweight, scope=route selection and study framing
   preconditions: workspace/profile available
-  managed_entry_actions: doctor | bootstrap | overlay-status | request-opl-stage-attempt
+  managed_entry_actions: doctor | bootstrap | request-opl-stage-attempt
   lightweight_routes: idea | decision
   managed_routes: scout | idea | write | finalize
   startup_boundary_gated_routes: baseline | experiment | analysis-campaign
@@ -35,7 +35,7 @@ Runtime modes: lightweight, managed
   upgrade_triggers: experiment execution approved
 - project_optimization: runtime=lightweight, scope=pathway adjustment and stop-loss
   preconditions: workspace/profile available
-  managed_entry_actions: doctor | bootstrap | overlay-status | request-opl-stage-attempt
+  managed_entry_actions: doctor | bootstrap | request-opl-stage-attempt
   lightweight_routes: decision
   managed_routes: scout | write | finalize
   startup_boundary_gated_routes: baseline | experiment | analysis-campaign
@@ -44,7 +44,7 @@ Runtime modes: lightweight, managed
   upgrade_triggers: major direction change approved
 - writing_delivery: runtime=lightweight, scope=manuscript and delivery packaging
   preconditions: workspace/profile available
-  managed_entry_actions: doctor | bootstrap | overlay-status | request-opl-stage-attempt
+  managed_entry_actions: doctor | bootstrap | request-opl-stage-attempt
   lightweight_routes: write
   managed_routes: write | finalize
   startup_boundary_gated_routes: (none)
@@ -53,7 +53,7 @@ Runtime modes: lightweight, managed
   upgrade_triggers: submission bundle or final delivery requested
 - manuscript_fast_lane: runtime=lightweight, scope=controller-visible canonical manuscript text/structure revision from existing evidence only
   preconditions: workspace/profile available | latest task intake explicitly limits work to canonical paper text/structure or evidence repackaging from existing results | study is in manual_finishing or bundle-stage-ready state, or foreground takeover has been explicitly allowed | runtime is inactive, paused, stopped, or supervisor-only takeover rules allow foreground work
-  managed_entry_actions: doctor | bootstrap | overlay-status | study-progress
+  managed_entry_actions: doctor | bootstrap | study-progress
   lightweight_routes: write | finalize
   managed_routes: write | finalize
   startup_boundary_gated_routes: (none)

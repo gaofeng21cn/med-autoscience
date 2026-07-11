@@ -116,13 +116,13 @@ domain entry 只做字段归一化和 builder 调用，不创建独立专业 ski
 最小结构验收：
 
 ```bash
-rtk scripts/run-pytest-clean.sh tests/test_research_integrity_*.py tests/test_domain_entry_contract.py
+rtk make test-paths -- tests/test_research_integrity_*.py tests/test_domain_entry_contract.py
 ```
 
 吸收后标准验收：
 
 ```bash
-rtk scripts/run-pytest-clean.sh tests/test_research_integrity_*.py tests/test_domain_entry_contract.py tests/test_citation_integrity_projection.py tests/test_paper_mainline_claim_support.py tests/test_ai_reviewer_publication_eval_workflow.py tests/test_medical_publication_surface.py
+rtk make test-paths -- tests/test_research_integrity_*.py tests/test_domain_entry_contract.py tests/test_citation_integrity_projection.py tests/test_paper_mainline_claim_support.py tests/test_ai_reviewer_publication_eval_workflow.py tests/test_medical_publication_surface.py
 rtk make test-meta
 rtk scripts/verify.sh
 ```

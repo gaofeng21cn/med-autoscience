@@ -46,9 +46,6 @@ def make_profile(tmp_path: Path):
         med_deepscientist_repo_root=tmp_path / "med-deepscientist",
         default_publication_profile="general_medical_journal",
         default_citation_style="AMA",
-        enable_medical_overlay=True,
-        medical_overlay_scope="workspace",
-        medical_overlay_skills=("intake-audit", "baseline", "write", "finalize"),
         research_route_bias_policy="high_plasticity_medical",
         preferred_study_archetypes=("clinical_classifier",),
         default_submission_targets=(),
@@ -160,18 +157,6 @@ def make_analysis_bundle_result(*, ready: bool = True) -> dict[str, object]:
         "before": before,
         "after": before,
         "ready": ready,
-    }
-
-
-def make_runtime_overlay_result(*, all_roots_ready: bool = True) -> dict[str, object]:
-    return {
-        "authority": {"selected_action": "noop", "post_status": {"all_targets_ready": True}},
-        "materialization": {"materialized_surface_count": 1, "surfaces": []},
-        "audit": {
-            "all_roots_ready": all_roots_ready,
-            "surface_count": 1,
-            "surfaces": [],
-        },
     }
 
 

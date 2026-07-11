@@ -9,7 +9,7 @@ Canonical source: `agent/stages/stage_route_contract.yaml`.
 
 Currentness and recovery-obligation source: `contracts/stage_route_reconcile_contract.json`.
 
-`managed_entry_actions` below mirrors legacy route-semantic labels from the canonical YAML. `doctor`、`bootstrap`、`overlay-status`、`request-opl-stage-attempt` and `study-progress` are not current repo-local commands or action-catalog ids; they are provenance/no-resurrection metadata pending a separate machine-contract migration. Current public actions come only from `contracts/action_catalog.json` and OPL generated surfaces.
+`managed_entry_actions` below mirrors legacy route-semantic labels from the canonical YAML. `doctor`、`bootstrap`、`request-opl-stage-attempt` and `study-progress` are not current repo-local commands or action-catalog ids; they are provenance/no-resurrection metadata pending a separate machine-contract migration. Current public actions come only from `contracts/action_catalog.json` and OPL generated surfaces.
 
 The YAML route contract selects stages and route families. It does not authorize provider admission, OPL StageRun execution, terminal closeout consumption, paper progress, owner receipt, typed blocker, publication readiness, or current package truth. Those boundaries are held by the reconcile contract and by fresh runtime readback.
 
@@ -50,7 +50,7 @@ flowchart LR
 - default_runtime_mode: managed
 - lightweight_scope: none
 - preconditions: workspace/profile available
-- managed_entry_actions: doctor | bootstrap | overlay-status | request-opl-stage-attempt
+- managed_entry_actions: doctor | bootstrap | request-opl-stage-attempt
 - lightweight_routes: (none)
 - managed_routes: scout | idea | write | finalize
 - startup_boundary_gated_routes: baseline | experiment | analysis-campaign
@@ -62,7 +62,7 @@ flowchart LR
 - default_runtime_mode: lightweight
 - lightweight_scope: early evidence framing
 - preconditions: workspace/profile available
-- managed_entry_actions: doctor | bootstrap | overlay-status | request-opl-stage-attempt
+- managed_entry_actions: doctor | bootstrap | request-opl-stage-attempt
 - lightweight_routes: scout
 - managed_routes: scout | idea | write | finalize
 - startup_boundary_gated_routes: baseline | experiment | analysis-campaign
@@ -74,7 +74,7 @@ flowchart LR
 - default_runtime_mode: lightweight
 - lightweight_scope: route selection and study framing
 - preconditions: workspace/profile available
-- managed_entry_actions: doctor | bootstrap | overlay-status | request-opl-stage-attempt
+- managed_entry_actions: doctor | bootstrap | request-opl-stage-attempt
 - lightweight_routes: idea | decision
 - managed_routes: scout | idea | write | finalize
 - startup_boundary_gated_routes: baseline | experiment | analysis-campaign
@@ -86,7 +86,7 @@ flowchart LR
 - default_runtime_mode: lightweight
 - lightweight_scope: pathway adjustment and stop-loss
 - preconditions: workspace/profile available
-- managed_entry_actions: doctor | bootstrap | overlay-status | request-opl-stage-attempt
+- managed_entry_actions: doctor | bootstrap | request-opl-stage-attempt
 - lightweight_routes: decision
 - managed_routes: scout | write | finalize
 - startup_boundary_gated_routes: baseline | experiment | analysis-campaign
@@ -98,7 +98,7 @@ flowchart LR
 - default_runtime_mode: lightweight
 - lightweight_scope: manuscript and delivery packaging
 - preconditions: workspace/profile available
-- managed_entry_actions: doctor | bootstrap | overlay-status | request-opl-stage-attempt
+- managed_entry_actions: doctor | bootstrap | request-opl-stage-attempt
 - lightweight_routes: write
 - managed_routes: write | finalize
 - startup_boundary_gated_routes: (none)
@@ -110,7 +110,7 @@ flowchart LR
 - default_runtime_mode: lightweight
 - lightweight_scope: controller-visible canonical manuscript text/structure revision from existing evidence only
 - preconditions: workspace/profile available | latest task intake explicitly limits work to canonical paper text/structure or evidence repackaging from existing results | study is in manual_finishing or bundle-stage-ready state, or foreground takeover has been explicitly allowed | runtime is inactive, paused, stopped, or supervisor-only takeover rules allow foreground work
-- managed_entry_actions: doctor | bootstrap | overlay-status | study-progress
+- managed_entry_actions: doctor | bootstrap | study-progress
 - lightweight_routes: write | finalize
 - managed_routes: write | finalize
 - startup_boundary_gated_routes: (none)

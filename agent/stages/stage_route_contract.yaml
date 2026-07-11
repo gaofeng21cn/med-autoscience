@@ -736,7 +736,6 @@ modes:
     managed_entry_actions:
       - doctor
       - bootstrap
-      - overlay-status
       - request-opl-stage-attempt
     lightweight_routes: []
     managed_routes:
@@ -762,7 +761,6 @@ modes:
     managed_entry_actions:
       - doctor
       - bootstrap
-      - overlay-status
       - request-opl-stage-attempt
     lightweight_routes:
       - scout
@@ -789,7 +787,6 @@ modes:
     managed_entry_actions:
       - doctor
       - bootstrap
-      - overlay-status
       - request-opl-stage-attempt
     lightweight_routes:
       - idea
@@ -817,7 +814,6 @@ modes:
     managed_entry_actions:
       - doctor
       - bootstrap
-      - overlay-status
       - request-opl-stage-attempt
     lightweight_routes:
       - decision
@@ -843,7 +839,6 @@ modes:
     managed_entry_actions:
       - doctor
       - bootstrap
-      - overlay-status
       - request-opl-stage-attempt
     lightweight_routes:
       - write
@@ -869,7 +864,6 @@ modes:
     managed_entry_actions:
       - doctor
       - bootstrap
-      - overlay-status
       - study-progress
     lightweight_routes:
       - write

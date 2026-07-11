@@ -8,8 +8,7 @@ from typing import Iterable, Sequence
 from .category_specs import build_category_specs
 
 
-PYTEST_CLEAN_RUNNER = "scripts/run-pytest-clean.sh"
-PYTHON_CLEAN_RUNNER = "scripts/run-python-clean.sh"
+PYTEST_PATHS_TARGET = "make test-paths --"
 BUILD_CLEAN_RUNNER = "scripts/run-build-clean.sh"
 
 
@@ -63,7 +62,7 @@ _DOC_ONLY_ROOT_FILE_PATTERNS = ("README*.md",)
 
 _CATEGORY_SPECS = build_category_specs(
     PreflightCategorySpec,
-    pytest_clean_runner=PYTEST_CLEAN_RUNNER,
+    pytest_command=PYTEST_PATHS_TARGET,
     build_clean_runner=BUILD_CLEAN_RUNNER,
 )
 
@@ -348,8 +347,8 @@ def _planned_pytest_paths(command: str) -> tuple[str, ...]:
     parts = shlex.split(command)
     if not parts:
         return ()
-    if parts[:1] == [PYTEST_CLEAN_RUNNER]:
-        return tuple(part for part in parts[1:] if part.startswith("tests/"))
+    if parts[:2] == ["make", "test-paths"]:
+        return tuple(part for part in parts[2:] if part.startswith("tests/"))
     if len(parts) < 3 or parts[:3] != ["uv", "run", "pytest"]:
         return ()
     return tuple(part for part in parts[3:] if part.startswith("tests/"))

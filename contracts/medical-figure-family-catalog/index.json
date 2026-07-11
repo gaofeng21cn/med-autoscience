@@ -30,7 +30,7 @@
       "tests/test_medical_figure_family_catalog.py"
     ],
     "required_when_changed": [
-      "scripts/run-pytest-clean.sh tests/test_medical_figure_family_catalog.py",
+      "make test-paths -- tests/test_medical_figure_family_catalog.py",
       "scripts/verify.sh"
     ]
   },

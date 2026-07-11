@@ -21,7 +21,6 @@ from med_autoscience.controllers.study_runtime_types import (
     ProgressProjectionStatus,
 )
 from med_autoscience.controller_summary import materialize_controller_summary
-from med_autoscience.overlay import installer as overlay_installer
 from med_autoscience.policies.automation_ready import render_automation_ready_summary
 from med_autoscience.policies.controller_first import render_controller_first_summary
 from med_autoscience.profiles import WorkspaceProfile
@@ -68,17 +67,6 @@ def _has_explicit_submission_targets(study_payload: dict[str, Any]) -> bool:
     return isinstance(raw_targets, list) and bool(raw_targets)
 
 
-def _overlay_request_kwargs(profile: WorkspaceProfile) -> dict[str, Any]:
-    return {
-        "skill_ids": profile.medical_overlay_skills,
-        "policy_id": profile.research_route_bias_policy,
-        "archetype_ids": profile.preferred_study_archetypes,
-        "default_submission_targets": profile.default_submission_targets,
-        "default_publication_profile": profile.default_publication_profile,
-        "default_citation_style": profile.default_citation_style,
-    }
-
-
 def _render_optional_guidance_list(*, title: str, items: list[str]) -> str:
     normalized_items = [str(item).strip() for item in items if str(item).strip()]
     if not normalized_items:
@@ -107,36 +95,6 @@ def _render_study_specific_scientific_guidance(study_payload: dict[str, Any]) ->
     if not sections:
         return ""
     return "Study-specific scientific guidance:\n" + "\n\n".join(sections)
-
-
-def _prepare_runtime_overlay(*, profile: WorkspaceProfile, quest_root: Path) -> dict[str, Any]:
-    overlay_kwargs = _overlay_request_kwargs(profile)
-    authority = overlay_installer.ensure_medical_overlay(
-        quest_root=profile.workspace_root,
-        mode="ensure_ready",
-        **overlay_kwargs,
-    )
-    materialization = overlay_installer.materialize_runtime_medical_overlay(
-        quest_root=quest_root,
-        authoritative_root=profile.workspace_root,
-        **overlay_kwargs,
-    )
-    audit = overlay_installer.audit_runtime_medical_overlay(
-        quest_root=quest_root,
-        **overlay_kwargs,
-    )
-    return {
-        "authority": authority,
-        "materialization": materialization,
-        "audit": audit,
-    }
-
-
-def _audit_runtime_overlay(*, profile: WorkspaceProfile, quest_root: Path) -> dict[str, Any]:
-    return overlay_installer.audit_runtime_medical_overlay(
-        quest_root=quest_root,
-        **_overlay_request_kwargs(profile),
-    )
 
 
 def _build_startup_contract(

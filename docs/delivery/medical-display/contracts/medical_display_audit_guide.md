@@ -30,7 +30,7 @@ Python evidence templates are absent from current inventory, hidden defaults, ex
 - `src/med_autoscience/display_layout_qc/`
 - ScholarSkills gallery manifest / snapshot under `/Users/gaofeng/workspace/mas-scholar-skills/gallery/medical-display/`
 
-The Markdown catalog is an on-demand local snapshot produced by `./scripts/run-python-clean.sh scripts/build-display-pack-gallery.py --publish-docs`; it is not tracked inventory truth. The human Gallery is the ScholarSkills compact review package; it includes page-level recipes, visible design/flow shells, and R/ggplot2 evidence figure starters.
+The Markdown catalog is an on-demand local snapshot produced through the current isolated Python execution surface; it is not tracked inventory truth. The human Gallery is the ScholarSkills compact review package; it includes page-level recipes, visible design/flow shells, and R/ggplot2 evidence figure starters.
 
 ## Code, Assets, And Dependency Boundary
 

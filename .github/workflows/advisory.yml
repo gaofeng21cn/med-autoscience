@@ -38,9 +38,6 @@ jobs:
             label: Run display-heavy advisory tests
             system_dependencies: display
             prepare_analysis_bundle: true
-    env:
-      PYTHONPATH: src
-      UV_NO_SYNC: "1"
     steps:
       - name: Checkout repository
         uses: actions/checkout@v6
@@ -83,17 +80,18 @@ jobs:
           echo "PKG_CONFIG_PATH=$(brew --prefix libxml2)/lib/pkgconfig:${PKG_CONFIG_PATH:-}" >> "${GITHUB_ENV}"
           echo "XML_CONFIG=$(brew --prefix libxml2)/bin/xml2-config" >> "${GITHUB_ENV}"
 
-      - name: Install dependencies
-        env:
-          UV_PROJECT_ENVIRONMENT: ${{ runner.temp }}/mas-ci-venv
-        run: uv sync --frozen --group dev --no-install-project
+      - name: Export isolated test requirements
+        run: uv export --quiet --frozen --no-emit-project --group dev --format requirements-txt > "${RUNNER_TEMP}/mas-requirements.txt"
 
       - name: Ensure study runtime analysis bundle
         if: matrix.prepare_analysis_bundle
         env:
+          PYTHONPATH: src
           PYTHONDONTWRITEBYTECODE: "1"
+          PYTHONPYCACHEPREFIX: ${{ runner.temp }}/mas-pycache
+          PYTEST_ADDOPTS: -p no:cacheprovider -o cache_dir=${{ runner.temp }}/mas-pytest-cache
         run: |
-          uv run python - <<'PY'
+          uv run --isolated --frozen --no-project --with-requirements "${RUNNER_TEMP}/mas-requirements.txt" python - <<'PY'
           import json
           import sys
 

@@ -142,7 +142,7 @@ def _owner_receipt_or_typed_blocker(*, root: Path) -> dict[str, Any]:
 
 def _verification_command_refs() -> list[str]:
     return [
-        "rtk scripts/run-pytest-clean.sh -q tests/test_agent_lab_medical_manuscript_quality.py",
+        "rtk make test-paths -- tests/test_agent_lab_medical_manuscript_quality.py -q",
         "rtk make test-meta",
         "rtk scripts/verify.sh",
     ]

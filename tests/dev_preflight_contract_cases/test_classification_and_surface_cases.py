@@ -87,11 +87,11 @@ def test_classify_changed_files_routes_display_pack_config_to_publication_surfac
     assert result.matched_categories == ("display_publication_surface",)
     assert result.unclassified_changes == ()
     assert module.plan_commands_for_categories(result.matched_categories) == [
-        "scripts/run-pytest-clean.sh tests/display_schema_contract_cases -q",
-        "scripts/run-pytest-clean.sh tests/test_display_surface_materialization.py -q",
-        "scripts/run-pytest-clean.sh tests/test_display_layout_qc.py -q",
-        "scripts/run-pytest-clean.sh tests/test_publication_gate_cases -q",
-        "scripts/run-pytest-clean.sh tests/medical_publication_surface_cases -q",
+        "make test-paths -- tests/display_schema_contract_cases -q",
+        "make test-paths -- tests/test_display_surface_materialization.py -q",
+        "make test-paths -- tests/test_display_layout_qc.py -q",
+        "make test-paths -- tests/test_publication_gate_cases -q",
+        "make test-paths -- tests/medical_publication_surface_cases -q",
     ]
 
 
@@ -126,8 +126,8 @@ def test_classify_changed_files_routes_publication_route_memory_fixture_to_owner
     )
     assert result.unclassified_changes == ()
     assert module.plan_commands_for_categories(result.matched_categories) == [
-        "scripts/run-pytest-clean.sh tests/test_stage_knowledge_plane.py -q",
-        "scripts/run-pytest-clean.sh tests/test_opl_family_contract_adoption.py -q",
+        "make test-paths -- tests/test_stage_knowledge_plane.py -q",
+        "make test-paths -- tests/test_opl_family_contract_adoption.py -q",
     ]
 
 
@@ -318,7 +318,7 @@ def test_classify_changed_files_matches_owner_answer_candidate_intake_surface() 
     assert result.matched_categories == ("owner_answer_candidate_intake_surface",)
     assert result.unclassified_changes == ()
     assert module.plan_commands_for_categories(result.matched_categories) == [
-        "scripts/run-pytest-clean.sh tests/test_owner_answer_candidate_intake.py -q",
+        "make test-paths -- tests/test_owner_answer_candidate_intake.py -q",
     ]
 
 
@@ -335,7 +335,7 @@ def test_classify_changed_files_matches_study_owner_gate_decision_surface() -> N
     assert result.matched_categories == ("study_owner_gate_decision_surface",)
     assert result.unclassified_changes == ()
     assert module.plan_commands_for_categories(result.matched_categories) == [
-        "scripts/run-pytest-clean.sh tests/test_study_interventions.py -q",
+        "make test-paths -- tests/test_study_interventions.py -q",
     ]
 
 
@@ -369,13 +369,13 @@ def test_classify_changed_files_matches_paper_progress_transition_boundary_surfa
     planned_commands = module.plan_commands_for_categories(result.matched_categories)
     assert "make test-control-plane" not in planned_commands
     assert (
-        "scripts/run-pytest-clean.sh "
+        "make test-paths -- "
         "tests/test_opl_transition_readback_contract.py "
         "tests/test_mas_workspace_domain_projection.py "
         "tests/test_live_stage_run_progress_evidence.py -q"
     ) in planned_commands
     assert (
-        "scripts/run-pytest-clean.sh "
+        "make test-paths -- "
         "tests/test_opl_domain_progress_transition_runtime_contract.py -q"
     ) in planned_commands
 
@@ -585,8 +585,6 @@ def test_classify_changed_files_matches_standard_agent_pack_surface() -> None:
             "contracts/stage_artifact_kernel_adoption.json",
             "contracts/stage_route_reconcile_contract.json",
             "contracts/stage_run_kernel_profile.json",
-            "src/med_autoscience/overlay/templates/medical-research-baseline.SKILL.md",
-            "src/med_autoscience/overlay/templates/medical-research-experiment.SKILL.md",
             "templates/codex/medautoscience-entry.SKILL.md",
             "templates/openclaw/medautoscience-entry.prompt.md",
         ]
@@ -596,18 +594,17 @@ def test_classify_changed_files_matches_standard_agent_pack_surface() -> None:
     assert result.unclassified_changes == ()
     assert module.plan_commands_for_categories(result.matched_categories) == [
         (
-            "scripts/run-pytest-clean.sh "
+            "make test-paths -- "
             "tests/test_opl_family_contract_adoption.py "
             "tests/test_progress_first_safety_envelope_contract.py "
             "tests/test_standard_agent_completion_acceptance_contract.py "
             "tests/test_test_lane_governance.py "
             "tests/test_stage_quality_contract.py "
             "tests/test_stage_route_contract.py "
-            "tests/test_stage_route_reconcile_contract.py "
-            "tests/test_overlay_installer.py -q"
+            "tests/test_stage_route_reconcile_contract.py -q"
         ),
-        "scripts/run-pytest-clean.sh tests/test_domain_route_profile.py -q",
-        "scripts/run-pytest-clean.sh tests/test_mas_workspace_domain_projection.py -q",
+        "make test-paths -- tests/test_domain_route_profile.py -q",
+        "make test-paths -- tests/test_mas_workspace_domain_projection.py -q",
     ]
 
 
@@ -636,30 +633,29 @@ def test_classify_changed_files_matches_external_learning_sidecar_surface() -> N
     assert result.unclassified_changes == ()
     assert module.plan_commands_for_categories(result.matched_categories) == [
         (
-            "scripts/run-pytest-clean.sh "
+            "make test-paths -- "
             "tests/controller_charter/test_controller_charter_module_contract.py "
             "tests/runtime/test_runtime_module_contract.py "
             "tests/eval_hygiene/test_eval_hygiene_module_contract.py "
             "tests/integration/test_monorepo_scaffold_boundaries.py -q"
         ),
-        "scripts/run-pytest-clean.sh tests/test_opl_family_contract_adoption.py -q",
-        "scripts/run-pytest-clean.sh tests/test_opl_family_persistence_adapter.py -q",
-        "scripts/run-pytest-clean.sh tests/test_test_lane_governance.py -q",
+        "make test-paths -- tests/test_opl_family_contract_adoption.py -q",
+        "make test-paths -- tests/test_opl_family_persistence_adapter.py -q",
+        "make test-paths -- tests/test_test_lane_governance.py -q",
         (
-            "scripts/run-pytest-clean.sh "
+            "make test-paths -- "
             "tests/test_opl_family_contract_adoption.py "
             "tests/test_progress_first_safety_envelope_contract.py "
             "tests/test_standard_agent_completion_acceptance_contract.py "
             "tests/test_test_lane_governance.py "
             "tests/test_stage_quality_contract.py "
             "tests/test_stage_route_contract.py "
-            "tests/test_stage_route_reconcile_contract.py "
-            "tests/test_overlay_installer.py -q"
+            "tests/test_stage_route_reconcile_contract.py -q"
         ),
-        "scripts/run-pytest-clean.sh tests/test_domain_route_profile.py -q",
-        "scripts/run-pytest-clean.sh tests/test_mas_workspace_domain_projection.py -q",
+        "make test-paths -- tests/test_domain_route_profile.py -q",
+        "make test-paths -- tests/test_mas_workspace_domain_projection.py -q",
         (
-            "scripts/run-pytest-clean.sh "
+            "make test-paths -- "
             "tests/test_external_learning_adoption_closure.py "
             "tests/test_opl_family_contract_adoption.py "
             "tests/test_progress_first_safety_envelope_contract.py -q"
@@ -682,7 +678,7 @@ def test_classify_changed_files_matches_evo_scientist_progress_accelerator_surfa
     assert result.matched_categories == ("evo_scientist_progress_accelerator_surface",)
     assert result.unclassified_changes == ()
     assert module.plan_commands_for_categories(result.matched_categories) == [
-        "scripts/run-pytest-clean.sh tests/test_evo_scientist_learning_projection.py -q",
+        "make test-paths -- tests/test_evo_scientist_learning_projection.py -q",
     ]
 
 
@@ -696,10 +692,6 @@ def test_classify_changed_files_matches_data_asset_display_and_overlay_contracts
             "contracts/figure_polish_lifecycle_contract.json",
             "contracts/medical_figure_spec_contract.json",
             "contracts/publication_figure_quality_contract.json",
-            "src/med_autoscience/overlay/templates/medical-research-citation-locator-audit.template.md",
-            "src/med_autoscience/overlay/templates/medical-research-figure-integrity.template.md",
-            "src/med_autoscience/overlay/templates/medical-research-prisma-flow.template.md",
-            "src/med_autoscience/overlay/templates/medical-research-skill-content-patterns.block.md",
             "src/med_autoscience/resources/stage_route_contract.yaml",
         ]
     )
@@ -753,8 +745,8 @@ def test_classify_changed_files_matches_production_acceptance_surface() -> None:
     assert result.matched_categories == ("production_acceptance_surface",)
     assert result.unclassified_changes == ()
     assert module.plan_commands_for_categories(result.matched_categories) == [
-        "scripts/run-pytest-clean.sh tests/test_mas_production_acceptance.py -q",
-        "scripts/run-pytest-clean.sh tests/test_opl_standard_pack_cases -q",
+        "make test-paths -- tests/test_mas_production_acceptance.py -q",
+        "make test-paths -- tests/test_opl_standard_pack_cases -q",
     ]
 
 
@@ -774,14 +766,13 @@ def test_classify_changed_files_matches_codex_plugin_skill_surface() -> None:
     assert result.unclassified_changes == ()
 
 
-def test_classify_changed_clean_runner_scripts_as_family_shared_surface() -> None:
+def test_classify_changed_native_python_entrypoints_as_family_shared_surface() -> None:
     module = importlib.import_module("med_autoscience.dev_preflight_contract")
 
     result = module.classify_changed_files(
         [
             "scripts/run-build-clean.sh",
-            "scripts/run-python-clean.sh",
-            "scripts/run-pytest-clean.sh",
+            "Makefile",
             "scripts/verify.sh",
         ]
     )

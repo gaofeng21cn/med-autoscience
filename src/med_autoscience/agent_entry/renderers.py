@@ -95,7 +95,7 @@ def render_stage_route_contract_guide() -> str:
         f"Currentness and recovery-obligation source: `{STAGE_ROUTE_RECONCILE_CONTRACT_REF}`.",
         "",
         "`managed_entry_actions` below mirrors legacy route-semantic labels from the canonical YAML. "
-        "`doctor`、`bootstrap`、`overlay-status`、`request-opl-stage-attempt` and `study-progress` are not current "
+        "`doctor`、`bootstrap`、`request-opl-stage-attempt` and `study-progress` are not current "
         "repo-local commands or action-catalog ids; they are provenance/no-resurrection metadata pending a "
         "separate machine-contract migration. Current public actions come only from "
         "`contracts/action_catalog.json` and OPL generated surfaces.",

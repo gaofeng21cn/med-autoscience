@@ -322,16 +322,6 @@ def _live_worker_missing_active_run_id(status: ProgressProjectionStatus) -> bool
     return runtime_audit.get("worker_running") is True and not active_run_id
 
 
-def _runtime_overlay_ready_for_resume(status: ProgressProjectionStatus) -> bool:
-    payload = status.extras.get("runtime_overlay")
-    if not isinstance(payload, dict):
-        return True
-    audit = payload.get("audit")
-    if not isinstance(audit, dict):
-        return True
-    return audit.get("all_roots_ready") is not False
-
-
 def _set_running_quest_recovery_decision(
     *,
     status: ProgressProjectionStatus,
@@ -362,11 +352,6 @@ def _set_running_quest_recovery_decision(
         status.set_decision(
             StudyRuntimeDecision.BLOCKED,
             StudyRuntimeReason.RUNTIME_REENTRY_NOT_READY_FOR_RESUME,
-        )
-    elif not _runtime_overlay_ready_for_resume(status):
-        status.set_decision(
-            StudyRuntimeDecision.BLOCKED,
-            StudyRuntimeReason.RUNNING_QUEST_LIVE_SESSION_AUDIT_FAILED,
         )
     elif execution.get("auto_resume") is True:
         status.set_decision(

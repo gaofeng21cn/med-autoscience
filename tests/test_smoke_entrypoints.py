@@ -23,7 +23,7 @@ def test_smoke_lane_paths_match_its_make_recipe() -> None:
     paths = _manifest()["lanes"]["smoke"]["paths"]
 
     assert paths == ["tests/test_smoke_entrypoints.py", "tests/test_line_budget.py"]
-    expected_recipe = f"\tscripts/run-pytest-clean.sh {' '.join(paths)} -q"
+    expected_recipe = f"\t@$(call run_isolated_python,-m pytest {' '.join(paths)} -q)"
     smoke_recipe = _read("Makefile").split("test-smoke:\n", 1)[1].split("\n\n", 1)[0]
     assert smoke_recipe == expected_recipe
 

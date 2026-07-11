@@ -333,7 +333,7 @@ def build_software_environment_document(
             environment_refs
             or {
                 "runtime": "Codex-default host-agent runtime",
-                "verification_entry": "scripts/run-pytest-clean.sh",
+                "verification_entry": "make test-paths",
                 "project": "med-autoscience",
             }
         ),

@@ -4,10 +4,6 @@ from dataclasses import dataclass, field
 from pathlib import Path
 import tomllib
 
-from med_autoscience.overlay.constants import (
-    DEFAULT_MEDICAL_OVERLAY_SKILL_IDS,
-    SUPPORTED_MEDICAL_OVERLAY_BOOTSTRAP_MODES,
-)
 from med_autoscience.policies.research_route_bias import DEFAULT_RESEARCH_ROUTE_BIAS_POLICY_ID
 from med_autoscience.policies.study_archetypes import DEFAULT_STUDY_ARCHETYPE_IDS
 from med_autoscience.scholarskills_local_install import (
@@ -54,16 +50,12 @@ class WorkspaceProfile:
     med_deepscientist_repo_root: Path | None
     default_publication_profile: str
     default_citation_style: str
-    enable_medical_overlay: bool
-    medical_overlay_scope: str
-    medical_overlay_skills: tuple[str, ...]
     research_route_bias_policy: str
     preferred_study_archetypes: tuple[str, ...]
     default_submission_targets: tuple[dict[str, object], ...]
     hermes_agent_repo_root: Path | None = None
     hermes_home_root: Path = field(default_factory=lambda: (Path.home() / ".hermes").resolve())
     opl_runtime_ref: str = OPL_HOSTED_STAGE_RUNTIME_ID
-    medical_overlay_bootstrap_mode: str = "ensure_ready"
     default_startup_anchor_policy: str = "scout_first_for_continue_existing_state"
     legacy_code_execution_policy: str = "forbid_without_user_approval"
     public_data_discovery_policy: str = "required_for_scout_route_selection"
@@ -125,18 +117,6 @@ def _optional_string_with_default(payload: dict[str, object], key: str, *, defau
     if not isinstance(value, str) or not value.strip():
         raise TypeError(f"{key} must be a non-empty string")
     return value
-
-
-def _optional_overlay_bootstrap_mode(payload: dict[str, object]) -> str:
-    mode = _optional_string_with_default(
-        payload,
-        "medical_overlay_bootstrap_mode",
-        default="ensure_ready",
-    )
-    if mode not in SUPPORTED_MEDICAL_OVERLAY_BOOTSTRAP_MODES:
-        supported = ", ".join(SUPPORTED_MEDICAL_OVERLAY_BOOTSTRAP_MODES)
-        raise TypeError(f"medical_overlay_bootstrap_mode must be one of: {supported}")
-    return mode
 
 
 def _optional_startup_anchor_policy(payload: dict[str, object]) -> str:
@@ -218,15 +198,6 @@ def _reject_legacy_default_backend(*, runtime_ref: str) -> None:
             "opl_runtime_ref cannot be med_deepscientist; "
             f"MDS is retained only for frozen source provenance or historical fixture references: {allowed}"
         )
-
-
-def _optional_bool(payload: dict[str, object], key: str, *, default: bool) -> bool:
-    if key not in payload:
-        return default
-    value = payload[key]
-    if not isinstance(value, bool):
-        raise TypeError(f"{key} must be a boolean")
-    return value
 
 
 def _optional_path(payload: dict[str, object], key: str, *, profile_dir: Path) -> Path | None:
@@ -358,13 +329,6 @@ def load_profile(path: str | Path) -> WorkspaceProfile:
         opl_runtime_ref=opl_runtime_ref,
         default_publication_profile=_require_string(payload, "default_publication_profile"),
         default_citation_style=_require_string(payload, "default_citation_style"),
-        enable_medical_overlay=_optional_bool(payload, "enable_medical_overlay", default=True),
-        medical_overlay_scope=_optional_string_with_default(payload, "medical_overlay_scope", default="workspace"),
-        medical_overlay_skills=_optional_string_list(
-            payload,
-            "medical_overlay_skills",
-            default=DEFAULT_MEDICAL_OVERLAY_SKILL_IDS,
-        ),
         research_route_bias_policy=_optional_string_with_default(
             payload,
             "research_route_bias_policy",
@@ -376,7 +340,6 @@ def load_profile(path: str | Path) -> WorkspaceProfile:
             default=DEFAULT_STUDY_ARCHETYPE_IDS,
         ),
         default_submission_targets=_optional_dict_list(payload, "default_submission_targets"),
-        medical_overlay_bootstrap_mode=_optional_overlay_bootstrap_mode(payload),
         default_startup_anchor_policy=_optional_startup_anchor_policy(payload),
         legacy_code_execution_policy=_optional_legacy_code_execution_policy(payload),
         public_data_discovery_policy=_optional_public_data_discovery_policy(payload),
@@ -426,12 +389,6 @@ def profile_to_dict(profile: WorkspaceProfile) -> dict[str, object]:
             "default_publication_profile": profile.default_publication_profile,
             "default_citation_style": profile.default_citation_style,
             "default_submission_targets": default_submission_targets,
-        },
-        "overlay": {
-            "enable_medical_overlay": profile.enable_medical_overlay,
-            "medical_overlay_scope": profile.medical_overlay_scope,
-            "medical_overlay_skills": list(profile.medical_overlay_skills),
-            "medical_overlay_bootstrap_mode": profile.medical_overlay_bootstrap_mode,
         },
         "policy": {
             "research_route_bias_policy": profile.research_route_bias_policy,

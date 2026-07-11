@@ -4,25 +4,25 @@ set -euo pipefail
 repo_root="$(git rev-parse --show-toplevel)"
 cd "${repo_root}"
 
-if [[ -z "${CI:-}" && -z "${MAS_CLEAN_RUNNER_TMP_ROOT:-}" && -z "${MAS_CLEAN_RUNNER_REUSE_ENV:-}" ]]; then
-  export MAS_CLEAN_RUNNER_REUSE_ENV=1
-fi
-if [[ "${MAS_CLEAN_RUNNER_REUSE_ENV:-0}" != "1" && -z "${MAS_CLEAN_RUNNER_TMP_ROOT:-}" ]]; then
-  verify_tmp_root="$(mktemp -d "${TMPDIR:-/tmp}/mas-verify.XXXXXX")"
-  cleanup_verify_tmp_root() {
-    rm -rf "${verify_tmp_root}"
-  }
-  trap cleanup_verify_tmp_root EXIT
-  export MAS_CLEAN_RUNNER_TMP_ROOT="${verify_tmp_root}/python"
-fi
-clean_python_runner="${MAS_CLEAN_PYTHON_RUNNER:-scripts/run-python-clean.sh}"
+verify_tmp_root="$(mktemp -d "${TMPDIR:-/tmp}/mas-verify.XXXXXX")"
+cleanup_verify_tmp_root() {
+  rm -rf "${verify_tmp_root}"
+}
+trap cleanup_verify_tmp_root EXIT
+
+requirements_file="${verify_tmp_root}/requirements.txt"
+uv export --quiet --frozen --no-emit-project --group dev --format requirements-txt > "${requirements_file}"
+export PYTHONPATH=src
+export PYTHONDONTWRITEBYTECODE=1
+export PYTHONPYCACHEPREFIX="${verify_tmp_root}/pycache"
+export PYTEST_ADDOPTS="-p no:cacheprovider -o cache_dir=${verify_tmp_root}/pytest-cache"
 
 run_sanity_checks() {
   if [[ "${MAS_VERIFY_REPO_HYGIENE_FIX:-0}" == "1" ]]; then
-    "${clean_python_runner}" scripts/repo_hygiene_audit.py --fix
+    uv run --isolated --frozen --no-project --with-requirements "${requirements_file}" python scripts/repo_hygiene_audit.py --fix
   fi
-  "${clean_python_runner}" scripts/repo_hygiene_audit.py
-  "${clean_python_runner}" scripts/line_budget.py
+  uv run --isolated --frozen --no-project --with-requirements "${requirements_file}" python scripts/repo_hygiene_audit.py
+  uv run --isolated --frozen --no-project --with-requirements "${requirements_file}" python scripts/line_budget.py
 
   if git grep -n -I -E '^(<<<<<<< |=======|>>>>>>> |\|\|\|\|\|\|\| )' -- .; then
     echo "verify.sh: unresolved merge conflict markers detected" >&2
@@ -38,7 +38,7 @@ run_sanity_checks() {
   done < <(git ls-files '*.py')
 
   if [[ "${#python_files[@]}" -gt 0 ]]; then
-    "${clean_python_runner}" - "${python_files[@]}" <<'PY'
+    uv run --isolated --frozen --no-project --with-requirements "${requirements_file}" python - "${python_files[@]}" <<'PY'
 from __future__ import annotations
 
 import pathlib

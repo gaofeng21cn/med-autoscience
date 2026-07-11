@@ -6,8 +6,6 @@ from . import status_model as status_model
 
 enums_and_audits.__dict__.update({
     "StudyRuntimeAnalysisBundleResult": runtime_result_types.StudyRuntimeAnalysisBundleResult,
-    "StudyRuntimeOverlayAudit": runtime_result_types.StudyRuntimeOverlayAudit,
-    "StudyRuntimeOverlayResult": runtime_result_types.StudyRuntimeOverlayResult,
     "StudyRuntimeStartupContextSyncResult": runtime_result_types.StudyRuntimeStartupContextSyncResult,
     "StudyRuntimePartialQuestRecoveryResult": runtime_result_types.StudyRuntimePartialQuestRecoveryResult,
     "StudyRuntimeWorkspaceContractsSummary": runtime_result_types.StudyRuntimeWorkspaceContractsSummary,
@@ -55,8 +53,6 @@ study_runtime_protocol = enums_and_audits.study_runtime_protocol
 StudyCompletionState = enums_and_audits.StudyCompletionState
 StudyCompletionStateStatus = enums_and_audits.StudyCompletionStateStatus
 StudyRuntimeAnalysisBundleResult = runtime_result_types.StudyRuntimeAnalysisBundleResult
-StudyRuntimeOverlayAudit = runtime_result_types.StudyRuntimeOverlayAudit
-StudyRuntimeOverlayResult = runtime_result_types.StudyRuntimeOverlayResult
 StudyRuntimeStartupContextSyncResult = runtime_result_types.StudyRuntimeStartupContextSyncResult
 StudyRuntimePartialQuestRecoveryResult = runtime_result_types.StudyRuntimePartialQuestRecoveryResult
 StudyRuntimeWorkspaceContractsSummary = runtime_result_types.StudyRuntimeWorkspaceContractsSummary
@@ -80,8 +76,6 @@ __all__ = [
     "StudyRuntimeDecision",
     "StudyRuntimeExecutionOwnerGuard",
     "StudyRuntimeInteractionArbitration",
-    "StudyRuntimeOverlayAudit",
-    "StudyRuntimeOverlayResult",
     "StudyRuntimePendingUserInteraction",
     "StudyRuntimePartialQuestRecoveryResult",
     "StudyRuntimeProgressProjection",

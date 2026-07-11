@@ -31,7 +31,7 @@ def test_fast_lane_uses_its_manifest_paths_and_verify_entrypoint() -> None:
     fast_block = makefile.split("test-fast:", maxsplit=1)[1].split(
         "\ntest-meta:", maxsplit=1
     )[0]
-    assert "scripts/run-pytest-clean.sh $(FAST_TESTS) -q" in fast_block
+    assert "@$(call run_isolated_python,-m pytest $(FAST_TESTS) -q)" in fast_block
     assert "test-regression" not in fast_block
 
     verify_script = _read("scripts/verify.sh")

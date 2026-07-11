@@ -135,18 +135,6 @@ def make_analysis_bundle_result(*, ready: bool = True) -> dict[str, object]:
     }
 
 
-def make_runtime_overlay_result(*, all_roots_ready: bool = True) -> dict[str, object]:
-    return {
-        "authority": {"selected_action": "noop", "post_status": {"all_targets_ready": True}},
-        "materialization": {"materialized_surface_count": 1, "surfaces": []},
-        "audit": {
-            "all_roots_ready": all_roots_ready,
-            "surface_count": 1,
-            "surfaces": [],
-        },
-    }
-
-
 def make_startup_context_sync_payload(*, quest_id: str = "quest-001") -> dict[str, object]:
     return {
         "ok": True,
@@ -308,7 +296,6 @@ def make_progress_projection_payload() -> dict[str, object]:
             "details_projection_path": "/tmp/runtime/quests/quest-001/.ds/projections/details.v1.json",
         },
     }
-
 
 
 

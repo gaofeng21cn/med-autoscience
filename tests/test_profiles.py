@@ -18,10 +18,6 @@ PROFILE_LINES = [
     'hermes_home_root = "~/.hermes"',
     'default_publication_profile = "general_medical_journal"',
     'default_citation_style = "AMA"',
-    "enable_medical_overlay = true",
-    'medical_overlay_scope = "workspace"',
-    'medical_overlay_skills = ["scout", "idea", "decision", "write", "finalize"]',
-    'medical_overlay_bootstrap_mode = "ensure_ready"',
     'research_route_bias_policy = "high_plasticity_medical"',
     'preferred_study_archetypes = ["clinical_classifier", "clinical_subtype_reconstruction", "external_validation_model_update", "gray_zone_triage", "llm_agent_clinical_task", "mechanistic_sidecar_extension"]',
     'default_startup_anchor_policy = "scout_first_for_continue_existing_state"',
@@ -74,10 +70,6 @@ def test_load_profile_parses_expected_fields(tmp_path: Path) -> None:
     assert profile.opl_runtime_ref == "opl_hosted_stage_runtime"
     assert profile.default_publication_profile == "general_medical_journal"
     assert profile.default_citation_style == "AMA"
-    assert profile.enable_medical_overlay is True
-    assert profile.medical_overlay_scope == "workspace"
-    assert profile.medical_overlay_skills == ("scout", "idea", "decision", "write", "finalize")
-    assert profile.medical_overlay_bootstrap_mode == "ensure_ready"
     assert profile.research_route_bias_policy == "high_plasticity_medical"
     assert profile.preferred_study_archetypes == (
         "clinical_classifier",
@@ -116,7 +108,7 @@ def test_load_profile_rejects_nfpitnet_stale_local_alias_scaffold(tmp_path: Path
         profiles.load_profile(profile_path)
 
 
-def test_load_profile_uses_workspace_local_medical_overlay_by_default(tmp_path: Path) -> None:
+def test_load_profile_uses_opl_runtime_defaults(tmp_path: Path) -> None:
     profile_path = tmp_path / "minimal.local.toml"
     profile_path.write_text(
         "\n".join(
@@ -143,24 +135,6 @@ def test_load_profile_uses_workspace_local_medical_overlay_by_default(tmp_path: 
     assert profile.hermes_agent_repo_root is None
     assert profile.hermes_home_root == Path.home() / ".hermes"
     assert profile.opl_runtime_ref == "opl_hosted_stage_runtime"
-    assert profile.enable_medical_overlay is True
-    assert profile.medical_overlay_scope == "workspace"
-    assert profile.medical_overlay_skills == (
-        "intake-audit",
-        "scout",
-        "baseline",
-        "idea",
-        "decision",
-        "experiment",
-        "analysis-campaign",
-        "figure",
-        "write",
-        "review",
-        "external-scientific-skills",
-        "rebuttal",
-        "finalize",
-    )
-    assert profile.medical_overlay_bootstrap_mode == "ensure_ready"
     assert profile.research_route_bias_policy == "high_plasticity_medical"
     assert profile.preferred_study_archetypes == (
         "clinical_classifier",
@@ -176,13 +150,14 @@ def test_load_profile_uses_workspace_local_medical_overlay_by_default(tmp_path: 
     assert profile.startup_boundary_requirements == ("paper_framing", "journal_shortlist", "evidence_package")
 
 
-def test_workspace_profile_template_defaults_to_primary_figure_overlay_skill() -> None:
+def test_workspace_profile_template_excludes_retired_overlay_settings() -> None:
     template_path = Path(__file__).resolve().parents[1] / "profiles" / "workspace.profile.template.toml"
     payload = tomllib.loads(template_path.read_text(encoding="utf-8"))
 
-    assert "figure" in payload["medical_overlay_skills"]
-    assert "external-scientific-skills" in payload["medical_overlay_skills"]
-    assert "figure-polish" not in payload["medical_overlay_skills"]
+    assert "enable_medical_overlay" not in payload
+    assert "medical_overlay_scope" not in payload
+    assert "medical_overlay_skills" not in payload
+    assert "medical_overlay_bootstrap_mode" not in payload
     assert "developer_supervisor_mode" not in payload
     assert "github_username" not in payload
     assert "mas_developer_github_usernames" not in payload
@@ -332,12 +307,6 @@ def test_profile_to_dict_exposes_machine_readable_contract(tmp_path: Path) -> No
     assert publication["default_citation_style"] == profile.default_citation_style
     assert isinstance(publication["default_submission_targets"], list)
     assert publication["default_submission_targets"][0]["exporter_profile"] == "frontiers_family_harvard"
-
-    overlay = contract["overlay"]
-    assert overlay["enable_medical_overlay"] is True
-    assert overlay["medical_overlay_scope"] == profile.medical_overlay_scope
-    assert overlay["medical_overlay_skills"] == list(profile.medical_overlay_skills)
-    assert overlay["medical_overlay_bootstrap_mode"] == profile.medical_overlay_bootstrap_mode
 
     policy = contract["policy"]
     assert policy["research_route_bias_policy"] == profile.research_route_bias_policy
@@ -550,56 +519,6 @@ def test_load_profile_resolves_relative_paths_from_profile_location(tmp_path: Pa
     assert profile.hermes_home_root == (profile_dir / "../../.hermes-home").resolve()
 
 
-def test_load_profile_rejects_invalid_boolean_shape(tmp_path: Path) -> None:
-    profile_path = tmp_path / "invalid-bool.local.toml"
-    profile_path.write_text(
-        "\n".join(
-            [
-                'name = "invalid-bool"',
-                'workspace_root = "/tmp/workspace"',
-                'runtime_root = "/tmp/workspace/runtime/quests"',
-                'studies_root = "/tmp/workspace/studies"',
-                'portfolio_root = "/tmp/workspace/portfolio"',
-                'med_deepscientist_runtime_root = "/tmp/workspace/runtime"',
-                'default_publication_profile = "general_medical_journal"',
-                'default_citation_style = "AMA"',
-                'enable_medical_overlay = "false"',
-            ]
-        )
-        + "\n",
-        encoding="utf-8",
-    )
-
-    profiles = importlib.import_module("med_autoscience.profiles")
-    with pytest.raises(TypeError, match="enable_medical_overlay"):
-        profiles.load_profile(profile_path)
-
-
-def test_load_profile_rejects_invalid_list_shape(tmp_path: Path) -> None:
-    profile_path = tmp_path / "invalid-list.local.toml"
-    profile_path.write_text(
-        "\n".join(
-            [
-                'name = "invalid-list"',
-                'workspace_root = "/tmp/workspace"',
-                'runtime_root = "/tmp/workspace/runtime/quests"',
-                'studies_root = "/tmp/workspace/studies"',
-                'portfolio_root = "/tmp/workspace/portfolio"',
-                'med_deepscientist_runtime_root = "/tmp/workspace/runtime"',
-                'default_publication_profile = "general_medical_journal"',
-                'default_citation_style = "AMA"',
-                'medical_overlay_skills = "write"',
-            ]
-        )
-        + "\n",
-        encoding="utf-8",
-    )
-
-    profiles = importlib.import_module("med_autoscience.profiles")
-    with pytest.raises(TypeError, match="medical_overlay_skills"):
-        profiles.load_profile(profile_path)
-
-
 def test_load_profile_rejects_invalid_default_submission_targets_shape(tmp_path: Path) -> None:
     profile_path = tmp_path / "invalid-submission-targets.local.toml"
     profile_path.write_text(
@@ -651,31 +570,6 @@ def test_load_profile_treats_empty_med_deepscientist_repo_root_as_unconfigured(t
     assert profile.med_deepscientist_repo_root is None
 
 
-def test_load_profile_rejects_blank_medical_overlay_scope(tmp_path: Path) -> None:
-    profile_path = tmp_path / "blank-strings.local.toml"
-    profile_path.write_text(
-        "\n".join(
-            [
-                'name = "blank-strings"',
-                'workspace_root = "/tmp/workspace"',
-                'runtime_root = "/tmp/workspace/runtime/quests"',
-                'studies_root = "/tmp/workspace/studies"',
-                'portfolio_root = "/tmp/workspace/portfolio"',
-                'med_deepscientist_runtime_root = "/tmp/workspace/runtime"',
-                'default_publication_profile = "general_medical_journal"',
-                'default_citation_style = "AMA"',
-                'medical_overlay_scope = "   "',
-            ]
-        )
-        + "\n",
-        encoding="utf-8",
-    )
-
-    profiles = importlib.import_module("med_autoscience.profiles")
-    with pytest.raises(TypeError, match="medical_overlay_scope"):
-        profiles.load_profile(profile_path)
-
-
 def test_load_profile_rejects_blank_research_route_bias_policy(tmp_path: Path) -> None:
     profile_path = tmp_path / "blank-policy.local.toml"
     profile_path.write_text(
@@ -698,31 +592,6 @@ def test_load_profile_rejects_blank_research_route_bias_policy(tmp_path: Path) -
 
     profiles = importlib.import_module("med_autoscience.profiles")
     with pytest.raises(TypeError, match="research_route_bias_policy"):
-        profiles.load_profile(profile_path)
-
-
-def test_load_profile_rejects_invalid_medical_overlay_bootstrap_mode(tmp_path: Path) -> None:
-    profile_path = tmp_path / "invalid-overlay-bootstrap-mode.local.toml"
-    profile_path.write_text(
-        "\n".join(
-            [
-                'name = "invalid-bootstrap-mode"',
-                'workspace_root = "/tmp/workspace"',
-                'runtime_root = "/tmp/workspace/runtime/quests"',
-                'studies_root = "/tmp/workspace/studies"',
-                'portfolio_root = "/tmp/workspace/portfolio"',
-                'med_deepscientist_runtime_root = "/tmp/workspace/runtime"',
-                'default_publication_profile = "general_medical_journal"',
-                'default_citation_style = "AMA"',
-                'medical_overlay_bootstrap_mode = "rebuild_everything"',
-            ]
-        )
-        + "\n",
-        encoding="utf-8",
-    )
-
-    profiles = importlib.import_module("med_autoscience.profiles")
-    with pytest.raises(TypeError, match="medical_overlay_bootstrap_mode"):
         profiles.load_profile(profile_path)
 
 

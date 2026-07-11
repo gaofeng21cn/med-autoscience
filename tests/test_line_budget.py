@@ -51,4 +51,4 @@ def test_line_budget_script_reports_findings_as_advisory(
 
 def test_verify_runs_line_budget_before_default_smoke() -> None:
     verify = (Path(__file__).resolve().parents[1] / "scripts" / "verify.sh").read_text(encoding="utf-8")
-    assert verify.index('"${clean_python_runner}" scripts/line_budget.py') < verify.index("make test-smoke")
+    assert verify.index("python scripts/line_budget.py") < verify.index("make test-smoke")

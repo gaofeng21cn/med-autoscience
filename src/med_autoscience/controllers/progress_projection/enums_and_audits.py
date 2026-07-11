@@ -26,8 +26,6 @@ __all__ = [
     "StudyRuntimeDecision",
     "StudyRuntimeExecutionOwnerGuard",
     "StudyRuntimeInteractionArbitration",
-    "StudyRuntimeOverlayAudit",
-    "StudyRuntimeOverlayResult",
     "StudyRuntimePendingUserInteraction",
     "StudyRuntimePartialQuestRecoveryResult",
     "StudyRuntimeProgressProjection",
@@ -142,8 +140,6 @@ class StudyRuntimeReason(StrEnum):
     QUEST_EXISTS_WITH_NON_RESUMABLE_STATE = "quest_exists_with_non_resumable_state"
     STUDY_RUNTIME_ANALYSIS_BUNDLE_NOT_READY = "study_runtime_analysis_bundle_not_ready"
     MANAGED_SKILL_AUDIT_NOT_AVAILABLE = "managed_skill_audit_not_available"
-    RUNTIME_OVERLAY_NOT_READY = "runtime_overlay_not_ready"
-    RUNTIME_OVERLAY_AUDIT_FAILED_FOR_RUNNING_QUEST = "runtime_overlay_audit_failed_for_running_quest"
     HYDRATION_VALIDATION_FAILED = "hydration_validation_failed"
     HUMAN_TAKEOVER_REQUESTED = "human_takeover_requested"
     PAUSE_REQUEST_FAILED = "pause_request_failed"

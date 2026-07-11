@@ -96,8 +96,6 @@ _PREFLIGHT_CONTRACT_REASONS = frozenset(
 
 _OPL_RUNTIME_HANDOFF_REASONS = frozenset(
     {
-        "runtime_overlay_not_ready",
-        "runtime_overlay_audit_failed_for_running_quest",
         "managed_skill_audit_not_available",
         "hydration_validation_failed",
         "running_quest_live_session_audit_failed",

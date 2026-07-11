@@ -1,4 +1,4 @@
-.PHONY: test test-smoke test-regression test-ci-preflight test-fast test-meta test-display test-submission test-soak-golden test-full test-family line-budget line-budget-strict test-structure test-structure-strict test-control-plane test-medical-paper-ops test-medical-quality-regression
+.PHONY: test test-smoke test-regression test-ci-preflight test-fast test-meta test-display test-submission test-soak-golden test-full test-family test-paths line-budget line-budget-strict test-structure test-structure-strict test-control-plane test-medical-paper-ops test-medical-quality-regression
 
 MAS_PYTEST_WORKERS ?= auto
 MAS_PYTEST_DIST ?= loadscope
@@ -21,6 +21,15 @@ CONTROL_PLANE_TESTS := \
 	--ignore=tests/study_progress_cases/current_owner_handoff_projection_cases \
 	--ignore=tests/study_progress_cases/test_medical_writing_surfaces.py
 
+define run_isolated_python
+tmp=$$(mktemp -d "$${TMPDIR:-/tmp}/mas-python.XXXXXX"); \
+trap 'rm -rf "$$tmp"' EXIT; \
+uv export --quiet --frozen --no-emit-project --group dev --format requirements-txt > "$$tmp/requirements.txt"; \
+PYTHONPATH=src PYTHONDONTWRITEBYTECODE=1 PYTHONPYCACHEPREFIX="$$tmp/pycache" \
+PYTEST_ADDOPTS="-p no:cacheprovider -o cache_dir=$$tmp/pytest-cache" \
+uv run --isolated --frozen --no-project --with-requirements "$$tmp/requirements.txt" python $(1)
+endef
+
 FAST_TESTS := \
 	tests/test_smoke_entrypoints.py \
 	tests/test_line_budget.py \
@@ -29,54 +38,64 @@ FAST_TESTS := \
 test: test-smoke
 
 test-smoke:
-	scripts/run-pytest-clean.sh tests/test_smoke_entrypoints.py tests/test_line_budget.py -q
+	@$(call run_isolated_python,-m pytest tests/test_smoke_entrypoints.py tests/test_line_budget.py -q)
 
 test-regression:
-	scripts/run-pytest-clean.sh -q $(MAS_PYTEST_XDIST_ARGS) -m "not meta and not display_heavy and not submission_heavy and not materialization_heavy and not family and not soak_or_golden"
+	@$(call run_isolated_python,-m pytest -q $(MAS_PYTEST_XDIST_ARGS) -m "not meta and not display_heavy and not submission_heavy and not materialization_heavy and not family and not soak_or_golden")
 
 test-ci-preflight:
 	@if [ -z "$${BASE_REF:-}" ]; then echo "BASE_REF is required, for example: BASE_REF=HEAD~1 make test-ci-preflight" >&2; exit 2; fi
-	scripts/run-python-clean.sh -m med_autoscience.dev_preflight --base-ref "$${BASE_REF}"
+	@$(call run_isolated_python,-m med_autoscience.dev_preflight --base-ref "$${BASE_REF}")
 
 test-fast:
-	scripts/run-pytest-clean.sh $(FAST_TESTS) -q
+	@$(call run_isolated_python,-m pytest $(FAST_TESTS) -q)
 
 test-meta:
-	scripts/run-pytest-clean.sh -q -m meta
+	@$(call run_isolated_python,-m pytest -q -m meta)
 
 test-display:
-	scripts/run-pytest-clean.sh -q $(MAS_PYTEST_XDIST_ARGS) -m display_heavy
+	@$(call run_isolated_python,-m pytest -q $(MAS_PYTEST_XDIST_ARGS) -m display_heavy)
 
 test-submission:
-	scripts/run-pytest-clean.sh -q $(MAS_PYTEST_XDIST_ARGS) -m "submission_heavy or materialization_heavy"
+	@$(call run_isolated_python,-m pytest -q $(MAS_PYTEST_XDIST_ARGS) -m "submission_heavy or materialization_heavy")
 
 test-soak-golden:
-	scripts/run-pytest-clean.sh -q $(MAS_PYTEST_XDIST_ARGS) -m soak_or_golden
+	@$(call run_isolated_python,-m pytest -q $(MAS_PYTEST_XDIST_ARGS) -m soak_or_golden)
 
 test-family:
-	scripts/run-pytest-clean.sh tests/test_family_shared_release.py tests/test_editable_shared_bootstrap.py tests/test_dev_preflight_contract.py tests/test_dev_preflight.py -q
-	scripts/run-pytest-clean.sh tests/test_opl_agent_lab_longline_migration.py -q
+	@$(call run_isolated_python,-m pytest tests/test_family_shared_release.py tests/test_editable_shared_bootstrap.py tests/test_dev_preflight_contract.py tests/test_dev_preflight.py -q)
+	@$(call run_isolated_python,-m pytest tests/test_opl_agent_lab_longline_migration.py -q)
+
+test-paths:
+	@test -n "$(TESTS)$(filter tests/%,$(MAKECMDGOALS))" || { echo "TESTS or test paths are required" >&2; exit 2; }
+	@$(call run_isolated_python,-m pytest $(TESTS) $(filter tests/%,$(MAKECMDGOALS)))
+
+tests/%:
+	@:
+
+-q:
+	@:
 
 line-budget:
-	scripts/run-python-clean.sh scripts/line_budget.py
+	@$(call run_isolated_python,scripts/line_budget.py)
 
 line-budget-strict: line-budget
 
 test-control-plane:
-	scripts/run-pytest-clean.sh -q $(CONTROL_PLANE_TESTS)
+	@$(call run_isolated_python,-m pytest -q $(CONTROL_PLANE_TESTS))
 
 test-medical-paper-ops:
-	scripts/run-pytest-clean.sh -q tests/test_medical_paper_ops_health.py
+	@$(call run_isolated_python,-m pytest -q tests/test_medical_paper_ops_health.py)
 
 test-medical-quality-regression:
-	scripts/run-pytest-clean.sh -q tests/test_medical_quality_regression_lane.py tests/test_agent_lab_medical_manuscript_quality.py tests/test_agent_lab_medical_manuscript_quality_cases/test_owner_chain_regression_family.py tests/test_paper_progress_state.py tests/test_paper_progress_reconciler.py tests/test_progress_first_global_contract.py
+	@$(call run_isolated_python,-m pytest -q tests/test_medical_quality_regression_lane.py tests/test_agent_lab_medical_manuscript_quality.py tests/test_agent_lab_medical_manuscript_quality_cases/test_owner_chain_regression_family.py tests/test_paper_progress_state.py tests/test_paper_progress_reconciler.py tests/test_progress_first_global_contract.py)
 
 test-structure:
-	scripts/run-python-clean.sh scripts/line_budget.py
+	@$(call run_isolated_python,scripts/line_budget.py)
 	scripts/run-structure-quality-gate.sh
 
 test-structure-strict:
-	scripts/run-python-clean.sh scripts/line_budget.py
+	@$(call run_isolated_python,scripts/line_budget.py)
 	scripts/run-structure-quality-gate.sh
 
 test-full:

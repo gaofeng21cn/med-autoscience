@@ -114,18 +114,24 @@ def test_ci_and_advisory_workflows_split_system_dependencies_by_lane() -> None:
 def test_ci_and_advisory_workflows_use_uv_managed_test_environment() -> None:
     ci_workflow = CI_WORKFLOW_PATH.read_text(encoding="utf-8")
     advisory_workflow = ADVISORY_WORKFLOW_PATH.read_text(encoding="utf-8")
-    uv_no_project_jobs = [
+    isolated_requirement_jobs = [
         _workflow_job(ci_workflow, "quick-checks"),
         _workflow_job(advisory_workflow, "advisory"),
     ]
 
-    assert "uv sync --frozen --group dev" in ci_workflow
-    assert "uv sync --frozen --group dev" in advisory_workflow
-    for workflow_job in uv_no_project_jobs:
-        assert "uv sync --frozen --group dev --no-install-project" in workflow_job
-        assert "UV_PROJECT_ENVIRONMENT: ${{ runner.temp }}/mas-ci-venv" in workflow_job
-        assert "PYTHONPATH: src" in workflow_job
-        assert 'UV_NO_SYNC: "1"' in workflow_job
+    for workflow_job in isolated_requirement_jobs:
+        assert (
+            'uv export --quiet --frozen --no-emit-project --group dev --format requirements-txt '
+            '> "${RUNNER_TEMP}/mas-requirements.txt"'
+        ) in workflow_job
+        assert "uv sync --frozen --group dev" not in workflow_job
+        assert "UV_PROJECT_ENVIRONMENT" not in workflow_job
+        assert 'UV_NO_SYNC: "1"' not in workflow_job
+    assert "PYTHONPATH: src" in _workflow_job(advisory_workflow, "advisory")
+    assert (
+        'uv run --isolated --frozen --no-project --with-requirements '
+        '"${RUNNER_TEMP}/mas-requirements.txt" python - <<\'PY\''
+    ) in advisory_workflow
     assert "enable-cache: true" in ci_workflow
     assert "enable-cache: true" in advisory_workflow
     assert ci_workflow.count("cache-dependency-glob: |") == 1

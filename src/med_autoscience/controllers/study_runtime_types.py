@@ -14,8 +14,6 @@ __all__ = [
     "StudyRuntimeDecision",
     "StudyRuntimeExecutionOwnerGuard",
     "StudyRuntimeInteractionArbitration",
-    "StudyRuntimeOverlayAudit",
-    "StudyRuntimeOverlayResult",
     "StudyRuntimePendingUserInteraction",
     "StudyRuntimePartialQuestRecoveryResult",
     "StudyRuntimeProgressProjection",

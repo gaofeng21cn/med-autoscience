@@ -34,10 +34,8 @@ from med_autoscience.controllers.study_runtime_resolution import (
     _resolve_study,
 )
 from med_autoscience.controllers.study_runtime_startup import (
-    _audit_runtime_overlay,
     _build_create_payload,
     _build_startup_contract,
-    _prepare_runtime_overlay,
     _run_startup_hydration,
     _runtime_reentry_requires_managed_skill_audit,
     _runtime_reentry_requires_startup_hydration,
@@ -49,8 +47,6 @@ from med_autoscience.controllers.study_runtime_types import (
     StudyRuntimeAuditRecord,
     StudyRuntimeAuditStatus,
     StudyRuntimeInteractionArbitration,
-    StudyRuntimeOverlayAudit,
-    StudyRuntimeOverlayResult,
     StudyRuntimePendingUserInteraction,
     StudyRuntimePartialQuestRecoveryResult,
     StudyRuntimePublicationSupervisorState,
@@ -62,7 +58,6 @@ from med_autoscience.controllers.study_runtime_types import (
     ProgressProjectionStatus,
     StudyRuntimeWorkspaceContractsSummary,
 )
-from med_autoscience.overlay import installer as overlay_installer
 from med_autoscience.policies.automation_ready import render_automation_ready_summary
 from med_autoscience.policies.controller_first import render_controller_first_summary
 from med_autoscience.profiles import WorkspaceProfile

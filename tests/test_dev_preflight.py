@@ -312,13 +312,14 @@ def test_family_verify_lane_is_exposed_from_makefile_and_verify_script() -> None
     assert "test-ci-preflight:" in makefile
     assert "-m med_autoscience.dev_preflight --base-ref" in makefile
     assert "med_autoscience.cli" not in makefile
+    assert "test-family:" in makefile
     assert (
-        "test-family:\n"
-        "\tscripts/run-pytest-clean.sh tests/test_family_shared_release.py "
+        "@$(call run_isolated_python,-m pytest tests/test_family_shared_release.py "
         "tests/test_editable_shared_bootstrap.py tests/test_dev_preflight_contract.py "
-        "tests/test_dev_preflight.py -q\n"
-        "\tscripts/run-pytest-clean.sh tests/test_opl_agent_lab_longline_migration.py -q\n"
+        "tests/test_dev_preflight.py -q)"
     ) in makefile
+    assert "@$(call run_isolated_python,-m pytest tests/test_opl_agent_lab_longline_migration.py -q)" in makefile
+    assert "scripts/run-pytest-clean.sh" not in makefile
     assert (
         'if [[ "${lane}" == "family" ]]; then\n'
         '  make test-family\n'

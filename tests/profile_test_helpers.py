@@ -44,10 +44,6 @@ def write_profile(
                 'hermes_home_root = "~/.hermes"',
                 'default_publication_profile = "general_medical_journal"',
                 'default_citation_style = "AMA"',
-                "enable_medical_overlay = true",
-                'medical_overlay_scope = "workspace"',
-                'medical_overlay_skills = ["scout", "idea", "decision", "write", "finalize"]',
-                'medical_overlay_bootstrap_mode = "ensure_ready"',
                 'research_route_bias_policy = "high_plasticity_medical"',
                 'preferred_study_archetypes = ["clinical_classifier", "clinical_subtype_reconstruction", "external_validation_model_update", "gray_zone_triage", "llm_agent_clinical_task", "mechanistic_sidecar_extension"]',
                 "",
@@ -71,4 +67,3 @@ def write_profile(
         + "\n",
         encoding="utf-8",
     )
-

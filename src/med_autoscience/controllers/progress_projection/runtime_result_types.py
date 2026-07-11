@@ -64,55 +64,6 @@ class StudyRuntimeAnalysisBundleResult:
 
 
 @dataclass(frozen=True)
-class StudyRuntimeOverlayAudit:
-    all_roots_ready: bool
-    payload: dict[str, Any]
-
-    def __post_init__(self) -> None:
-        if not isinstance(self.all_roots_ready, bool):
-            raise TypeError("study runtime overlay audit all_roots_ready must be bool")
-        object.__setattr__(self, "payload", dict(self.payload))
-
-    def to_dict(self) -> dict[str, Any]:
-        return dict(self.payload)
-
-    @classmethod
-    def from_payload(cls, payload: dict[str, Any]) -> "StudyRuntimeOverlayAudit":
-        if not isinstance(payload, dict):
-            raise TypeError("study runtime overlay audit payload must be a mapping")
-        if "all_roots_ready" not in payload:
-            raise ValueError("study runtime overlay audit payload missing all_roots_ready")
-        all_roots_ready = payload.get("all_roots_ready")
-        if not isinstance(all_roots_ready, bool):
-            raise TypeError("study runtime overlay audit all_roots_ready must be bool")
-        return cls(all_roots_ready=all_roots_ready, payload=dict(payload))
-
-
-@dataclass(frozen=True)
-class StudyRuntimeOverlayResult:
-    audit: StudyRuntimeOverlayAudit
-    payload: dict[str, Any]
-
-    def __post_init__(self) -> None:
-        object.__setattr__(self, "payload", dict(self.payload))
-
-    def to_dict(self) -> dict[str, Any]:
-        return dict(self.payload)
-
-    @classmethod
-    def from_payload(cls, payload: dict[str, Any]) -> "StudyRuntimeOverlayResult":
-        if not isinstance(payload, dict):
-            raise TypeError("study runtime overlay payload must be a mapping")
-        audit = payload.get("audit")
-        if not isinstance(audit, dict):
-            raise ValueError("study runtime overlay payload missing audit")
-        return cls(
-            audit=StudyRuntimeOverlayAudit.from_payload(audit),
-            payload=dict(payload),
-        )
-
-
-@dataclass(frozen=True)
 class StudyRuntimeStartupContextSyncResult:
     ok: bool
     payload: dict[str, Any]

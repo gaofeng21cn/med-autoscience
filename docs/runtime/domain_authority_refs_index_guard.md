@@ -61,9 +61,9 @@ body-free source adapter 可以引用：
 
 ## 验证入口
 
-- `scripts/run-pytest-clean.sh -q tests/test_adapter_retirement_boundary.py`
-- `scripts/run-pytest-clean.sh -q tests/test_opl_family_persistence_adapter.py`
-- `scripts/run-pytest-clean.sh -q tests/test_stage_artifact_kernel_adoption_contract.py`
+- `make test-paths -- -q tests/test_adapter_retirement_boundary.py`
+- `make test-paths -- -q tests/test_opl_family_persistence_adapter.py`
+- `make test-paths -- -q tests/test_stage_artifact_kernel_adoption_contract.py`
 - `scripts/verify.sh`
 - `make test-meta`
 

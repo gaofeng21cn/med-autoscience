@@ -12,8 +12,8 @@ pytestmark = pytest.mark.family
 
 def _planned_pytest_paths(command: str) -> tuple[str, ...]:
     parts = shlex.split(command)
-    if parts[:1] == ["scripts/run-pytest-clean.sh"]:
-        return tuple(part for part in parts[1:] if part.startswith("tests/"))
+    if parts[:2] == ["make", "test-paths"]:
+        return tuple(part for part in parts[2:] if part.startswith("tests/"))
     if len(parts) < 3 or parts[:3] != ["uv", "run", "pytest"]:
         return ()
     return tuple(part for part in parts[3:] if part.startswith("tests/"))

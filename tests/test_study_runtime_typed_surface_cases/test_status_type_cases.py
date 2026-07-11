@@ -11,7 +11,6 @@ from tests.test_study_runtime_typed_surface_cases.shared import (
     make_pending_user_interaction_payload,
     make_progress_projection_payload,
     make_publication_supervisor_state_payload,
-    make_runtime_overlay_result,
     make_startup_context_sync_payload,
     make_startup_contract_validation_payload,
     make_startup_hydration_report,
@@ -77,8 +76,6 @@ def test_domain_status_projection_reexports_typed_surface_from_study_runtime_typ
     assert router.StudyRuntimeAuditStatus is typed_surface.StudyRuntimeAuditStatus
     assert router.StudyRuntimeAuditRecord is typed_surface.StudyRuntimeAuditRecord
     assert router.StudyRuntimeAnalysisBundleResult is typed_surface.StudyRuntimeAnalysisBundleResult
-    assert router.StudyRuntimeOverlayAudit is typed_surface.StudyRuntimeOverlayAudit
-    assert router.StudyRuntimeOverlayResult is typed_surface.StudyRuntimeOverlayResult
     assert router.StudyRuntimePendingUserInteraction is typed_surface.StudyRuntimePendingUserInteraction
     assert router.StudyRuntimeStartupContextSyncResult is typed_surface.StudyRuntimeStartupContextSyncResult
     assert router.StudyRuntimePartialQuestRecoveryResult is typed_surface.StudyRuntimePartialQuestRecoveryResult
@@ -230,7 +227,6 @@ def test_progress_projection_round_trips_through_typed_state() -> None:
         runtime_reentry_gate={"allow_runtime_entry": True},
         decision="resume",
         reason="quest_paused",
-        runtime_overlay={"audit": {"all_roots_ready": True}},
     )
 
     status = module.ProgressProjectionStatus.from_payload(payload)
@@ -329,7 +325,7 @@ def test_progress_projection_core_key_assignment_uses_typed_normalization() -> N
     status = module.ProgressProjectionStatus.from_payload(make_status_payload())
 
     status["decision"] = "blocked"
-    status["reason"] = "runtime_overlay_not_ready"
+    status["reason"] = "runtime_reentry_not_ready_for_resume"
     status["quest_root"] = Path("/tmp/runtime/quests/quest-002")
     status["quest_exists"] = False
     status["quest_status"] = None
@@ -348,7 +344,7 @@ def test_progress_projection_core_key_assignment_uses_typed_normalization() -> N
     }
 
     assert status.decision is typed_surface.StudyRuntimeDecision.BLOCKED
-    assert status.reason is typed_surface.StudyRuntimeReason.RUNTIME_OVERLAY_NOT_READY
+    assert status.reason is typed_surface.StudyRuntimeReason.RUNTIME_REENTRY_NOT_READY_FOR_RESUME
     assert status.quest_root == "/tmp/runtime/quests/quest-002"
     assert status.quest_exists is False
     assert status.quest_status is None
@@ -431,7 +427,6 @@ def test_progress_projection_records_structured_runtime_extras() -> None:
     status = module.ProgressProjectionStatus.from_payload(make_status_payload())
 
     status.record_analysis_bundle({"ready": True})
-    status.record_runtime_overlay({"audit": {"all_roots_ready": True}})
     with pytest.raises(ValueError, match="startup contract validation payload"):
         status.record_startup_contract_validation({"status": "clear"})
     status.record_startup_contract_validation(make_startup_contract_validation_payload())
@@ -453,7 +448,6 @@ def test_progress_projection_records_structured_runtime_extras() -> None:
     payload = status.to_dict()
 
     assert payload["analysis_bundle"] == {"ready": True}
-    assert payload["runtime_overlay"] == {"audit": {"all_roots_ready": True}}
     assert payload["startup_contract_validation"] == make_startup_contract_validation_payload()
     assert payload["startup_context_sync"] == make_startup_context_sync_payload()
     assert payload["startup_hydration"]["status"] == "hydrated"
@@ -504,7 +498,6 @@ def test_progress_projection_records_typed_preflight_and_recovery_extras() -> No
     module = importlib.import_module("med_autoscience.controllers.domain_status_projection")
     status = module.ProgressProjectionStatus.from_payload(make_status_payload(execution={"quest_id": "quest-001"}))
     analysis_bundle = module.StudyRuntimeAnalysisBundleResult.from_payload(make_analysis_bundle_result())
-    runtime_overlay = module.StudyRuntimeOverlayResult.from_payload(make_runtime_overlay_result())
     startup_context_sync = module.StudyRuntimeStartupContextSyncResult.from_payload(
         make_startup_context_sync_payload()
     )
@@ -513,18 +506,15 @@ def test_progress_projection_records_typed_preflight_and_recovery_extras() -> No
     )
 
     status.record_analysis_bundle(analysis_bundle)
-    status.record_runtime_overlay(runtime_overlay)
     status.record_startup_context_sync(startup_context_sync)
     status.record_partial_quest_recovery(partial_quest_recovery)
 
     payload = status.to_dict()
 
     assert payload["analysis_bundle"] == make_analysis_bundle_result()
-    assert payload["runtime_overlay"] == make_runtime_overlay_result()
     assert payload["startup_context_sync"] == make_startup_context_sync_payload()
     assert payload["partial_quest_recovery"] == make_partial_quest_recovery_payload()
     assert status.analysis_bundle_result.ready is True
-    assert status.runtime_overlay_result.audit.all_roots_ready is True
     assert status.startup_context_sync_result.ok is True
     assert status.partial_quest_recovery_result.archived_root.endswith("20260403T000000Z")
 def test_progress_projection_records_typed_publication_supervisor_state() -> None:

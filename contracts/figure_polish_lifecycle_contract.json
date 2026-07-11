@@ -46,7 +46,7 @@
   "verification": {
     "focused_tests": ["tests/test_figure_polish_lifecycle_contract.py"],
     "required_when_changed": [
-      "rtk ./scripts/run-pytest-clean.sh tests/test_figure_polish_lifecycle_contract.py -q",
+      "rtk make test-paths -- tests/test_figure_polish_lifecycle_contract.py -q",
       "rtk git diff --check"
     ]
   }

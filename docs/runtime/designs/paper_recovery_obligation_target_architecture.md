@@ -84,7 +84,7 @@ MAS 不继续在私有 runtime 中裁判 StageRun currentness、queue residue、
 下列命令是历史验证线索，不是当前完成门：
 
 - `python3 -m pytest tests/test_paper_recovery_kernel_contract.py tests/test_stage_route_reconcile_contract.py -q`
-- `scripts/run-pytest-clean.sh tests/test_paper_recovery_kernel_contract.py tests/test_stage_route_reconcile_contract.py -q`
+- `make test-paths -- tests/test_paper_recovery_kernel_contract.py tests/test_stage_route_reconcile_contract.py -q`
 - `make test-meta`
 
 历史行为验证口径：

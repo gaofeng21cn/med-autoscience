@@ -6,7 +6,7 @@ from typing import Any
 def build_category_specs(
     spec_type: type[Any],
     *,
-    pytest_clean_runner: str,
+    pytest_command: str,
     build_clean_runner: str,
 ) -> tuple[Any, ...]:
     return (
@@ -27,9 +27,9 @@ def build_category_specs(
         ),
         prefix_paths=(),
         commands=(
-            f"{pytest_clean_runner} tests/test_release_workflow.py -q",
-            f"{pytest_clean_runner} tests/test_release_metadata.py -q",
-            f"{pytest_clean_runner} tests/test_release_installer.py -q",
+            f"{pytest_command} tests/test_release_workflow.py -q",
+            f"{pytest_command} tests/test_release_metadata.py -q",
+            f"{pytest_command} tests/test_release_installer.py -q",
             f"{build_clean_runner}",
         ),
     ),
@@ -46,9 +46,9 @@ def build_category_specs(
         ),
         prefix_paths=(),
         commands=(
-            f"{pytest_clean_runner} tests/test_codex_plugin.py -q",
-            f"{pytest_clean_runner} tests/test_codex_plugin_installer.py -q",
-            f"{pytest_clean_runner} tests/test_codex_plugin_scaffold.py -q",
+            f"{pytest_command} tests/test_codex_plugin.py -q",
+            f"{pytest_command} tests/test_codex_plugin_installer.py -q",
+            f"{pytest_command} tests/test_codex_plugin_scaffold.py -q",
         ),
     ),
     spec_type(
@@ -69,11 +69,11 @@ def build_category_specs(
             "tests/test_publication_gate_cases/",
         ),
         commands=(
-            f"{pytest_clean_runner} tests/display_schema_contract_cases -q",
-            f"{pytest_clean_runner} tests/test_display_surface_materialization.py -q",
-            f"{pytest_clean_runner} tests/test_display_layout_qc.py -q",
-            f"{pytest_clean_runner} tests/test_publication_gate_cases -q",
-            f"{pytest_clean_runner} tests/medical_publication_surface_cases -q",
+            f"{pytest_command} tests/display_schema_contract_cases -q",
+            f"{pytest_command} tests/test_display_surface_materialization.py -q",
+            f"{pytest_command} tests/test_display_layout_qc.py -q",
+            f"{pytest_command} tests/test_publication_gate_cases -q",
+            f"{pytest_command} tests/medical_publication_surface_cases -q",
         ),
     ),
     spec_type(
@@ -98,7 +98,7 @@ def build_category_specs(
         prefix_paths=(),
         commands=(
             (
-                f"{pytest_clean_runner} "
+                f"{pytest_command} "
                 "tests/test_display_pack_v2_contract.py "
                 "tests/test_display_pack_v2_figure_quality_refs.py "
                 "tests/test_figure_polish_lifecycle_contract.py "
@@ -121,7 +121,7 @@ def build_category_specs(
         prefix_paths=(),
         commands=(
             (
-                f"{pytest_clean_runner} "
+                f"{pytest_command} "
                 "tests/test_data_asset_operating_contract.py "
                 "tests/test_data_assets.py -q"
             ),
@@ -156,15 +156,15 @@ def build_category_specs(
             "src/med_autoscience/runtime_protocol/",
         ),
         commands=(
-            f"{pytest_clean_runner} tests/test_runtime_root_cause_depth_gate.py -q",
-            f"{pytest_clean_runner} tests/test_opl_runtime_contract.py -q",
-            f"{pytest_clean_runner} tests/test_profiles.py -q",
-            f"{pytest_clean_runner} tests/test_workspace_runtime_layout.py -q",
-            f"{pytest_clean_runner} tests/test_study_runtime_router.py -q",
-            f"{pytest_clean_runner} tests/test_opl_runtime_contract_no_provider_backend.py -q",
-            f"{pytest_clean_runner} tests/test_adapter_retirement_boundary.py -q",
-            f"{pytest_clean_runner} tests/test_runtime_protocol_study_runtime.py -q",
-            f"{pytest_clean_runner} tests/test_report_store.py -q",
+            f"{pytest_command} tests/test_runtime_root_cause_depth_gate.py -q",
+            f"{pytest_command} tests/test_opl_runtime_contract.py -q",
+            f"{pytest_command} tests/test_profiles.py -q",
+            f"{pytest_command} tests/test_workspace_runtime_layout.py -q",
+            f"{pytest_command} tests/test_study_runtime_router.py -q",
+            f"{pytest_command} tests/test_opl_runtime_contract_no_provider_backend.py -q",
+            f"{pytest_command} tests/test_adapter_retirement_boundary.py -q",
+            f"{pytest_command} tests/test_runtime_protocol_study_runtime.py -q",
+            f"{pytest_command} tests/test_report_store.py -q",
             "make test-meta",
         ),
     ),
@@ -181,9 +181,9 @@ def build_category_specs(
         ),
         prefix_paths=(),
         commands=(
-            f"{pytest_clean_runner} tests/test_med_deepscientist_repo_manifest.py -q",
-            f"{pytest_clean_runner} tests/test_workspace_contracts.py -q",
-            f"{pytest_clean_runner} tests/test_backend_audit.py -q",
+            f"{pytest_command} tests/test_med_deepscientist_repo_manifest.py -q",
+            f"{pytest_command} tests/test_workspace_contracts.py -q",
+            f"{pytest_command} tests/test_backend_audit.py -q",
         ),
     ),
     spec_type(
@@ -194,8 +194,8 @@ def build_category_specs(
         ),
         prefix_paths=(),
         commands=(
-            f"{pytest_clean_runner} tests/test_dev_preflight_contract.py -q",
-            f"{pytest_clean_runner} tests/test_dev_preflight.py -q",
+            f"{pytest_command} tests/test_dev_preflight_contract.py -q",
+            f"{pytest_command} tests/test_dev_preflight.py -q",
             "make test-meta",
         ),
     ),
@@ -225,15 +225,15 @@ def build_category_specs(
         ),
         commands=(
             (
-                f"{pytest_clean_runner} "
+                f"{pytest_command} "
                 "tests/controller_charter/test_controller_charter_module_contract.py "
                 "tests/runtime/test_runtime_module_contract.py "
                 "tests/eval_hygiene/test_eval_hygiene_module_contract.py "
                 "tests/integration/test_monorepo_scaffold_boundaries.py -q"
             ),
-            f"{pytest_clean_runner} tests/test_opl_family_contract_adoption.py -q",
-            f"{pytest_clean_runner} tests/test_opl_family_persistence_adapter.py -q",
-            f"{pytest_clean_runner} tests/test_test_lane_governance.py -q",
+            f"{pytest_command} tests/test_opl_family_contract_adoption.py -q",
+            f"{pytest_command} tests/test_opl_family_persistence_adapter.py -q",
+            f"{pytest_command} tests/test_test_lane_governance.py -q",
         ),
     ),
     spec_type(
@@ -264,12 +264,6 @@ def build_category_specs(
             "contracts/stage_artifact_kernel_adoption.json",
             "contracts/stage_route_reconcile_contract.json",
             "contracts/stage_run_kernel_profile.json",
-            "src/med_autoscience/overlay/templates/medical-research-baseline.SKILL.md",
-            "src/med_autoscience/overlay/templates/medical-research-experiment.SKILL.md",
-            "src/med_autoscience/overlay/templates/medical-research-citation-locator-audit.template.md",
-            "src/med_autoscience/overlay/templates/medical-research-figure-integrity.template.md",
-            "src/med_autoscience/overlay/templates/medical-research-prisma-flow.template.md",
-            "src/med_autoscience/overlay/templates/medical-research-skill-content-patterns.block.md",
             "src/med_autoscience/resources/stage_route_contract.yaml",
             "templates/codex/medautoscience-entry.SKILL.md",
             "templates/openclaw/medautoscience-entry.prompt.md",
@@ -284,21 +278,20 @@ def build_category_specs(
         ),
         commands=(
             (
-                f"{pytest_clean_runner} "
+                f"{pytest_command} "
                 "tests/test_opl_family_contract_adoption.py "
                 "tests/test_progress_first_safety_envelope_contract.py "
                 "tests/test_standard_agent_completion_acceptance_contract.py "
                 "tests/test_test_lane_governance.py "
                 "tests/test_stage_quality_contract.py "
                 "tests/test_stage_route_contract.py "
-                "tests/test_stage_route_reconcile_contract.py "
-                "tests/test_overlay_installer.py -q"
+                "tests/test_stage_route_reconcile_contract.py -q"
             ),
             (
-                f"{pytest_clean_runner} "
+                f"{pytest_command} "
                 "tests/test_domain_route_profile.py -q"
             ),
-            f"{pytest_clean_runner} tests/test_mas_workspace_domain_projection.py -q",
+            f"{pytest_command} tests/test_mas_workspace_domain_projection.py -q",
         ),
     ),
     spec_type(
@@ -317,7 +310,7 @@ def build_category_specs(
         prefix_paths=(),
         commands=(
             (
-                f"{pytest_clean_runner} "
+                f"{pytest_command} "
                 "tests/test_external_learning_adoption_closure.py "
                 "tests/test_opl_family_contract_adoption.py "
                 "tests/test_progress_first_safety_envelope_contract.py -q"
@@ -334,7 +327,7 @@ def build_category_specs(
         ),
         prefix_paths=(),
         commands=(
-            f"{pytest_clean_runner} tests/test_evo_scientist_learning_projection.py -q",
+            f"{pytest_command} tests/test_evo_scientist_learning_projection.py -q",
         ),
     ),
     spec_type(
@@ -345,7 +338,7 @@ def build_category_specs(
         prefix_paths=(),
         commands=(
             (
-                f"{pytest_clean_runner} "
+                f"{pytest_command} "
                 "tests/test_research_integrity_stage_hooks.py "
                 "tests/test_research_integrity_domain_entry.py "
                 "tests/test_research_integrity_provider_lookup.py -q"
@@ -366,8 +359,8 @@ def build_category_specs(
             "contracts/production_acceptance/",
         ),
         commands=(
-            f"{pytest_clean_runner} tests/test_mas_production_acceptance.py -q",
-            f"{pytest_clean_runner} tests/test_opl_standard_pack_cases -q",
+            f"{pytest_command} tests/test_mas_production_acceptance.py -q",
+            f"{pytest_command} tests/test_opl_standard_pack_cases -q",
         ),
     ),
     spec_type(
@@ -376,8 +369,6 @@ def build_category_specs(
             "Makefile",
             "pyproject.toml",
             "scripts/run-build-clean.sh",
-            "scripts/run-python-clean.sh",
-            "scripts/run-pytest-clean.sh",
             "scripts/run-structure-quality-gate.sh",
             "scripts/verify.sh",
             "scripts/opl-module-healthcheck.sh",
@@ -453,7 +444,7 @@ def build_category_specs(
         ),
         prefix_paths=(),
         commands=(
-            f"{pytest_clean_runner} tests/test_owner_answer_candidate_intake.py -q",
+            f"{pytest_command} tests/test_owner_answer_candidate_intake.py -q",
         ),
     ),
     spec_type(
@@ -464,7 +455,7 @@ def build_category_specs(
         ),
         prefix_paths=(),
         commands=(
-            f"{pytest_clean_runner} tests/test_study_interventions.py -q",
+            f"{pytest_command} tests/test_study_interventions.py -q",
         ),
     ),
     spec_type(
@@ -487,13 +478,13 @@ def build_category_specs(
         prefix_paths=(),
         commands=(
             (
-                f"{pytest_clean_runner} "
+                f"{pytest_command} "
                 "tests/test_opl_transition_readback_contract.py "
                 "tests/test_mas_workspace_domain_projection.py "
                 "tests/test_live_stage_run_progress_evidence.py -q"
             ),
             (
-                f"{pytest_clean_runner} "
+                f"{pytest_command} "
                 "tests/test_opl_domain_progress_transition_runtime_contract.py -q"
             ),
         ),
@@ -511,8 +502,8 @@ def build_category_specs(
             "src/med_autoscience/controllers/stage_knowledge_plane/",
         ),
         commands=(
-            f"{pytest_clean_runner} tests/test_stage_knowledge_plane.py -q",
-            f"{pytest_clean_runner} tests/test_opl_family_contract_adoption.py -q",
+            f"{pytest_command} tests/test_stage_knowledge_plane.py -q",
+            f"{pytest_command} tests/test_opl_family_contract_adoption.py -q",
         ),
     ),
 )

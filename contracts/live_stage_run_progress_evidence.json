@@ -53,7 +53,7 @@
       "docs/active/mas-ideal-state-gap-plan.md#live-evidence-tail"
     ],
     "next_verification_command_refs": [
-      "scripts/run-pytest-clean.sh -q tests/test_live_stage_run_progress_evidence.py tests/test_mas_production_acceptance.py",
+      "make test-paths -- -q tests/test_live_stage_run_progress_evidence.py tests/test_mas_production_acceptance.py",
       "scripts/verify.sh"
     ]
   },
