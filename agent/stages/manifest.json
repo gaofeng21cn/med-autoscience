@@ -348,10 +348,6 @@
           "surface_kind": "mas_stage_route_obligation_lens",
           "target_surface_ref": "stage_contract.minimum_forward_delta.target_surface"
         },
-        "runtime_event_refs": [
-          "runtime_event:domain_route_owner_route.direction_route_selected",
-          "runtime_event:controller_decisions.direction_route_selected"
-        ],
         "source_scope_refs": [
           {
             "ref": [
@@ -726,10 +722,6 @@
           "surface_kind": "mas_stage_route_obligation_lens",
           "target_surface_ref": "stage_contract.minimum_forward_delta.target_surface"
         },
-        "runtime_event_refs": [
-          "runtime_event:controller_decisions.baseline_evidence_ready",
-          "runtime_event:evidence_ledger.baseline_evidence_ready"
-        ],
         "source_scope_refs": [
           {
             "ref": [
@@ -1101,10 +1093,6 @@
           "surface_kind": "mas_stage_route_obligation_lens",
           "target_surface_ref": "stage_contract.minimum_forward_delta.target_surface"
         },
-        "runtime_event_refs": [
-          "runtime_event:runtime_readback.bounded_analysis_evidence_ready",
-          "runtime_event:evidence_ledger.bounded_analysis_evidence_ready"
-        ],
         "source_scope_refs": [
           {
             "ref": [
@@ -1475,10 +1463,6 @@
           "surface_kind": "mas_stage_route_obligation_lens",
           "target_surface_ref": "stage_contract.minimum_forward_delta.target_surface"
         },
-        "runtime_event_refs": [
-          "runtime_event:controller_decisions.manuscript_draft_reviewable",
-          "runtime_event:canonical_manuscript.manuscript_draft_reviewable"
-        ],
         "source_scope_refs": [
           {
             "ref": [
@@ -1965,10 +1949,6 @@
           "surface_kind": "mas_stage_route_obligation_lens",
           "target_surface_ref": "stage_contract.minimum_forward_delta.target_surface"
         },
-        "runtime_event_refs": [
-          "runtime_event:ai_reviewer_publication_eval.gate_receipt_recorded",
-          "runtime_event:publication_eval.ai_reviewer_gate_receipt_recorded"
-        ],
         "source_scope_refs": [
           {
             "ref": [
@@ -2540,10 +2520,6 @@
           "surface_kind": "mas_stage_route_obligation_lens",
           "target_surface_ref": "stage_contract.minimum_forward_delta.target_surface"
         },
-        "runtime_event_refs": [
-          "runtime_event:controller_decisions.publication_handoff_ready_or_route_back_recorded",
-          "runtime_event:artifact_authority.publication_handoff_ready_or_route_back_recorded"
-        ],
         "source_scope_refs": [
           {
             "ref": [

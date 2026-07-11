@@ -50,9 +50,18 @@ def test_opl_generated_interfaces_compile_mas_standard_pack() -> None:
     assert {item["stage_id"] for item in bundle["stage_routes"]} == {
         stage["stage_id"] for stage in stage_manifest["stages"]
     }
+    generated_plane = bundle["product_entry"]["family_stage_control_plane"]
+    for stage in generated_plane["stages"]:
+        runtime_event_refs = stage["stage_contract"].get("runtime_event_refs", [])
+        if stage["trust_boundary"]["effect_boundary"]:
+            assert runtime_event_refs == [
+                f"runtime_event:{stage['stage_id']}.owner_receipt_recorded"
+            ]
+        else:
+            assert runtime_event_refs == []
 
 
-def test_opl_default_callers_project_mas_delete_authorization_without_becoming_authority() -> None:
+def test_opl_default_callers_project_mas_delete_evidence_as_pending_without_authority() -> None:
     opl_bin = Path(os.environ.get("OPL_BIN", "/Users/gaofeng/workspace/one-person-lab/bin/opl"))
     if not opl_bin.exists():
         pytest.skip(f"OPL binary missing: {opl_bin}")
@@ -77,30 +86,37 @@ def test_opl_default_callers_project_mas_delete_authorization_without_becoming_a
     readiness = json.loads(result.stdout)["agent_default_caller_readiness"]
     assert readiness["status"] == "ready_domain_evidence_required"
     assert readiness["summary"]["generated_default_caller_surface_count"] == 8
-    assert readiness["summary"]["missing_domain_owner_receipt_or_typed_blocker_count"] == 0
-    assert readiness["summary"]["missing_no_forbidden_write_proof_count"] == 0
-    assert readiness["summary"]["missing_tombstone_or_provenance_ref_count"] == 0
-    assert readiness["summary"]["physical_delete_authorized"] is True
-    assert readiness["summary"]["owner_decision_result_shape"] == (
-        "physical_delete_authorization_ref"
+    assert readiness["summary"]["missing_domain_owner_receipt_or_typed_blocker_count"] == 6
+    assert readiness["summary"]["deletion_evidence_worklist_count"] == 6
+    assert readiness["summary"]["default_caller_delete_ready"] is False
+    assert readiness["summary"]["physical_delete_authorized"] is False
+    assert readiness["summary"]["owner_decision_closeout_status"] == (
+        "waiting_for_structural_prerequisites"
     )
-    assert readiness["migration_gate_policy"]["physical_delete_authorized_by_this_report"] is True
+    assert readiness["migration_gate_policy"]["physical_delete_authorized_by_this_report"] is False
     assert readiness["migration_gate_policy"][
         "generated_default_caller_readiness_can_authorize_physical_delete"
     ] is False
     assert readiness["authority_boundary"]["report_can_authorize_domain_repo_physical_delete"] is False
 
     report = readiness["reports"][0]
-    assert report["deletion_gate"]["physical_delete_authorized"] is True
-    assert report["deletion_gate"]["owner_decision_result_shape"] == (
-        "physical_delete_authorization_ref"
+    assert report["deletion_gate"]["physical_delete_authorized"] is False
+    assert report["deletion_gate"]["default_caller_delete_ready"] is False
+    assert len(report["deletion_evidence_worklists"]) == 6
+    assert all(
+        item["status"] == "domain_evidence_required"
+        for item in report["deletion_evidence_worklists"]
     )
-    assert report["deletion_evidence_worklists"] == []
-    assert "surface_gates" not in report
-    assert "surface_retirement_gates" not in report
-    assert report["closed_surface_detail_policy"] == (
-        "closed_retirement_gate_details_omitted_from_default_payload"
+    assert len(report["surface_gates"]) == 8
+    assert all(
+        item["status"] == "ready_for_default_caller_cutover"
+        for item in report["surface_gates"]
     )
+    assert len(report["surface_retirement_gates"]) == 8
+    assert sum(
+        item["status"] == "domain_evidence_required"
+        for item in report["surface_retirement_gates"]
+    ) == 6
 
 
 def test_opl_standard_scaffold_validates_mas_pack() -> None:

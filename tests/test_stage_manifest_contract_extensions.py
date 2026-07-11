@@ -25,7 +25,6 @@ COMMON_DOMAIN_EXTENSION_FIELDS = {
     "minimum_forward_delta",
     "monitor_refs",
     "route_obligation_lens",
-    "runtime_event_refs",
     "source_scope_refs",
     "trigger_refs",
 }
@@ -59,6 +58,7 @@ FORBIDDEN_FRAMEWORK_FIELDS = {
     "user_stage_log_contract",
     "progress_delta_policy",
     "typed_blocker_lineage_policy",
+    "runtime_event_refs",
 }
 
 
@@ -79,7 +79,6 @@ def test_stage_manifest_declares_domain_extensions_for_opl_generated_plane() -> 
         assert isinstance(extension, dict)
         assert COMMON_DOMAIN_EXTENSION_FIELDS <= set(extension)
         assert not (FORBIDDEN_FRAMEWORK_FIELDS & set(extension))
-        assert extension["runtime_event_refs"]
         assert extension["monitor_refs"]
         assert extension["source_scope_refs"]
 
