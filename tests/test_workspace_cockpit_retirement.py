@@ -5,6 +5,8 @@ import json
 from pathlib import Path
 from typing import Any, cast
 
+import pytest
+
 
 def test_mainline_status_omits_workspace_cockpit_compatibility() -> None:
     module = importlib.import_module("med_autoscience.controllers.mainline_status")
@@ -146,3 +148,14 @@ def test_active_contracts_use_mainline_status_not_cockpit_alias() -> None:
     )
     assert "controllers/mainline_status" in source_guard["primary_surfaces"]
     assert "product_entry/workspace_cockpit" not in source_guard["primary_surfaces"]
+
+
+def test_public_dispatch_rejects_cockpit_alias_and_keeps_mainline_status() -> None:
+    domain_entry = importlib.import_module("med_autoscience.domain_entry")
+    entry = domain_entry.MedAutoScienceDomainEntry()
+
+    with pytest.raises(ValueError, match="不支持的 domain entry command"):
+        entry.dispatch({"command": "workspace-cockpit"})
+
+    payload = entry.dispatch({"command": "mainline-status"})
+    assert payload["command"] == "mainline-status"
