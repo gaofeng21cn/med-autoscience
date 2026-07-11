@@ -93,13 +93,7 @@ def test_study_outer_loop_tick_writes_decision_record_and_executes_next_controll
             "payload_ref": str(study_root / "artifacts" / "controller_decisions" / "latest.json"),
         }
     ]
-    assert payload["family_event_envelope"]["version"] == "family-event-envelope.v1"
-    assert payload["family_event_envelope"]["target_domain_id"] == "medautoscience"
-    assert payload["family_event_envelope"]["session"]["study_id"] == "001-risk"
-    assert payload["family_event_envelope"]["session"]["quest_id"] == "quest-001"
-    assert payload["family_checkpoint_lineage"]["version"] == "family-checkpoint-lineage.v1"
-    assert payload["family_checkpoint_lineage"]["producer"]["event_envelope_id"] == payload["family_event_envelope"]["envelope_id"]
-    assert payload["family_human_gates"] == []
+    assert not {"family_event_envelope", "family_checkpoint_lineage", "family_human_gates"} & payload.keys()
     assert latest_payload == payload
     assert not (study_root / "artifacts" / "controller" / "controller_confirmation_summary.json").exists()
 def test_study_outer_loop_tick_fails_closed_when_managed_runtime_status_lacks_runtime_escalation_ref_and_quest_root(
@@ -680,12 +674,7 @@ def test_study_outer_loop_tick_blocks_dispatch_when_human_confirmation_is_requir
             "payload_ref": str(study_root / "artifacts" / "controller_decisions" / "latest.json"),
         }
     ]
-    assert payload["family_event_envelope"]["version"] == "family-event-envelope.v1"
-    assert payload["family_checkpoint_lineage"]["version"] == "family-checkpoint-lineage.v1"
-    assert payload["family_human_gates"][0]["version"] == "family-human-gate.v1"
-    assert payload["family_human_gates"][0]["status"] == "requested"
-    assert payload["family_human_gates"][0]["gate_kind"] == "controller_human_confirmation"
-    assert payload["family_human_gates"][0]["decision_options"] == ["approve", "request_changes", "reject"]
+    assert not {"family_event_envelope", "family_checkpoint_lineage", "family_human_gates"} & payload.keys()
     confirmation_payload = json.loads(
         (study_root / "artifacts" / "controller" / "controller_confirmation_summary.json").read_text(encoding="utf-8")
     )

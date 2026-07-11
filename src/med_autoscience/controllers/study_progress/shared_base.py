@@ -7,12 +7,6 @@ from importlib import import_module
 from pathlib import Path
 from typing import Any, Mapping
 
-from opl_framework.status_narration import (
-    PROGRESS_ANSWER_CHECKLIST,
-    build_status_narration_contract,
-    build_status_narration_human_view,
-)
-
 from med_autoscience.controller_confirmation_summary import (
     materialize_controller_confirmation_summary,
     read_controller_confirmation_summary,
@@ -84,6 +78,62 @@ def read_evaluation_summary(
 
 SCHEMA_VERSION = 1
 _DEFAULT_EVENT_LIMIT = 6
+PROGRESS_ANSWER_CHECKLIST = ("current_stage", "current_blockers", "next_step")
+
+
+def _status_value(value: object) -> Any:
+    if value is None:
+        return None
+    if isinstance(value, str):
+        return value.strip() or None
+    if isinstance(value, Mapping):
+        payload = {str(key): _status_value(item) for key, item in value.items()}
+        return {key: item for key, item in payload.items() if item is not None}
+    if isinstance(value, (list, tuple, set)):
+        return [item for raw in value if (item := _status_value(raw)) is not None]
+    return value
+
+
+def build_status_narration_contract(
+    *,
+    contract_id: str,
+    surface_kind: str,
+    audience: str = "human_user",
+    milestone: Mapping[str, Any] | None = None,
+    stage: Mapping[str, Any] | None = None,
+    readiness: Mapping[str, Any] | None = None,
+    remaining_scope: Mapping[str, Any] | None = None,
+    current_blockers: object = None,
+    latest_update: str | None = None,
+    next_step: str | None = None,
+    human_gate: Mapping[str, Any] | None = None,
+    facts: Mapping[str, Any] | None = None,
+    answer_checklist: object = None,
+) -> dict[str, Any]:
+    if not contract_id.strip() or not surface_kind.strip():
+        raise ValueError("status narration contract_id and surface_kind must be non-empty")
+    checklist = _status_value(answer_checklist) or list(PROGRESS_ANSWER_CHECKLIST)
+    return {
+        "schema_version": 1,
+        "contract_kind": "ai_status_narration",
+        "contract_id": contract_id.strip(),
+        "surface_kind": surface_kind.strip(),
+        "audience": audience.strip() or "human_user",
+        "milestone": _status_value(milestone),
+        "stage": _status_value(stage),
+        "readiness": _status_value(readiness),
+        "remaining_scope": _status_value(remaining_scope),
+        "current_blockers": _status_value(current_blockers) or [],
+        "latest_update": _status_value(latest_update),
+        "next_step": _status_value(next_step),
+        "human_gate": _status_value(human_gate),
+        "facts": _status_value(facts),
+        "narration_policy": {
+            "mode": "ai_first",
+            "style": "plain_language",
+            "answer_checklist": checklist,
+        },
+    }
 from .status_text_labels import (
     _ACTION_LABELS,
     _BLOCKER_LABELS,
@@ -561,15 +611,59 @@ def _display_text(value: object) -> str | None:
 
 
 def _status_narration_human_view(payload: Mapping[str, Any]) -> dict[str, Any]:
-    return build_status_narration_human_view(
-        payload,
-        fallback_current_stage=_non_empty_text(payload.get("current_stage")),
-        fallback_latest_update=_display_text(payload.get("current_stage_summary"))
-        or _non_empty_text(payload.get("current_stage_summary")),
-        fallback_next_step=_display_text(payload.get("next_system_action"))
-        or _non_empty_text(payload.get("next_system_action")),
-        fallback_blockers=payload.get("current_blockers") or [],
+    nested = payload.get("status_narration_contract")
+    contract = dict(nested) if isinstance(nested, Mapping) else {}
+    if payload.get("contract_kind") == "ai_status_narration":
+        contract = dict(payload)
+    stage = contract.get("stage") if isinstance(contract.get("stage"), Mapping) else {}
+    current_stage = (
+        _non_empty_text(stage.get("current_stage"))
+        or _non_empty_text(stage.get("current_stage_id"))
+        or _non_empty_text(payload.get("current_stage"))
     )
+    recommended_next_stage = (
+        _non_empty_text(stage.get("recommended_next_stage"))
+        or _non_empty_text(stage.get("recommended_stage"))
+        or _non_empty_text(payload.get("recommended_next_stage"))
+    )
+    latest_update = (
+        _non_empty_text(contract.get("latest_update"))
+        or _display_text(payload.get("current_stage_summary"))
+        or _non_empty_text(payload.get("current_stage_summary"))
+    )
+    next_step = (
+        _non_empty_text(contract.get("next_step"))
+        or _display_text(payload.get("next_system_action"))
+        or _non_empty_text(payload.get("next_system_action"))
+    )
+    blockers = contract.get("current_blockers") or payload.get("current_blockers") or []
+    current_blockers = [
+        _display_text(item) or str(item).strip()
+        for item in blockers
+        if str(item or "").strip()
+    ]
+    current_stage_label = _display_text(current_stage)
+    recommended_next_stage_label = _display_text(recommended_next_stage)
+    stage_parts = []
+    if current_stage_label:
+        stage_parts.append(f"当前状态：{current_stage_label}")
+    if recommended_next_stage_label:
+        stage_parts.append(f"下一阶段：{recommended_next_stage_label}")
+    stage_summary = "；".join(stage_parts) or latest_update
+    status_parts = [item for item in (stage_summary,) if item]
+    if current_blockers:
+        status_parts.append(f"当前卡点：{'；'.join(current_blockers)}")
+    return {
+        "current_stage": current_stage,
+        "current_stage_label": current_stage_label,
+        "recommended_next_stage": recommended_next_stage,
+        "recommended_next_stage_label": recommended_next_stage_label,
+        "latest_update": latest_update,
+        "stage_summary": stage_summary,
+        "status_summary": "；".join(status_parts) or next_step,
+        "next_step": next_step,
+        "current_blockers": current_blockers,
+    }
 
 
 def _current_stage_label(stage: object) -> str | None:

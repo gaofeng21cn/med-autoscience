@@ -3,13 +3,6 @@ from __future__ import annotations
 from dataclasses import dataclass
 from typing import Any
 
-from opl_framework.family_entry_contracts import (
-    build_domain_agent_entry_spec as _build_shared_domain_agent_entry_spec,
-    build_domain_entry_command_catalog as _build_shared_domain_entry_command_catalog,
-    build_family_direct_opl_shared_handoff as _build_shared_family_direct_opl_shared_handoff,
-    build_family_domain_entry_contract as _build_shared_family_domain_entry_contract,
-)
-
 SERVICE_SAFE_ENTRY_ADAPTER = "MedAutoScienceDomainEntry"
 SERVICE_SAFE_ENTRY_TARGET = "med_autoscience.domain_entry:MedAutoScienceDomainEntry.dispatch"
 SERVICE_SAFE_ENTRY_SURFACE_KIND = "med_autoscience_service_safe_domain_entry"
@@ -222,45 +215,48 @@ def build_domain_entry_command_contracts() -> list[dict[str, Any]]:
 
 
 def build_domain_entry_command_catalog() -> dict[str, Any]:
-    return _build_shared_domain_entry_command_catalog(
-        [
-            {
-                "command": command,
-                "required_fields": list(spec.required_fields),
-                "optional_fields": list(spec.optional_fields),
-            }
-            for command, spec in SERVICE_SAFE_DOMAIN_COMMANDS.items()
-        ]
-    )
+    command_contracts = [
+        {
+            "command": command,
+            "required_fields": list(spec.required_fields),
+            "optional_fields": list(spec.optional_fields),
+        }
+        for command, spec in SERVICE_SAFE_DOMAIN_COMMANDS.items()
+    ]
+    return {
+        "supported_commands": [item["command"] for item in command_contracts],
+        "command_contracts": command_contracts,
+    }
 
 
 def build_domain_entry_contract() -> dict[str, Any]:
-    contract = _build_shared_family_domain_entry_contract(
-        entry_adapter=SERVICE_SAFE_ENTRY_ADAPTER,
-        service_safe_surface_kind=SERVICE_SAFE_ENTRY_SURFACE_KIND,
-        product_entry_builder_command=PRODUCT_ENTRY_BUILDER_COMMAND,
-        supported_entry_modes=list(SUPPORTED_PRODUCT_ENTRY_MODES),
-        domain_agent_entry_spec=_build_shared_domain_agent_entry_spec(
-            agent_id="mas",
-            title="MAS Domain Agent Entry (v1)",
-            description=(
+    contract = {
+        "entry_adapter": SERVICE_SAFE_ENTRY_ADAPTER,
+        "service_safe_surface_kind": SERVICE_SAFE_ENTRY_SURFACE_KIND,
+        "product_entry_builder_command": PRODUCT_ENTRY_BUILDER_COMMAND,
+        "supported_entry_modes": list(SUPPORTED_PRODUCT_ENTRY_MODES),
+        "domain_agent_entry_spec": {
+            "surface_kind": "domain_agent_entry_spec",
+            "agent_id": "mas",
+            "title": "MAS Domain Agent Entry (v1)",
+            "description": (
                 "MAS 通过 domain agent entry contract 暴露可审计的入口与进度语义，"
                 "用于研究任务与投稿包的受控推进。"
             ),
-            default_engine="codex",
-            workspace_requirement="required",
-            locator_schema={
+            "default_engine": "codex",
+            "workspace_requirement": "required",
+            "locator_schema": {
                 "required_fields": ["profile_ref"],
                 "optional_fields": ["study_id", "entry_mode"],
             },
-            codex_entry_strategy="domain_agent_entry",
-            artifact_conventions="paper_and_submission_package",
-            progress_conventions="study_runtime_narration",
-            entry_command="study-progress",
-            manifest_command="opl-generated-product-entry",
-        ),
+            "codex_entry_strategy": "domain_agent_entry",
+            "artifact_conventions": "paper_and_submission_package",
+            "progress_conventions": "study_runtime_narration",
+            "entry_command": "study-progress",
+            "manifest_command": "opl-generated-product-entry",
+        },
         **build_domain_entry_command_catalog(),
-    )
+    }
     contract["surface_role"] = "domain_handler_target_for_opl_generated_interfaces"
     contract["generated_descriptor_owner"] = "one-person-lab"
     contract["domain_handler_target_owner"] = "MedAutoScience"
@@ -320,7 +316,13 @@ def build_shared_handoff(
     direct_entry_builder_command: str,
     opl_handoff_builder_command: str,
 ) -> dict[str, Any]:
-    return _build_shared_family_direct_opl_shared_handoff(
-        direct_entry_builder_command=direct_entry_builder_command,
-        opl_handoff_builder_command=opl_handoff_builder_command,
-    )
+    return {
+        "direct_entry_builder": {
+            "command": direct_entry_builder_command,
+            "entry_mode": "direct",
+        },
+        "opl_handoff_builder": {
+            "command": opl_handoff_builder_command,
+            "entry_mode": "opl-handoff",
+        },
+    }

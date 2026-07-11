@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import ast
 import json
 import subprocess
 import sys
@@ -53,6 +54,7 @@ def test_runtime_bootstrap_modules_are_physically_retired() -> None:
 
     assert not (package_root / "framework_python_carrier.py").exists()
     assert not (package_root / "family_shared_release.py").exists()
+    assert not (package_root / "controllers" / "study_runtime_family_orchestration.py").exists()
 
     for relative_path in (
         "src/med_autoscience/__init__.py",
@@ -63,3 +65,19 @@ def test_runtime_bootstrap_modules_are_physically_retired() -> None:
         assert "framework_python_carrier" not in source
         assert "sys.path" not in source
         assert "sys.modules" not in source
+
+
+def test_agent_source_has_no_framework_runtime_dependency() -> None:
+    framework_imports = []
+    for path in (REPO_ROOT / "src").rglob("*.py"):
+        for node in ast.walk(ast.parse(path.read_text(encoding="utf-8"))):
+            if isinstance(node, ast.Import):
+                framework_imports.extend(
+                    alias.name for alias in node.names if alias.name == "opl_framework" or alias.name.startswith("opl_framework.")
+                )
+            elif isinstance(node, ast.ImportFrom) and node.module and (
+                node.module == "opl_framework" or node.module.startswith("opl_framework.")
+            ):
+                framework_imports.append(node.module)
+
+    assert framework_imports == []

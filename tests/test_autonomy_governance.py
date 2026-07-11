@@ -189,7 +189,7 @@ def test_study_outer_loop_decision_artifact_carries_autonomy_governance_contract
         "decision_type": "bounded_analysis",
         "reason_code": "direction_locked_bounded_analysis_stays_autonomous",
     }
-    assert payload["family_human_gates"] == []
+    assert not {"family_event_envelope", "family_checkpoint_lineage", "family_human_gates"} & payload.keys()
     executed = result["executed_controller_action"]
     assert executed["action_type"] == "request_opl_stage_attempt_relaunch"
     assert executed["result"]["status"] == "opl_stage_attempt_admission_required"

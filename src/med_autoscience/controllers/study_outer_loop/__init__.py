@@ -6,7 +6,6 @@ from pathlib import Path
 from typing import Any
 
 from med_autoscience.controllers import domain_status_projection
-from med_autoscience.controllers import study_runtime_family_orchestration as family_orchestration
 from med_autoscience.controllers import gate_clearing_batch
 from med_autoscience.controllers import publication_gate as publication_gate_controller
 from med_autoscience.controllers import quality_repair_batch
@@ -21,7 +20,6 @@ from med_autoscience.controllers.study_outer_loop.action_execution import (
     execute_controller_action as _execute_controller_action_impl,
 )
 from med_autoscience.controllers.study_outer_loop.human_confirmation import (
-    _build_family_human_gates_for_decision_record,
     _build_human_confirmation_request,
     _controller_confirmation_pending,
     _latest_controller_decision_matches_spec,
@@ -36,7 +34,6 @@ from med_autoscience.controllers.study_outer_loop.runtime_refs import (
     _managed_runtime_requires_event_ref,
     _resolve_managed_runtime_event_contract,
     _resolve_runtime_escalation_record,
-    _runtime_status_active_run_id,
     _runtime_status_summary,
 )
 from med_autoscience.controllers.study_outer_loop.runtime_state import (
@@ -177,79 +174,6 @@ def _materialize_study_decision_record(
         requires_human_confirmation=requires_human_confirmation,
         direction_locked=True,
     )
-    family_evidence_refs = [
-        {
-            "ref_kind": "repo_path",
-            "ref": normalized_charter_ref.artifact_path,
-            "label": "study_charter",
-        },
-        {
-            "ref_kind": "repo_path",
-            "ref": normalized_publication_eval_ref.artifact_path,
-            "label": "publication_eval_latest",
-        },
-        {
-            "ref_kind": "repo_path",
-            "ref": runtime_escalation_ref.artifact_path,
-            "label": "runtime_escalation_record",
-        },
-    ]
-    family_human_gates = _build_family_human_gates_for_decision_record(
-        requires_human_confirmation=requires_human_confirmation,
-        emitted_at=emitted_at,
-        study_id=resolved_study_id,
-        evidence_refs=family_evidence_refs,
-        controller_actions=normalized_controller_actions,
-    )
-    family_companion = family_orchestration.build_family_orchestration_companion(
-        surface_kind="controller_decisions",
-        surface_id="controller_decisions/latest.json",
-        event_name=f"study_outer_loop.{decision_type}",
-        source_surface="study_outer_loop_tick",
-        session_id=f"study-outer-loop:{resolved_study_id}",
-        program_id=family_orchestration.resolve_program_id(
-            status.get("execution") if isinstance(status.get("execution"), dict) else None
-        ),
-        study_id=resolved_study_id,
-        quest_id=quest_id,
-        active_run_id=_runtime_status_active_run_id(status, runtime_status),
-        runtime_decision=runtime_status.get("decision"),
-        runtime_reason=runtime_status.get("reason"),
-        payload={
-            "decision_type": decision_type,
-            "requires_human_confirmation": requires_human_confirmation,
-            "human_gate_policy": human_gate_policy.to_dict() if human_gate_policy is not None else None,
-            "controller_reason": reason,
-            "work_unit_fingerprint": work_unit_fingerprint,
-            "next_work_unit": dict(next_work_unit) if isinstance(next_work_unit, dict) else None,
-        },
-        event_time=emitted_at,
-        checkpoint_id=f"controller-decision:{resolved_study_id}:{decision_type}",
-        checkpoint_label="controller decision checkpoint",
-        audit_refs=family_evidence_refs,
-        state_refs=[
-            {
-                "role": "controller",
-                "ref_kind": "repo_path",
-                "ref": str(resolved_study_root / "artifacts" / "controller_decisions" / "latest.json"),
-                "label": "controller_decisions_latest",
-            },
-            {
-                "role": "publication",
-                "ref_kind": "repo_path",
-                "ref": normalized_publication_eval_ref.artifact_path,
-                "label": "publication_eval_latest",
-            },
-        ],
-        restoration_evidence=family_evidence_refs,
-        action_graph_id="mas_runtime_orchestration",
-        node_id="study_outer_loop_tick",
-        gate_id=(family_human_gates[0].get("gate_id") if family_human_gates else None),
-        resume_mode="reenter_human_gate" if requires_human_confirmation else "resume_from_checkpoint",
-        resume_handle=f"study_outer_loop:{resolved_study_id}:{decision_type}",
-        human_gate_required=requires_human_confirmation,
-        human_gates=family_human_gates,
-    )
     written_record = study_runtime_protocol.write_study_decision_record(
         study_root=resolved_study_root,
         record=StudyDecisionRecord(
@@ -278,9 +202,6 @@ def _materialize_study_decision_record(
             next_work_unit=dict(next_work_unit) if isinstance(next_work_unit, dict) else None,
             blocking_work_units=tuple(blocking_work_units or ()),
             autonomy_governance_contract=autonomy_governance_contract,
-            family_event_envelope=family_companion["family_event_envelope"],
-            family_checkpoint_lineage=family_companion["family_checkpoint_lineage"],
-            family_human_gates=tuple(family_companion["family_human_gates"]),
         ),
     )
     confirmation_summary_ref = materialize_controller_confirmation_summary(

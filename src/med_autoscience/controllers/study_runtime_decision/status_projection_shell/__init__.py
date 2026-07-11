@@ -11,7 +11,6 @@ from med_autoscience.controllers.study_runtime_decision.runtime_events.ownership
     _record_execution_owner_guard,
 )
 from med_autoscience.controllers.study_runtime_decision.runtime_events.runtime_summary import (
-    _record_family_orchestration_companion,
     _record_runtime_event,
     _sync_runtime_summary_if_needed,
 )
@@ -56,11 +55,6 @@ def finalize_status_projection_shell(
         )
     _record_runtime_event(
         status=status,
-        runtime_context=runtime_context,
-    )
-    _record_family_orchestration_companion(
-        status=status,
-        study_root=study_root,
         runtime_context=runtime_context,
     )
     _record_opl_domain_activity_ref(status)

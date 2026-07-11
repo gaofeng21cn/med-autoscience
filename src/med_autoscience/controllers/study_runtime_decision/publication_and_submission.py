@@ -17,7 +17,6 @@ from med_autoscience.controllers import (
     study_truth_kernel,
     study_runtime_interaction_arbitration as interaction_arbitration_controller,
     runtime_reentry_gate as runtime_reentry_gate_controller,
-    study_runtime_family_orchestration as family_orchestration,
     startup_data_readiness as startup_data_readiness_controller,
     startup_boundary_gate as startup_boundary_gate_controller,
 )

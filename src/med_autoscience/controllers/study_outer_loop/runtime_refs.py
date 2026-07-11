@@ -5,7 +5,6 @@ from pathlib import Path
 from typing import Any
 
 from med_autoscience import opl_runtime_contract
-from med_autoscience.controllers import study_runtime_family_orchestration as family_orchestration
 from med_autoscience.controllers.opl_runtime_refs import active_run_id as opl_runtime_active_run_id
 from med_autoscience.native_runtime_event import NativeRuntimeEventRecord
 from med_autoscience.runtime_event_record import RuntimeEventRecord, RuntimeEventRecordRef

@@ -4,7 +4,6 @@ import json
 from pathlib import Path
 from typing import Any
 
-from med_autoscience.controllers import study_runtime_family_orchestration as family_orchestration
 from med_autoscience.controller_confirmation_summary import (
     read_controller_confirmation_summary,
     stable_controller_confirmation_summary_path,
@@ -16,29 +15,6 @@ from med_autoscience.study_decision_record import (
     StudyDecisionPublicationEvalRef,
     StudyDecisionRecord,
 )
-
-
-def _build_family_human_gates_for_decision_record(
-    *,
-    requires_human_confirmation: bool,
-    emitted_at: str,
-    study_id: str,
-    evidence_refs: list[dict[str, str]],
-    controller_actions: tuple[StudyDecisionControllerAction, ...],
-) -> list[dict[str, Any]]:
-    if not requires_human_confirmation:
-        return []
-    return [
-        family_orchestration.build_family_human_gate(
-            gate_id=f"controller-human-confirmation-{study_id}",
-            gate_kind="controller_human_confirmation",
-            requested_at=emitted_at,
-            request_surface_kind="controller_decisions",
-            request_surface_id="controller_decisions/latest.json",
-            evidence_refs=evidence_refs,
-            decision_options=["approve", "request_changes", "reject"],
-        )
-    ]
 
 
 def _build_human_confirmation_request(
