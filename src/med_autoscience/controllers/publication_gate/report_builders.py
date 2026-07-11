@@ -12,7 +12,7 @@ from typing import Any
 
 from med_autoscience.controllers import journal_package as journal_package_controller, study_delivery_sync
 from med_autoscience.controllers import medical_literature_hygiene
-from med_autoscience.journal_requirements import (
+from med_autoscience.controllers.journal_package import (
     describe_journal_submission_package,
     journal_requirements_json_path,
     load_journal_requirements,

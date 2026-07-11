@@ -18,7 +18,7 @@ from med_autoscience.controllers.authority_route_context_call import call_with_a
 from med_autoscience.controllers.authority_route_gate import authorize_authority_route
 from med_autoscience.controllers.opl_pending_user_message_handoff import build_pending_user_message_handoff
 from med_autoscience.controllers.submission_package_layout import resolve_submission_manifest_path
-from med_autoscience.journal_requirements import (
+from med_autoscience.controllers.journal_package import (
     describe_journal_submission_package,
     journal_requirements_json_path,
     load_journal_requirements,

@@ -15,7 +15,7 @@ from med_autoscience.controllers.submission_package_layout import (
     has_legacy_root_audit_files,
     resolve_submission_manifest_path,
 )
-from med_autoscience.journal_requirements import journal_submission_package_root
+from med_autoscience.controllers.journal_package import journal_submission_package_root
 from med_autoscience.profiles import WorkspaceProfile
 
 

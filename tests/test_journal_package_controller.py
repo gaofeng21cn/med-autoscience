@@ -98,7 +98,7 @@ def make_package_workspace(tmp_path: Path) -> tuple[Path, Path]:
 
 
 def write_rheumatology_requirements(study_root: Path) -> None:
-    requirements_module = importlib.import_module("med_autoscience.journal_requirements")
+    requirements_module = importlib.import_module("med_autoscience.controllers.journal_package")
     requirements_module.write_journal_requirements(
         study_root=study_root,
         requirements=requirements_module.JournalRequirements(
@@ -123,6 +123,25 @@ def write_rheumatology_requirements(study_root: Path) -> None:
             template_assets=(),
         ),
     )
+
+
+def test_journal_requirements_round_trip_stays_with_package_controller(tmp_path: Path) -> None:
+    module = importlib.import_module("med_autoscience.controllers.journal_package")
+    study_root = tmp_path / "study"
+
+    assert module.slugify_journal_name("Journal of Clinical Endocrinology & Metabolism") == (
+        "journal-of-clinical-endocrinology-metabolism"
+    )
+    write_rheumatology_requirements(study_root)
+
+    loaded = module.load_journal_requirements(
+        study_root=study_root,
+        journal_slug="rheumatology-international",
+    )
+    assert loaded is not None
+    assert loaded.abstract_word_cap == 250
+    assert loaded.title_page_required is True
+    assert loaded.reference_style_family == "AMA"
 
 
 def test_materialize_journal_package_writes_stable_shallow_package(tmp_path: Path) -> None:
@@ -152,7 +171,7 @@ def test_materialize_journal_package_writes_stable_shallow_package(tmp_path: Pat
     assert not (package_root / "journal_requirements_snapshot.json").exists()
     assert (package_root / "SUBMISSION_TODO.md").exists()
     assert (package_root / "rheumatology-international_submission_package.zip").exists()
-    package_status = importlib.import_module("med_autoscience.journal_requirements").describe_journal_submission_package(
+    package_status = importlib.import_module("med_autoscience.controllers.journal_package").describe_journal_submission_package(
         study_root=study_root,
         journal_slug="rheumatology-international",
     )
