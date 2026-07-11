@@ -171,9 +171,7 @@ def _iter_display_surface_entries(
             if figure_id:
                 registered_figure_ids.add(figure_id)
 
-    # Older paper lines can keep a valid illustration payload plus a stale figure
-    # catalog entry even after the registry binding drifted away. Refresh those
-    # catalog-only illustration entries through the normal materialization loop.
+    # Refresh valid catalog-only illustration payloads after registry drift.
     for entry in figure_catalog.get("figures", []):
         if not isinstance(entry, dict):
             raise ValueError("figure_catalog.json figures must contain objects")
@@ -998,8 +996,4 @@ def materialize_display_surface(*, paper_root: Path) -> dict[str, Any]:
     }
 
 
-__all__ = [
-    "_iter_display_surface_entries",
-    "materialize_display_visual_audit",
-    "materialize_display_surface",
-]
+__all__ = ["_iter_display_surface_entries", "materialize_display_visual_audit", "materialize_display_surface"]
