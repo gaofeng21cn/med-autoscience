@@ -68,8 +68,3 @@ def _scientific_anchor_mapping_candidates(*, quest_root: Path) -> list[Path]:
         if root.exists():
             candidates.extend(root.glob("**/scientific_anchor_mapping.json"))
     return candidates
-
-
-def current_workspace_root(*, quest_root: Path, default: Path) -> Path:
-    _ = quest_root
-    return Path(default).expanduser().resolve()

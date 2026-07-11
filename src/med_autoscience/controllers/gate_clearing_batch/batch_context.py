@@ -53,7 +53,6 @@ def build_gate_clearing_batch_context(
     read_publication_eval_latest_fn: Callable[..., dict[str, Any]],
     latest_batch_record: Callable[..., dict[str, Any]],
     latest_batch_closed_for_eval: Callable[[dict[str, Any], str | None], bool],
-    current_workspace_root_fn: Callable[..., Path],
     eligible_mapping_payload: Callable[..., tuple[Path | None, dict[str, Any]]],
     gate_blockers_fn: Callable[[dict[str, Any]], set[str]],
     submission_controller: Any,
@@ -149,7 +148,7 @@ def build_gate_clearing_batch_context(
             quality_authority_currentness=quality_authority_currentness,
         )
 
-    current_workspace_root = current_workspace_root_fn(quest_root=quest_root, default=paper_root.parent)
+    current_workspace_root = paper_root.parent.resolve()
     mapping_path, mapping_payload = eligible_mapping_payload(quest_root=quest_root, study_root=resolved_study_root)
     bundle_stage_repair = submission_controller.bundle_stage_repair_requested(gate_report=gate_report)
     study_delivery_status = submission_controller.study_delivery_status(gate_report)

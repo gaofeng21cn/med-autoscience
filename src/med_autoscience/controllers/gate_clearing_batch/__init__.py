@@ -95,9 +95,6 @@ _quest_root = runtime_paths.quest_root
 resolve_profile_for_study_root = runtime_paths.resolve_profile_for_study_root
 
 
-_current_workspace_root = runtime_paths.current_workspace_root
-
-
 def _repair_unit_fingerprint(
     *,
     unit_id: str,
@@ -573,7 +570,6 @@ def run_gate_clearing_batch(
         read_publication_eval_latest_fn=current_publication_eval.read_current_publication_eval_for_controller,
         latest_batch_record=_latest_batch_record,
         latest_batch_closed_for_eval=_latest_batch_closed_for_eval,
-        current_workspace_root_fn=_current_workspace_root,
         eligible_mapping_payload=_eligible_mapping_payload,
         gate_blockers_fn=_gate_blockers,
         submission_controller=gate_clearing_batch_submission,
