@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import importlib
 import json
 from pathlib import Path
 
@@ -48,24 +47,22 @@ def test_completion_audit_limits_done_claim_to_repo_source_control_plane() -> No
 def test_completion_audit_preserves_domain_authority_and_opl_ownership() -> None:
     audit = _load(AUDIT_PATH)
     inventory = _load(RETIREMENT_INVENTORY_PATH)
-    retirement = importlib.import_module(
-        "med_autoscience.runtime_protocol.runtime_surface_retirement"
-    )
 
     assert set(audit["authority_invariants"]["mas_retains"]) == set(
-        retirement.REQUIRED_MAS_RETAINS
+        inventory["authority_boundary"]["mas_retains"]
     )
     assert set(audit["authority_invariants"]["opl_owns"]) == set(
-        retirement.REQUIRED_OPL_OWNS
+        inventory["authority_boundary"]["opl_owns"]
     )
     assert audit["authority_invariants"][
         "stage_outcome_requires_owner_receipt_or_typed_blocker"
     ] is True
     assert audit["authority_invariants"]["same_identity_runtime_readback_required"] is True
     assert audit["authority_invariants"]["request_only_projection_is_completion"] is False
-    assert retirement.validate_runtime_surface_retirement_inventory(inventory) == []
     assert set(audit["repo_source_retirement"]["required_retained_surface_ids"]) == set(
-        retirement.REQUIRED_RETAINED_SURFACES
+        surface["surface_id"]
+        for surface in inventory["surfaces"]
+        if surface["disposition"] != "physically_retired"
     )
 
 

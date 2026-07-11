@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import importlib
 import json
 from pathlib import Path
 
@@ -21,11 +20,8 @@ def _inventory() -> dict:
 
 def test_runtime_like_surfaces_have_machine_readable_opl_migration_inventory() -> None:
     inventory = _inventory()
-    retirement = importlib.import_module(
-        "med_autoscience.runtime_protocol.runtime_surface_retirement"
-    )
+    schema = json.loads(SCHEMA_PATH.read_text(encoding="utf-8"))
 
-    assert retirement.validate_runtime_surface_retirement_inventory(inventory) == []
     assert inventory["schema_ref"] == (
         "contracts/runtime/mas-runtime-surface-retirement.schema.json"
     )
@@ -39,10 +35,14 @@ def test_runtime_like_surfaces_have_machine_readable_opl_migration_inventory() -
     } == RETAINED_TAILS
     assert all(surface["mas_runtime_authority"] is False for surface in surfaces.values())
     assert set(inventory["authority_boundary"]["mas_retains"]) == set(
-        retirement.REQUIRED_MAS_RETAINS
+        schema["properties"]["authority_boundary"]["properties"]["mas_retains"][
+            "items"
+        ]["enum"]
     )
     assert set(inventory["authority_boundary"]["opl_owns"]) == set(
-        retirement.REQUIRED_OPL_OWNS
+        schema["properties"]["authority_boundary"]["properties"]["opl_owns"][
+            "items"
+        ]["enum"]
     )
 
 

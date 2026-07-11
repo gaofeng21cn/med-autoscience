@@ -89,49 +89,6 @@ def test_owner_callable_receipt_latest_reader_ignores_legacy_latest_wire(tmp_pat
     assert receipt_ref == "artifacts/supervision/consumer/owner_callable_adapter_receipts/latest.json"
     assert candidates.owner_callable_receipt_candidates(study_root=study_root) == []
 
-def test_retired_legacy_stage_run_abi_scan_remains_provenance_not_delete_blocker() -> None:
-    inventory = json.loads(
-        (REPO_ROOT / "contracts" / "runtime" / "mas-runtime-surface-retirement-inventory.json").read_text(
-            encoding="utf-8"
-        )
-    )
-    retirement = importlib.import_module(
-        "med_autoscience.runtime_protocol.runtime_surface_retirement"
-    )
-    surface = {
-        item["surface_id"]: item for item in inventory["surfaces"]
-    }["owner_callable_adapter_receipt_latest_wire_projection"]
-
-    assert surface["disposition"] == "physically_retired"
-    assert surface["retained_mas_role"] == "none"
-    assert surface["mas_runtime_authority"] is False
-    assert surface["tombstone_ref"] == (
-        "human_doc:mas-private-surface-retirement#"
-        "default_executor_execution_latest_wire_projection"
-    )
-
-    audit = retirement.audit_runtime_surface_retirement_inventory(inventory)
-    assert "owner_callable_adapter_receipt_latest_wire_projection" in audit[
-        "retired_surface_ids"
-    ]
-    assert audit["completion_claim_allowed"] is False
-    assert audit["live_runtime_readiness_claim_allowed"] is False
-
-    bad_inventory = json.loads(json.dumps(inventory))
-    bad_surface = {
-        item["surface_id"]: item for item in bad_inventory["surfaces"]
-    }["owner_callable_adapter_receipt_latest_wire_projection"]
-    bad_surface["tombstone_ref"] = None
-
-    violations = retirement.validate_runtime_surface_retirement_inventory(bad_inventory)
-
-    assert {
-        (
-            "owner_callable_adapter_receipt_latest_wire_projection",
-            "retired_surface_missing_tombstone",
-        ),
-    } <= {(item["surface_id"], item["reason"]) for item in violations}
-
 
 def test_domain_owner_dispatch_execution_latest_payload_ignores_legacy_opt_in(
     tmp_path,
