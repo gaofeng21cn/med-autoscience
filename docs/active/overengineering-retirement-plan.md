@@ -32,6 +32,8 @@ Machine boundary: 本文只保留 closeout 结论。逐项 current status归 [MA
 
 Exact completion evidence与 Live evidence分账见 [Active truth plan](./mas-ideal-state-gap-plan.md)。
 
+结构 closeout 的 L1-L4 已完成；双仓本地 full verification、吸收、push/readback 与 worktree cleanup 仍按 L5 执行。`scripts/run-build-clean.sh` 是保留的正式 build-isolation runner；退役的是旧 runtime/editable clean runner。
+
 ## No resurrection
 
 - 不恢复已删除的 CLI/MCP/parser/JSON-RPC/workbench/installer/runtime wrapper。
