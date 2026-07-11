@@ -26,6 +26,7 @@ MAS 的 12 项过度设计结构目标已经落地：repo-local platform surface
 | Test collection | pytest 原生递归收集 |
 | Build isolation | `scripts/run-build-clean.sh`；旧 runtime/editable clean runner 已退役 |
 | Legacy control plane | retired/tombstone/provenance only |
+| Standard Agent conformance | domain-owned `contracts/standard_agent_conformance_profile.json` 声明六阶段 golden path 与 MAS 物理形态；OPL 只执行通用结构检查 |
 
 ## MAS 保留面
 
