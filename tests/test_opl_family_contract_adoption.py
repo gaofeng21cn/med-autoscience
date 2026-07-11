@@ -514,6 +514,8 @@ def test_mas_evo_scientist_learning_projection_declares_progress_first_absorptio
     assert domain_delta["invocation_kind"] == "descriptor_only_current_owner_input_refs"
     assert domain_delta["binding_kind"] == "optional"
     assert domain_delta["resolver_owner"] == "one-person-lab"
+    assert domain_delta["resolver_abi_ref"].startswith("one-person-lab:")
+    assert not (REPO_ROOT / domain_delta["resolver_abi_ref"].split(":", 1)[1]).exists()
     assert domain_delta["memory_accept_reject_owner"] == "MedAutoScience"
     assert domain_delta["runtime_writer"] is None
     assert domain_delta["local_persistence"] == "absent"

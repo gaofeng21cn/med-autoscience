@@ -465,7 +465,7 @@
       "binding_kind": "optional",
       "source_family": "evo",
       "resolver_owner": "one-person-lab",
-      "resolver_abi_ref": "contracts/opl-framework/capability-registry-resolver.schema.json",
+      "resolver_abi_ref": "one-person-lab:contracts/opl-framework/capability-registry-resolver.schema.json",
       "mas_role": "declare_pattern_refs_and_accept_or_reject_memory_candidates",
       "memory_accept_reject_owner": "MedAutoScience",
       "runtime_writer": null,
@@ -492,7 +492,7 @@
       "artifact_body"
     ],
     "target_contracts": [
-      "contracts/opl-framework/capability-registry-resolver.schema.json",
+      "one-person-lab:contracts/opl-framework/capability-registry-resolver.schema.json",
       "contracts/evo_scientist_progress_accelerator.json"
     ],
     "authority_boundary": {

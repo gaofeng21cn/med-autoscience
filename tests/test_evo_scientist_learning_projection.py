@@ -29,6 +29,8 @@ def test_evo_scientist_projection_is_declarative_and_non_authoritative() -> None
     assert delta["invocation_kind"] == "descriptor_only_current_owner_input_refs"
     assert delta["binding_kind"] == "optional"
     assert delta["resolver_owner"] == "one-person-lab"
+    assert delta["resolver_abi_ref"].startswith("one-person-lab:")
+    assert not (REPO_ROOT / delta["resolver_abi_ref"].split(":", 1)[1]).exists()
     assert delta["memory_accept_reject_owner"] == "MedAutoScience"
     assert delta["runtime_writer"] is None
     assert delta["local_persistence"] == "absent"

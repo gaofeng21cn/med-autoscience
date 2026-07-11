@@ -15,7 +15,9 @@ PROJECTION_BUILDER_REF = (
     "build_evo_scientist_learning_projection"
 )
 DOC_REF = "docs/runtime/designs/evo_scientist_progress_first_intake.md"
-RESOLVER_ABI_REF = "contracts/opl-framework/capability-registry-resolver.schema.json"
+RESOLVER_ABI_REF = (
+    "one-person-lab:contracts/opl-framework/capability-registry-resolver.schema.json"
+)
 
 ABSORBED_PATTERN_IDS = (
     "auxiliary_background_model",
