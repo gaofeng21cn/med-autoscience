@@ -215,7 +215,11 @@ def merge_persistent_current_control_payload(
         and (study_id := _text(item.get("study_id"))) is not None
         and study_id not in scanned_ids
     ]
-    scanned_studies = [dict(item) for item in payload.get("studies") or [] if isinstance(item, Mapping)]
+    scanned_studies = [
+        dict(item)
+        for item in payload.get("studies") or []
+        if isinstance(item, Mapping) and _text(item.get("study_id")) in scanned_ids
+    ]
     if retained_studies:
         merged["studies"] = [*retained_studies, *scanned_studies]
     retained_actions = [
@@ -225,7 +229,11 @@ def merge_persistent_current_control_payload(
         and (study_id := _text(item.get("study_id"))) is not None
         and study_id not in scanned_ids
     ]
-    scanned_actions = [dict(item) for item in payload.get("action_queue") or [] if isinstance(item, Mapping)]
+    scanned_actions = [
+        dict(item)
+        for item in payload.get("action_queue") or []
+        if isinstance(item, Mapping) and _text(item.get("study_id")) in scanned_ids
+    ]
     if retained_actions:
         merged["action_queue"] = [*retained_actions, *scanned_actions]
     return merged

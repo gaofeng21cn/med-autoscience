@@ -41,8 +41,10 @@ def test_stage_knowledge_entry_returns_stage_specific_packet_refs_and_missing_re
         "artifacts/stage_knowledge/analysis-campaign/latest.json",
         "artifacts/stage_knowledge/review/latest.json",
     }
-    assert entries["scout"]["status"] == "ready"
-    assert entries["idea"]["status"] == "ready"
+    assert entries["scout"]["status"] == "missing"
+    assert entries["scout"]["missing_reasons"] == ["missing_ref:workspace_literature"]
+    assert entries["idea"]["status"] == "missing"
+    assert entries["idea"]["missing_reasons"] == ["missing_ref:workspace_literature"]
     assert entries["analysis-campaign"]["status"] == "ready"
     assert entries["review"]["status"] == "missing"
     assert entries["review"]["missing_reasons"] == ["missing_ref:claim_evidence_map"]

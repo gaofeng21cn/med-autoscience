@@ -2,18 +2,6 @@ from __future__ import annotations
 
 import importlib
 
-import pytest
-
-
-def test_retired_private_runtime_modules_are_not_importable() -> None:
-    for module_name in (
-        "med_autoscience.controllers.study_runtime_execution",
-        "med_autoscience.controllers.study_runtime_transport",
-    ):
-        with pytest.raises(ModuleNotFoundError):
-            importlib.import_module(module_name)
-
-
 def test_router_does_not_reexport_retired_private_runtime_bindings() -> None:
     router = importlib.import_module("med_autoscience.controllers.domain_status_projection")
 

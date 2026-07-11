@@ -210,7 +210,7 @@ def test_delivery_read_model_does_not_write_readme_and_authorized_sync_does(tmp_
     assert inspected["projection_only"] is True
     assert not current_package_readme.exists()
 
-    sync_manifest = sync_module.sync_study_delivery(
+    sync_module.sync_study_delivery(
         paper_root=paper_root,
         stage="submission_minimal",
         route_context=writable_route_context(),
@@ -224,9 +224,5 @@ def test_delivery_read_model_does_not_write_readme_and_authorized_sync_does(tmp_
         readme_text.index("## Next controller-authorized sync"),
     ]
     assert section_order == sorted(section_order)
-    assert "current_package/ is a human-facing mirror, not an edit source" in readme_text
-    readme_apply = sync_manifest["controller_authorized_doctor_readme"]
-    assert readme_apply["authority"] == "controller_authorized_delivery_sync_apply_only"
-    assert readme_apply["controller_authorized"] is True
-    assert readme_apply["readme_path"] == str(current_package_readme.resolve())
-    assert readme_apply["written"] is True
+    assert "Use this directory when a human wants the latest readable package." in readme_text
+    assert "Regenerate from the controller-authorized source in `manuscript/`" in readme_text

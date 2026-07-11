@@ -78,7 +78,7 @@ def test_medical_reporting_audit_consumes_closed_reporting_guideline_and_claim_m
     )
     monkeypatch.setattr(module, "_medical_story_contract_blockers", lambda _: [])
 
-    report = module.run_controller(quest_root=quest_root, apply=False)
+    report = module.run_controller(quest_root=quest_root, apply=True)
 
     assert report["status"] == "clear"
     assert report["blockers"] == []

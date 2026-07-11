@@ -8,7 +8,7 @@ REPO_ROOT = Path(__file__).resolve().parents[2]
 
 WRITE_ROUTE_SURFACES = (
     (
-        REPO_ROOT / "src/med_autoscience/controllers/submission_minimal/package_builder.py",
+        REPO_ROOT / "src/med_autoscience/controllers/submission_minimal/package_builder/__init__.py",
         "create_submission_minimal_package",
         "submission_materialize",
     ),

@@ -66,18 +66,6 @@ def test_scan_domain_routes_does_not_repair_paused_delivered_package_without_liv
         },
     }
     monkeypatch.setattr(module.domain_status_projection, "progress_projection", lambda **_: status_payload)
-    monkeypatch.setattr(
-        module.study_progress,
-        "read_study_progress",
-        lambda **_: {
-            "study_id": "001-dm-cvd-mortality-risk",
-            "current_stage": "auto_runtime_parked",
-            "paper_stage": "bundle_stage_blocked",
-            "auto_runtime_parked": status_payload["auto_runtime_parked"],
-            "supervision": {"active_run_id": None, "health_status": "parked"},
-        },
-    )
-
     result = module.scan_domain_routes(
         profile=profile,
         study_ids=("001-dm-cvd-mortality-risk",),
@@ -139,18 +127,6 @@ def test_scan_domain_routes_prefers_current_ai_reviewer_publication_eval_over_st
             },
         },
     )
-    monkeypatch.setattr(
-        module.study_progress,
-        "read_study_progress",
-        lambda **_: {
-            "study_id": "001-dm-cvd-mortality-risk",
-            "paper_stage": "bundle_stage_blocked",
-            "refs": {"publication_eval_path": str(publication_eval_path)},
-            "supervision": {"active_run_id": "run-live", "health_status": "live"},
-            "quality_review_loop": {"closure_state": "review_required"},
-        },
-    )
-
     result = module.scan_domain_routes(
         profile=profile,
         study_ids=("001-dm-cvd-mortality-risk",),

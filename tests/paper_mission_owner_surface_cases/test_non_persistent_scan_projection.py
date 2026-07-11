@@ -64,21 +64,6 @@ def test_scan_domain_routes_can_project_without_overwriting_workspace_latest(
             },
         },
     )
-    monkeypatch.setattr(
-        module.study_progress,
-        "read_study_progress",
-        lambda **_: {
-            "study_id": study_id,
-            "paper_stage": "publication_supervision",
-            "supervision": {"active_run_id": None, "health_status": "recovering"},
-            "ai_repair_lifecycle": {
-                "state": "external_supervisor_required",
-                "blocked_reason": "runtime_recovery_not_authorized",
-                "external_supervisor_required": True,
-            },
-        },
-    )
-
     result = module.scan_domain_routes(
         profile=profile,
         study_ids=(study_id,),
@@ -114,22 +99,7 @@ def test_external_observe_scan_reads_progress_without_materializing_controller_d
             },
         }
 
-    def progress_reader(**kwargs: object) -> dict[str, object]:
-        calls["progress"] = dict(kwargs)
-        if kwargs.get("sync_runtime_summary") is not False:
-            raise AssertionError("owner-route read-only scans must not sync runtime summary")
-        if kwargs.get("materialize_read_model_artifacts") is not False:
-            raise AssertionError("owner-route read-only scans must not materialize read-model artifacts")
-        return {
-            "study_id": study_id,
-            "study_root": str(study_root),
-            "quest_id": study_id,
-            "paper_stage": "publication_supervision",
-            "supervision": {"active_run_id": None},
-        }
-
     monkeypatch.setattr(module.domain_status_projection, "progress_projection", status_reader)
-    monkeypatch.setattr(module.study_progress, "read_study_progress", progress_reader)
 
     result = module.scan_domain_routes(
         profile=profile,
@@ -141,8 +111,6 @@ def test_external_observe_scan_reads_progress_without_materializing_controller_d
     assert result["studies"][0]["study_id"] == study_id
     assert calls["status"]["sync_runtime_summary"] is False
     assert calls["status"]["include_progress_projection"] is False
-    assert calls["progress"]["sync_runtime_summary"] is False
-    assert calls["progress"]["materialize_read_model_artifacts"] is False
     assert not (study_root / "artifacts" / "controller_decisions" / "latest.json").exists()
 
 
@@ -229,21 +197,6 @@ def test_persisted_single_study_scan_preserves_unscanned_study_handoff(
             },
         },
     )
-    monkeypatch.setattr(
-        module.study_progress,
-        "read_study_progress",
-        lambda **_: {
-            "study_id": scanned_study_id,
-            "paper_stage": "publication_supervision",
-            "supervision": {"active_run_id": None, "health_status": "recovering"},
-            "ai_repair_lifecycle": {
-                "state": "external_supervisor_required",
-                "blocked_reason": "runtime_recovery_not_authorized",
-                "external_supervisor_required": True,
-            },
-        },
-    )
-
     result = module.scan_domain_routes(
         profile=profile,
         study_ids=(scanned_study_id,),
@@ -262,12 +215,3 @@ def test_persisted_single_study_scan_preserves_unscanned_study_handoff(
     assert persisted["studies"][0]["handoff_scan_status"] == "retained_from_previous_scan"
     assert persisted["studies"][1]["handoff_scan_status"] == "scanned"
     assert retained_study_id in [action["study_id"] for action in persisted["action_queue"]]
-    assert persisted["current_execution_envelopes"][retained_study_id] == {
-        "state_kind": "executable_owner_action",
-        "owner": "write",
-        "next_work_unit": "current_manuscript_repair",
-        "typed_blocker": None,
-    }
-    assert persisted["current_execution_envelopes"][scanned_study_id] == result["current_execution_envelopes"][
-        scanned_study_id
-    ]

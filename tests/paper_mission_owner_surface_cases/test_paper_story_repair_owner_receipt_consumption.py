@@ -45,9 +45,9 @@ def test_owner_callable_adapter_consumes_accepted_paper_story_repair_owner_recei
     draft_ref = str(study_root / "paper" / "draft.md")
     review_ref = str(study_root / "paper" / "build" / "review_manuscript.md")
     _write_json(
-        study_root / "artifacts" / "supervision" / "consumer" / "owner_callable_adapter_receipt" / "latest.json",
+        study_root / "artifacts" / "supervision" / "consumer" / "owner_callable_adapter_receipts" / "latest.json",
         {
-            "surface": "owner_callable_dispatch_execution_study_latest",
+            "surface": "owner_callable_adapter_receipt_study_latest",
             "schema_version": 1,
             "study_id": study_id,
             "executed_count": 1,
@@ -107,7 +107,7 @@ def test_owner_callable_adapter_consumes_accepted_paper_story_repair_owner_recei
 
     assert receipt["status"] == "consumed"
     assert receipt["receipt_kind"] == "owner_callable_adapter_receipt"
-    assert receipt["receipt_ref"] == "artifacts/supervision/consumer/owner_callable_adapter_receipt/latest.json"
+    assert receipt["receipt_ref"] == "artifacts/supervision/consumer/owner_callable_adapter_receipts/latest.json"
     assert receipt["execution_id"].endswith("accepted-story-repair")
     assert receipt["owner_result_status"] == "progress_delta_candidate"
     assert receipt["repair_execution_evidence_status"] == "progress_delta_candidate"
