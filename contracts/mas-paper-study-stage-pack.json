@@ -461,7 +461,7 @@
     },
     "specialist_skill_writeback_contract": {
       "surface_kind": "mas_reviewer_revision_specialist_skill_writeback_contract",
-      "route": "OMA developer work order or refs-only improvement proposal",
+      "route": "External OMA developer work order or refs-only improvement proposal, then OPL work-order execution.",
       "target_source_of_truth": "external_repo:mas-scholar-skills",
       "target_skill_ref_families": [
         "medical-manuscript-writing",
@@ -471,23 +471,13 @@
         "medical-figure-design",
         "medical-submission-prep"
       ],
-      "oma_materialization_request_surface": {
-        "surface_kind": "mas_oma_external_suite_materialization_request",
-        "producer": "med_autoscience.reviewer_revision_feedbackops_dispatch",
-        "required_after_structured_ai_reviewer_evaluation": true,
-        "minimum_fields": [
-          "source_suite_ref",
-          "ai_reviewer_evaluation_ref",
-          "target_agent.repo_dir",
-          "target_skill_refs",
-          "target_owner_closeout_ref",
-          "target_owner_closeout_readback",
-          "authority_write_route_context",
-          "oma_command_contract",
-          "oma_execute_command_contract"
-        ],
-        "ready_status": "ready_for_oma_work_order_materialization",
-        "fail_closed_status": "blocked_oma_materialization_prerequisites_missing"
+      "work_order_handoff": {
+        "source_owner": "opl-meta-agent",
+        "source_surface": "developer_patch_work_order",
+        "execution_owner": "one-person-lab",
+        "execution_surface": "opl work-order execute",
+        "target_owner_closeout": "med-autoscience",
+        "refs_only": true
       },
       "mas_copies_professional_skill_body": false,
       "writes_study_truth": false,

@@ -73,6 +73,24 @@ def test_feedbackops_dispatch_emits_opl_execution_handoff(tmp_path: Path) -> Non
     assert not (tmp_path / "structured_ai_reviewer_evaluation_request.json").exists()
 
 
+def test_stage_pack_delegates_oma_work_order_execution_to_opl() -> None:
+    stage_pack_path = Path(__file__).parents[1] / "contracts" / "mas-paper-study-stage-pack.json"
+    stage_pack = json.loads(stage_pack_path.read_text(encoding="utf-8"))
+    writeback_contract = stage_pack["reviewer_revision_default_mechanism"][
+        "specialist_skill_writeback_contract"
+    ]
+
+    assert "oma_materialization_request_surface" not in writeback_contract
+    assert writeback_contract["work_order_handoff"] == {
+        "source_owner": "opl-meta-agent",
+        "source_surface": "developer_patch_work_order",
+        "execution_owner": "one-person-lab",
+        "execution_surface": "opl work-order execute",
+        "target_owner_closeout": "med-autoscience",
+        "refs_only": True,
+    }
+
+
 def test_feedbackops_execution_readback_reader_compacts_command_outputs(tmp_path: Path) -> None:
     from med_autoscience.reviewer_revision_feedbackops_dispatch import (
         read_reviewer_revision_feedbackops_execution_readback,

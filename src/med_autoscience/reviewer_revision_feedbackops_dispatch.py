@@ -134,8 +134,6 @@ def _compact_execution_readback(payload: dict[str, Any], *, path: Path) -> dict[
         "execution_handoff": dict(payload.get("execution_handoff") or {}),
         "ai_reviewer_evaluation_ref": payload.get("ai_reviewer_evaluation_ref"),
         "ai_reviewer_evaluation_status": payload.get("ai_reviewer_evaluation_status"),
-        "oma_materialization_request_ref": payload.get("oma_materialization_request_ref"),
-        "oma_materialization_request_status": payload.get("oma_materialization_request_status"),
         "target_owner_closeout_ref": payload.get("target_owner_closeout_ref"),
         "skill_writeback_status": payload.get("skill_writeback_status"),
         "target_skill_refs": list(payload.get("target_skill_refs") or []),

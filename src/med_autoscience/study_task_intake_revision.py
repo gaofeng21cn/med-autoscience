@@ -405,7 +405,7 @@ def build_reviewer_revision_self_evolution_trigger(payload: dict[str, Any] | Non
             ),
             "opl_agent_lab": "opl agent-lab run --suite <suite_path> --json",
             "oma_materialization": "opl-meta-agent.improve-from-external-agent-lab-suite",
-            "opl_work_order_execution": "opl-meta-agent.execute-external-work-order",
+            "opl_work_order_execution": "opl work-order execute",
             "mas_acceptance_readback": "paper_mission_readback_ref",
         },
         "owner_closeout_readback_refs": [
@@ -483,7 +483,7 @@ def build_reviewer_revision_feedbackops_dispatch_request(payload: dict[str, Any]
             "opl feedback submit",
             "opl feedback read/reconcile",
             "opl-meta-agent improve-from-external-agent-lab-suite",
-            "opl-meta-agent execute-external-work-order",
+            "opl work-order execute",
             "med-autoscience paper_mission_readback_ref owner closeout consumption",
         ],
         "opl_feedback_submit": {

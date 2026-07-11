@@ -120,6 +120,8 @@ def test_medical_manuscript_quality_suite_exposes_feedback_self_evolution_trigge
     assert trigger["target_action_contracts"]["oma_improve"] == (
         "opl-meta-agent.improve-from-external-agent-lab-suite"
     )
+    assert "oma_execute" not in trigger["target_action_contracts"]
+    assert trigger["target_action_contracts"]["opl_work_order_execute"] == "opl work-order execute"
     assert trigger["owner_closeout_readback_refs"] == [
         "paper_mission_readback_ref",
         "submission_authority_owner_gate_readback_ref",

@@ -57,7 +57,7 @@ def test_explicit_reviewer_revision_kind_materializes_revision_intake_without_te
         "opl-meta-agent.improve-from-external-agent-lab-suite"
     )
     assert trigger["target_actions"]["opl_work_order_execution"] == (
-        "opl-meta-agent.execute-external-work-order"
+        "opl work-order execute"
     )
     assert trigger["status_projection"]["opl_app_should_show"] is True
     assert "reviewer_revision_coverage_audit_ref" in trigger["required_packet_refs"]
@@ -144,7 +144,7 @@ def test_materialized_reviewer_revision_suite_projects_oma_pending_and_owner_cal
         "opl feedback submit",
         "opl feedback read/reconcile",
         "opl-meta-agent improve-from-external-agent-lab-suite",
-        "opl-meta-agent execute-external-work-order",
+        "opl work-order execute",
         "med-autoscience paper_mission_readback_ref owner closeout consumption",
     ]
     assert dispatch_request["opl_feedback_submit"]["argv"][:2] == ["--target-agent", "mas"]
