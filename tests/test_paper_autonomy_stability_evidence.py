@@ -165,7 +165,7 @@ def test_paper_autonomy_stability_evidence_projects_progress_degradation_read_mo
         {
             "request_id": "ai-reviewer::001-active",
             "request_owner": "publication_gate",
-            "request_lifecycle": {"state": "assigned", "assigned_to": "ai_reviewer"},
+            "record_requirements": {"state": "assigned", "assigned_to": "ai_reviewer"},
         },
     )
     _write_json(

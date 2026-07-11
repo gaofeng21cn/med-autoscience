@@ -412,7 +412,7 @@ def test_current_ai_reviewer_record_consumes_stale_input_request_before_write_ro
             "surface": "domain_action_request",
             "request_kind": "return_to_ai_reviewer_workflow",
             "request_owner": "ai_reviewer",
-            "request_lifecycle": {
+            "record_requirements": {
                 "state": "requested",
                 "blocked_reason": "ai_reviewer_record_stale_after_current_inputs",
                 "stale_record_ref": str(
