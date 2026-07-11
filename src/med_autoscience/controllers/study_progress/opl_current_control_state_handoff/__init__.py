@@ -7,9 +7,6 @@ from typing import Any
 from med_autoscience.controllers.opl_transition_readback import (
     provider_admission_opl_transition_readback,
 )
-from med_autoscience.controllers.paper_mission_owner_surface.opl_provider_attempts import (
-    terminal_provider_attempt_closeout_for_study,
-)
 from med_autoscience.controllers.study_transition_receipt_consumption.owner_callable_candidates import (
     owner_callable_receipt_candidates,
 )
@@ -155,6 +152,7 @@ def opl_current_control_state_study_handoff_projection(
     latest_opl_terminal_closeout = _latest_opl_terminal_provider_attempt_closeout_projection(
         profile=profile,
         study_id=study_id,
+        terminal_closeout=latest_terminal_stage_log,
         payload=payload,
         matching=matching,
         matching_top_level_provider_admissions=matching_top_level_provider_admissions,
@@ -379,6 +377,7 @@ def _latest_opl_terminal_provider_attempt_closeout_projection(
     *,
     profile: WorkspaceProfile,
     study_id: str,
+    terminal_closeout: Mapping[str, Any] | None,
     payload: Mapping[str, Any],
     matching: Mapping[str, Any] | None,
     matching_top_level_provider_admissions: list[dict[str, Any]],
@@ -392,11 +391,17 @@ def _latest_opl_terminal_provider_attempt_closeout_projection(
     )
     if not preferred_actions:
         return None
-    closeout = terminal_provider_attempt_closeout_for_study(
+    if terminal_closeout and any(
+        _terminal_closeout_matches_handoff_action(
+            terminal=terminal_closeout,
+            action=action,
+        )
+        for action in preferred_actions
+    ):
+        return dict(terminal_closeout)
+    closeout = _terminal_owner_callable_adapter_closeout_for_preferred_actions(
         profile=profile,
         study_id=study_id,
-        timeout_seconds=8.0,
-        max_inspect_count=2,
         preferred_actions=preferred_actions,
     )
     if not closeout:
@@ -425,14 +430,11 @@ def refresh_handoff_with_terminal_closeout_candidates(
     ]
     if not preferred_actions:
         return dict(handoff)
-    closeout = terminal_provider_attempt_closeout_for_study(
-        profile=profile,
-        study_id=study_id,
-        timeout_seconds=8.0,
-        max_inspect_count=2,
-        preferred_actions=preferred_actions,
-    )
-    if not closeout:
+    closeout = _observability_mapping(handoff.get("latest_terminal_stage_log"))
+    if not closeout or not any(
+        _terminal_closeout_matches_handoff_action(terminal=closeout, action=action)
+        for action in preferred_actions
+    ):
         closeout = _terminal_owner_callable_adapter_closeout_for_preferred_actions(
             profile=profile,
             study_id=study_id,

@@ -396,8 +396,6 @@ def _study_projection(
     generated_at: str,
     provider_readiness: Mapping[str, Any] | None = None,
     previous_payload: Mapping[str, Any] | None = None,
-    live_attempt_timeout_seconds: float = opl_provider_attempts.DEFAULT_LIVE_ATTEMPT_INSPECTION_TIMEOUT_SECONDS,
-    live_attempt_max_inspect_count: int = 2,
 ) -> dict[str, Any]:
     study_root = _study_root(profile, study_id)
     status_payload, progress_payload, resolved_quest_id, publication_eval_payload = _read_study_projection_inputs(
@@ -495,12 +493,10 @@ def _study_projection(
         )
     if developer_mode.mode == "external_observe":
         actions = []
-    live_provider_attempt = opl_provider_attempts.live_provider_attempt_for_study(
-        profile=profile,
-        study_id=study_id,
-        timeout_seconds=live_attempt_timeout_seconds,
-        max_inspect_count=live_attempt_max_inspect_count,
-        preferred_actions=actions,
+    live_provider_attempt = (
+        _mapping(status_payload.get("opl_provider_attempt"))
+        or _mapping(progress_payload.get("opl_provider_attempt"))
+        or None
     )
     initial_lifecycle = _mapping(progress_payload.get("ai_repair_lifecycle"))
     lifecycle = initial_lifecycle
@@ -811,9 +807,6 @@ def scan_domain_routes(
     developer_supervisor_mode: str | None = None,
     persist_surfaces: bool = True,
     retain_unscanned_studies: bool = True,
-    live_attempt_timeout_seconds: float = opl_provider_attempts.DEFAULT_LIVE_ATTEMPT_INSPECTION_TIMEOUT_SECONDS,
-    live_attempt_max_inspect_count: int = 2,
-    provider_readiness_timeout_seconds: float = 3.0,
 ) -> dict[str, Any]:
     resolved_study_ids = tuple(study_id for item in study_ids if (study_id := _text(item)) is not None)
     study_identity.validate_scan_paper_mission_owner_surface_study_ids(profile, resolved_study_ids)
@@ -827,9 +820,7 @@ def scan_domain_routes(
     history_path = supervision_surfaces.history_path(profile)
     previous_payload = supervision_surfaces.read_json_object(latest_path)
     previous_action_ids = scan_output.previous_action_ids(previous_payload)
-    provider_readiness = opl_provider_attempts.current_provider_readiness(
-        timeout_seconds=provider_readiness_timeout_seconds
-    )
+    provider_readiness = _mapping(_mapping(previous_payload).get("provider_readiness")) or None
     studies: list[dict[str, Any]] = []
     for study_id in resolved_study_ids:
         try:
@@ -842,8 +833,6 @@ def scan_domain_routes(
                 generated_at=generated_at,
                 provider_readiness=provider_readiness,
                 previous_payload=previous_payload,
-                live_attempt_timeout_seconds=live_attempt_timeout_seconds,
-                live_attempt_max_inspect_count=live_attempt_max_inspect_count,
             )
         except (ValueError, TypeError) as exc:
             study_root = _study_root(profile, study_id)

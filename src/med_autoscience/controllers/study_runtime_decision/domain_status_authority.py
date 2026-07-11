@@ -17,7 +17,6 @@ if __name__ != "med_autoscience.controllers.study_runtime_decision":
 
 from . import publication_and_submission as _publication_and_submission
 from med_autoscience.controllers import study_truth_kernel
-from med_autoscience.controllers.paper_mission_owner_surface import opl_provider_attempts
 from med_autoscience.controllers.progress_projection.runtime_result_types import (
     StartupContractValidation,
     StartupContractValidationStatus,
@@ -741,19 +740,6 @@ def _opl_current_control_state_runtime_liveness_projection(
             return handoff_projection
     else:
         handoff_projection = None
-    if not enable_opl_live_provider_attempt_probe:
-        return handoff_projection
-    live_attempt = opl_provider_attempts.live_provider_attempt_for_study(
-        profile=profile,
-        study_id=study_id,
-    )
-    if live_attempt is not None:
-        return _opl_live_provider_attempt_liveness_projection(
-            latest_report=latest_report,
-            latest_report_path=latest_report_path,
-            live_attempt=live_attempt,
-            quest_status=quest_status,
-        )
     return handoff_projection
 
 
