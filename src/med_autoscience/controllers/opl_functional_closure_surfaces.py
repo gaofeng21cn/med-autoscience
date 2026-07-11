@@ -157,7 +157,6 @@ def build_functional_closure_status_projection(
     lifecycle_guarded_apply_proof: Mapping[str, Any],
     workspace_runtime_evidence_receipt: Mapping[str, Any],
     standard_domain_agent_skeleton: Mapping[str, Any],
-    standard_agent_purity: Mapping[str, Any],
     domain_memory_descriptor: Mapping[str, Any] | None = None,
 ) -> dict[str, Any]:
     provider_ready = _status_is(provider_residency_read_model, "ready")
@@ -330,21 +329,6 @@ def build_functional_closure_status_projection(
             ],
         ),
         _line(
-            line_id="standard_agent_purity_projection",
-            gate_class="functional_follow_through_gate",
-            owner_surface_refs=[
-                "/product_entry_manifest/functional_consumer_boundary/standard_agent_purity",
-                "/domain_handler_export/functional_consumer_boundary/standard_agent_purity",
-            ],
-            status=_standard_agent_purity_status(standard_agent_purity=standard_agent_purity),
-            typed_blockers=[],
-            evidence_refs=[
-                "functional_consumer_boundary.standard_agent_purity",
-                "functional_consumer_boundary.standard_agent_purity_guard.status=standard_agent_purity_guard",
-                "opl_unique_control_plane_handoff.standard_agent_purity",
-            ],
-        ),
-        _line(
             line_id="standard_skeleton_physicalization",
             gate_class="functional_follow_through_gate",
             owner_surface_refs=[
@@ -369,22 +353,6 @@ def build_functional_closure_status_projection(
                 ]
             ),
             evidence_refs=_status_refs(standard_domain_agent_skeleton),
-        ),
-        _line(
-            line_id="p3_foundation_guard",
-            gate_class="landed_foundation",
-            owner_surface_refs=[
-                "/product_entry_manifest/functional_consumer_boundary/standard_agent_purity",
-                "contracts/runtime/legacy-active-path-tombstones.json",
-                "docs/history/runtime/legacy_active_path_tombstones.md",
-            ],
-            status="maintenance_only_standard_agent_purity_no_default_history_dependency",
-            typed_blockers=[],
-            evidence_refs=[
-                "functional_consumer_boundary.standard_agent_purity",
-                "contracts/runtime/legacy-active-path-tombstones.json",
-                "docs/history/runtime/legacy_active_path_tombstones.md",
-            ],
         ),
     ]
     return {
@@ -518,25 +486,6 @@ def _repo_source_anchors_landed(skeleton: Mapping[str, Any]) -> bool:
         and anchors.get("status") == "landed"
         and anchors.get("missing_anchor_ids") == []
     )
-
-
-def _standard_agent_purity_status(
-    *,
-    standard_agent_purity: Mapping[str, Any],
-) -> str:
-    if (
-        standard_agent_purity.get("status") == "standard_agent_source_shape_landed"
-        and standard_agent_purity.get("active_private_generic_residue_count") == 0
-        and standard_agent_purity.get("default_caller_count") == 0
-        and "active_compatibility_aliases" not in standard_agent_purity
-        and standard_agent_purity.get("retired_alias_residue_refs") == []
-        and standard_agent_purity.get("default_caller_readiness_status") == "opl_generated_default_caller_ready"
-        and standard_agent_purity.get("source_purity_cutover_status") == "standard_agent_source_shape_landed"
-        and standard_agent_purity.get("repo_local_wrapper_tail_count", 1) == 0
-        and standard_agent_purity.get("history_detail_in_default_read_model") is False
-    ):
-        return "standard_agent_source_shape_landed"
-    return "typed_blocker"
 
 
 def _functional_closure_summary(lines: list[dict[str, Any]]) -> dict[str, Any]:

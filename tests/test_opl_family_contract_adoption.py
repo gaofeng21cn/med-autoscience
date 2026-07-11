@@ -285,53 +285,30 @@ def test_mas_generic_substrate_adapter_projection_is_opaque_index_only() -> None
     }
 
 
-def test_mas_pack_compiler_adoption_declares_generated_surface_handoff() -> None:
+def test_mas_pack_compiler_adoption_uses_compact_contract_readback() -> None:
     contract = _contract()
     adoption = contract["pack_compiler_adoption"]
 
     assert adoption["surface_kind"] == "mas_opl_pack_compiler_adoption"
     assert adoption["owner"] == "med-autoscience"
     assert adoption["compiler_owner"] == "one-person-lab"
-    assert adoption["status"] == "functional_structure_closed_evidence_gates_remaining"
+    assert adoption["status"] == "contracts_consumed_by_opl_readback_required"
     assert adoption["declarative_pack_input_ref"] == (
-        "product_entry_manifest.functional_consumer_boundary.declarative_pack_compiler_input"
+        "contracts/pack_compiler_input.json#declarative_domain_pack"
     )
-    assert adoption["generated_surface_handoff_ref"] == (
-        "product_entry_manifest.functional_consumer_boundary.generated_surface_handoff"
+    assert adoption["generated_surface_handoff_ref"] == "contracts/generated_surface_handoff.json"
+    assert adoption["functional_privatization_audit_ref"] == (
+        "contracts/functional_privatization_audit.json"
     )
-    assert adoption["minimal_authority_function_manifest_ref"] == (
-        "product_entry_manifest.functional_consumer_boundary.minimal_authority_function_manifest"
+    assert adoption["functional_privatization_audit_readback_surface"] == (
+        "source_contract_consumption.consumed_contracts[functional_privatization_audit]"
     )
-    assert adoption["functional_followthrough_gap_summary_ref"] == (
-        "product_entry_manifest.functional_consumer_boundary.functional_followthrough_gap_summary"
-    )
-    assert adoption["classification_gap_count"] == 0
-    assert adoption["functional_structure_gap_count"] == 0
-    assert adoption["active_private_generic_residue_count"] == 0
-    assert adoption["repo_local_wrapper_tail_count"] == 0
-    assert adoption["source_purity_cutover_status"] == "standard_agent_source_shape_landed"
-    assert adoption["remaining_gap_classification"] == (
-        "live_provider_paper_line_evidence_gates"
-    )
-    assert adoption["remaining_functional_followthrough_gate_ids"] == []
-    assert set(adoption["closed_functional_structure_gate_ids"]) == {
-        "generated_surface_default_owner_cutover",
-        "domain_authority_refs_thinning",
-        "standard_agent_purity_guard",
-        "opl_app_workbench_drilldown",
-        "lifecycle_locator_retention_restore_ledger_reconciliation",
-        "domain_ref_consumer_physical_thinning",
-    }
     assert adoption["source_surfaces"] == [
-        "product_entry_manifest.standard_domain_agent_skeleton",
-        "product_entry_manifest.family_stage_control_plane_descriptor",
-        "product_entry_manifest.family_action_catalog",
-        "product_entry_manifest.family_transition_spec_descriptor",
-        "product_entry_manifest.domain_memory_descriptor",
-        "product_entry_manifest.lifecycle_guarded_apply_proof",
-        "product_entry_manifest.domain_owner_receipt_contract",
-        "product_entry_manifest.functional_consumer_boundary.functional_followthrough_gap_summary",
-        "contracts/test-lane-manifest.json#focused_lanes/mas-functional-consumer-followthrough",
+        "agent/stages/manifest.json",
+        "contracts/action_catalog.json",
+        "contracts/pack_compiler_input.json",
+        "contracts/generated_surface_handoff.json",
+        "contracts/functional_privatization_audit.json",
     ]
     assert adoption["generated_or_hosted_surfaces"] == [
         "CLI",
@@ -348,15 +325,6 @@ def test_mas_pack_compiler_adoption_declares_generated_surface_handoff() -> None
     ]
     assert adoption["current_mas_shell_role"] == "domain_handler_and_refs_projection_source"
     assert adoption["mas_handwritten_shell_expansion_allowed"] is False
-    assert adoption["minimal_authority_functions"] == [
-        "publication_quality_verdict",
-        "ai_reviewer_quality_decision",
-        "artifact_mutation_authorization",
-        "publication_route_memory_accept_reject",
-        "source_readiness_verdict",
-        "owner_receipt_signer",
-        "medical_helper_implementation",
-    ]
     assert adoption["forbidden_long_term_mas_shell_owners"] == [
         "cli",
         "mcp",
@@ -376,6 +344,17 @@ def test_mas_pack_compiler_adoption_declares_generated_surface_handoff() -> None
         "mas_keeps_medical_authority_functions": True,
         "mas_keeps_generic_shell_owner": False,
     }
+
+
+def test_mas_compact_audit_keeps_runtime_substrate_retirement_pending() -> None:
+    audit = json.loads(_read("contracts/functional_privatization_audit.json"))
+
+    assert audit["default_surface_boundary"] == {
+        "state": "runtime_substrate_pending",
+        "owner": "one-person-lab",
+        "domain_repo_can_own_default_surface": False,
+    }
+    assert "retired_default_surface_ids" not in audit
 
 
 def test_mas_ars_learning_projection_declares_external_patterns_without_boundary_drift() -> None:

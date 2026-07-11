@@ -240,33 +240,6 @@
         "review_ledger"
       ]
     },
-    "mas-functional-consumer-followthrough": {
-      "kind": "focused_mas_functional_consumer_boundary_gate",
-      "paths": [
-        "tests/test_test_lane_governance.py",
-        "tests/test_opl_unique_control_plane_boundary.py",
-        "tests/test_mas_workspace_domain_projection.py"
-      ],
-      "docs": [
-        "docs/active/mas-ideal-state-gap-plan.md",
-        "docs/references/positioning/mas_ideal_state.md"
-      ],
-      "overlap_policy": "allowed_with_regression",
-      "authority_boundary": "opl_consumed_generic_surfaces_mas_domain_authority_pack_only",
-      "source_of_truth": [
-        "contracts/functional_privatization_audit.json",
-        "contracts/private_functional_surface_policy.json",
-        "contracts/authority_kernel_inventory.json",
-        "src/med_autoscience/controllers/opl_unique_control_plane_boundary/consumer_migration.py"
-      ],
-      "policy_refs": [
-        "contracts/functional_privatization_audit.json#/functional_consumer_boundary",
-        "contracts/private_functional_surface_policy.json#/mas_private_surface_retirement_gate_policy",
-        "contracts/authority_kernel_inventory.json#/retirement_gate_policy",
-        "docs/active/mas-ideal-state-gap-plan.md",
-        "docs/references/positioning/mas_ideal_state.md"
-      ]
-    },
     "paper-progress-degradation-closeout": {
       "kind": "focused_paper_progress_degradation_closeout_gate",
       "paths": [

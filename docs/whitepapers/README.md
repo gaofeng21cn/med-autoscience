@@ -8,8 +8,8 @@ Machine boundary: 本目录只保存公开白皮书正文源。生成的 HTML/PD
 MAS 白皮书采用 OPL-family 统一本地生成路径：
 
 - 正文源放在 `docs/whitepapers/`。
-- 版式和生成逻辑复用 `scripts/opl-whitepaper-builder.ts`。
-- MAS wrapper 是 `scripts/build-mas-whitepaper.ts`。
+- 领域配置是 `contracts/whitepaper_profile.json`；版式和验证由 OPL 的通用 runner 持有。
+- 从 OPL checkout 运行 `node --experimental-strip-types scripts/run-domain-whitepaper.ts --repo-root <MAS repo> --profile contracts/whitepaper_profile.json`。
 - 当前用户可读 HTML/PDF 生成到 `docs/site/latest/whitepapers/`。
 - 发布时只发布 latest 副本，不维护每个 release 一套白皮书。
 

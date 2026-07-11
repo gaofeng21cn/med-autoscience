@@ -136,8 +136,8 @@
     "gate_evidence": {
       "no_active_caller": {
         "refs": [
-          "contracts/functional_privatization_audit.json#/physical_source_morphology_scan",
-          "tests/standard_agent_purity_helpers.py"
+          "contracts/functional_privatization_audit.json#/bridge_exit_gate",
+          "tests/test_legacy_active_path_retire.py"
         ],
         "status": "satisfied"
       },

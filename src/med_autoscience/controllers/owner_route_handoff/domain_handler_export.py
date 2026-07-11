@@ -28,7 +28,6 @@ from ..domain_handler_export.paper_mission_task_shaping import (
 from .. import opl_domain_progress_transition_contract
 from ..study_domain_transition_table import family_transition_spec
 from .authority_boundary import authority_boundary_payload
-from .domain_handler_functional_closure import build_domain_handler_functional_closure_projection
 from .export_study_projection import (
     build_study_projection,
     mapping,
@@ -70,12 +69,29 @@ def export_family_domain_handler(
         opl_production_proof=opl_production_proof,
         proof_ref=opl_production_proof_ref,
     )
-    functional_closure = build_domain_handler_functional_closure_projection(
+    provider_ready_contract = opl_provider_ready_adapter.build_opl_provider_ready_contract(
         profile=profile,
         profile_ref=profile_ref,
         allowed_task_kinds=ALLOWED_TASK_KINDS,
         opl_production_proof=opl_production_proof,
         opl_production_proof_ref=opl_production_proof_ref,
+    )
+    workspace_runtime_evidence_receipt = (
+        opl_provider_ready_adapter.build_workspace_runtime_evidence_receipt_surface(profile=profile)
+    )
+    standard_domain_agent_skeleton = (
+        opl_provider_ready_adapter.build_standard_domain_agent_skeleton_surface()
+    )
+    functional_closure_status_projection = (
+        opl_provider_ready_adapter.build_functional_closure_status_projection(
+            provider_residency_read_model=provider_ready_contract["provider_residency_read_model"],
+            provider_guarded_soak_read_model=provider_ready_contract["provider_guarded_soak_read_model"],
+            managed_temporal_state_consistency=provider_ready_contract["managed_temporal_state_consistency"],
+            owner_receipt_contract=provider_ready_contract["owner_receipt_contract"],
+            lifecycle_guarded_apply_proof=provider_ready_contract["lifecycle_guarded_apply_proof"],
+            workspace_runtime_evidence_receipt=workspace_runtime_evidence_receipt,
+            standard_domain_agent_skeleton=standard_domain_agent_skeleton,
+        )
     )
     pending_tasks, paper_mission_default_tasks = _pending_family_tasks(
         studies=studies,
@@ -157,7 +173,6 @@ def export_family_domain_handler(
             text=text,
             mapping=mapping,
         ),
-        "functional_consumer_boundary": functional_closure["functional_consumer_boundary"],
         "ars_learning_projection": build_ars_learning_projection(),
         "autosci_learning_projection": build_autosci_learning_projection(),
         "evo_scientist_learning_projection": build_evo_scientist_learning_projection(),
@@ -166,7 +181,7 @@ def export_family_domain_handler(
         "family_transition_spec_descriptor": (
             family_transition_spec.build_family_transition_spec_descriptor()
         ),
-        "provider_ready_adapter": functional_closure["provider_ready_contract"],
+        "provider_ready_adapter": provider_ready_contract,
         "managed_temporal_state_consistency": (
             opl_provider_ready_adapter.build_managed_temporal_state_consistency_read_model(
                 provider_availability=provider_availability,
@@ -183,13 +198,11 @@ def export_family_domain_handler(
             opl_provider_ready_adapter.build_lifecycle_guarded_apply_proof_surface()
         ),
         "opl_unique_control_plane_handoff": (
-            functional_closure["provider_ready_contract"]["opl_unique_control_plane_handoff"]
+            provider_ready_contract["opl_unique_control_plane_handoff"]
         ),
-        "workspace_runtime_evidence_receipt": functional_closure["workspace_runtime_evidence_receipt"],
-        "standard_domain_agent_skeleton": functional_closure["standard_domain_agent_skeleton"],
-        "mas_functional_closure_status_projection": (
-            functional_closure["functional_closure_status_projection"]
-        ),
+        "workspace_runtime_evidence_receipt": workspace_runtime_evidence_receipt,
+        "standard_domain_agent_skeleton": standard_domain_agent_skeleton,
+        "mas_functional_closure_status_projection": functional_closure_status_projection,
         "family_opl_current_control_state_handoff": {
             "surface_kind": "family_opl_current_control_state_handoff",
             "version": "family-opl-current-control-state-handoff.v1",
@@ -207,9 +220,6 @@ def export_family_domain_handler(
                 "Use the OPL provider/runtime manager plus the generated MAS domain-handler targets; "
                 "MAS default surfaces stay in standard OPL Agent shape."
             ),
-            "standard_agent_purity": functional_closure["functional_consumer_boundary"][
-                "standard_agent_purity"
-            ],
             "domain_owned_source_refs": _aggregate_domain_refs(studies),
             "read_only_authority_boundary": {
                 "projection_owner": "one-person-lab",

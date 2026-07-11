@@ -5,9 +5,6 @@ from pathlib import Path
 from typing import Any, Iterable, Mapping
 
 from med_autoscience.controllers.body_free_evidence_packets import build_body_free_evidence_packet
-from med_autoscience.controllers.opl_unique_control_plane_boundary.generated_caller_retirement import (
-    build_generated_default_caller_boundary,
-)
 from med_autoscience.opl_runtime_contract import DEFAULT_AUTONOMOUS_RUNTIME_CONTRACT
 
 

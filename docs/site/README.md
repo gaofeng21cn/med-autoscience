@@ -10,7 +10,10 @@ MAS 当前只维护一份 latest 用户可读公开文档，不为每个 release
 生成命令：
 
 ```bash
-node --experimental-strip-types scripts/build-mas-whitepaper.ts
+cd <OPL repo>
+node --experimental-strip-types scripts/run-domain-whitepaper.ts \
+  --repo-root <MAS repo> \
+  --profile contracts/whitepaper_profile.json
 ```
 
 生成输出：

@@ -83,7 +83,7 @@ def test_standard_agent_completion_acceptance_gates_require_sources_and_negative
 
     assert set(gates) == {
         "single_default_recovery_and_progress_root",
-        "physical_source_morphology_standardized",
+        "physical_retirement_contract_readback",
         "active_caller_migration_and_no_resurrection",
         "stage_route_and_stop_loss_have_single_arbiter",
         "negative_false_completion_tests",
@@ -96,7 +96,7 @@ def test_standard_agent_completion_acceptance_gates_require_sources_and_negative
         assert gate["requires"], gate["gate_id"]
         assert gate["cannot_be_satisfied_by"], gate["gate_id"]
 
-    morphology = gates["physical_source_morphology_standardized"]
+    morphology = gates["physical_retirement_contract_readback"]
     assert "functional_structure_gap_count=0 alone" in morphology["cannot_be_satisfied_by"]
     assert "descriptor ready alone" in morphology["cannot_be_satisfied_by"]
     assert "generated interface ready alone" in morphology["cannot_be_satisfied_by"]
@@ -373,15 +373,15 @@ def test_standard_agent_completion_evidence_ledger_records_opl_stage_route_curre
     assert ledger["completion_claim_allowed"] is False
 
 
-def test_standard_agent_completion_evidence_ledger_records_physical_source_morphology_scan_without_completion_claim() -> None:
+def test_standard_agent_completion_evidence_ledger_records_physical_retirement_contract_readback_without_completion_claim() -> None:
     ledger = _ledger()
     gates = {gate["gate_id"]: gate for gate in ledger["gate_evidence_status"]}
-    morphology = gates["physical_source_morphology_standardized"]
+    morphology = gates["physical_retirement_contract_readback"]
 
-    scan_ref = "contracts/functional_privatization_audit.json#/physical_source_morphology_scan"
+    scan_ref = "contracts/functional_privatization_audit.json#/bridge_exit_gate"
     scan_test_ref = (
         "tests/test_standard_agent_completion_acceptance_contract.py::"
-        "test_standard_agent_completion_evidence_ledger_records_physical_source_morphology_scan_without_completion_claim"
+        "test_standard_agent_completion_evidence_ledger_records_physical_retirement_contract_readback_without_completion_claim"
     )
     assert morphology["status"] == "evidence_required"
     assert scan_ref in morphology["required_evidence_refs"]
@@ -394,7 +394,7 @@ def test_standard_agent_completion_evidence_ledger_records_physical_source_morph
         "test_runtime_like_surfaces_have_machine_readable_opl_migration_inventory"
     ) in morphology["observed_refs"]
     assert (
-        "physical_source_morphology_scan_beyond_classification_zero_ref"
+        "compact_audit_contract_alone_proves_physical_retirement"
         not in morphology["missing_evidence_tails"]
     )
     assert morphology["missing_evidence_tails"] == [
@@ -413,7 +413,7 @@ def test_standard_agent_completion_evidence_ledger_records_physical_source_morph
 def test_standard_agent_completion_evidence_ledger_records_domain_diagnostic_actuator_retirement() -> None:
     ledger = _ledger()
     gates = {gate["gate_id"]: gate for gate in ledger["gate_evidence_status"]}
-    morphology = gates["physical_source_morphology_standardized"]
+    morphology = gates["physical_retirement_contract_readback"]
     inventory = json.loads(
         (
             REPO_ROOT
@@ -474,8 +474,7 @@ def test_standard_agent_completion_evidence_ledger_records_lifecycle_owner_follo
     assert family["status"] == "evidence_required"
     assert followthrough["source_work_order_ref"] in family["observed_refs"]
     assert (
-        "contracts/functional_privatization_audit.json#/functional_followthrough_gap_summary/"
-        "owner_followthrough_evidence/0"
+        "contracts/functional_privatization_audit.json#/bridge_exit_gate"
     ) in family["observed_refs"]
 
     assert ledger["completion_claim_allowed"] is False

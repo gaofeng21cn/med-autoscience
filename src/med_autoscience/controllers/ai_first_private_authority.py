@@ -3,17 +3,60 @@ from __future__ import annotations
 from collections.abc import Mapping
 from typing import Any
 
-from med_autoscience.controllers.opl_unique_control_plane_boundary.consumer_migration import (
-    MINIMAL_AUTHORITY_FUNCTION_MANIFEST,
-)
-
-
 MECHANICAL_SUBSTITUTE_BY_FUNCTION_ID = {
     "publication_quality_verdict": "script_exit_code_as_publication_quality_verdict",
     "ai_reviewer_quality_decision": "function_return_value_as_ai_reviewer_quality_decision",
     "artifact_mutation_authorization": "test_pass_as_artifact_mutation_authorization",
     "publication_route_memory_accept_reject": "queue_completion_as_publication_route_memory_accept_reject",
     "source_readiness_verdict": "file_presence_as_source_readiness_verdict",
+}
+
+_PRIVATE_AUTHORITY_FUNCTIONS = {
+    "publication_quality_verdict": {
+        "program_role": "validator",
+        "judgment_mode": "ai_first_stage_gate",
+        "decision_output_owner": "independent_reviewer_auditor_agent",
+        "required_record_refs": ["ai_reviewer_record", "quality_pack_evidence_refs"],
+        "route_back_semantics": "route_back_to_review_or_revision_stage",
+    },
+    "ai_reviewer_quality_decision": {
+        "program_role": "validator",
+        "judgment_mode": "ai_first_stage_gate",
+        "decision_output_owner": "independent_reviewer_auditor_agent",
+        "required_record_refs": ["ai_reviewer_record", "reviewer_operating_system_trace"],
+        "route_back_semantics": "route_back_to_ai_reviewer_repair_stage",
+    },
+    "artifact_mutation_authorization": {
+        "program_role": "materializer",
+        "judgment_mode": "ai_first_record_validator",
+        "decision_output_owner": "independent_reviewer_auditor_agent",
+        "required_record_refs": ["quality_pack_evidence_refs", "artifact_rebuild_proof"],
+        "route_back_semantics": "route_back_to_artifact_rebuild_or_source_revision_stage",
+    },
+    "publication_route_memory_accept_reject": {
+        "program_role": "guard",
+        "judgment_mode": "ai_first_stage_gate",
+        "decision_output_owner": "independent_reviewer_auditor_agent",
+        "required_record_refs": ["publication_route_memory_body", "memory_writeback_receipt_refs"],
+        "route_back_semantics": "route_back_to_memory_writeback_repair_stage",
+    },
+    "source_readiness_verdict": {
+        "program_role": "validator",
+        "judgment_mode": "ai_first_stage_gate",
+        "decision_output_owner": "independent_reviewer_auditor_agent",
+        "required_record_refs": ["study_charter", "quality_pack_evidence_refs"],
+        "route_back_semantics": "route_back_to_source_intake_or_study_design_stage",
+    },
+    "owner_receipt_signer": {
+        "program_role": "receipt_signer",
+        "judgment_mode": "mechanical_guard",
+        "decision_output_owner": "med-autoscience_owner_receipt_signer",
+    },
+    "medical_helper_implementation": {
+        "program_role": "guard",
+        "judgment_mode": "mechanical_guard",
+        "decision_output_owner": "none",
+    },
 }
 
 
@@ -85,10 +128,8 @@ def validate_ai_first_private_authority_gate(
 
 
 def _function_by_id(function_id: str) -> dict[str, Any] | None:
-    for item in MINIMAL_AUTHORITY_FUNCTION_MANIFEST["functions"]:
-        if item.get("function_id") == function_id:
-            return dict(item)
-    return None
+    function = _PRIVATE_AUTHORITY_FUNCTIONS.get(function_id)
+    return dict(function) if function else None
 
 
 def _independent_reviewer_receipt_blocker(

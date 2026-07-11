@@ -224,9 +224,7 @@
     "authority_functions_source_ref": "runtime/authority_functions/README.md",
     "canonical_agent_pack_root": "agent/",
     "capability_map_source_ref": "contracts/capability_map.json",
-    "executor_policy_source_ref": "contracts/stage_control_plane.json#/stages/0/selected_executor",
-    "functional_audit": "src/med_autoscience/controllers/opl_unique_control_plane_boundary/consumer_migration.py::build_functional_consumer_boundary",
-    "functional_privatization_audit_source_ref": "contracts/functional_privatization_audit.json",
+    "executor_policy_source_ref": "opl-generated:family_stage_control_plane#/stages/0/selected_executor",
     "generated_surface_handoff_source_ref": "contracts/generated_surface_handoff.json",
     "memory_descriptor": "src/med_autoscience/opl_domain_pack/family_adoption.py::build_domain_memory_descriptor",
     "runtime_environment_requirement_profile": "contracts/runtime_environment_requirements.json",
@@ -256,8 +254,7 @@
       "agent/knowledge/publication_route_memory.md",
       "agent/knowledge/source_readiness_and_artifact_authority.md"
     ],
-    "stage_control_plane": "src/med_autoscience/opl_domain_pack/family_adoption.py::build_family_stage_control_plane",
-    "stage_graph_source_ref": "contracts/stage_control_plane.json"
+    "stage_graph_source_ref": "agent/stages/manifest.json"
   },
   "src_must_not_be_canonical_semantic_pack": true,
   "src_role": "domain_handler_minimal_authority_functions_and_native_helpers_only",
@@ -478,7 +475,7 @@
     "self_review_closes_gate": false
   },
   "standard_stage_pack_conformance": {
-    "enforcement_ref": "contracts/stage_control_plane.json#stage_pack_conformance_version",
+    "enforcement_ref": "opl-generated:family_stage_control_plane#stage_pack_conformance_version",
     "required": true,
     "version": "standard-stage-pack.v2"
   },

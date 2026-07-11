@@ -61,14 +61,14 @@
       ]
     },
     {
-      "gate_id": "physical_source_morphology_standardized",
+      "gate_id": "physical_retirement_contract_readback",
       "status": "evidence_required",
       "required_evidence_refs": [
         "contracts/authority_kernel_inventory.json",
         "contracts/functional_privatization_audit.json",
-        "contracts/functional_privatization_audit.json#/physical_source_morphology_scan",
+        "contracts/functional_privatization_audit.json#/bridge_exit_gate",
         "tests/test_authority_kernel_inventory.py",
-        "tests/standard_agent_purity_helpers.py",
+        "tests/test_legacy_active_path_retire.py",
         "physical_retirement_owner_decision_ref",
         "no_active_caller_scan_ref",
         "no_forbidden_write_proof_ref"
@@ -76,12 +76,12 @@
       "observed_refs": [
         "contracts/authority_kernel_inventory.json",
         "contracts/functional_privatization_audit.json",
-        "contracts/functional_privatization_audit.json#/physical_source_morphology_scan",
+        "contracts/functional_privatization_audit.json#/bridge_exit_gate",
         "contracts/runtime/mas-runtime-surface-retirement-inventory.json",
         "runtime:domain-diagnostic-obligation-actuator-retired",
         "tests/test_authority_kernel_inventory.py::test_authority_kernel_inventory_does_not_list_generic_runtime_owner_as_retained_authority",
         "tests/test_adapter_retirement_boundary.py::test_runtime_like_surfaces_have_machine_readable_opl_migration_inventory",
-        "tests/test_standard_agent_completion_acceptance_contract.py::test_standard_agent_completion_evidence_ledger_records_physical_source_morphology_scan_without_completion_claim"
+        "tests/test_standard_agent_completion_acceptance_contract.py::test_standard_agent_completion_evidence_ledger_records_physical_retirement_contract_readback_without_completion_claim"
       ],
       "missing_evidence_tails": [
         "direct_or_hosted_generated_surface_production_consumption_ref"
@@ -98,7 +98,7 @@
       "status": "satisfied_with_repo_evidence",
       "required_evidence_refs": [
         "contracts/runtime/legacy-active-path-tombstones.json",
-        "tests/standard_agent_purity_helpers.py",
+        "contracts/functional_privatization_audit.json#/bridge_exit_gate",
         "tests/test_adapter_retirement_boundary.py",
         "tests/test_domain_entry.py",
         "src/med_autoscience/domain_entry.py"
@@ -223,8 +223,7 @@
       "observed_refs": [
         "contracts/standard_agent_completion_acceptance.json#/scope/objective_2",
         "contracts/standard_agent_completion_acceptance.json#/acceptance_gates/6",
-        "contracts/functional_privatization_audit.json#/functional_followthrough_gap_summary/owner_followthrough_evidence/0",
-        "contracts/functional_privatization_audit.json#/functional_consumer_boundary/functional_followthrough_gap_summary/owner_followthrough_evidence/0",
+        "contracts/functional_privatization_audit.json#/bridge_exit_gate",
         "opl:runtime/app-operator-drilldown/memory_artifact_lifecycle/memory-artifact-lifecycle-owner-decision",
         "external_repo:one-person-lab@e56b9a7583b64d26f275062f3d2c5561bcf4dc20#contracts/opl-framework/standard-agent-landing-acceptance-contract.json",
         "external_repo:one-person-lab@e56b9a7583b64d26f275062f3d2c5561bcf4dc20#contracts/opl-framework/standard-agent-negative-conformance-samples.json",

@@ -3,58 +3,6 @@ from __future__ import annotations
 from med_autoscience.controllers.ai_first_private_authority import (
     validate_ai_first_private_authority_gate,
 )
-from med_autoscience.controllers.opl_unique_control_plane_boundary.consumer_migration import (
-    build_functional_consumer_boundary,
-)
-
-
-AI_FIRST_GATE_IDS = {
-    "publication_quality_verdict",
-    "ai_reviewer_quality_decision",
-    "source_readiness_verdict",
-    "publication_route_memory_accept_reject",
-}
-
-
-def test_private_authority_manifest_classifies_judgment_modes() -> None:
-    authority = build_functional_consumer_boundary()["minimal_authority_function_manifest"]
-
-    assert authority["allowed_judgment_modes"] == [
-        "ai_first_stage_gate",
-        "ai_first_record_validator",
-        "mechanical_guard",
-    ]
-    assert authority["verdict_function_model_retired"] is True
-    assert authority["gate_validator_ref"] == (
-        "src/med_autoscience/controllers/ai_first_private_authority.py::"
-        "validate_ai_first_private_authority_gate"
-    )
-    assert authority["runtime_enforcement_status"] == "contract_validator_landed"
-    assert authority["program_output_policy"] == (
-        "programs_validate_ai_first_stage_gate_records_and_emit_receipts_or_typed_blockers_only"
-    )
-
-    by_id = {item["function_id"]: item for item in authority["functions"]}
-    for function_id in AI_FIRST_GATE_IDS:
-        item = by_id[function_id]
-        assert item["judgment_mode"] == "ai_first_stage_gate"
-        assert item["decision_output_owner"] == "independent_reviewer_auditor_agent"
-        assert item["program_may_emit_pass_ready_verdict"] is False
-        assert item["missing_ai_first_record_policy"] == "typed_blocker_or_route_back"
-        assert item["standard_stage_output"] is True
-
-    independent_policy = authority["independent_executor_reviewer_agent_policy"]
-    assert independent_policy["reviewer_receipt_must_bind_executor_receipt"] is True
-    assert independent_policy["reviewer_receipt_executor_binding_field"] == (
-        "reviewed_executor_receipt_ref"
-    )
-
-    assert by_id["artifact_mutation_authorization"]["judgment_mode"] == "ai_first_record_validator"
-    assert by_id["artifact_mutation_authorization"]["program_may_emit_pass_ready_verdict"] is False
-    assert by_id["owner_receipt_signer"]["judgment_mode"] == "mechanical_guard"
-    assert by_id["medical_helper_implementation"]["judgment_mode"] == "mechanical_guard"
-
-
 def test_ai_first_gate_rejects_missing_reviewer_record() -> None:
     result = validate_ai_first_private_authority_gate(
         function_id="publication_quality_verdict",

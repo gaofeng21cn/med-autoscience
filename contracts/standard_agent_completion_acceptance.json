@@ -73,7 +73,7 @@
       ]
     },
     {
-      "gate_id": "physical_source_morphology_standardized",
+      "gate_id": "physical_retirement_contract_readback",
       "required_status": "satisfied_or_explicit_owner_exception",
       "source_of_truth": [
         "agent/",
@@ -103,7 +103,7 @@
         "domain-handler export/dispatch",
         "product-entry manifest",
         "MCP action manifest",
-        "tests/standard_agent_purity_helpers.py",
+        "contracts/functional_privatization_audit.json#/bridge_exit_gate",
         "contracts/runtime/legacy-active-path-tombstones.json"
       ],
       "requires": [
