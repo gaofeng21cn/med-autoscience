@@ -122,7 +122,10 @@ def test_build_gate_state_prefers_stage_native_body_authority_for_direct_study_r
     study_root = tmp_path / "studies" / "003-stage-native"
     write_text(study_root / "study.yaml", "study_id: 003-stage-native\n")
     quest_root = tmp_path / "runtime" / "quests" / "003-stage-native"
-    write_text(quest_root / "quest.yaml", "quest_id: 003-stage-native\nstudy_id: 003-stage-native\n")
+    write_text(
+        quest_root / "quest.yaml",
+        f"quest_id: 003-stage-native\nstudy_id: 003-stage-native\nstudy_root: {study_root}\n",
+    )
     stage_native_paper_root = (
         study_root
         / "artifacts"
@@ -174,7 +177,10 @@ def test_build_gate_state_uses_stage_native_manifest_and_publication_surface_for
     study_root = tmp_path / "studies" / "003-stage-native"
     write_text(study_root / "study.yaml", "study_id: 003-stage-native\n")
     quest_root = tmp_path / "runtime" / "quests" / "003-stage-native"
-    write_text(quest_root / "quest.yaml", "quest_id: 003-stage-native\nstudy_id: 003-stage-native\n")
+    write_text(
+        quest_root / "quest.yaml",
+        f"quest_id: 003-stage-native\nstudy_id: 003-stage-native\nstudy_root: {study_root}\n",
+    )
     stage_native_paper_root = (
         study_root
         / "artifacts"

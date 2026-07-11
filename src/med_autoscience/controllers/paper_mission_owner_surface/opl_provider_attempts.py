@@ -19,7 +19,11 @@ def action_is_covered_by_live_attempt(
     action_work_unit = _text(action.get("work_unit_id")) or _text(
         action.get("next_work_unit")
     )
-    return live_work_unit is None or action_work_unit is None or live_work_unit == action_work_unit
+    return (
+        live_work_unit is not None
+        and action_work_unit is not None
+        and live_work_unit == action_work_unit
+    )
 
 
 def filter_actions_covered_by_live_attempt(
@@ -56,7 +60,11 @@ def owner_route_is_covered_by_live_attempt(
     route_work_unit = _text(owner_route.get("work_unit_id")) or _text(
         owner_route.get("next_work_unit")
     )
-    return live_work_unit is None or route_work_unit is None or live_work_unit == route_work_unit
+    return (
+        live_work_unit is not None
+        and route_work_unit is not None
+        and live_work_unit == route_work_unit
+    )
 
 
 def owner_state_overlay(

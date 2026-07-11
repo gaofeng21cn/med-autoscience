@@ -37,7 +37,7 @@ canonical id 是 `mas`。OPL 从 MAS pack、action catalog 与 schemas 生成或
 | OE-11 | MAS runtime health/lifecycle/storage | runtime lifecycle、local state、attempt submission、live probe 与 generic readback归 OPL StageRun/current-control/StateIndex；MAS 只输出 typed route handoff、消费 host 注入 payload，并保留医学 blocker、owner receipt 与 mutation gate | `done` | generated surface handoff、functional audit、OPL lifecycle/StateIndex readback、旧 submission/probe 路径 caller scan |
 | OE-12 | 旧 next-action 控制面族 | 默认 authority 收敛到 `StageOutcome -> NextActionEnvelope`；旧 producer 物理退役或 tombstone-only | `done` | next-action contract、runtime completion audit、legacy tombstones |
 
-OE-01 至 OE-12 的 repo/source/control-plane 结构目标均为 `done`。L1-L4 已完成；L5 本地最终验证、吸收与远端 readback 仍在执行，不能提前写成 closeout 完成。
+OE-01 至 OE-12 的 repo/source/control-plane 结构目标均为 `done`。L1-L4 已完成；L5 只剩双仓提交、push、target-ref readback 与终局文档同步。
 
 上述结构状态只覆盖 repo/source/control-plane；不表示 runtime、paper line、publication、submission 或 production ready。
 
@@ -49,7 +49,7 @@ OE-01 至 OE-12 的 repo/source/control-plane 结构目标均为 `done`。L1-L4 
 | L2 | static stage control plane 到 OPL generated plane | `done` | 6-stage semantic parity、旧 Python/static producer caller 为零 |
 | L3 | overlay、installer、sitecustomize 与旧 runtime/editable clean runner cutover | `done` | OPL Connect receipt、native `uv` checkout-zero-cache proof、旧路径 caller 为零；`scripts/run-build-clean.sh` 保留为正式 build-isolation runner |
 | L4 | runtime protocol substrate 迁移 | `done` | `runtime_control/**`、`runtime_protocol/**` 与 MAS-local runtime-state authority/storage path 为零；StageRun/current-control/StateIndex refs 归 OPL owner |
-| L5 | 双仓最终验证与 closeout | `in_progress` | 本地 full verify、absorption audit、push、target-ref readback 与 worktree cleanup；未完成前不声明远端同步完成 |
+| L5 | 双仓最终验证与 closeout | `partial` | 双仓 full verify、generated-interface/readback、StateIndex rebuild、whitepaper fingerprint 与已吸收 worktree cleanup 已完成；待提交、push、target-ref readback与终局文档同步 |
 
 ## 保留面
 

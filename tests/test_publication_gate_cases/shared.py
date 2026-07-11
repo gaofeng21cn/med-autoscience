@@ -103,7 +103,7 @@ def make_quest(
             quest_id: 002-early-residual-risk
             study_id: 002-early-residual-risk
             study_root: {study_root}
-            f"""
+            """
         ).lstrip(),
         encoding="utf-8",
     )
