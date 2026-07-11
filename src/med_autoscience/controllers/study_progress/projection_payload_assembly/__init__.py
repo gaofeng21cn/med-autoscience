@@ -324,7 +324,6 @@ def assemble_study_progress_payload(
     payload = attach_ai_first_runtime_projection(
         payload,
         study_root=study_root,
-        generated_at=generated_at,
     )
     payload = _sync_supervision_from_user_visible_projection(payload)
     payload = attach_artifact_first_mission_summary(

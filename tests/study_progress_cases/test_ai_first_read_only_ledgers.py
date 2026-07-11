@@ -18,8 +18,6 @@ def test_study_progress_projects_ai_first_default_entry_state_fail_closed(
     monkeypatch,
     tmp_path: Path,
 ) -> None:
-    from med_autoscience.controllers import ai_first_action_dispatch
-
     module = importlib.import_module("med_autoscience.controllers.study_progress.projection")
     profile = make_profile(tmp_path)
     study_root = write_study(profile.workspace_root, "001-risk")
@@ -112,30 +110,10 @@ def test_study_progress_projects_ai_first_default_entry_state_fail_closed(
     assert result["refs"]["ai_first_feedback_ledger_path"].endswith(
         "artifacts/runtime/ai_first_feedback_ledger/latest.json"
     )
-    assert result["refs"]["ai_first_action_dispatch_ledger_path"].endswith(
-        "artifacts/runtime/ai_first_action_dispatch_ledger/latest.json"
-    )
-    action_dispatch = result["ai_first_action_dispatch_ledger"]
-    assert action_dispatch["surface"] == "ai_first_action_dispatch_ledger"
-    assert action_dispatch["authority"] == "operations_governance_only"
-    assert action_dispatch["counts"]["open"] >= 1
-    assert action_dispatch["counts"]["total"] == len(action_dispatch["dispatches"])
-    assert action_dispatch["materialized"] is False
-    assert ai_first_action_dispatch.read_action_dispatch_ledger(study_root=study_root) is None
-    lifecycle = result["ai_first_action_lifecycle"]
-    assert lifecycle["surface"] == "ai_first_action_lifecycle_projection"
-    assert lifecycle["primary_action"]["action_id"] == "return_to_ai_reviewer_workflow"
-    assert lifecycle["open_action_count"] == action_dispatch["counts"]["open"]
-    assert lifecycle["authority_contract"]["lifecycle_can_authorize_quality"] is False
-    assert lifecycle["authority_contract"]["lifecycle_can_authorize_submission"] is False
-    second = module.read_study_progress(profile=profile, study_id="001-risk")
-    first_keys = {item["dispatch_key"] for item in action_dispatch["dispatches"]}
-    second_keys = {
-        item["dispatch_key"]
-        for item in second["ai_first_action_dispatch_ledger"]["dispatches"]
-    }
-    assert first_keys == second_keys
-    assert len(second_keys) == second["ai_first_action_dispatch_ledger"]["counts"]["total"]
+    assert "ai_first_action_dispatch_ledger_path" not in result["refs"]
+    assert "ai_first_action_dispatch_ledger" not in result
+    assert "ai_first_action_lifecycle" not in result
+    assert "ai_first_action_dispatch_lifecycle" not in result
     assert markdown.strip()
 
 
@@ -143,7 +121,7 @@ def test_study_progress_default_read_does_not_materialize_ai_first_ledgers(
     monkeypatch,
     tmp_path: Path,
 ) -> None:
-    from med_autoscience.controllers import ai_first_action_dispatch, ai_first_feedback
+    from med_autoscience.controllers import ai_first_feedback
 
     module = importlib.import_module("med_autoscience.controllers.study_progress.projection")
     profile = make_profile(tmp_path)
@@ -185,13 +163,8 @@ def test_study_progress_default_read_does_not_materialize_ai_first_ledgers(
     result = module.read_study_progress(profile=profile, study_id="001-risk")
 
     feedback_ledger_path = ai_first_feedback.stable_feedback_ledger_path(study_root=study_root)
-    action_dispatch_path = ai_first_action_dispatch.stable_action_dispatch_ledger_path(
-        study_root=study_root,
-    )
     assert result["ai_first_feedback_state"]["surface"] == "ai_first_feedback_state"
-    assert result["ai_first_action_dispatch_ledger"]["surface"] == "ai_first_action_dispatch_ledger"
-    assert result["ai_first_action_dispatch_ledger"]["materialized"] is False
     assert result["refs"]["ai_first_feedback_ledger_path"] == str(feedback_ledger_path)
-    assert result["refs"]["ai_first_action_dispatch_ledger_path"] == str(action_dispatch_path)
+    assert "ai_first_action_dispatch_ledger_path" not in result["refs"]
+    assert "ai_first_action_dispatch_ledger" not in result
     assert not feedback_ledger_path.exists()
-    assert not action_dispatch_path.exists()

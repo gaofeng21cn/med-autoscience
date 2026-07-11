@@ -308,9 +308,8 @@ def _append_runtime_categories(categories: list[str], payload: Mapping[str, Any]
 def _append_ai_first_categories(categories: list[str], payload: Mapping[str, Any]) -> None:
     default_state = _mapping(payload.get("ai_first_default_entry_state"))
     feedback_state = _mapping(payload.get("ai_first_feedback_state"))
-    lifecycle = _mapping(payload.get("ai_first_action_dispatch_lifecycle"))
     request_lifecycle = _mapping(payload.get("ai_reviewer_request_lifecycle"))
-    texts = _joined_text(default_state, feedback_state, lifecycle, request_lifecycle)
+    texts = _joined_text(default_state, feedback_state, request_lifecycle)
     if _has_any(texts, _AI_REVIEWER_TOKENS):
         _add(categories, "进入 AI reviewer")
     if _has_any(texts, _REBUILD_TOKENS):
