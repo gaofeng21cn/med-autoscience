@@ -9,7 +9,6 @@ __all__ = [
     "external_research",
     "figure_loop_guard",
     "journal_package",
-    "journal_requirements",
     "journal_shortlist",
     "medical_analysis_contract",
     "medical_literature_audit",
@@ -31,6 +30,5 @@ __all__ = [
     "study_progress",
     "submission_inspection_export",
     "submission_minimal",
-    "submission_targets",
     "workspace_literature",
 ]
