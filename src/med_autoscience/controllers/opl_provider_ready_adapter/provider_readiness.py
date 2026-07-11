@@ -367,7 +367,6 @@ def build_paper_line_guarded_apply_evidence_scaleout_surface() -> dict[str, Any]
                 packet_id="owner_receipt_ref_packet",
                 required_role="owner_receipt_ref",
                 owner_surface="artifacts/runtime/owner_route/latest.json",
-                fallback_owner_surface="runtime/artifacts/opl_family_domain_handler/dispatch_receipts/<sha256(task_id)[:20]>.json",
             ),
             _paper_line_scaleout_ref_packet(
                 packet_id="progress_delta_ref_packet",
@@ -378,31 +377,26 @@ def build_paper_line_guarded_apply_evidence_scaleout_surface() -> dict[str, Any]
                 packet_id="ai_reviewer_gate_receipt_ref_packet",
                 required_role="ai_reviewer_gate_receipt_ref",
                 owner_surface="artifacts/publication_eval/latest.json",
-                fallback_owner_surface="artifacts/supervision/requests/ai_reviewer/latest.json",
             ),
             _paper_line_scaleout_ref_packet(
                 packet_id="artifact_movement_ref_packet",
                 required_role="artifact_movement_ref",
                 owner_surface="artifact_authority_receipt",
-                fallback_owner_surface="artifacts/controller/gate_replay_requests/latest.json",
             ),
             _paper_line_scaleout_ref_packet(
                 packet_id="human_gate_or_resume_ref_packet",
                 required_role="human_gate_or_resume_ref",
                 owner_surface="artifacts/controller_decisions/latest.json",
-                fallback_owner_surface="human_gate_resume_receipt",
             ),
             _paper_line_scaleout_ref_packet(
                 packet_id="stable_typed_blocker_ref_packet",
                 required_role="stable_typed_blocker_ref",
                 owner_surface="typed_blocker_receipt",
-                fallback_owner_surface="artifacts/controller_decisions/latest.json",
             ),
             _paper_line_scaleout_ref_packet(
                 packet_id="no_forbidden_write_proof_ref_packet",
                 required_role="no_forbidden_write_proof_ref",
                 owner_surface="product_entry_manifest.provider_guarded_soak_read_model.no_forbidden_write_proof",
-                fallback_owner_surface="owner_route_handoff_response.forbidden_write_guard_proof",
             ),
         ],
         "opl_stage_evidence_receipt_handoff": {
@@ -512,7 +506,6 @@ def build_paper_line_guarded_apply_evidence_scaleout_surface() -> dict[str, Any]
         "no_forbidden_write_proof_handoff": {
             "proof_ref_role": "no_forbidden_write_proof_ref",
             "owner_surface": "product_entry_manifest.provider_guarded_soak_read_model.no_forbidden_write_proof",
-            "fallback_owner_surface": "owner_route_handoff_response.forbidden_write_guard_proof",
             "result_policy": "accepted_no_forbidden_writes_or_fail_closed_typed_blocker",
             "must_be_recorded_with_each_opl_stage_evidence_receipt": True,
             "body_included": False,
@@ -597,9 +590,8 @@ def _paper_line_scaleout_ref_packet(
     packet_id: str,
     required_role: str,
     owner_surface: str,
-    fallback_owner_surface: str | None = None,
 ) -> dict[str, Any]:
-    packet = {
+    return {
         "packet_id": packet_id,
         "owner": DOMAIN_OWNER,
         "required_role": required_role,
@@ -610,9 +602,6 @@ def _paper_line_scaleout_ref_packet(
         "write_permitted": False,
         "domain_truth_owner": DOMAIN_OWNER,
     }
-    if fallback_owner_surface is not None:
-        packet["fallback_owner_surface"] = fallback_owner_surface
-    return packet
 
 def _paper_line_outcome_ref(
     *,

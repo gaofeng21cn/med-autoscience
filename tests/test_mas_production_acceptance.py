@@ -315,14 +315,10 @@ def test_acceptance_exposes_paper_line_guarded_apply_scaleout_refs_without_body(
     assert packets["progress_delta_ref"]["owner_surface"] == (
         "opl_current_control_state.stage_run.transition_receipt.progress_delta_refs"
     )
-    assert "fallback_owner_surface" not in packets["progress_delta_ref"]
     assert packets["ai_reviewer_gate_receipt_ref"]["owner_surface"] == (
         "artifacts/publication_eval/latest.json"
     )
     assert packets["artifact_movement_ref"]["owner_surface"] == "artifact_authority_receipt"
-    assert packets["human_gate_or_resume_ref"]["fallback_owner_surface"] == (
-        "human_gate_resume_receipt"
-    )
     assert packets["no_forbidden_write_proof_ref"]["owner_surface"] == (
         "product_entry_manifest.provider_guarded_soak_read_model.no_forbidden_write_proof"
     )
