@@ -663,7 +663,7 @@ def test_classify_changed_files_matches_external_learning_sidecar_surface() -> N
     ]
 
 
-def test_classify_changed_files_matches_evo_scientist_progress_accelerator_surface() -> None:
+def test_classify_changed_files_matches_evo_scientist_pattern_boundary() -> None:
     module = importlib.import_module("med_autoscience.dev_preflight_contract")
 
     result = module.classify_changed_files(
@@ -674,7 +674,7 @@ def test_classify_changed_files_matches_evo_scientist_progress_accelerator_surfa
         ]
     )
 
-    assert result.matched_categories == ("evo_scientist_progress_accelerator_surface",)
+    assert result.matched_categories == ("evo_scientist_pattern_boundary",)
     assert result.unclassified_changes == ()
     assert module.plan_commands_for_categories(result.matched_categories) == [
         "make test-paths -- tests/test_evo_scientist_learning_projection.py -q",

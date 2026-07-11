@@ -4,7 +4,6 @@ from collections.abc import Mapping
 from typing import Any
 
 from med_autoscience import external_learning_adoption_closure
-from med_autoscience.runtime_protocol import evo_scientist_sidecar_refs
 from med_autoscience.scholarskills_capability_modules import (
     build_scholarskills_capabilities,
 )
@@ -287,14 +286,15 @@ def _capabilities() -> list[dict[str, Any]]:
             ),
         ),
         _capability(
-            capability_id="evo_scientist_progress_sidecar",
+            capability_id="evo_scientist_progress_patterns",
             capability_family="progress_accelerator",
             source_frameworks=["EvoScientist", "EvoSkills"],
             action_triggers=["*"],
-            invocation_kind="evo_scientist_sidecar",
-            callable_surface=evo_scientist_sidecar_refs.WRITER_REF,
-            output_refs=[str(evo_scientist_sidecar_refs.LATEST_REF)],
-            role="background_memory_tool_affordance_failed_path_stop_loss_refs",
+            invocation_kind="descriptor_only_current_owner_input_refs",
+            callable_surface="descriptor_only:opl_capability_registry_external_learning_refs",
+            output_refs=["contracts/evo_scientist_progress_accelerator.json"],
+            role="external_pattern_provenance_and_domain_boundary_refs",
+            contract_refs=["contracts/evo_scientist_progress_accelerator.json"],
         ),
         _capability(
             capability_id="light_external_skill_content_advisory",

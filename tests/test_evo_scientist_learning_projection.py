@@ -8,7 +8,7 @@ from pathlib import Path
 REPO_ROOT = Path(__file__).resolve().parents[1]
 
 
-def test_evo_scientist_projection_and_contract_preserve_nonblocking_authority() -> None:
+def test_evo_scientist_projection_is_declarative_and_non_authoritative() -> None:
     module = importlib.import_module("med_autoscience.evo_scientist_learning_projection")
     projection = module.build_evo_scientist_learning_projection()
     contract = json.loads(
@@ -17,34 +17,25 @@ def test_evo_scientist_projection_and_contract_preserve_nonblocking_authority() 
         )
     )
 
-    assert projection["surface_kind"] == (
-        "mas_evo_scientist_progress_accelerator_projection"
-    )
-    assert projection["progress_accelerator_contract_ref"] == (
-        "contracts/evo_scientist_progress_accelerator.json"
-    )
-    assert contract["projection_builder_ref"] == projection["projection_builder_ref"]
-    assert contract["runtime_sidecar_execution_surface"] == projection[
-        "runtime_sidecar_execution_surface"
-    ]
+    assert projection["status"] == "declarative_external_pattern_projection"
+    assert projection["source_snapshot"]["observed_release"] == "v0.1.4"
+    assert projection["source_snapshot"]["skills_release"] == "v1.0.0"
+    assert projection["absorbed_pattern_ids"] == contract["absorbed_pattern_ids"]
+    assert projection["watch_only_pattern_ids"] == contract["watch_only_pattern_ids"]
+    assert projection["rejected_pattern_ids"] == contract["rejected_pattern_ids"]
 
-    boundary = projection["ordinary_progress_boundary"]
-    assert boundary["diagnostic_only"] is True
-    assert boundary["refs_only"] is True
-    assert boundary["can_select_next_action"] is False
-    assert boundary["can_generate_owner_receipt"] is False
-    assert boundary["can_generate_typed_blocker"] is False
-    assert boundary["can_authorize_provider_admission"] is False
-    assert boundary["can_block_current_owner_action"] is False
-    assert boundary["critical_path_waits_for_sidecar"] is False
+    delta = projection["domain_delta"]
+    assert delta == contract["domain_delta"]
+    assert delta["invocation_kind"] == "descriptor_only_current_owner_input_refs"
+    assert delta["binding_kind"] == "optional"
+    assert delta["resolver_owner"] == "one-person-lab"
+    assert delta["memory_accept_reject_owner"] == "MedAutoScience"
+    assert delta["runtime_writer"] is None
+    assert delta["local_persistence"] == "absent"
 
-    architecture = projection["target_sidecar_execution_architecture"]
-    assert architecture["architecture_state"] == "repo_callable_worker_landed"
-    assert architecture["remaining_learning_plan"] is False
-    assert architecture["scheduling_contract"]["mainline_waits_for_sidecar"] is False
-    assert architecture["admission_contract"][
-        "sidecar_completion_required_for_dispatch"
-    ] is False
-    assert contract["authority_boundary"]["can_write_domain_truth"] is False
-    assert contract["authority_boundary"]["can_authorize_provider_admission"] is False
-    assert contract["authority_boundary"]["can_close_stage"] is False
+    boundary = projection["authority_boundary"]
+    assert boundary["domain_truth_owner"] == "MedAutoScience"
+    assert boundary["memory_accept_reject_owner"] == "MedAutoScience"
+    for field, value in boundary.items():
+        if field.startswith("can_"):
+            assert value is False

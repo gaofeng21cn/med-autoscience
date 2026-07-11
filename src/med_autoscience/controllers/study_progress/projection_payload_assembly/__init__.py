@@ -15,7 +15,6 @@ from med_autoscience.controllers.evidence_gap_projection import (
 )
 from med_autoscience.controllers import study_domain_transition_table
 from med_autoscience.controllers.study_interventions import read_intervention_events
-from med_autoscience.runtime_protocol import evo_scientist_sidecar_refs
 
 from ..ai_first_runtime_projection import attach_ai_first_runtime_projection
 from ..current_owner_handoff_projection import (
@@ -166,7 +165,6 @@ def assemble_study_progress_payload(
     supervision_health_status: str | None,
     refs: dict[str, Any],
     profile: Any | None = None,
-    materialize_sidecar_observation: bool = False,
     enable_opl_live_provider_attempt_probe: bool = True,
 ) -> dict[str, Any]:
     handoff = _mapping_copy(opl_current_control_state_handoff)
@@ -323,20 +321,6 @@ def assemble_study_progress_payload(
     payload["user_visible_projection"] = build_user_visible_projection(payload)
     payload = _apply_post_user_visible_status_overrides(payload)
     payload = _sync_study_macro_state_from_user_visible_projection(payload)
-    if materialize_sidecar_observation:
-        payload["evo_scientist_sidecar_observation"] = (
-            evo_scientist_sidecar_refs.observe_current_owner_payload(
-                study_root=study_root,
-                progress_payload=payload,
-                apply=True,
-            )
-        )
-    else:
-        payload["evo_scientist_sidecar_observation"] = (
-            evo_scientist_sidecar_refs.read_latest_evo_scientist_sidecar_projection(
-                study_root=study_root,
-            )
-        )
     payload = attach_ai_first_runtime_projection(
         payload,
         study_root=study_root,

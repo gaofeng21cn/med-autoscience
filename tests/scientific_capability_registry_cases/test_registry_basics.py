@@ -20,7 +20,7 @@ def test_scientific_capability_registry_resolves_current_delta_bound_candidates(
     assert set(SCHOLARSKILLS_MODULE_IDS) <= set(capabilities)
     assert {
         "external_learning_authoring_advisory",
-        "evo_scientist_progress_sidecar",
+        "evo_scientist_progress_patterns",
         "light_external_skill_content_advisory",
         "co_scientist_current_owner_affordance",
         "reviewer_revision_feedbackops_oma_work_order",
@@ -68,12 +68,13 @@ def test_scientific_capability_registry_wildcard_sidecars_require_explicit_capab
     selected = {
         item["capability_id"]: item for item in explicit["selected_capabilities"]
     }
-    sidecar = selected["evo_scientist_progress_sidecar"]
-    assert sidecar["wildcard_action_trigger_policy"]["auto_select"] is False
-    assert sidecar["wildcard_action_trigger_policy"][
+    patterns = selected["evo_scientist_progress_patterns"]
+    assert patterns["wildcard_action_trigger_policy"]["auto_select"] is False
+    assert patterns["wildcard_action_trigger_policy"][
         "requires_explicit_capability_request"
     ] is True
-    assert sidecar["can_block_current_owner_action"] is False
+    assert patterns["descriptor_only"] is True
+    assert patterns["can_block_current_owner_action"] is False
 
 
 def test_registry_resolves_reviewer_revision_feedbackops_oma_cli_dispatch() -> None:

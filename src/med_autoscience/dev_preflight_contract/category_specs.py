@@ -317,7 +317,7 @@ def build_category_specs(
         ),
     ),
     spec_type(
-        category_id="evo_scientist_progress_accelerator_surface",
+        category_id="evo_scientist_pattern_boundary",
         exact_paths=(
             "contracts/evo_scientist_progress_accelerator.json",
             "src/med_autoscience/evo_scientist_learning_projection.py",

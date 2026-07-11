@@ -303,7 +303,7 @@ def test_scientific_capability_registry_consumption_evidence_with_owner_refs_sta
     assert not (study_root / "artifacts/controller_decisions/latest.json").exists()
 
 
-def test_scientific_capability_registry_requests_light_and_evo_without_mas_actuator(
+def test_scientific_capability_registry_requests_light_and_describes_evo_patterns(
     tmp_path: Path,
 ) -> None:
     module = importlib.import_module("med_autoscience.scientific_capability_registry")
@@ -327,7 +327,7 @@ def test_scientific_capability_registry_requests_light_and_evo_without_mas_actua
         apply=True,
     )
     evo = module.invoke_scientific_capability(
-        capability_id="evo_scientist_progress_sidecar",
+        capability_id="evo_scientist_progress_patterns",
         study_root=study_root,
         current_owner_delta={
             "action_type": "run_quality_repair_batch",
@@ -349,12 +349,11 @@ def test_scientific_capability_registry_requests_light_and_evo_without_mas_actua
         study_root
         / "artifacts/stage_outputs/current_owner_action/advisory/light_external_pattern_refs.json"
     ).exists()
-    assert evo["status"] == "opl_capability_request_pending"
+    assert evo["status"] == "descriptor_only"
     assert evo["mas_local_capability_actuator"] is False
-    assert evo["result"]["surface_kind"] == "mas_scientific_capability_invocation_request_projection"
+    assert evo["result"]["surface_kind"] == "mas_scientific_capability_descriptor_only_projection"
     assert evo["opl_capability_invocation_request"]["expected_output_refs"] == [
-        "artifacts/runtime/evo_scientist_sidecar/latest.json"
+        "contracts/evo_scientist_progress_accelerator.json"
     ]
-    assert not (study_root / "artifacts/runtime/evo_scientist_sidecar/latest.json").exists()
     assert not (study_root / "artifacts/publication_eval/latest.json").exists()
     assert not (study_root / "artifacts/controller_decisions/latest.json").exists()

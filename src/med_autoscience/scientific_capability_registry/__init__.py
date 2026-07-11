@@ -454,23 +454,6 @@ def _capability_output_refs(invocation: Mapping[str, Any]) -> list[str]:
     return _dedupe_texts(refs)
 
 
-def _evo_event(*, delta: Mapping[str, Any], payload: Mapping[str, Any]) -> dict[str, Any]:
-    return {
-        "event_kind": "scientific_capability_registry_invoke",
-        "source": "scientific_capability_registry",
-        "study_id": _text(delta.get("study_id")),
-        "quest_id": _text(delta.get("quest_id")),
-        "current_owner_delta_ref": _text(delta.get("source_ref")),
-        "current_owner_action_ref": _text(delta.get("source_ref")),
-        "current_executable_owner_action": _current_owner_summary(delta),
-        "allowed_tool_manifest_ref": _text(payload.get("allowed_tool_manifest_ref")),
-        "executor_turn_summary_ref": _text(payload.get("executor_turn_summary_ref")),
-        "subagent_summary_ref": _text(payload.get("subagent_summary_ref")),
-        "receipt_or_typed_blocker_ref": _text(payload.get("receipt_or_typed_blocker_ref")),
-        "prior_failed_path_memory_refs": _text_list(payload.get("prior_failed_path_memory_refs")),
-    }
-
-
 def _require_study_root(value: Path | str | None) -> Path:
     if value is None:
         raise ValueError("study_root is required to invoke this capability")

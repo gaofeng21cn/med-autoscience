@@ -44,10 +44,13 @@ def test_external_learning_adoption_closure_keeps_landing_current_and_non_author
     assert closure["surface_kind"] == "mas_external_learning_adoption_closure"
     assert set(frameworks) == FRAMEWORK_IDS
     assert closure["counts"]["framework_count"] == len(FRAMEWORK_IDS)
-    assert closure["counts"]["contract_or_projection_only_gap_count"] == 0
+    assert closure["counts"]["contract_or_projection_only_gap_count"] == 1
     assert closure["counts"]["not_landed_gap_count"] == 0
     assert set(module.SIDECAR_WORKER_REGISTRY) == WORKER_IDS
     assert "nature_skills" not in module.SIDECAR_WORKER_REGISTRY
+    evo = frameworks["evo_scientist_evoskills"]
+    assert evo["closure_status"] == "projection_only_gap"
+    assert evo["worker_or_executor_landing"] == "not_applicable_declarative_only"
 
     for framework in frameworks.values():
         assert framework["friction_policy"]["can_block_current_owner_action"] is False

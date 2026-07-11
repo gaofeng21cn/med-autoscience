@@ -375,13 +375,13 @@ def build_external_learning_adoption_closure() -> dict[str, Any]:
             framework_id="evo_scientist_evoskills",
             source_project="EvoScientist / EvoSkills",
             projection=evo,
-            closure_status="sidecar_execution_slot_landed",
-            owner_surface="evo_scientist_progress_accelerator_contract_and_external_learning_sidecar",
-            worker_or_executor_landing="nonblocking current-owner-following sidecar action is declared by run_external_learning_sidecar",
+            closure_status="projection_only_gap",
+            owner_surface="evo_scientist_progress_accelerator_declarative_contract",
+            worker_or_executor_landing="not_applicable_declarative_only",
             missing_landing_work=[
-                "scale richer tool-affordance, failed-path, and observation-memory candidate generation under the same sidecar contract",
+                "optional OPL Capability Registry consumption has no direct-attempt readback yet",
             ],
-            next_landing_path="implementation scaleout only; do not reopen learning-plan status",
+            next_landing_path="consume the optional pattern ref only when an OPL current-owner delta requests it",
         ),
         _framework(
             framework_id="ark_progress_first",
@@ -770,12 +770,18 @@ def _advisory_candidates(*, action_type: str, closure: Mapping[str, Any]) -> lis
         for item in _list(closure.get("frameworks"))
         if isinstance(item, Mapping)
         and _text(item.get("closure_status"))
-        in {"contract_only_gap", "history_only_gap", "not_landed_gap"}
+        in {
+            "projection_only_gap",
+            "contract_only_gap",
+            "history_only_gap",
+            "not_landed_gap",
+        }
     ]
     if gap_candidates:
         candidates.append(
             {
                 "candidate_ref": f"external-learning:closure-gap:{action_type}",
+                "framework_id": "external_learning_closure_gap",
                 "role": "operator_gap_visibility",
                 "gap_framework_ids": [item["framework_id"] for item in gap_candidates],
                 "can_block_current_owner_action": False,

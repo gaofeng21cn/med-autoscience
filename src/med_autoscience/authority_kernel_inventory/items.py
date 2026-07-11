@@ -221,7 +221,6 @@ def _capability_item() -> AuthorityKernelItem:
         allowed_writes=(
             "artifacts/advisory/external_learning_sidecar/latest.json",
             "artifacts/stage_outputs/<stage>/advisory/light_external_pattern_refs.json",
-            "artifacts/runtime/evo_scientist_sidecar/latest.json",
             "display_pack_agent refs-only plan outputs",
         ),
         forbidden_authority=tuple(FORBIDDEN_DOMAIN_AUTHORITY),

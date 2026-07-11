@@ -505,48 +505,18 @@ def test_mas_evo_scientist_learning_projection_declares_progress_first_absorptio
     assert projection["skills_repository"] == "https://github.com/EvoScientist/EvoSkills"
     assert projection["skills_release"] == "v1.0.0"
     assert projection["dependency_introduced"] is False
-    assert projection["maps_to_opl_shared_primitive"] == "progress-first-learning-sidecar.v1"
+    assert projection["maps_to_opl_shared_primitive"] == "capability-registry-resolver.v1"
     assert projection["mas_role"] == (
-        "domain_projection_progress_accelerator_and_refs_only_contract_owner"
+        "declare_pattern_refs_and_accept_or_reject_memory_candidates"
     )
-    sidecar_architecture = projection["target_sidecar_execution_architecture"]
-    assert sidecar_architecture["architecture_state"] == "repo_callable_worker_landed"
-    assert sidecar_architecture["remaining_learning_plan"] is False
-    assert sidecar_architecture["future_work_role"] == (
-        "implementation_scaleout_under_this_contract_only"
-    )
-    assert sidecar_architecture["execution_model"] == "nonblocking_current_owner_following_sidecar"
-    assert sidecar_architecture["critical_path_waits_for_sidecar"] is False
-    assert sidecar_architecture["runs_parallel_to_ordinary_progress"] is True
-    assert sidecar_architecture["sidecar_failure_policy"] == (
-        "drop_sidecar_ref_and_continue_current_owner_action"
-    )
-    assert sidecar_architecture["sidecar_completion_required_for_dispatch"] is False
-    assert sidecar_architecture["sidecar_completion_required_for_stage_transition"] is False
-    assert sidecar_architecture["sidecar_completion_required_for_quality_gate"] is False
-    assert sidecar_architecture["sidecar_completion_required_for_artifact_mutation"] is False
-    assert sidecar_architecture[
-        "hard_gate_candidate_requires_owner_or_reviewer_materialization"
-    ] is True
-    runtime_surface = projection["runtime_sidecar_execution_surface"]
-    assert runtime_surface["surface_kind"] == "mas_evo_scientist_runtime_sidecar_execution_surface"
-    assert runtime_surface["implementation_status"] == "repo_callable_worker_landed"
-    assert runtime_surface["writer_ref"] == (
-        "med_autoscience.runtime_protocol.evo_scientist_sidecar_refs."
-        "write_evo_scientist_sidecar_observation"
-    )
-    assert runtime_surface["runtime_ref_root"] == "artifacts/runtime/evo_scientist_sidecar"
-    assert runtime_surface["latest_ref"] == "artifacts/runtime/evo_scientist_sidecar/latest.json"
-    assert runtime_surface["refs_only_state_index_family"] == "evo_scientist_sidecar_ref"
-    assert runtime_surface["mainline_waits_for_sidecar"] is False
-    assert runtime_surface["failure_blocks_current_owner_action"] is False
-    assert runtime_surface["sidecar_completion_required_for_dispatch"] is False
-    assert runtime_surface["sidecar_completion_required_for_quality_gate"] is False
-    assert runtime_surface["can_write_publication_eval"] is False
-    assert runtime_surface["can_write_controller_decisions"] is False
-    assert runtime_surface["can_write_owner_receipt"] is False
-    assert runtime_surface["can_write_typed_blocker"] is False
-    assert "evo_scientist_sidecar_ref" in projection["allowed_export"]
+    domain_delta = projection["domain_delta"]
+    assert domain_delta["capability_id"] == "evo_scientist_progress_patterns"
+    assert domain_delta["invocation_kind"] == "descriptor_only_current_owner_input_refs"
+    assert domain_delta["binding_kind"] == "optional"
+    assert domain_delta["resolver_owner"] == "one-person-lab"
+    assert domain_delta["memory_accept_reject_owner"] == "MedAutoScience"
+    assert domain_delta["runtime_writer"] is None
+    assert domain_delta["local_persistence"] == "absent"
     assert projection["absorbed_pattern_ids"] == [
         "auxiliary_background_model",
         "fire_and_forget_observation_memory",
@@ -559,6 +529,7 @@ def test_mas_evo_scientist_learning_projection_declares_progress_first_absorptio
         "idea_tournament_as_default_gate",
         "full_research_lifecycle_pipeline_as_mas_default",
     ]
+    assert "evo_memory_body_as_mas_truth" in projection["rejected_pattern_ids"]
     assert set(projection["forbidden_export"]) >= {
         "external_runtime",
         "foreign_agent_memory_body",
@@ -570,6 +541,7 @@ def test_mas_evo_scientist_learning_projection_declares_progress_first_absorptio
         "external_pattern_source_only"
     )
     assert projection["authority_boundary"]["can_write_domain_truth"] is False
+    assert projection["authority_boundary"]["can_write_memory_body"] is False
     assert projection["authority_boundary"]["can_write_evidence_ledger"] is False
     assert projection["authority_boundary"]["can_authorize_publication_quality"] is False
     assert projection["authority_boundary"]["can_authorize_artifact_authority"] is False

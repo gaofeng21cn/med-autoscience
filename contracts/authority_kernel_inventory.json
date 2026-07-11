@@ -327,7 +327,6 @@
       "allowed_writes": [
         "artifacts/advisory/external_learning_sidecar/latest.json",
         "artifacts/stage_outputs/<stage>/advisory/light_external_pattern_refs.json",
-        "artifacts/runtime/evo_scientist_sidecar/latest.json",
         "display_pack_agent refs-only plan outputs"
       ],
       "cannot_lift_to_opl_reason": "The helper itself is refs-only and can be hosted by OPL, but MAS must keep the domain boundary that prevents capability output from becoming quality, publication, artifact, memory, or study truth authority.",

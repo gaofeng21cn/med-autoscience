@@ -20,6 +20,8 @@ def test_retired_entry_status_name_is_absent_from_active_tracked_surfaces() -> N
         if relative_path.startswith(allowed_prefixes):
             continue
         path = repo_root / relative_path
+        if not path.is_file():
+            continue
         try:
             text = path.read_text(encoding="utf-8")
         except UnicodeDecodeError:
@@ -58,6 +60,8 @@ def test_product_entry_runtime_surfaces_do_not_emit_retired_compat_terms() -> No
         if relative_path.startswith(allowed_prefixes):
             continue
         path = repo_root / relative_path
+        if not path.is_file():
+            continue
         try:
             text = path.read_text(encoding="utf-8")
         except UnicodeDecodeError:

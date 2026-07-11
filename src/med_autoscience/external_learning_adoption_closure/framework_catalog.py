@@ -26,11 +26,14 @@ def framework_from_projection(
             text(projection.get("progress_accelerator_contract_ref")),
             *(extra_source_refs or []),
         ],
-        absorbed_pattern_ids=[
-            text(pattern.get("pattern_id"))
-            for pattern in list_value(projection.get("absorbed_patterns"))
-            if isinstance(pattern, Mapping)
-        ],
+        absorbed_pattern_ids=(
+            [text(item) for item in list_value(projection.get("absorbed_pattern_ids"))]
+            or [
+                text(pattern.get("pattern_id"))
+                for pattern in list_value(projection.get("absorbed_patterns"))
+                if isinstance(pattern, Mapping)
+            ]
+        ),
         local_execution_state=text(projection.get("status")) or closure_status,
         closure_status=closure_status,
         owner_surface=owner_surface,
@@ -106,6 +109,7 @@ def counts(frameworks: list[Mapping[str, Any]]) -> dict[str, int]:
         if status in {"sidecar_execution_slot_landed", "sidecar_or_worker_landed"}:
             totals["sidecar_execution_slot_count"] += 1
         if status in {
+            "projection_only_gap",
             "thin_projection_landed_worker_scaleout_gap",
             "contract_only_gap",
             "history_only_gap",
