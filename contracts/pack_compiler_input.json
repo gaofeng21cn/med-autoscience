@@ -194,6 +194,7 @@
     "agent/knowledge/medical_research_truth.md",
     "agent/knowledge/publication_route_memory.md",
     "agent/knowledge/source_readiness_and_artifact_authority.md",
+    "contracts/domain_owner_answer_projection_profile.json",
     "agent/prompts/baseline_and_evidence_setup.md",
     "agent/prompts/bounded_analysis_campaign.md",
     "agent/prompts/direction_and_route_selection.md",
