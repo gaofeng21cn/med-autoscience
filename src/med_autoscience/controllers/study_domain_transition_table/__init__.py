@@ -354,45 +354,6 @@ def project_domain_transition(
         controller_decision=controller_decision,
     )
     if bundle_stage_work_unit is not None:
-        bundle_stage_consumption = study_transition_receipt_consumption.bundle_stage_completion_receipt_consumption(
-            study_root=root,
-            publication_eval=publication_eval,
-            work_unit=bundle_stage_work_unit,
-            controller_decision=controller_decision,
-        )
-        if bundle_stage_consumption:
-            completion_source_refs = _present_refs(
-                publication_eval_ref,
-                controller_decision_ref,
-                _text(bundle_stage_consumption.get("completion_ref")),
-                _text(bundle_stage_consumption.get("artifact_ref")),
-                "progress_projection",
-                "study_macro_state",
-            )
-            return _transition(
-                study_id=study_id,
-                decision_type="completion_receipt_consumed",
-                route_target="human_gate",
-                next_work_unit=_work_unit(
-                    "package_closure_consumed_handoff",
-                    "finalize",
-                    "Expose the completed package closure receipt without redriving the consumed work unit.",
-                ),
-                controller_action="none",
-                owner="med-autoscience",
-                typed_blocker=_typed_blocker(
-                    blocker_id="completed_work_unit_consumed",
-                    blocker_type="completion_receipt",
-                    summary=(
-                        "Bundle-stage package closure has already consumed this work unit; automatic redrive is forbidden."
-                    ),
-                    required_owner_surface=_text(bundle_stage_consumption.get("completion_ref"))
-                    or "runtime_turn_closeout",
-                ),
-                guard_boundary=_guard_boundary(opl_generic_runner_may_resume=False),
-                source_refs=completion_source_refs,
-                completion_receipt_consumption=bundle_stage_consumption,
-            )
         return _transition(
             study_id=study_id,
             decision_type="bundle_stage_finalize",

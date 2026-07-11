@@ -14,7 +14,6 @@ from med_autoscience.controllers.study_runtime_decision.domain_transition_status
 )
 from med_autoscience.controllers.study_runtime_decision.publication_and_submission import (
     _publication_gate_requires_live_runtime_reroute,
-    _record_existing_controller_work_unit_evidence_adoption,
 )
 from med_autoscience.controllers.study_runtime_decision.runtime_events.human_gates import (
     _bare_paused_quest_requires_explicit_wakeup_without_live_worker,
@@ -121,15 +120,6 @@ def _apply_live_quest_status_decision(
         result.set_decision(
             StudyRuntimeDecision.BLOCKED,
             StudyRuntimeReason.QUEST_USER_PAUSED_REQUIRES_EXPLICIT_WAKEUP,
-        )
-        return finalize_result()
-    if (
-        not _opl_owner_route_handoff_without_live_worker(result, audit_status=audit_status)
-        and _record_existing_controller_work_unit_evidence_adoption(status=result, study_root=study_root) is not None
-    ):
-        result.set_decision(
-            StudyRuntimeDecision.NOOP,
-            StudyRuntimeReason.CONTROLLER_WORK_UNIT_EVIDENCE_ADOPTED,
         )
         return finalize_result()
     if (

@@ -373,7 +373,6 @@ def build_paper_line_guarded_apply_evidence_scaleout_surface() -> dict[str, Any]
                 packet_id="progress_delta_ref_packet",
                 required_role="progress_delta_ref",
                 owner_surface="artifacts/controller/repair_execution_evidence/latest.json",
-                fallback_owner_surface="artifacts/runtime/turn_closeouts/<active_run_id>.json",
             ),
             _paper_line_scaleout_ref_packet(
                 packet_id="ai_reviewer_gate_receipt_ref_packet",
@@ -598,20 +597,22 @@ def _paper_line_scaleout_ref_packet(
     packet_id: str,
     required_role: str,
     owner_surface: str,
-    fallback_owner_surface: str,
+    fallback_owner_surface: str | None = None,
 ) -> dict[str, Any]:
-    return {
+    packet = {
         "packet_id": packet_id,
         "owner": DOMAIN_OWNER,
         "required_role": required_role,
         "owner_surface": owner_surface,
-        "fallback_owner_surface": fallback_owner_surface,
         "body_included": False,
         "opl_ingestable": True,
         "opl_projection_only": True,
         "write_permitted": False,
         "domain_truth_owner": DOMAIN_OWNER,
     }
+    if fallback_owner_surface is not None:
+        packet["fallback_owner_surface"] = fallback_owner_surface
+    return packet
 
 def _paper_line_outcome_ref(
     *,

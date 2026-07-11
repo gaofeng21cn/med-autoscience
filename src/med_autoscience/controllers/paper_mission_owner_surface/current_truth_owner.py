@@ -20,11 +20,6 @@ from med_autoscience.controllers.story_surface_work_units import (
 from med_autoscience.controllers.study_domain_transition_table import ai_reviewer_transitions
 from med_autoscience.controllers.paper_mission_owner_surface import gate_replay_routes
 from med_autoscience.controllers.current_truth_owner import writer_handoff
-from med_autoscience.controllers.current_truth_owner.package_closure import (
-    package_closure_matches_work_unit as _package_closure_matches_work_unit,
-    read_json_artifact_object as _read_json_artifact_object,
-    runtime_artifact_ref_is_json_payload as _runtime_artifact_ref_is_json_payload,
-)
 from med_autoscience.controllers.gate_clearing_batch_work_units import PUBLICATION_GATE_REPLAY_WORK_UNIT_IDS
 from med_autoscience.publication_eval_specificity_targets import specificity_target_status
 
@@ -721,69 +716,7 @@ def _publication_work_unit_closed(
             lifecycle_work_unit = _mapping(lifecycle.get("work_unit"))
             if _text(lifecycle_work_unit.get("unit_id")) == work_unit_id:
                 return True
-    return _runtime_turn_closeout_closes_work_unit(
-        study_root=resolved_study_root,
-        publication_eval_payload=publication_eval_payload,
-        work_unit_id=work_unit_id,
-        work_unit_fingerprint=work_unit_fingerprint,
-    )
-
-
-def _runtime_turn_closeout_closes_work_unit(
-    *,
-    study_root: Path,
-    publication_eval_payload: Mapping[str, Any],
-    work_unit_id: str,
-    work_unit_fingerprint: str | None,
-) -> bool:
-    quest_root = _publication_eval_quest_root(publication_eval_payload)
-    if quest_root is None:
-        return False
-    closeout_root = quest_root / "artifacts" / "runtime" / "turn_closeouts"
-    if not closeout_root.exists():
-        return False
-    for closeout_path in sorted(closeout_root.glob("*.json")):
-        closeout = _read_json_object(closeout_path)
-        if closeout is None or closeout.get("status") != "completed":
-            continue
-        if closeout.get("meaningful_artifact_delta") is not True:
-            continue
-        for artifact_ref in closeout.get("artifact_refs") or []:
-            artifact_path = _resolve_runtime_artifact_ref(quest_root, artifact_ref)
-            if artifact_path is None or not _runtime_artifact_ref_is_json_payload(artifact_path):
-                continue
-            package_closure = _read_json_artifact_object(artifact_path)
-            if _package_closure_matches_work_unit(
-                package_closure,
-                study_root=study_root,
-                work_unit_id=work_unit_id,
-                work_unit_fingerprint=work_unit_fingerprint,
-            ):
-                return True
     return False
-
-
-def _publication_eval_quest_root(publication_eval_payload: Mapping[str, Any]) -> Path | None:
-    runtime_context_refs = _mapping(publication_eval_payload.get("runtime_context_refs"))
-    runtime_escalation_ref = _text(runtime_context_refs.get("runtime_escalation_ref"))
-    if runtime_escalation_ref is not None:
-        path = Path(runtime_escalation_ref).expanduser()
-        parts = path.parts
-        if "artifacts" in parts:
-            artifacts_index = parts.index("artifacts")
-            if artifacts_index > 0:
-                return Path(*parts[:artifacts_index]).resolve()
-    return None
-
-
-def _resolve_runtime_artifact_ref(quest_root: Path, artifact_ref: object) -> Path | None:
-    text = _text(artifact_ref)
-    if text is None:
-        return None
-    path = Path(text).expanduser()
-    if path.is_absolute():
-        return path.resolve()
-    return (quest_root / path).resolve()
 
 
 def _controller_action_types(payload: Mapping[str, Any]) -> set[str]:

@@ -8,16 +8,6 @@ from pathlib import Path
 import pytest
 
 
-def test_execution_evidence_parts_remain_domain_authority_surfaces() -> None:
-    for module_name in (
-        "med_autoscience.controllers.study_runtime_execution.controller_authorization",
-        "med_autoscience.controllers.study_runtime_execution.controller_authorization_receipts",
-        "med_autoscience.controllers.study_runtime_execution.work_unit_evidence_adoption",
-    ):
-        module = importlib.import_module(module_name)
-        assert module.__name__ == module_name
-
-
 def test_retired_execution_and_transport_aggregates_do_not_return_as_aliases() -> None:
     retired_dispatch_parts = (
         "managed_runtime" + "_authorization",

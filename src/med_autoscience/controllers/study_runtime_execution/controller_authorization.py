@@ -17,10 +17,6 @@ from .controller_authorization_receipts import (
     _closed_publication_work_unit_lifecycle,
     _controller_decision_authorization_lifecycle,
 )
-from .work_unit_evidence_adoption import (
-    adopt_controller_work_unit_evidence_if_present,
-    record_controller_work_unit_evidence_adoption,
-)
 
 
 def _controller_decision_owner_route_ref(
@@ -117,28 +113,6 @@ def _relay_controller_decision_authorization_if_required(
         }
         return None
 
-    def adopt_current_evidence_if_present() -> bool:
-        evidence_adoption = adopt_controller_work_unit_evidence_if_present(
-            study_root=context.study_root,
-            quest_root=context.quest_root,
-            authorization_context=authorization_context,
-            identity=identity,
-            active_run_id=active_run_id,
-            source=context.source,
-        )
-        if evidence_adoption is not None:
-            record_controller_work_unit_evidence_adoption(
-                status=status,
-                study_root=context.study_root,
-                identity=identity,
-                authorization_context=authorization_context,
-                evidence_adoption=evidence_adoption,
-            )
-            return True
-        return False
-
-    if adopt_current_evidence_if_present():
-        return None
     lifecycle = _controller_decision_authorization_lifecycle(
         study_root=context.study_root,
         authorization_context=authorization_context,
@@ -158,8 +132,6 @@ def _relay_controller_decision_authorization_if_required(
         }
         return None
     if bool(lifecycle.get("delivery_blocked")):
-        if adopt_current_evidence_if_present():
-            return None
         control_intent.append_skipped_duplicate_if_needed(
             study_root=context.study_root,
             identity=_controller_decision_authorization_identity(authorization_context),
@@ -195,34 +167,3 @@ def _relay_controller_decision_authorization_if_required(
     )
     status.extras["controller_decision_authorization_owner_route_ref"] = owner_route_ref
     return owner_route_ref
-
-
-def adopt_controller_work_unit_evidence_for_current_authorization(
-    *,
-    status: ProgressProjectionStatus,
-    context: Any,
-) -> dict[str, Any] | None:
-    authorization_context = _load_controller_decision_authorization_context(study_root=context.study_root)
-    if not _controller_decision_authorizes_runtime(authorization_context):
-        return None
-    assert authorization_context is not None
-    active_run_id = _active_run_id_from_status(status=status)
-    identity = _controller_decision_authorization_identity(authorization_context)
-    evidence_adoption = adopt_controller_work_unit_evidence_if_present(
-        study_root=context.study_root,
-        quest_root=context.quest_root,
-        authorization_context=authorization_context,
-        identity=identity,
-        active_run_id=active_run_id,
-        source=context.source,
-    )
-    if evidence_adoption is None:
-        return None
-    record_controller_work_unit_evidence_adoption(
-        status=status,
-        study_root=context.study_root,
-        identity=identity,
-        authorization_context=authorization_context,
-        evidence_adoption=evidence_adoption,
-    )
-    return evidence_adoption

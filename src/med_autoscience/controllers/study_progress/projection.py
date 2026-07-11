@@ -361,7 +361,6 @@ def build_study_progress_projection(
         gate_clearing_batch_payload=gate_clearing_batch_payload,
         publication_eval_payload=publication_eval_payload,
         runtime_facts=runtime_facts,
-        quest_root=quest_root,
     )
     current_stage_summary = _display_text(_stage_summary(
         status=status,

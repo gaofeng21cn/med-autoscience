@@ -34,14 +34,6 @@ from med_autoscience.controllers.study_runtime_decision.publication_decision imp
 from med_autoscience.controllers.study_runtime_decision.publication_owner_currentness import (
     _current_ai_reviewer_publication_eval_ref,
 )
-from med_autoscience.controllers.study_runtime_execution.controller_authorization import (
-    _controller_decision_authorization_identity,
-    _load_controller_decision_authorization_context,
-)
-from med_autoscience.controllers.study_runtime_execution.work_unit_evidence_adoption import (
-    existing_controller_work_unit_evidence_adoption,
-    record_controller_work_unit_evidence_adoption,
-)
 from med_autoscience.controllers.study_runtime_types import (
     StudyRuntimeAuditRecord,
     StudyRuntimeAuditStatus,
@@ -118,31 +110,6 @@ _AUTO_RECOVERY_CONTROLLER_STOP_SOURCES = frozenset(
 
 def _router_module():
     return import_module("med_autoscience.controllers.domain_status_projection")
-
-def _record_existing_controller_work_unit_evidence_adoption(
-    *,
-    status: ProgressProjectionStatus,
-    study_root: Path,
-) -> dict[str, object] | None:
-    authorization_context = _load_controller_decision_authorization_context(study_root=study_root)
-    if authorization_context is None:
-        return None
-    identity = _controller_decision_authorization_identity(authorization_context)
-    evidence_adoption = existing_controller_work_unit_evidence_adoption(
-        study_root=study_root,
-        identity=identity,
-        authorization_context=authorization_context,
-    )
-    if evidence_adoption is None:
-        return None
-    record_controller_work_unit_evidence_adoption(
-        status=status,
-        study_root=study_root,
-        identity=identity,
-        authorization_context=authorization_context,
-        evidence_adoption=evidence_adoption,
-    )
-    return evidence_adoption
 
 def _supervisor_tick_now() -> datetime:
     return datetime.now(timezone.utc).replace(microsecond=0)
