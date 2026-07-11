@@ -3,6 +3,19 @@ from __future__ import annotations
 import importlib
 
 
+def test_owner_route_protocol_uses_one_opl_transport_ref_without_lifecycle_internals() -> None:
+    protocol = importlib.import_module("med_autoscience.runtime_control.owner_route_attempt_protocol")
+
+    boundary = protocol._authority_boundary()
+
+    assert boundary["runtime_transport_ref"] == "opl-generated:family-runtime/current-control"
+    assert boundary["transport_owner"] == "one-person-lab"
+    assert boundary["mas_can_write_runtime_transport"] is False
+    assert boundary["mas_can_authorize_provider_admission"] is False
+    assert "opl_owns" not in boundary
+    assert "dead_letter" not in str(boundary)
+
+
 def test_owner_route_protocol_attaches_registered_reason_and_priority_lattice() -> None:
     owner_route_module = importlib.import_module("med_autoscience.runtime_control.owner_route")
 
@@ -558,21 +571,10 @@ def test_owner_callable_attempt_envelope_declares_domain_intent_and_authority_bo
     assert "grep -R" in envelope["search_boundaries"]["forbidden_command_patterns"]
     assert "runtime/.ds/**" in envelope["tool_discipline"]["forbidden_path_globs"]
     assert envelope["authority_boundary"] == {
-        "opl_owns": [
-            "queue",
-            "attempt",
-            "retry",
-            "dead_letter",
-            "provider_liveness",
-        ],
-        "mas_owns": [
-            "domain_truth",
-            "ai_reviewer",
-            "publication_gate",
-            "artifact_authority",
-            "owner_receipt",
-            "typed_blocker",
-        ],
+        "runtime_transport_ref": "opl-generated:family-runtime/current-control",
+        "transport_owner": "one-person-lab",
+        "mas_can_write_runtime_transport": False,
+        "mas_can_authorize_provider_admission": False,
     }
     assert envelope["runtime_completion_guard"] == {
         "provider_completion_is_domain_completion": False,

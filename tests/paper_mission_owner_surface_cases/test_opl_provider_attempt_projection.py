@@ -249,3 +249,43 @@ def test_terminal_provider_attempt_uses_scoped_stage_attempt_inspect(
         _scoped_attempt_list_args(study_id),
         ("family-runtime", "attempt", "inspect", "sat-terminal", "--json"),
     ]
+
+def test_provider_readiness_keeps_opl_queue_name_out_of_mas_projection() -> None:
+    module = importlib.import_module(
+        "med_autoscience.controllers.paper_mission_owner_surface.opl_provider_attempts"
+    )
+
+    projection = module._provider_readiness_from_status(
+        {
+            "family_runtime": {
+                "configured_provider": "temporal",
+                "readiness": {
+                    "provider_ready": True,
+                    "full_online_ready": True,
+                    "durable_online_ready": True,
+                    "opl_current_control_state_ref": "opl://current-control/mas",
+                },
+                "provider_runtime": {
+                    "providers": {
+                        "temporal": {
+                            "task_queue": "must-remain-opl-owned",
+                            "details": {"worker_ready": True},
+                        }
+                    },
+                    "selected": {"details": {}},
+                },
+                "periodic_execution": {
+                    "authority_boundary": {
+                        "can_write_domain_truth": False,
+                        "can_authorize_publication_ready": False,
+                    }
+                },
+            }
+        }
+    )
+
+    assert projection is not None
+    assert "task_queue" not in projection
+    assert projection["opl_current_control_state_ref"] == "opl://current-control/mas"
+    assert projection["can_write_domain_truth"] is False
+    assert projection["can_authorize_publication_ready"] is False

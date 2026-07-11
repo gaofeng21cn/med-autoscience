@@ -14,6 +14,9 @@ from med_autoscience.paper_mission_opl_readback import (
 from med_autoscience.paper_mission_opl_readback.receipt_events import (
     matches_opl_transition_receipt,
 )
+from med_autoscience.paper_mission_opl_readback.opl_task_readback import (
+    matching_opl_runtime_payload_closeout,
+)
 from tests.test_paper_mission_opl_readback_cases.shared import (
     _carrier,
     _opl_route_carrier,
@@ -79,6 +82,38 @@ def test_opl_terminal_closeout_readback_consumes_scoped_stage_attempt_query(
     assert readback["opl_transition_receipt"]["surface_kind"] == (
         "opl_domain_route_transition_receipt"
     )
+
+
+def test_opl_stage_attempt_readback_requires_typed_closeout_not_transport_terminal_status() -> None:
+    payload = _opl_runtime_query_payload()
+    query = payload["family_runtime_stage_attempt_query"]["stage_attempt_query"]
+    attempt = query["attempt"]
+    packet = query["closeouts"][0]["packet"]
+    attempt["status"] = "transport_observed"
+    attempt["provider_run"]["provider_status"] = "transport_observed"
+    packet["status"] = "transport_observed"
+
+    closeout = matching_opl_runtime_payload_closeout(
+        carrier=_opl_route_carrier(),
+        payload=payload,
+    )
+
+    assert closeout is not None
+    assert closeout[0]["closeout_receipt_status"] == "accepted_typed_closeout"
+
+    attempt["status"] = "dead_lettered"
+    attempt["provider_run"]["provider_status"] = "dead_lettered"
+    packet["status"] = "dead_lettered"
+    attempt.pop("closeout_receipt_status")
+    attempt.pop("closeout_refs")
+    packet.pop("closeout_receipt_status")
+    packet.pop("closeout_refs")
+    packet.pop("typed_blocker_ref")
+
+    assert matching_opl_runtime_payload_closeout(
+        carrier=_opl_route_carrier(),
+        payload=payload,
+    ) is None
 
 
 def test_opl_terminal_closeout_readback_rejects_query_without_transition_receipt(

@@ -121,6 +121,30 @@ def test_mds_behavior_equivalence_rejects_daemon_equivalence_and_owner_writes() 
         assert surface["publication_ready_authority_allowed"] is False
 
 
+def test_mds_behavior_equivalence_marks_session_history_as_provenance_only() -> None:
+    module = _module()
+    repo_root = Path(__file__).resolve().parents[1]
+    provenance = json.loads(
+        (repo_root / PROVENANCE_REF).read_text(encoding="utf-8")
+    )
+
+    assert provenance["surface"] == "mds_no_history_snapshot_manifest"
+    assert provenance["source_provenance"]["capability_classification"] == (
+        "external_source_archive_only"
+    )
+    matrix = module.build_mds_behavior_equivalence_matrix()
+    session_surface = next(
+        surface for surface in matrix["behavior_surfaces"] if surface["surface_id"] == "live_worker_session_tracking"
+    )
+    assert session_surface["mds_behavior"]["session_store"] is True
+    assert "session_store" not in session_surface["mas_behavior"]
+    assert session_surface["mas_behavior"]["current_control_state_read_model"] == {
+        "owner": "one-person-lab",
+        "read_only": True,
+        "can_write_domain_truth": False,
+    }
+
+
 def test_source_provenance_json_keeps_archive_readable_without_authority() -> None:
     module = _module()
 

@@ -42,21 +42,10 @@ PRIORITY_LATTICE = [
 ]
 
 AUTHORITY_BOUNDARY = {
-    "opl_owns": [
-        "queue",
-        "attempt",
-        "retry",
-        "dead_letter",
-        "provider_liveness",
-    ],
-    "mas_owns": [
-        "domain_truth",
-        "ai_reviewer",
-        "publication_gate",
-        "artifact_authority",
-        "owner_receipt",
-        "typed_blocker",
-    ],
+    "runtime_transport_ref": "opl-generated:family-runtime/current-control",
+    "transport_owner": "one-person-lab",
+    "mas_can_write_runtime_transport": False,
+    "mas_can_authorize_provider_admission": False,
 }
 RUNTIME_COMPLETION_GUARD = {
     "provider_completion_is_domain_completion": False,
@@ -559,11 +548,8 @@ def _runtime_or_eval_currentness_present(basis: Mapping[str, Any]) -> bool:
     return _text(basis.get("runtime_health_epoch")) is not None or _text(basis.get("source_eval_id")) is not None
 
 
-def _authority_boundary() -> dict[str, list[str]]:
-    return {
-        "opl_owns": list(AUTHORITY_BOUNDARY["opl_owns"]),
-        "mas_owns": list(AUTHORITY_BOUNDARY["mas_owns"]),
-    }
+def _authority_boundary() -> dict[str, object]:
+    return dict(AUTHORITY_BOUNDARY)
 
 
 def _runtime_completion_guard() -> dict[str, Any]:

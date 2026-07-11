@@ -130,7 +130,11 @@ BEHAVIOR_EQUIVALENCE_SURFACES: tuple[dict[str, Any], ...] = (
             "live_session_api": True,
         },
         "mas_behavior": {
-            "session_store": "OPL current_control_state plus MAS domain authority refs",
+            "current_control_state_read_model": {
+                "owner": "one-person-lab",
+                "read_only": True,
+                "can_write_domain_truth": False,
+            },
             "worker_threads": False,
             "runner_monitor": False,
             "worker_residency_owner": False,
