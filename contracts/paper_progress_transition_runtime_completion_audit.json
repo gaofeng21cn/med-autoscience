@@ -105,7 +105,7 @@
     "tests/test_adapter_retirement_boundary.py",
     "tests/test_adapter_retirement_boundary_cases/test_runtime_inventory_contract.py",
     "tests/test_opl_family_persistence_adapter.py",
-    "tests/test_paper_progress_transition_refs.py",
+    "tests/test_opl_transition_readback_contract.py",
     "tests/test_paper_progress_transition_runtime_completion_audit.py"
   ]
 }

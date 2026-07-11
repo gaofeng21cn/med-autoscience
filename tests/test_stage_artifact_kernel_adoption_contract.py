@@ -131,9 +131,6 @@ def test_mas_state_index_source_adapter_has_no_local_persistence_role() -> None:
 
     assert policy["domain_authority_refs_role"] == "body_free_state_index_source_adapter"
     assert policy["runtime_lifecycle_local_persistence_role"] == "retired"
-    assert policy["paper_progress_transition_refs_role"] == (
-        "domain_work_unit_identity_and_policy_request_refs_only"
-    )
     assert policy["mas_can_claim_generic_persistence_engine"] is False
     assert policy["mas_can_claim_generic_lifecycle_owner"] is False
     assert policy["mas_can_claim_generic_queue_owner"] is False

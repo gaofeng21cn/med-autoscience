@@ -151,20 +151,6 @@
       "standardization_layer": "private_platform_residue_inventory"
     },
     {
-      "module_id": "paper_progress_transition_refs",
-      "classification": "refs_only_domain_adapter",
-      "code_paths": [
-        "src/med_autoscience/controllers/paper_progress_transition_refs.py"
-      ],
-      "active_callers": [
-        "paper policy adapter",
-        "domain-handler dispatch transition refs"
-      ],
-      "migration_action": "expose_refs_only_to_opl_generated_surfaces",
-      "retention_reason": "Paper work-unit identity, publication gate context, and artifact delta obligations are MAS domain facts.",
-      "standardization_layer": "private_platform_residue_inventory"
-    },
-    {
       "module_id": "mds_behavior_equivalence_provenance",
       "classification": "refs_only_domain_adapter",
       "code_paths": [
