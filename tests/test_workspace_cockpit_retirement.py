@@ -54,3 +54,49 @@ def test_study_recovery_omits_workspace_cockpit_compatibility() -> None:
             current_blockers=[],
         )
         assert all(step["surface_kind"] != "workspace_cockpit" for step in steps)
+
+
+def test_active_operator_projections_use_mainline_status_without_cockpit_alias() -> None:
+    observability = importlib.import_module("med_autoscience.controllers.ai_first_observability")
+    soak = importlib.import_module("med_autoscience.controllers.open_auto_research_soak")
+
+    dashboard = observability.build_ai_first_operations_dashboard_summary(
+        drift_audit={"status": "pass", "summary": {"fail_count": 0}},
+        progress_snapshot={},
+        runtime_snapshot={},
+        quality_snapshot={},
+        artifact_snapshot={},
+    )
+    projection = soak._entry_projection_results(
+        {
+            "status": "ready",
+            "counts": {},
+            "actions": [],
+            "delivery_journal_usability_guard": {},
+            "authority": {},
+            "refs": {},
+        }
+    )
+
+    assert dashboard["contract"]["shared_read_model_consumers"] == [
+        "product_entry_status",
+        "mainline_status",
+        "study_progress",
+    ]
+    assert "workspace_cockpit" not in dashboard["contract"]["shared_read_model_consumers"]
+    assert "mainline_status" in projection
+    assert "workspace_cockpit" not in projection
+
+
+def test_active_boundary_and_parity_read_models_omit_cockpit_alias() -> None:
+    architecture = importlib.import_module("med_autoscience.controllers.architecture_owner_boundary")
+    boundaries = importlib.import_module("med_autoscience.controllers.module_boundary_audit")
+    parity = importlib.import_module("med_autoscience.controllers.mds_capability_parity.behavior_equivalence")
+
+    architecture_report = architecture.build_architecture_owner_boundary_report()
+    boundary_report = boundaries.build_module_boundary_audit_report()
+    parity_matrix = parity.build_mds_behavior_equivalence_matrix()
+
+    assert "workspace-cockpit" not in str(architecture_report)
+    assert "workspace-cockpit" not in str(boundary_report)
+    assert "workspace_cockpit" not in str(parity_matrix)

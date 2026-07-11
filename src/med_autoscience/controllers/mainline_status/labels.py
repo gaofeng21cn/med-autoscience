@@ -12,7 +12,6 @@ _PHASE_STATUS_LABELS = {
 
 _ENTRY_POINT_LABELS = {
     "mainline_status": "查看主线状态",
-    "workspace_cockpit": "打开 workspace cockpit",
     "study_progress": "查看 study 进度",
     "submit_study_task": "提交 study 任务",
     "launch_study": "启动或续跑 study",

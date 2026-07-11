@@ -12,7 +12,7 @@ OPERATIONS_DASHBOARD_SURFACE = "ai_first_operations_dashboard_summary"
 OPERATIONS_DASHBOARD_READ_MODEL = "ai_first_operations_dashboard_read_model"
 OPERATIONS_DASHBOARD_CONSUMERS = [
     "product_entry_status",
-    "workspace_cockpit",
+    "mainline_status",
     "study_progress",
 ]
 

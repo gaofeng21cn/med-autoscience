@@ -96,7 +96,7 @@ PROGRAM_LANES = (
         "primary_outputs": (
             "single PI-readable next-action payload",
             "study-progress source projection",
-            "workspace-cockpit and product-entry-status consumer projection",
+            "mainline-status and product-entry-status consumer projection",
         ),
         "authority_boundary": "does not independently calculate canonical next action from file state, provider state, or MDS oracle",
     },

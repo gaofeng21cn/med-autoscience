@@ -192,7 +192,7 @@ BEHAVIOR_EQUIVALENCE_SURFACES: tuple[dict[str, Any], ...] = (
         "mas_behavior": {
             "opl_hosted_workbench": True,
             "study_progress": True,
-            "workspace_cockpit": True,
+            "mainline_status": True,
             "primary_scope": "workspace_shell_with_per_study_pages",
             "paper_scoped_navigation": "landed_per_study_pages",
             "route_decision_trail": "landed_read_only",
@@ -392,7 +392,7 @@ RUNTIME_CONTINUITY_COMPLETION = {
     "user_surface_projection": {
         "surfaces": [
             "study_progress",
-            "workspace_cockpit",
+            "mainline_status",
             "product_entry_status",
             "opl_hosted_workbench",
             "mcp_study_progress",

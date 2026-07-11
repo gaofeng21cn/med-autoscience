@@ -375,7 +375,7 @@ TRUTH_BOUNDARIES: tuple[dict[str, Any], ...] = (
     {
         "boundary_id": "study_truth",
         "authority_owner": "StudyTruthKernel",
-        "projection_consumers": ["study-progress", "workspace-cockpit", "product-entry-status"],
+        "projection_consumers": ["study-progress", "mainline-status", "product-entry-status"],
     },
     {
         "boundary_id": "runtime_authority_refs",
