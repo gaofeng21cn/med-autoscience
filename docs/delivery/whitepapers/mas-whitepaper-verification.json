@@ -1,45 +1,64 @@
 {
   "status": "mas_whitepaper_ready",
   "generated_at": "2026-07-07T00:00:00.000Z",
+  "source_profile": "contracts/whitepaper_profile.json",
+  "source_profile_sha256": "683bd77e0c3b3dfb948f59bf82ef1ac03191208ad2945deb72bdc3b36cf142d4",
+  "source_profile_size": 1175,
   "source_markdown": "docs/whitepapers/mas-whitepaper.md",
+  "source_markdown_sha256": "8aa9971c940f94b6637b94dad9608b2229f07888c732d804deb7fd957459b5ec",
+  "source_markdown_size": 18813,
   "generated_markdown": "docs/site/latest/whitepapers/mas-whitepaper.md",
+  "generated_markdown_sha256": "8aa9971c940f94b6637b94dad9608b2229f07888c732d804deb7fd957459b5ec",
+  "generated_markdown_size": 18813,
   "generated_html": "docs/site/latest/whitepapers/mas-whitepaper.html",
+  "generated_html_sha256": "e3b60dc6d4e22ffac3c3df98fb59aad7a687e74c9cd5d81bd58947fb92cb8e4e",
+  "generated_html_size": 24523,
   "generated_pdf": "docs/site/latest/whitepapers/mas-whitepaper.pdf",
+  "generated_pdf_sha256": "9f4db1e370f9450dea99bf3d5289b139176ffaece8961bc8bab4b5e28146638f",
+  "generated_pdf_size": 157541,
   "temp_markdown": "tmp/pdfs/mas-whitepaper/mas-whitepaper.pandoc.md",
   "rendered_dir": "tmp/pdfs/mas-whitepaper/rendered",
   "rendered_pages": 8,
   "rendered_page_hashes": [
     {
       "page": "page-1.png",
-      "sha1": "a9e6b065b773f1e184091b8a394ceaa50910012f"
+      "sha256": "e2357cd9bd1d22fcc42ec521ddee2609b6ca7e8286409f0eb5f939eeeb9bc616",
+      "size": 78445
     },
     {
       "page": "page-2.png",
-      "sha1": "5fdc65e9d7996cc7fe7757c88de520dd2ec98e52"
+      "sha256": "e15fd2d7bd7292d3fd480a2237731bbdc36558bfad428ff26cd7b5c75f8aaf9a",
+      "size": 104151
     },
     {
       "page": "page-3.png",
-      "sha1": "30742427a896196ebf389e2fe7d0b64f46658908"
+      "sha256": "0f7b6a33c81703191ac90969735fd70ab376bd330222450126619b5b46c485f1",
+      "size": 433479
     },
     {
       "page": "page-4.png",
-      "sha1": "34ede54714d010a5cd3b535725ef3466b47102d2"
+      "sha256": "57e4bb0c0b7e29d24a733eda853f1821d537fe1121a681cae0fb8f3f04f49742",
+      "size": 365935
     },
     {
       "page": "page-5.png",
-      "sha1": "6cba90465c381564cef7e733d9216c3a0c958a20"
+      "sha256": "6de63a49311fa951e051f1ffb43993c38c7ecbf3070bfa0c5cd215f6c4825366",
+      "size": 384899
     },
     {
       "page": "page-6.png",
-      "sha1": "bfca9bfa1793a411bbf85a5934f8fbcc943b9822"
+      "sha256": "3968fd324007af7548fd9faa3239624831ad1f4f2a46b924370121583938cf2b",
+      "size": 398155
     },
     {
       "page": "page-7.png",
-      "sha1": "9217de497555da2c490c63ab01c38d77d6224a04"
+      "sha256": "db861106de3f259e9c4ee51e757c1315a3337c6999aad8edad9310cfa35e4d05",
+      "size": 385171
     },
     {
       "page": "page-8.png",
-      "sha1": "597a24825943da7ebb2e1ef3b5960420ae22461c"
+      "sha256": "71e4c6b3bd81873475b31b97e3a0d44b47c8109dc61be8e30e09e0f9192b8d42",
+      "size": 106879
     }
   ],
   "pdf_pages": 8,
