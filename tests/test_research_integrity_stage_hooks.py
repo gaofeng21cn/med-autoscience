@@ -94,18 +94,14 @@ def test_review_publication_gate_stage_hook_builds_reference_verification_gate_i
     assert obligation["paper_mission_subordination"] == payload["paper_mission_subordination"]
     assert obligation["triggered_action"] == "research-integrity-reference-verification"
     assert payload["target_stage_ids"] == obligation["target_stage_ids"]
-    assert payload["triggered_opl_connect_provider_lookup_contract"] == obligation[
-        "triggered_opl_connect_provider_lookup_contract"
-    ]
-    assert payload["triggered_opl_connect_provider_lookup_contract"]["owner"] == (
-        "OPL connector substrate"
-    )
-    assert payload["triggered_opl_connect_provider_lookup_contract"][
-        "mandatory_gate_input_only"
-    ] is True
-    assert payload["triggered_opl_connect_provider_lookup_contract"][
-        "live_owner_consumption_claimed"
-    ] is False
+    provider_lookup = payload["triggered_domain_provider_lookup_contract"]
+    assert provider_lookup == obligation["triggered_domain_provider_lookup_contract"]
+    assert provider_lookup["surface_kind"] == "mas_domain_provider_lookup_contract"
+    assert provider_lookup["owner"] == "MedAutoScience"
+    assert provider_lookup["provider_lookup_mode"] == "domain_owned_evidence_input_only"
+    assert provider_lookup["provider_evidence_consumed_by"] == "research-integrity-reference-verification"
+    assert provider_lookup["mandatory_gate_input_only"] is True
+    assert provider_lookup["live_owner_consumption_claimed"] is False
     launch_required_input = payload["stage_launch_required_input"]
     assert launch_required_input == obligation["stage_launch_required_input"]
     assert launch_required_input["surface_kind"] == (
@@ -207,8 +203,8 @@ def test_stage_control_plane_declares_mandatory_research_integrity_stage_hook_ob
             "claim_citation_support_matrix_v2",
             "manuscript_consistency_meta_review",
         ]
-        assert pre_gate_check["triggered_opl_connect_provider_lookup_contract"] == obligation[
-            "triggered_opl_connect_provider_lookup_contract"
+        assert pre_gate_check["triggered_domain_provider_lookup_contract"] == obligation[
+            "triggered_domain_provider_lookup_contract"
         ]
         assert pre_gate_check["mandatory_before_stage_completion"] is True
         assert pre_gate_check["required_before_owner_receipt_or_typed_blocker"] is True

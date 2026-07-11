@@ -23,8 +23,8 @@ SURFACE_KIND = "reference_provider_lookup_bundle"
 SCHEMA_VERSION = "mas-reference-provider-lookup.v1"
 DEFAULT_PROVIDERS = ("crossref", "pubmed", "openalex", "semantic_scholar")
 SUPPORTED_LOOKUP_PROVIDERS = frozenset(DEFAULT_PROVIDERS + ("crossmark", "publisher"))
-PROVIDER_LOOKUP_MODE = "transition_only_receipt_first"
-AUTHORITATIVE_PROVIDER_TRUTH_OWNER = "OPL Connect provider receipts"
+PROVIDER_LOOKUP_MODE = "domain_owned_evidence_input_only"
+AUTHORITATIVE_PROVIDER_TRUTH_OWNER = "external provider source systems"
 
 JsonHttpClient = Callable[[str, Mapping[str, str], float], Mapping[str, Any]]
 
@@ -132,7 +132,7 @@ def build_reference_provider_lookup_bundle(
         "schema_version": SCHEMA_VERSION,
         "provider_lookup_mode": PROVIDER_LOOKUP_MODE,
         "receipt_first": True,
-        "transition_only": True,
+        "transition_only": False,
         "live_provider_authority_claimed": False,
         "authoritative_provider_truth_owner": AUTHORITATIVE_PROVIDER_TRUTH_OWNER,
         "status": gate_input["status"],
@@ -176,15 +176,16 @@ def provider_lookup_authority_boundary() -> dict[str, Any]:
     boundary = gate_authority_boundary()
     boundary.update(
         {
-            "surface_role": "transition_only_provider_evidence_fetcher",
+            "surface_role": "domain_owned_provider_evidence_fetcher",
+            "provider_lookup_owner": "MedAutoScience",
             "provider_lookup_mode": PROVIDER_LOOKUP_MODE,
             "receipt_first": True,
-            "transition_only": True,
+            "transition_only": False,
             "live_provider_authority_claimed": False,
             "authoritative_provider_truth_owner": AUTHORITATIVE_PROVIDER_TRUTH_OWNER,
             "can_call_external_provider": True,
             "can_claim_live_provider_truth": False,
-            "can_be_used_as_authoritative_provider_truth_without_opl_receipt": False,
+            "can_be_used_as_authoritative_provider_truth_without_owner_consumption": False,
             "can_write_provider_attempt": False,
             "can_write_provider_cache": False,
             "can_materialize_provider_receipt": False,

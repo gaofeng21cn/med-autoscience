@@ -50,11 +50,11 @@ def test_provider_lookup_verifies_reference_through_crossref_doi() -> None:
     evidence = reference["provider_evidence"][0]
 
     assert bundle["surface_kind"] == "reference_provider_lookup_bundle"
-    assert bundle["provider_lookup_mode"] == PROVIDER_LOOKUP_MODE
+    assert bundle["provider_lookup_mode"] == "domain_owned_evidence_input_only"
     assert bundle["receipt_first"] is True
-    assert bundle["transition_only"] is True
+    assert bundle["transition_only"] is False
     assert bundle["live_provider_authority_claimed"] is False
-    assert bundle["authoritative_provider_truth_owner"] == "OPL Connect provider receipts"
+    assert bundle["authoritative_provider_truth_owner"] == "external provider source systems"
     assert bundle["status"] == "clear"
     assert bundle["provider_summary"] == {"found": 1, "not_found": 0, "error": 0}
     assert reference["attestation"]["status"] == "verified"
@@ -71,11 +71,11 @@ def test_provider_lookup_verifies_reference_through_crossref_doi() -> None:
     assert bundle["authority_boundary"]["can_call_external_provider"] is True
     assert bundle["authority_boundary"]["provider_lookup_mode"] == PROVIDER_LOOKUP_MODE
     assert bundle["authority_boundary"]["receipt_first"] is True
-    assert bundle["authority_boundary"]["transition_only"] is True
+    assert bundle["authority_boundary"]["transition_only"] is False
     assert bundle["authority_boundary"]["live_provider_authority_claimed"] is False
     assert bundle["authority_boundary"]["can_claim_live_provider_truth"] is False
     assert (
-        bundle["authority_boundary"]["can_be_used_as_authoritative_provider_truth_without_opl_receipt"]
+        bundle["authority_boundary"]["can_be_used_as_authoritative_provider_truth_without_owner_consumption"]
         is False
     )
     assert bundle["authority_boundary"]["can_write_mas_study_truth"] is False
@@ -83,7 +83,7 @@ def test_provider_lookup_verifies_reference_through_crossref_doi() -> None:
     assert bundle["authority_boundary"]["can_write_provider_attempt"] is False
 
 
-def test_provider_lookup_contract_declares_receipt_first_transition_only_boundary() -> None:
+def test_provider_lookup_contract_declares_domain_owned_evidence_input_boundary() -> None:
     contract = json.loads(
         (Path(__file__).resolve().parents[1] / "contracts/research-integrity-layer.json").read_text()
     )
@@ -93,16 +93,38 @@ def test_provider_lookup_contract_declares_receipt_first_transition_only_boundar
 
     assert boundary["provider_lookup_mode"] == PROVIDER_LOOKUP_MODE
     assert boundary["receipt_first"] is True
-    assert boundary["transition_only"] is True
+    assert boundary["transition_only"] is False
     assert boundary["live_provider_authority_claimed"] is False
-    assert boundary["authoritative_provider_truth_owner"] == "OPL Connect provider receipts"
+    assert boundary["authoritative_provider_truth_owner"] == "external provider source systems"
     assert boundary["can_claim_live_provider_truth"] is False
-    assert boundary["can_be_used_as_authoritative_provider_truth_without_opl_receipt"] is False
+    assert boundary["can_be_used_as_authoritative_provider_truth_without_owner_consumption"] is False
     assert boundary["can_materialize_provider_receipt"] is False
     assert "Claude Science equivalent online verification" in boundary["forbidden_claims"]
     assert target["provider_lookup_mode"] == PROVIDER_LOOKUP_MODE
     assert target["receipt_first"] is True
+    assert target["transition_only"] is False
     assert target["live_provider_authority_claimed"] is False
+
+
+def test_provider_lookup_contract_retires_opl_owned_lookup_descriptions() -> None:
+    contract = json.loads(
+        (Path(__file__).resolve().parents[1] / "contracts/research-integrity-layer.json").read_text()
+    )
+    serialized = json.dumps(contract, sort_keys=True)
+    gate_input_surface = next(
+        surface
+        for surface in contract["entry_surfaces"]
+        if surface["surface_kind"] == "research_integrity_gate_input_bundle"
+    )
+
+    assert "OPL/provider lookup" not in serialized
+    assert "OPL Connect provider receipts" not in serialized
+    assert contract["entry_surfaces"][0]["inputs"][1] == (
+        "provider evidence payloads supplied by MAS domain provider lookup or explicit generic connector input"
+    )
+    assert gate_input_surface["inputs"][0] == (
+        "reference_checks or reference/references with provider_evidence from MAS domain provider lookup"
+    )
 
 
 def test_provider_lookup_resolves_pubmed_from_doi_then_builds_gate_input() -> None:

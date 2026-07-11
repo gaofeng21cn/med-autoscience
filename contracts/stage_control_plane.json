@@ -5004,7 +5004,7 @@
               "publication_gate_entered"
             ],
             "triggered_action": "research-integrity-reference-verification",
-            "triggered_opl_connect_provider_lookup_contract": {
+            "triggered_domain_provider_lookup_contract": {
               "can_write_provider_attempt": false,
               "can_write_runtime_queue": false,
               "live_owner_consumption_claimed": false,
@@ -5017,10 +5017,11 @@
                 "crossmark"
               ],
               "mandatory_gate_input_only": true,
-              "owner": "OPL connector substrate",
-              "provider_receipt_consumed_by": "research-integrity-reference-verification",
+              "owner": "MedAutoScience",
+              "provider_lookup_mode": "domain_owned_evidence_input_only",
+              "provider_evidence_consumed_by": "research-integrity-reference-verification",
               "schema_version": 1,
-              "surface_kind": "opl_connect_provider_lookup_contract",
+              "surface_kind": "mas_domain_provider_lookup_contract",
               "triggered_action": "research-integrity-reference-verification",
               "triggered_by_hook_id": "research-integrity-review-publication-gate-stage-hook"
             }
@@ -5434,7 +5435,7 @@
               "publication_gate_entered"
             ],
             "triggered_action": "research-integrity-reference-verification",
-            "triggered_opl_connect_provider_lookup_contract": {
+            "triggered_domain_provider_lookup_contract": {
               "can_write_provider_attempt": false,
               "can_write_runtime_queue": false,
               "live_owner_consumption_claimed": false,
@@ -5447,10 +5448,11 @@
                 "crossmark"
               ],
               "mandatory_gate_input_only": true,
-              "owner": "OPL connector substrate",
-              "provider_receipt_consumed_by": "research-integrity-reference-verification",
+              "owner": "MedAutoScience",
+              "provider_lookup_mode": "domain_owned_evidence_input_only",
+              "provider_evidence_consumed_by": "research-integrity-reference-verification",
               "schema_version": 1,
-              "surface_kind": "opl_connect_provider_lookup_contract",
+              "surface_kind": "mas_domain_provider_lookup_contract",
               "triggered_action": "research-integrity-reference-verification",
               "triggered_by_hook_id": "research-integrity-review-publication-gate-stage-hook"
             }
@@ -5467,7 +5469,7 @@
             "publication_gate_entered"
           ],
           "triggered_action": "research-integrity-reference-verification",
-          "triggered_opl_connect_provider_lookup_contract": {
+          "triggered_domain_provider_lookup_contract": {
             "can_write_provider_attempt": false,
             "can_write_runtime_queue": false,
             "live_owner_consumption_claimed": false,
@@ -5480,10 +5482,11 @@
               "crossmark"
             ],
             "mandatory_gate_input_only": true,
-            "owner": "OPL connector substrate",
-            "provider_receipt_consumed_by": "research-integrity-reference-verification",
+            "owner": "MedAutoScience",
+            "provider_lookup_mode": "domain_owned_evidence_input_only",
+            "provider_evidence_consumed_by": "research-integrity-reference-verification",
             "schema_version": 1,
-            "surface_kind": "opl_connect_provider_lookup_contract",
+            "surface_kind": "mas_domain_provider_lookup_contract",
             "triggered_action": "research-integrity-reference-verification",
             "triggered_by_hook_id": "research-integrity-review-publication-gate-stage-hook"
           }
@@ -5948,7 +5951,7 @@
               "publication_gate_entered"
             ],
             "triggered_action": "research-integrity-reference-verification",
-            "triggered_opl_connect_provider_lookup_contract": {
+            "triggered_domain_provider_lookup_contract": {
               "can_write_provider_attempt": false,
               "can_write_runtime_queue": false,
               "live_owner_consumption_claimed": false,
@@ -5961,10 +5964,11 @@
                 "crossmark"
               ],
               "mandatory_gate_input_only": true,
-              "owner": "OPL connector substrate",
-              "provider_receipt_consumed_by": "research-integrity-reference-verification",
+              "owner": "MedAutoScience",
+              "provider_lookup_mode": "domain_owned_evidence_input_only",
+              "provider_evidence_consumed_by": "research-integrity-reference-verification",
               "schema_version": 1,
-              "surface_kind": "opl_connect_provider_lookup_contract",
+              "surface_kind": "mas_domain_provider_lookup_contract",
               "triggered_action": "research-integrity-reference-verification",
               "triggered_by_hook_id": "research-integrity-review-publication-gate-stage-hook"
             }
@@ -6772,7 +6776,7 @@
               "publication_gate_entered"
             ],
             "triggered_action": "research-integrity-reference-verification",
-            "triggered_opl_connect_provider_lookup_contract": {
+            "triggered_domain_provider_lookup_contract": {
               "can_write_provider_attempt": false,
               "can_write_runtime_queue": false,
               "live_owner_consumption_claimed": false,
@@ -6785,10 +6789,11 @@
                 "crossmark"
               ],
               "mandatory_gate_input_only": true,
-              "owner": "OPL connector substrate",
-              "provider_receipt_consumed_by": "research-integrity-reference-verification",
+              "owner": "MedAutoScience",
+              "provider_lookup_mode": "domain_owned_evidence_input_only",
+              "provider_evidence_consumed_by": "research-integrity-reference-verification",
               "schema_version": 1,
-              "surface_kind": "opl_connect_provider_lookup_contract",
+              "surface_kind": "mas_domain_provider_lookup_contract",
               "triggered_action": "research-integrity-reference-verification",
               "triggered_by_hook_id": "research-integrity-review-publication-gate-stage-hook"
             }
@@ -7201,7 +7206,7 @@
               "publication_gate_entered"
             ],
             "triggered_action": "research-integrity-reference-verification",
-            "triggered_opl_connect_provider_lookup_contract": {
+            "triggered_domain_provider_lookup_contract": {
               "can_write_provider_attempt": false,
               "can_write_runtime_queue": false,
               "live_owner_consumption_claimed": false,
@@ -7214,10 +7219,11 @@
                 "crossmark"
               ],
               "mandatory_gate_input_only": true,
-              "owner": "OPL connector substrate",
-              "provider_receipt_consumed_by": "research-integrity-reference-verification",
+              "owner": "MedAutoScience",
+              "provider_lookup_mode": "domain_owned_evidence_input_only",
+              "provider_evidence_consumed_by": "research-integrity-reference-verification",
               "schema_version": 1,
-              "surface_kind": "opl_connect_provider_lookup_contract",
+              "surface_kind": "mas_domain_provider_lookup_contract",
               "triggered_action": "research-integrity-reference-verification",
               "triggered_by_hook_id": "research-integrity-review-publication-gate-stage-hook"
             }
@@ -7234,7 +7240,7 @@
             "publication_gate_entered"
           ],
           "triggered_action": "research-integrity-reference-verification",
-          "triggered_opl_connect_provider_lookup_contract": {
+          "triggered_domain_provider_lookup_contract": {
             "can_write_provider_attempt": false,
             "can_write_runtime_queue": false,
             "live_owner_consumption_claimed": false,
@@ -7247,10 +7253,11 @@
               "crossmark"
             ],
             "mandatory_gate_input_only": true,
-            "owner": "OPL connector substrate",
-            "provider_receipt_consumed_by": "research-integrity-reference-verification",
+            "owner": "MedAutoScience",
+            "provider_lookup_mode": "domain_owned_evidence_input_only",
+            "provider_evidence_consumed_by": "research-integrity-reference-verification",
             "schema_version": 1,
-            "surface_kind": "opl_connect_provider_lookup_contract",
+            "surface_kind": "mas_domain_provider_lookup_contract",
             "triggered_action": "research-integrity-reference-verification",
             "triggered_by_hook_id": "research-integrity-review-publication-gate-stage-hook"
           }
@@ -7716,7 +7723,7 @@
               "publication_gate_entered"
             ],
             "triggered_action": "research-integrity-reference-verification",
-            "triggered_opl_connect_provider_lookup_contract": {
+            "triggered_domain_provider_lookup_contract": {
               "can_write_provider_attempt": false,
               "can_write_runtime_queue": false,
               "live_owner_consumption_claimed": false,
@@ -7729,10 +7736,11 @@
                 "crossmark"
               ],
               "mandatory_gate_input_only": true,
-              "owner": "OPL connector substrate",
-              "provider_receipt_consumed_by": "research-integrity-reference-verification",
+              "owner": "MedAutoScience",
+              "provider_lookup_mode": "domain_owned_evidence_input_only",
+              "provider_evidence_consumed_by": "research-integrity-reference-verification",
               "schema_version": 1,
-              "surface_kind": "opl_connect_provider_lookup_contract",
+              "surface_kind": "mas_domain_provider_lookup_contract",
               "triggered_action": "research-integrity-reference-verification",
               "triggered_by_hook_id": "research-integrity-review-publication-gate-stage-hook"
             }

@@ -141,6 +141,18 @@ def test_review_stage_prompt_routes_professional_review_to_mas_scholar_skills() 
     assert "MAS remains the owner" in review_text
 
 
+@pytest.mark.parametrize("skill_id", ("write", "review"))
+def test_stage_prompts_route_pubmed_lookup_to_the_mas_domain_action(skill_id: str) -> None:
+    module = importlib.import_module("med_autoscience.overlay.installer")
+
+    skill_text = module.load_overlay_skill_text(skill_id)
+
+    assert "research-integrity-reference-verification" in skill_text
+    assert "MedAutoScience domain-owned provider lookup" in skill_text
+    assert "opl connect scientific search --provider pubmed" not in skill_text
+    assert "opl connect pubmed search" not in skill_text
+
+
 def test_finalize_and_journal_resolution_projection_templates_keep_route_back_blockers() -> None:
     module = importlib.import_module("med_autoscience.overlay.installer")
 
