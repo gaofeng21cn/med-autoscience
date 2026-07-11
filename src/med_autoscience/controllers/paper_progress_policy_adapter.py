@@ -9,7 +9,7 @@ from med_autoscience.controllers import opl_domain_progress_transition_contract 
 from med_autoscience.controllers.opl_transition_readback import (
     required_opl_transition_readback_shape,
 )
-from med_autoscience.runtime_control.owner_route_attempt_protocol import normalize_currentness_sources
+from med_autoscience.controllers.stage_outcome_authority.owner_route_attempt_policy import normalize_currentness_sources
 
 START_PROVIDER_ATTEMPT = "StartProviderAttempt"
 MATERIALIZE_OWNER_ACTION = "MaterializeOwnerAction"

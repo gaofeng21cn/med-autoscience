@@ -4,7 +4,7 @@ from collections.abc import Mapping
 from typing import Any
 
 from med_autoscience.profiles import WorkspaceProfile
-from med_autoscience.runtime_control import owner_route as owner_route_part
+from med_autoscience.controllers.stage_outcome_authority import owner_route_policy as owner_route_part
 
 from . import current_writer_handoff
 from . import owner_request_currentness

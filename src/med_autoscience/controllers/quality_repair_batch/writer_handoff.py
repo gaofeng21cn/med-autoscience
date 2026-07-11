@@ -13,7 +13,7 @@ from med_autoscience.controllers.opl_domain_progress_transition_contract import 
 )
 from med_autoscience.controllers.paper_progress_policy_adapter import build_transition_request
 from med_autoscience.profiles import WorkspaceProfile
-from med_autoscience.runtime_control import owner_route as owner_route_part
+from med_autoscience.controllers.stage_outcome_authority import owner_route_policy as owner_route_part
 from med_autoscience.study_decision_record import StudyDecisionActionType
 from med_autoscience.controllers.story_surface_work_units import is_story_surface_delta_write_work_unit
 from med_autoscience.controllers.quality_repair_batch.repair_execution_gate import (

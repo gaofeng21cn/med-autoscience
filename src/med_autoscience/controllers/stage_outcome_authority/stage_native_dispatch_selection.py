@@ -5,7 +5,7 @@ from typing import Any
 
 from med_autoscience.controllers import opl_domain_progress_transition_contract
 from med_autoscience.profiles import WorkspaceProfile
-from med_autoscience.runtime_control import owner_route as owner_route_part
+from med_autoscience.controllers.stage_outcome_authority import owner_route_policy as owner_route_part
 
 from . import opl_execution_preflight
 from . import opl_owner_callable_proof

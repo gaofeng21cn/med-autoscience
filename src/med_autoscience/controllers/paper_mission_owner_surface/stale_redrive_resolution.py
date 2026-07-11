@@ -4,7 +4,7 @@ from collections.abc import Mapping
 from typing import Any
 
 from med_autoscience.controllers.paper_mission_owner_surface import artifact_freshness
-from med_autoscience.runtime_control import owner_route as owner_route_part
+from med_autoscience.controllers.stage_outcome_authority import owner_route_policy as owner_route_part
 from med_autoscience.controllers.study_state_matrix.progress_first_tick_accounting import (
     redrive_budget_blocker_superseded_by_terminal_delta,
 )

@@ -7,7 +7,7 @@ from typing import Any
 from med_autoscience.controllers import study_transition_receipt_consumption
 from med_autoscience.controllers.owner_callable_action_policy import SUPPORTED_ACTION_TYPES
 from med_autoscience.controllers.paper_mission_owner_surface import domain_transition_actions
-from med_autoscience.runtime_control import owner_route as owner_route_part
+from med_autoscience.controllers.stage_outcome_authority import owner_route_policy as owner_route_part
 
 
 def consumed_current_transition_receipt(

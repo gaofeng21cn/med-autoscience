@@ -15,7 +15,7 @@ from med_autoscience.controllers.opl_domain_progress_transition_contract import 
 from med_autoscience.controllers.runtime_ai_repair_policy import owner_callable_policy
 from med_autoscience.medical_prose_review_request import materialize_medical_prose_review_request
 from med_autoscience.profiles import WorkspaceProfile
-from med_autoscience.runtime_control import owner_route as owner_route_part
+from med_autoscience.controllers.stage_outcome_authority import owner_route_policy as owner_route_part
 
 
 REVIEW_OUTPUT_SURFACE = "artifacts/publication_eval/medical_prose_review.json"

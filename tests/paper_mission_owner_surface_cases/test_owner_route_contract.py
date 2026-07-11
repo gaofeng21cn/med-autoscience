@@ -33,7 +33,7 @@ def test_owner_route_allows_quality_repair_batch_for_write_route() -> None:
         "owner_route": owner_route,
     }
 
-    owner_route_module = importlib.import_module("med_autoscience.runtime_control.owner_route")
+    owner_route_module = importlib.import_module("med_autoscience.controllers.stage_outcome_authority.owner_route_policy")
 
     assert owner_route_module.route_allows_action(action=action, owner_route=owner_route) is True
 
@@ -60,7 +60,7 @@ def test_owner_route_registers_domain_transition_publication_gate_blocker() -> N
         "source_refs": {"work_unit_id": "publication_gate_replay"},
         "idempotency_key": "owner-route::dm003::publication-gate",
     }
-    protocol = importlib.import_module("med_autoscience.runtime_control.owner_route_attempt_protocol")
+    protocol = importlib.import_module("med_autoscience.controllers.stage_outcome_authority.owner_route_attempt_policy")
 
     decorated = protocol.decorate_owner_route(owner_route)
 
@@ -199,7 +199,7 @@ def test_scan_domain_routes_projects_parked_macro_state_as_current_truth_owner_r
 
 
 def test_owner_route_fallback_source_fingerprint_tracks_action_payload_targets() -> None:
-    module = importlib.import_module("med_autoscience.runtime_control.owner_route")
+    module = importlib.import_module("med_autoscience.controllers.stage_outcome_authority.owner_route_policy")
     base = {
         "action_type": "publication_gate_specificity_required",
         "owner": "publication_gate",
@@ -239,7 +239,7 @@ def test_owner_route_fallback_source_fingerprint_tracks_action_payload_targets()
 
 
 def test_owner_route_requires_explicit_allowed_action_for_dispatch_execution() -> None:
-    module = importlib.import_module("med_autoscience.runtime_control.owner_route")
+    module = importlib.import_module("med_autoscience.controllers.stage_outcome_authority.owner_route_policy")
     action = {
         "action_type": "return_to_ai_reviewer_workflow",
         "owner": "ai_reviewer",
@@ -259,7 +259,7 @@ def test_owner_route_requires_explicit_allowed_action_for_dispatch_execution() -
 
 
 def test_registered_owner_route_decorator_keeps_missing_allowed_action_non_dispatchable() -> None:
-    protocol = importlib.import_module("med_autoscience.runtime_control.owner_route_attempt_protocol")
+    protocol = importlib.import_module("med_autoscience.controllers.stage_outcome_authority.owner_route_attempt_policy")
     route = {
         "surface": "domain_route_owner_route",
         "schema_version": 2,
@@ -299,7 +299,7 @@ def test_registered_owner_route_decorator_keeps_missing_allowed_action_non_dispa
 
 
 def test_owner_route_scan_consumer_and_executor_share_contract_import() -> None:
-    shared = importlib.import_module("med_autoscience.runtime_control.owner_route")
+    shared = importlib.import_module("med_autoscience.controllers.stage_outcome_authority.owner_route_policy")
     modules = [importlib.import_module("med_autoscience.controllers.paper_mission_owner_surface")]
 
     for module in modules:

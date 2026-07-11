@@ -9,7 +9,7 @@ from med_autoscience.controllers.owner_callable_action_policy import (
     request_output_surface_for_action_type,
     request_owner_for_action_type,
 )
-from med_autoscience.runtime_control import owner_route as owner_route_part
+from med_autoscience.controllers.stage_outcome_authority import owner_route_policy as owner_route_part
 
 
 BUDGET_EXHAUSTED_SURFACE_KIND = "mas_progress_first_budget_exhausted_decision"

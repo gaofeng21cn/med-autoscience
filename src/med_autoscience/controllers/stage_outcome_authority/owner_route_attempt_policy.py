@@ -8,7 +8,7 @@ from med_autoscience.controllers.owner_callable_closeout_contract import (
 )
 from med_autoscience.controllers.owner_callable_action_policy import owner_callable_search_discipline
 from med_autoscience.controllers import paper_progress_transition_refs
-from med_autoscience.runtime_control.owner_route_attempt_reasons import (
+from med_autoscience.controllers.stage_outcome_authority.owner_route_attempt_reasons import (
     DEFAULT_FORBIDDEN_SURFACES,
     _REASON_REGISTRY,
 )

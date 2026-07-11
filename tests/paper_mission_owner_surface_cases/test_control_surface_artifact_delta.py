@@ -244,7 +244,7 @@ def test_repeat_suppression_consumes_recorded_failed_path_refs_with_decision_and
 
 
 def test_owner_route_consumes_negative_result_refs_before_repeat_guard() -> None:
-    module = importlib.import_module("med_autoscience.runtime_control.owner_route")
+    module = importlib.import_module("med_autoscience.controllers.stage_outcome_authority.owner_route_policy")
     negative_ref = (
         "studies/002-dm-china-us-mortality-attribution/artifacts/research/"
         "negative_failed_path_ledger/latest.json"

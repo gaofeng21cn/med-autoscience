@@ -3,7 +3,7 @@ from __future__ import annotations
 from collections.abc import Mapping
 from typing import Any
 
-from med_autoscience.runtime_control import owner_route_attempt_protocol
+from med_autoscience.controllers.stage_outcome_authority import owner_route_attempt_policy
 
 
 ACTIVE_OWNER_REQUEST_STATUSES = frozenset({None, "requested", "pending", "assigned"})
@@ -67,7 +67,7 @@ def _request_route_matches_current_values(
     request_route: Mapping[str, Any],
     current_values: Mapping[str, str],
 ) -> bool:
-    request_basis = owner_route_attempt_protocol.normalize_currentness_sources(request_route)
+    request_basis = owner_route_attempt_policy.normalize_currentness_sources(request_route)
     for key, current_value in current_values.items():
         request_value = _text(request_basis.get(key))
         if request_value is None:
@@ -82,7 +82,7 @@ def _canonical_next_action_values(current_study: Mapping[str, Any]) -> dict[str,
     if _text(payload.get("surface_kind")) != "mas_next_action_envelope":
         return {}
     basis = _mapping(payload.get("currentness_basis"))
-    values = owner_route_attempt_protocol.normalize_currentness_sources(payload, basis)
+    values = owner_route_attempt_policy.normalize_currentness_sources(payload, basis)
     return {
         name: text
         for name, value in values.items()

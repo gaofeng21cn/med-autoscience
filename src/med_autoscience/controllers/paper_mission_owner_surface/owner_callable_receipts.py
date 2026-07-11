@@ -10,7 +10,7 @@ from med_autoscience.controllers.paper_mission_owner_surface import current_trut
 from med_autoscience.controllers.study_transition_receipt_consumption.owner_callable_candidates import (
     owner_callable_receipt_candidates,
 )
-from med_autoscience.runtime_control import owner_route as owner_route_part
+from med_autoscience.controllers.stage_outcome_authority import owner_route_policy as owner_route_part
 
 
 def route_and_consume_current_execution_receipt(

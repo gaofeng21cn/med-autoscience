@@ -4,7 +4,7 @@ import importlib
 
 
 def test_owner_route_protocol_uses_one_opl_transport_ref_without_lifecycle_internals() -> None:
-    protocol = importlib.import_module("med_autoscience.runtime_control.owner_route_attempt_protocol")
+    protocol = importlib.import_module("med_autoscience.controllers.stage_outcome_authority.owner_route_attempt_policy")
 
     boundary = protocol._authority_boundary()
 
@@ -18,7 +18,7 @@ def test_owner_route_protocol_uses_one_opl_transport_ref_without_lifecycle_inter
 
 
 def test_owner_route_protocol_attaches_registered_reason_and_priority_lattice() -> None:
-    owner_route_module = importlib.import_module("med_autoscience.runtime_control.owner_route")
+    owner_route_module = importlib.import_module("med_autoscience.controllers.stage_outcome_authority.owner_route_policy")
 
     status = {
         "study_truth_snapshot": {
@@ -67,7 +67,7 @@ def test_owner_route_protocol_attaches_registered_reason_and_priority_lattice() 
 
 
 def test_owner_route_registers_dm002_clean_migration_publication_gate_replay() -> None:
-    protocol = importlib.import_module("med_autoscience.runtime_control.owner_route_attempt_protocol")
+    protocol = importlib.import_module("med_autoscience.controllers.stage_outcome_authority.owner_route_attempt_policy")
 
     owner_route = {
         "surface": "domain_route_owner_route",
@@ -126,7 +126,7 @@ def test_owner_route_registers_dm002_clean_migration_publication_gate_replay() -
 
 
 def test_owner_route_registers_dm002_ai_reviewer_record_gate_consumption() -> None:
-    protocol = importlib.import_module("med_autoscience.runtime_control.owner_route_attempt_protocol")
+    protocol = importlib.import_module("med_autoscience.controllers.stage_outcome_authority.owner_route_attempt_policy")
 
     decorated = protocol.decorate_owner_route(
         {
@@ -157,7 +157,7 @@ def test_owner_route_registers_dm002_ai_reviewer_record_gate_consumption() -> No
 
 
 def test_owner_route_registers_paper_clean_room_rebuild_action() -> None:
-    protocol = importlib.import_module("med_autoscience.runtime_control.owner_route_attempt_protocol")
+    protocol = importlib.import_module("med_autoscience.controllers.stage_outcome_authority.owner_route_attempt_policy")
 
     decorated = protocol.decorate_owner_route(
         {
@@ -192,7 +192,7 @@ def test_owner_route_registers_paper_clean_room_rebuild_action() -> None:
 
 
 def test_owner_route_executable_identity_ignores_projection_counter_churn() -> None:
-    owner_route_module = importlib.import_module("med_autoscience.runtime_control.owner_route")
+    owner_route_module = importlib.import_module("med_autoscience.controllers.stage_outcome_authority.owner_route_policy")
 
     status = {
         "study_truth_snapshot": {"truth_epoch": "truth-epoch-dm002"},
@@ -264,7 +264,7 @@ def test_owner_route_executable_identity_ignores_projection_counter_churn() -> N
 
 
 def test_owner_route_protocol_projects_decision_trace_and_failed_path_refs_without_body() -> None:
-    owner_route_module = importlib.import_module("med_autoscience.runtime_control.owner_route")
+    owner_route_module = importlib.import_module("med_autoscience.controllers.stage_outcome_authority.owner_route_policy")
 
     route = owner_route_module.build_owner_route(
         study_id="002-dm-china-us-mortality-attribution",
@@ -334,7 +334,7 @@ def test_owner_route_protocol_projects_decision_trace_and_failed_path_refs_witho
 
 
 def test_owner_route_protocol_suppresses_action_with_consumed_failed_path_ref() -> None:
-    owner_route_module = importlib.import_module("med_autoscience.runtime_control.owner_route")
+    owner_route_module = importlib.import_module("med_autoscience.controllers.stage_outcome_authority.owner_route_policy")
 
     owner_route, actions = owner_route_module.route_and_decorate_actions(
         study_id="002-dm-china-us-mortality-attribution",
@@ -376,7 +376,7 @@ def test_owner_route_protocol_suppresses_action_with_consumed_failed_path_ref() 
 
 
 def test_owner_route_normalization_preserves_embedded_currentness_work_unit_id() -> None:
-    owner_route_module = importlib.import_module("med_autoscience.runtime_control.owner_route")
+    owner_route_module = importlib.import_module("med_autoscience.controllers.stage_outcome_authority.owner_route_policy")
 
     route = owner_route_module.ensure_owner_route_v2(
         {
@@ -414,7 +414,7 @@ def test_owner_route_normalization_preserves_embedded_currentness_work_unit_id()
 
 
 def test_owner_route_currentness_basis_preserves_embedded_action_source_identity() -> None:
-    protocol = importlib.import_module("med_autoscience.runtime_control.owner_route_attempt_protocol")
+    protocol = importlib.import_module("med_autoscience.controllers.stage_outcome_authority.owner_route_attempt_policy")
 
     basis = protocol.currentness_basis(
         {
@@ -450,7 +450,7 @@ def test_owner_route_currentness_basis_preserves_embedded_action_source_identity
 
 
 def test_owner_route_protocol_normalizes_publication_eval_ref_as_source_eval_currentness() -> None:
-    protocol = importlib.import_module("med_autoscience.runtime_control.owner_route_attempt_protocol")
+    protocol = importlib.import_module("med_autoscience.controllers.stage_outcome_authority.owner_route_attempt_policy")
 
     route = protocol.decorate_owner_route(
         {
@@ -487,7 +487,7 @@ def test_owner_route_protocol_normalizes_publication_eval_ref_as_source_eval_cur
 
 
 def test_owner_route_protocol_treats_unregistered_reason_as_diagnostic_when_route_is_complete() -> None:
-    owner_route_module = importlib.import_module("med_autoscience.runtime_control.owner_route")
+    owner_route_module = importlib.import_module("med_autoscience.controllers.stage_outcome_authority.owner_route_policy")
 
     route = owner_route_module.build_owner_route(
         study_id="002-dm-china-us-mortality-attribution",
@@ -520,7 +520,7 @@ def test_owner_route_protocol_treats_unregistered_reason_as_diagnostic_when_rout
 
 
 def test_owner_callable_attempt_envelope_declares_domain_intent_and_authority_boundary() -> None:
-    protocol = importlib.import_module("med_autoscience.runtime_control.owner_route_attempt_protocol")
+    protocol = importlib.import_module("med_autoscience.controllers.stage_outcome_authority.owner_route_attempt_policy")
 
     owner_route = {
         "surface": "domain_route_owner_route",
@@ -608,7 +608,7 @@ def test_owner_callable_attempt_envelope_declares_domain_intent_and_authority_bo
 
 
 def test_owner_callable_attempt_envelope_accepts_eval_bound_writer_route_without_runtime_health() -> None:
-    protocol = importlib.import_module("med_autoscience.runtime_control.owner_route_attempt_protocol")
+    protocol = importlib.import_module("med_autoscience.controllers.stage_outcome_authority.owner_route_attempt_policy")
 
     source_eval_id = (
         "publication-eval::003-dpcc-primary-care-phenotype-treatment-gap::"
@@ -665,7 +665,7 @@ def test_owner_callable_attempt_envelope_accepts_eval_bound_writer_route_without
 
 
 def test_owner_callable_attempt_envelope_carries_decision_trace_refs_only() -> None:
-    protocol = importlib.import_module("med_autoscience.runtime_control.owner_route_attempt_protocol")
+    protocol = importlib.import_module("med_autoscience.controllers.stage_outcome_authority.owner_route_attempt_policy")
 
     owner_route = {
         "surface": "domain_route_owner_route",
@@ -737,7 +737,7 @@ def test_owner_callable_attempt_envelope_carries_decision_trace_refs_only() -> N
 
 
 def test_owner_callable_attempt_envelope_preallocates_closeout_first_contract() -> None:
-    protocol = importlib.import_module("med_autoscience.runtime_control.owner_route_attempt_protocol")
+    protocol = importlib.import_module("med_autoscience.controllers.stage_outcome_authority.owner_route_attempt_policy")
 
     envelope = protocol.owner_callable_attempt_envelope(
         dispatch={
@@ -807,7 +807,7 @@ def test_owner_callable_attempt_envelope_preallocates_closeout_first_contract() 
 
 
 def test_owner_callable_attempt_envelope_fails_closed_without_domain_intent_required_fields() -> None:
-    protocol = importlib.import_module("med_autoscience.runtime_control.owner_route_attempt_protocol")
+    protocol = importlib.import_module("med_autoscience.controllers.stage_outcome_authority.owner_route_attempt_policy")
 
     envelope = protocol.owner_callable_attempt_envelope(
         dispatch={

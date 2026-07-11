@@ -4,7 +4,7 @@ from collections.abc import Mapping
 from typing import Any
 
 from med_autoscience.controllers.gate_clearing_batch_work_units import PUBLICATION_GATE_REPLAY_WORK_UNIT_IDS
-from med_autoscience.runtime_control import owner_route as owner_route_part
+from med_autoscience.controllers.stage_outcome_authority import owner_route_policy as owner_route_part
 
 from . import consumed_transition_currentness
 from . import owner_request_paths

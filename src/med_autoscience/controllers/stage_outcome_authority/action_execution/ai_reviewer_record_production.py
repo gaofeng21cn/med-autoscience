@@ -18,7 +18,7 @@ from med_autoscience.controllers.domain_action_request_lifecycle import (
 from med_autoscience.controllers.opl_domain_progress_transition_contract import (
     mas_request_transport_fields as domain_progress_transition_request_transport_fields,
 )
-from med_autoscience.runtime_control import owner_route_attempt_protocol
+from med_autoscience.controllers.stage_outcome_authority import owner_route_attempt_policy
 from med_autoscience.controllers.runtime_ai_repair_policy import owner_callable_policy
 from med_autoscience.medical_prose_review import stable_medical_prose_review_path
 from med_autoscience.policies.publication_critique import (
@@ -38,8 +38,8 @@ AI_REVIEWER_RECORD_OWNER_TARGET = (
     "materialize_ai_reviewer_publication_eval_record"
 )
 from med_autoscience.profiles import WorkspaceProfile
-from med_autoscience.runtime_control import owner_route as owner_route_part
-from med_autoscience.runtime_control import owner_route_attempt_protocol
+from med_autoscience.controllers.stage_outcome_authority import owner_route_policy as owner_route_part
+from med_autoscience.controllers.stage_outcome_authority import owner_route_attempt_policy
 
 RECORD_OUTPUT_SURFACE = "artifacts/publication_eval/ai_reviewer_responses/*_publication_eval_record.json"
 REQUEST_PACKET_REF = "artifacts/supervision/requests/ai_reviewer/latest.json"
@@ -396,7 +396,7 @@ def build_ai_reviewer_record_worker_handoff(
     if repeat_key is None and owner_route:
         repeat_key = _text(owner_route.get("idempotency_key"))
     source_refs = _mapping(owner_route.get("source_refs"))
-    currentness_basis = owner_route_attempt_protocol.currentness_basis(owner_route)
+    currentness_basis = owner_route_attempt_policy.currentness_basis(owner_route)
     work_unit_id = (
         _text(source_refs.get("work_unit_id"))
         or _text(production_request.get("request_kind"))

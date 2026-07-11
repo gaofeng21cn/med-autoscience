@@ -4,8 +4,8 @@ from collections.abc import Mapping
 from typing import Any
 
 from med_autoscience.profiles import WorkspaceProfile
-from med_autoscience.runtime_control import owner_route as owner_route_part
-from med_autoscience.runtime_control import owner_route_attempt_protocol
+from med_autoscience.controllers.stage_outcome_authority import owner_route_policy as owner_route_part
+from med_autoscience.controllers.stage_outcome_authority import owner_route_attempt_policy
 
 from . import consumed_transition_owner_routes
 from . import current_writer_handoff
@@ -35,7 +35,7 @@ def owner_route_block_reason(
         return "owner_route_stale"
     if not owner_route_part.route_allows_action(action=dispatch, owner_route=current_route):
         return "owner_route_next_owner_mismatch"
-    if not owner_route_attempt_protocol.route_protocol_dispatchable(
+    if not owner_route_attempt_policy.route_protocol_dispatchable(
         current_route,
         action_type=_text(dispatch.get("action_type")),
     ):

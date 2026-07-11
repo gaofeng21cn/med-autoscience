@@ -3,8 +3,8 @@ from __future__ import annotations
 from collections.abc import Mapping
 from typing import Any
 
-from med_autoscience.runtime_control import owner_route as owner_route_part
-from med_autoscience.runtime_control import owner_route_attempt_protocol
+from med_autoscience.controllers.stage_outcome_authority import owner_route_policy as owner_route_part
+from med_autoscience.controllers.stage_outcome_authority import owner_route_attempt_policy
 from med_autoscience.controllers import owner_route_repeat_policy
 
 from . import output_readiness
@@ -121,7 +121,7 @@ def _registered_write_route_back_handoff(
     action_type: str,
     owner_route: Mapping[str, Any],
 ) -> bool:
-    reason_contract = owner_route_attempt_protocol.owner_reason_contract(
+    reason_contract = owner_route_attempt_policy.owner_reason_contract(
         reason=_text(owner_route.get("owner_reason")) or _text(owner_route.get("failure_signature")),
         owner=_text(owner_route.get("next_owner")),
         action_type=action_type,
@@ -138,7 +138,7 @@ def _registered_write_route_back_handoff(
     protocol = _mapping(owner_route.get("owner_route_attempt_protocol"))
     if not protocol:
         protocol = _mapping(
-            owner_route_attempt_protocol.decorate_owner_route(owner_route).get("owner_route_attempt_protocol")
+            owner_route_attempt_policy.decorate_owner_route(owner_route).get("owner_route_attempt_protocol")
         )
     if protocol.get("dispatchable") is not True:
         return False
@@ -159,7 +159,7 @@ def _registered_gate_clearing_handoff(
     dispatch: Mapping[str, Any],
     owner_route: Mapping[str, Any],
 ) -> bool:
-    reason_contract = owner_route_attempt_protocol.owner_reason_contract(
+    reason_contract = owner_route_attempt_policy.owner_reason_contract(
         reason=_text(owner_route.get("owner_reason")) or _text(owner_route.get("failure_signature")),
         owner=_text(owner_route.get("next_owner")),
         action_type=action_type,
@@ -184,7 +184,7 @@ def _registered_gate_clearing_handoff(
     protocol = _mapping(owner_route.get("owner_route_attempt_protocol"))
     if not protocol:
         protocol = _mapping(
-            owner_route_attempt_protocol.decorate_owner_route(owner_route).get("owner_route_attempt_protocol")
+            owner_route_attempt_policy.decorate_owner_route(owner_route).get("owner_route_attempt_protocol")
         )
     if protocol.get("dispatchable") is not True:
         return False
@@ -236,7 +236,7 @@ def _registered_publication_owner_materialization_bridge_handoff(
     protocol = _mapping(owner_route.get("owner_route_attempt_protocol"))
     if not protocol:
         protocol = _mapping(
-            owner_route_attempt_protocol.decorate_owner_route(owner_route).get("owner_route_attempt_protocol")
+            owner_route_attempt_policy.decorate_owner_route(owner_route).get("owner_route_attempt_protocol")
         )
     if protocol.get("dispatchable") is not True:
         return False
@@ -254,7 +254,7 @@ def _registered_bridge_source_route(*, reason: str | None, action_type: str | No
     if reason is None or action_type is None:
         return False
     for owner in _bridge_source_owner_candidates(action_type):
-        reason_contract = owner_route_attempt_protocol.owner_reason_contract(
+        reason_contract = owner_route_attempt_policy.owner_reason_contract(
             reason=reason,
             owner=owner,
             action_type=action_type,
@@ -297,7 +297,7 @@ def _owner_route_currentness_basis(owner_route: Mapping[str, Any]) -> dict[str, 
     basis = _mapping(_mapping(owner_route.get("currentness_contract")).get("basis"))
     if basis:
         return basis
-    return owner_route_attempt_protocol.currentness_basis(owner_route)
+    return owner_route_attempt_policy.currentness_basis(owner_route)
 
 
 def _text(value: object) -> str | None:

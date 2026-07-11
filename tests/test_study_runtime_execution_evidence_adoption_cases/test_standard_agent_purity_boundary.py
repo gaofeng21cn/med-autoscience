@@ -25,7 +25,6 @@ def test_retired_execution_and_transport_aggregates_do_not_return_as_aliases() -
     )
     retired_runtime_module = "_".join(_legacy_runtime_repair_marker().split("_")[-2:])
     for module_name in (
-        "med_autoscience.runtime_control.owner_callable_registry",
         "med_autoscience.controllers.study_runtime_transport",
         f"med_autoscience.controllers.paper_mission_owner_surface.{retired_runtime_module}",
         *(f"med_autoscience.controllers.stage_outcome_authority.{part}" for part in retired_dispatch_parts),
@@ -35,8 +34,8 @@ def test_retired_execution_and_transport_aggregates_do_not_return_as_aliases() -
 
 
 def test_tombstoned_runtime_actions_are_not_mas_owner_callables_or_dispatch_actions() -> None:
-    owner_route = importlib.import_module("med_autoscience.runtime_control.owner_route")
-    attempt_protocol = importlib.import_module("med_autoscience.runtime_control.owner_route_attempt_protocol")
+    owner_route = importlib.import_module("med_autoscience.controllers.stage_outcome_authority.owner_route_policy")
+    attempt_protocol = importlib.import_module("med_autoscience.controllers.stage_outcome_authority.owner_route_attempt_policy")
     registry = importlib.import_module("med_autoscience.controllers.owner_callable_registry")
     dispatcher = importlib.import_module("med_autoscience.controllers.stage_outcome_authority")
     router = importlib.import_module("med_autoscience.controllers.stage_outcome_authority.action_router")

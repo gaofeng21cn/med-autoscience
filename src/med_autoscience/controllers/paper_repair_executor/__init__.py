@@ -41,7 +41,7 @@ from med_autoscience.controllers.paper_repair_executor import (
     owner_route_currentness_blockers,
     unsupported_callable,
 )
-from med_autoscience.runtime_control import owner_route as owner_route_part
+from med_autoscience.controllers.stage_outcome_authority import owner_route_policy as owner_route_part
 
 SURFACE = "paper_repair_executor"
 SCHEMA_VERSION = 1

@@ -10,7 +10,7 @@ from med_autoscience.controllers.owner_callable_action_policy import (
     request_output_target_surface_for_action_type,
 )
 from med_autoscience.controllers import paper_progress_transition_refs
-from med_autoscience.runtime_control import owner_route_attempt_protocol
+from med_autoscience.controllers.stage_outcome_authority import owner_route_attempt_policy
 
 
 ROUTED_ACTION_TYPES = (
@@ -154,7 +154,7 @@ def build_owner_route(
         owner_reason=owner_reason,
         allowed_actions=allowed_actions,
     )
-    return owner_route_attempt_protocol.decorate_owner_route(route)
+    return owner_route_attempt_policy.decorate_owner_route(route)
 
 
 def decorate_actions(*, actions: Iterable[Mapping[str, Any]], owner_route: Mapping[str, Any]) -> list[dict[str, Any]]:
@@ -238,7 +238,7 @@ def ensure_owner_route_v2(route: Mapping[str, Any]) -> dict[str, Any]:
     trace_projection = paper_progress_transition_refs.decision_trace_projection(payload, source_refs)
     payload.update({key: value for key, value in trace_projection.items() if key not in payload})
     _attach_decision_trace_source_refs(payload)
-    return owner_route_attempt_protocol.decorate_owner_route(payload)
+    return owner_route_attempt_policy.decorate_owner_route(payload)
 
 
 def _legacy_currentness_source_refs(
@@ -258,7 +258,7 @@ def _legacy_currentness_source_refs(
         "runtime_health_epoch",
     }
     refs = dict(source_refs)
-    basis = owner_route_attempt_protocol.normalize_currentness_sources(
+    basis = owner_route_attempt_policy.normalize_currentness_sources(
         {
             key: value
             for key, value in _mapping(refs.get("owner_route_currentness_basis")).items()
@@ -406,8 +406,8 @@ def _currentness_matches(*, dispatch_route: Mapping[str, Any], current_route: Ma
 
 
 def _basis_matches(*, dispatch_route: Mapping[str, Any], current_route: Mapping[str, Any]) -> bool:
-    dispatch_basis = owner_route_attempt_protocol.currentness_basis(dispatch_route)
-    current_basis = owner_route_attempt_protocol.currentness_basis(current_route)
+    dispatch_basis = owner_route_attempt_policy.currentness_basis(dispatch_route)
+    current_basis = owner_route_attempt_policy.currentness_basis(current_route)
     for key in ("source_eval_id", "work_unit_id", "work_unit_fingerprint", "truth_epoch", "runtime_health_epoch"):
         current_value = _text(current_basis.get(key))
         dispatch_value = _text(dispatch_basis.get(key))

@@ -259,7 +259,7 @@ def test_stale_controller_decision_does_not_override_current_ai_reviewer_routeba
 def test_current_ai_reviewer_write_routeback_owner_route_has_explicit_target_surface(
     tmp_path: Path,
 ) -> None:
-    from med_autoscience.runtime_control import owner_route as owner_route_part
+    from med_autoscience.controllers.stage_outcome_authority import owner_route_policy as owner_route_part
 
     study_root = tmp_path / "study"
     _write_publication_eval(study_root, _current_ai_reviewer_route_back_eval(study_root))

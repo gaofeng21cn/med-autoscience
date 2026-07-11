@@ -210,7 +210,7 @@
       "module_id": "owner_route_domain_intent_adapter",
       "classification": "minimal_authority_function",
       "code_paths": [
-        "src/med_autoscience/runtime_control/owner_route_attempt_protocol.py"
+        "src/med_autoscience/controllers/stage_outcome_authority/owner_route_attempt_policy.py"
       ],
       "active_callers": [
         "MAS owner-route policy",
