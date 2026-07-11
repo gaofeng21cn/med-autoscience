@@ -35,9 +35,6 @@ def build_opl_substrate_adapter_projection(
         ),
         "memory_refs": _memory_substrate_refs(
             profile=profile,
-            studies=studies,
-            text=text,
-            mapping=mapping,
         ),
         "projection_policy": {
             "body_included": False,
@@ -192,9 +189,6 @@ def _study_substrate_artifact_refs(
 def _memory_substrate_refs(
     *,
     profile: WorkspaceProfile,
-    studies: list[Mapping[str, Any]],
-    text: Callable[[object], str | None],
-    mapping: Callable[[object], Mapping[str, Any]],
 ) -> list[dict[str, Any]]:
     route_memory_root = publication_route_memory_root(profile.workspace_root)
     refs = [
@@ -208,36 +202,6 @@ def _memory_substrate_refs(
             exists=True,
         ),
     ]
-    for study in studies:
-        study_id = text(study.get("study_id"))
-        proof = mapping(study.get("memory_paper_soak_proof"))
-        proof_ref = text(proof.get("proof_ref"))
-        if study_id is None or proof_ref is None:
-            continue
-        refs.append(
-            _opaque_ref(
-                role="paper_soak_memory_apply_proof",
-                ref=proof_ref,
-                ref_kind="workspace_relative_path",
-                exists=proof.get("status") != "missing",
-                study_id=study_id,
-            )
-        )
-        for receipt_ref in proof.get("receipt_refs") or []:
-            if not isinstance(receipt_ref, Mapping):
-                continue
-            ref = text(receipt_ref.get("ref"))
-            if ref is None:
-                continue
-            refs.append(
-                _opaque_ref(
-                    role=text(receipt_ref.get("ref_kind")) or "memory_receipt_ref",
-                    ref=ref,
-                    ref_kind="workspace_relative_path",
-                    exists=True,
-                    study_id=study_id,
-                )
-            )
     return refs
 
 

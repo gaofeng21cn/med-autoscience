@@ -62,12 +62,12 @@ STAGE_KNOWLEDGE_SOURCE_REFS = (
     "stage_knowledge_packet",
     "stage_recall_index",
     "publication_route_memory_pack",
-    "src/med_autoscience/stage_knowledge_contract.py",
+    "src/med_autoscience/research_memory_contract.py",
 )
 STAGE_CLOSEOUT_SOURCE_REFS = (
     "stage_memory_closeout_packet",
     "memory_write_router_receipt",
-    "src/med_autoscience/stage_knowledge_contract.py",
+    "src/med_autoscience/research_memory_contract.py",
 )
 QUALITY_SOURCE_REFS = (
     "publication_eval/latest.json",
@@ -383,7 +383,7 @@ def _build_stage_card(
         "display_name": _string(projected_route_payload["display_name"], "display_name"),
         "machine_source_refs": {
             "route_contract": f"{CANONICAL_ROUTE_CONTRACT_REF}#/route_contracts/{route_id}",
-            "knowledge_contract": "src/med_autoscience/stage_knowledge_contract.py",
+            "knowledge_contract": "src/med_autoscience/research_memory_contract.py",
             "quality_contract": f"{CANONICAL_ROUTE_CONTRACT_REF}#/evidence_review_contract",
         },
         "purpose": _string(projected_route_payload["goal"], "goal"),
