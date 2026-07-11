@@ -85,6 +85,15 @@ def test_starter_recipe_policy_and_definitions_are_machine_loaded() -> None:
     assert catalog.starter_recipes_by_id["genomic_consequence_composite"].family_id == (
         "genomic_consequence_summary"
     )
+    for family in catalog.families_by_id.values():
+        for recipe_id in family.starter_recipe_refs:
+            recipe = catalog.starter_recipes_by_id[recipe_id]
+            assert recipe.category_id == family.category_id
+            assert recipe.family_id == family.family_id
+            assert recipe.required_data_roles == family.data_roles
+            assert recipe.style_tokens == family.style_tokens
+            assert recipe.palette_tokens == family.palette_tokens
+            assert recipe.qa_gate_ids == family.qa_gate_ids
 
 
 def test_composition_recipes_are_machine_loaded_and_reference_primitives() -> None:
@@ -236,27 +245,27 @@ def test_catalog_rejects_unknown_family_references(tmp_path: Path) -> None:
         load_medical_figure_family_catalog(catalog_root)
 
 
-def test_catalog_rejects_missing_starter_recipe_definitions(tmp_path: Path) -> None:
+def test_catalog_rejects_missing_starter_recipe_overrides(tmp_path: Path) -> None:
     catalog_root = tmp_path / "medical-figure-family-catalog"
     shutil.copytree(DEFAULT_CATALOG_ROOT, catalog_root)
-    recipe_path = catalog_root / "recipes" / "diagnosis_and_prediction.json"
-    payload = json.loads(recipe_path.read_text(encoding="utf-8"))
-    payload["recipes"] = [item for item in payload["recipes"] if item["recipe_id"] != "roc_pr_curve"]
-    recipe_path.write_text(json.dumps(payload, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+    diagnosis_path = catalog_root / "categories" / "diagnosis_and_prediction.json"
+    payload = json.loads(diagnosis_path.read_text(encoding="utf-8"))
+    payload["families"][0]["starter_recipe_overrides"] = []
+    diagnosis_path.write_text(json.dumps(payload, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
 
-    with pytest.raises(ValueError, match="unknown starter recipes"):
+    with pytest.raises(ValueError, match="starter_recipe_overrides must be non-empty"):
         load_medical_figure_family_catalog(catalog_root)
 
 
-def test_catalog_rejects_recipe_reference_drift(tmp_path: Path) -> None:
+def test_catalog_rejects_incomplete_starter_recipe_override(tmp_path: Path) -> None:
     catalog_root = tmp_path / "medical-figure-family-catalog"
     shutil.copytree(DEFAULT_CATALOG_ROOT, catalog_root)
-    recipe_path = catalog_root / "recipes" / "diagnosis_and_prediction.json"
-    payload = json.loads(recipe_path.read_text(encoding="utf-8"))
-    payload["recipes"][0]["qa_gate_ids"].append("missing_gate")
-    recipe_path.write_text(json.dumps(payload, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+    diagnosis_path = catalog_root / "categories" / "diagnosis_and_prediction.json"
+    payload = json.loads(diagnosis_path.read_text(encoding="utf-8"))
+    del payload["families"][0]["starter_recipe_overrides"][0]["panel_grammar"]
+    diagnosis_path.write_text(json.dumps(payload, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
 
-    with pytest.raises(ValueError, match="unknown QA gates"):
+    with pytest.raises(ValueError, match="panel_grammar must be a non-empty string"):
         load_medical_figure_family_catalog(catalog_root)
 
 
@@ -284,10 +293,10 @@ def test_catalog_files_stay_split_by_natural_boundaries() -> None:
         CATALOG_ROOT / "composition_recipe_policy.json",
         REPO_ROOT / "src" / "med_autoscience" / "medical_figure_composition_recipes.py",
         REPO_ROOT / "src" / "med_autoscience" / "medical_figure_family_catalog.py",
+        REPO_ROOT / "src" / "med_autoscience" / "medical_figure_family_recipes.py",
         Path(__file__),
     ]
     new_files.extend(sorted((CATALOG_ROOT / "categories").glob("*.json")))
-    new_files.extend(sorted((CATALOG_ROOT / "recipes").glob("*.json")))
     new_files.extend(sorted((CATALOG_ROOT / "composition_recipes").glob("*.json")))
 
     oversized = {

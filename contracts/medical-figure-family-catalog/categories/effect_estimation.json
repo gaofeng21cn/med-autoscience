@@ -20,8 +20,12 @@
         "reference",
         "model"
       ],
-      "starter_recipe_refs": [
-        "forest_dot_whisker"
+      "starter_recipe_overrides": [
+        {
+          "recipe_id": "forest_dot_whisker",
+          "starter_kind": "display_pack_seeded",
+          "panel_grammar": "effect_interval_or_table_figure"
+        }
       ],
       "style_tokens": [
         "clinical_journal"
@@ -68,8 +72,12 @@
         "upper_ci",
         "p_interaction"
       ],
-      "starter_recipe_refs": [
-        "subgroup_forest_with_interaction"
+      "starter_recipe_overrides": [
+        {
+          "recipe_id": "subgroup_forest_with_interaction",
+          "starter_kind": "display_pack_seeded",
+          "panel_grammar": "effect_interval_or_table_figure"
+        }
       ],
       "style_tokens": [
         "clinical_journal"
@@ -112,8 +120,12 @@
         "upper_ci",
         "reference_value"
       ],
-      "starter_recipe_refs": [
-        "spline_with_rug_and_ci"
+      "starter_recipe_overrides": [
+        {
+          "recipe_id": "spline_with_rug_and_ci",
+          "starter_kind": "contract_only_seed",
+          "panel_grammar": "curve_panel_with_statistical_guides"
+        }
       ],
       "style_tokens": [
         "medpub_neutral"
@@ -150,8 +162,12 @@
         "coefficient",
         "selected_flag"
       ],
-      "starter_recipe_refs": [
-        "coefficient_path_line"
+      "starter_recipe_overrides": [
+        {
+          "recipe_id": "coefficient_path_line",
+          "starter_kind": "display_pack_seeded",
+          "panel_grammar": "paper_local_panel_grammar"
+        }
       ],
       "style_tokens": [
         "medpub_neutral"
@@ -191,8 +207,12 @@
         "upper_ci",
         "assumption"
       ],
-      "starter_recipe_refs": [
-        "robustness_forest_panel"
+      "starter_recipe_overrides": [
+        {
+          "recipe_id": "robustness_forest_panel",
+          "starter_kind": "contract_only_seed",
+          "panel_grammar": "effect_interval_or_table_figure"
+        }
       ],
       "style_tokens": [
         "clinical_journal"

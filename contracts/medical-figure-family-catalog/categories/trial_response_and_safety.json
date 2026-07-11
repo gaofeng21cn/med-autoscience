@@ -19,8 +19,12 @@
         "response",
         "treatment"
       ],
-      "starter_recipe_refs": [
-        "swimmer_plot"
+      "starter_recipe_overrides": [
+        {
+          "recipe_id": "swimmer_plot",
+          "starter_kind": "contract_only_seed",
+          "panel_grammar": "time_or_trajectory_panel"
+        }
       ],
       "style_tokens": [
         "clinical_journal"
@@ -57,8 +61,12 @@
         "response_class",
         "subgroup"
       ],
-      "starter_recipe_refs": [
-        "response_waterfall"
+      "starter_recipe_overrides": [
+        {
+          "recipe_id": "response_waterfall",
+          "starter_kind": "display_pack_seeded",
+          "panel_grammar": "ordered_bar_or_waterfall_panel"
+        }
       ],
       "style_tokens": [
         "clinical_journal"
@@ -100,8 +108,12 @@
         "percent_change",
         "response_class"
       ],
-      "starter_recipe_refs": [
-        "spider_plot"
+      "starter_recipe_overrides": [
+        {
+          "recipe_id": "spider_plot",
+          "starter_kind": "contract_only_seed",
+          "panel_grammar": "ordered_bar_or_waterfall_panel"
+        }
       ],
       "style_tokens": [
         "clinical_journal"
@@ -139,8 +151,12 @@
         "count",
         "proportion"
       ],
-      "starter_recipe_refs": [
-        "ae_severity_bar_heatmap"
+      "starter_recipe_overrides": [
+        {
+          "recipe_id": "ae_severity_bar_heatmap",
+          "starter_kind": "contract_only_seed",
+          "panel_grammar": "annotated_matrix_or_dotplot"
+        }
       ],
       "style_tokens": [
         "clinical_journal"
@@ -180,8 +196,12 @@
         "dlt",
         "decision"
       ],
-      "starter_recipe_refs": [
-        "dose_escalation_grid"
+      "starter_recipe_overrides": [
+        {
+          "recipe_id": "dose_escalation_grid",
+          "starter_kind": "contract_only_seed",
+          "panel_grammar": "paper_local_panel_grammar"
+        }
       ],
       "style_tokens": [
         "clinical_journal"

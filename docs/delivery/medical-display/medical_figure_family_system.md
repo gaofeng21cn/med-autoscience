@@ -222,7 +222,7 @@ Family system 是选择和治理语言；Display Pack 是可执行能力面。
 
 | Surface | 角色 |
 | --- | --- |
-| `contracts/medical-figure-family-catalog/` | family / variant / starter recipe、loose matching、style / palette / QA / external refs 的机器 catalog；`recipes/*.json` 是 starter recipe 机器定义。 |
+| `contracts/medical-figure-family-catalog/` | family / variant / starter recipe、loose matching、style / palette / QA / external refs 的机器 catalog；每个 family 的 `starter_recipe_overrides` 是 starter recipe 的最小机器定义，其余字段由 catalog 从 family 派生。 |
 | Display Pack template descriptors | 具体模板、renderer、schema、QC 和 exports。 |
 | `paper/figure_intent.json` | paper-local figure 目标、claim refs 和 data refs。 |
 | `paper/figure_spec.json` / `paper/figure_specs.json` | MAS-native 医学 figure grammar。 |

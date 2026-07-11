@@ -21,8 +21,12 @@
         "n_risk",
         "censor"
       ],
-      "starter_recipe_refs": [
-        "km_curve_risk_table"
+      "starter_recipe_overrides": [
+        {
+          "recipe_id": "km_curve_risk_table",
+          "starter_kind": "display_pack_seeded",
+          "panel_grammar": "curve_panel_with_statistical_guides"
+        }
       ],
       "style_tokens": [
         "clinical_journal"
@@ -67,8 +71,12 @@
         "lower_ci",
         "upper_ci"
       ],
-      "starter_recipe_refs": [
-        "cif_curve"
+      "starter_recipe_overrides": [
+        {
+          "recipe_id": "cif_curve",
+          "starter_kind": "display_pack_seeded",
+          "panel_grammar": "curve_panel_with_statistical_guides"
+        }
       ],
       "style_tokens": [
         "clinical_journal"
@@ -108,8 +116,12 @@
         "upper_ci",
         "group"
       ],
-      "starter_recipe_refs": [
-        "hazard_curve"
+      "starter_recipe_overrides": [
+        {
+          "recipe_id": "hazard_curve",
+          "starter_kind": "contract_only_seed",
+          "panel_grammar": "curve_panel_with_statistical_guides"
+        }
       ],
       "style_tokens": [
         "medpub_neutral"
@@ -146,8 +158,12 @@
         "group",
         "metric"
       ],
-      "starter_recipe_refs": [
-        "landmark_survival_panel"
+      "starter_recipe_overrides": [
+        {
+          "recipe_id": "landmark_survival_panel",
+          "starter_kind": "display_pack_seeded",
+          "panel_grammar": "paper_local_panel_grammar"
+        }
       ],
       "style_tokens": [
         "clinical_journal"
@@ -187,8 +203,12 @@
         "upper_ci",
         "group"
       ],
-      "starter_recipe_refs": [
-        "rmst_difference_panel"
+      "starter_recipe_overrides": [
+        {
+          "recipe_id": "rmst_difference_panel",
+          "starter_kind": "contract_only_seed",
+          "panel_grammar": "effect_interval_or_table_figure"
+        }
       ],
       "style_tokens": [
         "clinical_journal"

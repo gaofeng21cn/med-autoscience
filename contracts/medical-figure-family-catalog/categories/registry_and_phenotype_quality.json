@@ -9,7 +9,14 @@
       "intent": "Show descriptive registry field summaries with explicit available-record denominators.",
       "canonical_variants": ["dot_range_summary", "denominator_labeled_dotplot", "available_record_range_panel"],
       "data_roles": ["field", "group", "summary_value", "range_low", "range_high", "available_n"],
-      "starter_recipe_refs": ["registry_denominator_dot_range_panel"],
+      "starter_recipe_overrides": [
+        {
+          "recipe_id": "registry_denominator_dot_range_panel",
+          "starter_kind": "display_pack_seeded",
+          "panel_grammar": "denominator_labeled_dot_range_panel",
+          "purpose": "Create a denominator-aware dot-range summary for descriptive registry fields."
+        }
+      ],
       "style_tokens": ["supplement_dense"],
       "palette_tokens": ["categorical_accessible"],
       "qa_gate_ids": ["source_data_traceability", "layout_readability"],
@@ -25,7 +32,14 @@
       "intent": "Show interpretable phenotype profiles across clinical, registry, or service-review dimensions.",
       "canonical_variants": ["phenotype_profile_heatmap", "cluster_profile_matrix", "adult_multidimensional_heatmap"],
       "data_roles": ["phenotype", "variable", "summary_value", "available_n", "scale"],
-      "starter_recipe_refs": ["phenotype_atlas_heatmap_panel"],
+      "starter_recipe_overrides": [
+        {
+          "recipe_id": "phenotype_atlas_heatmap_panel",
+          "starter_kind": "display_pack_seeded",
+          "panel_grammar": "annotated_matrix_or_dotplot",
+          "purpose": "Create an interpretable phenotype profile heatmap with denominator-aware annotations."
+        }
+      ],
       "style_tokens": ["medpub_neutral"],
       "palette_tokens": ["diverging_centered"],
       "qa_gate_ids": ["statistical_semantics_preserved", "layout_readability", "color_accessibility"],
@@ -41,7 +55,14 @@
       "intent": "Show overlap or co-availability of registry screening instruments and symptom domains.",
       "canonical_variants": ["instrument_overlap_heatmap", "screening_domain_matrix", "coavailability_upset"],
       "data_roles": ["instrument", "domain", "group", "available_n", "overlap_count"],
-      "starter_recipe_refs": ["screening_instrument_overlap_panel"],
+      "starter_recipe_overrides": [
+        {
+          "recipe_id": "screening_instrument_overlap_panel",
+          "starter_kind": "display_pack_seeded",
+          "panel_grammar": "annotated_matrix_or_dotplot",
+          "purpose": "Create a source-aware overlap panel for screening instruments or symptom domains."
+        }
+      ],
       "style_tokens": ["supplement_dense"],
       "palette_tokens": ["categorical_accessible"],
       "qa_gate_ids": ["source_data_traceability", "layout_readability"],
@@ -57,7 +78,14 @@
       "intent": "Show descriptive adiposity categories or central adiposity profiles with clear measurement definitions.",
       "canonical_variants": ["bmi_waist_bar", "adiposity_profile_dotplot", "central_adiposity_grouped_bar"],
       "data_roles": ["group", "adiposity_measure", "category", "count", "proportion"],
-      "starter_recipe_refs": ["central_adiposity_profile_bar"],
+      "starter_recipe_overrides": [
+        {
+          "recipe_id": "central_adiposity_profile_bar",
+          "starter_kind": "display_pack_seeded",
+          "panel_grammar": "ordered_bar_or_waterfall_panel",
+          "purpose": "Create a descriptive BMI and waist adiposity profile panel."
+        }
+      ],
       "style_tokens": ["medpub_neutral"],
       "palette_tokens": ["categorical_accessible"],
       "qa_gate_ids": ["statistical_semantics_preserved", "layout_readability", "color_accessibility"],
@@ -73,7 +101,14 @@
       "intent": "Show variable-level missingness, plausibility checks, or data completeness patterns across registry domains.",
       "canonical_variants": ["missingness_atlas_heatmap", "plausibility_matrix", "variable_completeness_panel"],
       "data_roles": ["variable", "domain", "missing_count", "available_n", "plausibility_flag"],
-      "starter_recipe_refs": ["missingness_atlas_panel"],
+      "starter_recipe_overrides": [
+        {
+          "recipe_id": "missingness_atlas_panel",
+          "starter_kind": "display_pack_seeded",
+          "panel_grammar": "annotated_matrix_or_dotplot",
+          "purpose": "Create a variable-level missingness or plausibility atlas for registry domains."
+        }
+      ],
       "style_tokens": ["supplement_dense"],
       "palette_tokens": ["categorical_accessible"],
       "qa_gate_ids": ["source_data_traceability", "layout_readability"],
@@ -89,7 +124,14 @@
       "intent": "Show adult-boundary, eligibility, or definition-sensitivity checks for descriptive clinical cohorts.",
       "canonical_variants": ["eligibility_sensitivity_panel", "adult_boundary_summary", "definition_sensitivity_table_figure"],
       "data_roles": ["scenario", "eligibility_rule", "cohort_n", "summary_value", "delta"],
-      "starter_recipe_refs": ["adult_boundary_sensitivity_panel"],
+      "starter_recipe_overrides": [
+        {
+          "recipe_id": "adult_boundary_sensitivity_panel",
+          "starter_kind": "display_pack_seeded",
+          "panel_grammar": "table_like_companion_panel",
+          "purpose": "Create an eligibility or adult-boundary sensitivity summary for descriptive cohorts."
+        }
+      ],
       "style_tokens": ["clinical_journal"],
       "palette_tokens": ["categorical_accessible"],
       "qa_gate_ids": ["source_data_traceability", "journal_export"],

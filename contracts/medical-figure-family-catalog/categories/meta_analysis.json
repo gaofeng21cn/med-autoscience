@@ -20,8 +20,12 @@
         "weight",
         "subgroup"
       ],
-      "starter_recipe_refs": [
-        "meta_analysis_forest"
+      "starter_recipe_overrides": [
+        {
+          "recipe_id": "meta_analysis_forest",
+          "starter_kind": "display_pack_seeded",
+          "panel_grammar": "effect_interval_or_table_figure"
+        }
       ],
       "style_tokens": [
         "clinical_journal"
@@ -61,8 +65,12 @@
         "standard_error",
         "precision"
       ],
-      "starter_recipe_refs": [
-        "funnel_plot"
+      "starter_recipe_overrides": [
+        {
+          "recipe_id": "funnel_plot",
+          "starter_kind": "contract_only_seed",
+          "panel_grammar": "paper_local_panel_grammar"
+        }
       ],
       "style_tokens": [
         "medpub_neutral"
@@ -101,8 +109,12 @@
         "upper_ci",
         "influence_metric"
       ],
-      "starter_recipe_refs": [
-        "leave_one_out_panel"
+      "starter_recipe_overrides": [
+        {
+          "recipe_id": "leave_one_out_panel",
+          "starter_kind": "contract_only_seed",
+          "panel_grammar": "paper_local_panel_grammar"
+        }
       ],
       "style_tokens": [
         "clinical_journal"
@@ -138,8 +150,12 @@
         "heterogeneity_contribution",
         "effect_influence"
       ],
-      "starter_recipe_refs": [
-        "baujat_plot"
+      "starter_recipe_overrides": [
+        {
+          "recipe_id": "baujat_plot",
+          "starter_kind": "contract_only_seed",
+          "panel_grammar": "paper_local_panel_grammar"
+        }
       ],
       "style_tokens": [
         "medpub_neutral"
@@ -176,8 +192,12 @@
         "study_count",
         "sample_size"
       ],
-      "starter_recipe_refs": [
-        "network_meta_graph"
+      "starter_recipe_overrides": [
+        {
+          "recipe_id": "network_meta_graph",
+          "starter_kind": "contract_only_seed",
+          "panel_grammar": "paper_local_panel_grammar"
+        }
       ],
       "style_tokens": [
         "clinical_journal"
@@ -214,8 +234,12 @@
         "certainty",
         "reason"
       ],
-      "starter_recipe_refs": [
-        "evidence_grade_heatmap"
+      "starter_recipe_overrides": [
+        {
+          "recipe_id": "evidence_grade_heatmap",
+          "starter_kind": "contract_only_seed",
+          "panel_grammar": "annotated_matrix_or_dotplot"
+        }
       ],
       "style_tokens": [
         "clinical_journal"

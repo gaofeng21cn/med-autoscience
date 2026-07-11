@@ -19,8 +19,12 @@
         "standardized_difference",
         "missingness"
       ],
-      "starter_recipe_refs": [
-        "table_shell_baseline"
+      "starter_recipe_overrides": [
+        {
+          "recipe_id": "table_shell_baseline",
+          "starter_kind": "display_pack_seeded",
+          "panel_grammar": "table_like_companion_panel"
+        }
       ],
       "style_tokens": [
         "clinical_journal"
@@ -60,8 +64,12 @@
         "stratum",
         "timepoint"
       ],
-      "starter_recipe_refs": [
-        "box_violin_raincloud"
+      "starter_recipe_overrides": [
+        {
+          "recipe_id": "box_violin_raincloud",
+          "starter_kind": "display_pack_seeded",
+          "panel_grammar": "paper_local_panel_grammar"
+        }
       ],
       "style_tokens": [
         "medpub_neutral"
@@ -104,8 +112,12 @@
         "value",
         "group"
       ],
-      "starter_recipe_refs": [
-        "paired_slope_plot"
+      "starter_recipe_overrides": [
+        {
+          "recipe_id": "paired_slope_plot",
+          "starter_kind": "contract_only_seed",
+          "panel_grammar": "paper_local_panel_grammar"
+        }
       ],
       "style_tokens": [
         "medpub_neutral"
@@ -143,8 +155,12 @@
         "missing_flag",
         "group"
       ],
-      "starter_recipe_refs": [
-        "missingness_heatmap_or_upset"
+      "starter_recipe_overrides": [
+        {
+          "recipe_id": "missingness_heatmap_or_upset",
+          "starter_kind": "display_pack_seeded",
+          "panel_grammar": "annotated_matrix_or_dotplot"
+        }
       ],
       "style_tokens": [
         "supplement_dense"
@@ -183,8 +199,12 @@
         "correlation",
         "p_value"
       ],
-      "starter_recipe_refs": [
-        "annotated_correlation_heatmap"
+      "starter_recipe_overrides": [
+        {
+          "recipe_id": "annotated_correlation_heatmap",
+          "starter_kind": "display_pack_seeded",
+          "panel_grammar": "annotated_matrix_or_dotplot"
+        }
       ],
       "style_tokens": [
         "medpub_neutral"
@@ -227,8 +247,13 @@
         "correlation",
         "p_value"
       ],
-      "starter_recipe_refs": [
-        "correlation_scatter"
+      "starter_recipe_overrides": [
+        {
+          "recipe_id": "correlation_scatter",
+          "starter_kind": "display_pack_seeded",
+          "panel_grammar": "scatter_panel_with_trend_and_statistic",
+          "purpose": "Create a first renderable, auditable lower-bound figure for pairwise continuous association with statistical annotation."
+        }
       ],
       "style_tokens": [
         "medpub_neutral"
@@ -271,8 +296,12 @@
         "count",
         "proportion"
       ],
-      "starter_recipe_refs": [
-        "composition_stacked_bar"
+      "starter_recipe_overrides": [
+        {
+          "recipe_id": "composition_stacked_bar",
+          "starter_kind": "display_pack_seeded",
+          "panel_grammar": "ordered_bar_or_waterfall_panel"
+        }
       ],
       "style_tokens": [
         "medpub_neutral"
@@ -313,8 +342,13 @@
         "axis",
         "scaled_value"
       ],
-      "starter_recipe_refs": [
-        "radar_profile"
+      "starter_recipe_overrides": [
+        {
+          "recipe_id": "radar_profile",
+          "starter_kind": "display_pack_seeded",
+          "panel_grammar": "multiaxis_profile_panel",
+          "purpose": "Create a compact profile overview for a small number of comparable scaled dimensions."
+        }
       ],
       "style_tokens": [
         "medpub_neutral"

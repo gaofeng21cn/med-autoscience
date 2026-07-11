@@ -1,8 +1,10 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-from pathlib import Path
-from typing import Any, Callable
+from typing import TYPE_CHECKING, Any, Callable
+
+if TYPE_CHECKING:
+    from med_autoscience.medical_figure_family_catalog import FigureFamily, FigureFamilyCategory
 
 
 @dataclass(frozen=True)
@@ -23,51 +25,86 @@ class StarterRecipe:
     payload: dict[str, Any]
 
 
-def parse_starter_recipes(
-    path: Path,
+def derive_starter_recipes(
+    overrides: tuple[dict[str, Any], ...],
     *,
-    read_json_object: Callable[[Path], dict[str, Any]],
-    expect_str: Callable[[dict[str, Any], str], str],
-    expect_str_tuple: Callable[[dict[str, Any], str], tuple[str, ...]],
-    expect_object_list: Callable[[dict[str, Any], str], tuple[dict[str, Any], ...]],
+    family: FigureFamily,
+    policy_id: str,
+    context: str,
+    expect_str: Callable[..., str],
+    expect_str_tuple: Callable[..., tuple[str, ...]],
 ) -> tuple[StarterRecipe, ...]:
-    payload = read_json_object(path)
-    category_id = expect_str(payload, "category_id")
+    allowed_keys = {
+        "recipe_id",
+        "starter_kind",
+        "panel_grammar",
+        "title",
+        "purpose",
+        "recommended_template_seed_ids",
+    }
     recipes: list[StarterRecipe] = []
-    seen: set[str] = set()
-    for index, item in enumerate(expect_object_list(payload, "recipes")):
-        context = f"{path.name}.recipes[{index}]"
-        recipe_id = expect_str(item, "recipe_id")
-        if recipe_id in seen:
-            raise ValueError(f"duplicate starter recipe `{recipe_id}` in {path.name}")
-        seen.add(recipe_id)
-        recipe_category = expect_str(item, "category_id")
-        if recipe_category != category_id:
-            raise ValueError(f"{context}.category_id must equal `{category_id}`")
+    for index, override in enumerate(overrides):
+        override_context = f"{context}[{index}]"
+        unknown_keys = set(override) - allowed_keys
+        if unknown_keys:
+            raise ValueError(
+                f"{override_context} has unsupported starter recipe overrides {sorted(unknown_keys)!r}"
+            )
+        recipe_id = expect_str(override, "recipe_id", context=override_context)
+        title = (
+            expect_str(override, "title", context=override_context)
+            if "title" in override
+            else f"{family.title} starter"
+        )
+        purpose = (
+            expect_str(override, "purpose", context=override_context)
+            if "purpose" in override
+            else f"Create a first renderable, auditable lower-bound figure for {family.intent}"
+        )
+        template_seed_ids = (
+            expect_str_tuple(override, "recommended_template_seed_ids", context=override_context)
+            if "recommended_template_seed_ids" in override
+            else family.template_seed_ids
+        )
+        starter_kind = expect_str(override, "starter_kind", context=override_context)
+        panel_grammar = expect_str(override, "panel_grammar", context=override_context)
+        payload = {
+            "recipe_id": recipe_id,
+            "category_id": family.category_id,
+            "family_id": family.family_id,
+            "title": title,
+            "purpose": purpose,
+            "starter_kind": starter_kind,
+            "panel_grammar": panel_grammar,
+            "required_data_roles": list(family.data_roles),
+            "recommended_template_seed_ids": list(template_seed_ids),
+            "style_tokens": list(family.style_tokens),
+            "palette_tokens": list(family.palette_tokens),
+            "qa_gate_ids": list(family.qa_gate_ids),
+            "policy_id": policy_id,
+        }
         recipes.append(
             StarterRecipe(
                 recipe_id=recipe_id,
-                category_id=recipe_category,
-                family_id=expect_str(item, "family_id"),
-                title=expect_str(item, "title"),
-                purpose=expect_str(item, "purpose"),
-                starter_kind=expect_str(item, "starter_kind"),
-                panel_grammar=expect_str(item, "panel_grammar"),
-                required_data_roles=expect_str_tuple(item, "required_data_roles"),
-                recommended_template_seed_ids=expect_str_tuple(item, "recommended_template_seed_ids"),
-                style_tokens=expect_str_tuple(item, "style_tokens"),
-                palette_tokens=expect_str_tuple(item, "palette_tokens"),
-                qa_gate_ids=expect_str_tuple(item, "qa_gate_ids"),
-                policy_id=expect_str(item, "policy_id"),
-                payload=item,
+                category_id=family.category_id,
+                family_id=family.family_id,
+                title=title,
+                purpose=purpose,
+                starter_kind=starter_kind,
+                panel_grammar=panel_grammar,
+                required_data_roles=family.data_roles,
+                recommended_template_seed_ids=template_seed_ids,
+                style_tokens=family.style_tokens,
+                palette_tokens=family.palette_tokens,
+                qa_gate_ids=family.qa_gate_ids,
+                policy_id=policy_id,
+                payload=payload,
             )
         )
-    if not recipes:
-        raise ValueError(f"{path.name}.recipes must be non-empty")
     return tuple(recipes)
 
 
-def validate_starter_recipe_refs(
+def validate_starter_recipes(
     recipes: tuple[StarterRecipe, ...],
     *,
     style_profile_ids: set[str],
@@ -92,3 +129,44 @@ def validate_starter_recipe_refs(
             raise ValueError(f"{recipe.recipe_id}.policy_id must equal `{policy_id}`")
         recipes_by_id[recipe.recipe_id] = recipe
     return recipes_by_id
+
+
+def validate_family_recipe_refs(
+    categories: tuple[FigureFamilyCategory, ...],
+    *,
+    style_profile_ids: set[str],
+    palette_token_ids: set[str],
+    qa_gate_ids: set[str],
+    external_source_ids: set[str],
+    starter_recipes_by_id: dict[str, StarterRecipe],
+) -> dict[str, FigureFamily]:
+    families_by_id: dict[str, FigureFamily] = {}
+    for category in categories:
+        for family in category.families:
+            if family.family_id in families_by_id:
+                raise ValueError(f"duplicate medical figure family `{family.family_id}`")
+            unknown_styles = set(family.style_tokens) - style_profile_ids
+            if unknown_styles:
+                raise ValueError(f"{family.family_id} references unknown style tokens {sorted(unknown_styles)!r}")
+            unknown_palettes = set(family.palette_tokens) - palette_token_ids
+            if unknown_palettes:
+                raise ValueError(f"{family.family_id} references unknown palette tokens {sorted(unknown_palettes)!r}")
+            unknown_gates = set(family.qa_gate_ids) - qa_gate_ids
+            if unknown_gates:
+                raise ValueError(f"{family.family_id} references unknown QA gates {sorted(unknown_gates)!r}")
+            unknown_sources = set(family.external_refs) - external_source_ids
+            if unknown_sources:
+                raise ValueError(f"{family.family_id} references unknown external sources {sorted(unknown_sources)!r}")
+            unknown_recipes = set(family.starter_recipe_refs) - set(starter_recipes_by_id)
+            if unknown_recipes:
+                raise ValueError(
+                    f"{family.family_id} references unknown starter recipes {sorted(unknown_recipes)!r}"
+                )
+            for recipe_id in family.starter_recipe_refs:
+                recipe = starter_recipes_by_id[recipe_id]
+                if recipe.family_id != family.family_id:
+                    raise ValueError(f"starter recipe `{recipe_id}` family_id must equal `{family.family_id}`")
+                if recipe.category_id != family.category_id:
+                    raise ValueError(f"starter recipe `{recipe_id}` category_id must equal `{family.category_id}`")
+            families_by_id[family.family_id] = family
+    return families_by_id

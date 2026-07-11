@@ -40,20 +40,5 @@
     "composition_recipes/clinical_prediction_and_ml.json",
     "composition_recipes/design_and_image.json",
     "composition_recipes/omics_and_atlas.json"
-  ],
-  "starter_recipe_refs": [
-    "recipes/diagnosis_and_prediction.json",
-    "recipes/effect_estimation.json",
-    "recipes/longitudinal_and_patient_trajectory.json",
-    "recipes/meta_analysis.json",
-    "recipes/ml_explainability_and_causal.json",
-    "recipes/omics_and_molecular.json",
-    "recipes/population_and_baseline.json",
-    "recipes/registry_and_phenotype_quality.json",
-    "recipes/publication_shells.json",
-    "recipes/single_cell_and_spatial.json",
-    "recipes/study_design_and_flow.json",
-    "recipes/survival_and_time_to_event.json",
-    "recipes/trial_response_and_safety.json"
   ]
 }

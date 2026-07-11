@@ -18,8 +18,12 @@
         "family_id",
         "caption_claim"
       ],
-      "starter_recipe_refs": [
-        "patchwork_multipanel_layout"
+      "starter_recipe_overrides": [
+        {
+          "recipe_id": "patchwork_multipanel_layout",
+          "starter_kind": "contract_only_seed",
+          "panel_grammar": "paper_local_panel_grammar"
+        }
       ],
       "style_tokens": [
         "nature_portfolio",
@@ -63,8 +67,12 @@
         "finding",
         "clinical_implication"
       ],
-      "starter_recipe_refs": [
-        "graphical_abstract_shell"
+      "starter_recipe_overrides": [
+        {
+          "recipe_id": "graphical_abstract_shell",
+          "starter_kind": "display_pack_seeded",
+          "panel_grammar": "schematic_or_graph_panel"
+        }
       ],
       "style_tokens": [
         "medpub_neutral"
@@ -104,8 +112,12 @@
         "process",
         "evidence_ref"
       ],
-      "starter_recipe_refs": [
-        "mechanism_schematic"
+      "starter_recipe_overrides": [
+        {
+          "recipe_id": "mechanism_schematic",
+          "starter_kind": "contract_only_seed",
+          "panel_grammar": "schematic_or_graph_panel"
+        }
       ],
       "style_tokens": [
         "medpub_neutral"
@@ -144,8 +156,12 @@
         "availability",
         "digest_ref"
       ],
-      "starter_recipe_refs": [
-        "source_data_companion_panel"
+      "starter_recipe_overrides": [
+        {
+          "recipe_id": "source_data_companion_panel",
+          "starter_kind": "contract_only_seed",
+          "panel_grammar": "table_like_companion_panel"
+        }
       ],
       "style_tokens": [
         "supplement_dense"
@@ -184,8 +200,12 @@
         "value",
         "group"
       ],
-      "starter_recipe_refs": [
-        "supplement_dense_patchwork"
+      "starter_recipe_overrides": [
+        {
+          "recipe_id": "supplement_dense_patchwork",
+          "starter_kind": "contract_only_seed",
+          "panel_grammar": "paper_local_panel_grammar"
+        }
       ],
       "style_tokens": [
         "supplement_dense"
@@ -228,8 +248,13 @@
         "available_n",
         "availability_rate"
       ],
-      "starter_recipe_refs": [
-        "registry_variable_availability_panel"
+      "starter_recipe_overrides": [
+        {
+          "recipe_id": "registry_variable_availability_panel",
+          "starter_kind": "display_pack_seeded",
+          "panel_grammar": "table_like_companion_panel",
+          "purpose": "Create a registry variable availability panel with source and denominator traceability."
+        }
       ],
       "style_tokens": [
         "supplement_dense"
@@ -270,8 +295,13 @@
         "measurement_window",
         "available_n"
       ],
-      "starter_recipe_refs": [
-        "variable_ascertainment_panel"
+      "starter_recipe_overrides": [
+        {
+          "recipe_id": "variable_ascertainment_panel",
+          "starter_kind": "display_pack_seeded",
+          "panel_grammar": "table_like_companion_panel",
+          "purpose": "Create a variable ascertainment panel or table for source, definition, and measurement-window reporting."
+        }
       ],
       "style_tokens": [
         "clinical_journal"

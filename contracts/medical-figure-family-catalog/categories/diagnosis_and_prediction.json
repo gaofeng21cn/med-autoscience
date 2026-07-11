@@ -23,9 +23,17 @@
         "model",
         "time_horizon"
       ],
-      "starter_recipe_refs": [
-        "roc_pr_curve",
-        "time_dependent_roc_panel"
+      "starter_recipe_overrides": [
+        {
+          "recipe_id": "roc_pr_curve",
+          "starter_kind": "display_pack_seeded",
+          "panel_grammar": "curve_panel_with_statistical_guides"
+        },
+        {
+          "recipe_id": "time_dependent_roc_panel",
+          "starter_kind": "display_pack_seeded",
+          "panel_grammar": "curve_panel_with_statistical_guides"
+        }
       ],
       "style_tokens": [
         "clinical_journal"
@@ -75,8 +83,12 @@
         "horizon",
         "model"
       ],
-      "starter_recipe_refs": [
-        "calibration_curve_with_histogram"
+      "starter_recipe_overrides": [
+        {
+          "recipe_id": "calibration_curve_with_histogram",
+          "starter_kind": "display_pack_seeded",
+          "panel_grammar": "curve_panel_with_statistical_guides"
+        }
       ],
       "style_tokens": [
         "clinical_journal"
@@ -118,8 +130,12 @@
         "model",
         "event_count"
       ],
-      "starter_recipe_refs": [
-        "decision_curve_clinical_impact"
+      "starter_recipe_overrides": [
+        {
+          "recipe_id": "decision_curve_clinical_impact",
+          "starter_kind": "display_pack_seeded",
+          "panel_grammar": "curve_panel_with_statistical_guides"
+        }
       ],
       "style_tokens": [
         "clinical_journal"
@@ -162,8 +178,12 @@
         "count",
         "proportion"
       ],
-      "starter_recipe_refs": [
-        "confusion_matrix_heatmap"
+      "starter_recipe_overrides": [
+        {
+          "recipe_id": "confusion_matrix_heatmap",
+          "starter_kind": "display_pack_seeded",
+          "panel_grammar": "annotated_matrix_or_dotplot"
+        }
       ],
       "style_tokens": [
         "clinical_journal"
@@ -204,8 +224,12 @@
         "count",
         "group"
       ],
-      "starter_recipe_refs": [
-        "risk_layering_bars"
+      "starter_recipe_overrides": [
+        {
+          "recipe_id": "risk_layering_bars",
+          "starter_kind": "display_pack_seeded",
+          "panel_grammar": "ordered_bar_or_waterfall_panel"
+        }
       ],
       "style_tokens": [
         "clinical_journal"
@@ -249,8 +273,16 @@
         "upper_ci",
         "model"
       ],
-      "starter_recipe_refs": [
-        "multi_cohort_performance_panel"
+      "starter_recipe_overrides": [
+        {
+          "recipe_id": "multi_cohort_performance_panel",
+          "starter_kind": "display_pack_seeded",
+          "panel_grammar": "counted_flow_diagram",
+          "recommended_template_seed_ids": [
+            "multicenter_generalizability_overview",
+            "performance_heatmap"
+          ]
+        }
       ],
       "style_tokens": [
         "clinical_journal"
@@ -299,8 +331,12 @@
         "total_score",
         "risk"
       ],
-      "starter_recipe_refs": [
-        "nomogram_score_chart"
+      "starter_recipe_overrides": [
+        {
+          "recipe_id": "nomogram_score_chart",
+          "starter_kind": "contract_only_seed",
+          "panel_grammar": "paper_local_panel_grammar"
+        }
       ],
       "style_tokens": [
         "clinical_journal"
@@ -340,8 +376,14 @@
         "operating_metric",
         "support_count"
       ],
-      "starter_recipe_refs": [
-        "model_complexity_audit_panel"
+      "starter_recipe_overrides": [
+        {
+          "recipe_id": "model_complexity_audit_panel",
+          "starter_kind": "audit_panel",
+          "panel_grammar": "small_multiples_with_threshold_and_support_annotations",
+          "title": "Model complexity audit panel",
+          "purpose": "Create a compact audit panel for model complexity, operating points, and support counts before clinical interpretation."
+        }
       ],
       "style_tokens": [
         "clinical_journal"

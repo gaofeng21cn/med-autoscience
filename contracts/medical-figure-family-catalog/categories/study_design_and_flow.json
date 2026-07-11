@@ -21,9 +21,17 @@
         "analysed",
         "exclusion_reason"
       ],
-      "starter_recipe_refs": [
-        "flow_diagram_rectangular_counts",
-        "trial_arm_flow"
+      "starter_recipe_overrides": [
+        {
+          "recipe_id": "flow_diagram_rectangular_counts",
+          "starter_kind": "display_pack_seeded",
+          "panel_grammar": "counted_flow_diagram"
+        },
+        {
+          "recipe_id": "trial_arm_flow",
+          "starter_kind": "display_pack_seeded",
+          "panel_grammar": "counted_flow_diagram"
+        }
       ],
       "style_tokens": [
         "medpub_neutral"
@@ -70,8 +78,12 @@
         "analytic_cohort",
         "endpoint_inventory"
       ],
-      "starter_recipe_refs": [
-        "cohort_flow_with_exclusion_branches"
+      "starter_recipe_overrides": [
+        {
+          "recipe_id": "cohort_flow_with_exclusion_branches",
+          "starter_kind": "display_pack_seeded",
+          "panel_grammar": "counted_flow_diagram"
+        }
       ],
       "style_tokens": [
         "medpub_neutral"
@@ -117,8 +129,12 @@
         "reports_assessed",
         "studies_included"
       ],
-      "starter_recipe_refs": [
-        "prisma_2020_flow"
+      "starter_recipe_overrides": [
+        {
+          "recipe_id": "prisma_2020_flow",
+          "starter_kind": "display_pack_seeded",
+          "panel_grammar": "counted_flow_diagram"
+        }
       ],
       "style_tokens": [
         "medpub_neutral"
@@ -162,8 +178,12 @@
         "indeterminate",
         "analysis_set"
       ],
-      "starter_recipe_refs": [
-        "diagnostic_flow"
+      "starter_recipe_overrides": [
+        {
+          "recipe_id": "diagnostic_flow",
+          "starter_kind": "display_pack_seeded",
+          "panel_grammar": "counted_flow_diagram"
+        }
       ],
       "style_tokens": [
         "clinical_journal"
@@ -204,8 +224,12 @@
         "excluded_n",
         "reason"
       ],
-      "starter_recipe_refs": [
-        "waterfall_attrition_counts"
+      "starter_recipe_overrides": [
+        {
+          "recipe_id": "waterfall_attrition_counts",
+          "starter_kind": "display_pack_seeded",
+          "panel_grammar": "ordered_bar_or_waterfall_panel"
+        }
       ],
       "style_tokens": [
         "medpub_neutral"
@@ -245,8 +269,12 @@
         "cohort",
         "milestone"
       ],
-      "starter_recipe_refs": [
-        "timeline_gantt"
+      "starter_recipe_overrides": [
+        {
+          "recipe_id": "timeline_gantt",
+          "starter_kind": "contract_only_seed",
+          "panel_grammar": "time_or_trajectory_panel"
+        }
       ],
       "style_tokens": [
         "medpub_neutral"

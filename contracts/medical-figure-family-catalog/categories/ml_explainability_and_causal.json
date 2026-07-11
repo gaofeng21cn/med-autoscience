@@ -19,8 +19,12 @@
         "feature_value",
         "model"
       ],
-      "starter_recipe_refs": [
-        "shap_summary_beeswarm"
+      "starter_recipe_overrides": [
+        {
+          "recipe_id": "shap_summary_beeswarm",
+          "starter_kind": "display_pack_seeded",
+          "panel_grammar": "coordinate_scatter_or_map"
+        }
       ],
       "style_tokens": [
         "medpub_neutral"
@@ -65,8 +69,12 @@
         "prediction",
         "sample_id"
       ],
-      "starter_recipe_refs": [
-        "shap_waterfall_or_force"
+      "starter_recipe_overrides": [
+        {
+          "recipe_id": "shap_waterfall_or_force",
+          "starter_kind": "display_pack_seeded",
+          "panel_grammar": "ordered_bar_or_waterfall_panel"
+        }
       ],
       "style_tokens": [
         "clinical_journal"
@@ -110,8 +118,16 @@
         "subgroup",
         "support_density"
       ],
-      "starter_recipe_refs": [
-        "pdp_ice_ale_panel"
+      "starter_recipe_overrides": [
+        {
+          "recipe_id": "pdp_ice_ale_panel",
+          "starter_kind": "display_pack_seeded",
+          "panel_grammar": "curve_panel_with_statistical_guides",
+          "recommended_template_seed_ids": [
+            "partial_dependence_ice_panel",
+            "partial_dependence_interaction_contour_panel"
+          ]
+        }
       ],
       "style_tokens": [
         "medpub_neutral"
@@ -157,8 +173,12 @@
         "role",
         "adjustment_set"
       ],
-      "starter_recipe_refs": [
-        "causal_dag"
+      "starter_recipe_overrides": [
+        {
+          "recipe_id": "causal_dag",
+          "starter_kind": "display_pack_seeded",
+          "panel_grammar": "schematic_or_graph_panel"
+        }
       ],
       "style_tokens": [
         "medpub_neutral"
@@ -197,8 +217,12 @@
         "adjustment_state",
         "threshold"
       ],
-      "starter_recipe_refs": [
-        "love_plot"
+      "starter_recipe_overrides": [
+        {
+          "recipe_id": "love_plot",
+          "starter_kind": "contract_only_seed",
+          "panel_grammar": "paper_local_panel_grammar"
+        }
       ],
       "style_tokens": [
         "clinical_journal"
@@ -237,8 +261,12 @@
         "subgroup",
         "policy_choice"
       ],
-      "starter_recipe_refs": [
-        "threshold_governance_panel"
+      "starter_recipe_overrides": [
+        {
+          "recipe_id": "threshold_governance_panel",
+          "starter_kind": "display_pack_seeded",
+          "panel_grammar": "curve_panel_with_statistical_guides"
+        }
       ],
       "style_tokens": [
         "clinical_journal"

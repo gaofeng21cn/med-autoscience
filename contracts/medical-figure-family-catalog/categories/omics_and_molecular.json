@@ -19,8 +19,12 @@
         "adjusted_p_value",
         "label_flag"
       ],
-      "starter_recipe_refs": [
-        "volcano_with_label_policy"
+      "starter_recipe_overrides": [
+        {
+          "recipe_id": "volcano_with_label_policy",
+          "starter_kind": "display_pack_seeded",
+          "panel_grammar": "paper_local_panel_grammar"
+        }
       ],
       "style_tokens": [
         "medpub_neutral"
@@ -65,8 +69,12 @@
         "row_annotation",
         "column_annotation"
       ],
-      "starter_recipe_refs": [
-        "complex_heatmap_annotated"
+      "starter_recipe_overrides": [
+        {
+          "recipe_id": "complex_heatmap_annotated",
+          "starter_kind": "display_pack_seeded",
+          "panel_grammar": "annotated_matrix_or_dotplot"
+        }
       ],
       "style_tokens": [
         "medpub_neutral",
@@ -118,8 +126,12 @@
         "group",
         "continuous_value"
       ],
-      "starter_recipe_refs": [
-        "embedding_scatter"
+      "starter_recipe_overrides": [
+        {
+          "recipe_id": "embedding_scatter",
+          "starter_kind": "display_pack_seeded",
+          "panel_grammar": "coordinate_scatter_or_map"
+        }
       ],
       "style_tokens": [
         "medpub_neutral"
@@ -168,8 +180,12 @@
         "count",
         "direction"
       ],
-      "starter_recipe_refs": [
-        "enrichment_dotplot"
+      "starter_recipe_overrides": [
+        {
+          "recipe_id": "enrichment_dotplot",
+          "starter_kind": "display_pack_seeded",
+          "panel_grammar": "annotated_matrix_or_dotplot"
+        }
       ],
       "style_tokens": [
         "medpub_neutral"
@@ -214,8 +230,12 @@
         "rank_metric",
         "pathway"
       ],
-      "starter_recipe_refs": [
-        "gsea_curve"
+      "starter_recipe_overrides": [
+        {
+          "recipe_id": "gsea_curve",
+          "starter_kind": "contract_only_seed",
+          "panel_grammar": "curve_panel_with_statistical_guides"
+        }
       ],
       "style_tokens": [
         "medpub_neutral"
@@ -254,8 +274,16 @@
         "alteration_type",
         "clinical_annotation"
       ],
-      "starter_recipe_refs": [
-        "oncoplot_landscape"
+      "starter_recipe_overrides": [
+        {
+          "recipe_id": "oncoplot_landscape",
+          "starter_kind": "display_pack_seeded",
+          "panel_grammar": "paper_local_panel_grammar",
+          "recommended_template_seed_ids": [
+            "oncoplot_mutation_landscape_panel",
+            "genomic_alteration_landscape_panel"
+          ]
+        }
       ],
       "style_tokens": [
         "supplement_dense"
@@ -302,8 +330,12 @@
         "copy_number",
         "sample_or_group"
       ],
-      "starter_recipe_refs": [
-        "cnv_recurrence_summary"
+      "starter_recipe_overrides": [
+        {
+          "recipe_id": "cnv_recurrence_summary",
+          "starter_kind": "display_pack_seeded",
+          "panel_grammar": "paper_local_panel_grammar"
+        }
       ],
       "style_tokens": [
         "supplement_dense"
@@ -348,8 +380,14 @@
         "effect_metric",
         "cohort_or_group"
       ],
-      "starter_recipe_refs": [
-        "genomic_consequence_composite"
+      "starter_recipe_overrides": [
+        {
+          "recipe_id": "genomic_consequence_composite",
+          "starter_kind": "composite_panel",
+          "panel_grammar": "ranked_alteration_consequence_blocks_with_shared_semantic_palette",
+          "title": "Genomic consequence composite",
+          "purpose": "Build a consequence-focused genomic panel that links alterations to molecular or pathway consequences without duplicating the full oncoplot."
+        }
       ],
       "style_tokens": [
         "medpub_neutral"

@@ -18,8 +18,12 @@
         "value",
         "group"
       ],
-      "starter_recipe_refs": [
-        "spaghetti_plot"
+      "starter_recipe_overrides": [
+        {
+          "recipe_id": "spaghetti_plot",
+          "starter_kind": "contract_only_seed",
+          "panel_grammar": "time_or_trajectory_panel"
+        }
       ],
       "style_tokens": [
         "medpub_neutral"
@@ -56,8 +60,12 @@
         "duration",
         "group"
       ],
-      "starter_recipe_refs": [
-        "event_timeline"
+      "starter_recipe_overrides": [
+        {
+          "recipe_id": "event_timeline",
+          "starter_kind": "contract_only_seed",
+          "panel_grammar": "time_or_trajectory_panel"
+        }
       ],
       "style_tokens": [
         "clinical_journal"
@@ -96,8 +104,12 @@
         "count",
         "transition"
       ],
-      "starter_recipe_refs": [
-        "alluvial_transition"
+      "starter_recipe_overrides": [
+        {
+          "recipe_id": "alluvial_transition",
+          "starter_kind": "display_pack_seeded",
+          "panel_grammar": "paper_local_panel_grammar"
+        }
       ],
       "style_tokens": [
         "medpub_neutral"
@@ -140,8 +152,12 @@
         "group",
         "cumulative_count"
       ],
-      "starter_recipe_refs": [
-        "recurrent_event_panel"
+      "starter_recipe_overrides": [
+        {
+          "recipe_id": "recurrent_event_panel",
+          "starter_kind": "contract_only_seed",
+          "panel_grammar": "time_or_trajectory_panel"
+        }
       ],
       "style_tokens": [
         "clinical_journal"
@@ -180,8 +196,12 @@
         "clinical_threshold",
         "group"
       ],
-      "starter_recipe_refs": [
-        "lab_marker_trajectory"
+      "starter_recipe_overrides": [
+        {
+          "recipe_id": "lab_marker_trajectory",
+          "starter_kind": "contract_only_seed",
+          "panel_grammar": "time_or_trajectory_panel"
+        }
       ],
       "style_tokens": [
         "clinical_journal"

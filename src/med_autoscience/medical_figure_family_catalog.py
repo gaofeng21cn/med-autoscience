@@ -12,8 +12,9 @@ from med_autoscience.medical_figure_composition_recipes import (
 )
 from med_autoscience.medical_figure_family_recipes import (
     StarterRecipe,
-    parse_starter_recipes,
-    validate_starter_recipe_refs,
+    derive_starter_recipes,
+    validate_family_recipe_refs,
+    validate_starter_recipes,
 )
 
 
@@ -265,19 +266,34 @@ def _parse_external_sources(payload: dict[str, Any]) -> tuple[ExternalSource, ..
     return tuple(sources)
 
 
-def _parse_family(item: dict[str, Any], *, expected_category_id: str, context: str) -> FigureFamily:
+def _parse_family(
+    item: dict[str, Any],
+    *,
+    expected_category_id: str,
+    policy_id: str,
+    context: str,
+) -> tuple[FigureFamily, tuple[StarterRecipe, ...]]:
     family_id = _expect_str(item, "family_id", context=context)
     category_id = _expect_str(item, "category_id", context=context)
     if category_id != expected_category_id:
         raise ValueError(f"{context}.category_id must equal `{expected_category_id}`")
-    return FigureFamily(
+    overrides = _expect_object_list(item, "starter_recipe_overrides", context=context)
+    if not overrides:
+        raise ValueError(f"{context}.starter_recipe_overrides must be non-empty")
+    recipe_ids = tuple(
+        _expect_str(override, "recipe_id", context=f"{context}.starter_recipe_overrides[{index}]")
+        for index, override in enumerate(overrides)
+    )
+    if len(recipe_ids) != len(set(recipe_ids)):
+        raise ValueError(f"{context}.starter_recipe_overrides has duplicate recipe_id values")
+    family = FigureFamily(
         family_id=family_id,
         category_id=category_id,
         title=_expect_str(item, "title", context=context),
         intent=_expect_str(item, "intent", context=context),
         canonical_variants=_expect_str_tuple(item, "canonical_variants", context=context),
         data_roles=_expect_str_tuple(item, "data_roles", context=context),
-        starter_recipe_refs=_expect_str_tuple(item, "starter_recipe_refs", context=context),
+        starter_recipe_refs=recipe_ids,
         style_tokens=_expect_str_tuple(item, "style_tokens", context=context),
         palette_tokens=_expect_str_tuple(item, "palette_tokens", context=context),
         qa_gate_ids=_expect_str_tuple(item, "qa_gate_ids", context=context),
@@ -286,63 +302,43 @@ def _parse_family(item: dict[str, Any], *, expected_category_id: str, context: s
         template_seed_ids=_expect_str_tuple(item, "template_seed_ids", context=context),
         ai_adaptation_notes=_expect_str(item, "ai_adaptation_notes", context=context),
     )
+    return family, derive_starter_recipes(
+        overrides,
+        family=family,
+        policy_id=policy_id,
+        context=f"{context}.starter_recipe_overrides",
+        expect_str=_expect_str,
+        expect_str_tuple=_expect_str_tuple,
+    )
 
 
-def _parse_category(path: Path) -> FigureFamilyCategory:
+def _parse_category(
+    path: Path,
+    *,
+    policy_id: str,
+) -> tuple[FigureFamilyCategory, tuple[StarterRecipe, ...]]:
     payload = _read_json_object(path)
     category_id = _expect_str(payload, "category_id", context=path.name)
-    families = tuple(
-        _parse_family(item, expected_category_id=category_id, context=f"{path.name}.families[{index}]")
+    parsed_families = tuple(
+        _parse_family(
+            item,
+            expected_category_id=category_id,
+            policy_id=policy_id,
+            context=f"{path.name}.families[{index}]",
+        )
         for index, item in enumerate(_expect_object_list(payload, "families", context=path.name))
     )
+    families = tuple(family for family, _ in parsed_families)
     if not families:
         raise ValueError(f"{path.name}.families must be non-empty")
-    return FigureFamilyCategory(
-        category_id=category_id,
-        title=_expect_str(payload, "title", context=path.name),
-        families=families,
+    return (
+        FigureFamilyCategory(
+            category_id=category_id,
+            title=_expect_str(payload, "title", context=path.name),
+            families=families,
+        ),
+        tuple(recipe for _, recipes in parsed_families for recipe in recipes),
     )
-
-
-def _validate_family_refs(
-    categories: tuple[FigureFamilyCategory, ...],
-    *,
-    style_profile_ids: set[str],
-    palette_token_ids: set[str],
-    qa_gate_ids: set[str],
-    external_source_ids: set[str],
-    starter_recipes_by_id: dict[str, StarterRecipe],
-) -> dict[str, FigureFamily]:
-    families_by_id: dict[str, FigureFamily] = {}
-    for category in categories:
-        for family in category.families:
-            if family.family_id in families_by_id:
-                raise ValueError(f"duplicate medical figure family `{family.family_id}`")
-            unknown_styles = set(family.style_tokens) - style_profile_ids
-            if unknown_styles:
-                raise ValueError(f"{family.family_id} references unknown style tokens {sorted(unknown_styles)!r}")
-            unknown_palettes = set(family.palette_tokens) - palette_token_ids
-            if unknown_palettes:
-                raise ValueError(f"{family.family_id} references unknown palette tokens {sorted(unknown_palettes)!r}")
-            unknown_gates = set(family.qa_gate_ids) - qa_gate_ids
-            if unknown_gates:
-                raise ValueError(f"{family.family_id} references unknown QA gates {sorted(unknown_gates)!r}")
-            unknown_sources = set(family.external_refs) - external_source_ids
-            if unknown_sources:
-                raise ValueError(f"{family.family_id} references unknown external sources {sorted(unknown_sources)!r}")
-            unknown_recipes = set(family.starter_recipe_refs) - set(starter_recipes_by_id)
-            if unknown_recipes:
-                raise ValueError(
-                    f"{family.family_id} references unknown starter recipes {sorted(unknown_recipes)!r}"
-                )
-            for recipe_id in family.starter_recipe_refs:
-                recipe = starter_recipes_by_id[recipe_id]
-                if recipe.family_id != family.family_id:
-                    raise ValueError(f"starter recipe `{recipe_id}` family_id must equal `{family.family_id}`")
-                if recipe.category_id != family.category_id:
-                    raise ValueError(f"starter recipe `{recipe_id}` category_id must equal `{family.category_id}`")
-            families_by_id[family.family_id] = family
-    return families_by_id
 
 
 def _load_ref_payload(catalog_root: Path, index: dict[str, Any], key: str) -> dict[str, Any]:
@@ -393,30 +389,22 @@ def load_medical_figure_family_catalog(
     _expect_str_tuple(starter_recipe_policy, "required_output_refs", context="starter_recipe_policy")
     _expect_str_tuple(starter_recipe_policy, "quality_gate_route", context="starter_recipe_policy")
 
-    starter_recipe_refs = _expect_str_tuple(index, "starter_recipe_refs", context="index")
-    starter_recipes = tuple(
-        recipe
-        for ref_index, ref in enumerate(starter_recipe_refs)
-        for recipe in parse_starter_recipes(
-            _resolve_catalog_ref(normalized_root, ref, context=f"index.starter_recipe_refs[{ref_index}]"),
-            read_json_object=_read_json_object,
-            expect_str=lambda payload, key: _expect_str(payload, key, context="starter_recipe"),
-            expect_str_tuple=lambda payload, key: _expect_str_tuple(payload, key, context="starter_recipe"),
-            expect_object_list=lambda payload, key: _expect_object_list(payload, key, context="starter_recipe"),
+    category_refs = _expect_str_tuple(index, "category_refs", context="index")
+    parsed_categories = tuple(
+        _parse_category(
+            _resolve_catalog_ref(normalized_root, ref, context=f"index.category_refs[{ref_index}]"),
+            policy_id=starter_policy_id,
         )
+        for ref_index, ref in enumerate(category_refs)
     )
-    starter_recipes_by_id = validate_starter_recipe_refs(
+    categories = tuple(category for category, _ in parsed_categories)
+    starter_recipes = tuple(recipe for _, recipes in parsed_categories for recipe in recipes)
+    starter_recipes_by_id = validate_starter_recipes(
         starter_recipes,
         style_profile_ids={item.profile_id for item in style_profiles},
         palette_token_ids={item.token_id for item in palette_tokens},
         qa_gate_ids={item.gate_id for item in qa_gates},
         policy_id=starter_policy_id,
-    )
-
-    category_refs = _expect_str_tuple(index, "category_refs", context="index")
-    categories = tuple(
-        _parse_category(_resolve_catalog_ref(normalized_root, ref, context=f"index.category_refs[{ref_index}]"))
-        for ref_index, ref in enumerate(category_refs)
     )
     categories_by_id: dict[str, FigureFamilyCategory] = {}
     for category in categories:
@@ -424,7 +412,7 @@ def load_medical_figure_family_catalog(
             raise ValueError(f"duplicate medical figure category `{category.category_id}`")
         categories_by_id[category.category_id] = category
 
-    families_by_id = _validate_family_refs(
+    families_by_id = validate_family_recipe_refs(
         categories,
         style_profile_ids={item.profile_id for item in style_profiles},
         palette_token_ids={item.token_id for item in palette_tokens},
