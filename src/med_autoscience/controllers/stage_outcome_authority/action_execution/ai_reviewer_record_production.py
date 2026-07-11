@@ -467,22 +467,6 @@ def build_ai_reviewer_record_worker_handoff(
         "provider_admission_requires_opl_runtime_result": True,
         **transition_authority_fields,
     }
-    dispatch_shell = {
-        "action_type": ACTION_TYPE,
-        "next_executable_owner": "ai_reviewer",
-        "owner_route": owner_route or None,
-        "prompt_contract": prompt_contract,
-        "required_closeout_packet": closeout_contract,
-        "allowed_write_surfaces": list(ALLOWED_WRITE_SURFACES),
-        "forbidden_surfaces": list(FORBIDDEN_SURFACES),
-        "opl_domain_progress_transition_request": transition_request,
-        "provider_admission_pending": False,
-        "provider_admission_requires_opl_runtime_result": True,
-        **transition_authority_fields,
-    }
-    owner_route_attempt_envelope = owner_route_attempt_protocol.owner_callable_attempt_envelope(
-        dispatch=dispatch_shell
-    )
     return {
         "surface": "mas_domain_progress_transition_request_projection",
         "schema_version": 1,
@@ -501,7 +485,6 @@ def build_ai_reviewer_record_worker_handoff(
         "action_fingerprint": repeat_key,
         "consumer_mutation_scope": "executor_dispatch_request_only",
         "required_closeout_packet": closeout_contract,
-        "owner_route_attempt_envelope": owner_route_attempt_envelope,
         "terminal_output_instruction": closeout_contract["terminal_output_instruction"],
         "forbidden_surfaces": list(FORBIDDEN_SURFACES),
         "allowed_write_surfaces": list(ALLOWED_WRITE_SURFACES),
