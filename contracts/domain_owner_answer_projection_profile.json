@@ -6,6 +6,7 @@
   "domain_id": "medautoscience",
   "binding_project_id": "medautoscience",
   "source_owner": "med-autoscience",
+  "checkout_currentness_required": true,
   "workspace_root_profile_ref": {
     "profile_dir_name": "profiles",
     "domain_dir_name": "medautoscience",

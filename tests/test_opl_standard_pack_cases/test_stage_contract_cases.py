@@ -29,6 +29,7 @@ def test_domain_owner_answer_projection_profile_is_domain_owned_and_refs_only() 
     assert profile["profile_role"] == "registry"
     assert profile["domain_id"] == "medautoscience"
     assert profile["binding_project_id"] == "medautoscience"
+    assert profile["checkout_currentness_required"] is True
     assert profile["projection_relative_path"] == [
         "artifacts",
         "stage_outputs",
