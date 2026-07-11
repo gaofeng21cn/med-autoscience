@@ -32,7 +32,7 @@ def _transaction(decision_kind: str = "advance") -> dict[str, object]:
         "next_owner": "analysis-campaign",
     }
     if decision_kind == "advance":
-        decision["next_stage_id"] = "publication_gate_replay"
+        decision["next_stage_id"] = "finalize_and_publication_handoff"
     elif decision_kind == "typed_blocker":
         decision["blocker_id"] = "current_owner_route_superseded"
         decision["unblock_condition"] = "OPL or MAS authority consumes blocker"
@@ -79,9 +79,9 @@ def test_paper_mission_opl_carrier_is_request_only_runtime_intent() -> None:
     assert carrier["domain_route_handoff_ref"].endswith("#domain_route_handoff")
     assert carrier["domain_route_command_ref"] == carrier["opl_route_command_ref"]
     assert carrier["opl_route_command"]["command_kind"] == "start_next_stage"
-    assert carrier["declarative_target_stage_id"] == "publication_gate_replay"
+    assert carrier["declarative_target_stage_id"] == "finalize_and_publication_handoff"
     assert carrier["opl_route_command"]["declarative_target_stage_id"] == (
-        "publication_gate_replay"
+        "finalize_and_publication_handoff"
     )
     assert carrier["required_postcondition"]["mas_can_satisfy_readback"] is False
     assert carrier["provider_admission_pending"] is False

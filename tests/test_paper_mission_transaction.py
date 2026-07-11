@@ -61,12 +61,12 @@ def _valid_transaction(decision_kind: str = "advance") -> dict[str, object]:
         "next_owner": "analysis-campaign",
     }
     if decision_kind == "advance":
-        decision["next_stage_id"] = "publication_gate_replay"
+        decision["next_stage_id"] = "finalize_and_publication_handoff"
     elif decision_kind == "continue_same_stage":
         decision["next_work_unit"] = "claim_evidence_repair"
-        decision["target_stage_id"] = "06-manuscript_authoring"
+        decision["target_stage_id"] = "manuscript_authoring"
     elif decision_kind == "route_back":
-        decision["target_stage_id"] = "gate_clearing_claim_evidence_repair"
+        decision["target_stage_id"] = "review_and_quality_gate"
         decision["repair_scope"] = "refresh claim evidence map"
     elif decision_kind == "typed_blocker":
         decision["blocker_id"] = "source_readiness_missing"
@@ -118,6 +118,15 @@ def test_contract_declares_terminalizer_boundary() -> None:
     assert contract["opl_runtime_carrier"]["domain_route_profile_ref"] == (
         "contracts/domain_route_profile.json"
     )
+    attempt_consumer = contract["opl_runtime_carrier"]["runtime_attempt_consumer"]
+    assert attempt_consumer["runtime_domain_id"] == "medautoscience"
+    assert attempt_consumer["stage_argument_source"] == (
+        "declarative_target_stage_id"
+    )
+    assert attempt_consumer["forbidden_command_surfaces"] == [
+        "opl family-runtime enqueue",
+        "opl family-runtime tick",
+    ]
     assert contract["opl_route_command"]["required_fields_by_command_kind"][
         "start_next_stage"
     ] == ["declarative_target_stage_id"]

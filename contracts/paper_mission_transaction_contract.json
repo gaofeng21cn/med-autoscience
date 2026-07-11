@@ -114,6 +114,17 @@
     "target_runtime_kind": "domain_route/stage-route",
     "runtime_contract_ref": "one-person-lab:contracts/opl-framework/stage-route-scheduler-contract.json",
     "domain_route_profile_ref": "contracts/domain_route_profile.json",
+    "runtime_attempt_consumer": {
+      "command_surface": "opl family-runtime attempt create",
+      "runtime_domain_id": "medautoscience",
+      "stage_argument_source": "declarative_target_stage_id",
+      "starts_attempt_in_create": true,
+      "requires_typed_workspace_locator": true,
+      "forbidden_command_surfaces": [
+        "opl family-runtime enqueue",
+        "opl family-runtime tick"
+      ]
+    },
     "role": "MAS normalizes the paper mission transaction into a generic domain_route request before OPL intake. OPL sees only generic route identity, attempt identity, refs, and false-authority flags.",
     "required_fields": [
       "domain_id",

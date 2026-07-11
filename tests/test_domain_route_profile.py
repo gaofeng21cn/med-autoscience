@@ -5,9 +5,9 @@ from pathlib import Path
 
 from med_autoscience.domain_route_profile import (
     TASK_KIND_NORMALIZATION,
-    build_domain_route_family_runtime_request,
     build_domain_route_handoff_intake_readback,
     build_domain_route_profile,
+    build_domain_route_runtime_request,
     canonical_domain_task_kind,
 )
 
@@ -19,13 +19,13 @@ def _handoff(candidate_ref: str) -> dict[str, object]:
         "opl_route_command_ref": f"{transaction_ref}#opl_route_command",
         "route_command_kind": "route_back",
         "route_target": "review_and_quality_gate",
-        "declarative_target_stage_id": "07-independent_review_and_revision",
+        "declarative_target_stage_id": "review_and_quality_gate",
         "request_idempotency_key": f"{transaction_ref}::request",
         "candidate_ref": candidate_ref,
         "opl_route_command": {
             "command_kind": "route_back",
             "target": "review_and_quality_gate",
-            "declarative_target_stage_id": "07-independent_review_and_revision",
+            "declarative_target_stage_id": "review_and_quality_gate",
         },
     }
 
@@ -89,7 +89,7 @@ def test_paper_mission_handoff_is_normalized_to_generic_domain_route(tmp_path: P
     assert request["command_kind"] == "route_back"
     assert request["route_target"] == "review_and_quality_gate"
     assert request["declarative_target_stage_id"] == (
-        "07-independent_review_and_revision"
+        "review_and_quality_gate"
     )
     assert request["domain_route_transaction_ref"] == (
         "paper-mission-transaction::study-001"
@@ -104,19 +104,20 @@ def test_paper_mission_handoff_is_normalized_to_generic_domain_route(tmp_path: P
     assert "study_id" not in request
 
 
-def test_runtime_submission_uses_generic_task_and_content_bound_dedupe(tmp_path: Path) -> None:
+def test_runtime_request_uses_explicit_stage_and_content_bound_dedupe(tmp_path: Path) -> None:
     candidate = tmp_path / "candidate.json"
     candidate.write_text(json.dumps({"version": 1}), encoding="utf-8")
-    first = build_domain_route_family_runtime_request(_handoff(str(candidate)))
+    first = build_domain_route_runtime_request(_handoff(str(candidate)))
     candidate.write_text(json.dumps({"version": 2}), encoding="utf-8")
-    second = build_domain_route_family_runtime_request(_handoff(str(candidate)))
+    second = build_domain_route_runtime_request(_handoff(str(candidate)))
 
     assert first is not None and second is not None
-    assert first["domainId"] == "mas"
-    assert first["taskKind"] == "domain_route/stage-route"
-    assert first["payload"]["surface_kind"] == "opl_domain_route_runtime_request"
-    assert first["stageId"] == "07-independent_review_and_revision"
-    assert first["dedupe_key"] != second["dedupe_key"]
+    assert first["domain_id"] == "mas"
+    assert first["surface_kind"] == "opl_domain_route_runtime_request"
+    assert first["declarative_target_stage_id"] == "review_and_quality_gate"
+    assert first["route_identity"]["dedupe_key"] != second["route_identity"][
+        "dedupe_key"
+    ]
 
 
 def test_runtime_request_rejects_missing_explicit_stage_without_route_target_inference(

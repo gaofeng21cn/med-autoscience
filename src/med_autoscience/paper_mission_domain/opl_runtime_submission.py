@@ -35,15 +35,13 @@ from med_autoscience.controllers.stage_closure_terminalizer import (
     stage_closure_decision_missing,
 )
 from med_autoscience.domain_route_profile import (
-    DOMAIN_ID as DOMAIN_ROUTE_DOMAIN_ID,
-    DOMAIN_ROUTE_TASK_KIND,
-    build_domain_route_family_runtime_request,
+    build_domain_route_handoff_intake_readback,
 )
 
 PACKAGED_OPL_BIN = Path("/Users/gaofeng/Library/Application Support/OPL/runtime/current/bin/opl")
 DEV_OPL_BIN = Path("/Users/gaofeng/workspace/one-person-lab/bin/opl")
 PATH_OPL_BIN = "opl"
-OPL_RUNTIME_TICK_FOLLOWTHROUGH_TIMEOUT_SECONDS = 15
+OPL_RUNTIME_DOMAIN_ID = "medautoscience"
 
 
 def opl_runtime_submission_readback(
@@ -57,8 +55,8 @@ def opl_runtime_submission_readback(
             "status": "not_requested",
             "writes_runtime": False,
             "required_next_action": (
-                "Submit opl_route_handoff to OPL DomainProgressTransitionRuntime "
-                "through the legal OPL intake surface."
+                "Submit opl_route_handoff through OPL family-runtime attempt create "
+                "with an explicit stage and typed workspace locator."
             ),
         }
     if _optional_text(handoff.get("handoff_status")) != "ready_for_opl_route_command":
@@ -67,12 +65,45 @@ def opl_runtime_submission_readback(
             "writes_runtime": False,
             "reason": "opl_route_handoff_not_ready",
         }
-    runtime_request = build_domain_route_family_runtime_request(handoff)
-    if runtime_request is None:
+    route_intake = build_domain_route_handoff_intake_readback(handoff)
+    runtime_request = _mapping(route_intake.get("runtime_request"))
+    if not runtime_request:
+        blockers = _mapping_list(route_intake.get("blockers"))
+        stage_blocker = next(
+            (
+                blocker
+                for blocker in blockers
+                if _optional_text(blocker.get("field"))
+                == "declarative_target_stage_id"
+            ),
+            {},
+        )
+        stage_reason = _optional_text(stage_blocker.get("reason"))
         return {
             "status": "not_actionable",
             "writes_runtime": False,
-            "reason": "opl_stage_route_runtime_request_not_materialized",
+            "reason": (
+                "opl_stage_attempt_target_stage_mismatch"
+                if stage_reason == "domain_route_stage_identity_mismatch"
+                else "opl_stage_attempt_target_stage_missing"
+                if stage_blocker
+                else "opl_stage_route_runtime_request_not_materialized"
+            ),
+            "blockers": blockers,
+        }
+    stage_id = _optional_text(runtime_request.get("declarative_target_stage_id"))
+    if stage_id is None:
+        return {
+            "status": "not_actionable",
+            "writes_runtime": False,
+            "reason": "opl_stage_attempt_target_stage_missing",
+        }
+    workspace_root = _handoff_workspace_root(handoff)
+    if workspace_root is None:
+        return {
+            "status": "not_actionable",
+            "writes_runtime": False,
+            "reason": "opl_stage_attempt_workspace_locator_missing",
         }
     selected_opl_bin = _resolve_opl_bin(opl_bin)
     if selected_opl_bin is None:
@@ -81,27 +112,37 @@ def opl_runtime_submission_readback(
             "writes_runtime": False,
             "reason": "opl_bin_not_found",
             "expected_command": (
-                "opl family-runtime enqueue --domain medautoscience "
-                "--task-kind domain_route/stage-route"
+                "opl family-runtime attempt create --domain medautoscience "
+                f"--stage {stage_id} --workspace-locator <json> --start --json"
             ),
         }
+    route_identity = _mapping(runtime_request.get("route_identity"))
     command = [
         selected_opl_bin,
         "family-runtime",
-        "enqueue",
+        "attempt",
+        "create",
         "--domain",
-        DOMAIN_ROUTE_DOMAIN_ID,
-        "--task-kind",
-        DOMAIN_ROUTE_TASK_KIND,
-        "--payload",
-        json.dumps(runtime_request["payload"], ensure_ascii=False, separators=(",", ":")),
-        "--dedupe-key",
-        runtime_request["dedupe_key"],
-        "--priority",
-        "100",
-        "--source",
-        "mas-domain-route",
+        OPL_RUNTIME_DOMAIN_ID,
+        "--stage",
+        stage_id,
+        "--workspace-locator",
+        json.dumps(
+            {"workspace_root": workspace_root},
+            ensure_ascii=False,
+            separators=(",", ":"),
+        ),
     ]
+    action_id = _first_text(
+        handoff.get("domain_action_id"),
+        handoff.get("action_id"),
+    )
+    if action_id is not None:
+        command.extend(["--action", action_id])
+    source_fingerprint = _optional_text(route_identity.get("source_fingerprint"))
+    if source_fingerprint is not None:
+        command.extend(["--source-fingerprint", source_fingerprint])
+    command.extend(["--require-stage-admission", "--start", "--json"])
     try:
         completed = subprocess.run(
             command,
@@ -114,43 +155,57 @@ def opl_runtime_submission_readback(
         return {
             "status": "failed",
             "writes_runtime": False,
-            "reason": "opl_enqueue_exec_failed",
+            "reason": "opl_stage_attempt_create_exec_failed",
             "error": str(exc),
             "opl_bin": selected_opl_bin,
             "command_preview": _opl_command_preview(command),
-            "runtime_request_input": runtime_request,
+            "stage_attempt_request_input": runtime_request,
         }
     except subprocess.TimeoutExpired as exc:
         return {
             "status": "timeout",
             "writes_runtime": False,
-            "reason": "opl_enqueue_timeout",
+            "reason": "opl_stage_attempt_create_timeout",
             "error": str(exc),
             "opl_bin": selected_opl_bin,
             "command_preview": _opl_command_preview(command),
-            "runtime_request_input": runtime_request,
+            "stage_attempt_request_input": runtime_request,
         }
     parsed = _parse_json_object(completed.stdout)
-    enqueue = _mapping(parsed.get("family_runtime_enqueue"))
-    accepted = enqueue.get("accepted") is True
-    idempotent_noop = enqueue.get("idempotent_noop") is True
-    tick_readback = (
-        _opl_runtime_tick_readback(
-            opl_bin=selected_opl_bin,
-            runtime_request=runtime_request,
-        )
-        if accepted or idempotent_noop
-        else {}
+    attempt_surface = _mapping(parsed.get("family_runtime_stage_attempt"))
+    attempt = _mapping(attempt_surface.get("attempt"))
+    admission_gate = _mapping(attempt_surface.get("stage_launch_admission_gate"))
+    idempotent_noop = attempt_surface.get("idempotent_noop") is True
+    attempt_id = _optional_text(attempt.get("stage_attempt_id"))
+    response_stage_id = _optional_text(attempt.get("stage_id"))
+    admission_blocked = (
+        _optional_text(admission_gate.get("status")) == "blocked"
+        or _optional_text(attempt.get("status")) == "blocked"
+    )
+    readback_matches_request = response_stage_id == stage_id
+    accepted = (
+        completed.returncode == 0
+        and attempt_id is not None
+        and readback_matches_request
+        and not admission_blocked
+    )
+    failure_reason = (
+        "opl_stage_attempt_admission_blocked"
+        if admission_blocked
+        else "opl_stage_attempt_readback_stage_mismatch"
+        if attempt_id is not None and not readback_matches_request
+        else "opl_stage_attempt_create_failed"
     )
     return {
         "status": (
-            "submitted"
+            "idempotent_noop"
+            if accepted and idempotent_noop
+            else "submitted"
             if accepted
-            else "idempotent_noop"
-            if idempotent_noop
             else "failed"
         ),
-        "writes_runtime": bool(accepted or idempotent_noop),
+        **({"reason": failure_reason} if not accepted else {}),
+        "writes_runtime": attempt_id is not None,
         "writes_runtime_owner": "one-person-lab",
         "writes_mas_authority": False,
         "can_claim_opl_runtime_enqueued": False,
@@ -161,10 +216,10 @@ def opl_runtime_submission_readback(
         "opl_bin": selected_opl_bin,
         "command_preview": _opl_command_preview(command),
         "exit_code": completed.returncode,
-        "runtime_request_input": runtime_request,
-        "enqueue_readback": enqueue or parsed,
-        **({"tick_readback": tick_readback} if tick_readback else {}),
-        "stage_route_followthrough_attempted": bool(tick_readback),
+        "stage_attempt_request_input": runtime_request,
+        "attempt_readback": attempt,
+        "stage_launch_admission_gate": admission_gate,
+        "temporal_start_readback": _mapping(attempt_surface.get("temporal_start")),
         **({"stderr": completed.stderr.strip()} if completed.stderr.strip() else {}),
     }
 
@@ -235,101 +290,6 @@ def refresh_consume_readback_after_opl_submission(
     return refreshed
 
 
-def _opl_runtime_tick_readback(
-    *,
-    opl_bin: str,
-    runtime_request: Mapping[str, Any],
-) -> dict[str, Any]:
-    payload = _mapping(runtime_request.get("payload"))
-    transaction_ref = _optional_text(payload.get("domain_route_transaction_ref"))
-    command = [
-        opl_bin,
-        "family-runtime",
-        "tick",
-        "--source",
-        "mas-domain-route-followthrough",
-        "--hydrate",
-        "--limit",
-        "1",
-        "--domain",
-        DOMAIN_ROUTE_DOMAIN_ID,
-        "--task-kind",
-        DOMAIN_ROUTE_TASK_KIND,
-    ]
-    if transaction_ref is not None:
-        command.extend(["--payload-match", f"domain_route_transaction_ref={transaction_ref}"])
-    try:
-        completed = subprocess.run(
-            command,
-            check=False,
-            capture_output=True,
-            text=True,
-            timeout=OPL_RUNTIME_TICK_FOLLOWTHROUGH_TIMEOUT_SECONDS,
-        )
-    except OSError as exc:
-        return {
-            "status": "failed",
-            "reason": "opl_tick_exec_failed",
-            "error": str(exc),
-            "command_preview": _opl_command_preview(command),
-            "can_claim_stage_run_created": False,
-            "can_claim_provider_running": False,
-            "can_claim_paper_progress": False,
-        }
-    except subprocess.TimeoutExpired as exc:
-        return {
-            "status": "timeout",
-            "reason": "opl_tick_followthrough_timeout",
-            "error": str(exc),
-            "command_preview": _opl_command_preview(command),
-            "followthrough_observation_window_seconds": (
-                OPL_RUNTIME_TICK_FOLLOWTHROUGH_TIMEOUT_SECONDS
-            ),
-            "can_claim_stage_run_created": False,
-            "can_claim_provider_running": False,
-            "can_claim_paper_progress": False,
-        }
-    parsed = _parse_json_object(completed.stdout)
-    tick = _mapping(parsed.get("family_runtime_tick"))
-    dispatches = _mapping_list(tick.get("dispatches"))
-    return {
-        "status": "completed" if completed.returncode == 0 else "failed",
-        "exit_code": completed.returncode,
-        "command_preview": _opl_command_preview(command),
-        "tick_readback": tick or parsed,
-        "selected_count": tick.get("selected_count"),
-        "dispatch_count": len(dispatches),
-        "dispatch_statuses": [
-            _optional_text(dispatch.get("status")) for dispatch in dispatches
-        ],
-        "can_claim_stage_run_created": any(
-            _dispatch_started_stage_route_attempt(dispatch) for dispatch in dispatches
-        ),
-        "can_claim_provider_running": any(
-            _dispatch_reports_provider_running(dispatch) for dispatch in dispatches
-        ),
-        "can_claim_paper_progress": False,
-        **({"stderr": completed.stderr.strip()} if completed.stderr.strip() else {}),
-    }
-
-
-def _dispatch_started_stage_route_attempt(dispatch: Mapping[str, Any]) -> bool:
-    if _optional_text(dispatch.get("status")) == "running":
-        return True
-    stage_run = _mapping(dispatch.get("stage_run_request"))
-    return (
-        stage_run.get("stage_run_created") is True
-        or stage_run.get("provider_attempt_requested") is True
-    )
-
-
-def _dispatch_reports_provider_running(dispatch: Mapping[str, Any]) -> bool:
-    if _optional_text(dispatch.get("status")) == "running":
-        return True
-    stage_run = _mapping(dispatch.get("stage_run_request"))
-    return stage_run.get("provider_running") is True
-
-
 def _resolve_opl_bin(opl_bin: str | Path | None) -> str | None:
     if opl_bin is not None:
         selected = Path(opl_bin).expanduser()
@@ -354,10 +314,10 @@ def _resolve_opl_bin(opl_bin: str | Path | None) -> str | None:
 
 def _opl_command_preview(command: list[str]) -> list[str]:
     preview = list(command)
-    if "--payload" in preview:
-        payload_index = preview.index("--payload") + 1
-        if payload_index < len(preview):
-            preview[payload_index] = "<json>"
+    if "--workspace-locator" in preview:
+        locator_index = preview.index("--workspace-locator") + 1
+        if locator_index < len(preview):
+            preview[locator_index] = "<json>"
     return preview
 
 

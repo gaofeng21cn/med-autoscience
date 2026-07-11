@@ -324,16 +324,16 @@ def _paper_mission_transaction_payload(
             "status": "accepted",
             "reason": "candidate accepted for the next MAS paper stage",
             "next_owner": "analysis-campaign",
-            "next_stage_id": "publication_gate_replay",
+            "next_stage_id": "finalize_and_publication_handoff",
         }
         route_command = {
             "command_kind": "start_next_stage",
-            "target": "publication_gate_replay",
+            "target": "finalize_and_publication_handoff",
             "reason": "candidate accepted for the next MAS paper stage",
             "source_terminal_decision_ref": f"{transaction_id}#stage_terminal_decision",
             "stage_run_ref": stage_run_ref,
             "runtime_owner": "one-person-lab",
-            "declarative_target_stage_id": "publication_gate_replay",
+            "declarative_target_stage_id": "finalize_and_publication_handoff",
         }
         transaction_state = "accepted"
     elif decision_kind == "continue_same_stage":
@@ -342,7 +342,7 @@ def _paper_mission_transaction_payload(
             "status": "accepted_submission_milestone_candidate",
             "reason": "candidate accepted for continued paper-facing work",
             "next_owner": "mission_executor",
-            "target_stage_id": "08-publication_package_handoff",
+            "target_stage_id": "finalize_and_publication_handoff",
             "next_work_unit": "continue paper-facing submission milestone work",
         }
         route_command = {
@@ -352,7 +352,7 @@ def _paper_mission_transaction_payload(
             "source_terminal_decision_ref": f"{transaction_id}#stage_terminal_decision",
             "stage_run_ref": stage_run_ref,
             "runtime_owner": "one-person-lab",
-            "declarative_target_stage_id": "08-publication_package_handoff",
+            "declarative_target_stage_id": "finalize_and_publication_handoff",
         }
         transaction_state = "accepted_submission_milestone_candidate"
     elif decision_kind == "typed_blocker":
@@ -379,17 +379,17 @@ def _paper_mission_transaction_payload(
             "status": "terminal_decision_recorded",
             "reason": "candidate needs a claim/evidence repair pass",
             "next_owner": "mission_executor",
-            "target_stage_id": "paper-stage::gate-clearing",
+            "target_stage_id": "review_and_quality_gate",
             "repair_scope": "claim-evidence-repair",
         }
         route_command = {
             "command_kind": "route_back",
-            "target": "paper-stage::gate-clearing",
+            "target": "review_and_quality_gate",
             "reason": "MAS terminal decision requested route back",
             "source_terminal_decision_ref": f"{transaction_id}#stage_terminal_decision",
             "stage_run_ref": stage_run_ref,
             "runtime_owner": "one-person-lab",
-            "declarative_target_stage_id": "paper-stage::gate-clearing",
+            "declarative_target_stage_id": "review_and_quality_gate",
         }
         transaction_state = "terminal_decision_recorded"
     fingerprint = (

@@ -648,7 +648,7 @@ def _continuation_transaction_for_submission_package(
         "status": "accepted_submission_milestone_candidate",
         "reason": reason,
         "next_owner": "mission_executor",
-        "target_stage_id": "08-publication_package_handoff",
+        "target_stage_id": "finalize_and_publication_handoff",
         "next_work_unit": next_work_unit,
         **(
             {"source_route_back_evidence_ref": route_back_ref}

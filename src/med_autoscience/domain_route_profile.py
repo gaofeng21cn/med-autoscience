@@ -332,27 +332,6 @@ def build_domain_route_runtime_request(
     return build_domain_route_handoff_intake_readback(handoff)["runtime_request"]
 
 
-def build_domain_route_family_runtime_request(
-    handoff: Mapping[str, Any],
-) -> dict[str, Any] | None:
-    payload = build_domain_route_runtime_request(handoff)
-    if payload is None:
-        return None
-    dedupe_key = _text(_mapping(payload.get("route_identity")).get("dedupe_key"))
-    declarative_target_stage_id = _text(payload.get("declarative_target_stage_id"))
-    if dedupe_key is None or declarative_target_stage_id is None:
-        return None
-    return {
-        "domainId": DOMAIN_ID,
-        "taskKind": DOMAIN_ROUTE_TASK_KIND,
-        "stageId": declarative_target_stage_id,
-        "dedupe_key": dedupe_key,
-        "priority": 100,
-        "source": "mas-domain-route",
-        "payload": payload,
-    }
-
-
 def canonical_domain_task_kind(task_kind: object) -> str | None:
     value = _text(task_kind)
     if value is None:

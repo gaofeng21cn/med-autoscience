@@ -3,13 +3,11 @@ from __future__ import annotations
 import importlib
 import json
 import os
-import subprocess
+from pathlib import Path
 from types import SimpleNamespace
 
 from med_autoscience.paper_mission_domain import opl_runtime_submission
-from med_autoscience.domain_route_profile import (
-    build_domain_route_family_runtime_request,
-)
+from med_autoscience.domain_route_profile import build_domain_route_runtime_request
 from med_autoscience.paper_mission_domain.followthrough_materialized_readback import (
     followthrough_transaction_for_readback,
 )
@@ -27,41 +25,170 @@ from med_autoscience.paper_mission_domain.drive_helpers import (
 )
 
 
-def test_opl_tick_followthrough_timeout_is_bounded(monkeypatch) -> None:
+def test_opl_runtime_submission_creates_and_starts_explicit_stage_attempt(
+    monkeypatch, tmp_path
+) -> None:
     observed: dict[str, object] = {}
+    opl_bin = tmp_path / "opl"
+    opl_bin.write_text("", encoding="utf-8")
 
     def fake_run(command, **kwargs):
         observed["command"] = command
         observed["timeout"] = kwargs["timeout"]
-        raise subprocess.TimeoutExpired(
-            cmd=command,
-            timeout=kwargs["timeout"],
+        return SimpleNamespace(
+            returncode=0,
+            stdout=json.dumps(
+                {
+                    "family_runtime_stage_attempt": {
+                        "created": True,
+                        "idempotent_noop": False,
+                        "attempt": {
+                            "stage_attempt_id": "attempt::review::1",
+                            "stage_id": "review_and_quality_gate",
+                            "status": "running",
+                        },
+                        "stage_launch_admission_gate": {"status": "admitted"},
+                        "temporal_start": {"started": True},
+                    }
+                }
+            ),
+            stderr="",
         )
 
     monkeypatch.setattr(opl_runtime_submission.subprocess, "run", fake_run)
-
-    result = opl_runtime_submission._opl_runtime_tick_readback(
-        opl_bin="/tmp/opl",
-        runtime_request={
-            "payload": {
-                "study_id": "003-dpcc-primary-care-phenotype-treatment-gap",
-                "paper_mission_transaction_ref": "paper-mission-transaction::dm003",
-            }
-        },
+    handoff = _route_back_handoff()
+    handoff["domain_action_id"] = (
+        "research_integrity_review_publication_gate_stage_hook"
     )
 
-    assert (
-        observed["timeout"]
-        == opl_runtime_submission.OPL_RUNTIME_TICK_FOLLOWTHROUGH_TIMEOUT_SECONDS
+    result = opl_runtime_submission.opl_runtime_submission_readback(
+        handoff=handoff,
+        submit_opl_runtime=True,
+        opl_bin=opl_bin,
     )
-    assert observed["timeout"] <= 15
-    assert "--hydrate" in observed["command"]
-    assert result["status"] == "timeout"
-    assert result["reason"] == "opl_tick_followthrough_timeout"
-    assert result["followthrough_observation_window_seconds"] == observed["timeout"]
-    assert result["can_claim_stage_run_created"] is False
+
+    command = observed["command"]
+    assert command[:4] == [str(opl_bin), "family-runtime", "attempt", "create"]
+    assert command[command.index("--domain") + 1] == "medautoscience"
+    assert command[command.index("--stage") + 1] == "review_and_quality_gate"
+    assert json.loads(command[command.index("--workspace-locator") + 1]) == {
+        "workspace_root": str(Path("/tmp/dm-cvd-workspace").resolve())
+    }
+    assert command[command.index("--action") + 1] == (
+        "research_integrity_review_publication_gate_stage_hook"
+    )
+    assert "--start" in command
+    assert "--json" in command
+    assert "enqueue" not in command
+    assert "tick" not in command
+    assert "submission_milestone_candidate" not in command
+    assert result["status"] == "submitted"
+    assert result["attempt_readback"]["stage_attempt_id"] == "attempt::review::1"
+    assert result["can_claim_opl_stage_run_created"] is False
     assert result["can_claim_provider_running"] is False
     assert result["can_claim_paper_progress"] is False
+
+
+def test_opl_runtime_submission_rejects_missing_workspace_locator(monkeypatch) -> None:
+    handoff = _route_back_handoff()
+    handoff.pop("workspace_root")
+    monkeypatch.setattr(
+        opl_runtime_submission.subprocess,
+        "run",
+        lambda *_args, **_kwargs: (_ for _ in ()).throw(AssertionError("must not run")),
+    )
+
+    result = opl_runtime_submission.opl_runtime_submission_readback(
+        handoff=handoff,
+        submit_opl_runtime=True,
+        opl_bin="opl",
+    )
+
+    assert result["status"] == "not_actionable"
+    assert result["reason"] == "opl_stage_attempt_workspace_locator_missing"
+
+
+def test_opl_runtime_submission_rejects_stage_identity_mismatch(monkeypatch) -> None:
+    handoff = _route_back_handoff()
+    handoff["opl_route_command"]["declarative_target_stage_id"] = (
+        "manuscript_authoring"
+    )
+    monkeypatch.setattr(
+        opl_runtime_submission.subprocess,
+        "run",
+        lambda *_args, **_kwargs: (_ for _ in ()).throw(AssertionError("must not run")),
+    )
+
+    result = opl_runtime_submission.opl_runtime_submission_readback(
+        handoff=handoff,
+        submit_opl_runtime=True,
+        opl_bin="opl",
+    )
+
+    assert result["status"] == "not_actionable"
+    assert result["reason"] == "opl_stage_attempt_target_stage_mismatch"
+
+
+def test_opl_runtime_submission_rejects_missing_explicit_stage(monkeypatch) -> None:
+    handoff = _route_back_handoff()
+    handoff.pop("declarative_target_stage_id")
+    handoff["opl_route_command"].pop("declarative_target_stage_id")
+    monkeypatch.setattr(
+        opl_runtime_submission.subprocess,
+        "run",
+        lambda *_args, **_kwargs: (_ for _ in ()).throw(AssertionError("must not run")),
+    )
+
+    result = opl_runtime_submission.opl_runtime_submission_readback(
+        handoff=handoff,
+        submit_opl_runtime=True,
+        opl_bin="opl",
+    )
+
+    assert result["status"] == "not_actionable"
+    assert result["reason"] == "opl_stage_attempt_target_stage_missing"
+
+
+def test_opl_runtime_submission_reports_stage_admission_failure(monkeypatch, tmp_path) -> None:
+    opl_bin = tmp_path / "opl"
+    opl_bin.write_text("", encoding="utf-8")
+    monkeypatch.setattr(
+        opl_runtime_submission.subprocess,
+        "run",
+        lambda *_args, **_kwargs: SimpleNamespace(
+            returncode=0,
+            stdout=json.dumps(
+                {
+                    "family_runtime_stage_attempt": {
+                        "created": True,
+                        "idempotent_noop": False,
+                        "attempt": {
+                            "stage_attempt_id": "attempt::blocked::1",
+                            "stage_id": "review_and_quality_gate",
+                            "status": "blocked",
+                            "blocked_reason": "stage_not_admitted",
+                        },
+                        "stage_launch_admission_gate": {
+                            "status": "blocked",
+                            "blocked_reason": "stage_not_admitted",
+                        },
+                        "temporal_start": None,
+                    }
+                }
+            ),
+            stderr="",
+        ),
+    )
+
+    result = opl_runtime_submission.opl_runtime_submission_readback(
+        handoff=_route_back_handoff(),
+        submit_opl_runtime=True,
+        opl_bin=opl_bin,
+    )
+
+    assert result["status"] == "failed"
+    assert result["reason"] == "opl_stage_attempt_admission_blocked"
+    assert result["attempt_readback"]["status"] == "blocked"
 
 
 def test_semantic_progress_guard_stops_same_route_back_without_paper_delta() -> None:
@@ -311,17 +438,20 @@ def test_semantic_progress_guard_allows_new_owner_receipt_delta() -> None:
 
 
 def test_opl_stage_route_request_carries_non_advancing_guard() -> None:
-    runtime_request = build_domain_route_family_runtime_request(_route_back_handoff())
+    runtime_request = build_domain_route_runtime_request(_route_back_handoff())
 
-    assert runtime_request["taskKind"] == "domain_route/stage-route"
-    assert runtime_request["dedupe_key"].startswith("domain-route:v1:mas:")
-    payload = runtime_request["payload"]
-    assert payload["surface_kind"] == "opl_domain_route_runtime_request"
-    assert payload["domain_route_transaction_ref"] == "paper-mission-transaction::dm003"
-    assert "/tmp/package.json" in payload["source_refs"]
-    assert payload["authority_boundary"]["can_claim_domain_progress"] is False
-    assert "semantic_progress_guard" not in payload
-    assert "user_stage_log" not in payload
+    assert runtime_request["task_kind"] == "domain_route/stage-route"
+    assert runtime_request["route_identity"]["dedupe_key"].startswith(
+        "domain-route:v1:mas:"
+    )
+    assert runtime_request["surface_kind"] == "opl_domain_route_runtime_request"
+    assert runtime_request["domain_route_transaction_ref"] == (
+        "paper-mission-transaction::dm003"
+    )
+    assert "/tmp/package.json" in runtime_request["source_refs"]
+    assert runtime_request["authority_boundary"]["can_claim_domain_progress"] is False
+    assert "semantic_progress_guard" not in runtime_request
+    assert "user_stage_log" not in runtime_request
 
 
 def test_opl_stage_route_request_dedupe_changes_with_candidate_content(
@@ -332,10 +462,10 @@ def test_opl_stage_route_request_dedupe_changes_with_candidate_content(
         json.dumps({"package": "submission", "version": 1}),
         encoding="utf-8",
     )
-    first = build_domain_route_family_runtime_request(
+    first = build_domain_route_runtime_request(
         _route_back_handoff(candidate_ref=str(candidate_ref))
     )
-    same = build_domain_route_family_runtime_request(
+    same = build_domain_route_runtime_request(
         _route_back_handoff(candidate_ref=str(candidate_ref))
     )
 
@@ -343,20 +473,24 @@ def test_opl_stage_route_request_dedupe_changes_with_candidate_content(
         json.dumps({"package": "submission", "version": 2}),
         encoding="utf-8",
     )
-    second = build_domain_route_family_runtime_request(
+    second = build_domain_route_runtime_request(
         _route_back_handoff(candidate_ref=str(candidate_ref))
     )
 
-    assert first["dedupe_key"] == same["dedupe_key"]
-    assert first["payload"]["route_identity"]["source_fingerprint"] == same[
-        "payload"
-    ]["route_identity"]["source_fingerprint"]
-    assert first["dedupe_key"] != second["dedupe_key"]
-    assert first["payload"]["route_identity"]["source_fingerprint"] != second[
-        "payload"
-    ]["route_identity"]["source_fingerprint"]
-    assert first["payload"]["route_identity"]["request_idempotency_key"] == (
-        second["payload"]["route_identity"]["request_idempotency_key"]
+    assert first["route_identity"]["dedupe_key"] == same["route_identity"][
+        "dedupe_key"
+    ]
+    assert first["route_identity"]["source_fingerprint"] == same["route_identity"][
+        "source_fingerprint"
+    ]
+    assert first["route_identity"]["dedupe_key"] != second["route_identity"][
+        "dedupe_key"
+    ]
+    assert first["route_identity"]["source_fingerprint"] != second[
+        "route_identity"
+    ]["source_fingerprint"]
+    assert first["route_identity"]["request_idempotency_key"] == (
+        second["route_identity"]["request_idempotency_key"]
     )
 
 
@@ -368,7 +502,7 @@ def test_opl_stage_route_request_requires_request_idempotency_key() -> None:
     handoff.pop("request_idempotency_key")
 
     assert (
-        build_domain_route_family_runtime_request(handoff) is None
+        build_domain_route_runtime_request(handoff) is None
     )
 
 
@@ -737,7 +871,7 @@ def _route_back_handoff(
         "opl_route_command_ref": "/tmp/opl-route-command.json",
         "route_command_kind": "route_back",
         "route_target": "submission_milestone_candidate",
-        "declarative_target_stage_id": "07-independent_review_and_revision",
+        "declarative_target_stage_id": "review_and_quality_gate",
         "next_owner": "mission_executor",
         "workspace_root": "/tmp/dm-cvd-workspace",
         "request_idempotency_key": transaction_ref,
@@ -745,6 +879,6 @@ def _route_back_handoff(
         "opl_route_command": {
             "command_kind": "route_back",
             "target": "submission_milestone_candidate",
-            "declarative_target_stage_id": "07-independent_review_and_revision",
+            "declarative_target_stage_id": "review_and_quality_gate",
         },
     }

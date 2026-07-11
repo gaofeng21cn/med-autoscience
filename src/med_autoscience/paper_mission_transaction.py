@@ -524,8 +524,6 @@ def _route_target(decision: Mapping[str, Any]) -> str:
     if decision_kind == "advance":
         return _required_text(decision, "next_stage_id")
     if decision_kind == "continue_same_stage":
-        if target_stage := _optional_text(decision.get("target_stage_id")):
-            return target_stage
         return _required_text(decision, "next_work_unit")
     if decision_kind == "route_back":
         return _required_text(decision, "target_stage_id")

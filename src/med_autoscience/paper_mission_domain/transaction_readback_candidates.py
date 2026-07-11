@@ -126,7 +126,7 @@ def _reviewer_revision_candidate_transaction(
             "recheck and downstream analysis/write routing."
         ),
         "next_owner": "ai_reviewer",
-        "target_stage_id": "07-independent_review_and_revision",
+        "target_stage_id": "review_and_quality_gate",
         "next_work_unit": next_work_unit,
         "reviewer_revision_candidate_ref": str(candidate_path),
         "recommended_next_route": _first_text(

@@ -383,7 +383,7 @@ def _typed_blocker_resolution_followthrough_transaction(
             "candidate for continued paper-facing package materialization."
         ),
         "next_owner": _first_text(action.get("next_owner"), "mas_authority_kernel"),
-        "target_stage_id": "08-publication_package_handoff",
+        "target_stage_id": "finalize_and_publication_handoff",
         "next_work_unit": work_unit_id,
         "typed_blocker_resolution_ref": _first_text(
             resolution.get("source_ref"),
