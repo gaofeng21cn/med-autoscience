@@ -9,18 +9,12 @@ from typing import Any
 from med_autoscience.paper_mission_domain.common import (
     _compact_non_null_mapping,
     _first_text,
-    _is_relative_to,
     _load_json_object,
     _mapping,
     _mapping_list,
     _optional_text,
     _paper_mission_sorted_mapping,
     _stable_sha256,
-)
-from med_autoscience.paper_mission_output_roots import (
-    PAPER_MISSION_CONSUMPTION_LEDGER_RELPATH,
-    YANG_WORKSPACE_ROOT,
-    _is_under_yang_workspace,
 )
 
 PAPER_MISSION_ROUTE_BACK_BUDGET_LEDGER_FILENAME = "route_back_budget_ledger.json"
@@ -65,26 +59,12 @@ def _paper_mission_mas_owned_executor_stage_packet(
 
 def _paper_mission_route_back_budget_ledger_path(
     *,
-    profile: Any,
-    output_root: Path,
     ledger_root: Path,
     study_id: str,
 ) -> Path:
-    workspace_root = (
-        _yang_workspace_root_for_path(output_root)
-        if _is_under_yang_workspace(output_root)
-        else None
-    )
-    profile_workspace_root = Path(profile.workspace_root).expanduser().resolve()
     resolved_ledger_root = ledger_root.expanduser().resolve()
-    if workspace_root is not None:
-        root = workspace_root / PAPER_MISSION_CONSUMPTION_LEDGER_RELPATH
-    elif _is_relative_to(resolved_ledger_root, profile_workspace_root):
-        root = profile_workspace_root / PAPER_MISSION_CONSUMPTION_LEDGER_RELPATH
-    else:
-        root = resolved_ledger_root.parent
     return (
-        root
+        resolved_ledger_root.parent
         / "_route_back_budget"
         / study_id
         / PAPER_MISSION_ROUTE_BACK_BUDGET_LEDGER_FILENAME
@@ -630,9 +610,3 @@ def _paper_mission_artifact_delta_ref_ids(
         if ref is not None:
             refs.append(ref)
     return sorted(set(refs))
-
-
-def _yang_workspace_root_for_path(path: Path) -> Path:
-    normalized = path.expanduser().resolve()
-    relative = normalized.relative_to(YANG_WORKSPACE_ROOT)
-    return YANG_WORKSPACE_ROOT / relative.parts[0]

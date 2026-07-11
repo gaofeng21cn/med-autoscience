@@ -440,7 +440,7 @@ def test_submission_ready_authority_closeout_consumes_recorded_owner_gate(
         reason="current submission-ready package is quality-clear; close MAS authority gate",
         recorded_at="2026-06-30T00:02:00+00:00",
         apply=True,
-        receipt_owner_consumption_ref="/ops/receipt_owner_consumption.json",
+        owner_receipt_ref="/ops/owner_receipt.json",
     )
     second = module.submission_authority_closeout_record(
         study_root=study_root,
@@ -477,6 +477,9 @@ def test_submission_ready_authority_closeout_consumes_recorded_owner_gate(
         "submission_ready_authority_closeout_recorded"
     )
     assert result["submission_authority_closeout"]["submission_ready_claim_authorized"] is True
+    assert result["submission_authority_closeout"]["owner_receipt_ref"] == (
+        "/ops/owner_receipt.json"
+    )
     assert snapshot["canonical_next_action"] == "submission_ready_authority_gate_recorded"
     assert "submission_authority_or_human_gate_closeout_required" not in snapshot["blocking_reasons"]
 

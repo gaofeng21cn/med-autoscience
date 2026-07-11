@@ -9,9 +9,6 @@ PAPER_MISSION_ONE_SHOT_OUTPUT_RELPATH = (
 PAPER_MISSION_CANDIDATE_PACKAGE_RELPATH = (
     Path("ops") / "medautoscience" / "paper_mission_candidate_package"
 )
-PAPER_MISSION_CONSUMPTION_LEDGER_RELPATH = (
-    Path("ops") / "medautoscience" / "paper_mission_consumption_ledger"
-)
 PAPER_MISSION_TYPED_BLOCKER_RESOLUTION_RELPATH = (
     Path("ops") / "medautoscience" / "paper_mission_typed_blocker_resolution"
 )
@@ -35,13 +32,6 @@ def _assert_safe_candidate_package_output_root(path: Path) -> None:
     _assert_safe_non_authority_output_root(
         path,
         allowed_yang_relpath=PAPER_MISSION_CANDIDATE_PACKAGE_RELPATH,
-    )
-
-
-def _assert_safe_consumption_ledger_output_root(path: Path) -> None:
-    _assert_safe_non_authority_output_root(
-        path,
-        allowed_yang_relpath=PAPER_MISSION_CONSUMPTION_LEDGER_RELPATH,
     )
 
 
@@ -105,13 +95,8 @@ def _is_yang_ops_non_authority_candidate_root(path: str | Path | None) -> bool:
     return (
         _is_yang_ops_candidate_root(path)
         or _is_yang_ops_candidate_package_root(path)
-        or _is_yang_ops_consumption_ledger_root(path)
         or _is_yang_ops_typed_blocker_resolution_root(path)
     )
-
-
-def _is_yang_ops_consumption_ledger_root(path: str | Path | None) -> bool:
-    return _is_yang_ops_root(path, PAPER_MISSION_CONSUMPTION_LEDGER_RELPATH)
 
 
 def _is_yang_ops_typed_blocker_resolution_root(path: str | Path | None) -> bool:

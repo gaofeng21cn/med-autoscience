@@ -290,7 +290,7 @@ def submission_authority_closeout_record(
     apply: bool,
     actor: str = "operator",
     source: str = "codex",
-    receipt_owner_consumption_ref: str | None = None,
+    owner_receipt_ref: str | None = None,
 ) -> dict[str, Any]:
     decision_text = _required_text(decision, field="decision")
     if decision_text not in SUBMISSION_AUTHORITY_CLOSEOUT_STATUSES:
@@ -359,7 +359,7 @@ def submission_authority_closeout_record(
         decision=decision_text,
         reason=reason_text,
         recorded_at=recorded_at,
-        receipt_owner_consumption_ref=receipt_owner_consumption_ref,
+        owner_receipt_ref=owner_receipt_ref,
     )
     if not apply:
         closeout = dict(_mapping(payload.get("submission_authority_closeout")))
@@ -625,7 +625,7 @@ def _submission_authority_closeout_payload(
     decision: str,
     reason: str,
     recorded_at: str,
-    receipt_owner_consumption_ref: str | None,
+    owner_receipt_ref: str | None,
 ) -> dict[str, Any]:
     status = SUBMISSION_AUTHORITY_CLOSEOUT_STATUSES[decision]
     closeout = {
@@ -641,9 +641,9 @@ def _submission_authority_closeout_payload(
         "writes_controller_decision": False,
         "writes_runtime_queue_or_provider_attempt": False,
     }
-    receipt_ref = _text(receipt_owner_consumption_ref)
+    receipt_ref = _text(owner_receipt_ref)
     if receipt_ref is not None:
-        closeout["receipt_owner_consumption_ref"] = receipt_ref
+        closeout["owner_receipt_ref"] = receipt_ref
     return {
         "summary": reason,
         "owner_gate_kind": "submission_authority_gate_closeout",

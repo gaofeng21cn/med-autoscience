@@ -81,8 +81,6 @@ def build_paper_mission_drive_readback(
     root = output_roots["root"]
     package_root = output_roots["candidate_package"]
     route_back_budget_ledger_ref = _paper_mission_route_back_budget_ledger_path(
-        profile=profile,
-        output_root=root,
         ledger_root=package_root,
         study_id=study_id,
     )
