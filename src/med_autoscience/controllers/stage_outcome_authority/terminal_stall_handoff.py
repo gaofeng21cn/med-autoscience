@@ -5,7 +5,7 @@ from typing import Any
 
 from med_autoscience.runtime_control import owner_route as owner_route_part
 from med_autoscience.runtime_control import owner_route_attempt_protocol
-from med_autoscience.runtime_control import repeat_suppression
+from med_autoscience.controllers import owner_route_repeat_policy
 
 from . import output_readiness
 from . import publication_owner_materialization_currentness
@@ -21,20 +21,20 @@ def owner_handoff_allowed(
     if action_type == "publication_gate_specificity_required":
         current_owner_route = _mapping(current_route) or _mapping(_mapping(current_study).get("owner_route"))
         owner_route = current_owner_route or _dispatch_owner_route(dispatch)
-        return repeat_suppression.publication_gate_specificity_route(owner_route) and owner_route_part.route_allows_action(
+        return owner_route_repeat_policy.publication_gate_specificity_route(owner_route) and owner_route_part.route_allows_action(
             action=dispatch,
             owner_route=owner_route,
         )
     if action_type == "unit_harmonized_external_validation_rerun":
         current_owner_route = _mapping(current_route) or _mapping(_mapping(current_study).get("owner_route"))
         owner_route = current_owner_route or _dispatch_owner_route(dispatch)
-        return repeat_suppression.hard_methodology_harmonization_route(
+        return owner_route_repeat_policy.hard_methodology_harmonization_route(
             owner_route
         ) and owner_route_part.route_allows_action(action=dispatch, owner_route=owner_route)
     if action_type == "recover_transport_model_provenance":
         current_owner_route = _mapping(current_route) or _mapping(_mapping(current_study).get("owner_route"))
         owner_route = current_owner_route or _dispatch_owner_route(dispatch)
-        return repeat_suppression.source_provenance_recovery_route(owner_route) and owner_route_part.route_allows_action(
+        return owner_route_repeat_policy.source_provenance_recovery_route(owner_route) and owner_route_part.route_allows_action(
             action=dispatch,
             owner_route=owner_route,
         )
@@ -49,7 +49,7 @@ def owner_handoff_allowed(
     if action_type == "provenance_limited_harmonization_audit":
         current_owner_route = _mapping(current_route) or _mapping(_mapping(current_study).get("owner_route"))
         owner_route = current_owner_route or _dispatch_owner_route(dispatch)
-        return repeat_suppression.provenance_limited_harmonization_route(
+        return owner_route_repeat_policy.provenance_limited_harmonization_route(
             owner_route
         ) and owner_route_part.route_allows_action(action=dispatch, owner_route=owner_route)
     if action_type == "run_quality_repair_batch":
@@ -89,7 +89,7 @@ def owner_handoff_allowed(
     if output_readiness.ai_reviewer_output_pending(current_study):
         return True
     owner_route = _dispatch_owner_route(dispatch)
-    if _text(owner_route.get("failure_signature")) not in repeat_suppression.OWNER_HANDOFF_REASONS:
+    if _text(owner_route.get("failure_signature")) not in owner_route_repeat_policy.OWNER_HANDOFF_REASONS:
         return False
     next_owner = _text(owner_route.get("next_owner"))
     next_executable_owner = _text(dispatch.get("next_executable_owner")) or _text(

@@ -26,7 +26,7 @@ from med_autoscience.controllers.paper_mission_owner_surface import submission_m
 from med_autoscience.controllers.paper_mission_owner_surface import submission_milestone_projection, workspace_daemon
 from med_autoscience.controllers.paper_mission_owner_surface import supervision_surfaces
 from med_autoscience.runtime_control import owner_route as owner_route_part
-from med_autoscience.runtime_control import repeat_suppression
+from med_autoscience.controllers import owner_route_repeat_policy
 from med_autoscience.runtime_protocol import opl_state_index_source_adapter
 from med_autoscience.developer_supervisor_mode import (
     DeveloperSupervisorMode,
@@ -733,7 +733,7 @@ def _study_projection(
         blocked_reason = why_not_applied = None
         next_owner = "supervisor_only/live_provider_attempt"
         lifecycle = {}
-    repeat_guard = repeat_suppression.scan_repeat_suppression(
+    repeat_guard = owner_route_repeat_policy.scan_repeat_suppression(
         previous_payload=previous_payload,
         study_id=study_id,
         owner_route=owner_route,
@@ -742,8 +742,8 @@ def _study_projection(
     )
     if repeat_guard["repeat_suppressed"]:
         actions = []
-        why_not_applied = repeat_suppression.REPEAT_SUPPRESSED_REASON
-        blocked_reason = repeat_suppression.REPEAT_SUPPRESSED_REASON
+        why_not_applied = owner_route_repeat_policy.REPEAT_SUPPRESSED_REASON
+        blocked_reason = owner_route_repeat_policy.REPEAT_SUPPRESSED_REASON
     if developer_mode.safe_actions_enabled:
         request_packets.materialize_request_packets(
             study_root=study_root,

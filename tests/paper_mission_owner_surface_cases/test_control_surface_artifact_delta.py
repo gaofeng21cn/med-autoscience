@@ -136,7 +136,7 @@ def test_scan_domain_routes_does_not_count_control_surface_progress_as_artifact_
 
 
 def test_repeat_suppression_ignores_last_meaningful_progress_without_artifact_delta() -> None:
-    module = importlib.import_module("med_autoscience.runtime_control.repeat_suppression")
+    module = importlib.import_module("med_autoscience.controllers.owner_route_repeat_policy")
 
     assert module.meaningful_artifact_delta_observed(
         {
@@ -153,7 +153,7 @@ def test_repeat_suppression_ignores_last_meaningful_progress_without_artifact_de
 
 
 def test_repeat_suppression_records_negative_only_failed_path_without_suppressing() -> None:
-    module = importlib.import_module("med_autoscience.runtime_control.repeat_suppression")
+    module = importlib.import_module("med_autoscience.controllers.owner_route_repeat_policy")
 
     guard = module.scan_repeat_suppression(
         previous_payload=None,
@@ -189,7 +189,7 @@ def test_repeat_suppression_records_negative_only_failed_path_without_suppressin
 
 
 def test_repeat_suppression_consumes_recorded_failed_path_refs_with_decision_and_owner_result() -> None:
-    module = importlib.import_module("med_autoscience.runtime_control.repeat_suppression")
+    module = importlib.import_module("med_autoscience.controllers.owner_route_repeat_policy")
 
     guard = module.scan_repeat_suppression(
         previous_payload=None,
@@ -324,7 +324,7 @@ def test_scan_domain_routes_observes_only_fresh_artifact_delta_as_meaningful() -
 
 
 def test_repeat_suppression_does_not_override_owner_handoff_projection() -> None:
-    module = importlib.import_module("med_autoscience.runtime_control.repeat_suppression")
+    module = importlib.import_module("med_autoscience.controllers.owner_route_repeat_policy")
 
     guard = module.scan_repeat_suppression(
         previous_payload={
@@ -355,7 +355,7 @@ def test_repeat_suppression_does_not_override_owner_handoff_projection() -> None
 
 
 def test_repeat_suppression_does_not_override_clean_migration_ai_reviewer_handoff() -> None:
-    module = importlib.import_module("med_autoscience.runtime_control.repeat_suppression")
+    module = importlib.import_module("med_autoscience.controllers.owner_route_repeat_policy")
 
     guard = module.scan_repeat_suppression(
         previous_payload={
@@ -386,7 +386,7 @@ def test_repeat_suppression_does_not_override_clean_migration_ai_reviewer_handof
 
 
 def test_repeat_suppression_keeps_unconsumed_scan_action_visible() -> None:
-    module = importlib.import_module("med_autoscience.runtime_control.repeat_suppression")
+    module = importlib.import_module("med_autoscience.controllers.owner_route_repeat_policy")
     owner_route = {
         "work_unit_fingerprint": "publication-blockers::submission-refresh",
         "next_owner": "artifact_os",
@@ -423,7 +423,7 @@ def test_repeat_suppression_keeps_unconsumed_scan_action_visible() -> None:
 
 
 def test_repeat_suppression_does_not_drop_progress_first_write_owner_action() -> None:
-    module = importlib.import_module("med_autoscience.runtime_control.repeat_suppression")
+    module = importlib.import_module("med_autoscience.controllers.owner_route_repeat_policy")
     owner_route = {
         "work_unit_fingerprint": "paper-quality::dm003-story-delta",
         "next_owner": "write",
@@ -461,7 +461,7 @@ def test_repeat_suppression_does_not_drop_progress_first_write_owner_action() ->
 
 
 def test_repeat_suppression_does_not_drop_progress_first_ai_reviewer_owner_action() -> None:
-    module = importlib.import_module("med_autoscience.runtime_control.repeat_suppression")
+    module = importlib.import_module("med_autoscience.controllers.owner_route_repeat_policy")
     owner_route = {
         "work_unit_fingerprint": "publication-blockers::pending-ai-reviewer",
         "next_owner": "ai_reviewer",

@@ -6,7 +6,7 @@ from typing import Any
 
 from med_autoscience.controllers.owner_callable_action_policy import FORBIDDEN_SURFACES
 from med_autoscience.controllers.runtime_ai_repair_policy import owner_callable_policy
-from med_autoscience.runtime_control import repeat_suppression
+from med_autoscience.controllers import owner_route_repeat_policy
 
 
 def build(
@@ -23,7 +23,7 @@ def build(
     callable_surface: str,
     opl_execution_authorization: Mapping[str, Any] | None = None,
 ) -> dict[str, Any]:
-    repeat_key = repeat_suppression.repeat_key(owner_route)
+    repeat_key = owner_route_repeat_policy.repeat_key(owner_route)
     has_opl_authorization = bool(opl_execution_authorization)
     dispatch_status = "ready" if has_opl_authorization else "transition_request_pending"
     prompt_contract = {
