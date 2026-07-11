@@ -704,7 +704,6 @@ def build_managed_temporal_state_consistency_read_model(
             "lifecycle_status": runtime_snapshot.get("lifecycle_status"),
             "server_reachable": runtime_snapshot.get("server_reachable") is True,
             "worker_ready": runtime_snapshot.get("worker_ready") is True,
-            "task_queue": runtime_snapshot.get("task_queue"),
         },
         "opl_status_projection": {
             "provider": "temporal",
@@ -719,7 +718,6 @@ def build_managed_temporal_state_consistency_read_model(
             "managed_state_source_is_typed": runtime_snapshot.get("address_source") == "managed_local_service_state",
             "server_reachable": runtime_snapshot.get("server_reachable") is True,
             "worker_ready": runtime_snapshot.get("worker_ready") is True,
-            "task_queue_declared": bool(str(runtime_snapshot.get("task_queue") or "").strip()),
         },
         "blocker": blocker,
         "authority_boundary": {
@@ -805,7 +803,6 @@ def build_provider_availability_from_opl_proof(
                 "lifecycle_status": runtime_snapshot.get("lifecycle_status"),
                 "server_reachable": runtime_snapshot.get("server_reachable"),
                 "worker_ready": runtime_snapshot.get("worker_ready"),
-                "task_queue": runtime_snapshot.get("task_queue"),
             },
             "checks": {check: checks.get(check) is True for check in required_checks},
             "semantics": {

@@ -270,7 +270,6 @@ def _provider_readiness_from_handoff(latest_report: dict[str, object]) -> dict[s
             "degraded",
             "degraded_reason",
             "managed_worker_pid",
-            "task_queue",
         )
         if key in readiness
     }
