@@ -26,7 +26,7 @@ tmp=$$(mktemp -d "$${TMPDIR:-/tmp}/mas-python.XXXXXX"); \
 trap 'rm -rf "$$tmp"' EXIT; \
 uv export --quiet --frozen --no-emit-project --group dev --format requirements-txt > "$$tmp/requirements.txt"; \
 PYTHONPATH=src PYTHONDONTWRITEBYTECODE=1 PYTHONPYCACHEPREFIX="$$tmp/pycache" \
-PYTEST_ADDOPTS="-p no:cacheprovider -o cache_dir=$$tmp/pytest-cache" \
+PYTEST_ADDOPTS="-p no:cacheprovider -o cache_dir=$$tmp/pytest-cache --durations=10" \
 uv run --isolated --frozen --no-project --with-requirements "$$tmp/requirements.txt" python $(1)
 endef
 
