@@ -77,7 +77,7 @@ def _single_project_boundary() -> dict[str, Any]:
         "surface_kind": "single_project_boundary",
         "summary": (
             "MAS functional monolith completion 已落地：默认运行、诊断、进度可视化、"
-            "artifact/quality/status/progress/cockpit/OPL handoff 都由 MAS-owned surface 承接。"
+            "artifact/quality/status/progress/OPL handoff 都由 MAS-owned surface 承接。"
         ),
         "mas_owner_modules": [
             "controller_charter",
@@ -133,7 +133,7 @@ def _capability_owner_boundary() -> dict[str, Any]:
             {
                 "capability_id": "research_entry",
                 "owner": "MedAutoScience",
-                "truth_surface": "product-entry-status / workspace-cockpit",
+                "truth_surface": "mainline-status",
                 "summary": "正式研究入口与 direct / OPL handoff 语义归 MAS。",
             },
             {
@@ -151,7 +151,7 @@ def _capability_owner_boundary() -> dict[str, Any]:
             {
                 "capability_id": "progress_truth_projection",
                 "owner": "MedAutoScience",
-                "truth_surface": "study-progress / workspace-cockpit",
+                "truth_surface": "study-progress",
                 "summary": "当前阶段、阻塞、恢复点、同线路由和质量跟进由 MAS progress surface 投影。",
             },
             {
@@ -361,11 +361,6 @@ def _phase_ladder() -> list[dict[str, Any]]:
                     "purpose": "先看 repo 主线真相、当前 tranche 和 remaining gaps。",
                 },
                 {
-                    "name": "workspace_cockpit",
-                    "command": domain_entry_handler_target("mainline-status"),
-                    "purpose": "看当前 workspace 的监管、attention queue 和用户入口回路。",
-                },
-                {
                     "name": "study_progress",
                     "command": domain_entry_handler_target("study-progress"),
                     "purpose": "确认 active study 当前卡在哪、下一步是什么、是否需要人工决策。",
@@ -396,11 +391,6 @@ def _phase_ladder() -> list[dict[str, Any]]:
                 "make stuck-state, recovery suggestions, and supervision freshness continuously visible",
             ],
             "entry_points": [
-                {
-                    "name": "workspace_cockpit",
-                    "command": domain_entry_handler_target("mainline-status"),
-                    "purpose": "把 workspace-cockpit 当作当前用户 inbox 入口使用。",
-                },
                 {
                     "name": "submit_study_task",
                     "command": domain_entry_handler_target("submit-study-task"),
@@ -610,7 +600,7 @@ def read_mainline_status() -> dict[str, Any]:
             {
                 "id": "repo_tracked_product_entry_shell",
                 "title": "Repo-tracked product-entry shell",
-                "summary": "workspace-cockpit / submit-study-task / launch-study / study-progress 已构成真实用户入口壳。",
+                "summary": "mainline-status / submit-study-task / launch-study / study-progress 已构成真实用户入口壳。",
             },
         ],
         "remaining_gaps": product_entry_projection["remaining_gaps"],
@@ -629,7 +619,6 @@ def read_mainline_status() -> dict[str, Any]:
         "commands": {
             "mainline_status": domain_entry_handler_target("mainline-status"),
             "unified_enhancement_program": domain_entry_handler_target("mainline-status"),
-            "workspace_cockpit": domain_entry_handler_target("mainline-status"),
             "study_progress": domain_entry_handler_target("study-progress"),
         },
     }

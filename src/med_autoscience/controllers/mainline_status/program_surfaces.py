@@ -192,7 +192,6 @@ def build_platform_target() -> dict[str, Any]:
 def build_phase2_user_product_loop_lane(
     *,
     entry_status_command: str,
-    workspace_cockpit_command: str,
     submit_task_command: str,
     launch_study_command: str,
     study_progress_command: str,
@@ -217,13 +216,6 @@ def build_phase2_user_product_loop_lane(
                 "command_ref": _command_ref(entry_status_command),
             },
             {
-                "step_id": "inspect_workspace_inbox",
-                "title": "确认当前 workspace inbox / attention queue",
-                "surface_kind": "workspace_cockpit",
-                "command": workspace_cockpit_command,
-                "command_ref": _command_ref(workspace_cockpit_command),
-            },
-            {
                 "step_id": "submit_task",
                 "title": "给目标 study 写 durable task intake",
                 "surface_kind": "study_task_intake",
@@ -246,7 +238,7 @@ def build_phase2_user_product_loop_lane(
             },
             {
                 "step_id": "handle_human_gate",
-                "title": "遇到人工 gate 时回到 progress / cockpit 做决策",
+                "title": "遇到人工 gate 时通过 study progress 做决策",
                 "surface_kind": "study_progress",
                 "command": study_progress_command,
                 "command_ref": _command_ref(study_progress_command),
@@ -266,7 +258,7 @@ def build_phase2_user_product_loop_lane(
                 "command_ref": _command_ref(submit_task_command),
             },
             {
-                "question": "用户怎么持续看进度和恢复建议？",
+                "question": "用户怎么持续看进度、恢复建议和人工 gate？",
                 "answer_surface_kind": "study_progress",
                 "command": study_progress_command,
                 "command_ref": _command_ref(study_progress_command),
@@ -277,11 +269,6 @@ def build_phase2_user_product_loop_lane(
                 "surface_kind": "product_entry_status",
                 "command": entry_status_command,
                 "command_ref": _command_ref(entry_status_command),
-            },
-            {
-                "surface_kind": "workspace_cockpit",
-                "command": workspace_cockpit_command,
-                "command_ref": _command_ref(workspace_cockpit_command),
             },
             {
                 "surface_kind": "study_progress.operator_verdict",
@@ -314,7 +301,6 @@ def _command_ref(command: str) -> dict[str, Any]:
 def build_phase2_user_product_loop() -> dict[str, Any]:
     return build_phase2_user_product_loop_lane(
         entry_status_command=domain_entry_handler_target("mainline-status"),
-        workspace_cockpit_command=domain_entry_handler_target("mainline-status"),
         submit_task_command=domain_entry_handler_target("submit-study-task"),
         launch_study_command=domain_entry_handler_target("launch-study"),
         study_progress_command=domain_entry_handler_target("study-progress"),

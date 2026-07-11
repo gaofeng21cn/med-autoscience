@@ -40,7 +40,7 @@ MAS 的 12 项过度设计结构目标已经落地：repo-local platform surface
 - MAS-local StateIndex pilot；
 - repo-local installer/workspace environment provisioning；
 - retirement work-order/rollup/currentness system；
-- repo-local workbench/cockpit；
+- repo-local workbench/cockpit，以及 `workspace-cockpit -> mainline-status` compatibility alias；
 - hand-maintained Tool Arsenal/capability runtime；
 - hand-written CLI/MCP transport glue；
 - MAS runtime health/lifecycle/storage platform；

@@ -36,12 +36,6 @@ def parked_recovery_steps(commands: Mapping[str, str]) -> list[dict[str, str]]:
             "surface_kind": "study_progress",
             "command": commands["study_progress"],
         },
-        {
-            "step_id": "open_workspace_cockpit",
-            "title": "返回 workspace cockpit",
-            "surface_kind": "workspace_cockpit",
-            "command": commands["workspace_cockpit"],
-        },
     ]
 
 

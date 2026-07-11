@@ -38,7 +38,6 @@ def _study_command_surfaces(
 ) -> dict[str, str]:
     del profile, study_id, profile_ref
     return {
-        "workspace_cockpit": domain_entry_handler_target("mainline-status"),
         "study_progress": domain_entry_handler_target("study-progress"),
         "progress_projection": domain_entry_handler_target("study-progress"),
         "quality_repair_batch": domain_entry_handler_target("domain-handler-dispatch"),
@@ -141,12 +140,6 @@ def _recovery_contract(
                 surface_kind="study_progress",
                 command=commands["study_progress"],
             ),
-            _recovery_step(
-                step_id="open_workspace_cockpit",
-                title="返回 workspace cockpit",
-                surface_kind="workspace_cockpit",
-                command=commands["workspace_cockpit"],
-            ),
         ]
         action_mode = "human_decision_review"
     elif lane_id == "auto_runtime_parked":
@@ -159,12 +152,6 @@ def _recovery_contract(
                 title="读取当前研究进度",
                 surface_kind="study_progress",
                 command=commands["study_progress"],
-            ),
-            _recovery_step(
-                step_id="open_workspace_cockpit",
-                title="返回 workspace cockpit",
-                surface_kind="workspace_cockpit",
-                command=commands["workspace_cockpit"],
             ),
         ]
         action_mode = (
@@ -185,12 +172,6 @@ def _recovery_contract(
                 title="读取结构化运行真相",
                 surface_kind="progress_projection",
                 command=commands["progress_projection"],
-            ),
-            _recovery_step(
-                step_id="open_workspace_cockpit",
-                title="返回 workspace cockpit",
-                surface_kind="workspace_cockpit",
-                command=commands["workspace_cockpit"],
             ),
         ]
         action_mode = "inspect_progress"
@@ -470,7 +451,6 @@ def _research_runtime_control_projection(
             "display_only": True,
             "can_select_next_action": False,
             "must_not_override_next_action_envelope": True,
-            "workspace_cockpit_command": _non_empty_text(study_commands.get("workspace_cockpit")),
             "current_focus": _non_empty_text(operator_status_card.get("current_focus")),
         },
         "artifact_inventory_surface": {
