@@ -80,4 +80,4 @@ test-structure-strict:
 	scripts/run-structure-quality-gate.sh
 
 test-full:
-	./scripts/run-parallel-test-lanes.sh full
+	+$(MAKE) -j6 test-regression test-meta test-display test-submission test-soak-golden test-family

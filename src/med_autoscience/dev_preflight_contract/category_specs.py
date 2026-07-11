@@ -190,7 +190,6 @@ def build_category_specs(
         category_id="integration_harness_surface",
         exact_paths=(
             "scripts/prepare-sentrux-gitstats-clone.sh",
-            "scripts/run-parallel-test-lanes.sh",
             "tests/test_sentrux_gitstats_helper.py",
         ),
         prefix_paths=(),

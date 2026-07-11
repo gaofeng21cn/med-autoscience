@@ -484,7 +484,6 @@ def test_classify_changed_files_matches_integration_harness_surface() -> None:
             "docs/active/example-backend-map.md",
             "docs/references/example-phase-ladder.md",
             "scripts/prepare-sentrux-gitstats-clone.sh",
-            "scripts/run-parallel-test-lanes.sh",
             "tests/test_sentrux_gitstats_helper.py",
         ]
     )

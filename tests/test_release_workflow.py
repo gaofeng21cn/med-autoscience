@@ -93,29 +93,22 @@ def test_ci_and_advisory_workflows_track_python_312_minor_instead_of_exact_patch
 def test_ci_and_advisory_workflows_split_system_dependencies_by_lane() -> None:
     ci_workflow = CI_WORKFLOW_PATH.read_text(encoding="utf-8")
     advisory_workflow = ADVISORY_WORKFLOW_PATH.read_text(encoding="utf-8")
-    regression_workflow = _workflow_job(advisory_workflow, "regression")
-    meta_workflow = _workflow_job(advisory_workflow, "meta-contracts")
-    family_workflow = _workflow_job(advisory_workflow, "family-shared")
-    submission_workflow = _workflow_job(advisory_workflow, "submission-surface")
-    display_workflow = _workflow_job(advisory_workflow, "display-surface")
+    advisory_job = _workflow_job(advisory_workflow, "advisory")
 
     assert "Install pandoc and BasicTeX" not in ci_workflow
     assert "brew install pandoc" not in ci_workflow
     assert "brew install --cask basictex" not in ci_workflow
     assert 'echo "/Library/TeX/texbin" >> "${GITHUB_PATH}"' not in ci_workflow
     assert "graphviz" not in ci_workflow
-    assert "brew install pandoc graphviz pkg-config libxml2 r" not in regression_workflow
-    assert "brew install pandoc graphviz pkg-config libxml2 r" not in meta_workflow
-    assert "brew install pandoc graphviz pkg-config libxml2 r" not in family_workflow
-    assert "brew install pandoc" in submission_workflow
-    assert "brew install --cask basictex" in submission_workflow
-    assert 'echo "/Library/TeX/texbin" >> "${GITHUB_PATH}"' in submission_workflow
-    assert "graphviz" not in submission_workflow
-    assert "brew install pandoc graphviz pkg-config libxml2 r" in display_workflow
-    assert "brew install --cask basictex" in display_workflow
-    assert 'echo "/Library/TeX/texbin" >> "${GITHUB_PATH}"' in display_workflow
-    assert "PKG_CONFIG_PATH=$(brew --prefix libxml2)/lib/pkgconfig:${PKG_CONFIG_PATH:-}" in display_workflow
-    assert "XML_CONFIG=$(brew --prefix libxml2)/bin/xml2-config" in display_workflow
+    assert "system_dependencies: none" in advisory_job
+    assert "system_dependencies: tex" in advisory_job
+    assert "system_dependencies: display" in advisory_job
+    assert "brew install pandoc" in advisory_job
+    assert "brew install --cask basictex" in advisory_job
+    assert "brew install pandoc graphviz pkg-config libxml2 r" in advisory_job
+    assert 'echo "/Library/TeX/texbin" >> "${GITHUB_PATH}"' in advisory_job
+    assert "PKG_CONFIG_PATH=$(brew --prefix libxml2)/lib/pkgconfig:${PKG_CONFIG_PATH:-}" in advisory_job
+    assert "XML_CONFIG=$(brew --prefix libxml2)/bin/xml2-config" in advisory_job
 
 
 def test_ci_and_advisory_workflows_use_uv_managed_test_environment() -> None:
@@ -123,11 +116,7 @@ def test_ci_and_advisory_workflows_use_uv_managed_test_environment() -> None:
     advisory_workflow = ADVISORY_WORKFLOW_PATH.read_text(encoding="utf-8")
     uv_no_project_jobs = [
         _workflow_job(ci_workflow, "quick-checks"),
-        _workflow_job(advisory_workflow, "regression"),
-        _workflow_job(advisory_workflow, "meta-contracts"),
-        _workflow_job(advisory_workflow, "family-shared"),
-        _workflow_job(advisory_workflow, "submission-surface"),
-        _workflow_job(advisory_workflow, "display-surface"),
+        _workflow_job(advisory_workflow, "advisory"),
     ]
 
     assert "uv sync --frozen --group dev" in ci_workflow
@@ -140,7 +129,7 @@ def test_ci_and_advisory_workflows_use_uv_managed_test_environment() -> None:
     assert "enable-cache: true" in ci_workflow
     assert "enable-cache: true" in advisory_workflow
     assert ci_workflow.count("cache-dependency-glob: |") == 1
-    assert advisory_workflow.count("cache-dependency-glob: |") == 6
+    assert advisory_workflow.count("cache-dependency-glob: |") == 1
     for workflow in (ci_workflow, advisory_workflow):
         assert "uv.lock" in workflow
         assert "pyproject.toml" in workflow
@@ -150,11 +139,7 @@ def test_ci_and_advisory_workflows_use_uv_managed_test_environment() -> None:
     assert "scripts/verify.sh ci-preflight" in ci_workflow
     assert "scripts/verify.sh meta" not in ci_workflow
     assert re.search(r"run: scripts/verify\.sh\s*$", ci_workflow, flags=re.MULTILINE) is None
-    assert "scripts/verify.sh regression" in advisory_workflow
-    assert "scripts/verify.sh meta" in advisory_workflow
-    assert "scripts/verify.sh family" in advisory_workflow
-    assert "scripts/verify.sh display" in advisory_workflow
-    assert "scripts/verify.sh submission" in advisory_workflow
+    assert "scripts/verify.sh ${{ matrix.lane }}" in advisory_workflow
     assert "scripts/verify.sh regression" not in ci_workflow
     assert "scripts/verify.sh family" not in ci_workflow
     assert "scripts/verify.sh display" not in ci_workflow
@@ -297,108 +282,34 @@ def test_build_packages_tracked_stage_route_contract_without_setup_hook(tmp_path
 def test_advisory_workflow_only_prepares_study_runtime_analysis_bundle_for_display_lane() -> None:
     ci_workflow = CI_WORKFLOW_PATH.read_text(encoding="utf-8")
     advisory_workflow = ADVISORY_WORKFLOW_PATH.read_text(encoding="utf-8")
-    regression_workflow = _workflow_job(advisory_workflow, "regression")
-    meta_workflow = _workflow_job(advisory_workflow, "meta-contracts")
-    family_workflow = _workflow_job(advisory_workflow, "family-shared")
-    submission_workflow = _workflow_job(advisory_workflow, "submission-surface")
-    display_workflow = _workflow_job(advisory_workflow, "display-surface")
+    advisory_job = _workflow_job(advisory_workflow, "advisory")
 
     assert ci_workflow.count("Ensure study runtime analysis bundle") == 0
     assert advisory_workflow.count("Ensure study runtime analysis bundle") == 1
-    assert "Ensure study runtime analysis bundle" not in regression_workflow
-    assert "Ensure study runtime analysis bundle" not in meta_workflow
-    assert "Ensure study runtime analysis bundle" not in family_workflow
-    assert "Ensure study runtime analysis bundle" not in submission_workflow
-    assert "Ensure study runtime analysis bundle" in display_workflow
-    ensure_bundle_step = _workflow_step(display_workflow, "Ensure study runtime analysis bundle")
+    assert "prepare_analysis_bundle: true" in advisory_job
+    assert "prepare_analysis_bundle: false" in advisory_job
+    ensure_bundle_step = _workflow_step(advisory_job, "Ensure study runtime analysis bundle")
+    assert "if: matrix.prepare_analysis_bundle" in ensure_bundle_step
     assert 'PYTHONDONTWRITEBYTECODE: "1"' in ensure_bundle_step
     assert "Run regression advisory tests" in advisory_workflow
     assert "Run submission-heavy advisory tests" in advisory_workflow
     assert "Run display-heavy advisory tests" in advisory_workflow
     assert "continue-on-error: true" not in ci_workflow
-    for workflow_job in (
-        regression_workflow,
-        meta_workflow,
-        family_workflow,
-        submission_workflow,
-        display_workflow,
-    ):
-        assert "continue-on-error: true" in workflow_job
+    assert "continue-on-error: true" in advisory_job
 
 
-def test_advisory_workflow_uploads_non_blocking_lane_summaries() -> None:
-    ci_workflow = CI_WORKFLOW_PATH.read_text(encoding="utf-8")
+def test_advisory_workflow_uses_one_non_blocking_matrix_without_duration_artifacts() -> None:
     advisory_workflow = ADVISORY_WORKFLOW_PATH.read_text(encoding="utf-8")
-    history_workflow = _workflow_job(advisory_workflow, "duration-history")
+    advisory_job = _workflow_job(advisory_workflow, "advisory")
 
-    assert "MAS_TEST_LANE_SUMMARY_PATH" not in ci_workflow
-    assert "mas-test-lane-summary-" not in ci_workflow
-    assert "duration-history:" in advisory_workflow
-    assert "needs:" in history_workflow
-    assert "regression" in history_workflow
-    assert "meta-contracts" in history_workflow
-    assert "family-shared" in history_workflow
-    assert "submission-surface" in history_workflow
-    assert "display-surface" in history_workflow
-    assert "if: always()" in history_workflow
-    assert "continue-on-error: true" in history_workflow
-    assert "actions/download-artifact@v8" in history_workflow
-    assert "pattern: mas-test-lane-summary-*" in history_workflow
-    assert "path: artifacts/mas-test-lane-summary-history" in history_workflow
-    assert "merge-multiple: true" in history_workflow
-    assert "artifacts/mas-test-lane-baseline.json" in history_workflow
-    assert "--baseline artifacts/mas-test-lane-baseline.json" in history_workflow
-    assert "uv run python scripts/summarize-test-lane-history.py \\" in history_workflow
-    assert "uv run python scripts/summarize-test-lane-history.py artifacts/mas-test-lane-summary-history" in history_workflow
-
-    for job_id, lane in (
-        ("regression", "regression"),
-        ("meta-contracts", "meta"),
-        ("family-shared", "family"),
-        ("submission-surface", "submission"),
-        ("display-surface", "display"),
-    ):
-        workflow_job = _workflow_job(advisory_workflow, job_id)
-        summarize_step = _workflow_step(workflow_job, f"Summarize {lane} lane duration")
-        upload_step = _workflow_step(workflow_job, f"Upload {lane} lane summary")
-
-        assert (
-            f"MAS_TEST_LANE_SUMMARY_PATH: artifacts/mas-test-lane-summaries/{lane}.json"
-            in workflow_job
-        )
-        assert "if: always()" in summarize_step
-        assert "continue-on-error: true" in summarize_step
-        assert 'uv run python scripts/summarize-test-lane-durations.py "${MAS_TEST_LANE_SUMMARY_PATH}"' in summarize_step
-        assert "if: always()" in upload_step
-        assert "uses: actions/upload-artifact@v7" in upload_step
-        assert "continue-on-error: true" in upload_step
-        assert f"name: mas-test-lane-summary-{lane}" in upload_step
-        assert "path: ${{ env.MAS_TEST_LANE_SUMMARY_PATH }}" in upload_step
-        assert "if-no-files-found: warn" in upload_step
-        assert "retention-days: 14" in upload_step
-
-
-def test_advisory_workflow_uploads_history_markdown_and_json_summaries() -> None:
-    advisory_workflow = ADVISORY_WORKFLOW_PATH.read_text(encoding="utf-8")
-    history_workflow = _workflow_job(advisory_workflow, "duration-history")
-    history_step = _workflow_step(history_workflow, "Summarize advisory lane duration history")
-    upload_step = _workflow_step(history_workflow, "Upload advisory lane duration history")
-
-    assert "mkdir -p artifacts/mas-test-lane-summary-history-summary" in history_step
-    assert "history_text=artifacts/mas-test-lane-summary-history-summary/history.txt" in history_step
-    assert "history_json=artifacts/mas-test-lane-summary-history-summary/history.json" in history_step
-    assert "history_markdown=artifacts/mas-test-lane-summary-history-summary/history.md" in history_step
-    assert "uv run python scripts/summarize-test-lane-history.py \\" in history_step
-    assert "--format json >\"${history_json}\"" in history_step
-    assert "cat \"${history_text}\"" in history_step
-    assert "## Advisory lane duration history" in history_step
-    assert "median/max/slowest/delta" in history_step
-    assert "cat \"${history_markdown}\" >> \"${GITHUB_STEP_SUMMARY}\"" in history_step
-    assert "uses: actions/upload-artifact@v7" in upload_step
-    assert "name: mas-test-lane-history-summary" in upload_step
-    assert "path: artifacts/mas-test-lane-summary-history-summary" in upload_step
-    assert "if-no-files-found: warn" in upload_step
-    assert "retention-days: 14" in upload_step
+    assert "strategy:" in advisory_job
+    assert "fail-fast: false" in advisory_job
+    assert advisory_workflow.count("lane:") == 5
+    assert "duration-history:" not in advisory_workflow
+    assert "MAS_TEST_LANE_SUMMARY_PATH" not in advisory_workflow
+    assert "summarize-test-lane" not in advisory_workflow
+    assert "actions/download-artifact" not in advisory_workflow
+    assert "actions/upload-artifact" not in advisory_workflow
 
 
 def test_ci_and_advisory_workflows_split_stable_push_and_advisory_jobs() -> None:
@@ -411,15 +322,11 @@ def test_ci_and_advisory_workflows_split_stable_push_and_advisory_jobs() -> None
     assert "github.event.before" in ci_workflow
     assert "scripts/verify.sh ci-preflight" in ci_workflow
     assert "Run stable core tests and build" not in ci_workflow
+    assert "advisory:" in advisory_workflow
     assert "display-surface:" not in ci_workflow
     assert "submission-surface:" not in ci_workflow
     assert "regression:" not in ci_workflow
     assert "meta-contracts:" not in ci_workflow
-    assert "regression:" in advisory_workflow
-    assert "meta-contracts:" in advisory_workflow
-    assert "family-shared:" in advisory_workflow
-    assert "submission-surface:" in advisory_workflow
-    assert "display-surface:" in advisory_workflow
     assert "Run regression advisory tests" in advisory_workflow
     assert "Run meta advisory tests" in advisory_workflow
     assert "Run family shared advisory tests" in advisory_workflow

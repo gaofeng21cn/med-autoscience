@@ -38,7 +38,7 @@ def test_fast_lane_uses_its_manifest_paths_and_verify_entrypoint() -> None:
     verify_fast = verify_script.split('if [[ "${lane}" == "fast" ]]', maxsplit=1)[
         1
     ].split('if [[ "${lane}" == "meta" ]]', maxsplit=1)[0]
-    assert '"make test-fast" make test-fast' in verify_fast
+    assert "make test-fast" in verify_fast
 
 
 def test_top_level_lane_entries_are_unique_and_resolvable() -> None:
