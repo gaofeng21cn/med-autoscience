@@ -67,7 +67,6 @@ _ROLE_SOURCE_CANDIDATES: dict[str, tuple[str, ...]] = {
         "artifacts/intake",
     ),
     "source_readiness_receipt": (
-        "artifacts/runtime/work_unit_ledger/events.jsonl",
         "artifacts/controller/source_provenance/latest.json",
         "artifacts/controller/analysis_harmonization/latest.json",
     ),

@@ -416,7 +416,7 @@ def build_category_specs(
             "src/med_autoscience/controllers/control_intent.py",
             "src/med_autoscience/controllers/restore_proof_compaction_helpers.py",
             "src/med_autoscience/controllers/domain_authority_snapshot.py",
-            "src/med_autoscience/controllers/study_outer_loop_work_units.py",
+            "src/med_autoscience/controllers/study_outer_loop_dispatch.py",
             "src/med_autoscience/controllers/study_delivery_sync/sync_orchestration.py",
             "src/med_autoscience/controllers/study_delivery_sync/sync_cli.py",
             "src/med_autoscience/controllers/study_progress/projection.py",

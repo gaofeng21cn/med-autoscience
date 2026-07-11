@@ -212,18 +212,15 @@ def _publication_eval_payload(payload: Mapping[str, Any]) -> dict[str, Any]:
     return {}
 
 
-def _ledger_lifecycle_state(payload: Mapping[str, Any], *keys: str) -> str | None:
-    for key in keys:
+def _control_intent_lifecycle_state(payload: Mapping[str, Any]) -> str | None:
+    for key in ("control_intent", "control_intent_lifecycle"):
         direct = _mapping(payload.get(key))
-        if not direct:
-            continue
-        state = (
-            _text(direct.get("lifecycle_state"))
-            or _text(direct.get("state"))
-            or _text(direct.get("latest_event_type"))
-        )
-        if state is not None:
-            return state
+        if direct:
+            return (
+                _text(direct.get("lifecycle_state"))
+                or _text(direct.get("state"))
+                or _text(direct.get("latest_event_type"))
+            )
     return None
 
 
@@ -280,11 +277,9 @@ def build_authority_snapshot(status_payload: Mapping[str, Any]) -> dict[str, Any
         blocking_reasons.append("publication_eval.ai_reviewer_required")
         truth_action = "review_required"
 
-    control_intent_state = _ledger_lifecycle_state(payload, "control_intent", "control_intent_lifecycle")
-    work_unit_state = _ledger_lifecycle_state(payload, "work_unit", "work_unit_lifecycle", "work_unit_ledger")
-    for ledger_name, state in (("control_intent", control_intent_state), ("work_unit", work_unit_state)):
-        if state in LEDGER_BLOCKING_STATES:
-            blocking_reasons.append(f"ledger.{ledger_name}.{state}")
+    control_intent_state = _control_intent_lifecycle_state(payload)
+    if control_intent_state in LEDGER_BLOCKING_STATES:
+        blocking_reasons.append(f"ledger.control_intent.{control_intent_state}")
 
     retry_budget = _int(health.get("retry_budget_remaining"))
     attempt_state = _text(health.get("attempt_state"))

@@ -1,12 +1,11 @@
 from __future__ import annotations
 
-import json
 from pathlib import Path
 from typing import Any
 from collections.abc import Mapping
 from datetime import datetime
 
-from med_autoscience.controllers import opl_runtime_refs, work_unit_ledger
+from med_autoscience.controllers import opl_runtime_refs
 
 from .shared import _display_text, _mapping_copy, _non_empty_text, _read_json_object
 
@@ -116,26 +115,6 @@ def _batch_gate_replay_hit(path: Path) -> dict[str, Any] | None:
 def _gate_replay_telemetry(study_root: Path | None) -> dict[str, Any]:
     if study_root is None:
         return {}
-    try:
-        lifecycle = work_unit_ledger.lifecycle_summary(study_root=study_root)
-    except (OSError, json.JSONDecodeError, TypeError, ValueError):
-        lifecycle = {}
-    totals = _mapping_copy(lifecycle.get("totals"))
-    replay_count = _int_value(totals.get("replay_count"))
-    latest_replayed_at = None
-    for unit in lifecycle.get("units") or []:
-        if not isinstance(unit, dict):
-            continue
-        candidate = _non_empty_text(unit.get("latest_gate_replayed_at"))
-        if candidate is not None and (latest_replayed_at is None or candidate > latest_replayed_at):
-            latest_replayed_at = candidate
-    if replay_count > 0:
-        return {
-            "gate_replay_hit_count": replay_count,
-            "latest_gate_replay_at": latest_replayed_at,
-            "gate_replay_status": "observed",
-            "gate_replay_ref": _non_empty_text(lifecycle.get("ledger_path")),
-        }
     batch_hits = [
         hit
         for hit in (
@@ -377,20 +356,15 @@ def _stage_execution_records(
     ):
         if record is not None:
             controller_records.append(record)
-    lifecycle_records = _work_unit_stage_records(study_root=study_root)
-    result = _select_stage_records(
-        controller_records=controller_records,
-        lifecycle_records=lifecycle_records,
-        limit=12,
-    )
-    for record in result:
+    controller_records.sort(key=lambda item: _non_empty_text(item.get("finished_at")) or "")
+    for record in controller_records:
         record["token_usage"] = _stage_token_usage(
             record,
             telemetry_status=telemetry_status,
             study_root=study_root,
         )
         record["duration"] = _stage_duration(record)
-    return result
+    return controller_records
 
 
 def _controller_stage_record(
@@ -502,105 +476,6 @@ def _controller_evidence_refs(
     return list(dict.fromkeys(refs))[:12]
 
 
-def _work_unit_stage_records(*, study_root: Path) -> list[dict[str, Any]]:
-    try:
-        lifecycle = work_unit_ledger.lifecycle_summary(study_root=study_root)
-    except (OSError, json.JSONDecodeError, TypeError, ValueError):
-        return []
-    records: list[dict[str, Any]] = []
-    for unit in lifecycle.get("units") or []:
-        if not isinstance(unit, Mapping):
-            continue
-        records.append(
-            {
-                "record_kind": "work_unit_lifecycle",
-                "source": "work_unit_ledger.lifecycle_summary",
-                "source_ref": _non_empty_text(lifecycle.get("ledger_path")),
-                "stage_id": "publication_supervision",
-                "controller_name": _non_empty_text(unit.get("lane")),
-                "action_type": _non_empty_text(unit.get("action_type")),
-                "work_unit_id": _non_empty_text(unit.get("unit_id")),
-                "work_unit_fingerprint": _non_empty_text(unit.get("dispatch_key")),
-                "status": _non_empty_text(unit.get("lifecycle_state")) or "unknown",
-                "started_at": _non_empty_text(unit.get("first_recorded_at")),
-                "finished_at": _non_empty_text(unit.get("latest_recorded_at")),
-                "duration_seconds": None,
-                "event_count": _int_value(unit.get("event_count")),
-                "work_done": [f"Recorded lifecycle events: {', '.join(_text_list(unit.get('event_types')))}."],
-                "changed_artifact_refs": [],
-                "remaining_blockers": [],
-                "evidence_refs": [_non_empty_text(lifecycle.get("ledger_path"))]
-                if _non_empty_text(lifecycle.get("ledger_path"))
-                else [],
-                "closeout_refs": _text_list(unit.get("closeout_refs")),
-            }
-        )
-    return records
-
-
-def _dedupe_stage_records(records: list[dict[str, Any]]) -> list[dict[str, Any]]:
-    result: list[dict[str, Any]] = []
-    seen: set[tuple[str | None, str | None, str | None]] = set()
-    for record in sorted(records, key=lambda item: _non_empty_text(item.get("finished_at")) or ""):
-        key = (
-            _non_empty_text(record.get("source_ref")),
-            _non_empty_text(record.get("action_type")),
-            _non_empty_text(record.get("work_unit_id")),
-        )
-        if key in seen:
-            continue
-        seen.add(key)
-        result.append(record)
-    return result
-
-
-def _select_stage_records(
-    *,
-    controller_records: list[dict[str, Any]],
-    lifecycle_records: list[dict[str, Any]],
-    limit: int,
-) -> list[dict[str, Any]]:
-    controllers = _dedupe_stage_records(controller_records)
-    controller_keys = {
-        (
-            _non_empty_text(record.get("source_ref")),
-            _non_empty_text(record.get("action_type")),
-            _non_empty_text(record.get("work_unit_id")),
-        )
-        for record in controllers
-    }
-    lifecycle = [
-        record
-        for record in _dedupe_stage_records(lifecycle_records)
-        if (
-            _non_empty_text(record.get("source_ref")),
-            _non_empty_text(record.get("action_type")),
-            _non_empty_text(record.get("work_unit_id")),
-        )
-        not in controller_keys
-    ]
-    remaining_slots = max(limit - len(controllers), 0)
-    selected = lifecycle[-remaining_slots:] if remaining_slots else []
-    selected.extend(controllers[-limit:])
-    return _dedupe_stage_records_preserving_order(selected)[-limit:]
-
-
-def _dedupe_stage_records_preserving_order(records: list[dict[str, Any]]) -> list[dict[str, Any]]:
-    result: list[dict[str, Any]] = []
-    seen: set[tuple[str | None, str | None, str | None]] = set()
-    for record in records:
-        key = (
-            _non_empty_text(record.get("source_ref")),
-            _non_empty_text(record.get("action_type")),
-            _non_empty_text(record.get("work_unit_id")),
-        )
-        if key in seen:
-            continue
-        seen.add(key)
-        result.append(record)
-    return result
-
-
 def _stage_token_usage(
     record: Mapping[str, Any],
     *,
@@ -627,14 +502,6 @@ def _stage_duration(record: Mapping[str, Any]) -> dict[str, Any]:
     started_at = _parse_datetime(record.get("started_at"))
     finished_at = _parse_datetime(record.get("finished_at"))
     if started_at is not None and finished_at is not None:
-        if record.get("record_kind") == "work_unit_lifecycle":
-            return {
-                "status": "elapsed_window_only",
-                "seconds": max((finished_at - started_at).total_seconds(), 0.0),
-                "source": "lifecycle_first_latest_recorded_at",
-                "not_execution_duration": True,
-                "event_count": _int_value(record.get("event_count")),
-            }
         return {
             "status": "present",
             "seconds": max((finished_at - started_at).total_seconds(), 0.0),

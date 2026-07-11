@@ -4,14 +4,41 @@ from collections.abc import Callable, Mapping
 from pathlib import Path
 from typing import Any
 
-from med_autoscience.controllers import study_outer_loop_work_units
-
-
 def _non_empty_text(value: object) -> str | None:
     if not isinstance(value, str):
         return None
     text = value.strip()
     return text or None
+
+
+_WORK_UNIT_CONTEXT_KEYS = (
+    "specificity_targets",
+    "work_unit_targets",
+    "blocking_artifact_refs",
+    "blocker_details",
+    "gate_blocker_details",
+    "gaps",
+    "source_path",
+)
+
+
+def _work_unit_context(payload: Mapping[str, Any]) -> dict[str, Any]:
+    context: dict[str, Any] = {}
+    fingerprint = _non_empty_text(payload.get("work_unit_fingerprint"))
+    next_work_unit = payload.get("next_work_unit")
+    if fingerprint is not None and isinstance(next_work_unit, Mapping):
+        context["work_unit_fingerprint"] = fingerprint
+        context["next_work_unit"] = dict(next_work_unit)
+    questions = payload.get("specificity_questions")
+    if isinstance(questions, list):
+        context["specificity_questions"] = [str(item) for item in questions if str(item).strip()]
+    if currentness_basis := _non_empty_text(payload.get("currentness_basis")):
+        context["currentness_basis"] = currentness_basis
+    for key in _WORK_UNIT_CONTEXT_KEYS:
+        value = payload.get(key)
+        if value not in (None, "", [], {}):
+            context[key] = value
+    return context
 
 
 def serialize_outer_loop_dispatch(
@@ -36,7 +63,7 @@ def serialize_outer_loop_dispatch(
         "dispatch_status": _non_empty_text(outer_loop_result.get("dispatch_status")),
         "source": _non_empty_text(outer_loop_result.get("source")) or _non_empty_text(tick_request.get("source")),
     }
-    payload.update(study_outer_loop_work_units.context_payload(tick_request))
+    payload.update(_work_unit_context(tick_request))
     return payload
 
 
@@ -64,7 +91,7 @@ def attach_to_quest_report(
         "dispatch_status": _non_empty_text(dispatch_payload.get("dispatch_status")),
         "source": _non_empty_text(dispatch_payload.get("source")),
     }
-    report_dispatch.update(study_outer_loop_work_units.context_payload(dispatch_payload))
+    report_dispatch.update(_work_unit_context(dispatch_payload))
     quest_report["managed_study_outer_loop_dispatch"] = report_dispatch
     latest_report_path = _candidate_path(quest_report.get("latest_report_json")) or _candidate_path(
         quest_report.get("report_json")
