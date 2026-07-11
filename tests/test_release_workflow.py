@@ -209,12 +209,14 @@ def test_ci_runs_medical_paper_ops_contract_guard_without_touching_live_workspac
         assert fragment not in ci_workflow
 
 
-def test_ci_boundary_guards_mas_repo_only_contract_regression() -> None:
+def test_ci_boundary_guards_mas_and_declared_scholarskills_pack_contract_regression() -> None:
     ci_workflow = CI_WORKFLOW_PATH.read_text(encoding="utf-8")
     quick_checks = _workflow_job(ci_workflow, "quick-checks")
 
-    assert quick_checks.count("actions/checkout@v6") == 1
-    assert "repository:" not in quick_checks
+    assert quick_checks.count("actions/checkout@v6") == 2
+    assert quick_checks.count("repository:") == 1
+    assert "repository: gaofeng21cn/mas-scholar-skills" in quick_checks
+    assert "path: .ci/mas-scholar-skills" in quick_checks
     assert "gaofeng21cn/med-deepscientist" not in ci_workflow
     assert ".ci/med-deepscientist" not in ci_workflow
 
