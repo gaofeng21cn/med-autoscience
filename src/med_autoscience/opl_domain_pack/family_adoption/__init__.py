@@ -36,7 +36,7 @@ from ..family_stage_artifact_index_projection import (
     STAGE_ARTIFACT_INDEX_PROJECTION_REF,
     stage_artifact_index_projection_descriptor,
 )
-from med_autoscience.runtime_protocol import opl_state_index_source_adapter
+from med_autoscience.opl_domain_pack import state_index_source_refs
 from med_autoscience.workspace_paths import PUBLICATION_ROUTE_MEMORY_RELPATH
 
 ADOPTION_SURFACE_KIND = "mas_opl_family_domain_authority_refs_adoption"
@@ -44,7 +44,7 @@ FAMILY_STAGE_CONTROL_PLANE_DESCRIPTOR_KIND = "family_stage_control_plane_descrip
 DOMAIN_MEMORY_DESCRIPTOR_KIND = "family_domain_memory_ref"
 SOURCE_CONTRACT_REF = "contracts/opl-framework/family-contract-adoption.json"
 DOMAIN_AUTHORITY_REFS_CONTRACT_REF = (
-    "med_autoscience.runtime_protocol.opl_state_index_source_adapter.source_adapter_contract"
+    "med_autoscience.opl_domain_pack.state_index_source_refs.source_adapter_contract"
 )
 STAGE_LED_AUTONOMY_INVENTORY_REF = "docs/references/integration/stage_led_autonomy_family_inventory.md"
 STAGE_LED_AUTONOMY_POLICY_REF = "docs/policies/study-workflow/stage_led_research_autonomy.md"
@@ -382,7 +382,7 @@ def build_opl_family_adoption_surface(
     workspace_root: Path,
 ) -> dict[str, Any]:
     resolved_workspace_root = Path(workspace_root).expanduser().resolve()
-    source_adapter = opl_state_index_source_adapter.source_adapter_manifest()
+    source_adapter = state_index_source_refs.source_adapter_manifest()
     return {
         "surface_kind": ADOPTION_SURFACE_KIND,
         "schema_version": 1,
@@ -407,7 +407,7 @@ def build_product_entry_adoption_projection(
     workspace_root: Path,
 ) -> dict[str, Any]:
     resolved_workspace_root = Path(workspace_root).expanduser().resolve()
-    source_adapter = opl_state_index_source_adapter.source_adapter_manifest()
+    source_adapter = state_index_source_refs.source_adapter_manifest()
     stage_control_plane_descriptor = build_family_stage_control_plane_descriptor()
     payload = _body_free_adoption_payload(source_adapter)
     payload["family_stage_control_plane_descriptor"] = stage_control_plane_descriptor

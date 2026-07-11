@@ -10,7 +10,7 @@
     "replay_status": "contracts/paper_progress_replay_live_evidence_status.json",
     "runtime_inventory": "contracts/runtime/mas-runtime-surface-retirement-inventory.json",
     "runtime_inventory_schema": "contracts/runtime/mas-runtime-surface-retirement.schema.json",
-    "state_index_source_adapter": "src/med_autoscience/runtime_protocol/opl_state_index_source_adapter.py"
+    "state_index_source_adapter": "src/med_autoscience/opl_domain_pack/state_index_source_refs.py"
   },
   "overall": {
     "status": "partial",
@@ -55,7 +55,7 @@
     "completion_claim_allowed": true,
     "claim_scope": "repo_source_control_plane_only",
     "inventory_ref": "contracts/runtime/mas-runtime-surface-retirement-inventory.json",
-    "state_index_source_adapter_ref": "src/med_autoscience/runtime_protocol/opl_state_index_source_adapter.py",
+    "state_index_source_adapter_ref": "src/med_autoscience/opl_domain_pack/state_index_source_refs.py",
     "local_state_index_persistence": "absent",
     "required_retained_surface_ids": [
       "stage_outcome_authority",
@@ -101,7 +101,7 @@
     "provider_completion_as_domain_completion"
   ],
   "verification_refs": [
-    "src/med_autoscience/runtime_protocol/opl_state_index_source_adapter.py",
+    "src/med_autoscience/opl_domain_pack/state_index_source_refs.py",
     "tests/test_adapter_retirement_boundary.py",
     "tests/test_adapter_retirement_boundary_cases/test_runtime_inventory_contract.py",
     "tests/test_opl_family_persistence_adapter.py",

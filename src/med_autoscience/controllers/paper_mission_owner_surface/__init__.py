@@ -27,7 +27,7 @@ from med_autoscience.controllers.paper_mission_owner_surface import submission_m
 from med_autoscience.controllers.paper_mission_owner_surface import supervision_surfaces
 from med_autoscience.runtime_control import owner_route as owner_route_part
 from med_autoscience.controllers import owner_route_repeat_policy
-from med_autoscience.runtime_protocol import opl_state_index_source_adapter
+from med_autoscience.opl_domain_pack import state_index_source_refs
 from med_autoscience.developer_supervisor_mode import (
     DeveloperSupervisorMode,
     resolve_developer_supervisor_mode,
@@ -940,7 +940,7 @@ def scan_domain_routes(
             history_path=history_path,
             generated_at=generated_at,
             resolved_study_ids=resolved_study_ids,
-            opl_state_index_source_adapter=opl_state_index_source_adapter,
+            state_index_source_refs=state_index_source_refs,
             write_json=supervision_surfaces.write_json,
             append_json_line=supervision_surfaces.append_json_line,
             text=_text,

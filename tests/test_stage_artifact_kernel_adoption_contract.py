@@ -145,7 +145,7 @@ def test_mas_state_index_source_adapter_is_body_free_and_non_authoritative() -> 
 
     assert adapter["surface_kind"] == "mas_opl_state_index_source_adapter"
     assert adapter["implementation_ref"] == (
-        "src/med_autoscience/runtime_protocol/opl_state_index_source_adapter.py"
+        "src/med_autoscience/opl_domain_pack/state_index_source_refs.py"
     )
     assert adapter["manifest_ref"] == (
         "runtime/artifacts/opl_state_index_source_adapter/authority_refs_source.json"

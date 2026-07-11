@@ -34,7 +34,7 @@
   ],
   "mas_refs_source_adapter": {
     "surface_kind": "mas_opl_state_index_source_adapter",
-    "implementation_ref": "src/med_autoscience/runtime_protocol/opl_state_index_source_adapter.py",
+    "implementation_ref": "src/med_autoscience/opl_domain_pack/state_index_source_refs.py",
     "manifest_ref": "runtime/artifacts/opl_state_index_source_adapter/authority_refs_source.json",
     "source_families": [
       "authority_ref_metadata",

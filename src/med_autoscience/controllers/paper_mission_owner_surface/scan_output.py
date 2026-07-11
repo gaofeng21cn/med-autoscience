@@ -148,7 +148,7 @@ def persist_scan_domain_routes_payload(
     history_path: Path,
     generated_at: str,
     resolved_study_ids: tuple[str, ...],
-    opl_state_index_source_adapter: Any,
+    state_index_source_refs: Any,
     write_json: Callable[[Path, Mapping[str, Any]], None],
     append_json_line: Callable[[Path, Mapping[str, Any]], None],
     text: Callable[[object], str | None],
@@ -167,7 +167,7 @@ def persist_scan_domain_routes_payload(
             continue
         try:
             study["owner_route_authority_ref_index"] = (
-                opl_state_index_source_adapter.emit_owner_route_receipt_source(
+                state_index_source_refs.emit_owner_route_receipt_source(
                     receipt=owner_route,
                     receipt_path=latest_path,
                 )

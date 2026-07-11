@@ -137,7 +137,7 @@
       "module_id": "opl_state_index_source_adapter",
       "classification": "refs_only_domain_adapter",
       "code_paths": [
-        "src/med_autoscience/runtime_protocol/opl_state_index_source_adapter.py",
+        "src/med_autoscience/opl_domain_pack/state_index_source_refs.py",
         "src/med_autoscience/opl_domain_pack/__init__.py",
         "src/med_autoscience/controllers/owner_route_handoff/substrate_adapter.py"
       ],

@@ -518,7 +518,7 @@ def test_codex_first_landing_lanes_cover_pack_caller_physical_canary_and_soak() 
     ]["done_criteria"]
     source_guard = lanes["standard_agent_source_morphology_guard"]
     assert source_guard["owner"] == "MedAutoScience"
-    assert "runtime_protocol/opl_state_index_source_adapter.py" in source_guard["primary_surfaces"]
+    assert "opl_domain_pack/state_index_source_refs.py" in source_guard["primary_surfaces"]
     assert any(
         "standard Agent purity guard" in criterion
         for criterion in source_guard["done_criteria"]

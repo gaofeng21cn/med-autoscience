@@ -13,7 +13,7 @@ from med_autoscience.controllers.stage_artifact_materializer import (
 from med_autoscience.controllers.stage_run_kernel import (
     stage_run_kernel_projection_from_stage_folder,
 )
-from med_autoscience.runtime_protocol import opl_state_index_source_adapter
+from med_autoscience.opl_domain_pack import state_index_source_refs
 from tests.stage_artifact_index_cases.shared import (
     EXPECTED_AUTHORITY_FUNCTIONS,
     EXPECTED_LEGACY_ROUTE_IDS,
@@ -602,7 +602,7 @@ def test_stage_artifact_materializer_backfills_stage_native_refs_without_copying
     assert result["stages"][0]["domain_authority_ref_index"]["status"] == "opl_state_index_source_adapter_emitted"
     assert result["stages"][0]["domain_authority_ref_index"]["local_persistence"] == "absent"
     assert result["stages"][0]["domain_authority_ref_index"]["opl_state_index_kernel_required"] is True
-    source_adapter_path = workspace_root / opl_state_index_source_adapter.STATE_INDEX_SOURCE_ADAPTER_REF
+    source_adapter_path = workspace_root / state_index_source_refs.STATE_INDEX_SOURCE_ADAPTER_REF
     assert not source_adapter_path.exists()
 
 

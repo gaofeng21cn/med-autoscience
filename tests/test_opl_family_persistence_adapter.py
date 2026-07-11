@@ -7,7 +7,7 @@ from pathlib import Path
 
 def test_state_index_source_adapter_builds_opl_family_adoption_surface(tmp_path: Path) -> None:
     source_adapter = importlib.import_module(
-        "med_autoscience.runtime_protocol.opl_state_index_source_adapter"
+        "med_autoscience.opl_domain_pack.state_index_source_refs"
     )
     adoption_module = importlib.import_module("med_autoscience.opl_domain_pack.family_adoption")
     workspace_root = tmp_path / "workspace"
@@ -63,7 +63,7 @@ def test_state_index_source_adapter_builds_opl_family_adoption_surface(tmp_path:
     assert "legacy_sqlite_refs_index" not in surface["refs"]
     assert surface["refs"]["source_contract"] == "contracts/opl-framework/family-contract-adoption.json"
     assert surface["refs"]["domain_authority_refs_contract"] == (
-        "med_autoscience.runtime_protocol.opl_state_index_source_adapter.source_adapter_contract"
+        "med_autoscience.opl_domain_pack.state_index_source_refs.source_adapter_contract"
     )
     assert surface["refs"]["authority_boundary"]["domain_truth_owner"] == "MedAutoScience"
     assert surface["refs"]["authority_boundary"]["opl_role"] == (

@@ -976,7 +976,7 @@
         "execution_owner": "Codex CLI",
         "primary_surfaces": [
           "retired runtime_transport/mas_runtime_core* tombstone/provenance",
-          "runtime_protocol/opl_state_index_source_adapter.py",
+          "opl_domain_pack/state_index_source_refs.py",
           "controllers/mainline_status",
           "owner_route_handoff",
           "runtime status projection"
