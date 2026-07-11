@@ -119,7 +119,7 @@
           "items": {
             "type": "string",
             "enum": [
-              "workspace-cockpit",
+              "mainline-status",
               "product-entry-status",
               "product-preflight",
               "product-start",

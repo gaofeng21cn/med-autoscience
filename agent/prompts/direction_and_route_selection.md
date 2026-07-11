@@ -27,7 +27,7 @@ Work from current MAS-owned refs. If the available refs do not establish the stu
 
 ## Allowed Tools And Native Helpers
 
-- Inspect MAS refs through the MAS direct skill or generated OPL-hosted surfaces that expose `product_entry_status`, `workspace_cockpit`, and `study_progress`.
+- Inspect MAS refs through the MAS direct skill or generated OPL-hosted surfaces that expose `product_entry_status`, `mainline_status`, and `study_progress`.
 - Use `medical_research_execution` to reason over study, source, evidence, review, and memory refs.
 - Use `owner_receipt_and_route_control` to form the owner route recommendation, route-back, typed blocker, or human gate request.
 - Use sidecar/export refs only as locator and dispatch metadata; MAS remains the truth owner.

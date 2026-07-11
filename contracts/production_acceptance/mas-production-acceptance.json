@@ -977,7 +977,7 @@
         "primary_surfaces": [
           "retired runtime_transport/mas_runtime_core* tombstone/provenance",
           "runtime_protocol/opl_state_index_source_adapter.py",
-          "product_entry/workspace_cockpit",
+          "controllers/mainline_status",
           "owner_route_handoff",
           "runtime status projection"
         ],

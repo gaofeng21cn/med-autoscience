@@ -1,6 +1,8 @@
 from __future__ import annotations
 
 import importlib
+import json
+from pathlib import Path
 from typing import Any, cast
 
 
@@ -100,3 +102,47 @@ def test_active_boundary_and_parity_read_models_omit_cockpit_alias() -> None:
     assert "workspace-cockpit" not in str(architecture_report)
     assert "workspace-cockpit" not in str(boundary_report)
     assert "workspace_cockpit" not in str(parity_matrix)
+
+
+def test_active_direction_prompt_uses_mainline_status_not_cockpit_alias() -> None:
+    prompt = (
+        Path(__file__).resolve().parents[1] / "agent/prompts/direction_and_route_selection.md"
+    ).read_text(encoding="utf-8")
+
+    assert "workspace_cockpit" not in prompt
+    assert "`mainline_status`" in prompt
+
+
+def test_active_contracts_use_mainline_status_not_cockpit_alias() -> None:
+    repo_root = Path(__file__).resolve().parents[1]
+    schema = json.loads(
+        (repo_root / "contracts/schemas/v1/product-entry-manifest.schema.json").read_text(
+            encoding="utf-8"
+        )
+    )
+    adoption = json.loads(
+        (repo_root / "contracts/opl-framework/family-contract-adoption.json").read_text(
+            encoding="utf-8"
+        )
+    )
+    acceptance = json.loads(
+        (repo_root / "contracts/production_acceptance/mas-production-acceptance.json").read_text(
+            encoding="utf-8"
+        )
+    )
+
+    commands = schema["$defs"]["domainEntryContract"]["properties"]["supported_commands"]["items"]["enum"]
+    assert "mainline-status" in commands
+    assert "workspace-cockpit" not in commands
+
+    operator_surfaces = adoption["operator_projection"]["source_surfaces"]
+    assert "mainline-status" in operator_surfaces
+    assert "workspace-cockpit" not in operator_surfaces
+
+    source_guard = next(
+        lane
+        for lane in acceptance["codex_first_landing_program"]["lanes"]
+        if lane["lane_id"] == "standard_agent_source_morphology_guard"
+    )
+    assert "controllers/mainline_status" in source_guard["primary_surfaces"]
+    assert "product_entry/workspace_cockpit" not in source_guard["primary_surfaces"]
