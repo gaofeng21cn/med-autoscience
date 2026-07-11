@@ -11,7 +11,6 @@ from pathlib import Path
 from typing import Any
 
 from med_autoscience import display_registry
-from med_autoscience.adapters import report_store as runtime_protocol_report_store
 from med_autoscience.controllers import paper_artifacts
 from med_autoscience.controllers.statistical_discipline_runtime import validate_statistical_reviewer_audit
 from med_autoscience.policies import medical_disclosure_contract

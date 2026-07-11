@@ -15,7 +15,6 @@ from med_autoscience.medical_prose_review_request import (
 )
 from med_autoscience.controllers.opl_pending_user_message_handoff import build_pending_user_message_handoff
 from med_autoscience.policies import medical_publication_surface as medical_surface_policy
-from med_autoscience.adapters import report_store as runtime_protocol_report_store
 
 from .shared import (
     build_surface_state,
@@ -28,13 +27,18 @@ from .reporting import (
 )
 
 def write_surface_files(quest_root: Path, report: dict[str, Any]) -> tuple[Path, Path]:
-    return runtime_protocol_report_store.write_timestamped_report(
-        quest_root=quest_root,
-        report_group="medical_publication_surface",
-        timestamp=report["generated_at"],
-        report=report,
-        markdown=render_surface_markdown(report),
-    )
+    stamp = str(report["generated_at"]).replace("+00:00", "Z").replace(":", "")
+    report_root = quest_root / "artifacts" / "reports" / "medical_publication_surface"
+    report_root.mkdir(parents=True, exist_ok=True)
+    json_path = report_root / f"{stamp}.json"
+    markdown_path = report_root / f"{stamp}.md"
+    payload = json.dumps(report, ensure_ascii=False, indent=2) + "\n"
+    markdown = render_surface_markdown(report)
+    for path in (json_path, report_root / "latest.json"):
+        path.write_text(payload, encoding="utf-8")
+    for path in (markdown_path, report_root / "latest.md"):
+        path.write_text(markdown, encoding="utf-8")
+    return json_path, markdown_path
 
 
 def run_controller(

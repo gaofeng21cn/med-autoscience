@@ -30,7 +30,6 @@ from med_autoscience.controllers.study_paper_context import (
     resolve_study_paper_context,
     resolve_study_root_from_quest_root,
 )
-from med_autoscience.adapters import report_store as runtime_protocol_report_store
 
 
 PUBLICATION_SUPERVISOR_KEYS: tuple[str, ...] = (

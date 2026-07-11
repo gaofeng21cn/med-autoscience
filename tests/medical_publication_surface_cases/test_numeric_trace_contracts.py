@@ -50,6 +50,21 @@ def test_build_report_projects_numeric_trace(tmp_path: Path) -> None:
     assert report["numeric_trace_valid"] is True
 
 
+def test_write_surface_files_materializes_domain_report(tmp_path: Path) -> None:
+    controller = importlib.import_module("med_autoscience.controllers.medical_publication_surface.controller")
+    reporting = importlib.import_module("med_autoscience.controllers.medical_publication_surface.reporting")
+    shared_base = importlib.import_module("med_autoscience.controllers.medical_publication_surface.shared_base")
+    quest_root = make_quest(tmp_path, medicalized=True, ama_defaults=True)
+    report = reporting.build_surface_report(shared_base.build_surface_state(quest_root))
+
+    json_path, markdown_path = controller.write_surface_files(quest_root, report)
+
+    report_root = quest_root / "artifacts" / "reports" / "medical_publication_surface"
+    assert json.loads(json_path.read_text(encoding="utf-8")) == report
+    assert (report_root / "latest.json").read_text(encoding="utf-8") == json_path.read_text(encoding="utf-8")
+    assert (report_root / "latest.md").read_text(encoding="utf-8") == markdown_path.read_text(encoding="utf-8")
+
+
 def test_validate_claim_evidence_map_accepts_optional_numeric_trace_refs() -> None:
     module = importlib.import_module("med_autoscience.policies.medical_publication_surface")
 

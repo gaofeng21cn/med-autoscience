@@ -8,7 +8,6 @@ from med_autoscience.controllers._medical_display_surface_support import resolve
 from med_autoscience.policies import medical_publication_surface as medical_surface_policy
 from med_autoscience.policies.medical_reporting_checklist import build_structured_reporting_checklist
 from med_autoscience.controllers import paper_artifacts
-from med_autoscience.adapters import report_store as runtime_protocol_report_store
 
 
 def utc_now() -> str:
@@ -186,13 +185,18 @@ def render_audit_markdown(report: dict[str, object]) -> str:
 
 
 def write_audit_files(quest_root: Path, report: dict[str, object]) -> tuple[Path, Path]:
-    return runtime_protocol_report_store.write_timestamped_report(
-        quest_root=quest_root,
-        report_group="medical_reporting_audit",
-        timestamp=str(report["generated_at"]),
-        report=report,
-        markdown=render_audit_markdown(report),
-    )
+    stamp = str(report["generated_at"]).replace("+00:00", "Z").replace(":", "")
+    report_root = quest_root / "artifacts" / "reports" / "medical_reporting_audit"
+    report_root.mkdir(parents=True, exist_ok=True)
+    json_path = report_root / f"{stamp}.json"
+    markdown_path = report_root / f"{stamp}.md"
+    payload = json.dumps(report, ensure_ascii=False, indent=2) + "\n"
+    markdown = render_audit_markdown(report)
+    for path in (json_path, report_root / "latest.json"):
+        path.write_text(payload, encoding="utf-8")
+    for path in (markdown_path, report_root / "latest.md"):
+        path.write_text(markdown, encoding="utf-8")
+    return json_path, markdown_path
 
 
 def run_controller(*, quest_root: Path, apply: bool) -> dict[str, object]:

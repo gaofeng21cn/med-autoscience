@@ -28,7 +28,6 @@ from med_autoscience.publication_profiles import GENERAL_MEDICAL_JOURNAL_PROFILE
 from med_autoscience.policies import publication_gate as publication_gate_policy
 from med_autoscience.controllers.study_paper_context import resolve_study_paper_context
 from med_autoscience.controllers import paper_artifacts
-from med_autoscience.adapters import report_store as runtime_protocol_report_store
 
 from .discovery_and_drift import (
     PUBLICATION_SUPERVISOR_KEYS,
@@ -439,13 +438,18 @@ def render_gate_markdown(report: dict[str, Any]) -> str:
 
 
 def write_gate_files(quest_root: Path, report: dict[str, Any]) -> tuple[Path, Path]:
-    return runtime_protocol_report_store.write_timestamped_report(
-        quest_root=quest_root,
-        report_group="publishability_gate",
-        timestamp=str(report["generated_at"]),
-        report=report,
-        markdown=render_gate_markdown(report),
-    )
+    stamp = str(report["generated_at"]).replace("+00:00", "Z").replace(":", "")
+    report_root = quest_root / "artifacts" / "reports" / "publishability_gate"
+    report_root.mkdir(parents=True, exist_ok=True)
+    json_path = report_root / f"{stamp}.json"
+    markdown_path = report_root / f"{stamp}.md"
+    payload = json.dumps(report, ensure_ascii=False, indent=2) + "\n"
+    markdown = render_gate_markdown(report)
+    for path in (json_path, report_root / "latest.json"):
+        path.write_text(payload, encoding="utf-8")
+    for path in (markdown_path, report_root / "latest.md"):
+        path.write_text(markdown, encoding="utf-8")
+    return json_path, markdown_path
 
 
 def _materialize_publication_eval_latest(

@@ -25,7 +25,6 @@ from med_autoscience.controllers.study_paper_context import (
     resolve_study_root_from_quest_root,
 )
 from med_autoscience.controllers import paper_artifacts
-from med_autoscience.adapters import report_store as runtime_protocol_report_store
 from med_autoscience.controllers.submission_package_layout import resolve_submission_manifest_path
 
 from .blocking_artifact_refs import build_blocking_artifact_refs

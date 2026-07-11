@@ -424,31 +424,9 @@ def test_default_structured_reporting_contract_for_time_to_event_prediction_sets
     assert "competing_event_screen" in contract["time_to_event_prediction_reporting"]
 
 
-def test_write_audit_files_uses_runtime_protocol_report_store(monkeypatch, tmp_path: Path) -> None:
+def test_write_audit_files_materializes_domain_report(tmp_path: Path) -> None:
     module = importlib.import_module("med_autoscience.controllers.medical_reporting_audit")
     quest_root = tmp_path / "runtime" / "quests" / "001-risk"
-    seen: dict[str, object] = {}
-
-    def fake_write_timestamped_report(
-        *,
-        quest_root: Path,
-        report_group: str,
-        timestamp: str,
-        report: dict[str, object],
-        markdown: str,
-    ) -> tuple[Path, Path]:
-        seen["quest_root"] = quest_root
-        seen["report_group"] = report_group
-        seen["timestamp"] = timestamp
-        seen["report"] = report
-        seen["markdown"] = markdown
-        return (
-            quest_root / "artifacts" / "reports" / report_group / "latest.json",
-            quest_root / "artifacts" / "reports" / report_group / "latest.md",
-        )
-
-    monkeypatch.setattr(module.runtime_protocol_report_store, "write_timestamped_report", fake_write_timestamped_report)
-
     report = {
         "generated_at": "2026-04-03T10:00:00+00:00",
         "quest_root": str(quest_root),
@@ -459,11 +437,12 @@ def test_write_audit_files_uses_runtime_protocol_report_store(monkeypatch, tmp_p
 
     json_path, md_path = module.write_audit_files(quest_root, report)
 
-    assert seen["quest_root"] == quest_root
-    assert seen["report_group"] == "medical_reporting_audit"
-    assert seen["timestamp"] == "2026-04-03T10:00:00+00:00"
-    assert json_path.name == "latest.json"
-    assert md_path.name == "latest.md"
+    report_root = quest_root / "artifacts" / "reports" / "medical_reporting_audit"
+    assert json_path == report_root / "2026-04-03T100000Z.json"
+    assert md_path == report_root / "2026-04-03T100000Z.md"
+    assert json.loads(json_path.read_text(encoding="utf-8")) == report
+    assert (report_root / "latest.json").read_text(encoding="utf-8") == json_path.read_text(encoding="utf-8")
+    assert (report_root / "latest.md").read_text(encoding="utf-8") == md_path.read_text(encoding="utf-8")
 
 
 def test_medical_reporting_audit_reads_projected_paper_root(tmp_path: Path) -> None:

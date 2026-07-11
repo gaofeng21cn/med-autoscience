@@ -143,28 +143,9 @@ def test_build_gate_report_keeps_blocker_logic_in_controller_after_adapter_patch
     assert "missing_required_non_scalar_deliverables" not in report["blockers"]
 
 
-def test_write_gate_files_uses_runtime_protocol_report_store(monkeypatch, tmp_path: Path) -> None:
+def test_write_gate_files_materializes_domain_report(tmp_path: Path) -> None:
     module = importlib.import_module("med_autoscience.controllers.publication_gate")
     quest_root = make_quest(tmp_path, include_submission_minimal=False)
-    seen: dict[str, object] = {}
-
-    def fake_write_timestamped_report(
-        *,
-        quest_root: Path,
-        report_group: str,
-        timestamp: str,
-        report: dict[str, object],
-        markdown: str,
-    ) -> tuple[Path, Path]:
-        seen["quest_root"] = quest_root
-        seen["report_group"] = report_group
-        seen["timestamp"] = timestamp
-        seen["report"] = report
-        seen["markdown"] = markdown
-        return quest_root / "artifacts" / "reports" / report_group / "latest.json", quest_root / "artifacts" / "reports" / report_group / "latest.md"
-
-    monkeypatch.setattr(module.runtime_protocol_report_store, "write_timestamped_report", fake_write_timestamped_report)
-
     report = {
         "generated_at": "2026-04-03T04:00:00+00:00",
         "quest_id": quest_root.name,
@@ -187,8 +168,9 @@ def test_write_gate_files_uses_runtime_protocol_report_store(monkeypatch, tmp_pa
 
     json_path, md_path = module.write_gate_files(quest_root, report)
 
-    assert seen["quest_root"] == quest_root
-    assert seen["report_group"] == "publishability_gate"
-    assert seen["timestamp"] == "2026-04-03T04:00:00+00:00"
-    assert json_path.name == "latest.json"
-    assert md_path.name == "latest.md"
+    report_root = quest_root / "artifacts" / "reports" / "publishability_gate"
+    assert json_path == report_root / "2026-04-03T040000Z.json"
+    assert md_path == report_root / "2026-04-03T040000Z.md"
+    assert json.loads(json_path.read_text(encoding="utf-8")) == report
+    assert (report_root / "latest.json").read_text(encoding="utf-8") == json_path.read_text(encoding="utf-8")
+    assert (report_root / "latest.md").read_text(encoding="utf-8") == md_path.read_text(encoding="utf-8")

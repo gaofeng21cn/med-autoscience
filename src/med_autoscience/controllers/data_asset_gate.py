@@ -12,7 +12,6 @@ import yaml
 from med_autoscience.controllers import data_assets
 from med_autoscience.controllers.opl_pending_user_message_handoff import build_pending_user_message_handoff
 from med_autoscience.policies import data_asset_gate as data_asset_gate_policy
-from med_autoscience.adapters import report_store as runtime_protocol_report_store
 
 
 @dataclass
@@ -202,13 +201,16 @@ def render_gate_markdown(report: dict[str, Any]) -> str:
 
 
 def write_gate_files(quest_root: Path, report: dict[str, Any]) -> tuple[Path, Path]:
-    return runtime_protocol_report_store.write_timestamped_report(
-        quest_root=quest_root,
-        report_group="data_asset_gate",
-        timestamp=str(report["generated_at"]),
-        report=report,
-        markdown=render_gate_markdown(report),
-    )
+    stamp = str(report["generated_at"]).replace("+00:00", "Z").replace(":", "")
+    report_root = quest_root / "artifacts" / "reports" / "data_asset_gate"
+    json_path = report_root / f"{stamp}.json"
+    markdown_path = report_root / f"{stamp}.md"
+    markdown = render_gate_markdown(report)
+    for path in (json_path, report_root / "latest.json"):
+        dump_json(path, report)
+    for path in (markdown_path, report_root / "latest.md"):
+        path.write_text(markdown, encoding="utf-8")
+    return json_path, markdown_path
 
 
 def run_controller(
