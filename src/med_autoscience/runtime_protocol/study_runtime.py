@@ -344,28 +344,6 @@ def resolve_study_runtime_context(
     )
 
 
-def resolve_study_runtime_paths(
-    *,
-    profile: WorkspaceProfile,
-    study_root: Path,
-    study_id: str,
-    quest_id: str,
-) -> dict[str, Path]:
-    context = resolve_study_runtime_context(
-        profile=profile,
-        study_root=study_root,
-        study_id=study_id,
-        quest_id=quest_id,
-    )
-    return {
-        "runtime_root": context.runtime_root,
-        "quest_root": context.quest_root,
-        "runtime_binding_path": context.runtime_binding_path,
-        "startup_payload_root": context.startup_payload_root,
-        "launch_report_path": context.launch_report_path,
-    }
-
-
 def build_hydration_payload(
     *,
     create_payload: dict[str, Any],
@@ -525,17 +503,6 @@ def _text_set(value: object) -> set[str]:
     return {text for item in value if (text := str(item or "").strip())}
 
 
-def write_startup_payload(
-    *,
-    startup_payload_root: Path,
-    create_payload: dict[str, Any],
-    slug: str,
-) -> Path:
-    payload_path = Path(startup_payload_root).expanduser().resolve() / f"{slug}.json"
-    _write_json(payload_path, create_payload)
-    return payload_path
-
-
 def write_runtime_binding(
     *,
     runtime_binding_path: Path,
@@ -667,27 +634,3 @@ def write_launch_report(
     )
     _write_json(launch_report_path, report)
 
-
-def archive_invalid_partial_quest_root(
-    *,
-    quest_root: Path,
-    runtime_root: Path,
-    slug: str,
-) -> dict[str, Any] | None:
-    resolved_quest_root = Path(quest_root).expanduser().resolve()
-    quest_yaml_path = resolved_quest_root / "quest.yaml"
-    if not resolved_quest_root.exists() or quest_yaml_path.exists():
-        return None
-
-    recovery_root = Path(runtime_root).expanduser().resolve() / "recovery" / "invalid_partial_quest_roots"
-    archive_root = recovery_root / f"{resolved_quest_root.name}-{slug}"
-    recovery_root.mkdir(parents=True, exist_ok=True)
-    if archive_root.exists():
-        raise FileExistsError(f"invalid partial quest recovery target already exists: {archive_root}")
-    resolved_quest_root.rename(archive_root)
-    return {
-        "status": "archived_invalid_partial_quest_root",
-        "quest_root": str(resolved_quest_root),
-        "archived_root": str(archive_root),
-        "missing_required_files": ["quest.yaml"],
-    }

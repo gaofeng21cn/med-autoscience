@@ -23,10 +23,8 @@ _LAZY_EXPORTS = {
     "StartupHydrationValidationStatus": ".study_runtime",
     "StudyRuntimeArtifacts": ".study_runtime",
     "StudyRuntimeContext": ".study_runtime",
-    "archive_invalid_partial_quest_root": ".study_runtime",
     "build_hydration_payload": ".study_runtime",
     "find_latest": ".quest_state",
-    "find_latest_main_result": ".quest_state",
     "find_latest_main_result_path": ".quest_state",
     "inspect_quest_runtime": ".quest_state",
     "iter_active_quests": ".quest_state",
@@ -43,7 +41,6 @@ _LAZY_EXPORTS = {
     "resolve_study_root_from_paper_root": ".topology",
     "resolve_study_root_from_quest_root": ".topology",
     "resolve_study_runtime_context": ".study_runtime",
-    "resolve_study_runtime_paths": ".study_runtime",
     "resolve_worktree_root_from_paper_root": ".topology",
     "should_refresh_startup_hydration_for_runtime_hold": ".study_runtime",
     "validate_startup_contract_resolution": ".study_runtime",
@@ -53,7 +50,6 @@ _LAZY_EXPORTS = {
     "write_runtime_event_record": ".study_runtime",
     "write_startup_hydration_report": ".study_runtime",
     "write_startup_hydration_validation_report": ".study_runtime",
-    "write_startup_payload": ".study_runtime",
     "write_study_decision_record": ".study_runtime",
 }
 

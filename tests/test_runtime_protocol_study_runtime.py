@@ -56,24 +56,6 @@ def test_runtime_protocol_sources_do_not_import_controller_modules() -> None:
     assert offenders == []
 
 
-def test_resolve_study_runtime_paths_derives_binding_launch_and_runtime_roots(tmp_path: Path) -> None:
-    profile = make_profile(tmp_path)
-    study_root = profile.studies_root / "001-risk"
-
-    result = runtime.resolve_study_runtime_paths(
-        profile=profile,
-        study_root=study_root,
-        study_id="001-risk",
-        quest_id="quest-001",
-    )
-
-    assert result["runtime_root"] == profile.workspace_root / "runtime"
-    assert result["quest_root"] == profile.workspace_root / "runtime" / "quests" / "quest-001"
-    assert result["runtime_binding_path"] == study_root / "runtime_binding.yaml"
-    assert result["startup_payload_root"] == profile.workspace_root / "runtime" / "startup_payloads" / "001-risk"
-    assert result["launch_report_path"] == study_root / "artifacts" / "runtime" / "last_launch_report.json"
-
-
 def test_resolve_study_runtime_context_derives_typed_paths(tmp_path: Path) -> None:
     profile = make_profile(tmp_path)
     study_root = profile.studies_root / "001-risk"
@@ -239,22 +221,6 @@ def test_write_launch_report_persists_autonomous_runtime_notice_payload(tmp_path
     assert notice["launch_report_path"] == str(report_path)
 
 
-def test_write_startup_payload_writes_create_payload_and_returns_written_path(tmp_path: Path) -> None:
-    startup_payload_root = tmp_path / "workspace" / "ops" / "med-deepscientist" / "startup_payloads" / "001-risk"
-
-    payload_path = runtime.write_startup_payload(
-        startup_payload_root=startup_payload_root,
-        create_payload={"quest_id": "001-risk", "goal": "Launch study 001"},
-        slug="20260402T120000Z",
-    )
-
-    assert payload_path == startup_payload_root / "20260402T120000Z.json"
-    assert json.loads(payload_path.read_text(encoding="utf-8")) == {
-        "quest_id": "001-risk",
-        "goal": "Launch study 001",
-    }
-
-
 def test_persist_runtime_artifacts_writes_binding_and_launch_report_when_last_action_present(tmp_path: Path) -> None:
     runtime_root = tmp_path / "workspace" / "ops" / "med-deepscientist" / "runtime"
     study_root = tmp_path / "workspace" / "studies" / "001-risk"
@@ -340,28 +306,6 @@ def test_study_runtime_artifacts_from_payload_round_trips_protocol_surface(tmp_p
 def test_study_runtime_artifacts_from_payload_rejects_missing_launch_report_path() -> None:
     with pytest.raises(ValueError, match="study runtime artifacts payload missing launch_report_path"):
         runtime.StudyRuntimeArtifacts.from_payload({"runtime_binding_path": "/tmp/runtime_binding.yaml"})
-
-
-def test_archive_invalid_partial_quest_root_moves_broken_quest_into_recovery_root(tmp_path: Path) -> None:
-    runtime_root = tmp_path / "workspace" / "ops" / "med-deepscientist" / "runtime"
-    quest_root = runtime_root / "quests" / "001-risk"
-    (quest_root / "artifacts").mkdir(parents=True, exist_ok=True)
-
-    result = runtime.archive_invalid_partial_quest_root(
-        quest_root=quest_root,
-        runtime_root=runtime_root,
-        slug="20260402T120000Z",
-    )
-
-    archived_root = runtime_root / "recovery" / "invalid_partial_quest_roots" / "001-risk-20260402T120000Z"
-    assert result == {
-        "status": "archived_invalid_partial_quest_root",
-        "quest_root": str(quest_root),
-        "archived_root": str(archived_root),
-        "missing_required_files": ["quest.yaml"],
-    }
-    assert not quest_root.exists()
-    assert archived_root.exists()
 
 
 def test_build_hydration_payload_returns_protocol_surface() -> None:
