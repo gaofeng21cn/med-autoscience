@@ -484,9 +484,6 @@ def _quality_owner_pending(*, payload: Mapping[str, Any], terminal_delivery: boo
         return True
     if _non_empty_text(paper_progress.get("state")) == "blocked_controller_route" and next_owner:
         return True
-    request_lifecycle = _mapping_copy(payload.get("ai_reviewer_request_lifecycle"))
-    if _non_empty_text(request_lifecycle.get("state")) in {"requested", "assigned"}:
-        return True
     return bool(next_owner and next_owner not in {"external_supervisor", "user"})
 
 

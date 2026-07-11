@@ -37,9 +37,9 @@ from .record_materialization import (
     _materialize_ai_reviewer_publication_eval_record,
     _normalize_publication_eval_record,
 )
-from med_autoscience.controllers.domain_action_request_lifecycle import (
+from .input_contract import (
+    ai_reviewer_request_path,
     read_ai_reviewer_request,
-    stable_ai_reviewer_request_path,
 )
 from med_autoscience.controllers.stage_outcome_authority.action_execution import (
     ai_reviewer_request_refs,
@@ -140,7 +140,7 @@ def plan_ai_reviewer_publication_eval_record_materialization(
         study_root=resolved_study_root,
         request=read_ai_reviewer_request(study_root=resolved_study_root) or {},
     )
-    lifecycle = _mapping(request.get("request_lifecycle"))
+    lifecycle = _mapping(request.get("record_requirements"))
     request_required_currentness_refs = [
         str(item).strip()
         for item in lifecycle.get("required_currentness_refs") or []
@@ -250,7 +250,7 @@ def plan_ai_reviewer_publication_eval_record_materialization(
             "writes_authority_surfaces": False,
         },
         "request": {
-            "request_path": str(stable_ai_reviewer_request_path(study_root=resolved_study_root)),
+            "request_path": str(ai_reviewer_request_path(study_root=resolved_study_root)),
             "request_kind": _record_request_kind(request),
             "request_owner": _optional_text(request.get("request_owner")),
             "lifecycle_state": _optional_text(lifecycle.get("state")),
@@ -265,7 +265,7 @@ def plan_ai_reviewer_publication_eval_record_materialization(
             surface: ref for surface, ref in optional_refs.items() if ref is not None
         },
         "required_currentness_refs": required_currentness_refs,
-        "required_currentness_refs_source": "request_lifecycle"
+        "required_currentness_refs_source": "record_requirements"
         if request_required_currentness_refs
         else "request_input_refs",
         "expected_write_surfaces": [AI_REVIEWER_RESPONSE_RECORD_SURFACE],

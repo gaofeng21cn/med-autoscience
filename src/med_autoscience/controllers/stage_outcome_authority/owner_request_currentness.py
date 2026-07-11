@@ -37,7 +37,7 @@ def lifecycle_active(request: Mapping[str, Any]) -> bool:
     status = _text(request.get("status"))
     if status not in ACTIVE_OWNER_REQUEST_STATUSES:
         return False
-    lifecycle_state = _text(_mapping(request.get("request_lifecycle")).get("state"))
+    lifecycle_state = _text(_mapping(request.get("record_requirements")).get("state"))
     if lifecycle_state is not None and lifecycle_state not in ACTIVE_OWNER_REQUEST_STATUSES:
         return False
     owner_pickup_state = _text(_mapping(request.get("owner_pickup")).get("state"))

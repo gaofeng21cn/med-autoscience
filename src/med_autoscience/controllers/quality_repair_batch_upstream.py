@@ -5,8 +5,13 @@ import json
 from pathlib import Path
 from typing import Any, Mapping
 
-from med_autoscience.controllers import domain_action_request_lifecycle
 from med_autoscience.controllers import domain_action_requests
+from med_autoscience.controllers.ai_reviewer_publication_eval.input_contract import (
+    default_ai_reviewer_request_input_refs,
+)
+from med_autoscience.controllers.ai_reviewer_publication_eval.record_contracts import (
+    ai_reviewer_request_with_latest_record,
+)
 from med_autoscience.controllers import paper_authority_migration
 from med_autoscience.controllers.gate_clearing_batch_work_units import (
     UPSTREAM_PUBLISHABILITY_REPAIR_WORK_UNIT_IDS,
@@ -395,7 +400,7 @@ def _materialize_medical_prose_story_surfaces(
         study_root=study_root,
     )
 
-def _materialize_ai_reviewer_request(
+def _build_ai_reviewer_handoff_packet(
     *,
     study_id: str,
     quest_id: str,
@@ -403,7 +408,7 @@ def _materialize_ai_reviewer_request(
     source_fingerprint: str,
     gate_report: Mapping[str, Any],
 ) -> dict[str, Any]:
-    input_refs = domain_action_request_lifecycle.default_ai_reviewer_request_input_refs(
+    input_refs = default_ai_reviewer_request_input_refs(
         study_root=study_root,
     )
     medical_prose_review = _mapping(input_refs.get("medical_prose_review"))
@@ -447,7 +452,7 @@ def _materialize_ai_reviewer_request(
         input_refs=input_refs,
     )
     packet["source_fingerprint"] = source_fingerprint
-    return domain_action_request_lifecycle.materialize_ai_reviewer_request(
+    return ai_reviewer_request_with_latest_record(
         study_root=study_root,
         packet=packet,
     )
@@ -557,14 +562,14 @@ def run_upstream_paper_repair_unit(
     if review_ledger["changed"]:
         changed_refs.append(review_ledger["path"])
     ai_request = (
-        _materialize_ai_reviewer_request(
+        _build_ai_reviewer_handoff_packet(
             study_id=study_id,
             quest_id=quest_id,
             study_root=resolved_study_root,
             source_fingerprint=source_fingerprint,
             gate_report=gate_report,
         )
-        if _should_materialize_ai_reviewer_request(
+        if _should_emit_ai_reviewer_handoff_packet(
             paper_root=paper_root,
             work_unit_id=resolved_work_unit_id,
             changed_refs=changed_refs,
@@ -595,12 +600,12 @@ def run_upstream_paper_repair_unit(
             "source_fingerprint": source_fingerprint,
             "changed_artifact_refs": changed_refs,
             "canonical_artifact_refs": canonical_refs,
-            "ai_reviewer_recheck_request_ref": ai_request.get("path"),
+            "ai_reviewer_recheck_request": ai_request or None,
             **({"claim_evidence_alignment": claim_alignment_repair.get("claim_evidence_alignment")} if claim_alignment_repair else {}),
             **({"claim_evidence_alignment_repair": claim_alignment_repair} if claim_alignment_repair else {}),
             **(
                 {"ai_reviewer_recheck_deferred_reason": "manuscript_story_surface_delta_missing"}
-                if not ai_request.get("path")
+                if not ai_request
                 and (
                     resolved_work_unit_id == medical_prose_story_surface.MEDICAL_PROSE_WRITE_REPAIR_WORK_UNIT_ID
                     or is_story_surface_delta_write_work_unit(resolved_work_unit_id)
@@ -633,7 +638,7 @@ def _paper_story_surface_exists(paper_root: Path) -> bool:
     )
 
 
-def _should_materialize_ai_reviewer_request(
+def _should_emit_ai_reviewer_handoff_packet(
     *,
     paper_root: Path,
     work_unit_id: str,

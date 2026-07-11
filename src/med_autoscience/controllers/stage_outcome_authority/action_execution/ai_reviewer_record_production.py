@@ -9,7 +9,7 @@ from typing import Any
 from med_autoscience.controllers.owner_callable_closeout_contract import (
     owner_callable_typed_closeout_contract,
 )
-from med_autoscience.controllers.domain_action_request_lifecycle import (
+from med_autoscience.controllers.ai_reviewer_publication_eval.record_contracts import (
     AI_REVIEWER_RECORD_STALE_AFTER_CURRENT_INPUTS,
     AI_REVIEWER_RECORD_STALE_AFTER_CURRENT_MANUSCRIPT,
     AI_REVIEWER_RECORD_STALE_AFTER_UNIT_HARMONIZED_RERUN,
@@ -152,7 +152,7 @@ def _current_medical_prose_review_ref(
     request: Mapping[str, Any],
     study_root: Path,
 ) -> str | None:
-    lifecycle = _mapping(request.get("request_lifecycle"))
+    lifecycle = _mapping(request.get("record_requirements"))
     for item in lifecycle.get("required_currentness_refs") or []:
         currentness_ref = _text(item)
         if currentness_ref is None or Path(currentness_ref).name != "medical_prose_review.json":
@@ -184,15 +184,15 @@ def _production_request_with_owner_callable_payload_ref(
 ) -> dict[str, Any]:
     payload_ref = str(_record_production_payload_path(profile=profile, study_id=study_id).resolve())
     result = dict(production_request)
-    request_lifecycle = _mapping(request.get("request_lifecycle"))
-    current_stale_record_ref = _text(request_lifecycle.get("stale_record_ref")) or _text(
+    record_requirements = _mapping(request.get("record_requirements"))
+    current_stale_record_ref = _text(record_requirements.get("stale_record_ref")) or _text(
         request.get("publication_eval_record_ref")
     )
     if current_stale_record_ref is not None:
         result["stale_record_ref"] = current_stale_record_ref
     currentness_refs = [
         text
-        for item in request_lifecycle.get("required_currentness_refs") or []
+        for item in record_requirements.get("required_currentness_refs") or []
         if (text := _text(item)) is not None
     ]
     if currentness_refs:
@@ -621,7 +621,7 @@ def attach_invalid_ai_reviewer_record_handoff(
     )
     payload["next_required_actions"] = [
         request_kind,
-        "rematerialize_ai_reviewer_request",
+        "route_ai_reviewer_domain_packet_through_opl_transition",
         "return_to_ai_reviewer_workflow",
     ]
     record_blocker["payload"] = payload
@@ -655,7 +655,7 @@ def attach_incomplete_ai_reviewer_record_handoff(
     )
     payload["next_required_actions"] = [
         request_kind,
-        "rematerialize_ai_reviewer_request",
+        "route_ai_reviewer_domain_packet_through_opl_transition",
         "return_to_ai_reviewer_workflow",
     ]
     record_blocker["payload"] = payload

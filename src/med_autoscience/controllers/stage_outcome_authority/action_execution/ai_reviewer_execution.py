@@ -15,7 +15,7 @@ from ... import (
     paper_authority_migration,
 )
 from ...ai_reviewer_story_provenance_guard import ai_reviewer_record_story_provenance_leakage_dispatch_blocker
-from ...domain_action_request_lifecycle import stable_ai_reviewer_request_path
+from ...ai_reviewer_publication_eval.input_contract import ai_reviewer_request_path
 from . import claim_evidence_alignment
 from . import ai_reviewer_request_refs
 from .ai_reviewer_clean_migration_record import build_clean_migration_request_record
@@ -192,7 +192,7 @@ def execute_ai_reviewer_workflow(
     controller_decision_refresh,
 ) -> dict[str, Any]:
     study_root = _study_root(profile, study_id)
-    request_path = stable_ai_reviewer_request_path(study_root=study_root)
+    request_path = ai_reviewer_request_path(study_root=study_root)
     closeout_binding = _ai_reviewer_closeout_binding(dispatch)
     request = _read_json_object(request_path)
     if request is None or _text(_mapping(request).get("surface_kind")) == "legacy_control_surface_tombstone":
@@ -353,7 +353,7 @@ def _complete_ai_reviewer_request_packet(
         required_refs=required_refs,
     )
     changed = changed or required_inputs_changed
-    lifecycle = _mapping(completed.get("request_lifecycle"))
+    lifecycle = _mapping(completed.get("record_requirements"))
     completed_for_ref_check = {
         **completed,
         "input_contract": {**input_contract, "required_refs": required_refs},
@@ -380,7 +380,7 @@ def _complete_ai_reviewer_request_packet(
     input_contract["required_refs"] = required_refs
     completed["input_contract"] = input_contract
     completed["required_inputs"] = required_inputs
-    completed["request_lifecycle"] = lifecycle
+    completed["record_requirements"] = lifecycle
     request_path.parent.mkdir(parents=True, exist_ok=True)
     request_path.write_text(json.dumps(completed, ensure_ascii=False, indent=2, sort_keys=True) + "\n", encoding="utf-8")
     return completed
@@ -616,7 +616,7 @@ def _ai_reviewer_record_for_execution(
 ) -> tuple[dict[str, Any], dict[str, Any] | None]:
     current_record = _mapping(_read_json_object(_publication_eval_latest_path(study_root)))
     request_record = _mapping(request.get("ai_reviewer_record") or request.get("publication_eval_record") or request.get("record"))
-    lifecycle = _mapping(request.get("request_lifecycle"))
+    lifecycle = _mapping(request.get("record_requirements"))
     stale_record_handoff = stale_ai_reviewer_record_handoff(
         request=request,
         required_refs=ai_reviewer_request_refs.required_refs(request),

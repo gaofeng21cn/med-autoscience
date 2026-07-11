@@ -115,7 +115,7 @@ def _pending_ai_reviewer_recheck_consumes_current_write_routeback(
         return False
     if _text(request.get("request_owner")) not in {None, "ai_reviewer"}:
         return False
-    return _text(_mapping(request.get("request_lifecycle")).get("state")) in {"requested", "assigned"}
+    return _text(_mapping(request.get("record_requirements")).get("state")) in {"requested", "assigned"}
 
 
 def _read_json_object(path: Path) -> dict[str, Any] | None:

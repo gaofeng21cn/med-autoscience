@@ -7,12 +7,6 @@ import json
 from pathlib import Path
 from typing import Any
 
-from med_autoscience.controllers.domain_action_request_lifecycle import (
-    AI_REVIEWER_RECORD_STALE_AFTER_CURRENT_INPUTS,
-    AI_REVIEWER_RECORD_STALE_AFTER_CURRENT_MANUSCRIPT,
-    AI_REVIEWER_RECORD_STALE_AFTER_UNIT_HARMONIZED_RERUN,
-    project_ai_reviewer_request_lifecycle,
-)
 from med_autoscience.publication_eval_reviewer_os import (
     current_ai_reviewer_route_back_action,
     validate_ai_reviewer_operating_system_trace,
@@ -156,65 +150,14 @@ def project_stale_ai_reviewer_record_transition(
     source_refs: Iterable[str],
     completion_receipt_consumption: Mapping[str, Any],
 ) -> dict[str, Any] | None:
+    del publication_eval
     if study_root is None:
         return None
-    request_path = Path(study_root) / "artifacts" / "supervision" / "requests" / "ai_reviewer" / "latest.json"
-    request = _read_json_mapping(request_path)
-    lifecycle = _mapping(request.get("request_lifecycle"))
-    blocked_reason = _text(lifecycle.get("blocked_reason"))
-    if blocked_reason not in {
-        AI_REVIEWER_RECORD_STALE_AFTER_CURRENT_MANUSCRIPT,
-        AI_REVIEWER_RECORD_STALE_AFTER_CURRENT_INPUTS,
-        AI_REVIEWER_RECORD_STALE_AFTER_UNIT_HARMONIZED_RERUN,
-    }:
-        return None
-    projected_lifecycle = _mapping(
-        project_ai_reviewer_request_lifecycle(
-            study_root=study_root,
-            publication_eval_payload=publication_eval,
-        )
-    )
-    current_record_transition = _current_ai_reviewer_record_route_back_transition(
+    return _current_ai_reviewer_record_route_back_transition(
         study_id=study_id,
         study_root=study_root,
         publication_eval_relative_path=publication_eval_relative_path,
         source_refs=source_refs,
-        completion_receipt_consumption=completion_receipt_consumption,
-    )
-    if current_record_transition is not None:
-        return current_record_transition
-    if projected_lifecycle.get("assessment_written") is True and not _text(projected_lifecycle.get("blocked_reason")):
-        return None
-    request_kind = (
-        "produce_ai_reviewer_publication_eval_record_against_current_manuscript"
-        if blocked_reason == AI_REVIEWER_RECORD_STALE_AFTER_CURRENT_MANUSCRIPT
-        else "produce_ai_reviewer_publication_eval_record_against_current_inputs"
-        if blocked_reason == AI_REVIEWER_RECORD_STALE_AFTER_CURRENT_INPUTS
-        else "produce_ai_reviewer_publication_eval_record_against_current_analysis_harmonization"
-    )
-    stale_record_ref = _text(projected_lifecycle.get("stale_record_ref"))
-    request_refs = [
-        str(request_path),
-        *_text_list(projected_lifecycle.get("required_currentness_refs")),
-        *([stale_record_ref] if stale_record_ref else []),
-    ]
-    return _transition(
-        study_id=study_id,
-        decision_type="ai_reviewer_re_eval",
-        route_target="review",
-        next_work_unit=_work_unit(
-            request_kind,
-            "review",
-            "Produce a current AI reviewer publication-eval record before dispatching the publication-eval workflow.",
-        ),
-        controller_action="return_to_ai_reviewer_workflow",
-        owner="ai_reviewer",
-        typed_blocker=None,
-        guard_boundary=_guard_boundary(
-            required_owner_surface=str(publication_eval_relative_path),
-            opl_generic_runner_may_resume=True,
-        ),
-        source_refs=[*source_refs, *request_refs],
         completion_receipt_consumption=completion_receipt_consumption,
     )
 

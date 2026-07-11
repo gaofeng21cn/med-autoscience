@@ -5,7 +5,6 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
 
-from med_autoscience.controllers import domain_action_request_lifecycle
 from med_autoscience.study_task_intake import read_latest_task_intake, task_intake_is_reviewer_revision
 
 
@@ -17,17 +16,6 @@ def assessment(
     blocking_reasons: list[str],
     study_root: Path | None = None,
 ) -> dict[str, Any]:
-    request_lifecycle = _mapping(progress.get("ai_reviewer_request_lifecycle"))
-    if study_root is not None:
-        current_request_lifecycle = _mapping(
-            domain_action_request_lifecycle.project_ai_reviewer_request_lifecycle(
-                study_root=study_root,
-                publication_eval_payload=publication_eval,
-            )
-        )
-        if current_request_lifecycle:
-            request_lifecycle = current_request_lifecycle
-    request_state = _text(request_lifecycle.get("state"))
     provenance = _mapping(publication_eval.get("assessment_provenance"))
     owner = _text(provenance.get("owner"))
     if owner == "paper_authority_cutover":
@@ -36,53 +24,9 @@ def assessment(
             "owner": "ai_reviewer",
             "required": True,
             "missing": True,
-            "request_state": request_state or "requested",
-            "request_id": _text(request_lifecycle.get("request_id")),
-            "request_path": _text(_mapping(request_lifecycle.get("refs")).get("request_path")),
             "blocked_reason": "ai_reviewer_assessment_required",
             "cutover_receipt_ref": _text(publication_eval.get("cutover_receipt_ref")),
         }
-    if request_state == "assessment_written":
-        assessment_ref = _text(request_lifecycle.get("assessment_ref")) or _text(
-            request_lifecycle.get("publication_eval_record_ref")
-        )
-        assessment = {
-            "present": owner == "ai_reviewer",
-            "owner": owner or "ai_reviewer",
-            "required": True,
-            "missing": owner != "ai_reviewer",
-            "request_state": request_state,
-            "request_id": _text(request_lifecycle.get("request_id")),
-            "request_path": _text(_mapping(request_lifecycle.get("refs")).get("request_path")),
-            "assessment_ref": assessment_ref,
-        }
-        if record_ref := _text(request_lifecycle.get("publication_eval_record_ref")):
-            assessment["publication_eval_record_ref"] = record_ref
-        if consumed_refs := _string_items(request_lifecycle.get("consumed_currentness_refs")):
-            assessment["consumed_currentness_refs"] = consumed_refs
-        if owner_output_consumption := _mapping(request_lifecycle.get("owner_output_consumption")):
-            assessment["owner_output_consumption"] = owner_output_consumption
-        return assessment
-    if request_state in {"requested", "assigned"}:
-        request_owner = _text(request_lifecycle.get("request_owner")) or "ai_reviewer"
-        blocked_reason = _text(request_lifecycle.get("blocked_reason")) or "ai_reviewer_assessment_required"
-        assessment = {
-            "present": False,
-            "owner": request_owner,
-            "required": True,
-            "missing": True,
-            "request_state": request_state,
-            "request_id": _text(request_lifecycle.get("request_id")),
-            "request_path": _text(_mapping(request_lifecycle.get("refs")).get("request_path")),
-            "blocked_reason": blocked_reason,
-        }
-        if stale_record_ref := _text(request_lifecycle.get("stale_record_ref")):
-            assessment["stale_record_ref"] = stale_record_ref
-        if required_refs := _string_items(request_lifecycle.get("required_currentness_refs")):
-            assessment["required_currentness_refs"] = required_refs
-        if source_ref := _text(request_lifecycle.get("source_ref")):
-            assessment["source_ref"] = source_ref
-        return assessment
     reasons = set(blocking_reasons)
     required = bool(provenance.get("ai_reviewer_required")) or "publication_eval.ai_reviewer_required" in reasons
     present = owner == "ai_reviewer"

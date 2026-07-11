@@ -13,10 +13,12 @@ from med_autoscience.controllers import (
     paper_repair_execution_evidence,
     quality_repair_batch,
 )
-from med_autoscience.controllers.domain_action_request_lifecycle import (
+from med_autoscience.controllers.ai_reviewer_publication_eval.input_contract import (
     default_ai_reviewer_request_input_refs,
-    materialize_ai_reviewer_request,
-    stable_ai_reviewer_request_path,
+    ai_reviewer_request_path,
+)
+from med_autoscience.controllers.ai_reviewer_publication_eval.record_contracts import (
+    ai_reviewer_request_with_latest_record,
 )
 from med_autoscience.controllers.paper_repair_executor.authority_contract import (
     authority_boundary as _authority_boundary,
@@ -185,7 +187,7 @@ def dispatch_repair_work_unit(
         review_ledger_ref=str(_review_ledger_path(resolved_study_root)),
         gate_replay_target=_text(work_unit.get("gate_replay_target")) or "publication_eval/latest.json",
         gate_replay_refs=[str(gate_replay_ref)],
-        ai_reviewer_recheck_request_ref=str(stable_ai_reviewer_request_path(study_root=resolved_study_root)),
+        ai_reviewer_recheck_request_ref=None,
     )
     evidence_path = paper_repair_execution_evidence.write_repair_execution_evidence(
         study_root=resolved_study_root,
@@ -228,7 +230,7 @@ def dispatch_repair_work_unit(
         "repair_execution_evidence_ref": str(evidence_path),
         "canonical_package_loop": canonical_package_loop,
         "gate_replay_request_ref": str(gate_replay_ref),
-        "ai_reviewer_recheck_request_ref": str(stable_ai_reviewer_request_path(study_root=resolved_study_root)),
+        "ai_reviewer_recheck_request": ai_request,
         "authority_boundary": _authority_boundary(),
     }
 
@@ -830,10 +832,10 @@ def _write_ai_reviewer_recheck_request(
         },
         "required_output": {"path": str(study_root / "artifacts" / "publication_eval" / "latest.json")},
         "gate_replay_request_ref": str(gate_replay_ref),
-        "request_lifecycle": {"state": "requested", "assigned_to": "ai_reviewer"},
+        "record_requirements": {"state": "requested", "assigned_to": "ai_reviewer"},
         "authority_boundary": _authority_boundary(),
     }
-    return materialize_ai_reviewer_request(study_root=study_root, packet=packet)
+    return ai_reviewer_request_with_latest_record(study_root=study_root, packet=packet)
 
 
 def _owner_receipt(
@@ -866,9 +868,7 @@ def _owner_receipt(
         "canonical_artifact_delta_refs": changed_refs,
         "repair_execution_evidence_ref": str(evidence_path),
         "gate_replay_request_ref": str(gate_replay_ref) if gate_replay_ref is not None else None,
-        "ai_reviewer_recheck_request_ref": (
-            str(stable_ai_reviewer_request_path(study_root=study_root)) if ai_reviewer_request is not None else None
-        ),
+        "ai_reviewer_recheck_request": dict(ai_reviewer_request) if ai_reviewer_request is not None else None,
         "direct_current_package_write": False,
         "quality_authorized": False,
         "submission_authorized": False,

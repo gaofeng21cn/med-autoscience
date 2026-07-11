@@ -5,9 +5,14 @@ from collections.abc import Mapping
 from pathlib import Path
 from typing import Any
 
-from med_autoscience.controllers import domain_action_request_lifecycle
 from med_autoscience.controllers import domain_action_requests
 from med_autoscience.controllers import stage_knowledge_entry
+from med_autoscience.controllers.ai_reviewer_publication_eval.input_contract import (
+    default_ai_reviewer_request_input_refs,
+)
+from med_autoscience.controllers.ai_reviewer_publication_eval.record_contracts import (
+    ai_reviewer_request_with_latest_record,
+)
 
 
 def _text(value: object) -> str | None:
@@ -96,7 +101,7 @@ def materialize_request_packets(
                 },
                 "blockers": ["publication_eval_not_ai_reviewer_authority"],
             },
-            input_refs=domain_action_request_lifecycle.default_ai_reviewer_request_input_refs(
+            input_refs=default_ai_reviewer_request_input_refs(
                 study_root=study_root,
             ),
         )
@@ -106,7 +111,7 @@ def materialize_request_packets(
         if handoff_reason:
             packet["blockers"] = [handoff_reason]
         if handoff_reason == "analysis_harmonization_completed_ai_reviewer_review_required":
-            lifecycle = dict(_mapping(packet.get("request_lifecycle")))
+            lifecycle = dict(_mapping(packet.get("record_requirements")))
             lifecycle["blocked_reason"] = "ai_reviewer_record_stale_after_unit_harmonized_rerun"
             if required_refs := [
                 ref for ref in reviewer_action.get("required_currentness_refs") or [] if _text(ref)
@@ -114,9 +119,9 @@ def materialize_request_packets(
                 lifecycle["required_currentness_refs"] = required_refs
             if source_ref := _text(reviewer_action.get("source_ref")):
                 lifecycle["source_ref"] = source_ref
-            packet["request_lifecycle"] = lifecycle
+            packet["record_requirements"] = lifecycle
         if handoff_reason == "ai_reviewer_record_stale_after_current_manuscript":
-            lifecycle = dict(_mapping(packet.get("request_lifecycle")))
+            lifecycle = dict(_mapping(packet.get("record_requirements")))
             lifecycle["blocked_reason"] = "ai_reviewer_record_stale_after_current_manuscript"
             if stale_record_ref := _text(reviewer_action.get("stale_record_ref")):
                 lifecycle["stale_record_ref"] = stale_record_ref
@@ -126,9 +131,9 @@ def materialize_request_packets(
                 lifecycle["required_currentness_refs"] = required_refs
             if source_ref := _text(reviewer_action.get("source_ref")):
                 lifecycle["source_ref"] = source_ref
-            packet["request_lifecycle"] = lifecycle
+            packet["record_requirements"] = lifecycle
         if handoff_reason == "ai_reviewer_record_stale_after_current_inputs":
-            lifecycle = dict(_mapping(packet.get("request_lifecycle")))
+            lifecycle = dict(_mapping(packet.get("record_requirements")))
             lifecycle["blocked_reason"] = "ai_reviewer_record_stale_after_current_inputs"
             if stale_record_ref := _text(reviewer_action.get("stale_record_ref")):
                 lifecycle["stale_record_ref"] = stale_record_ref
@@ -138,14 +143,14 @@ def materialize_request_packets(
                 lifecycle["required_currentness_refs"] = required_refs
             if source_ref := _text(reviewer_action.get("source_ref")):
                 lifecycle["source_ref"] = source_ref
-            packet["request_lifecycle"] = lifecycle
+            packet["record_requirements"] = lifecycle
         if next_work_unit := _text(reviewer_action.get("next_work_unit")):
             packet["source_workflow_ref"] = {
                 **_mapping(packet.get("source_workflow_ref")),
                 "next_work_unit": next_work_unit,
                 "route_back_target": route_back_target,
             }
-        domain_action_request_lifecycle.materialize_ai_reviewer_request(
+        ai_reviewer_request_with_latest_record(
             study_root=study_root,
             packet=packet,
         )

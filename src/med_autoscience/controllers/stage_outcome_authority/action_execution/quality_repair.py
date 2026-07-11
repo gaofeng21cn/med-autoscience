@@ -247,7 +247,7 @@ def _progress_first_currentness_routeback(
         "next_action_type": "return_to_ai_reviewer_workflow",
         "next_required_actions": [
             next_work_unit,
-            "rematerialize_ai_reviewer_request",
+            "route_ai_reviewer_domain_packet_through_opl_transition",
             "return_to_ai_reviewer_workflow",
         ],
         "progress_first_routeback": {

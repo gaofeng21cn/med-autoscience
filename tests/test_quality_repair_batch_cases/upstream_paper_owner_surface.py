@@ -92,11 +92,10 @@ def test_quality_repair_batch_routes_to_producer_and_materializes_owner_delta(
         assert payload["controller_repair_receipts"][-1]["work_unit_id"] == (
             "analysis_claim_evidence_repair"
         )
-    request_path = study_root / "artifacts" / "supervision" / "requests" / "ai_reviewer" / "latest.json"
-    request = json.loads(request_path.read_text(encoding="utf-8"))
-    assert upstream["result"]["ai_reviewer_recheck_request_ref"] == str(request_path)
+    request = upstream["result"]["ai_reviewer_recheck_request"]
     assert request["request_owner"] == "ai_reviewer"
     assert request["source_surface"] == "quality_repair_batch"
+    assert request["record_requirements"]["state"] == "requested"
 
 
 def test_canonical_paper_owner_surface_rejects_untrusted_projection(tmp_path: Path) -> None:

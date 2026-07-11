@@ -2,8 +2,7 @@ from __future__ import annotations
 
 from typing import Any, Iterable, Mapping
 
-from med_autoscience.controllers.domain_action_request_lifecycle import (
-    AI_REVIEWER_REQUEST_STATES,
+from med_autoscience.controllers.ai_reviewer_publication_eval.input_contract import (
     AI_REVIEWER_REQUIRED_INPUT_SURFACES,
 )
 from med_autoscience.policies import DEFAULT_PUBLICATION_CRITIQUE_POLICY
@@ -44,6 +43,7 @@ _AI_REVIEWER_REQUIRED_REVIEWER_OS_FIELDS = (
     "route_back_decision",
     "future_facing_limitations_plan",
 )
+AI_REVIEWER_REQUEST_STATES = ("requested", "assigned", "assessment_written", "blocked", "stale")
 _SPECIFICITY_TARGET_TYPES = ("claim", "figure", "table", "metric", "source_path")
 _SPECIFICITY_NEXT_CONTROLLER_WRITE = {
     "surface": "publication_eval/latest.json",
@@ -129,16 +129,16 @@ def _ai_reviewer_input_contract(input_refs: Mapping[str, Any] | None) -> dict[st
     }
 
 
-def _ai_reviewer_request_lifecycle(
+def _ai_reviewer_record_requirements(
     *,
     state: str,
     assigned_to: str | None,
     assessment_ref: str | None,
     blocked_reason: str | None,
 ) -> dict[str, Any]:
-    resolved_state = _required_text("request_lifecycle.state", state)
+    resolved_state = _required_text("record_requirements.state", state)
     if resolved_state not in AI_REVIEWER_REQUEST_STATES:
-        raise ValueError(f"request_lifecycle.state must be one of: {', '.join(AI_REVIEWER_REQUEST_STATES)}")
+        raise ValueError(f"record_requirements.state must be one of: {', '.join(AI_REVIEWER_REQUEST_STATES)}")
     return {
         "state": resolved_state,
         "allowed_states": list(AI_REVIEWER_REQUEST_STATES),
@@ -283,7 +283,7 @@ def build_ai_reviewer_publication_eval_request(
                 "Request an AI reviewer-owned publication_eval/latest.json; missing reviewer provenance "
                 "is request-only and cannot authorize quality closure."
             ),
-            "request_lifecycle": _ai_reviewer_request_lifecycle(
+            "record_requirements": _ai_reviewer_record_requirements(
                 state=lifecycle_state,
                 assigned_to=_text(assigned_to),
                 assessment_ref=_text(assessment_ref),

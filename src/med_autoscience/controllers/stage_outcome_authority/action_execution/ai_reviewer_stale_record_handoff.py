@@ -3,7 +3,7 @@ from __future__ import annotations
 from collections.abc import Mapping
 from typing import Any
 
-from ...domain_action_request_lifecycle import (
+from ...ai_reviewer_publication_eval.record_contracts import (
     AI_REVIEWER_RECORD_STALE_AFTER_CURRENT_INPUTS,
     AI_REVIEWER_RECORD_STALE_AFTER_CURRENT_MANUSCRIPT,
     AI_REVIEWER_RECORD_STALE_AFTER_UNIT_HARMONIZED_RERUN,
@@ -57,7 +57,7 @@ def stale_ai_reviewer_record_handoff(
             ),
             "next_required_actions": [
                 record_request_kind,
-                "rematerialize_ai_reviewer_request",
+                "route_ai_reviewer_domain_packet_through_opl_transition",
                 "return_to_ai_reviewer_workflow",
             ],
         },

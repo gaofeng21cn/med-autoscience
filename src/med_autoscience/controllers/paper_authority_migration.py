@@ -8,8 +8,6 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
 
-from med_autoscience.controllers import domain_action_request_lifecycle
-from med_autoscience.controllers import domain_action_requests
 from med_autoscience.controllers.paper_mission_owner_surface import study_identity
 from med_autoscience.profiles import WorkspaceProfile, load_profile
 
@@ -387,7 +385,6 @@ def _study_plan(*, profile: WorkspaceProfile, study_id: str, recorded_at: str) -
         if receipt_status == "new_mas_authority_established"
         else _active_surface_items(study_root=study_root, receipt_status=receipt_status)
     )
-    request_path = domain_action_request_lifecycle.stable_ai_reviewer_request_path(study_root=study_root)
     return {
         "study_id": study_id,
         "study_root": str(study_root),
@@ -398,10 +395,6 @@ def _study_plan(*, profile: WorkspaceProfile, study_id: str, recorded_at: str) -
             "path": str(paper_authority_cutover_latest_path(study_root=study_root)),
             "exists": bool(receipt),
             "status": _text((receipt or {}).get("status")),
-        },
-        "ai_reviewer_request": {
-            "path": str(request_path),
-            "exists": request_path.exists(),
         },
         "next_required_actions": (
             ["return_to_ai_reviewer_workflow", "publication_gate", "sync_study_delivery"]
@@ -577,7 +570,6 @@ def _apply_study_cutover(*, profile: WorkspaceProfile, study_plan: Mapping[str, 
         archived=archived,
     )
     _write_cutover_receipt(study_root=study_root, receipt=receipt, recorded_at=recorded_at)
-    _materialize_ai_reviewer_request(study_root=study_root, receipt=receipt)
 
 
 def _receipt_payload(
@@ -627,41 +619,6 @@ def _write_cutover_receipt(*, study_root: Path, receipt: Mapping[str, Any], reco
     }
     history_path.write_text(_json_dumps(payload), encoding="utf-8")
     latest_path.write_text(_json_dumps(payload), encoding="utf-8")
-
-
-def _materialize_ai_reviewer_request(*, study_root: Path, receipt: Mapping[str, Any]) -> None:
-    input_refs = domain_action_request_lifecycle.default_ai_reviewer_request_input_refs(study_root=study_root)
-    input_refs.update(paper_body_ref_payloads(study_root=study_root))
-    input_refs["publication_gate_projection"] = {
-        "surface": "publication_gate_projection",
-        "path": str(study_root / MIGRATION_ROOT_RELPATH / "latest.json"),
-        "relative_path": (MIGRATION_ROOT_RELPATH / "latest.json").as_posix(),
-        "required": True,
-        "present": True,
-        "valid": True,
-    }
-    packet = domain_action_requests.build_ai_reviewer_publication_eval_request(
-        study_id=str(receipt["study_id"]),
-        quest_id=None,
-        source_surface="paper_authority_clean_migration",
-        workflow_state={
-            "quality_authority": {
-                "owner": "paper_authority_cutover",
-                "state": "awaiting_new_mas_authority",
-            },
-            "route_back": {"required": True, "target": "ai_reviewer"},
-            "blockers": ["paper_authority_clean_migration_required"],
-        },
-        input_refs=input_refs,
-    )
-    packet["paper_authority_cutover_ref"] = str(study_root / MIGRATION_ROOT_RELPATH / "latest.json")
-    packet["stage_native_body_authority_root"] = str(stage_native_body_authority_root(study_root=study_root))
-    packet["target_assessment_owner"] = "ai_reviewer"
-    packet["may_authorize_quality_gate"] = False
-    domain_action_request_lifecycle.materialize_ai_reviewer_request(
-        study_root=study_root,
-        packet=packet,
-    )
 
 
 def _apply_noncanonical_residue_cutover(

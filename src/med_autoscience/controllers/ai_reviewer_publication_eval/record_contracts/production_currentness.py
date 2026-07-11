@@ -89,69 +89,7 @@ def effective_required_currentness_refs(
             record_currentness_input_refs=record_currentness_input_refs,
             analysis_harmonization_currentness_refs=analysis_harmonization_currentness_refs,
         )
-    return string_items(mapping(request_packet.get("request_lifecycle")).get("required_currentness_refs"))
-
-
-def owner_output_consumption_ledger(
-    *,
-    study_root: Path,
-    publication_eval_payload: Mapping[str, Any] | None,
-    request_packet: Mapping[str, Any],
-    output_written: bool,
-    record_blocker_reason: Callable[..., str | None],
-    record_production_blocker_reason: Callable[..., str | None],
-    text: TextFn,
-    mapping: MappingFn,
-    required_inputs: RequiredInputsFn,
-    resolved_text_ref: ResolvedTextRefFn,
-    required_currentness_refs: Callable[..., list[str]],
-    record_currentness_input_refs: CurrentnessInputRefsFn,
-    analysis_harmonization_currentness_refs: AnalysisCurrentnessRefsFn,
-    stale_after_current_manuscript: str,
-    stale_after_current_inputs: str,
-    stale_after_unit_harmonized_rerun: str,
-) -> dict[str, Any] | None:
-    if not output_written:
-        return None
-    publication_eval = mapping(publication_eval_payload)
-    eval_id = text(publication_eval.get("eval_id"))
-    record_ref = text(request_packet.get("publication_eval_record_ref")) or text(
-        publication_eval.get("_projection_source_ref")
-    )
-    if eval_id is None or record_ref is None:
-        return None
-    blocked_reason = record_blocker_reason(request_packet) or record_production_blocker_reason(request_packet)
-    required_refs: list[str] = []
-    if blocked_reason is not None:
-        required_refs = request_currentness_refs_for_blocked_reason(
-            study_root=study_root,
-            request_packet=request_packet,
-            blocked_reason=blocked_reason,
-            stale_after_current_manuscript=stale_after_current_manuscript,
-            stale_after_current_inputs=stale_after_current_inputs,
-            stale_after_unit_harmonized_rerun=stale_after_unit_harmonized_rerun,
-            required_inputs=required_inputs,
-            resolved_text_ref=resolved_text_ref,
-            required_currentness_refs=required_currentness_refs,
-            record_currentness_input_refs=record_currentness_input_refs,
-            analysis_harmonization_currentness_refs=analysis_harmonization_currentness_refs,
-        )
-    return {
-        "status": "consumed",
-        "receipt_kind": "ai_reviewer_publication_eval",
-        "record_ref": str(resolve_path(study_root=study_root, value=record_ref)),
-        "eval_id": eval_id,
-        "consumption_mode": "refs_only_current_ai_reviewer_record",
-        "required_currentness_refs": required_refs,
-        "next_action": "honor_ai_reviewer_publication_eval_authority",
-    }
-
-
-def resolve_path(*, study_root: Path, value: str) -> Path:
-    path = Path(value).expanduser()
-    if not path.is_absolute():
-        path = study_root / path
-    return path.resolve()
+    return string_items(mapping(request_packet.get("record_requirements")).get("required_currentness_refs"))
 
 
 def request_input_ref(
@@ -190,56 +128,6 @@ def request_packet_record_production_blocker_reason(
         if reason:
             return reason
     return None
-
-
-def publication_eval_matches_attached_request_record(
-    *,
-    publication_eval_payload: Mapping[str, Any],
-    request_packet: Mapping[str, Any],
-    text: TextFn,
-    mapping: MappingFn,
-) -> bool:
-    attached_record = mapping(
-        request_packet.get("ai_reviewer_record")
-        or request_packet.get("publication_eval_record")
-        or request_packet.get("record")
-    )
-    if not attached_record:
-        return False
-    record_ref = text(request_packet.get("publication_eval_record_ref"))
-    if not record_ref:
-        return False
-    projection_ref = text(publication_eval_payload.get("_projection_source_ref"))
-    if projection_ref is not None and projection_ref == record_ref:
-        return True
-    attached_eval_id = text(attached_record.get("eval_id"))
-    return attached_eval_id is not None and attached_eval_id == text(publication_eval_payload.get("eval_id"))
-
-
-def currentness_checks_cover_live_ref(
-    *,
-    study_root: Path,
-    currentness_checks: Mapping[str, Any],
-    required_ref: str,
-    sha256_file: Callable[[Path], str | None],
-    text: TextFn,
-    resolved_text_ref: ResolvedTextRefFn,
-) -> bool:
-    ref_path = Path(required_ref).expanduser().resolve()
-    live_digest = sha256_file(ref_path)
-    if live_digest is None:
-        return False
-    return any(
-        currentness_check_matches_live_ref(
-            study_root=study_root,
-            check=check,
-            required_ref=str(ref_path),
-            live_digest=live_digest,
-            text=text,
-            resolved_text_ref=resolved_text_ref,
-        )
-        for check in currentness_check_mappings(currentness_checks)
-    )
 
 
 def currentness_check_mappings(value: object, *, depth: int = 0) -> list[Mapping[str, Any]]:
@@ -286,9 +174,6 @@ __all__ = [
     "effective_required_currentness_refs",
     "currentness_check_mappings",
     "currentness_check_matches_live_ref",
-    "currentness_checks_cover_live_ref",
-    "owner_output_consumption_ledger",
-    "publication_eval_matches_attached_request_record",
     "request_currentness_refs_for_blocked_reason",
     "request_packet_record_production_blocker_reason",
 ]

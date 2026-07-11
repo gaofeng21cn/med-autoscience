@@ -717,7 +717,7 @@ def _ai_reviewer_evidence(publication_eval: Mapping[str, Any], ai_reviewer_reque
         "owner": _text(provenance.get("owner")) or None,
         "eval_id": _text(publication_eval.get("eval_id")) or None,
         "request_id": _text(ai_reviewer_request.get("request_id")) or None,
-        "request_state": _text(_mapping(ai_reviewer_request.get("request_lifecycle")).get("state")) or None,
+        "request_state": _text(_mapping(ai_reviewer_request.get("record_requirements")).get("state")) or None,
     }
 
 

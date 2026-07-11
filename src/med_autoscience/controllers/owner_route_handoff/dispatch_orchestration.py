@@ -25,7 +25,7 @@ from ..opl_execution_boundary import (
 from ..ai_reviewer_story_provenance_guard import (
     AI_REVIEWER_RECORD_MANUSCRIPT_STORY_PROVENANCE_LEAKAGE_BLOCKED_REASON,
 )
-from ..domain_action_request_lifecycle import (
+from ..ai_reviewer_publication_eval.record_contracts import (
     AI_REVIEWER_RECORD_STALE_AFTER_CURRENT_INPUTS,
     AI_REVIEWER_RECORD_STALE_AFTER_CURRENT_MANUSCRIPT,
     AI_REVIEWER_RECORD_STALE_AFTER_UNIT_HARMONIZED_RERUN,

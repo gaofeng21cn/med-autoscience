@@ -100,10 +100,6 @@ def test_compact_pi_action_projection_preserves_projection_only_boundary() -> No
         {
             "study_id": "002-revision",
             "next_system_action": "return_to_ai_reviewer_workflow before submission package rebuild",
-            "ai_reviewer_request_lifecycle": {
-                "request_kind": "return_to_ai_reviewer_workflow",
-                "summary": "AI reviewer recheck required",
-            },
         }
     )
 

@@ -52,7 +52,7 @@ def action_after_consumed_receipt(
 def owner_output_consumption_from_completion_receipt(
     *,
     status: Mapping[str, Any],
-    request_lifecycle: Mapping[str, Any] | None,
+    record_requirements: Mapping[str, Any] | None,
 ) -> dict[str, Any] | None:
     transition = _mapping(status.get("domain_transition"))
     receipt = _mapping(transition.get("completion_receipt_consumption"))
@@ -71,7 +71,7 @@ def owner_output_consumption_from_completion_receipt(
         "eval_id": eval_id,
         "consumption_mode": "refs_only_current_ai_reviewer_record",
     }
-    required_refs = _string_items(_mapping(request_lifecycle).get("required_currentness_refs"))
+    required_refs = _string_items(_mapping(record_requirements).get("required_currentness_refs"))
     if required_refs:
         payload["required_currentness_refs"] = required_refs
     payload["next_action"] = _text(receipt.get("next_action")) or "honor_ai_reviewer_publication_eval_authority"
@@ -85,22 +85,14 @@ def bind_ai_reviewer_owner_output_consumption(
     study_root: Path,
     publication_eval_payload: Mapping[str, Any],
 ) -> dict[str, Any]:
-    request_lifecycle = ai_reviewer_owner_output_consumption.current_request_lifecycle(
-        study_root=study_root,
-        publication_eval_payload=publication_eval_payload,
+    del study_root, publication_eval_payload
+    payload = dict(action)
+    owner_output_consumption = owner_output_consumption_from_completion_receipt(
+        status=status,
+        record_requirements=None,
     )
-    payload = ai_reviewer_owner_output_consumption.with_owner_output_consumption(
-        payload=action,
-        publication_eval_payload=publication_eval_payload,
-        lifecycle=request_lifecycle,
-    )
-    if "owner_output_consumption" not in payload:
-        owner_output_consumption = owner_output_consumption_from_completion_receipt(
-            status=status,
-            request_lifecycle=request_lifecycle,
-        )
-        if owner_output_consumption is not None:
-            payload["owner_output_consumption"] = owner_output_consumption
+    if owner_output_consumption is not None:
+        payload["owner_output_consumption"] = owner_output_consumption
     return payload
 
 

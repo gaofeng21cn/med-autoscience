@@ -359,7 +359,7 @@ def _ai_reviewer_clarity(
     provenance = _mapping(publication_eval.get("assessment_provenance"))
     owner = _text(provenance.get("owner"))
     ai_reviewer_required = provenance.get("ai_reviewer_required")
-    request_state = _text(_mapping(ai_reviewer_request.get("request_lifecycle")).get("state"))
+    request_state = _text(_mapping(ai_reviewer_request.get("record_requirements")).get("state"))
     request_owner = _text(ai_reviewer_request.get("request_owner") or ai_reviewer_request.get("assigned_to"))
     if owner == "ai_reviewer" and ai_reviewer_required is False:
         return {
@@ -373,7 +373,7 @@ def _ai_reviewer_clarity(
     if request_state or request_owner:
         return {
             "status": "clear",
-            "source": "ai_reviewer_request_lifecycle",
+            "source": "ai_reviewer_domain_input_contract",
             "assessment_owner": owner,
             "ai_reviewer_required": ai_reviewer_required,
             "request_state": request_state,
@@ -382,7 +382,7 @@ def _ai_reviewer_clarity(
     blocker = _blocker(
         kind="ai_reviewer_handoff",
         reason="ai_reviewer_handoff_unclear",
-        next_action="materialize_ai_reviewer_request_or_eval",
+        next_action="route_ai_reviewer_domain_packet_through_opl_transition",
         profile_path=profile_path,
         study_id=study_id,
     )

@@ -5,7 +5,7 @@ from collections.abc import Mapping
 from pathlib import Path
 from typing import Any
 
-from med_autoscience.controllers.domain_action_request_lifecycle import stable_ai_reviewer_request_path
+from med_autoscience.controllers.ai_reviewer_publication_eval.input_contract import ai_reviewer_request_path
 from med_autoscience.profiles import WorkspaceProfile
 
 from .action_execution.ai_reviewer_record_production import (
@@ -29,7 +29,7 @@ def canonical_record_only_handoff_dispatch(
     )
     if not production_request:
         return dict(dispatch)
-    request_path = stable_ai_reviewer_request_path(study_root=profile.studies_root / study_id)
+    request_path = ai_reviewer_request_path(study_root=profile.studies_root / study_id)
     request = _read_json_object(request_path) or {
         "study_id": study_id,
         "quest_id": _text(dispatch.get("quest_id")) or study_id,

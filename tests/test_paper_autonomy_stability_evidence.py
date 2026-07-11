@@ -207,7 +207,7 @@ def test_paper_autonomy_stability_evidence_projects_progress_degradation_read_mo
     handoff = study["publication_handoff_clarity"]
     assert handoff["status"] == "clear"
     assert handoff["publication_gate"]["current_required_action"] == "continue_write_stage"
-    assert handoff["ai_reviewer"]["source"] == "ai_reviewer_request_lifecycle"
+    assert handoff["ai_reviewer"]["source"] == "ai_reviewer_domain_input_contract"
     assert handoff["writer_handoff"]["writer_state"] == "queued"
 
 

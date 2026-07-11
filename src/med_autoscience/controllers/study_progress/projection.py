@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from med_autoscience.controllers import ai_first_observability, ai_reviewer_publication_eval_records
-from med_autoscience.controllers import artifact_runtime_proof, domain_action_request_lifecycle
+from med_autoscience.controllers import artifact_runtime_proof
 from med_autoscience.controllers import medical_paper_ops_health, medical_paper_readiness
 from med_autoscience.controllers import open_auto_research_projection, opl_runtime_refs
 from med_autoscience.controllers import outer_supervision_slo, paper_authority_migration, paper_progress_stall
@@ -761,10 +761,6 @@ def build_study_progress_projection(
         study_root=resolved_study_root,
         active_run_id=current_active_run_id,
     )
-    ai_reviewer_request_lifecycle = domain_action_request_lifecycle.project_ai_reviewer_request_lifecycle(
-        study_root=resolved_study_root,
-        publication_eval_payload=publication_eval_payload,
-    )
     ai_first_operations_dashboard = ai_first_observability.build_ai_first_operations_dashboard_summary(
         drift_audit={"status": "not_run", "summary": {"fail_count": 0}},
         progress_snapshot={
@@ -807,15 +803,6 @@ def build_study_progress_projection(
         ai_first_observability_snapshots=ai_first_observability_snapshots,
         opl_current_control_state_handoff=opl_current_control_state_handoff,
         runtime_medical_publication_surface=runtime_medical_publication_surface,
-    )
-    refs["ai_reviewer_request_lifecycle_path"] = (
-        str(
-            domain_action_request_lifecycle.stable_ai_reviewer_request_path(
-                study_root=resolved_study_root,
-            )
-        )
-        if ai_reviewer_request_lifecycle is not None
-        else None
     )
     payload = assemble_study_progress_payload(
         generated_at=generated_at,
@@ -869,7 +856,6 @@ def build_study_progress_projection(
         delivery_inspection=delivery_inspection,
         research_runtime_control_projection=research_runtime_control_projection,
         open_auto_research_state=open_auto_research_state,
-        ai_reviewer_request_lifecycle=ai_reviewer_request_lifecycle,
         opl_current_control_state_handoff=opl_current_control_state_handoff,
         runtime_medical_publication_surface=runtime_medical_publication_surface,
         gate_specificity_request=gate_specificity_request,

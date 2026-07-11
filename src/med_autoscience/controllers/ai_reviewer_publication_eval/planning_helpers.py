@@ -7,8 +7,8 @@ from typing import Any, Mapping
 from med_autoscience.medical_prose_review import stable_medical_prose_review_path
 from med_autoscience.publication_eval_record import PublicationEvalRecord
 
-from ..domain_action_request_lifecycle import stable_ai_reviewer_request_path
-from ..domain_action_request_lifecycle.ai_reviewer_input_contract import (
+from .input_contract import ai_reviewer_request_path
+from .input_contract import (
     input_contract_with_normalized_refs,
 )
 from ..stage_outcome_authority.action_execution import ai_reviewer_request_refs
@@ -79,7 +79,7 @@ def _payload_target_current_metadata(
     required_refs: Mapping[str, str | None],
     required_currentness_refs: list[str],
 ) -> dict[str, Any]:
-    lifecycle = _mapping(request.get("request_lifecycle"))
+    lifecycle = _mapping(request.get("record_requirements"))
     stale_record_ref = _optional_text(lifecycle.get("stale_record_ref")) or _optional_text(
         request.get("publication_eval_record_ref")
     )
@@ -292,7 +292,7 @@ def _refs_from_record_and_request(
     study_root: Path,
     record_payload: Mapping[str, Any],
 ) -> tuple[dict[str, str | None], dict[str, str | None]]:
-    request_path = stable_ai_reviewer_request_path(study_root=study_root)
+    request_path = ai_reviewer_request_path(study_root=study_root)
     request = _request_with_normalized_input_refs(
         study_root=study_root,
         request=_read_json_object(request_path) if request_path.exists() else {},
@@ -415,7 +415,7 @@ def _recovery_obligation_identity(lane: Mapping[str, Any]) -> dict[str, str | No
 
 
 def _record_request_kind(request: Mapping[str, Any]) -> str | None:
-    lifecycle = _mapping(request.get("request_lifecycle"))
+    lifecycle = _mapping(request.get("record_requirements"))
     return (
         _optional_text(request.get("request_kind"))
         or _optional_text(lifecycle.get("work_unit_id"))
@@ -490,8 +490,8 @@ def _payload_currentness_guard_result(
         if expected_ref not in observed_currentness_refs:
             missing_observed.append(f"required_currentness_refs:{expected_ref}")
 
-    request_lifecycle = _mapping(request.get("request_lifecycle"))
-    expected_stale_record_ref = _optional_text(request_lifecycle.get("stale_record_ref")) or _optional_text(
+    record_requirements = _mapping(request.get("record_requirements"))
+    expected_stale_record_ref = _optional_text(record_requirements.get("stale_record_ref")) or _optional_text(
         request.get("publication_eval_record_ref")
     )
     observed_stale_record_ref = _optional_text(record.get("stale_record_ref"))

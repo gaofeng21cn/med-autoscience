@@ -4,7 +4,9 @@ from collections.abc import Mapping
 from typing import Any
 
 from med_autoscience.controllers.owner_callable_action_policy import request_output_surface_for_action_type
-from med_autoscience.controllers import domain_action_request_lifecycle
+from med_autoscience.controllers.ai_reviewer_publication_eval.record_contracts import (
+    AI_REVIEWER_RECORD_PRODUCTION_BLOCKED_REASONS_BY_WORK_UNIT,
+)
 from med_autoscience.controllers import study_domain_transition_guard as domain_transition_guard
 from med_autoscience.controllers.gate_clearing_batch_work_units import PUBLICATION_GATE_REPLAY_WORK_UNIT_IDS
 from med_autoscience.controllers.story_surface_work_units import (
@@ -221,7 +223,7 @@ def _is_ai_reviewer_record_production_route(*, next_work_unit: Mapping[str, Any]
 
 def _ai_reviewer_record_production_reason(work_unit_id: str | None) -> str:
     return (
-        domain_action_request_lifecycle.AI_REVIEWER_RECORD_PRODUCTION_BLOCKED_REASONS_BY_WORK_UNIT.get(
+        AI_REVIEWER_RECORD_PRODUCTION_BLOCKED_REASONS_BY_WORK_UNIT.get(
             work_unit_id or ""
         )
         or "domain_transition_ai_reviewer_re_eval"

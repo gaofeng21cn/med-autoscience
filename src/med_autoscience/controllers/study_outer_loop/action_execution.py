@@ -7,7 +7,12 @@ from typing import Callable
 from med_autoscience.profiles import WorkspaceProfile
 from med_autoscience.study_decision_record import StudyDecisionActionType, StudyDecisionControllerAction
 from med_autoscience.controllers import domain_action_requests
-from med_autoscience.controllers import domain_action_request_lifecycle
+from med_autoscience.controllers.ai_reviewer_publication_eval.input_contract import (
+    default_ai_reviewer_request_input_refs,
+)
+from med_autoscience.controllers.ai_reviewer_publication_eval.record_contracts import (
+    ai_reviewer_request_with_latest_record,
+)
 
 
 RuntimeExecutionPayload = Callable[..., dict[str, Any]]
@@ -99,7 +104,7 @@ def execute_controller_action(
             "action": StudyDecisionActionType.REQUEST_GATE_SPECIFICITY.value,
         }
     elif action.action_type is StudyDecisionActionType.RETURN_TO_AI_REVIEWER_WORKFLOW:
-        input_refs = domain_action_request_lifecycle.default_ai_reviewer_request_input_refs(
+        input_refs = default_ai_reviewer_request_input_refs(
             study_root=study_root,
         )
         packet = domain_action_requests.build_ai_reviewer_publication_eval_request(
@@ -119,15 +124,15 @@ def execute_controller_action(
             },
             input_refs=input_refs,
         )
-        materialized = domain_action_request_lifecycle.materialize_ai_reviewer_request(
+        request_packet = ai_reviewer_request_with_latest_record(
             study_root=study_root,
             packet=packet,
         )
         result = {
             "ok": True,
-            "status": "recorded",
+            "status": "handoff_required",
             "action": StudyDecisionActionType.RETURN_TO_AI_REVIEWER_WORKFLOW.value,
-            "request_path": materialized.get("path"),
+            "request_packet": request_packet,
             "paper_package_mutation_allowed": False,
             "quality_gate_relaxation_allowed": False,
             "manual_study_patch_allowed": False,

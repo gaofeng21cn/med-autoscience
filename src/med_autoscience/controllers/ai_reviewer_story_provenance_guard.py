@@ -8,7 +8,7 @@ AI_REVIEWER_RECORD_MANUSCRIPT_STORY_PROVENANCE_LEAKAGE_BLOCKED_REASON = (
 )
 AI_REVIEWER_RECORD_STORY_LEAKAGE_NEXT_REQUIRED_ACTIONS = (
     "produce_ai_reviewer_publication_eval_record_against_current_medical_prose_style_v3",
-    "rematerialize_ai_reviewer_request",
+    "route_ai_reviewer_domain_packet_through_opl_transition",
     "return_to_ai_reviewer_workflow",
 )
 MANUSCRIPT_STORY_SENSITIVE_DIMENSIONS = frozenset(

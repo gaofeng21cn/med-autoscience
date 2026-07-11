@@ -342,50 +342,6 @@ def test_gate_recheck_only_readiness_preempts_stale_write_routeback(tmp_path: Pa
     assert transition["next_work_unit"]["unit_id"] == "publication_gate_replay"
 
 
-def test_stale_current_manuscript_ai_reviewer_request_preempts_old_write_routeback(
-    tmp_path: Path,
-) -> None:
-    study_root = tmp_path / "study"
-    publication_eval = _current_ai_reviewer_route_back_eval(study_root)
-    manuscript_path = study_root / "paper" / "draft.md"
-    stale_record_path = _ai_reviewer_response_path(
-        study_root,
-        "20260521T213722Z_publication_eval_record.json",
-    )
-    _write_publication_eval(study_root, publication_eval)
-    _write_json(
-        study_root / "artifacts" / "supervision" / "requests" / "ai_reviewer" / "latest.json",
-        {
-            "surface": "domain_action_request",
-            "request_kind": "return_to_ai_reviewer_workflow",
-            "request_owner": "ai_reviewer",
-            "request_lifecycle": {
-                "state": "requested",
-                "blocked_reason": "ai_reviewer_record_stale_after_current_manuscript",
-                "stale_record_ref": str(stale_record_path),
-                "required_currentness_refs": [str(manuscript_path)],
-            },
-        },
-    )
-
-    transition = _project_transition(study_root)
-
-    assert transition["decision_type"] == "ai_reviewer_re_eval"
-    assert transition["route_target"] == "review"
-    assert transition["owner"] == "ai_reviewer"
-    assert transition["controller_action"] == "return_to_ai_reviewer_workflow"
-    assert transition["next_work_unit"]["unit_id"] == (
-        "produce_ai_reviewer_publication_eval_record_against_current_manuscript"
-    )
-    assert transition["typed_blocker"] is None
-    assert transition["guard_boundary"]["opl_generic_runner_may_resume"] is True
-    _assert_ai_reviewer_next_action(
-        transition,
-        work_unit_id="produce_ai_reviewer_publication_eval_record_against_current_manuscript",
-    )
-    assert str(stale_record_path) in transition["source_refs"]
-
-
 def test_current_ai_reviewer_record_consumes_stale_input_request_before_write_routeback(
     tmp_path: Path,
 ) -> None:
@@ -782,7 +738,7 @@ def test_current_ai_reviewer_record_transition_refs_are_json_serializable(tmp_pa
     assert all(isinstance(ref, str) for ref in transition["source_refs"])
     expected_consumption = {
         "status": "consumed",
-        "receipt_kind": "ai_reviewer_publication_eval",
+        "receipt_kind": "ai_reviewer_publication_eval_record",
         "receipt_ref": str(current_record_path.resolve()),
         "eval_id": current_record["eval_id"],
         "reviewer_trace_ref": f"{current_record_path.resolve()}#reviewer_operating_system",

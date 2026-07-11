@@ -9,10 +9,10 @@ from typing import Any, Mapping
 from med_autoscience.controllers.ai_reviewer_record_contract import (
     ai_reviewer_record_has_valid_evaluation_scope,
 )
-from med_autoscience.controllers.domain_action_request_lifecycle.ai_reviewer_input_contract import (
+from ..input_contract import (
     AI_REVIEWER_MANUSCRIPT_REF_CANDIDATES,
 )
-from med_autoscience.controllers.domain_action_request_lifecycle.ai_reviewer_record_production_consumption import (
+from .production_currentness import (
     currentness_check_mappings,
 )
 from med_autoscience.publication_eval_reviewer_os import (

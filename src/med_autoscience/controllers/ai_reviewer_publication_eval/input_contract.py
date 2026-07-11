@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from collections.abc import Mapping
+import json
 from pathlib import Path
 from typing import Any
 
@@ -25,6 +26,7 @@ AI_REVIEWER_MEDICAL_PROSE_REVIEW_REF_CANDIDATES = (
     Path("paper/medical_prose_review.json"),
     Path("paper/review/medical_prose_review.json"),
 )
+AI_REVIEWER_REQUEST_RELATIVE_PATH = Path("artifacts/supervision/requests/ai_reviewer/latest.json")
 _STAGE_NATIVE_BODY_ROOT_RELPATH = (
     Path("artifacts")
     / "stage_outputs"
@@ -32,6 +34,20 @@ _STAGE_NATIVE_BODY_ROOT_RELPATH = (
     / "paper_authority_cutover"
     / "current_body"
 )
+
+
+def ai_reviewer_request_path(*, study_root: str | Path) -> Path:
+    return Path(study_root).expanduser().resolve() / AI_REVIEWER_REQUEST_RELATIVE_PATH
+
+
+def read_ai_reviewer_request(*, study_root: str | Path) -> dict[str, Any] | None:
+    try:
+        payload = json.loads(ai_reviewer_request_path(study_root=study_root).read_text(encoding="utf-8"))
+    except (OSError, json.JSONDecodeError):
+        return None
+    if not isinstance(payload, dict) or str(payload.get("surface_kind") or "").strip() == "legacy_control_surface_tombstone":
+        return None
+    return payload
 
 
 def default_ai_reviewer_request_input_refs(*, study_root: str | Path) -> dict[str, Any]:
@@ -302,11 +318,14 @@ def _normalize_medical_prose_review_ref(
 
 __all__ = [
     "AI_REVIEWER_MANUSCRIPT_REF_CANDIDATES",
+    "AI_REVIEWER_REQUEST_RELATIVE_PATH",
     "AI_REVIEWER_REQUIRED_INPUT_SURFACES",
+    "ai_reviewer_request_path",
     "default_ai_reviewer_request_input_refs",
     "input_blockers",
     "input_contract_with_normalized_refs",
     "normalized_required_inputs",
     "packet_with_normalized_input_contract",
+    "read_ai_reviewer_request",
     "required_inputs",
 ]
