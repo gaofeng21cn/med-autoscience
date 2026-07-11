@@ -166,6 +166,224 @@
             "role": "write_scope_boundary"
           }
         ]
+      },
+      "stage_contract_extension": {
+        "cohort_query_refs": [
+          {
+            "ref": "/product_entry_manifest/family_stage_control_plane_descriptor/route_contract_snapshot",
+            "ref_kind": "json_pointer",
+            "role": "auditable_stage_cohort_query"
+          }
+        ],
+        "dashboard_metric_refs": [
+          {
+            "ref": "/product_entry_manifest/family_stage_control_plane/stages/direction_and_route_selection/freshness",
+            "ref_kind": "json_pointer",
+            "role": "operator_stage_freshness_metric"
+          }
+        ],
+        "human_gate_progress_evidence": {
+          "authority_boundary": {
+            "can_authorize_publication_quality": false,
+            "can_replace_ai_reviewer_gate": false,
+            "mas_retains_human_gate_receipt_authority": true
+          },
+          "evidence_gap_consumption_abi": {
+            "can_authorize_publication_quality": false,
+            "can_authorize_submission_readiness": false,
+            "can_write_domain_truth": false,
+            "component_refs": [
+              "EvidenceCondition",
+              "EvidenceBudget",
+              "HardGateRegistry",
+              "SoftGapLedger",
+              "AssumptionLedger",
+              "WorkbenchGapView"
+            ],
+            "contract_ref": "contracts/evidence-gap-consumption-abi.json",
+            "decision_policy_ref": "contracts/evidence-gap-decision-policy.json",
+            "decision_schema_ref": "contracts/schemas/evidence-gap-decision.schema.json",
+            "missing_evidence_policy": "classify_with_evidence_gap_decision_then_progress_first",
+            "projection_only": true,
+            "surface_kind": "mas_evidence_gap_consumption_abi",
+            "version": "evidence-gap-consumption-abi.v1"
+          },
+          "missing_evidence_policy": "classify_with_evidence_gap_decision_then_progress_first",
+          "required_fields": [
+            "last_attempted_deliverable_delta",
+            "why_ai_cannot_progress_one_more_delta",
+            "next_forced_delta",
+            "human_decision_owner"
+          ],
+          "schema_version": 1,
+          "surface_kind": "mas_stage_human_gate_progress_evidence_contract"
+        },
+        "hypothesis_portfolio_evidence_pack": {
+          "advisory_ref_families": [
+            "ranking_ref",
+            "proximity_ref",
+            "debate_ref",
+            "tournament_ref",
+            "evolution_ref"
+          ],
+          "advisory_refs_are_authority": false,
+          "candidate_promotion_requires_validator": true,
+          "consumption_boundary": "refs_only_no_body_no_authority_transfer",
+          "descriptor_ref": "/product_entry_manifest/family_stage_control_plane_descriptor/hypothesis_portfolio_evidence_pack",
+          "fail_closed_output_shape": {
+            "blocker_id": "missing_hypothesis_portfolio_ref_family",
+            "route_back_owner": "required",
+            "status": "typed_blocker"
+          },
+          "knowledge_ref": "agent/knowledge/hypothesis_portfolio_evidence_pack.md",
+          "progress_enhancement_ref_families": [
+            "next_delta_tournament_ref",
+            "micro_candidate_board_ref",
+            "critique_repair_hint_ref",
+            "memory_lesson_ref",
+            "meta_review_trigger_ref",
+            "opportunistic_prefetch_ref"
+          ],
+          "progress_enhancement_refs_block_route": false,
+          "ranking_and_proximity_authority": "advisory_only",
+          "required_ref_families": [
+            "hypothesis_candidate_ref",
+            "assumption_ref",
+            "sub_assumption_ref",
+            "supporting_evidence_ref",
+            "contradicting_evidence_ref",
+            "novelty_ref",
+            "source_provenance_ref",
+            "testability_ref",
+            "safety_risk_ref",
+            "negative_failed_path_ref",
+            "independent_reviewer_or_auditor_receipt_ref",
+            "human_gate_receipt_ref",
+            "owner_receipt_or_typed_blocker_ref"
+          ],
+          "validator_ref": "src/med_autoscience/opl_domain_pack/hypothesis_portfolio_pack.py::validate_hypothesis_portfolio_candidate_refs"
+        },
+        "minimum_forward_delta": {
+          "acceptance_refs": [
+            "stage_contract.user_stage_log_contract",
+            "stage_contract.progress_delta_policy",
+            "stage_contract.typed_blocker_lineage_policy",
+            "stage_contract.human_gate_progress_evidence"
+          ],
+          "authority_boundary": {
+            "can_authorize_publication_quality": false,
+            "can_authorize_submission_readiness": false,
+            "can_write_domain_truth": false,
+            "mas_retains_stage_closeout_authority": true
+          },
+          "domain_stage_refs": [
+            "scout",
+            "idea",
+            "decision"
+          ],
+          "no_op_budget_ref": "stage_contract.progress_delta_policy.no_op_currentness_budget",
+          "owner_action": {
+            "allowed_action_refs": [
+              "submit_study_task",
+              "study_progress",
+              "scientific_capability_registry"
+            ],
+            "next_owner": "MedAutoScience",
+            "owner_receipt_required": true
+          },
+          "progress_first_priority": "produce_reviewable_deliverable_delta_before_control_plane_explanation",
+          "restricted_results": [
+            "no_op_with_currentness_proof",
+            "record_only_reviewer_loop",
+            "provider_completed_without_typed_closeout",
+            "platform_repair_counted_as_deliverable_progress"
+          ],
+          "schema_version": 1,
+          "stage_id": "direction_and_route_selection",
+          "surface_kind": "mas_stage_minimum_forward_delta_contract",
+          "target_surface": {
+            "deliverable_delta_ref": "stage_contract.progress_delta_policy.deliverable_progress_delta",
+            "domain_stage_refs": [
+              "scout",
+              "idea",
+              "decision"
+            ],
+            "next_forced_delta_ref": "study_progress.next_forced_delta",
+            "ref_kind": "route_obligation",
+            "stage_id": "direction_and_route_selection"
+          },
+          "valid_non_terminal_results": [
+            "deliverable_progress_delta",
+            "typed_blocker_with_next_forced_delta",
+            "human_gate_with_last_attempted_delta",
+            "stop_loss_candidate"
+          ]
+        },
+        "monitor_refs": [
+          {
+            "ref": "/progress_projection",
+            "ref_kind": "json_pointer",
+            "role": "stage_progress_monitor"
+          },
+          {
+            "ref": "/progress_projection",
+            "ref_kind": "json_pointer",
+            "role": "runtime_status_monitor"
+          }
+        ],
+        "route_obligation_lens": {
+          "active_route_obligation_policy": "project_current_blocking_route_obligation_before_generic_stage_status",
+          "domain_stage_refs": [
+            "scout",
+            "idea",
+            "decision"
+          ],
+          "route_obligation_progress_delta": {
+            "deliverable_progress_delta_ref": "stage_contract.minimum_forward_delta",
+            "next_forced_delta_ref": "study_progress.next_forced_delta",
+            "typed_blocker_lineage_ref": "stage_contract.typed_blocker_lineage_policy"
+          },
+          "schema_version": 1,
+          "stage_id": "direction_and_route_selection",
+          "surface_kind": "mas_stage_route_obligation_lens",
+          "target_surface_ref": "stage_contract.minimum_forward_delta.target_surface"
+        },
+        "runtime_event_refs": [
+          "runtime_event:domain_route_owner_route.direction_route_selected",
+          "runtime_event:controller_decisions.direction_route_selected"
+        ],
+        "source_scope_refs": [
+          {
+            "ref": [
+              "scout",
+              "idea",
+              "decision"
+            ],
+            "ref_kind": "route_stage_refs",
+            "role": "mas_route_stage_source_scope"
+          },
+          {
+            "ref": "/product_entry_manifest/family_stage_control_plane/stages/direction_and_route_selection/source_refs",
+            "ref_kind": "json_pointer",
+            "role": "stage_source_ref_projection"
+          }
+        ],
+        "trigger_refs": [
+          {
+            "ref": "opl://family-stage-queue/med-autoscience/direction_and_route_selection",
+            "ref_kind": "queue_ref",
+            "role": "opl_provider_stage_launch_trigger"
+          },
+          {
+            "ref": [
+              "submit_study_task",
+              "study_progress",
+              "scientific_capability_registry"
+            ],
+            "ref_kind": "action_ref",
+            "role": "mas_guarded_action_trigger_candidates"
+          }
+        ]
       }
     },
     {
@@ -327,6 +545,220 @@
             "ref": "publication_artifact_refs_only_until_mas_owner_receipt",
             "ref_kind": "policy_ref",
             "role": "write_scope_boundary"
+          }
+        ]
+      },
+      "stage_contract_extension": {
+        "cohort_query_refs": [
+          {
+            "ref": "/product_entry_manifest/family_stage_control_plane_descriptor/route_contract_snapshot",
+            "ref_kind": "json_pointer",
+            "role": "auditable_stage_cohort_query"
+          }
+        ],
+        "dashboard_metric_refs": [
+          {
+            "ref": "/product_entry_manifest/family_stage_control_plane/stages/baseline_and_evidence_setup/freshness",
+            "ref_kind": "json_pointer",
+            "role": "operator_stage_freshness_metric"
+          }
+        ],
+        "human_gate_progress_evidence": {
+          "authority_boundary": {
+            "can_authorize_publication_quality": false,
+            "can_replace_ai_reviewer_gate": false,
+            "mas_retains_human_gate_receipt_authority": true
+          },
+          "evidence_gap_consumption_abi": {
+            "can_authorize_publication_quality": false,
+            "can_authorize_submission_readiness": false,
+            "can_write_domain_truth": false,
+            "component_refs": [
+              "EvidenceCondition",
+              "EvidenceBudget",
+              "HardGateRegistry",
+              "SoftGapLedger",
+              "AssumptionLedger",
+              "WorkbenchGapView"
+            ],
+            "contract_ref": "contracts/evidence-gap-consumption-abi.json",
+            "decision_policy_ref": "contracts/evidence-gap-decision-policy.json",
+            "decision_schema_ref": "contracts/schemas/evidence-gap-decision.schema.json",
+            "missing_evidence_policy": "classify_with_evidence_gap_decision_then_progress_first",
+            "projection_only": true,
+            "surface_kind": "mas_evidence_gap_consumption_abi",
+            "version": "evidence-gap-consumption-abi.v1"
+          },
+          "missing_evidence_policy": "classify_with_evidence_gap_decision_then_progress_first",
+          "required_fields": [
+            "last_attempted_deliverable_delta",
+            "why_ai_cannot_progress_one_more_delta",
+            "next_forced_delta",
+            "human_decision_owner"
+          ],
+          "schema_version": 1,
+          "surface_kind": "mas_stage_human_gate_progress_evidence_contract"
+        },
+        "hypothesis_portfolio_evidence_pack": {
+          "advisory_ref_families": [
+            "ranking_ref",
+            "proximity_ref",
+            "debate_ref",
+            "tournament_ref",
+            "evolution_ref"
+          ],
+          "advisory_refs_are_authority": false,
+          "candidate_promotion_requires_validator": true,
+          "consumption_boundary": "refs_only_no_body_no_authority_transfer",
+          "descriptor_ref": "/product_entry_manifest/family_stage_control_plane_descriptor/hypothesis_portfolio_evidence_pack",
+          "fail_closed_output_shape": {
+            "blocker_id": "missing_hypothesis_portfolio_ref_family",
+            "route_back_owner": "required",
+            "status": "typed_blocker"
+          },
+          "knowledge_ref": "agent/knowledge/hypothesis_portfolio_evidence_pack.md",
+          "progress_enhancement_ref_families": [
+            "next_delta_tournament_ref",
+            "micro_candidate_board_ref",
+            "critique_repair_hint_ref",
+            "memory_lesson_ref",
+            "meta_review_trigger_ref",
+            "opportunistic_prefetch_ref"
+          ],
+          "progress_enhancement_refs_block_route": false,
+          "ranking_and_proximity_authority": "advisory_only",
+          "required_ref_families": [
+            "hypothesis_candidate_ref",
+            "assumption_ref",
+            "sub_assumption_ref",
+            "supporting_evidence_ref",
+            "contradicting_evidence_ref",
+            "novelty_ref",
+            "source_provenance_ref",
+            "testability_ref",
+            "safety_risk_ref",
+            "negative_failed_path_ref",
+            "independent_reviewer_or_auditor_receipt_ref",
+            "human_gate_receipt_ref",
+            "owner_receipt_or_typed_blocker_ref"
+          ],
+          "validator_ref": "src/med_autoscience/opl_domain_pack/hypothesis_portfolio_pack.py::validate_hypothesis_portfolio_candidate_refs"
+        },
+        "minimum_forward_delta": {
+          "acceptance_refs": [
+            "stage_contract.user_stage_log_contract",
+            "stage_contract.progress_delta_policy",
+            "stage_contract.typed_blocker_lineage_policy",
+            "stage_contract.human_gate_progress_evidence"
+          ],
+          "authority_boundary": {
+            "can_authorize_publication_quality": false,
+            "can_authorize_submission_readiness": false,
+            "can_write_domain_truth": false,
+            "mas_retains_stage_closeout_authority": true
+          },
+          "domain_stage_refs": [
+            "baseline",
+            "experiment"
+          ],
+          "no_op_budget_ref": "stage_contract.progress_delta_policy.no_op_currentness_budget",
+          "owner_action": {
+            "allowed_action_refs": [
+              "study_state_matrix",
+              "research_integrity_gate_input",
+              "scientific_capability_registry"
+            ],
+            "next_owner": "MedAutoScience",
+            "owner_receipt_required": true
+          },
+          "progress_first_priority": "produce_reviewable_deliverable_delta_before_control_plane_explanation",
+          "restricted_results": [
+            "no_op_with_currentness_proof",
+            "record_only_reviewer_loop",
+            "provider_completed_without_typed_closeout",
+            "platform_repair_counted_as_deliverable_progress"
+          ],
+          "schema_version": 1,
+          "stage_id": "baseline_and_evidence_setup",
+          "surface_kind": "mas_stage_minimum_forward_delta_contract",
+          "target_surface": {
+            "deliverable_delta_ref": "stage_contract.progress_delta_policy.deliverable_progress_delta",
+            "domain_stage_refs": [
+              "baseline",
+              "experiment"
+            ],
+            "next_forced_delta_ref": "study_progress.next_forced_delta",
+            "ref_kind": "route_obligation",
+            "stage_id": "baseline_and_evidence_setup"
+          },
+          "valid_non_terminal_results": [
+            "deliverable_progress_delta",
+            "typed_blocker_with_next_forced_delta",
+            "human_gate_with_last_attempted_delta",
+            "stop_loss_candidate"
+          ]
+        },
+        "monitor_refs": [
+          {
+            "ref": "/progress_projection",
+            "ref_kind": "json_pointer",
+            "role": "stage_progress_monitor"
+          },
+          {
+            "ref": "/progress_projection",
+            "ref_kind": "json_pointer",
+            "role": "runtime_status_monitor"
+          }
+        ],
+        "route_obligation_lens": {
+          "active_route_obligation_policy": "project_current_blocking_route_obligation_before_generic_stage_status",
+          "domain_stage_refs": [
+            "baseline",
+            "experiment"
+          ],
+          "route_obligation_progress_delta": {
+            "deliverable_progress_delta_ref": "stage_contract.minimum_forward_delta",
+            "next_forced_delta_ref": "study_progress.next_forced_delta",
+            "typed_blocker_lineage_ref": "stage_contract.typed_blocker_lineage_policy"
+          },
+          "schema_version": 1,
+          "stage_id": "baseline_and_evidence_setup",
+          "surface_kind": "mas_stage_route_obligation_lens",
+          "target_surface_ref": "stage_contract.minimum_forward_delta.target_surface"
+        },
+        "runtime_event_refs": [
+          "runtime_event:controller_decisions.baseline_evidence_ready",
+          "runtime_event:evidence_ledger.baseline_evidence_ready"
+        ],
+        "source_scope_refs": [
+          {
+            "ref": [
+              "baseline",
+              "experiment"
+            ],
+            "ref_kind": "route_stage_refs",
+            "role": "mas_route_stage_source_scope"
+          },
+          {
+            "ref": "/product_entry_manifest/family_stage_control_plane/stages/baseline_and_evidence_setup/source_refs",
+            "ref_kind": "json_pointer",
+            "role": "stage_source_ref_projection"
+          }
+        ],
+        "trigger_refs": [
+          {
+            "ref": "opl://family-stage-queue/med-autoscience/baseline_and_evidence_setup",
+            "ref_kind": "queue_ref",
+            "role": "opl_provider_stage_launch_trigger"
+          },
+          {
+            "ref": [
+              "study_state_matrix",
+              "research_integrity_gate_input",
+              "scientific_capability_registry"
+            ],
+            "ref_kind": "action_ref",
+            "role": "mas_guarded_action_trigger_candidates"
           }
         ]
       }
@@ -493,6 +925,216 @@
             "role": "write_scope_boundary"
           }
         ]
+      },
+      "stage_contract_extension": {
+        "cohort_query_refs": [
+          {
+            "ref": "/product_entry_manifest/family_stage_control_plane_descriptor/route_contract_snapshot",
+            "ref_kind": "json_pointer",
+            "role": "auditable_stage_cohort_query"
+          }
+        ],
+        "dashboard_metric_refs": [
+          {
+            "ref": "/product_entry_manifest/family_stage_control_plane/stages/bounded_analysis_campaign/freshness",
+            "ref_kind": "json_pointer",
+            "role": "operator_stage_freshness_metric"
+          }
+        ],
+        "human_gate_progress_evidence": {
+          "authority_boundary": {
+            "can_authorize_publication_quality": false,
+            "can_replace_ai_reviewer_gate": false,
+            "mas_retains_human_gate_receipt_authority": true
+          },
+          "evidence_gap_consumption_abi": {
+            "can_authorize_publication_quality": false,
+            "can_authorize_submission_readiness": false,
+            "can_write_domain_truth": false,
+            "component_refs": [
+              "EvidenceCondition",
+              "EvidenceBudget",
+              "HardGateRegistry",
+              "SoftGapLedger",
+              "AssumptionLedger",
+              "WorkbenchGapView"
+            ],
+            "contract_ref": "contracts/evidence-gap-consumption-abi.json",
+            "decision_policy_ref": "contracts/evidence-gap-decision-policy.json",
+            "decision_schema_ref": "contracts/schemas/evidence-gap-decision.schema.json",
+            "missing_evidence_policy": "classify_with_evidence_gap_decision_then_progress_first",
+            "projection_only": true,
+            "surface_kind": "mas_evidence_gap_consumption_abi",
+            "version": "evidence-gap-consumption-abi.v1"
+          },
+          "missing_evidence_policy": "classify_with_evidence_gap_decision_then_progress_first",
+          "required_fields": [
+            "last_attempted_deliverable_delta",
+            "why_ai_cannot_progress_one_more_delta",
+            "next_forced_delta",
+            "human_decision_owner"
+          ],
+          "schema_version": 1,
+          "surface_kind": "mas_stage_human_gate_progress_evidence_contract"
+        },
+        "hypothesis_portfolio_evidence_pack": {
+          "advisory_ref_families": [
+            "ranking_ref",
+            "proximity_ref",
+            "debate_ref",
+            "tournament_ref",
+            "evolution_ref"
+          ],
+          "advisory_refs_are_authority": false,
+          "candidate_promotion_requires_validator": true,
+          "consumption_boundary": "refs_only_no_body_no_authority_transfer",
+          "descriptor_ref": "/product_entry_manifest/family_stage_control_plane_descriptor/hypothesis_portfolio_evidence_pack",
+          "fail_closed_output_shape": {
+            "blocker_id": "missing_hypothesis_portfolio_ref_family",
+            "route_back_owner": "required",
+            "status": "typed_blocker"
+          },
+          "knowledge_ref": "agent/knowledge/hypothesis_portfolio_evidence_pack.md",
+          "progress_enhancement_ref_families": [
+            "next_delta_tournament_ref",
+            "micro_candidate_board_ref",
+            "critique_repair_hint_ref",
+            "memory_lesson_ref",
+            "meta_review_trigger_ref",
+            "opportunistic_prefetch_ref"
+          ],
+          "progress_enhancement_refs_block_route": false,
+          "ranking_and_proximity_authority": "advisory_only",
+          "required_ref_families": [
+            "hypothesis_candidate_ref",
+            "assumption_ref",
+            "sub_assumption_ref",
+            "supporting_evidence_ref",
+            "contradicting_evidence_ref",
+            "novelty_ref",
+            "source_provenance_ref",
+            "testability_ref",
+            "safety_risk_ref",
+            "negative_failed_path_ref",
+            "independent_reviewer_or_auditor_receipt_ref",
+            "human_gate_receipt_ref",
+            "owner_receipt_or_typed_blocker_ref"
+          ],
+          "validator_ref": "src/med_autoscience/opl_domain_pack/hypothesis_portfolio_pack.py::validate_hypothesis_portfolio_candidate_refs"
+        },
+        "minimum_forward_delta": {
+          "acceptance_refs": [
+            "stage_contract.user_stage_log_contract",
+            "stage_contract.progress_delta_policy",
+            "stage_contract.typed_blocker_lineage_policy",
+            "stage_contract.human_gate_progress_evidence"
+          ],
+          "authority_boundary": {
+            "can_authorize_publication_quality": false,
+            "can_authorize_submission_readiness": false,
+            "can_write_domain_truth": false,
+            "mas_retains_stage_closeout_authority": true
+          },
+          "domain_stage_refs": [
+            "analysis-campaign"
+          ],
+          "no_op_budget_ref": "stage_contract.progress_delta_policy.no_op_currentness_budget",
+          "owner_action": {
+            "allowed_action_refs": [
+              "submit_study_task",
+              "study_progress",
+              "research_integrity_gate_input"
+            ],
+            "next_owner": "MedAutoScience",
+            "owner_receipt_required": true
+          },
+          "progress_first_priority": "produce_reviewable_deliverable_delta_before_control_plane_explanation",
+          "restricted_results": [
+            "no_op_with_currentness_proof",
+            "record_only_reviewer_loop",
+            "provider_completed_without_typed_closeout",
+            "platform_repair_counted_as_deliverable_progress"
+          ],
+          "schema_version": 1,
+          "stage_id": "bounded_analysis_campaign",
+          "surface_kind": "mas_stage_minimum_forward_delta_contract",
+          "target_surface": {
+            "deliverable_delta_ref": "stage_contract.progress_delta_policy.deliverable_progress_delta",
+            "domain_stage_refs": [
+              "analysis-campaign"
+            ],
+            "next_forced_delta_ref": "study_progress.next_forced_delta",
+            "ref_kind": "route_obligation",
+            "stage_id": "bounded_analysis_campaign"
+          },
+          "valid_non_terminal_results": [
+            "deliverable_progress_delta",
+            "typed_blocker_with_next_forced_delta",
+            "human_gate_with_last_attempted_delta",
+            "stop_loss_candidate"
+          ]
+        },
+        "monitor_refs": [
+          {
+            "ref": "/progress_projection",
+            "ref_kind": "json_pointer",
+            "role": "stage_progress_monitor"
+          },
+          {
+            "ref": "/progress_projection",
+            "ref_kind": "json_pointer",
+            "role": "runtime_status_monitor"
+          }
+        ],
+        "route_obligation_lens": {
+          "active_route_obligation_policy": "project_current_blocking_route_obligation_before_generic_stage_status",
+          "domain_stage_refs": [
+            "analysis-campaign"
+          ],
+          "route_obligation_progress_delta": {
+            "deliverable_progress_delta_ref": "stage_contract.minimum_forward_delta",
+            "next_forced_delta_ref": "study_progress.next_forced_delta",
+            "typed_blocker_lineage_ref": "stage_contract.typed_blocker_lineage_policy"
+          },
+          "schema_version": 1,
+          "stage_id": "bounded_analysis_campaign",
+          "surface_kind": "mas_stage_route_obligation_lens",
+          "target_surface_ref": "stage_contract.minimum_forward_delta.target_surface"
+        },
+        "runtime_event_refs": [
+          "runtime_event:runtime_readback.bounded_analysis_evidence_ready",
+          "runtime_event:evidence_ledger.bounded_analysis_evidence_ready"
+        ],
+        "source_scope_refs": [
+          {
+            "ref": [
+              "analysis-campaign"
+            ],
+            "ref_kind": "route_stage_refs",
+            "role": "mas_route_stage_source_scope"
+          },
+          {
+            "ref": "/product_entry_manifest/family_stage_control_plane/stages/bounded_analysis_campaign/source_refs",
+            "ref_kind": "json_pointer",
+            "role": "stage_source_ref_projection"
+          }
+        ],
+        "trigger_refs": [
+          {
+            "ref": "opl://family-stage-queue/med-autoscience/bounded_analysis_campaign",
+            "ref_kind": "queue_ref",
+            "role": "opl_provider_stage_launch_trigger"
+          },
+          {
+            "ref": [
+              "submit_study_task",
+              "study_progress",
+              "research_integrity_gate_input"
+            ],
+            "ref_kind": "action_ref",
+            "role": "mas_guarded_action_trigger_candidates"
+          }
+        ]
       }
     },
     {
@@ -657,6 +1299,327 @@
             "role": "write_scope_boundary"
           }
         ]
+      },
+      "stage_contract_extension": {
+        "cohort_query_refs": [
+          {
+            "ref": "/product_entry_manifest/family_stage_control_plane_descriptor/route_contract_snapshot",
+            "ref_kind": "json_pointer",
+            "role": "auditable_stage_cohort_query"
+          }
+        ],
+        "dashboard_metric_refs": [
+          {
+            "ref": "/product_entry_manifest/family_stage_control_plane/stages/manuscript_authoring/freshness",
+            "ref_kind": "json_pointer",
+            "role": "operator_stage_freshness_metric"
+          }
+        ],
+        "human_gate_progress_evidence": {
+          "authority_boundary": {
+            "can_authorize_publication_quality": false,
+            "can_replace_ai_reviewer_gate": false,
+            "mas_retains_human_gate_receipt_authority": true
+          },
+          "evidence_gap_consumption_abi": {
+            "can_authorize_publication_quality": false,
+            "can_authorize_submission_readiness": false,
+            "can_write_domain_truth": false,
+            "component_refs": [
+              "EvidenceCondition",
+              "EvidenceBudget",
+              "HardGateRegistry",
+              "SoftGapLedger",
+              "AssumptionLedger",
+              "WorkbenchGapView"
+            ],
+            "contract_ref": "contracts/evidence-gap-consumption-abi.json",
+            "decision_policy_ref": "contracts/evidence-gap-decision-policy.json",
+            "decision_schema_ref": "contracts/schemas/evidence-gap-decision.schema.json",
+            "missing_evidence_policy": "classify_with_evidence_gap_decision_then_progress_first",
+            "projection_only": true,
+            "surface_kind": "mas_evidence_gap_consumption_abi",
+            "version": "evidence-gap-consumption-abi.v1"
+          },
+          "missing_evidence_policy": "classify_with_evidence_gap_decision_then_progress_first",
+          "required_fields": [
+            "last_attempted_deliverable_delta",
+            "why_ai_cannot_progress_one_more_delta",
+            "next_forced_delta",
+            "human_decision_owner"
+          ],
+          "schema_version": 1,
+          "surface_kind": "mas_stage_human_gate_progress_evidence_contract"
+        },
+        "hypothesis_portfolio_evidence_pack": {
+          "advisory_ref_families": [
+            "ranking_ref",
+            "proximity_ref",
+            "debate_ref",
+            "tournament_ref",
+            "evolution_ref"
+          ],
+          "advisory_refs_are_authority": false,
+          "candidate_promotion_requires_validator": true,
+          "consumption_boundary": "refs_only_no_body_no_authority_transfer",
+          "descriptor_ref": "/product_entry_manifest/family_stage_control_plane_descriptor/hypothesis_portfolio_evidence_pack",
+          "fail_closed_output_shape": {
+            "blocker_id": "missing_hypothesis_portfolio_ref_family",
+            "route_back_owner": "required",
+            "status": "typed_blocker"
+          },
+          "knowledge_ref": "agent/knowledge/hypothesis_portfolio_evidence_pack.md",
+          "progress_enhancement_ref_families": [
+            "next_delta_tournament_ref",
+            "micro_candidate_board_ref",
+            "critique_repair_hint_ref",
+            "memory_lesson_ref",
+            "meta_review_trigger_ref",
+            "opportunistic_prefetch_ref"
+          ],
+          "progress_enhancement_refs_block_route": false,
+          "ranking_and_proximity_authority": "advisory_only",
+          "required_ref_families": [
+            "hypothesis_candidate_ref",
+            "assumption_ref",
+            "sub_assumption_ref",
+            "supporting_evidence_ref",
+            "contradicting_evidence_ref",
+            "novelty_ref",
+            "source_provenance_ref",
+            "testability_ref",
+            "safety_risk_ref",
+            "negative_failed_path_ref",
+            "independent_reviewer_or_auditor_receipt_ref",
+            "human_gate_receipt_ref",
+            "owner_receipt_or_typed_blocker_ref"
+          ],
+          "validator_ref": "src/med_autoscience/opl_domain_pack/hypothesis_portfolio_pack.py::validate_hypothesis_portfolio_candidate_refs"
+        },
+        "minimum_forward_delta": {
+          "acceptance_refs": [
+            "stage_contract.user_stage_log_contract",
+            "stage_contract.progress_delta_policy",
+            "stage_contract.typed_blocker_lineage_policy",
+            "stage_contract.human_gate_progress_evidence"
+          ],
+          "authority_boundary": {
+            "can_authorize_publication_quality": false,
+            "can_authorize_submission_readiness": false,
+            "can_write_domain_truth": false,
+            "mas_retains_stage_closeout_authority": true
+          },
+          "domain_stage_refs": [
+            "write"
+          ],
+          "no_op_budget_ref": "stage_contract.progress_delta_policy.no_op_currentness_budget",
+          "owner_action": {
+            "allowed_action_refs": [
+              "submit_study_task",
+              "display_pack_orchestrate",
+              "display_pack_render"
+            ],
+            "next_owner": "MedAutoScience",
+            "owner_receipt_required": true
+          },
+          "progress_first_priority": "produce_reviewable_deliverable_delta_before_control_plane_explanation",
+          "restricted_results": [
+            "no_op_with_currentness_proof",
+            "record_only_reviewer_loop",
+            "provider_completed_without_typed_closeout",
+            "platform_repair_counted_as_deliverable_progress"
+          ],
+          "schema_version": 1,
+          "stage_id": "manuscript_authoring",
+          "surface_kind": "mas_stage_minimum_forward_delta_contract",
+          "target_surface": {
+            "deliverable_delta_ref": "stage_contract.progress_delta_policy.deliverable_progress_delta",
+            "domain_stage_refs": [
+              "write"
+            ],
+            "next_forced_delta_ref": "study_progress.next_forced_delta",
+            "ref_kind": "route_obligation",
+            "stage_id": "manuscript_authoring"
+          },
+          "valid_non_terminal_results": [
+            "deliverable_progress_delta",
+            "typed_blocker_with_next_forced_delta",
+            "human_gate_with_last_attempted_delta",
+            "stop_loss_candidate"
+          ]
+        },
+        "monitor_refs": [
+          {
+            "ref": "/progress_projection",
+            "ref_kind": "json_pointer",
+            "role": "stage_progress_monitor"
+          },
+          {
+            "ref": "/progress_projection",
+            "ref_kind": "json_pointer",
+            "role": "runtime_status_monitor"
+          }
+        ],
+        "route_obligation_lens": {
+          "active_route_obligation_policy": "project_current_blocking_route_obligation_before_generic_stage_status",
+          "domain_stage_refs": [
+            "write"
+          ],
+          "route_obligation_progress_delta": {
+            "deliverable_progress_delta_ref": "stage_contract.minimum_forward_delta",
+            "next_forced_delta_ref": "study_progress.next_forced_delta",
+            "typed_blocker_lineage_ref": "stage_contract.typed_blocker_lineage_policy"
+          },
+          "schema_version": 1,
+          "stage_id": "manuscript_authoring",
+          "surface_kind": "mas_stage_route_obligation_lens",
+          "target_surface_ref": "stage_contract.minimum_forward_delta.target_surface"
+        },
+        "runtime_event_refs": [
+          "runtime_event:controller_decisions.manuscript_draft_reviewable",
+          "runtime_event:canonical_manuscript.manuscript_draft_reviewable"
+        ],
+        "source_scope_refs": [
+          {
+            "ref": [
+              "write"
+            ],
+            "ref_kind": "route_stage_refs",
+            "role": "mas_route_stage_source_scope"
+          },
+          {
+            "ref": "/product_entry_manifest/family_stage_control_plane/stages/manuscript_authoring/source_refs",
+            "ref_kind": "json_pointer",
+            "role": "stage_source_ref_projection"
+          }
+        ],
+        "trigger_refs": [
+          {
+            "ref": "opl://family-stage-queue/med-autoscience/manuscript_authoring",
+            "ref_kind": "queue_ref",
+            "role": "opl_provider_stage_launch_trigger"
+          },
+          {
+            "ref": [
+              "submit_study_task",
+              "display_pack_orchestrate",
+              "display_pack_render"
+            ],
+            "ref_kind": "action_ref",
+            "role": "mas_guarded_action_trigger_candidates"
+          }
+        ],
+        "late_stage_progress_sprint_contract": {
+          "admission_order": [
+            "minimum_forward_delta_or_candidate_package_display_freshness",
+            "quality_gate_replay",
+            "single_next_owner_or_terminal_closeout"
+          ],
+          "authority_boundary": [
+            "no direct paper body, memory body, artifact body, publication_eval/latest.json, controller_decisions/latest.json, or current_package write outside MAS owner callable",
+            "OPL/provider completion is not paper closure without owner receipt, typed blocker, human gate, stop-loss, or progress_delta refs"
+          ],
+          "contract_ref": "agent/stages/stage_route_contract.yaml#/late_stage_progress_sprint_contract",
+          "control_plane_outputs": [
+            "progress_delta",
+            "single_next_owner_blocker",
+            "human_gate",
+            "stop_loss"
+          ],
+          "covered_work_units": [
+            "current_manuscript_prose_currentness_and_gate_replay_write_closeout"
+          ],
+          "forbidden_control_plane_outputs": [
+            "record_only_reviewer_loop",
+            "stale_fingerprint_execution_block",
+            "provider_completed_without_typed_closeout",
+            "platform_repair_counted_as_paper_progress"
+          ],
+          "gate_before_delta_policy": "gate_may_return_next_forced_delta_but_must_not_start_new_reviewer_loop",
+          "sprint_id": "publishability_repair_sprint"
+        },
+        "typed_cognitive_subpacket_gate": {
+          "admission_gate": {
+            "candidate_packet_can_close_stage": false,
+            "fail_closed": true,
+            "gate_decision_outputs": [
+              "owner_receipt",
+              "route_back",
+              "typed_blocker",
+              "human_gate"
+            ],
+            "gate_id": "manuscript_packet_admission_gate",
+            "gate_owner": "MedAutoScience",
+            "owner_receipt_or_typed_blocker_required": true,
+            "package_freshness_can_claim_ready": false,
+            "ready_claim_requires": [
+              "MAS owner receipt accepting the packet",
+              "independent gate or reviewer receipt when stage policy requires it",
+              "fresh refs for the exact stage work unit",
+              "route-back, typed blocker, or human gate when any required ref is missing"
+            ],
+            "specialist_output_can_claim_ready": false,
+            "test_pass_can_claim_ready": false
+          },
+          "authority_boundary": {
+            "can_authorize_publication_quality": false,
+            "can_authorize_submission_readiness": false,
+            "can_materialize_human_gate": false,
+            "can_materialize_typed_blocker": false,
+            "can_mutate_current_package": false,
+            "can_sign_owner_receipt": false,
+            "can_write_controller_decisions": false,
+            "can_write_mas_study_truth": false,
+            "can_write_publication_eval_latest": false,
+            "packet_is_refs_only_candidate": true
+          },
+          "consumed_ref_families": [
+            "bounded_analysis_evidence_refs",
+            "claim_evidence_map_refs",
+            "source_grounding_refs",
+            "citation_source_refs",
+            "display_table_figure_refs",
+            "controller_decision_refs"
+          ],
+          "contract_source_ref": "src/med_autoscience/opl_domain_pack/family_adoption/stage_descriptor.py::_stage_typed_cognitive_subpacket_gate",
+          "forbidden_ready_claims": [
+            "specialist_output_as_ready",
+            "test_pass_as_ready",
+            "package_freshness_as_ready",
+            "provider_completion_as_ready",
+            "generated_surface_status_as_ready"
+          ],
+          "human_gate_conditions": [
+            "journal_strategy_or_claim_expansion_requires_PI_decision",
+            "external_source_or_credential_authority_required"
+          ],
+          "launch_surface": "codex_cli_launch_packet.typed_cognitive_subpacket_gate",
+          "packet_id": "manuscript_packet",
+          "packet_required_before_stage_completion": true,
+          "packet_role": "canonical_manuscript_handoff_candidate",
+          "packet_surface_kind": "mas_manuscript_authoring_packet",
+          "produced_ref_families": [
+            "canonical_manuscript_refs",
+            "manuscript_claim_trace_refs",
+            "citation_source_handoff_refs",
+            "display_table_figure_handoff_refs",
+            "route_back_or_owner_receipt_candidate_refs"
+          ],
+          "readback_surface": "stage_contract.typed_cognitive_subpacket_gate",
+          "route_back_conditions": [
+            "missing_or_stale_evidence_source_citation_display_or_claim_boundary_refs",
+            "canonical_manuscript_source_not_current_against_claim_evidence_map",
+            "specialist_candidate_requires_owner_acceptance_before_handoff"
+          ],
+          "stage_id": "manuscript_authoring",
+          "surface_kind": "mas_typed_cognitive_subpacket_gate",
+          "typed_blocker_conditions": [
+            "artifact_mutation_authority_missing",
+            "source_readiness_or_citation_authenticity_unresolved",
+            "canonical_manuscript_authority_path_missing"
+          ],
+          "version": "typed-cognitive-subpacket-gate.v1"
+        }
       }
     },
     {
@@ -823,6 +1786,415 @@
             "role": "write_scope_boundary"
           }
         ]
+      },
+      "stage_contract_extension": {
+        "cohort_query_refs": [
+          {
+            "ref": "/product_entry_manifest/family_stage_control_plane_descriptor/route_contract_snapshot",
+            "ref_kind": "json_pointer",
+            "role": "auditable_stage_cohort_query"
+          }
+        ],
+        "dashboard_metric_refs": [
+          {
+            "ref": "/product_entry_manifest/family_stage_control_plane/stages/review_and_quality_gate/freshness",
+            "ref_kind": "json_pointer",
+            "role": "operator_stage_freshness_metric"
+          }
+        ],
+        "human_gate_progress_evidence": {
+          "authority_boundary": {
+            "can_authorize_publication_quality": false,
+            "can_replace_ai_reviewer_gate": false,
+            "mas_retains_human_gate_receipt_authority": true
+          },
+          "evidence_gap_consumption_abi": {
+            "can_authorize_publication_quality": false,
+            "can_authorize_submission_readiness": false,
+            "can_write_domain_truth": false,
+            "component_refs": [
+              "EvidenceCondition",
+              "EvidenceBudget",
+              "HardGateRegistry",
+              "SoftGapLedger",
+              "AssumptionLedger",
+              "WorkbenchGapView"
+            ],
+            "contract_ref": "contracts/evidence-gap-consumption-abi.json",
+            "decision_policy_ref": "contracts/evidence-gap-decision-policy.json",
+            "decision_schema_ref": "contracts/schemas/evidence-gap-decision.schema.json",
+            "missing_evidence_policy": "classify_with_evidence_gap_decision_then_progress_first",
+            "projection_only": true,
+            "surface_kind": "mas_evidence_gap_consumption_abi",
+            "version": "evidence-gap-consumption-abi.v1"
+          },
+          "missing_evidence_policy": "classify_with_evidence_gap_decision_then_progress_first",
+          "required_fields": [
+            "last_attempted_deliverable_delta",
+            "why_ai_cannot_progress_one_more_delta",
+            "next_forced_delta",
+            "human_decision_owner"
+          ],
+          "schema_version": 1,
+          "surface_kind": "mas_stage_human_gate_progress_evidence_contract"
+        },
+        "hypothesis_portfolio_evidence_pack": {
+          "advisory_ref_families": [
+            "ranking_ref",
+            "proximity_ref",
+            "debate_ref",
+            "tournament_ref",
+            "evolution_ref"
+          ],
+          "advisory_refs_are_authority": false,
+          "candidate_promotion_requires_validator": true,
+          "consumption_boundary": "refs_only_no_body_no_authority_transfer",
+          "descriptor_ref": "/product_entry_manifest/family_stage_control_plane_descriptor/hypothesis_portfolio_evidence_pack",
+          "fail_closed_output_shape": {
+            "blocker_id": "missing_hypothesis_portfolio_ref_family",
+            "route_back_owner": "required",
+            "status": "typed_blocker"
+          },
+          "knowledge_ref": "agent/knowledge/hypothesis_portfolio_evidence_pack.md",
+          "progress_enhancement_ref_families": [
+            "next_delta_tournament_ref",
+            "micro_candidate_board_ref",
+            "critique_repair_hint_ref",
+            "memory_lesson_ref",
+            "meta_review_trigger_ref",
+            "opportunistic_prefetch_ref"
+          ],
+          "progress_enhancement_refs_block_route": false,
+          "ranking_and_proximity_authority": "advisory_only",
+          "required_ref_families": [
+            "hypothesis_candidate_ref",
+            "assumption_ref",
+            "sub_assumption_ref",
+            "supporting_evidence_ref",
+            "contradicting_evidence_ref",
+            "novelty_ref",
+            "source_provenance_ref",
+            "testability_ref",
+            "safety_risk_ref",
+            "negative_failed_path_ref",
+            "independent_reviewer_or_auditor_receipt_ref",
+            "human_gate_receipt_ref",
+            "owner_receipt_or_typed_blocker_ref"
+          ],
+          "validator_ref": "src/med_autoscience/opl_domain_pack/hypothesis_portfolio_pack.py::validate_hypothesis_portfolio_candidate_refs"
+        },
+        "minimum_forward_delta": {
+          "acceptance_refs": [
+            "stage_contract.user_stage_log_contract",
+            "stage_contract.progress_delta_policy",
+            "stage_contract.typed_blocker_lineage_policy",
+            "stage_contract.human_gate_progress_evidence"
+          ],
+          "authority_boundary": {
+            "can_authorize_publication_quality": false,
+            "can_authorize_submission_readiness": false,
+            "can_write_domain_truth": false,
+            "mas_retains_stage_closeout_authority": true
+          },
+          "domain_stage_refs": [
+            "review",
+            "decision"
+          ],
+          "no_op_budget_ref": "stage_contract.progress_delta_policy.no_op_currentness_budget",
+          "owner_action": {
+            "allowed_action_refs": [
+              "research_integrity_reference_verification",
+              "research_integrity_review_publication_gate_stage_hook",
+              "display_pack_preflight"
+            ],
+            "next_owner": "MedAutoScience",
+            "owner_receipt_required": true
+          },
+          "progress_first_priority": "produce_reviewable_deliverable_delta_before_control_plane_explanation",
+          "restricted_results": [
+            "no_op_with_currentness_proof",
+            "record_only_reviewer_loop",
+            "provider_completed_without_typed_closeout",
+            "platform_repair_counted_as_deliverable_progress"
+          ],
+          "schema_version": 1,
+          "stage_id": "review_and_quality_gate",
+          "surface_kind": "mas_stage_minimum_forward_delta_contract",
+          "target_surface": {
+            "deliverable_delta_ref": "stage_contract.progress_delta_policy.deliverable_progress_delta",
+            "domain_stage_refs": [
+              "review",
+              "decision"
+            ],
+            "next_forced_delta_ref": "study_progress.next_forced_delta",
+            "ref_kind": "route_obligation",
+            "stage_id": "review_and_quality_gate"
+          },
+          "valid_non_terminal_results": [
+            "deliverable_progress_delta",
+            "typed_blocker_with_next_forced_delta",
+            "human_gate_with_last_attempted_delta",
+            "stop_loss_candidate"
+          ]
+        },
+        "monitor_refs": [
+          {
+            "ref": "/progress_projection",
+            "ref_kind": "json_pointer",
+            "role": "stage_progress_monitor"
+          },
+          {
+            "ref": "/progress_projection",
+            "ref_kind": "json_pointer",
+            "role": "runtime_status_monitor"
+          }
+        ],
+        "route_obligation_lens": {
+          "active_route_obligation_policy": "project_current_blocking_route_obligation_before_generic_stage_status",
+          "domain_stage_refs": [
+            "review",
+            "decision"
+          ],
+          "route_obligation_progress_delta": {
+            "deliverable_progress_delta_ref": "stage_contract.minimum_forward_delta",
+            "next_forced_delta_ref": "study_progress.next_forced_delta",
+            "typed_blocker_lineage_ref": "stage_contract.typed_blocker_lineage_policy"
+          },
+          "schema_version": 1,
+          "stage_id": "review_and_quality_gate",
+          "surface_kind": "mas_stage_route_obligation_lens",
+          "target_surface_ref": "stage_contract.minimum_forward_delta.target_surface"
+        },
+        "runtime_event_refs": [
+          "runtime_event:ai_reviewer_publication_eval.gate_receipt_recorded",
+          "runtime_event:publication_eval.ai_reviewer_gate_receipt_recorded"
+        ],
+        "source_scope_refs": [
+          {
+            "ref": [
+              "review",
+              "decision"
+            ],
+            "ref_kind": "route_stage_refs",
+            "role": "mas_route_stage_source_scope"
+          },
+          {
+            "ref": "/product_entry_manifest/family_stage_control_plane/stages/review_and_quality_gate/source_refs",
+            "ref_kind": "json_pointer",
+            "role": "stage_source_ref_projection"
+          }
+        ],
+        "trigger_refs": [
+          {
+            "ref": "opl://family-stage-queue/med-autoscience/review_and_quality_gate",
+            "ref_kind": "queue_ref",
+            "role": "opl_provider_stage_launch_trigger"
+          },
+          {
+            "ref": [
+              "research_integrity_reference_verification",
+              "research_integrity_review_publication_gate_stage_hook",
+              "display_pack_preflight"
+            ],
+            "ref_kind": "action_ref",
+            "role": "mas_guarded_action_trigger_candidates"
+          }
+        ],
+        "late_stage_progress_sprint_contract": {
+          "admission_order": [
+            "minimum_forward_delta_or_candidate_package_display_freshness",
+            "quality_gate_replay",
+            "single_next_owner_or_terminal_closeout"
+          ],
+          "authority_boundary": [
+            "no direct paper body, memory body, artifact body, publication_eval/latest.json, controller_decisions/latest.json, or current_package write outside MAS owner callable",
+            "OPL/provider completion is not paper closure without owner receipt, typed blocker, human gate, stop-loss, or progress_delta refs"
+          ],
+          "contract_ref": "agent/stages/stage_route_contract.yaml#/late_stage_progress_sprint_contract",
+          "control_plane_outputs": [
+            "progress_delta",
+            "single_next_owner_blocker",
+            "human_gate",
+            "stop_loss"
+          ],
+          "covered_work_units": [
+            "current_manuscript_prose_currentness_and_gate_replay_write_closeout"
+          ],
+          "forbidden_control_plane_outputs": [
+            "record_only_reviewer_loop",
+            "stale_fingerprint_execution_block",
+            "provider_completed_without_typed_closeout",
+            "platform_repair_counted_as_paper_progress"
+          ],
+          "gate_before_delta_policy": "gate_may_return_next_forced_delta_but_must_not_start_new_reviewer_loop",
+          "sprint_id": "publishability_repair_sprint"
+        },
+        "typed_cognitive_subpacket_gate": {
+          "admission_gate": {
+            "candidate_packet_can_close_stage": false,
+            "fail_closed": true,
+            "gate_decision_outputs": [
+              "owner_receipt",
+              "route_back",
+              "typed_blocker",
+              "human_gate"
+            ],
+            "gate_id": "independent_review_packet_admission_gate",
+            "gate_owner": "MedAutoScience",
+            "owner_receipt_or_typed_blocker_required": true,
+            "package_freshness_can_claim_ready": false,
+            "ready_claim_requires": [
+              "MAS owner receipt accepting the packet",
+              "independent gate or reviewer receipt when stage policy requires it",
+              "fresh refs for the exact stage work unit",
+              "route-back, typed blocker, or human gate when any required ref is missing"
+            ],
+            "specialist_output_can_claim_ready": false,
+            "test_pass_can_claim_ready": false
+          },
+          "authority_boundary": {
+            "can_authorize_publication_quality": false,
+            "can_authorize_submission_readiness": false,
+            "can_materialize_human_gate": false,
+            "can_materialize_typed_blocker": false,
+            "can_mutate_current_package": false,
+            "can_sign_owner_receipt": false,
+            "can_write_controller_decisions": false,
+            "can_write_mas_study_truth": false,
+            "can_write_publication_eval_latest": false,
+            "packet_is_refs_only_candidate": true
+          },
+          "consumed_ref_families": [
+            "manuscript_packet_refs",
+            "canonical_manuscript_refs",
+            "evidence_ledger_refs",
+            "claim_citation_support_refs",
+            "research_integrity_gate_input_refs",
+            "artifact_and_display_freshness_refs"
+          ],
+          "contract_source_ref": "src/med_autoscience/opl_domain_pack/family_adoption/stage_descriptor.py::_stage_typed_cognitive_subpacket_gate",
+          "forbidden_ready_claims": [
+            "specialist_output_as_ready",
+            "test_pass_as_ready",
+            "package_freshness_as_ready",
+            "provider_completion_as_ready",
+            "generated_surface_status_as_ready"
+          ],
+          "human_gate_conditions": [
+            "official_go_stop_reroute_or_publication_strategy_decision_required",
+            "external_release_or_submission_authorization_requested"
+          ],
+          "launch_surface": "codex_cli_launch_packet.typed_cognitive_subpacket_gate",
+          "packet_id": "independent_review_packet",
+          "packet_required_before_stage_completion": true,
+          "packet_role": "independent_reviewer_auditor_gate_input",
+          "packet_surface_kind": "mas_independent_review_packet",
+          "produced_ref_families": [
+            "independent_reviewer_auditor_record_refs",
+            "review_ledger_refs",
+            "publication_eval_candidate_refs",
+            "route_back_or_typed_blocker_refs",
+            "memory_accept_reject_handoff_refs"
+          ],
+          "readback_surface": "stage_contract.typed_cognitive_subpacket_gate",
+          "route_back_conditions": [
+            "claim_source_citation_statistics_display_or_artifact_gap_remains",
+            "same_invocation_attempts_to_self_review_executor_output",
+            "research_integrity_gate_input_missing_or_unresolved"
+          ],
+          "stage_id": "review_and_quality_gate",
+          "surface_kind": "mas_typed_cognitive_subpacket_gate",
+          "typed_blocker_conditions": [
+            "publication_quality_blocker",
+            "ai_reviewer_quality_blocker",
+            "source_citation_statistics_display_data_or_package_blocker"
+          ],
+          "version": "typed-cognitive-subpacket-gate.v1"
+        },
+        "mandatory_pre_gate_checks": [
+          {
+            "authority_boundary": {
+              "can_authorize_publication_quality": false,
+              "can_authorize_publication_readiness": false,
+              "can_authorize_submission_readiness": false,
+              "can_materialize_human_gate": false,
+              "can_materialize_typed_blocker": false,
+              "can_mutate_current_package": false,
+              "can_request_provider_lookup": true,
+              "can_sign_owner_receipt": false,
+              "can_write_controller_decisions": false,
+              "can_write_current_package": false,
+              "can_write_mas_study_truth": false,
+              "can_write_owner_receipt": false,
+              "can_write_publication_eval": false,
+              "can_write_publication_eval_latest": false,
+              "can_write_runtime_queue_or_provider_attempt": false,
+              "can_write_typed_blocker": false,
+              "outputs_are_gate_inputs": true,
+              "surface_authority": "mandatory_stage_hook_gate_input_only"
+            },
+            "command": "research-integrity-review-publication-gate-stage-hook",
+            "hook_id": "research-integrity-review-publication-gate-stage-hook",
+            "launch_surface": "codex_cli_launch_packet",
+            "live_owner_consumption_claimed": false,
+            "mandatory_before_stage_completion": true,
+            "mandatory_gate_input": true,
+            "paper_mission_subordination": {
+              "authority_owner": "MedAutoScience",
+              "can_bypass_submission_authority": false,
+              "can_close_without_owner_gate_or_typed_blocker": false,
+              "can_start_parallel_mainline": false,
+              "control_plane_role": "subordinate_input_or_advisory_only",
+              "mainline_route": [
+                "PaperMission",
+                "submission_authority",
+                "submission_authority_owner_gate_or_typed_blocker"
+              ],
+              "surface_kind": "mas_paper_mission_subordination"
+            },
+            "readback_surface": "stage_contract.mandatory_pre_gate_checks",
+            "required_before_owner_receipt_or_typed_blocker": true,
+            "required_gate_input_surfaces": [
+              "reference_verification_attestations",
+              "claim_citation_support_matrix_v2",
+              "manuscript_consistency_meta_review"
+            ],
+            "schema_version": 1,
+            "stage_id": "review_and_quality_gate",
+            "surface_kind": "research_integrity_stage_launch_required_input",
+            "target_stage_ids": [
+              "review_and_quality_gate"
+            ],
+            "trigger_points": [
+              "reference_list_entered",
+              "manuscript_closeout_entered",
+              "review_gate_entered",
+              "publication_gate_entered"
+            ],
+            "triggered_action": "research-integrity-reference-verification",
+            "triggered_domain_provider_lookup_contract": {
+              "can_write_provider_attempt": false,
+              "can_write_runtime_queue": false,
+              "live_owner_consumption_claimed": false,
+              "lookup_providers": [
+                "crossref",
+                "pubmed",
+                "openalex",
+                "semantic_scholar",
+                "publisher",
+                "crossmark"
+              ],
+              "mandatory_gate_input_only": true,
+              "owner": "MedAutoScience",
+              "provider_lookup_mode": "domain_owned_evidence_input_only",
+              "provider_evidence_consumed_by": "research-integrity-reference-verification",
+              "schema_version": 1,
+              "surface_kind": "mas_domain_provider_lookup_contract",
+              "triggered_action": "research-integrity-reference-verification",
+              "triggered_by_hook_id": "research-integrity-review-publication-gate-stage-hook"
+            }
+          }
+        ]
       }
     },
     {
@@ -984,6 +2356,419 @@
             "ref": "publication_artifact_refs_only_until_mas_owner_receipt",
             "ref_kind": "policy_ref",
             "role": "write_scope_boundary"
+          }
+        ]
+      },
+      "stage_contract_extension": {
+        "cohort_query_refs": [
+          {
+            "ref": "/product_entry_manifest/family_stage_control_plane_descriptor/route_contract_snapshot",
+            "ref_kind": "json_pointer",
+            "role": "auditable_stage_cohort_query"
+          }
+        ],
+        "dashboard_metric_refs": [
+          {
+            "ref": "/product_entry_manifest/family_stage_control_plane/stages/finalize_and_publication_handoff/freshness",
+            "ref_kind": "json_pointer",
+            "role": "operator_stage_freshness_metric"
+          }
+        ],
+        "human_gate_progress_evidence": {
+          "authority_boundary": {
+            "can_authorize_publication_quality": false,
+            "can_replace_ai_reviewer_gate": false,
+            "mas_retains_human_gate_receipt_authority": true
+          },
+          "evidence_gap_consumption_abi": {
+            "can_authorize_publication_quality": false,
+            "can_authorize_submission_readiness": false,
+            "can_write_domain_truth": false,
+            "component_refs": [
+              "EvidenceCondition",
+              "EvidenceBudget",
+              "HardGateRegistry",
+              "SoftGapLedger",
+              "AssumptionLedger",
+              "WorkbenchGapView"
+            ],
+            "contract_ref": "contracts/evidence-gap-consumption-abi.json",
+            "decision_policy_ref": "contracts/evidence-gap-decision-policy.json",
+            "decision_schema_ref": "contracts/schemas/evidence-gap-decision.schema.json",
+            "missing_evidence_policy": "classify_with_evidence_gap_decision_then_progress_first",
+            "projection_only": true,
+            "surface_kind": "mas_evidence_gap_consumption_abi",
+            "version": "evidence-gap-consumption-abi.v1"
+          },
+          "missing_evidence_policy": "classify_with_evidence_gap_decision_then_progress_first",
+          "required_fields": [
+            "last_attempted_deliverable_delta",
+            "why_ai_cannot_progress_one_more_delta",
+            "next_forced_delta",
+            "human_decision_owner"
+          ],
+          "schema_version": 1,
+          "surface_kind": "mas_stage_human_gate_progress_evidence_contract"
+        },
+        "hypothesis_portfolio_evidence_pack": {
+          "advisory_ref_families": [
+            "ranking_ref",
+            "proximity_ref",
+            "debate_ref",
+            "tournament_ref",
+            "evolution_ref"
+          ],
+          "advisory_refs_are_authority": false,
+          "candidate_promotion_requires_validator": true,
+          "consumption_boundary": "refs_only_no_body_no_authority_transfer",
+          "descriptor_ref": "/product_entry_manifest/family_stage_control_plane_descriptor/hypothesis_portfolio_evidence_pack",
+          "fail_closed_output_shape": {
+            "blocker_id": "missing_hypothesis_portfolio_ref_family",
+            "route_back_owner": "required",
+            "status": "typed_blocker"
+          },
+          "knowledge_ref": "agent/knowledge/hypothesis_portfolio_evidence_pack.md",
+          "progress_enhancement_ref_families": [
+            "next_delta_tournament_ref",
+            "micro_candidate_board_ref",
+            "critique_repair_hint_ref",
+            "memory_lesson_ref",
+            "meta_review_trigger_ref",
+            "opportunistic_prefetch_ref"
+          ],
+          "progress_enhancement_refs_block_route": false,
+          "ranking_and_proximity_authority": "advisory_only",
+          "required_ref_families": [
+            "hypothesis_candidate_ref",
+            "assumption_ref",
+            "sub_assumption_ref",
+            "supporting_evidence_ref",
+            "contradicting_evidence_ref",
+            "novelty_ref",
+            "source_provenance_ref",
+            "testability_ref",
+            "safety_risk_ref",
+            "negative_failed_path_ref",
+            "independent_reviewer_or_auditor_receipt_ref",
+            "human_gate_receipt_ref",
+            "owner_receipt_or_typed_blocker_ref"
+          ],
+          "validator_ref": "src/med_autoscience/opl_domain_pack/hypothesis_portfolio_pack.py::validate_hypothesis_portfolio_candidate_refs"
+        },
+        "minimum_forward_delta": {
+          "acceptance_refs": [
+            "stage_contract.user_stage_log_contract",
+            "stage_contract.progress_delta_policy",
+            "stage_contract.typed_blocker_lineage_policy",
+            "stage_contract.human_gate_progress_evidence"
+          ],
+          "authority_boundary": {
+            "can_authorize_publication_quality": false,
+            "can_authorize_submission_readiness": false,
+            "can_write_domain_truth": false,
+            "mas_retains_stage_closeout_authority": true
+          },
+          "domain_stage_refs": [
+            "finalize",
+            "journal-resolution",
+            "decision"
+          ],
+          "no_op_budget_ref": "stage_contract.progress_delta_policy.no_op_currentness_budget",
+          "owner_action": {
+            "allowed_action_refs": [
+              "export_inspection_package",
+              "publication_aftercare_plan",
+              "domain_handler_export"
+            ],
+            "next_owner": "MedAutoScience",
+            "owner_receipt_required": true
+          },
+          "progress_first_priority": "produce_reviewable_deliverable_delta_before_control_plane_explanation",
+          "restricted_results": [
+            "no_op_with_currentness_proof",
+            "record_only_reviewer_loop",
+            "provider_completed_without_typed_closeout",
+            "platform_repair_counted_as_deliverable_progress"
+          ],
+          "schema_version": 1,
+          "stage_id": "finalize_and_publication_handoff",
+          "surface_kind": "mas_stage_minimum_forward_delta_contract",
+          "target_surface": {
+            "deliverable_delta_ref": "stage_contract.progress_delta_policy.deliverable_progress_delta",
+            "domain_stage_refs": [
+              "finalize",
+              "journal-resolution",
+              "decision"
+            ],
+            "next_forced_delta_ref": "study_progress.next_forced_delta",
+            "ref_kind": "route_obligation",
+            "stage_id": "finalize_and_publication_handoff"
+          },
+          "valid_non_terminal_results": [
+            "deliverable_progress_delta",
+            "typed_blocker_with_next_forced_delta",
+            "human_gate_with_last_attempted_delta",
+            "stop_loss_candidate"
+          ]
+        },
+        "monitor_refs": [
+          {
+            "ref": "/progress_projection",
+            "ref_kind": "json_pointer",
+            "role": "stage_progress_monitor"
+          },
+          {
+            "ref": "/progress_projection",
+            "ref_kind": "json_pointer",
+            "role": "runtime_status_monitor"
+          }
+        ],
+        "route_obligation_lens": {
+          "active_route_obligation_policy": "project_current_blocking_route_obligation_before_generic_stage_status",
+          "domain_stage_refs": [
+            "finalize",
+            "journal-resolution",
+            "decision"
+          ],
+          "route_obligation_progress_delta": {
+            "deliverable_progress_delta_ref": "stage_contract.minimum_forward_delta",
+            "next_forced_delta_ref": "study_progress.next_forced_delta",
+            "typed_blocker_lineage_ref": "stage_contract.typed_blocker_lineage_policy"
+          },
+          "schema_version": 1,
+          "stage_id": "finalize_and_publication_handoff",
+          "surface_kind": "mas_stage_route_obligation_lens",
+          "target_surface_ref": "stage_contract.minimum_forward_delta.target_surface"
+        },
+        "runtime_event_refs": [
+          "runtime_event:controller_decisions.publication_handoff_ready_or_route_back_recorded",
+          "runtime_event:artifact_authority.publication_handoff_ready_or_route_back_recorded"
+        ],
+        "source_scope_refs": [
+          {
+            "ref": [
+              "finalize",
+              "journal-resolution",
+              "decision"
+            ],
+            "ref_kind": "route_stage_refs",
+            "role": "mas_route_stage_source_scope"
+          },
+          {
+            "ref": "/product_entry_manifest/family_stage_control_plane/stages/finalize_and_publication_handoff/source_refs",
+            "ref_kind": "json_pointer",
+            "role": "stage_source_ref_projection"
+          }
+        ],
+        "trigger_refs": [
+          {
+            "ref": "opl://family-stage-queue/med-autoscience/finalize_and_publication_handoff",
+            "ref_kind": "queue_ref",
+            "role": "opl_provider_stage_launch_trigger"
+          },
+          {
+            "ref": [
+              "export_inspection_package",
+              "publication_aftercare_plan",
+              "domain_handler_export"
+            ],
+            "ref_kind": "action_ref",
+            "role": "mas_guarded_action_trigger_candidates"
+          }
+        ],
+        "late_stage_progress_sprint_contract": {
+          "admission_order": [
+            "minimum_forward_delta_or_candidate_package_display_freshness",
+            "quality_gate_replay",
+            "single_next_owner_or_terminal_closeout"
+          ],
+          "authority_boundary": [
+            "no direct paper body, memory body, artifact body, publication_eval/latest.json, controller_decisions/latest.json, or current_package write outside MAS owner callable",
+            "OPL/provider completion is not paper closure without owner receipt, typed blocker, human gate, stop-loss, or progress_delta refs"
+          ],
+          "contract_ref": "agent/stages/stage_route_contract.yaml#/late_stage_progress_sprint_contract",
+          "control_plane_outputs": [
+            "progress_delta",
+            "single_next_owner_blocker",
+            "human_gate",
+            "stop_loss"
+          ],
+          "covered_work_units": [
+            "current_manuscript_prose_currentness_and_gate_replay_write_closeout"
+          ],
+          "forbidden_control_plane_outputs": [
+            "record_only_reviewer_loop",
+            "stale_fingerprint_execution_block",
+            "provider_completed_without_typed_closeout",
+            "platform_repair_counted_as_paper_progress"
+          ],
+          "gate_before_delta_policy": "gate_may_return_next_forced_delta_but_must_not_start_new_reviewer_loop",
+          "sprint_id": "publishability_repair_sprint"
+        },
+        "typed_cognitive_subpacket_gate": {
+          "admission_gate": {
+            "candidate_packet_can_close_stage": false,
+            "fail_closed": true,
+            "gate_decision_outputs": [
+              "owner_receipt",
+              "route_back",
+              "typed_blocker",
+              "human_gate"
+            ],
+            "gate_id": "publication_handoff_admission_gate",
+            "gate_owner": "MedAutoScience",
+            "owner_receipt_or_typed_blocker_required": true,
+            "package_freshness_can_claim_ready": false,
+            "ready_claim_requires": [
+              "MAS owner receipt accepting the packet",
+              "independent gate or reviewer receipt when stage policy requires it",
+              "fresh refs for the exact stage work unit",
+              "route-back, typed blocker, or human gate when any required ref is missing"
+            ],
+            "specialist_output_can_claim_ready": false,
+            "test_pass_can_claim_ready": false
+          },
+          "authority_boundary": {
+            "can_authorize_publication_quality": false,
+            "can_authorize_submission_readiness": false,
+            "can_materialize_human_gate": false,
+            "can_materialize_typed_blocker": false,
+            "can_mutate_current_package": false,
+            "can_sign_owner_receipt": false,
+            "can_write_controller_decisions": false,
+            "can_write_mas_study_truth": false,
+            "can_write_publication_eval_latest": false,
+            "packet_is_refs_only_candidate": true
+          },
+          "consumed_ref_families": [
+            "independent_review_packet_refs",
+            "publication_eval_refs",
+            "controller_decision_refs",
+            "artifact_rebuild_and_freshness_refs",
+            "journal_requirement_refs",
+            "human_gate_state_refs"
+          ],
+          "contract_source_ref": "src/med_autoscience/opl_domain_pack/family_adoption/stage_descriptor.py::_stage_typed_cognitive_subpacket_gate",
+          "forbidden_ready_claims": [
+            "specialist_output_as_ready",
+            "test_pass_as_ready",
+            "package_freshness_as_ready",
+            "provider_completion_as_ready",
+            "generated_surface_status_as_ready"
+          ],
+          "human_gate_conditions": [
+            "external_submission_PI_journal_strategy_or_portal_action_required",
+            "credential_or_irreversible_delivery_authorization_required"
+          ],
+          "launch_surface": "codex_cli_launch_packet.typed_cognitive_subpacket_gate",
+          "packet_id": "publication_handoff_admission_packet",
+          "packet_required_before_stage_completion": true,
+          "packet_role": "publication_handoff_candidate_before_external_delivery",
+          "packet_surface_kind": "mas_publication_handoff_admission_packet",
+          "produced_ref_families": [
+            "publication_handoff_receipt_candidate_refs",
+            "artifact_authority_refs",
+            "package_freshness_proof_refs",
+            "journal_submission_checklist_refs",
+            "route_back_blocker_or_human_gate_refs"
+          ],
+          "readback_surface": "stage_contract.typed_cognitive_subpacket_gate",
+          "route_back_conditions": [
+            "quality_source_artifact_journal_fit_package_or_memory_gap_remains",
+            "reviewer_or_artifact_freshness_stale_against_controller_decision",
+            "handoff_packet_would_change_claim_or_package_authority"
+          ],
+          "stage_id": "finalize_and_publication_handoff",
+          "surface_kind": "mas_typed_cognitive_subpacket_gate",
+          "typed_blocker_conditions": [
+            "artifact_mutation_blocker",
+            "publication_quality_blocker",
+            "source_readiness_or_submission_package_blocker"
+          ],
+          "version": "typed-cognitive-subpacket-gate.v1"
+        },
+        "mandatory_pre_gate_checks": [
+          {
+            "authority_boundary": {
+              "can_authorize_publication_quality": false,
+              "can_authorize_publication_readiness": false,
+              "can_authorize_submission_readiness": false,
+              "can_materialize_human_gate": false,
+              "can_materialize_typed_blocker": false,
+              "can_mutate_current_package": false,
+              "can_request_provider_lookup": true,
+              "can_sign_owner_receipt": false,
+              "can_write_controller_decisions": false,
+              "can_write_current_package": false,
+              "can_write_mas_study_truth": false,
+              "can_write_owner_receipt": false,
+              "can_write_publication_eval": false,
+              "can_write_publication_eval_latest": false,
+              "can_write_runtime_queue_or_provider_attempt": false,
+              "can_write_typed_blocker": false,
+              "outputs_are_gate_inputs": true,
+              "surface_authority": "mandatory_stage_hook_gate_input_only"
+            },
+            "command": "research-integrity-review-publication-gate-stage-hook",
+            "hook_id": "research-integrity-review-publication-gate-stage-hook",
+            "launch_surface": "codex_cli_launch_packet",
+            "live_owner_consumption_claimed": false,
+            "mandatory_before_stage_completion": true,
+            "mandatory_gate_input": true,
+            "paper_mission_subordination": {
+              "authority_owner": "MedAutoScience",
+              "can_bypass_submission_authority": false,
+              "can_close_without_owner_gate_or_typed_blocker": false,
+              "can_start_parallel_mainline": false,
+              "control_plane_role": "subordinate_input_or_advisory_only",
+              "mainline_route": [
+                "PaperMission",
+                "submission_authority",
+                "submission_authority_owner_gate_or_typed_blocker"
+              ],
+              "surface_kind": "mas_paper_mission_subordination"
+            },
+            "readback_surface": "stage_contract.mandatory_pre_gate_checks",
+            "required_before_owner_receipt_or_typed_blocker": true,
+            "required_gate_input_surfaces": [
+              "reference_verification_attestations",
+              "claim_citation_support_matrix_v2",
+              "manuscript_consistency_meta_review"
+            ],
+            "schema_version": 1,
+            "stage_id": "finalize_and_publication_handoff",
+            "surface_kind": "research_integrity_stage_launch_required_input",
+            "target_stage_ids": [
+              "finalize_and_publication_handoff"
+            ],
+            "trigger_points": [
+              "reference_list_entered",
+              "manuscript_closeout_entered",
+              "review_gate_entered",
+              "publication_gate_entered"
+            ],
+            "triggered_action": "research-integrity-reference-verification",
+            "triggered_domain_provider_lookup_contract": {
+              "can_write_provider_attempt": false,
+              "can_write_runtime_queue": false,
+              "live_owner_consumption_claimed": false,
+              "lookup_providers": [
+                "crossref",
+                "pubmed",
+                "openalex",
+                "semantic_scholar",
+                "publisher",
+                "crossmark"
+              ],
+              "mandatory_gate_input_only": true,
+              "owner": "MedAutoScience",
+              "provider_lookup_mode": "domain_owned_evidence_input_only",
+              "provider_evidence_consumed_by": "research-integrity-reference-verification",
+              "schema_version": 1,
+              "surface_kind": "mas_domain_provider_lookup_contract",
+              "triggered_action": "research-integrity-reference-verification",
+              "triggered_by_hook_id": "research-integrity-review-publication-gate-stage-hook"
+            }
           }
         ]
       }
