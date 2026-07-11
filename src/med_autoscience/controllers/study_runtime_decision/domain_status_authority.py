@@ -191,7 +191,6 @@ def _status_state(
     entry_mode: str | None,
     sync_runtime_summary: bool = True,
     include_progress_projection: bool = True,
-    enable_opl_live_provider_attempt_probe: bool = True,
 ) -> ProgressProjectionStatus:
     router = _router_module()
     execution = router._execution_payload(study_payload, profile=profile)
@@ -210,7 +209,6 @@ def _status_state(
             study_root=study_root,
             study_id=study_id,
             quest_status=quest_status,
-            enable_opl_live_provider_attempt_probe=enable_opl_live_provider_attempt_probe,
         ) or _unknown_opl_current_control_state_runtime_liveness(quest_status=quest_status)
         snapshot = runtime_liveness_audit.get("snapshot")
         if isinstance(snapshot, dict):
@@ -569,7 +567,6 @@ def _status_state(
                     entry_mode=entry_mode,
                     sync_runtime_summary=sync_runtime_summary,
                     include_progress_projection=include_progress_projection,
-                    enable_opl_live_provider_attempt_probe=enable_opl_live_provider_attempt_probe,
             ),
             execution=execution,
             study_root=study_root,
@@ -620,7 +617,6 @@ def _status_payload(
     entry_mode: str | None,
     sync_runtime_summary: bool = True,
     include_progress_projection: bool = True,
-    enable_opl_live_provider_attempt_probe: bool = True,
 ) -> dict[str, object]:
     router = _router_module()
     return router._status_state(
@@ -631,7 +627,6 @@ def _status_payload(
         entry_mode=entry_mode,
         sync_runtime_summary=sync_runtime_summary,
         include_progress_projection=include_progress_projection,
-        enable_opl_live_provider_attempt_probe=enable_opl_live_provider_attempt_probe,
     ).to_dict()
 
 
@@ -724,7 +719,6 @@ def _opl_current_control_state_runtime_liveness_projection(
     study_root: Path,
     study_id: str,
     quest_status: StudyRuntimeQuestStatus | None,
-    enable_opl_live_provider_attempt_probe: bool = True,
 ) -> dict[str, object] | None:
     latest_report_path = _opl_current_control_state_handoff_path(study_root=study_root)
     latest_report = _read_opl_current_control_state_handoff(latest_report_path) or {}

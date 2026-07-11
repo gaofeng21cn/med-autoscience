@@ -195,8 +195,7 @@ def _paper_mission_transaction_readback(
     authority_consume_readback: dict[str, Any] | None = None,
     transaction_override: dict[str, Any] | None = None,
     transaction_source_override: str | None = None,
-    enable_opl_live_probe: bool = False,
-    opl_bin: str | Path | None = None,
+    opl_runtime_payload: Mapping[str, Any] | None = None,
     attach_runtime_readback=attach_opl_runtime_carrier_readback,
     attach_next_action=attach_paper_mission_next_action,
 ) -> dict[str, Any]:
@@ -266,8 +265,7 @@ def _paper_mission_transaction_readback(
     readback = attach_runtime_readback(
         readback=readback,
         study_root=study_root,
-        enable_opl_live_probe=enable_opl_live_probe,
-        opl_bin=opl_bin,
+        opl_runtime_payload=opl_runtime_payload,
     )
     suppress_terminal_owner_gate = (
         _authority_consume_readback_supersedes_terminal_owner_gate(
@@ -281,7 +279,7 @@ def _paper_mission_transaction_readback(
         readback["opl_runtime_carrier_readback"] = (
             _runtime_readback_superseded_by_authority_consumption(readback)
         )
-        readback["opl_runtime_readback_status"] = "waiting_for_opl_runtime_live_readback"
+        readback["opl_runtime_readback_status"] = "waiting_for_opl_runtime_payload"
     readback = attach_next_action(readback)
     terminal_owner_gate = (
         {}
@@ -331,8 +329,7 @@ def _paper_mission_transaction_readback(
                 readback = attach_runtime_readback(
                     readback=readback,
                     study_root=study_root,
-                    enable_opl_live_probe=enable_opl_live_probe,
-                    opl_bin=opl_bin,
+                    opl_runtime_payload=opl_runtime_payload,
                 )
             readback = attach_next_action(readback)
     readback["terminal_owner_gate_authority_readback"] = (
@@ -449,7 +446,7 @@ def _runtime_readback_superseded_by_authority_consumption(
     return {
         "surface_kind": "paper_mission_opl_runtime_carrier_readback",
         "schema_version": 1,
-        "carrier_status": "waiting_for_opl_runtime_live_readback",
+        "carrier_status": "waiting_for_opl_runtime_payload",
         "runtime_readback_status": "terminal_closeout_superseded",
         "dispatch_status": "transition_request_pending",
         "domain_ready_verdict": "authority_consumed_candidate_supersedes_terminal_closeout",

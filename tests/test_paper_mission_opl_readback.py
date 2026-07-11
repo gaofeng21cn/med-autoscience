@@ -4,7 +4,6 @@ from pathlib import Path
 
 import pytest
 
-import med_autoscience.paper_mission_opl_readback as readback_module
 from med_autoscience.paper_mission_opl_readback import (
     RUNNING_READBACK_STATUS,
     TERMINAL_READBACK_STATUS,
@@ -41,6 +40,10 @@ def test_opl_terminal_closeout_without_canonical_route_identity_is_unresolved(
 
     assert readback["carrier_status"] == WAITING_READBACK_STATUS
     assert readback["runtime_readback_status"] == "missing"
+    assert readback["writes_runtime"] is False
+    assert readback["required_next_owner"] == "one-person-lab"
+    assert readback["required_next_action"] == "inject_canonical_opl_runtime_payload"
+    assert readback["can_claim_provider_running"] is False
 
 
 def test_opl_terminal_closeout_readback_requires_record_only_boundary(
@@ -68,7 +71,6 @@ def test_opl_terminal_closeout_readback_consumes_scoped_stage_attempt_query(
         carrier=_opl_route_carrier(),
         study_root=tmp_path / "study",
         opl_runtime_payload=_opl_runtime_query_payload(),
-        enable_opl_live_probe=False,
     )
 
     assert readback["carrier_status"] == TERMINAL_READBACK_STATUS
@@ -121,7 +123,6 @@ def test_opl_terminal_closeout_readback_rejects_query_without_transition_receipt
         carrier=_opl_route_carrier(),
         study_root=tmp_path / "study",
         opl_runtime_payload=_opl_runtime_query_payload(include_transition_receipt=False),
-        enable_opl_live_probe=False,
     )
 
     assert readback["carrier_status"] == WAITING_READBACK_STATUS
@@ -141,7 +142,6 @@ def test_opl_terminal_closeout_readback_rejects_mismatched_query_attempt_receipt
         carrier=_opl_route_carrier(),
         study_root=tmp_path / "study",
         opl_runtime_payload=payload,
-        enable_opl_live_probe=False,
     )
 
     assert readback["carrier_status"] == WAITING_READBACK_STATUS
@@ -153,107 +153,28 @@ def test_opl_terminal_closeout_readback_rejects_retired_queue_payload(tmp_path: 
         carrier=_opl_route_carrier(),
         study_root=tmp_path / "study",
         opl_runtime_payload={"family_runtime_task": {"task": {}}},
-        enable_opl_live_probe=False,
     )
 
     assert readback["carrier_status"] == WAITING_READBACK_STATUS
     assert readback["runtime_readback_status"] == "missing"
 
 
-def test_opl_live_probe_uses_scoped_list_then_attempt_query(monkeypatch, tmp_path: Path) -> None:
-    carrier = _opl_route_carrier()
-    commands: list[tuple[str, ...]] = []
-    terminal_attempt = {
-        "stage_attempt_id": "sat-terminal",
-        "domain_id": "medautoscience",
-        "study_id": carrier["study_id"],
-        "stage_id": "publication_gate_replay",
-        "status": "completed",
-    }
-
-    def fake_run(_: Path, args: tuple[str, ...], *, timeout_seconds: float) -> dict[str, object]:
-        commands.append(args)
-        if args == (
-            "family-runtime",
-            "attempt",
-            "list",
-            "--domain",
-            "mas",
-            "--study",
-            carrier["study_id"],
-            "--full",
-            "--json",
-        ):
-            return {"family_runtime_stage_attempts": {"attempts": [terminal_attempt]}}
-        if args == ("family-runtime", "attempt", "query", "sat-terminal", "--json"):
-            return _opl_runtime_query_payload()
-        raise AssertionError(args)
-
-    monkeypatch.setattr(
-        readback_module,
-        "_ranked_opl_live_probe_bin_candidates",
-        lambda *, opl_bin=None: [Path("/bin/sh")],
-    )
-    monkeypatch.setattr(readback_module, "_run_opl_json", fake_run)
-
+def test_opl_hosted_payload_provides_scoped_terminal_attempt_readback(tmp_path: Path) -> None:
     readback = paper_mission_opl_runtime_carrier_readback(
-        carrier=carrier,
+        carrier=_opl_route_carrier(),
         study_root=tmp_path / "study",
-        enable_opl_live_probe=True,
-        opl_bin="/tmp/opl",
+        opl_runtime_payload=_opl_runtime_query_payload(),
     )
 
     assert readback["carrier_status"] == TERMINAL_READBACK_STATUS
-    assert commands == [
-        (
-            "family-runtime",
-            "attempt",
-            "list",
-            "--domain",
-            "mas",
-            "--study",
-            carrier["study_id"],
-            "--full",
-            "--json",
-        ),
-        ("family-runtime", "attempt", "query", "sat-terminal", "--json"),
-    ]
+    assert readback["terminal_closeout"]["stage_attempt_id"] == "sat-terminal"
 
 
-def test_opl_live_probe_preserves_running_stage_attempt_precedence(monkeypatch, tmp_path: Path) -> None:
-    carrier = _opl_route_carrier()
-
-    def fake_run(_: Path, args: tuple[str, ...], *, timeout_seconds: float) -> dict[str, object]:
-        if args[2] == "list":
-            return {
-                "family_runtime_stage_attempts": {
-                    "attempts": [
-                        {
-                            "stage_attempt_id": "sat-running",
-                            "domain_id": "medautoscience",
-                            "study_id": carrier["study_id"],
-                            "stage_id": "publication_gate_replay",
-                            "status": "running",
-                        }
-                    ]
-                }
-            }
-        if args == ("family-runtime", "attempt", "query", "sat-running", "--json"):
-            return _opl_running_query_payload()
-        raise AssertionError(args)
-
-    monkeypatch.setattr(
-        readback_module,
-        "_ranked_opl_live_probe_bin_candidates",
-        lambda *, opl_bin=None: [Path("/bin/sh")],
-    )
-    monkeypatch.setattr(readback_module, "_run_opl_json", fake_run)
-
+def test_opl_hosted_payload_preserves_running_stage_attempt_precedence(tmp_path: Path) -> None:
     readback = paper_mission_opl_runtime_carrier_readback(
-        carrier=carrier,
+        carrier=_opl_route_carrier(),
         study_root=tmp_path / "study",
-        enable_opl_live_probe=True,
-        opl_bin="/tmp/opl",
+        opl_runtime_payload=_opl_running_query_payload(),
     )
 
     assert readback["carrier_status"] == RUNNING_READBACK_STATUS
@@ -308,7 +229,6 @@ def test_local_closeout_does_not_wrap_incomplete_canonical_receipt(tmp_path: Pat
     readback = paper_mission_opl_runtime_carrier_readback(
         carrier=carrier,
         study_root=study_root,
-        enable_opl_live_probe=False,
     )
 
     assert readback["carrier_status"] == TERMINAL_READBACK_STATUS

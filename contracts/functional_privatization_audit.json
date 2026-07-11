@@ -179,17 +179,18 @@
       "standardization_layer": "private_platform_residue_inventory"
     },
     {
-      "module_id": "opl_runtime_task_readback",
+      "module_id": "opl_hosted_runtime_readback_consumer",
       "classification": "refs_only_domain_adapter",
       "code_paths": [
+        "src/med_autoscience/paper_mission_opl_readback/__init__.py",
         "src/med_autoscience/paper_mission_opl_readback/opl_task_readback.py"
       ],
       "active_callers": [
         "MAS paper mission closeout readback",
-        "OPL family runtime task inspection adapter"
+        "OPL-hosted runtime payload consumer"
       ],
-      "migration_action": "consume_typed_opl_closeout_refs_without_task_lifecycle_mutation",
-      "retention_reason": "MAS only recognizes OPL task outcomes when they bind a typed domain closeout; it does not own queue, retry, or session lifecycle state.",
+      "migration_action": "consume_host_injected_typed_opl_closeout_without_local_probe_or_submission",
+      "retention_reason": "MAS only validates host-injected OPL attempt and typed domain closeout payloads against study, route, and owner authority. It does not resolve an OPL binary, spawn a process, submit an attempt, probe live runtime, or own queue, retry, and session lifecycle state.",
       "standardization_layer": "private_platform_residue_inventory"
     },
     {

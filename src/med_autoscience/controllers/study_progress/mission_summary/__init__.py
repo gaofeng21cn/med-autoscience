@@ -54,8 +54,6 @@ CANONICAL_OWNER_ACTION_AUTHORITY = "study_progress.canonical_owner_action_projec
 
 def build_artifact_first_mission_summary(
     payload: Mapping[str, Any],
-    *,
-    enable_opl_live_probe: bool = False,
 ) -> dict[str, Any]:
     progress = _mapping(payload)
     materialized_mission = _latest_materialized_mission(progress)
@@ -64,7 +62,6 @@ def build_artifact_first_mission_summary(
             _materialized_mission_summary(
                 progress=progress,
                 materialized_mission=materialized_mission,
-                enable_opl_live_probe=enable_opl_live_probe,
             ),
             progress=progress,
         )
@@ -127,7 +124,7 @@ def build_artifact_first_mission_summary(
     live_readback = _study_progress_opl_runtime_readback(
         study_root=_materialized_study_root(progress=progress),
         carrier=carrier,
-        enable_opl_live_probe=enable_opl_live_probe,
+        opl_runtime_payload=_mapping(progress.get("opl_runtime_payload")),
     )
     runtime_readback_status = _non_empty_text(live_readback.get("opl_runtime_readback_status")) or "not_requested_from_study_progress"
     carrier_readback = _mapping(live_readback.get("opl_runtime_carrier_readback"))
@@ -228,8 +225,6 @@ def build_artifact_first_mission_summary(
 
 def attach_artifact_first_mission_summary(
     payload: Mapping[str, Any],
-    *,
-    enable_opl_live_probe: bool = False,
 ) -> dict[str, Any]:
     updated = dict(payload)
     existing_next_action = (
@@ -238,10 +233,7 @@ def attach_artifact_first_mission_summary(
     existing_next_action_source = _non_empty_text(
         payload.get("canonical_next_action_source")
     )
-    summary = build_artifact_first_mission_summary(
-        updated,
-        enable_opl_live_probe=enable_opl_live_probe,
-    )
+    summary = build_artifact_first_mission_summary(updated)
     summary_next_action = _mapping(summary.get("next_action"))
     summary_next_action_promotable = _summary_next_action_is_promotable(summary)
     summary_overrides_existing = False
@@ -394,11 +386,7 @@ def _current_executable_owner_action_from_paper_facing_action(value: object) -> 
 
 
 def _summary_next_action_is_promotable(summary: Mapping[str, Any]) -> bool:
-    read_model_source = _mapping(summary.get("read_model_source"))
-    return (
-        _non_empty_text(read_model_source.get("source_kind"))
-        != "legacy_progress_projection_fallback"
-    )
+    return bool(_mapping(summary.get("next_action")))
 
 
 def _summary_selected_next_action_source(
@@ -421,13 +409,16 @@ def _summary_selected_next_action_source(
     )
 
 
-def _study_progress_opl_runtime_readback(*, study_root: Path, carrier: Mapping[str, Any], enable_opl_live_probe: bool) -> dict[str, Any]:
-    if not enable_opl_live_probe:
-        return {}
+def _study_progress_opl_runtime_readback(
+    *,
+    study_root: Path,
+    carrier: Mapping[str, Any],
+    opl_runtime_payload: Mapping[str, Any] | None = None,
+) -> dict[str, Any]:
     return attach_opl_runtime_carrier_readback(
         readback={"opl_runtime_carrier": carrier},
         study_root=study_root,
-        enable_opl_live_probe=True,
+        opl_runtime_payload=opl_runtime_payload,
     )
 
 

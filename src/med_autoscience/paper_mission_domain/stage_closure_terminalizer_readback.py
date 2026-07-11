@@ -197,8 +197,6 @@ def _build_terminalizer_source_readback(
         paper_mission_command="inspect",
         dry_run=False,
         source=source,
-        enable_opl_live_probe=True,
-        opl_bin=None,
     )
     if source_readback is not None:
         if _source_readback_has_owner_repair_receipt(source_readback):
@@ -235,8 +233,6 @@ def _build_terminalizer_source_readback(
             study_root=Path(profile.studies_root) / study_id,
             profile=profile,
             study_id=study_id,
-            enable_opl_live_probe=True,
-            opl_bin=None,
         )
         if direct_stage_attempt is not None:
             if allow_stage_packet_autodiscovery:
@@ -266,7 +262,6 @@ def _build_terminalizer_source_readback(
             paper_mission_command="inspect",
             dry_run=False,
             source=source,
-            enable_opl_live_probe=True,
         )
         if _readback_has_current_transaction_terminal_closeout(
             generic_source_readback,
@@ -278,8 +273,6 @@ def _build_terminalizer_source_readback(
             study_root=Path(profile.studies_root) / study_id,
             profile=profile,
             study_id=study_id,
-            enable_opl_live_probe=True,
-            opl_bin=None,
         )
         if direct_stage_attempt is not None:
             if allow_stage_packet_autodiscovery:
@@ -329,7 +322,6 @@ def _build_terminalizer_source_readback(
         paper_mission_command="inspect",
         dry_run=False,
         source=source,
-        enable_opl_live_probe=True,
     )
 
 
@@ -353,8 +345,6 @@ def _domain_transition_direct_terminal_source_readback(
     study_root: Path,
     profile: Any | None = None,
     study_id: str | None = None,
-    enable_opl_live_probe: bool = False,
-    opl_bin: str | Path | None = None,
 ) -> dict[str, Any] | None:
     readback = _mapping(materialized_readback)
     direct = _mapping(readback.get("domain_transition_direct_stage_attempt"))
@@ -395,16 +385,12 @@ def _domain_transition_direct_terminal_source_readback(
             inspect_readback=readback,
             next_action=next_action,
             canonical_next_action_source=canonical_next_action_source,
-            enable_opl_live_probe=enable_opl_live_probe,
-            opl_bin=opl_bin,
         )
     if not direct:
         return None
     direct = attach_opl_runtime_carrier_readback(
         readback=direct,
         study_root=study_root,
-        enable_opl_live_probe=True,
-        opl_bin=None,
     )
     if _optional_text(direct.get("opl_runtime_readback_status")) != (
         "opl_runtime_terminal_readback_observed"
@@ -458,8 +444,6 @@ def _materialized_run_terminal_source_readback(
     readback = attach_opl_runtime_carrier_readback(
         readback={"opl_runtime_carrier": carrier},
         study_root=study_root,
-        enable_opl_live_probe=True,
-        opl_bin=None,
     )
     if _optional_text(readback.get("opl_runtime_readback_status")) != (
         "opl_runtime_terminal_readback_observed"

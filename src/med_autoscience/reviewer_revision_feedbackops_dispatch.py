@@ -8,7 +8,6 @@ from typing import Any
 def dispatch_reviewer_revision_feedbackops(
     *,
     request_path: Path,
-    opl_bin: str = "opl",
     run_agent_lab: bool = True,
 ) -> dict[str, Any]:
     request = _read_json(request_path)
@@ -43,7 +42,7 @@ def dispatch_reviewer_revision_feedbackops(
                 "feedback_reconcile_required": True,
                 "agent_lab_suite_ref": suite_path,
                 "agent_lab_run_requested": bool(run_agent_lab and suite_path),
-                "opl_bin_ref": opl_bin,
+                "opl_action_request": dict(request.get("opl_feedback_submit") or {}),
                 "mas_executes_feedbackops": False,
                 "mas_executes_agent_lab": False,
                 "mas_executes_oma": False,

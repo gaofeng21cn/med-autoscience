@@ -99,21 +99,15 @@ def drive_direct_next_action_handoff(
 def drive_direct_next_action_result(
     *,
     handoff: Mapping[str, Any],
-    opl_runtime_submission: Mapping[str, Any],
     carrier_readback: Mapping[str, Any],
 ) -> dict[str, Any]:
     carrier_status = _optional_text(carrier_readback.get("carrier_status"))
-    submission_status = _optional_text(opl_runtime_submission.get("status"))
     status = (
         "opl_stage_route_running"
         if carrier_status == "opl_runtime_attempt_running_observed"
         else "opl_terminal_closeout_observed"
         if carrier_status == "opl_runtime_terminal_readback_observed"
-        else "submitted_to_opl_runtime"
-        if submission_status in {"submitted", "idempotent_noop"}
-        else "opl_runtime_submission_pending"
-        if submission_status == "not_requested"
-        else "opl_runtime_submission_failed"
+        else "opl_runtime_handoff_required"
     )
     return {
         "surface_kind": "paper_mission_drive_result",

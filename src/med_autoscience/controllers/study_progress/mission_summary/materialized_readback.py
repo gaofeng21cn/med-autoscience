@@ -103,7 +103,6 @@ def _materialized_mission_summary(
     *,
     progress: Mapping[str, Any],
     materialized_mission: Mapping[str, Any],
-    enable_opl_live_probe: bool = False,
 ) -> dict[str, Any]:
     helpers = _summary_helpers()
     PAPER_MISSION_RUN_CONTRACT_REF = helpers.PAPER_MISSION_RUN_CONTRACT_REF
@@ -177,7 +176,7 @@ def _materialized_mission_summary(
     live_readback = helpers._study_progress_opl_runtime_readback(
         study_root=_materialized_study_root(progress=progress),
         carrier=carrier,
-        enable_opl_live_probe=enable_opl_live_probe,
+        opl_runtime_payload=_mapping(progress.get("opl_runtime_payload")),
     )
     runtime_readback_status = (
         _non_empty_text(live_readback.get("opl_runtime_readback_status"))

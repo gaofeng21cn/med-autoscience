@@ -111,7 +111,7 @@ def paper_mission_opl_runtime_carrier(
         "provider_admission_requires_opl_runtime_result": True,
         "provider_completion_is_domain_completion": False,
         "dispatch_status": "transition_request_pending",
-        "carrier_status": "waiting_for_opl_runtime_live_readback",
+        "carrier_status": "waiting_for_opl_runtime_payload",
         "can_claim_provider_running": False,
         "can_claim_paper_progress": False,
         "can_claim_runtime_ready": False,

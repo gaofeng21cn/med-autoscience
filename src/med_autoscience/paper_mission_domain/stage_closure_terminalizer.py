@@ -61,7 +61,7 @@ def stage_closure_decision_requires_reterminalize(
     observability_gaps = _text_list(decision.get("observability_gaps"))
     if current_package_is_submission_ready_clear(_mapping(current_package)):
         return True
-    if _optional_text(opl_closeout.get("status")) == "waiting_for_opl_runtime_live_readback":
+    if _optional_text(opl_closeout.get("status")) == "waiting_for_opl_runtime_payload":
         return True
     if outcome.get("transition_kind") == "route_back_candidate_checkpoint":
         return True

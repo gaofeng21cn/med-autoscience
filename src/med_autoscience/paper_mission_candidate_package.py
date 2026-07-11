@@ -482,7 +482,7 @@ def _owner_blocker_kind(
     if terminal_owner_gate:
         return _text(terminal_owner_gate.get("gate_kind")) or "terminal_owner_gate"
     if decision_kind == "typed_blocker" or consume_status == "typed_blocker":
-        if runtime_status == "waiting_for_opl_runtime_live_readback":
+        if runtime_status == "waiting_for_opl_runtime_payload":
             return "missing_opl_runtime_readback"
         return "typed_blocker_owner_resolution"
     return "route_back_without_blocker"

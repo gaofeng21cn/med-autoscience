@@ -88,7 +88,7 @@ def test_opl_conformance_accepts_mas_foundry_consumer_and_runtime_refs_adapters(
             "refs_only_domain_adapter",
         ),
         "src/med_autoscience/paper_mission_opl_readback/opl_task_readback.py": (
-            "opl_runtime_task_readback",
+            "opl_hosted_runtime_readback_consumer",
             "refs_only_domain_adapter",
         ),
     }

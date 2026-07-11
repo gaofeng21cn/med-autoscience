@@ -49,7 +49,7 @@ def test_owner_packets_keep_authority_and_reviewer_gaps_explicit() -> None:
             "target": "one-person-lab",
         },
         "next_owner_or_human_decision": {"next_owner": "one-person-lab"},
-        "opl_runtime_readback_status": "waiting_for_opl_runtime_live_readback",
+        "opl_runtime_readback_status": "waiting_for_opl_runtime_payload",
     }
     summary = {"next_owner": "one-person-lab"}
     handoff = {"status": "not_routed_to_mission_executor"}

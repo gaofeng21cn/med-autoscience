@@ -344,13 +344,14 @@ def test_materialized_mission_summary_does_not_let_opl_closeout_override_stage_o
 
     summary = payload["artifact_first_mission_summary"]
     assert summary["opl_runtime_carrier"]["carrier_status"] == (
-        "waiting_for_opl_runtime_live_readback"
+        "waiting_for_opl_runtime_payload"
     )
     assert "opl_transition_receipt" not in summary
-    assert summary["opl_runtime_readback_status"] == (
-        "not_requested_from_study_progress"
+    assert summary["opl_runtime_readback_status"] == "waiting_for_opl_runtime_payload"
+    assert summary["opl_runtime_carrier_readback"]["carrier_status"] == (
+        "waiting_for_opl_runtime_payload"
     )
-    assert "opl_runtime_carrier_readback" not in summary
+    assert summary["opl_runtime_carrier_readback"]["writes_runtime"] is False
     assert "terminal_owner_gate" not in summary
     assert summary["next_owner_or_human_decision"] == {
         "kind": "owner_or_route",

@@ -44,8 +44,7 @@ def _domain_transition_direct_next_action_runtime_readback(
     inspect_readback: Mapping[str, Any],
     next_action: Mapping[str, Any],
     canonical_next_action_source: str | None,
-    enable_opl_live_probe: bool,
-    opl_bin: str | Path | None,
+    opl_runtime_payload: Mapping[str, Any] | None = None,
 ) -> dict[str, Any]:
     if canonical_next_action_source not in {
         "domain_transition.next_action",
@@ -64,8 +63,7 @@ def _domain_transition_direct_next_action_runtime_readback(
     carrier_readback = paper_mission_opl_runtime_carrier_readback(
         carrier=carrier,
         study_root=study_root,
-        enable_opl_live_probe=enable_opl_live_probe,
-        opl_bin=opl_bin,
+        opl_runtime_payload=opl_runtime_payload,
     )
     return {
         "surface_kind": "paper_mission_domain_transition_direct_stage_attempt_readback",

@@ -11,6 +11,7 @@ Machine boundary: 本文是人读约束；机器事实以 contracts、source、r
 - MAS 是 `Declarative Medical Research Pack + minimal authority functions`；OPL 持有 generated/hosted platform surfaces。
 - OPL 不得写 MAS study truth、quality/publication verdict、canonical artifact body、memory body 或 owner receipt。
 - MAS 不得重新拥有 generic runtime、queue、attempt ledger、StateIndex、lifecycle/storage、observability、installer、CLI/MCP transport 或 workbench shell。
+- MAS 只输出 typed runtime request / route handoff并消费 OPL host 注入的 canonical payload；不得解析 OPL binary、spawn CLI、主动 probe runtime 或把缺失 host receipt 解释为 submission success。
 
 ## Pack 与 generated surfaces
 

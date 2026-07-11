@@ -169,8 +169,7 @@ def build_paper_mission_readback(
     mission_id: str | None = None,
     candidate: str | Path | None = None,
     run_id: str | None = None,
-    submit_opl_runtime: bool | None = None,
-    opl_bin: str | Path | None = None,
+    opl_runtime_payload: Mapping[str, Any] | None = None,
     one_shot_migration: bool = False,
     study_progress_payload: str | Path | None = None,
     runtime_readback_payload: str | Path | None = None,
@@ -183,7 +182,6 @@ def build_paper_mission_readback(
     typed_resolution_apply_route_redesign: bool = False,
     dry_run: bool = False,
     source: str = "unknown",
-    enable_opl_live_probe: bool = False,
 ) -> dict[str, Any]:
     if one_shot_migration:
         return _build_one_shot_migration_cli_readback(
@@ -203,8 +201,7 @@ def build_paper_mission_readback(
             output_root=output_root,
             paper_facing_delta_ref=paper_facing_delta_ref,
             inspect_readback_builder=build_paper_mission_readback,
-            enable_opl_live_probe=enable_opl_live_probe,
-            opl_bin=opl_bin,
+            opl_runtime_payload=opl_runtime_payload,
             source=source,
         )
     if paper_mission_command == "drive":
@@ -214,8 +211,7 @@ def build_paper_mission_readback(
             study_id=study_id,
             output_root=output_root,
             run_id=run_id,
-            submit_opl_runtime=submit_opl_runtime,
-            opl_bin=opl_bin,
+            opl_runtime_payload=opl_runtime_payload,
             source=source,
             consume_candidate_readback_builder=build_paper_mission_readback,
             forbidden_authority_claims=FORBIDDEN_AUTHORITY_CLAIMS,
@@ -252,8 +248,7 @@ def build_paper_mission_readback(
             paper_mission_command=paper_mission_command,
             dry_run=dry_run,
             source=source,
-            enable_opl_live_probe=enable_opl_live_probe,
-            opl_bin=opl_bin,
+            opl_runtime_payload=opl_runtime_payload,
         )
         if materialized is not None:
             return materialized
@@ -297,7 +292,7 @@ def build_paper_mission_readback(
         mission=None,
         candidate=candidate_ref,
         authority_consume_readback=authority_consume_readback,
-        enable_opl_live_probe=enable_opl_live_probe,
+        opl_runtime_payload=opl_runtime_payload,
     )
     candidate_mission_id = _candidate_mission_id_for_readback(
         selected_mission_id=selected_mission_id,
@@ -317,7 +312,7 @@ def build_paper_mission_readback(
             mission=None,
             candidate=candidate_ref,
             authority_consume_readback=authority_consume_readback,
-            enable_opl_live_probe=enable_opl_live_probe,
+            opl_runtime_payload=opl_runtime_payload,
         )
     if authority_consume_readback is not None:
         transaction_readback["authority_consume_readback"] = authority_consume_readback
@@ -451,8 +446,7 @@ def build_paper_mission_readback(
                 },
                 next_action=next_action_override,
                 canonical_next_action_source=canonical_next_action_source,
-                enable_opl_live_probe=enable_opl_live_probe,
-                opl_bin=opl_bin,
+                opl_runtime_payload=opl_runtime_payload,
             )
         )
         if direct_next_action_runtime:

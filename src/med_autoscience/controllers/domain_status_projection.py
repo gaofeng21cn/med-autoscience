@@ -82,7 +82,6 @@ def progress_projection(
     entry_mode: str | None = None,
     sync_runtime_summary: bool = True,
     include_progress_projection: bool = True,
-    enable_opl_live_provider_attempt_probe: bool = True,
 ) -> dict[str, Any]:
     resolved_study_id, resolved_study_root, study_payload = _resolve_study(
         profile=profile,
@@ -97,7 +96,6 @@ def progress_projection(
         entry_mode=entry_mode,
         sync_runtime_summary=sync_runtime_summary,
         include_progress_projection=include_progress_projection,
-        enable_opl_live_provider_attempt_probe=enable_opl_live_provider_attempt_probe,
     )
 
 

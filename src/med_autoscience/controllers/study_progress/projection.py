@@ -87,7 +87,6 @@ def build_study_progress_projection(
     profile_ref: str | Path | None = None,
     entry_mode: str | None = None,
     materialize_read_model_artifacts: bool = True,
-    enable_opl_live_provider_attempt_probe: bool = True,
 ) -> dict[str, Any]:
     del entry_mode
     status = _status_payload(status_payload)
@@ -136,10 +135,7 @@ def build_study_progress_projection(
             publication_eval_payload=publication_eval_payload,
             payload=refreshed_existing,
         )
-        refreshed_existing = attach_artifact_first_mission_summary(
-            refreshed_existing,
-            enable_opl_live_probe=enable_opl_live_provider_attempt_probe,
-        )
+        refreshed_existing = attach_artifact_first_mission_summary(refreshed_existing)
         refreshed_existing = _attach_typed_blocker_resolution_successor_projection(
             payload=refreshed_existing,
             profile=profile,
@@ -882,7 +878,6 @@ def build_study_progress_projection(
         supervision_health_status=supervision_health_status,
         refs=refs,
         profile=profile,
-        enable_opl_live_provider_attempt_probe=enable_opl_live_provider_attempt_probe,
     )
     payload = _progress_projection_respecting_current_domain_truth(
         study_root=resolved_study_root,
@@ -931,7 +926,6 @@ def read_study_progress(
     entry_mode: str | None = None,
     sync_runtime_summary: bool = True,
     materialize_read_model_artifacts: bool | None = None,
-    enable_opl_live_provider_attempt_probe: bool = True,
 ) -> dict[str, Any]:
     resolved_study_id, resolved_study_root, _study_payload = _resolve_study(
         profile=profile,
@@ -945,7 +939,6 @@ def read_study_progress(
         entry_mode=entry_mode,
         sync_runtime_summary=sync_runtime_summary,
         include_progress_projection=False,
-        enable_opl_live_provider_attempt_probe=enable_opl_live_provider_attempt_probe,
     )
     return build_study_progress_projection(
         profile=profile,
@@ -957,6 +950,5 @@ def read_study_progress(
         materialize_read_model_artifacts=False
         if materialize_read_model_artifacts is None
         else materialize_read_model_artifacts,
-        enable_opl_live_provider_attempt_probe=enable_opl_live_provider_attempt_probe,
     )
 __all__ = [name for name in globals() if not name.startswith("__") and name != "_module_reexport"]

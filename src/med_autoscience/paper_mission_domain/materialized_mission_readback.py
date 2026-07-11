@@ -91,8 +91,7 @@ def build_materialized_mission_readback_if_available(
     paper_mission_command: str,
     dry_run: bool,
     source: str,
-    enable_opl_live_probe: bool = False,
-    opl_bin: str | Path | None = None,
+    opl_runtime_payload: Mapping[str, Any] | None = None,
 ) -> dict[str, Any] | None:
     mission_path = _latest_materialized_mission_path(
         workspace_root=Path(profile.workspace_root),
@@ -134,8 +133,7 @@ def build_materialized_mission_readback_if_available(
         paper_mission_command=paper_mission_command,
         study_root=resolved_study_root,
         mission=mission,
-        enable_opl_live_probe=enable_opl_live_probe,
-        opl_bin=opl_bin,
+        opl_runtime_payload=opl_runtime_payload,
     )
     mission = {
         **mission,
@@ -280,8 +278,7 @@ def build_materialized_mission_readback_if_available(
                 },
                 next_action=next_action_override,
                 canonical_next_action_source=canonical_next_action_source,
-                enable_opl_live_probe=enable_opl_live_probe,
-                opl_bin=opl_bin,
+                opl_runtime_payload=opl_runtime_payload,
             )
         )
         if direct_next_action_runtime:
@@ -335,8 +332,7 @@ def build_materialized_mission_readback_if_available(
                 },
                 next_action=domain_transition_next_action,
                 canonical_next_action_source="domain_transition.next_action",
-                enable_opl_live_probe=enable_opl_live_probe,
-                opl_bin=opl_bin,
+                opl_runtime_payload=opl_runtime_payload,
             )
         )
         if direct_next_action_runtime:

@@ -53,6 +53,8 @@ OPL 是 generated/default owner：
 - 传输 human gate、owner answer、receipt/blocker refs；
 - 不写 MAS study truth、quality verdict、publication authority、artifact body 或 memory body。
 
+MAS 的 runtime 边界是单向的：MAS 生成 typed domain-route request / handoff，OPL host 负责 attempt submission、Temporal admission、查询与进程生命周期；MAS 只消费 host 注入的 canonical runtime payload，并按 study、route identity 与 owner authority fail-closed 校验。MAS 不解析 OPL binary、不启动 CLI、不做 live probe，也不把缺失 host receipt 写成已提交或运行中。
+
 `Codex CLI` 是 stage 内第一公民 executor；其他 executor adapter 必须显式接入，且不承诺质量等价。Temporal 是 hosted durable runtime 的 substrate，属于 OPL 平台边界。
 
 ## MAS 保留职责

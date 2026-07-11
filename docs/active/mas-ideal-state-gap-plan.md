@@ -34,7 +34,7 @@ canonical id 是 `mas`。OPL 从 MAS pack、action catalog 与 schemas 生成或
 | OE-08 | repo-local Workbench/cockpit | 删除本地 UI/render shell与 compatibility caller；OPL hosted workbench 只消费 body-free refs | `done` | `contracts/domain_descriptor.json`、generated surface handoff、caller scan |
 | OE-09 | Tool Arsenal/Capability Runtime | action metadata 成为单一输入，由 OPL 生成 tool/interface surface | `done` | `contracts/action_catalog.json`、pack compiler input |
 | OE-10 | 手写 CLI/MCP glue | OPL 生成 CLI/MCP/Skill/product-entry；MAS 只保留 handler targets，旧 stage-plane caller 已切换 | `done` | domain descriptor、22-action catalog、OPL generated stage plane |
-| OE-11 | MAS runtime health/lifecycle/storage | runtime lifecycle、local state 与 generic readback归 OPL StageRun/current-control/StateIndex；MAS 只留医学 blocker、owner receipt 与 mutation gate | `done` | generated surface handoff、authority inventory、OPL lifecycle/StateIndex readback、旧路径 caller scan |
+| OE-11 | MAS runtime health/lifecycle/storage | runtime lifecycle、local state、attempt submission、live probe 与 generic readback归 OPL StageRun/current-control/StateIndex；MAS 只输出 typed route handoff、消费 host 注入 payload，并保留医学 blocker、owner receipt 与 mutation gate | `done` | generated surface handoff、functional audit、OPL lifecycle/StateIndex readback、旧 submission/probe 路径 caller scan |
 | OE-12 | 旧 next-action 控制面族 | 默认 authority 收敛到 `StageOutcome -> NextActionEnvelope`；旧 producer 物理退役或 tombstone-only | `done` | next-action contract、runtime completion audit、legacy tombstones |
 
 OE-01 至 OE-12 的 repo/source/control-plane 结构目标均为 `done`。L1-L4 已完成；L5 本地最终验证、吸收与远端 readback 仍在执行，不能提前写成 closeout 完成。

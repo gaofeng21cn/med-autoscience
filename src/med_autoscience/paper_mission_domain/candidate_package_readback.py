@@ -133,8 +133,7 @@ def build_materialized_candidate_package_readback(
     source_readback_override: Mapping[str, Any] | None = None,
     paper_facing_delta_ref: str | Path | None = None,
     inspect_readback_builder: Callable[..., dict[str, Any]] | None = None,
-    enable_opl_live_probe: bool = False,
-    opl_bin: str | Path | None = None,
+    opl_runtime_payload: Mapping[str, Any] | None = None,
 ) -> dict[str, Any]:
     if output_root is None:
         raise ValueError("--output-root is required for package-candidate")
@@ -147,8 +146,7 @@ def build_materialized_candidate_package_readback(
             paper_mission_command="package-candidate",
             dry_run=False,
             source=source,
-            enable_opl_live_probe=enable_opl_live_probe,
-            opl_bin=opl_bin,
+            opl_runtime_payload=opl_runtime_payload,
         )
     if readback is None and inspect_readback_builder is not None:
         inspect_readback = inspect_readback_builder(
@@ -158,8 +156,7 @@ def build_materialized_candidate_package_readback(
             paper_mission_command="inspect",
             dry_run=False,
             source=f"{source}:package-candidate-source-inspect",
-            enable_opl_live_probe=enable_opl_live_probe,
-            opl_bin=opl_bin,
+            opl_runtime_payload=opl_runtime_payload,
         )
         readback = _explicit_candidate_source_readback(inspect_readback)
     if readback is None:

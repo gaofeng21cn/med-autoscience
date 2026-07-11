@@ -66,7 +66,6 @@ def launch_study(
         status_payload=runtime_status,
         entry_mode=selected_entry_mode,
         materialize_read_model_artifacts=False,
-        enable_opl_live_provider_attempt_probe=False,
     )
     return {
         "schema_version": SCHEMA_VERSION,

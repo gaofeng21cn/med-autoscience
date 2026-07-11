@@ -162,7 +162,6 @@ def assemble_study_progress_payload(
     supervision_health_status: str | None,
     refs: dict[str, Any],
     profile: Any | None = None,
-    enable_opl_live_provider_attempt_probe: bool = True,
 ) -> dict[str, Any]:
     handoff = _mapping_copy(opl_current_control_state_handoff)
     repair_progress_projection = build_repair_progress_projection(study_root=study_root)
@@ -317,10 +316,7 @@ def assemble_study_progress_payload(
         study_root=study_root,
     )
     payload = _sync_supervision_from_user_visible_projection(payload)
-    payload = attach_artifact_first_mission_summary(
-        payload,
-        enable_opl_live_probe=enable_opl_live_provider_attempt_probe,
-    )
+    payload = attach_artifact_first_mission_summary(payload)
     payload = _attach_single_next_action_projection(payload)
     payload = _attach_typed_blocker_resolution_successor_projection(
         payload=payload,
@@ -378,8 +374,6 @@ def _attach_single_next_action_projection(payload: Mapping[str, Any]) -> dict[st
                 "paper_mission_transaction"
             )
         )
-    if _has_legacy_progress_fallback_summary(summary):
-        return _sync_user_visible_next_action_owner(updated)
     envelope = paper_mission_next_action_envelope(
         transaction=transaction,
         stage_terminal_decision=_mapping_copy(updated.get("stage_terminal_decision")),
@@ -402,14 +396,6 @@ def _attach_single_next_action_projection(payload: Mapping[str, Any]) -> dict[st
         updated["next_action"] = envelope
         updated["canonical_next_action_source"] = "paper_mission_next_action_envelope"
     return _sync_user_visible_next_action_owner(updated)
-
-
-def _has_legacy_progress_fallback_summary(summary: Mapping[str, Any]) -> bool:
-    read_model_source = _mapping_copy(summary.get("read_model_source"))
-    return (
-        _non_empty_text(read_model_source.get("source_kind"))
-        == "legacy_progress_projection_fallback"
-    )
 
 
 def _sync_user_visible_next_action_owner(payload: Mapping[str, Any]) -> dict[str, Any]:

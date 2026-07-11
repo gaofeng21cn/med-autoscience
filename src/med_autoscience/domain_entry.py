@@ -78,8 +78,11 @@ class MedAutoScienceDomainEntry:
                 candidate=_optional_text(request.get("candidate")),
                 run_id=_optional_text(request.get("run_id")),
                 output_root=_optional_text(request.get("output_root")),
-                submit_opl_runtime=bool(request.get("submit_opl_runtime")),
-                opl_bin=_optional_text(request.get("opl_bin")),
+                opl_runtime_payload=(
+                    dict(request["opl_runtime_payload"])
+                    if isinstance(request.get("opl_runtime_payload"), Mapping)
+                    else None
+                ),
                 dry_run=bool(request.get("dry_run")),
                 source="domain-entry",
             )

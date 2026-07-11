@@ -327,7 +327,6 @@ def test_artifact_first_mission_summary_prefers_current_stage_closure_readback(
                 },
             },
         },
-        enable_opl_live_probe=True,
     )
 
     assert payload["stage_closure_decision"]["decision_ref"] == "/tmp/current-stage-closure.json"

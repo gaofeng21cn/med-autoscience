@@ -29,11 +29,6 @@ from med_autoscience.paper_mission_domain.drive_helpers import (
     paper_mission_drive_output_roots as _paper_mission_drive_output_roots,
     paper_mission_drive_result as _paper_mission_drive_result,
 )
-from med_autoscience.paper_mission_domain.opl_runtime_submission import (
-    opl_runtime_submission_readback as _opl_runtime_submission_readback,
-    refresh_consume_readback_after_opl_submission as _refresh_consume_readback_after_opl_submission,
-    stage_closure_missing_runtime_submission as _stage_closure_missing_runtime_submission,
-)
 from med_autoscience.paper_mission_domain.stage_closure_terminalizer import (
     materialize_stage_closure_for_drive_readback as _materialize_stage_closure_for_drive_readback,
 )
@@ -43,6 +38,9 @@ from med_autoscience.paper_mission_output_roots import (
 from med_autoscience.controllers.stage_closure_terminalizer import (
     stage_closure_decision_missing,
     stage_closure_decision_projection,
+)
+from med_autoscience.domain_route_profile import (
+    build_domain_route_handoff_intake_readback,
 )
 from med_autoscience.paper_mission_opl_readback import (
     paper_mission_opl_runtime_carrier_readback,
@@ -56,8 +54,7 @@ def build_paper_mission_drive_readback(
     study_id: str,
     output_root: str | Path | None,
     run_id: str | None,
-    submit_opl_runtime: bool | None,
-    opl_bin: str | Path | None,
+    opl_runtime_payload: Mapping[str, Any] | None,
     source: str,
     consume_candidate_readback_builder: Callable[..., dict[str, Any]],
     forbidden_authority_claims: tuple[str, ...],
@@ -75,7 +72,6 @@ def build_paper_mission_drive_readback(
         study_id=study_id,
         source=source,
         consume_candidate_readback_builder=consume_candidate_readback_builder,
-        enable_opl_live_probe=submit_opl_runtime is not False,
     )
     domain_transition_stop = _drive_domain_transition_redrive_stop_readback(
         profile=profile,
@@ -105,8 +101,7 @@ def build_paper_mission_drive_readback(
             profile_ref=profile_ref,
             study_id=study_id,
             output_root=root,
-            submit_opl_runtime=submit_opl_runtime,
-            opl_bin=opl_bin,
+            opl_runtime_payload=opl_runtime_payload,
             source=source,
             inspect_readback=next_action_source_readback,
             forbidden_authority_claims=forbidden_authority_claims,
@@ -132,10 +127,9 @@ def build_paper_mission_drive_readback(
         paper_mission_command="consume-candidate",
         candidate=candidate_ref,
         source=f"{source}:drive:consume-candidate",
-        enable_opl_live_probe=True,
+        opl_runtime_payload=opl_runtime_payload,
     )
     handoff = _mapping(consume_readback.get("opl_route_handoff"))
-    runtime_submit_requested = submit_opl_runtime is not False
     initial_stage_closure_decision = stage_closure_decision_projection(
         readback=consume_readback,
         handoff=handoff,
@@ -148,30 +142,17 @@ def build_paper_mission_drive_readback(
             readback=consume_readback,
             handoff=handoff,
         )
-    if stage_closure_decision_missing(initial_stage_closure_decision):
-        opl_runtime_submission = _stage_closure_missing_runtime_submission(
-            initial_stage_closure_decision
-        )
-    else:
-        opl_runtime_submission = _opl_runtime_submission_readback(
-            handoff=handoff,
-            submit_opl_runtime=runtime_submit_requested,
-            opl_bin=opl_bin,
-        )
-        consume_readback = _refresh_consume_readback_after_opl_submission(
-            consume_readback=consume_readback,
-            opl_runtime_submission=opl_runtime_submission,
-        )
-        handoff = _mapping(consume_readback.get("opl_route_handoff")) or handoff
+    opl_runtime_handoff = _opl_runtime_handoff_readback(
+        handoff=handoff,
+        stage_closure_decision=initial_stage_closure_decision,
+    )
     stage_closure_decision = stage_closure_decision_projection(
         readback=consume_readback,
         handoff=handoff,
-        opl_runtime_submission=opl_runtime_submission,
     )
     drive_result = _paper_mission_drive_result(
         consume_readback=consume_readback,
         handoff=handoff,
-        opl_runtime_submission=opl_runtime_submission,
         stage_closure_decision=stage_closure_decision,
     )
     return {
@@ -182,7 +163,7 @@ def build_paper_mission_drive_readback(
         "paper_mission_command": "drive",
         "action_intent": _action_intent("drive"),
         "source": source,
-        "drive_mode": "package_consume_and_optionally_submit",
+        "drive_mode": "package_consume_and_handoff",
         "dry_run": False,
         "profile": package_readback["profile"],
         "requested_study_id": package_readback["requested_study_id"],
@@ -222,7 +203,7 @@ def build_paper_mission_drive_readback(
             "carry_forward_risk_receipt_ref"
         ),
         "opl_route_handoff": handoff or None,
-        "opl_runtime_submission": opl_runtime_submission,
+        "opl_runtime_handoff": opl_runtime_handoff,
         "stage_closure_decision": stage_closure_decision,
         "stage_closure_decision_ref": stage_closure_decision.get("decision_ref"),
         "stage_closure_outcome": _mapping(stage_closure_decision.get("outcome")).get(
@@ -235,8 +216,7 @@ def build_paper_mission_drive_readback(
         ],
         "mutation_policy": {
             "writes_authority": False,
-            "writes_runtime": runtime_submit_requested
-            and opl_runtime_submission.get("status") == "submitted",
+            "writes_runtime": False,
             "writes_yang_authority": False,
             "writes_yang_ops_candidate_package": _is_yang_ops_candidate_package_root(
                 package_root
@@ -253,12 +233,38 @@ def build_paper_mission_drive_readback(
             "writes_authority": False,
             "writes_yang_authority": False,
             "writes_paper_body": False,
-            "writes_runtime": runtime_submit_requested
-            and opl_runtime_submission.get("status") == "submitted",
+            "writes_runtime": False,
         },
         "forbidden_authority_writes": list(FORBIDDEN_AUTHORITY_WRITES),
         "forbidden_authority_claims": list(forbidden_authority_claims),
         "drive_result": drive_result,
+    }
+
+
+def _opl_runtime_handoff_readback(
+    *,
+    handoff: Mapping[str, Any],
+    stage_closure_decision: Mapping[str, Any],
+) -> dict[str, Any]:
+    if stage_closure_decision_missing(stage_closure_decision):
+        return {
+            "status": "blocked",
+            "reason": "stage_closure_decision_missing",
+            "writes_runtime": False,
+            "next_owner": "MedAutoScience.stage_closure_terminalizer",
+        }
+    route_intake = build_domain_route_handoff_intake_readback(handoff)
+    return {
+        "surface_kind": "mas_opl_runtime_handoff",
+        "schema_version": 1,
+        "status": "handoff_required",
+        "next_owner": "one-person-lab",
+        "required_next_action": "submit_typed_domain_route_request",
+        "writes_runtime": False,
+        "opl_runtime_carrier": _mapping(handoff.get("opl_runtime_carrier")),
+        "route_command": _mapping(handoff.get("opl_route_command")),
+        "runtime_request": _mapping(route_intake.get("runtime_request")),
+        "blockers": route_intake.get("blockers") or [],
     }
 
 
@@ -268,8 +274,7 @@ def _drive_direct_next_action_readback(
     profile_ref: str | Path,
     study_id: str,
     output_root: Path,
-    submit_opl_runtime: bool | None,
-    opl_bin: str | Path | None,
+    opl_runtime_payload: Mapping[str, Any] | None,
     source: str,
     inspect_readback: Mapping[str, Any] | None,
     forbidden_authority_claims: tuple[str, ...],
@@ -282,25 +287,16 @@ def _drive_direct_next_action_readback(
         inspect_readback=readback,
         next_action=next_action,
     )
-    runtime_submit_requested = submit_opl_runtime is not False
-    opl_runtime_submission = _opl_runtime_submission_readback(
-        handoff=handoff,
-        submit_opl_runtime=runtime_submit_requested,
-        opl_bin=opl_bin,
-    )
     carrier = _mapping(handoff.get("opl_runtime_carrier"))
     carrier_readback = paper_mission_opl_runtime_carrier_readback(
         carrier=carrier,
         study_root=Path(profile.studies_root) / study_id,
-        enable_opl_live_probe=runtime_submit_requested,
-        opl_bin=opl_bin,
+        opl_runtime_payload=opl_runtime_payload,
     )
     drive_result = _drive_direct_next_action_result(
         handoff=handoff,
-        opl_runtime_submission=opl_runtime_submission,
         carrier_readback=carrier_readback,
     )
-    writes_runtime = bool(opl_runtime_submission.get("writes_runtime"))
     return {
         "surface_kind": "paper_mission_drive_readback",
         "schema_version": 1,
@@ -333,7 +329,10 @@ def _drive_direct_next_action_readback(
         "opl_runtime_carrier_readback": carrier_readback,
         "opl_runtime_readback_status": carrier_readback["carrier_status"],
         "opl_route_handoff": handoff,
-        "opl_runtime_submission": opl_runtime_submission,
+        "opl_runtime_handoff": _opl_runtime_handoff_readback(
+            handoff=handoff,
+            stage_closure_decision={},
+        ),
         "transaction_state": "domain_transition_direct_stage_attempt",
         "consume_candidate_status": "not_applicable_domain_transition_direct",
         "next_owner_or_human_decision": {
@@ -347,7 +346,7 @@ def _drive_direct_next_action_readback(
         },
         "mutation_policy": {
             "writes_authority": False,
-            "writes_runtime": writes_runtime,
+            "writes_runtime": False,
             "writes_yang_authority": False,
             "writes_yang_ops_candidate_package": False,
             "writes_yang_ops_consumption_ledger": False,
@@ -361,7 +360,7 @@ def _drive_direct_next_action_readback(
             "writes_authority": False,
             "writes_yang_authority": False,
             "writes_paper_body": False,
-            "writes_runtime": writes_runtime,
+            "writes_runtime": False,
             "candidate_package": None,
             "consumption_ledger": None,
         },
@@ -377,7 +376,6 @@ def _drive_next_action_source_readback(
     study_id: str,
     source: str,
     consume_candidate_readback_builder: Callable[..., dict[str, Any]],
-    enable_opl_live_probe: bool = False,
 ) -> dict[str, Any] | None:
     inspect_readback = consume_candidate_readback_builder(
         profile=profile,
@@ -385,7 +383,6 @@ def _drive_next_action_source_readback(
         study_id=study_id,
         paper_mission_command="inspect",
         source=f"{source}:drive:canonical-next-action-inspect",
-        enable_opl_live_probe=enable_opl_live_probe,
     )
     if _drive_domain_transition_redrive_block_payload(inspect_readback) is not None:
         return inspect_readback
@@ -411,7 +408,6 @@ def _drive_canonical_next_action_source_readback(
         study_id=study_id,
         source=source,
         consume_candidate_readback_builder=consume_candidate_readback_builder,
-        enable_opl_live_probe=False,
     )
     if not _drive_can_package_from_next_action(inspect_readback):
         return None

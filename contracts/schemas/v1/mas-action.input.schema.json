@@ -170,9 +170,8 @@
           "type": "string",
           "minLength": 1
         },
-        "opl_bin": {
-          "type": "string",
-          "minLength": 1
+        "opl_runtime_payload": {
+          "type": "object"
         },
         "output_root": {
           "type": "string",
@@ -193,9 +192,6 @@
         "study_id": {
           "type": "string",
           "minLength": 1
-        },
-        "submit_opl_runtime": {
-          "type": "boolean"
         }
       }
     },

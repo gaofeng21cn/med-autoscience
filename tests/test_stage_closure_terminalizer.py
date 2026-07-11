@@ -413,19 +413,19 @@ def test_closeout_observability_records_missing_reasons_without_unknown_gaps() -
             "gate_replay_status": "blocked",
             "gate_replay_blockers": ["accepted_submission_milestone_candidate"],
         },
-        opl_closeout={"status": "waiting_for_opl_runtime_live_readback"},
+        opl_closeout={"status": "waiting_for_opl_runtime_payload"},
     )
 
     assert "observability_gaps" not in decision
     closeout = decision["opl_closeout"]
     assert closeout["duration"]["missing_duration_reason"] == (
-        "waiting_for_opl_runtime_live_readback::duration_not_recorded"
+        "waiting_for_opl_runtime_payload::duration_not_recorded"
     )
     assert closeout["token_usage"]["missing_token_usage_reason"] == (
-        "waiting_for_opl_runtime_live_readback::token_usage_not_recorded"
+        "waiting_for_opl_runtime_payload::token_usage_not_recorded"
     )
     assert closeout["cost"]["missing_cost_reason"] == (
-        "waiting_for_opl_runtime_live_readback::cost_not_recorded"
+        "waiting_for_opl_runtime_payload::cost_not_recorded"
     )
 
 

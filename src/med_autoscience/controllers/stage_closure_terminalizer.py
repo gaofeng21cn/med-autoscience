@@ -210,7 +210,6 @@ def stage_closure_decision_projection(
     *,
     readback: Mapping[str, Any],
     handoff: Mapping[str, Any] | None = None,
-    opl_runtime_submission: Mapping[str, Any] | None = None,
 ) -> dict[str, Any]:
     explicit = _first_mapping(
         _mapping(readback.get("stage_closure_decision")),
@@ -225,13 +224,11 @@ def stage_closure_decision_projection(
     if not _readback_needs_stage_closure_decision(
         readback=readback,
         handoff=handoff,
-        opl_runtime_submission=opl_runtime_submission,
     ):
         return {}
     return _missing_stage_closure_decision(
         readback=readback,
         handoff=handoff,
-        opl_runtime_submission=opl_runtime_submission,
     )
 
 
@@ -298,7 +295,6 @@ def _readback_needs_stage_closure_decision(
     *,
     readback: Mapping[str, Any],
     handoff: Mapping[str, Any] | None,
-    opl_runtime_submission: Mapping[str, Any] | None,
 ) -> bool:
     consume_result = _mapping(readback.get("consume_result"))
     if _text(consume_result.get("paper_facing_delta_ref")) is not None:
@@ -316,7 +312,6 @@ def _readback_needs_stage_closure_decision(
         _text(readback.get("transaction_state")),
         _text(readback.get("opl_runtime_readback_status")),
         _text(_mapping(readback.get("opl_runtime_carrier_readback")).get("carrier_status")),
-        _text(_mapping(opl_runtime_submission).get("status")),
         _text(_mapping(handoff).get("route_command_kind")),
     }
     return any(
@@ -338,7 +333,6 @@ def _missing_stage_closure_decision(
     *,
     readback: Mapping[str, Any],
     handoff: Mapping[str, Any] | None,
-    opl_runtime_submission: Mapping[str, Any] | None,
 ) -> dict[str, Any]:
     decision = _mapping(readback.get("stage_terminal_decision")) or _mapping(
         _mapping(readback.get("paper_mission_transaction")).get("stage_terminal_decision")
@@ -366,7 +360,6 @@ def _missing_stage_closure_decision(
             "known_blockers": _stage_closure_known_blockers(
                 readback=readback,
                 handoff=handoff,
-                opl_runtime_submission=opl_runtime_submission,
             ),
             "forbidden_interpretations": [
                 "accepted_submission_milestone_candidate_is_durable_final",
@@ -400,7 +393,6 @@ def _stage_closure_known_blockers(
     *,
     readback: Mapping[str, Any],
     handoff: Mapping[str, Any] | None,
-    opl_runtime_submission: Mapping[str, Any] | None,
 ) -> list[str]:
     decision = _mapping(readback.get("stage_terminal_decision"))
     carrier = _mapping(readback.get("opl_runtime_carrier_readback"))
@@ -412,7 +404,6 @@ def _stage_closure_known_blockers(
             decision.get("blocker_id"),
             _mapping(readback.get("terminal_owner_gate")).get("blocked_reason"),
             _mapping(handoff).get("blocked_reason"),
-            _mapping(opl_runtime_submission).get("reason"),
             carrier.get("blocked_reason"),
         ]
     )

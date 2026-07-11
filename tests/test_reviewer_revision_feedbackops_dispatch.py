@@ -38,7 +38,7 @@ def test_feedbackops_dispatch_emits_opl_execution_handoff(tmp_path: Path) -> Non
         encoding="utf-8",
     )
 
-    result = dispatch_reviewer_revision_feedbackops(request_path=request_path, opl_bin="opl")
+    result = dispatch_reviewer_revision_feedbackops(request_path=request_path)
 
     assert result["status"] == "opl_execution_handoff_required"
     assert result["next_owner"] == "one-person-lab"
@@ -63,7 +63,17 @@ def test_feedbackops_dispatch_emits_opl_execution_handoff(tmp_path: Path) -> Non
         "feedback_reconcile_required": True,
         "agent_lab_suite_ref": str(suite_path),
         "agent_lab_run_requested": True,
-        "opl_bin_ref": "opl",
+        "opl_action_request": {
+            "argv": [
+                "--target-agent",
+                "mas",
+                "--delivery-ref",
+                str(suite_path),
+                "--feedback-ref",
+                "task-intake:latest",
+                "--json",
+            ]
+        },
         "mas_executes_feedbackops": False,
         "mas_executes_agent_lab": False,
         "mas_executes_oma": False,

@@ -60,12 +60,11 @@ def paper_mission_domain_handler_dispatch_receipt(
                 start_or_resume_task_kind=start_or_resume_task_kind,
             )
         ),
-        submit_opl_runtime=(
-            bool(payload.get("submit_opl_runtime"))
-            if "submit_opl_runtime" in payload
+        opl_runtime_payload=(
+            dict(payload["opl_runtime_payload"])
+            if isinstance(payload.get("opl_runtime_payload"), Mapping)
             else None
         ),
-        opl_bin=_optional_text(payload.get("opl_bin")),
         one_shot_migration=bool(payload.get("one_shot_migration", False)),
         study_progress_payload=_optional_text(payload.get("study_progress_payload")),
         runtime_readback_payload=_optional_text(payload.get("runtime_readback_payload")),

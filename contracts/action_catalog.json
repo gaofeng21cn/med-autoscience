@@ -287,8 +287,7 @@
         "candidate",
         "run_id",
         "output_root",
-        "submit_opl_runtime",
-        "opl_bin",
+        "opl_runtime_payload",
         "dry_run"
       ]
     },

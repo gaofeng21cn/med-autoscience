@@ -110,7 +110,6 @@ def build_domain_route_profile() -> dict[str, Any]:
         "source_paths": [
             "src/med_autoscience/domain_route_profile.py",
             "src/med_autoscience/paper_mission_opl_carrier.py",
-            "src/med_autoscience/paper_mission_domain/opl_runtime_submission.py",
             "src/med_autoscience/controllers/owner_route_handoff/task_kinds.py",
         ],
         "task_kind_normalization": dict(TASK_KIND_NORMALIZATION),

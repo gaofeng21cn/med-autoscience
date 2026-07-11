@@ -70,7 +70,6 @@ def paper_mission_start_or_resume_task(
         "study_id": study_id,
         "paper_mission_command": "drive",
         "run_id": dispatch_run_id,
-        "submit_opl_runtime": False,
         "dry_run": False,
         "dispatch_execution_boundary": {
             "mode": "non_authority_candidate_package_and_opl_carrier",
@@ -78,7 +77,7 @@ def paper_mission_start_or_resume_task(
             "writes_runtime": False,
             "writes_yang_authority": False,
             "writes_paper_body": False,
-            "runtime_queue_submission_requires_explicit_submit_opl_runtime": True,
+            "runtime_handoff_requires_opl_owner_consumption": True,
         },
         "diagnostic_readback_command": "start",
         "diagnostic_readback_dry_run": True,
