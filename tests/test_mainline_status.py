@@ -18,7 +18,6 @@ def test_mainline_status_projects_current_owner_and_no_authority_boundaries() ->
         "quality",
         "single_project_owner",
     ]
-    assert payload["unified_enhancement_program"]["projection_only"] is True
     markdown = module.render_mainline_status_markdown(payload)
     assert payload["program_id"] in markdown
     assert payload["current_stage"]["id"] in markdown

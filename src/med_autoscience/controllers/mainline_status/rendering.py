@@ -124,7 +124,6 @@ def render_mainline_status_markdown(payload: dict[str, Any]) -> str:
     phase3_clearance_lane = dict(payload.get("phase3_clearance_lane") or {})
     phase4_backend_deconstruction = dict(payload.get("phase4_backend_deconstruction") or {})
     platform_target = dict(payload.get("platform_target") or {})
-    unified_enhancement_program = dict(payload.get("unified_enhancement_program") or {})
     lines = _mainline_header_lines(
         payload=payload,
         current_stage=current_stage,
@@ -141,7 +140,6 @@ def render_mainline_status_markdown(payload: dict[str, Any]) -> str:
         )
     )
     lines.extend(_mainline_phase4_lines(phase4_backend_deconstruction))
-    lines.extend(_mainline_unified_program_lines(unified_enhancement_program))
     lines.extend(_mainline_platform_target_lines(platform_target))
     lines.extend(_mainline_program_list_lines(payload))
     return "\n".join(lines) + "\n"
@@ -298,64 +296,6 @@ def _mainline_phase4_lines(phase4_backend_deconstruction: Mapping[str, Any]) -> 
         if not isinstance(item, dict):
             continue
         lines.append(f"- `{item.get('capability_id')}`: {item.get('summary') or 'none'}")
-    return lines
-
-
-def _mainline_unified_program_lines(unified_enhancement_program: Mapping[str, Any]) -> list[str]:
-    module_boundary_audit = dict(unified_enhancement_program.get("module_boundary_audit") or {})
-    lines = _unified_program_header_lines(unified_enhancement_program)
-    lines.extend(_unified_program_lane_lines(unified_enhancement_program))
-    lines.extend(_module_boundary_audit_lines(module_boundary_audit))
-    return lines
-
-
-def _unified_program_header_lines(unified_enhancement_program: Mapping[str, Any]) -> list[str]:
-    return [
-        "",
-        "## Unified Enhancement Program",
-        "",
-        f"- surface: `{unified_enhancement_program.get('surface_kind') or 'none'}`",
-        f"- status: `{unified_enhancement_program.get('status') or 'none'}`",
-        f"- source: `{unified_enhancement_program.get('source_ref') or 'none'}`",
-        f"- projection-only: {_bool_label(unified_enhancement_program.get('projection_only'))}",
-        f"- authority boundary: {unified_enhancement_program.get('authority_boundary') or 'none'}",
-    ]
-
-
-def _unified_program_lane_lines(unified_enhancement_program: Mapping[str, Any]) -> list[str]:
-    lines: list[str] = []
-    for item in unified_enhancement_program.get("lanes") or []:
-        if not isinstance(item, dict):
-            continue
-        lines.append(
-            f"- enhancement lane `{item.get('lane_id')}` / `{item.get('boundary_kind')}`: {item.get('summary') or 'none'}"
-        )
-    for item in unified_enhancement_program.get("recommendation_rollup") or []:
-        if not isinstance(item, dict):
-            continue
-        lane_id = item.get("lane_id") or "none"
-        secondary_lane_id = item.get("secondary_lane_id")
-        if secondary_lane_id:
-            lane_id = f"{lane_id} + {secondary_lane_id}"
-        lines.append(f"- recommendation `{item.get('recommendation_id')}` -> `{lane_id}`: {item.get('summary') or 'none'}")
-    return lines
-
-
-def _module_boundary_audit_lines(module_boundary_audit: Mapping[str, Any]) -> list[str]:
-    lines = [
-        "",
-        "## Module Boundary Audit",
-        "",
-        f"- projection-only: {_bool_label(module_boundary_audit.get('projection_only'))}",
-        f"- 当前摘要: {module_boundary_audit.get('summary') or 'none'}",
-    ]
-    for item in module_boundary_audit.get("boundaries") or []:
-        if not isinstance(item, dict):
-            continue
-        lines.append(
-            f"- audit boundary `{item.get('boundary_id')}` owner `{item.get('authority_owner')}`: "
-            f"{', '.join(item.get('projection_consumers') or []) or 'none'}"
-        )
     return lines
 
 

@@ -16,9 +16,6 @@ from med_autoscience.controllers.mainline_status.rendering import (
     render_mainline_phase_markdown,
     render_mainline_status_markdown,
 )
-from med_autoscience.controllers.mainline_status.unified_enhancement import (
-    build_unified_enhancement_program_projection,
-)
 
 
 SCHEMA_VERSION = 1
@@ -532,7 +529,6 @@ def _phase_ladder() -> list[dict[str, Any]]:
 def read_mainline_status() -> dict[str, Any]:
     product_entry_projection = read_product_entry_mainline_projection()
     phase_ladder = _phase_ladder()
-    unified_enhancement_program = build_unified_enhancement_program_projection()
     return {
         "schema_version": SCHEMA_VERSION,
         "generated_at": _utc_now(),
@@ -574,7 +570,6 @@ def read_mainline_status() -> dict[str, Any]:
         "phase3_clearance_lane": _phase3_clearance_lane(),
         "phase4_backend_deconstruction": _phase4_backend_deconstruction(),
         "platform_target": product_entry_projection["platform_target"],
-        "unified_enhancement_program": unified_enhancement_program,
         "phase_ladder": phase_ladder,
         "completed_tranches": [
             {
@@ -613,12 +608,10 @@ def read_mainline_status() -> dict[str, Any]:
             "core:architecture",
             "core:status",
             "runtime:agent_interface",
-            "program:mas_mds_unified_enhancement_program",
             "reference:opl_handoff",
         ],
         "commands": {
             "mainline_status": domain_entry_handler_target("mainline-status"),
-            "unified_enhancement_program": domain_entry_handler_target("mainline-status"),
             "study_progress": domain_entry_handler_target("study-progress"),
         },
     }
