@@ -21,6 +21,7 @@ MAS 的 12 项过度设计结构目标已经落地：repo-local platform surface
 | MAS runtime role | domain-handler targets + minimal authority functions |
 | Environment | MAS 声明 requirements；OPL `env prepare/run` 负责准备与执行 |
 | Next action | `StageOutcome -> NextActionEnvelope` |
+| Foundry series | OPL canonical policy + MAS refs-only consumer contract；无 shared-release/latest-stable authority |
 | Test collection | pytest 原生递归收集 |
 | Legacy control plane | retired/tombstone/provenance only |
 

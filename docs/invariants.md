@@ -17,6 +17,7 @@ Machine boundary: 本文是人读约束；机器事实以 contracts、source、r
 - `agent/` 是 canonical rich pack source；plugin carrier mirror 是分发要求，不是重复实现。
 - action catalog 当前包含 22 个 action。普通 interface 从 catalog/schema 生成，不在 MAS 新增手写 parser、JSON-RPC glue 或 duplicate descriptor。
 - MAS domain entry 只实现 handler targets 与医学 authority result，不变成 platform facade。
+- Foundry 系列 policy 归唯一 OPL Framework；MAS 只保留 canonical refs、policy fingerprint、domain delta 与 false-authority envelope，不复制 policy body，也不安装 Framework policy carrier。
 - 环境依赖在 `contracts/runtime_environment_requirements.json` 声明；prepare/run 归 OPL。MAS 可保留 `mas_provisioning_allowed=false` 的只读环境检查/投影，但不在 import、workspace 或 installer 中安装、修复环境，也不授权 ready。
 
 ## Authority

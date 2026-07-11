@@ -1,620 +1,73 @@
 {
-  "agent_membership_projection_policy": {
-    "default_membership": "standard_domain_agent",
-    "generated_surface_is_membership_axis": false,
-    "generated_surface_is_status_axis": false,
-    "generated_surface_only_field_public_default": false,
-    "plugin_transport_is_membership_axis": false,
-    "plugin_transport_is_status_axis": false,
-    "policy_id": "standard_agent_membership_not_surface_origin",
-    "public_agent_list_must_not_split_by_generated_surface": true,
-    "public_agent_list_must_not_split_by_plugin_transport": true,
-    "surface_kind": "opl_foundry_agent_membership_projection_policy",
-    "version": "foundry-agent-membership-projection.v1"
+  "surface_kind": "opl_foundry_agent_series_consumer",
+  "version": "foundry-agent-series-consumer.v1",
+  "owner": "med-autoscience",
+  "canonical_policy_export": "opl-framework/foundry-agent-series-policy",
+  "canonical_series_contract_ref": "contracts/opl-framework/foundry-agent-series-contract.json",
+  "canonical_skeleton_contract_ref": "contracts/opl-framework/standard-domain-agent-skeleton-contract.json",
+  "shared_policy_release": {
+    "policy_release_contract_ref": "contracts/opl-framework/foundry-agent-series-policy-release.json",
+    "policy_bundle_fingerprint": "sha256:503f515e8fa08b3f81ce28cac461368c609d4565de239c9f95c3f910cb758ed5",
+    "fingerprint_algorithm": "sha256:stable-json",
+    "domain_contract_policy_release_pin_required": true,
+    "domain_adapter_must_not_copy_policy_body_as_authority": true,
+    "consumer_alignment_check": "foundry:policy-release"
   },
-  "app_projection_policy": {
-    "app_can_claim_quality_or_export": false,
-    "app_can_read_domain_body": false,
-    "app_can_write_domain_truth": false,
-    "app_consumes_shared_progress_projection_only": true,
-    "display_policy": "classification_only_no_domain_artifact_body"
-  },
-  "app_projection_ref": "contracts/generated_surface_handoff.json#/generated_surfaces/3",
-  "authority_boundary": {
-    "app_owns_display_and_user_action_shell": true,
-    "domain_owns_truth_quality_artifact_memory_and_receipts": true,
-    "generated_surface_can_claim_domain_ready": false,
-    "opl_owns_series_contract": true
-  },
+  "domain_id": "mas",
+  "foundry_agent_id": "mas",
+  "product_layer": "foundry_agent",
+  "domain_label": "Research Foundry",
   "authority_owner": "MedAutoScience",
-  "contract_version_policy": {
-    "breaking_change_requires_new_version": true,
-    "compatible_version_range": [
-      "foundry-agent-series.v1"
-    ],
-    "current_version": "foundry-agent-series.v1",
-    "domain_contract_ref": "contracts/foundry_agent_series.json",
-    "domain_descriptor_must_reference_domain_contract": true,
-    "exact_version_pin_required": true
-  },
-  "domain_adapter_policy": {
-    "domain_specific_aliases_only": true,
-    "no_domain_runtime_fork": true,
-    "no_parallel_blocker_lineage_schema": true,
-    "no_parallel_progress_schema": true
-  },
   "domain_aliases": [
     "med-autoscience",
-    "mas",
     "med_auto_science"
   ],
-  "domain_id": "mas",
-  "domain_label": "Research Foundry",
-  "domain_progress_aliases": {
-    "deliverable": [
-      "paper_progress_delta",
-      "paper_work_progress"
-    ],
-    "platform": [
-      "platform_repair_delta"
-    ]
-  },
-  "domain_specific_profile": {
-    "authority_invariants": {
-      "mas_owner_receipt_required_for_domain_closeout": true,
-      "mas_role": "study_truth_publication_quality_artifact_authority_memory_authority_and_owner_receipt_owner",
-      "opl_can_accept_or_reject_memory_body": false,
-      "opl_can_authorize_artifact_mutation": false,
-      "opl_can_claim_publication_quality": false,
-      "opl_can_write_study_truth": false,
-      "opl_role": "refs_projection_runtime_lifecycle_and_generated_surface_owner"
-    },
-    "domain_input_taxonomy": [
-      "disease_specific_study_question",
-      "workspace_profile_and_study_truth_refs",
-      "data_asset_and_source_readiness_refs",
-      "evidence_review_and_claim_boundary_refs",
+  "stage_manifest_ref": "agent/stages/manifest.json",
+  "stage_control_plane_ref": "opl-generated:family_stage_control_plane",
+  "stage_control_plane_target_domain_id": "med-autoscience",
+  "app_projection_ref": "contracts/generated_surface_handoff.json#/generated_surfaces/3",
+  "domain_delta": {
+    "domain_pack_kind": "declarative_medical_research_pack",
+    "domain_input_refs": [
+      "study_question_refs",
+      "workspace_and_study_truth_refs",
+      "source_and_evidence_readiness_refs",
       "publication_route_memory_refs",
-      "human_gate_or_PI_decision_refs"
+      "human_gate_or_pi_decision_refs"
     ],
-    "domain_output_taxonomy": [
+    "domain_output_refs": [
       "research_evidence_pack_refs",
       "manuscript_or_display_delta_refs",
-      "AI_reviewer_or_auditor_record_refs",
+      "ai_reviewer_or_auditor_record_refs",
       "publication_gate_or_route_back_refs",
-      "artifact_lineage_rebuild_or_package_refs",
-      "owner_receipt_or_stable_typed_blocker_refs"
+      "artifact_lineage_or_package_refs",
+      "owner_receipt_or_typed_blocker_refs"
     ],
-    "profile_id": "mas_domain_specific_series_profile.v1",
-    "progress_currentness_closeout_packets": [
-      "stage_completion_policy",
-      "user_stage_log_contract",
-      "progress_delta_policy",
-      "typed_blocker_lineage_policy",
-      "effective_current_context",
-      "owner_receipt_or_typed_blocker_closeout"
-    ],
-    "series_members": [
-      "MAS",
-      "MAG",
-      "RCA",
-      "OMA"
-    ],
-    "shared_agent_logic": "same_opl_foundry_agent_lifecycle_with_domain_specific_medical_research_inputs_and_manuscript_outputs",
-    "shared_lifecycle_pipeline": [
-      "intake_or_resume",
-      "stage_packet_hydration",
-      "executor_attempt",
-      "independent_reviewer_or_auditor_gate",
-      "progress_currentness_projection",
-      "owner_receipt_or_typed_blocker_closeout",
-      "handoff_or_next_forced_delta"
-    ],
-    "stage_pack_sections": [
-      "prompts",
-      "stage_policies",
-      "skills",
-      "knowledge",
-      "quality_gates",
-      "action_catalog",
-      "memory_artifact_receipt_contracts"
-    ]
-  },
-  "foundry_agent_id": "medautoscience",
-  "mission_first_non_advancing_escalation_policy": {
-    "ai_owner_decision_product_refs_projection": {
-      "can_authorize_submission_or_publication_ready": false,
-      "can_replace_owner_receipt_or_quality_gate": false,
-      "domain_policy_section_ref": "contracts/mas-paper-study-stage-pack.json#/mission_first_non_advancing_route_back_policy/ai_owner_decision_product_refs",
-      "ref_families": [
-        "claim_decision_ref",
-        "scope_decision_ref",
-        "evidence_decision_ref",
-        "pivot_decision_ref",
-        "carry_forward_decision_ref"
+    "domain_progress_aliases": {
+      "deliverable": [
+        "paper_progress_delta",
+        "paper_work_progress"
+      ],
+      "platform": [
+        "platform_repair_delta"
       ]
     },
-    "applies_to_agents": [
-      "MAS"
-    ],
-    "authority_boundary": {
-      "domain_owns_non_advancing_escalation": true,
-      "domain_owns_semantic_progress_signature": true,
-      "opl_can_claim_domain_readiness_from_transport": false,
-      "opl_can_reset_synonymous_route_back_budget_from_transport": false,
-      "opl_can_write_domain_truth": false,
-      "opl_owns_transport_lifecycle": true
-    },
-    "dm002_dm003_canary_acceptance_projection": {
-      "contract_or_tests_only_can_pass": false,
-      "domain_policy_section_ref": "contracts/mas-paper-study-stage-pack.json#/mission_first_non_advancing_route_back_policy/dm002_dm003_canary_acceptance",
-      "stale_opl_running_row_can_count_as_running_proof": false,
-      "success_requires_fresh_readback": true
-    },
-    "domain_policy_ref": "contracts/mas-paper-study-stage-pack.json#/mission_first_non_advancing_route_back_policy",
-    "forbidden_public_or_readiness_claims": [
-      "domain_ready",
-      "runtime_ready",
-      "publication_ready",
-      "submission_ready",
-      "provider_running",
-      "DM002_ready",
-      "DM003_ready",
-      "paper_progress_from_canary_contract_only"
-    ],
-    "mas_mission_executor_fallback_projection": {
-      "auto_continue_after_synonymous_budget": true,
-      "domain_policy_section_ref": "contracts/mas-paper-study-stage-pack.json#/mission_first_non_advancing_route_back_policy/typed_blocker_and_human_gate_narrowing_policy",
-      "fallback_priority_order": [
-        "paper_facing_delta",
-        "owner_decision",
-        "carry_forward_risk_receipt",
-        "scope_or_evidence_or_research_pivot_decision",
-        "narrow_stop_loss_or_human_gate"
-      ],
-      "opl_redrive_default": false,
-      "required_product_refs": [
-        "paper_facing_delta_ref",
-        "owner_decision_packet_ref",
-        "claim_decision_ref",
-        "scope_decision_ref",
-        "evidence_decision_ref",
-        "pivot_decision_ref",
-        "carry_forward_decision_ref",
-        "stable_typed_blocker_ref",
-        "human_gate_ref",
-        "mission_executor_continuation_ref"
-      ],
-      "typed_blocker_or_human_gate_default": false
-    },
-    "policy_id": "foundry_agent.mission_first_non_advancing_escalation.v1",
-    "route_back_budget_policy": {
-      "after_threshold_action": "mission_executor_continue_same_stage_until_semantic_delta_or_narrow_gate",
-      "after_threshold_next_owner": "MedAutoScience.paper_mission_semantic_progress_executor",
-      "budget_exhausted_can_claim_completion": false,
-      "ledger_scope": "cross_run_same_study_mission_signature",
-      "opl_redrive_after_worker_ready_allowed": false,
-      "queue_or_worker_readiness_can_reset_budget": false,
-      "same_signature_repeat_threshold": 2,
-      "transport_or_observability_fields_can_reset_budget": false
-    },
-    "semantic_progress_signature_projection": {
-      "projected_fields": [
-        "study_id",
-        "paper_mission_run_id",
-        "stage_id",
-        "current_owner",
-        "action_type",
-        "work_unit_id",
-        "work_unit_fingerprint",
-        "route_identity_key",
-        "attempt_idempotency_key",
-        "required_output_surface",
-        "accepted_answer_shape"
-      ],
-      "same_signature_without_domain_delta_counts_as_non_advancing": true,
-      "transport_only_fields_are_observability": true
-    },
-    "stage_type_projection": {
-      "codex_executor_is_first_class_stage_executor": true,
-      "generic_provider_completion_counts_as_domain_progress": false,
-      "mas_owned_stage_type": "paper_mission_semantic_progress_executor",
-      "opl_runtime_stage_role": "provider_backing_transport_for_domain_refs"
-    },
-    "surface_kind": "opl_foundry_agent_mission_first_non_advancing_escalation_policy"
+    "minimal_authority_functions_ref": "contracts/pack_compiler_input.json#/minimal_authority_functions"
   },
-  "owner": "one-person-lab",
-  "product_layer": "foundry_agent",
-  "product_model": "OPL Framework -> One Person Lab App -> Foundry Agents",
-  "purpose_first_adapter_thinning_policy": {
-    "active_plan_ref": "docs/active/mas-ideal-state-gap-plan.md",
-    "default_operator_delta_shape": "paper_progress_delta_or_mas_owned_typed_blocker",
-    "default_retained_surface_roles": [
-      "refs_only_adapter",
-      "domain_handler_target",
-      "minimal_authority_function",
-      "migration_input",
-      "history_or_tombstone_provenance"
-    ],
-    "evidence_tail_boundary": {
-      "generated_surface_can_claim_production_ready": false,
-      "missing_paper_research_human_gate_returns": "mas_owned_typed_blocker",
-      "platform_repair_or_read_model_currentness_is_paper_progress": false,
-      "provider_completion_is_publication_ready": false,
-      "structural_conformance_is_domain_ready": false
-    },
-    "physical_delete_required_gates": [
-      "replacement_parity",
-      "no_active_caller",
-      "owner_receipt_or_typed_blocker",
-      "no_forbidden_write",
-      "tombstone_or_provenance"
-    ],
-    "policy_id": "mas.purpose_first_adapter_thinning.v1",
-    "private_surface_policy_ref": "contracts/functional_privatization_audit.json"
-  },
-  "required_identity_fields": [
-    "domain_id",
-    "foundry_agent_id",
-    "product_layer",
-    "domain_label",
-    "authority_owner",
-    "stage_control_plane_ref",
-    "stage_manifest_ref"
-  ],
-  "required_stage_packets": [
-    "stage_completion_policy",
-    "user_stage_log_contract",
-    "progress_delta_policy",
-    "typed_blocker_lineage_policy",
-    "effective_current_context",
-    "owner_receipt_or_typed_blocker_closeout"
-  ],
-  "series_design_profile": {
-    "authority_invariants": {
-      "domain_owns_input_truth_and_output_authority": true,
-      "opl_can_authorize_quality_or_export": false,
-      "opl_can_infer_domain_output": false,
-      "opl_can_read_domain_body": false,
-      "opl_can_write_domain_truth": false
-    },
-    "domain_io_profile": {
-      "input_is_domain_specific": true,
-      "input_slot": "domain_materials_or_task_request",
-      "output_is_domain_specific": true,
-      "output_slot": "domain_deliverable_or_owner_handoff",
-      "shared_runtime_interpretation": "OPL treats input/output as opaque domain refs and projects identity, stage, progress, closeout, evidence, and recovery metadata only."
-    },
-    "profile_id": "opl_foundry_agent_series_design_profile.v1",
-    "profile_summary": "All Foundry Agents share the same OPL domain-pack to stage-led execution to gate/receipt to handoff lifecycle; domain inputs, outputs, aliases, and authority functions vary by agent.",
-    "shared_closeout_contract": {
-      "blocked_shape": "domain_owned_typed_blocker_ref",
-      "provider_completion_is_closeout": false,
-      "route_back_shape": "route_back_or_human_gate_ref",
-      "success_shape": "domain_owner_receipt_ref"
-    },
-    "shared_lifecycle_pipeline": [
-      "domain_material_intake",
-      "domain_pack_interpretation",
-      "stage_led_agent_execution",
-      "independent_quality_gate_or_owner_review",
-      "owner_receipt_or_typed_blocker_closeout",
-      "artifact_or_deliverable_handoff",
-      "opl_refs_only_projection_and_recovery"
-    ],
-    "stage_pack_sections": [
-      "prompts",
-      "stages",
-      "stage_completion_policy",
-      "skills",
-      "tools",
-      "knowledge",
-      "quality_gates"
-    ],
-    "surface_kind": "opl_foundry_agent_series_design_profile",
-    "version": "foundry-agent-series-design-profile.v1"
-  },
-  "shared_policy_release": {
-    "consumer_alignment_check": "foundry:policy-release",
-    "domain_adapter_must_not_copy_policy_body_as_authority": true,
-    "domain_contract_policy_release_pin_required": true,
-    "fingerprint_algorithm": "sha256:stable-json",
-    "policy_bundle_fingerprint": "sha256:503f515e8fa08b3f81ce28cac461368c609d4565de239c9f95c3f910cb758ed5",
-    "policy_release_contract_ref": "contracts/opl-framework/foundry-agent-series-policy-release.json"
-  },
-  "shared_progress_projection_fields": [
-    "progress_delta_classification",
-    "deliverable_progress_delta",
-    "platform_repair_delta",
-    "next_forced_delta"
-  ],
-  "shared_release_pin_strategy": {
-    "consumer_alignment_check": "family:shared-release",
-    "domain_contract_version_pin_does_not_authorize_domain_truth": true,
-    "domain_dependency_pin_required": true,
-    "owner_managed_latest_stable_channel_required": true,
-    "lockfile_resolved_commit_receipt_required": true,
-    "consumer_exact_commit_equality_gate": false,
-    "owner_commit_pin": "3a3aaddd0a3e980f86e762ca1ed942bbda6f30d7",
-    "owner_commit_pin_required": true,
-    "owner_release_contract_ref": "contracts/family-release/shared-owner-release.json",
-    "supported_pin_sources": [
-      "pyproject.toml",
-      "uv.lock"
-    ]
-  },
-  "stage_control_plane_ref": "opl-generated:family_stage_control_plane",
-  "stage_manifest_ref": "agent/stages/manifest.json",
-  "stage_control_plane_target_domain_id": "med-autoscience",
-  "standard_agent_requirement": "foundry_agents_share_identity_stage_authority_progress_currentness_closeout_and_app_projection_packets",
-  "standard_feedback_self_evolution_trigger_policy": {
-    "accepted_feedback_profile": "target_agent_feedback_external_suite",
-    "applies_to_series_memberships": [
-      "standard_domain_agent",
-      "framework_capability_package"
-    ],
-    "authority_boundary": {
-      "can_authorize_quality_or_export": false,
-      "can_create_owner_receipt": false,
-      "can_create_typed_blocker": false,
-      "can_execute_repo_patch_without_developer_mode": false,
-      "can_mutate_artifact_body": false,
-      "can_write_domain_truth": false,
-      "refs_only": true
-    },
-    "contract_can_trigger_execution": false,
-    "execution_handoff_policy": {
-      "domain_pack_role": "refs_only_work_order_candidate",
-      "execution_owner": "one-person-lab",
-      "mas_can_select_direct_write_or_pull_request_route": false,
-      "missing_authorization_outcome": "opl_execution_authorization_required"
-    },
-    "feedback_capture_requires_execution_authorization": false,
-    "feedbackops_event_kind": "target_agent_feedback_external_suite",
-    "must_follow_target_domain_mainline": true,
-    "must_not_compete_with_target_domain_mainline": true,
-    "opl_execution_authorization_refs": [
-      "one-person-lab:contracts/stage-run-kernel-contract.json#execution_authorization_policy",
-      "runtime-ref:trusted_opl_execution_authorization"
-    ],
-    "policy_id": "standard_agent_feedback_self_evolution_trigger.v1",
-    "repo_fix_execution_requires_opl_execution_authorization": true,
-    "required_trigger_fields": [
-      "feedbackops_event_kind",
-      "accepted_feedback_profile",
-      "target_agent_id",
-      "idempotency_key",
-      "external_suite_ref",
-      "opl_execution_authorization_refs",
-      "oma_evolution_skill_ref",
-      "owner_closeout_readback_refs"
-    ],
-    "standard_status_projection_ref": "contracts/opl-framework/agent-lab-contract.json#/domain_feedback_self_evolution_surface",
-    "surface_kind": "opl_foundry_agent_standard_feedback_self_evolution_trigger_policy",
-    "target_domain_terminal_route": "owner_gate_or_typed_blocker",
-    "trigger_chain": [
-      "domain_or_package_thin_feedback_adapter",
-      "opl_feedbackops_agent_lab_status_projection",
-      "opl_meta_agent_oma_agent_evolution_work_order",
-      "opl_execution_authorization_and_owner_route_handoff",
-      "target_owner_closeout_readback"
-    ],
-    "version": "foundry-agent-feedback-self-evolution-trigger.v1"
-  },
-  "standard_public_projection_policy": {
-    "active_public_projection_allows_compatibility_aliases": false,
-    "active_public_projection_allows_domain_owned_cli_as_standard_surface": false,
-    "active_public_projection_allows_forbidden_surface_roles": false,
-    "active_public_projection_allows_legacy_json_aliases": false,
-    "active_public_projection_allows_non_opl_foundry_cli": false,
-    "active_public_projection_allows_retired_surface_aliases": false,
-    "allowed_active_public_foundry_surfaces": [
-      "opl_foundry_agent_series_spine",
-      "opl_family_hosted_surfaces"
-    ],
-    "allowed_domain_owned_helper_context": "minimal_authority_functions_only",
-    "canonical_inspect_command_pattern": "opl foundry agents inspect <agent_id>",
-    "domain_owned_helpers_are_membership_axis": false,
-    "minimal_authority_functions_are_membership_axis": false,
-    "non_standard_surface_retention_contexts": [
-      "history",
-      "tombstone"
-    ],
-    "policy_id": "standard_agent_public_foundry_surface_is_opl_generated_hosted_series",
-    "standard_public_foundry_surface": "opl_generated_hosted_series",
-    "surface_kind": "opl_foundry_agent_standard_public_projection_policy",
-    "version": "foundry-agent-standard-public-projection.v1"
-  },
-  "surface_kind": "opl_foundry_agent_series_contract",
-  "version": "foundry-agent-series.v1",
-  "workspace_topology_profile": {
-    "authority_boundary": {
-      "opl_can_create_owner_receipt": false,
-      "opl_can_create_typed_blocker": false,
-      "opl_can_define_topology_contract": true,
-      "opl_can_mutate_artifact_body": false,
-      "opl_can_project_workspace_refs": true,
-      "opl_can_write_domain_truth": false,
-      "runtime_state_counts_as_user_default_surface": false
-    },
-    "default_profiles": {
-      "mas_portfolio": {
-        "canonical_profile_id": "portfolio",
-        "profile_role": "legacy_domain_alias",
-        "project_collection_path": "projects",
-        "project_stage_outputs_root": "artifacts/stage_outputs",
-        "shared_resource_roots": [
-          "data",
-          "literature",
-          "memory",
-          "shared/sources"
-        ],
-        "workspace_mode": "portfolio"
-      },
-      "one_off": {
-        "canonical_profile_id": "one_off",
-        "profile_role": "canonical",
-        "project_collection_path": "projects",
-        "project_stage_outputs_root": "artifacts/stage_outputs",
-        "series_capable_skeleton": true,
-        "shared_resource_roots": [
-          "shared/sources",
-          "shared/memory",
-          "shared/style_system"
-        ],
-        "workspace_mode": "one_off"
-      },
-      "portfolio": {
-        "canonical_profile_id": "portfolio",
-        "profile_role": "canonical",
-        "project_collection_path": "projects",
-        "project_stage_outputs_root": "artifacts/stage_outputs",
-        "shared_resource_roots": [
-          "data",
-          "literature",
-          "memory",
-          "shared/sources"
-        ],
-        "workspace_mode": "portfolio"
-      },
-      "rca_series": {
-        "canonical_profile_id": "series",
-        "profile_role": "legacy_domain_alias",
-        "project_collection_path": "projects",
-        "project_stage_outputs_root": "artifacts/stage_outputs",
-        "shared_resource_roots": [
-          "shared/sources",
-          "shared/brand",
-          "shared/visual_memory",
-          "shared/style_system",
-          "shared/material_inventory"
-        ],
-        "workspace_mode": "series"
-      },
-      "series": {
-        "canonical_profile_id": "series",
-        "profile_role": "canonical",
-        "project_collection_path": "projects",
-        "project_stage_outputs_root": "artifacts/stage_outputs",
-        "shared_resource_roots": [
-          "shared/sources",
-          "shared/brand",
-          "shared/visual_memory",
-          "shared/style_system",
-          "shared/material_inventory"
-        ],
-        "workspace_mode": "series"
-      }
-    },
-    "default_project_stage_outputs_root": "artifacts/stage_outputs",
-    "default_user_inspection_surface": {
-      "ordinary_user_default_surface": "workspace_local_project_stage_outputs",
-      "product_views_are_stage_outputs": false,
-      "project_stage_outputs_pattern": "<project-root>/artifacts/stage_outputs/<stage-id>/",
-      "runtime_state_is_default_user_surface": false
-    },
-    "domain_profile_defaults": {
-      "bookforge": "one_off",
-      "mag": "one_off",
-      "mas": "portfolio",
-      "oma": "one_off",
-      "rca": "series"
-    },
-    "example_project_layouts": {
-      "mas_portfolio": {
-        "alias_role": "legacy_domain_alias",
-        "canonical_layout": "portfolio",
-        "legacy_project_collection_aliases": [
-          "studies"
-        ]
-      },
-      "one_off": {
-        "legacy_project_collection_aliases": [
-          "deliverables"
-        ],
-        "project_collection_path": "projects",
-        "project_root_pattern": "projects/<project-id>",
-        "project_stage_outputs_pattern": "projects/<project-id>/artifacts/stage_outputs/<stage-id>/"
-      },
-      "portfolio": {
-        "legacy_project_collection_aliases": [
-          "studies"
-        ],
-        "project_collection_path": "projects",
-        "project_root_pattern": "projects/<study-id>",
-        "project_stage_outputs_pattern": "projects/<study-id>/artifacts/stage_outputs/<stage-id>/",
-        "shared_roots": [
-          "data",
-          "literature",
-          "memory"
-        ]
-      },
-      "rca_series": {
-        "alias_role": "legacy_domain_alias",
-        "canonical_layout": "series",
-        "legacy_project_collection_aliases": [
-          "deliverables"
-        ]
-      },
-      "series": {
-        "legacy_project_collection_aliases": [
-          "deliverables"
-        ],
-        "project_collection_path": "projects",
-        "project_root_pattern": "projects/<deck-id>",
-        "project_stage_outputs_pattern": "projects/<deck-id>/artifacts/stage_outputs/<stage-id>/",
-        "shared_roots": [
-          "shared/sources",
-          "shared/brand",
-          "shared/visual_memory",
-          "shared/style_system",
-          "shared/material_inventory"
-        ]
-      }
-    },
-    "legacy_domain_profile_aliases": {
-      "mas_portfolio": {
-        "alias_for_domain": "mas",
-        "alias_role": "legacy_domain_alias",
-        "canonical_profile_id": "portfolio"
-      },
-      "rca_series": {
-        "alias_for_domain": "rca",
-        "alias_role": "legacy_domain_alias",
-        "canonical_profile_id": "series"
-      }
-    },
-    "profile_id": "opl.workspace_topology_profile.v1",
-    "runtime_state_boundary": {
-      "role": "provider_backing_provenance_restore_audit",
-      "runtime_state_can_be_canonical_project_root": false,
-      "runtime_state_can_close_stage": false,
-      "runtime_state_can_replace_owner_receipt_or_typed_blocker": false
-    },
-    "surface_kind": "opl_workspace_topology_profile",
-    "topology_model": [
-      "workspace_group",
-      "project_unit",
-      "stage_artifact_unit",
-      "owner_receipt_or_typed_blocker"
-    ],
-    "version": "workspace-topology-profile.v1",
-    "workspace_initialization_policy": {
-      "default_project_collection_path": "projects",
-      "default_workspace_mode": "one_off",
-      "explicit_workspace_mode_declaration_preferred": true,
-      "infer_portfolio_when_user_requests_shared_research_workspace_with_multiple_studies": true,
-      "infer_series_when_user_requests_multiple_related_deliverables": true,
-      "legacy_project_collection_aliases": [
-        "deliverables",
-        "studies"
-      ],
-      "upgrading_one_off_to_series_must_not_move_existing_project_roots": true
-    },
-    "workspace_modes": [
-      "one_off",
-      "series",
-      "portfolio"
-    ]
+  "authority_boundary": {
+    "consumer_contract_can_write_domain_truth": false,
+    "consumer_contract_can_authorize_quality_or_export": false,
+    "consumer_contract_can_replace_canonical_policy": false,
+    "opl_can_write_domain_truth": false,
+    "opl_can_read_domain_body": false,
+    "opl_can_accept_or_reject_memory_body": false,
+    "opl_can_authorize_artifact_mutation": false,
+    "opl_can_claim_publication_quality": false,
+    "opl_can_replace_domain_owner_receipt": false,
+    "domain_can_write_other_domain_truth": false,
+    "domain_can_write_other_domain_memory_body": false,
+    "domain_can_mutate_other_domain_artifact_body": false,
+    "domain_can_authorize_other_domain_quality_or_export": false,
+    "generated_surface_can_claim_domain_ready": false
   }
 }
