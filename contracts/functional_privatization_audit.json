@@ -165,62 +165,6 @@
       "standardization_layer": "private_platform_residue_inventory"
     },
     {
-      "module_id": "mds_behavior_equivalence_provenance",
-      "classification": "refs_only_domain_adapter",
-      "code_paths": [
-        "src/med_autoscience/controllers/mds_capability_parity/behavior_equivalence.py"
-      ],
-      "active_callers": [
-        "MDS capability parity audit",
-        "MAS historical source-provenance comparison"
-      ],
-      "migration_action": "retain_historical_mds_behavior_as_provenance_only",
-      "retention_reason": "The file compares frozen MDS behavior with OPL-owned runtime transport and does not create a MAS scheduler or session store.",
-      "standardization_layer": "private_platform_residue_inventory"
-    },
-    {
-      "module_id": "opl_provider_attempt_readback",
-      "classification": "refs_only_domain_adapter",
-      "code_paths": [
-        "src/med_autoscience/controllers/paper_mission_owner_surface/opl_provider_attempts.py"
-      ],
-      "active_callers": [
-        "MAS paper mission owner surface",
-        "OPL provider attempt readback projection"
-      ],
-      "migration_action": "project_opl_attempt_refs_without_runtime_lifecycle_ownership",
-      "retention_reason": "MAS reads provider readiness and current-control refs for domain routing while OPL owns provider admission and attempt lifecycle.",
-      "standardization_layer": "private_platform_residue_inventory"
-    },
-    {
-      "module_id": "opl_runtime_task_readback",
-      "classification": "refs_only_domain_adapter",
-      "code_paths": [
-        "src/med_autoscience/paper_mission_opl_readback/opl_task_readback.py"
-      ],
-      "active_callers": [
-        "MAS paper mission closeout readback",
-        "OPL family runtime task inspection adapter"
-      ],
-      "migration_action": "consume_typed_opl_closeout_refs_without_task_lifecycle_mutation",
-      "retention_reason": "MAS only recognizes OPL task outcomes when they bind a typed domain closeout; it does not own queue, retry, or session lifecycle state.",
-      "standardization_layer": "private_platform_residue_inventory"
-    },
-    {
-      "module_id": "owner_route_domain_intent_adapter",
-      "classification": "minimal_authority_function",
-      "code_paths": [
-        "src/med_autoscience/runtime_control/owner_route_attempt_protocol.py"
-      ],
-      "active_callers": [
-        "MAS owner-route policy",
-        "domain owner receipt and typed-blocker routing"
-      ],
-      "migration_action": "translate_domain_owner_route_intent_to_opl_current_control_refs",
-      "retention_reason": "MAS retains domain owner-route semantics but only references the OPL current-control transport and cannot authorize provider admission.",
-      "standardization_layer": "authority_function_inventory"
-    },
-    {
       "module_id": "publication_route_memory_locator_transport",
       "classification": "refs_only_domain_adapter",
       "code_paths": [

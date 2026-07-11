@@ -147,6 +147,7 @@ def test_live_provider_attempt_reads_only_scoped_stage_attempts(monkeypatch, tmp
     assert result["active_workflow_id"] == "workflow-sat-live"
     assert result["action_type"] == "run_quality_repair_batch"
     assert result["runtime_health"]["runtime_liveness_status"] == "live"
+    assert result["refs"] == {"opl_stage_run": "opl://stage-attempts/sat-live"}
     assert commands == [
         _scoped_attempt_list_args(study_id),
         ("family-runtime", "attempt", "inspect", "sat-live", "--json"),
@@ -250,7 +251,7 @@ def test_terminal_provider_attempt_uses_scoped_stage_attempt_inspect(
         ("family-runtime", "attempt", "inspect", "sat-terminal", "--json"),
     ]
 
-def test_provider_readiness_keeps_opl_queue_name_out_of_mas_projection() -> None:
+def test_provider_readiness_projects_current_control_ref_without_runtime_authority() -> None:
     module = importlib.import_module(
         "med_autoscience.controllers.paper_mission_owner_surface.opl_provider_attempts"
     )
@@ -267,10 +268,7 @@ def test_provider_readiness_keeps_opl_queue_name_out_of_mas_projection() -> None
                 },
                 "provider_runtime": {
                     "providers": {
-                        "temporal": {
-                            "task_queue": "must-remain-opl-owned",
-                            "details": {"worker_ready": True},
-                        }
+                        "temporal": {"details": {"worker_ready": True}}
                     },
                     "selected": {"details": {}},
                 },
@@ -285,7 +283,6 @@ def test_provider_readiness_keeps_opl_queue_name_out_of_mas_projection() -> None
     )
 
     assert projection is not None
-    assert "task_queue" not in projection
     assert projection["opl_current_control_state_ref"] == "opl://current-control/mas"
     assert projection["can_write_domain_truth"] is False
     assert projection["can_authorize_publication_ready"] is False

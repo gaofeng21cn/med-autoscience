@@ -498,7 +498,6 @@ def _live_projection_from_attempt_inspect(
         or _text(provider_run.get("workflow_id"))
         or _text(provider_run.get("run_id"))
     )
-    task_id = _text(attempt.get("task_id"))
     projection = {
         "surface_kind": "opl_current_control_state_provider_attempt",
         "source": "opl_family_runtime_attempt_inspect",
@@ -508,9 +507,6 @@ def _live_projection_from_attempt_inspect(
         "running_provider_attempt": True,
         "runtime_owner": "one-person-lab",
         "provider_attempt_owner": "one-person-lab",
-        "queue_owner": "one-person-lab",
-        "task_id": task_id,
-        "task_kind": STAGE_OUTCOME_OPL_HANDOFF_TASK_KIND,
         "provider_kind": _text(attempt.get("provider_kind")) or _text(provider_run.get("provider_kind")),
         "action_type": _text(locator.get("action_type")) or _text(attempt.get("action_type")),
         "work_unit_id": _text(locator.get("work_unit_id")) or _text(attempt.get("work_unit_id")),
@@ -538,10 +534,7 @@ def _live_projection_from_attempt_inspect(
             "summary": "OPL family-runtime has a live provider-backed stage attempt for this study.",
             "provider_status": provider_status,
         },
-        "refs": {
-            "opl_queue_task": f"opl://family-runtime/tasks/{task_id}" if task_id is not None else None,
-            "opl_stage_attempt": f"opl://stage_attempts/{stage_attempt_id}",
-        },
+        "refs": {"opl_stage_run": f"opl://stage-attempts/{stage_attempt_id}"},
         "authority_boundary": {
             "opl": "provider_attempt_liveness_projection_only",
             "domain": "truth_quality_artifact_gate_owner",
@@ -615,7 +608,6 @@ def _terminal_closeout_projection_from_attempt_inspect(
         "status": _text(attempt.get("status")),
         "stage_id": _text(attempt.get("stage_id")),
         "domain_id": _text(attempt.get("domain_id")),
-        "task_id": _text(attempt.get("task_id")),
         "action_type": action_type,
         "work_unit_id": work_unit_id,
         "work_unit_fingerprint": work_unit_fingerprint,

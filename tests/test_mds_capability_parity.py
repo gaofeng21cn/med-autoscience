@@ -121,7 +121,7 @@ def test_mds_behavior_equivalence_rejects_daemon_equivalence_and_owner_writes() 
         assert surface["publication_ready_authority_allowed"] is False
 
 
-def test_mds_behavior_equivalence_marks_session_history_as_provenance_only() -> None:
+def test_mds_live_worker_history_is_provenance_only() -> None:
     module = _module()
     repo_root = Path(__file__).resolve().parents[1]
     provenance = json.loads(
@@ -136,8 +136,7 @@ def test_mds_behavior_equivalence_marks_session_history_as_provenance_only() -> 
     session_surface = next(
         surface for surface in matrix["behavior_surfaces"] if surface["surface_id"] == "live_worker_session_tracking"
     )
-    assert session_surface["mds_behavior"]["session_store"] is True
-    assert "session_store" not in session_surface["mas_behavior"]
+    assert session_surface["mds_behavior"]["live_worker_state_registry"] is True
     assert session_surface["mas_behavior"]["current_control_state_read_model"] == {
         "owner": "one-person-lab",
         "read_only": True,

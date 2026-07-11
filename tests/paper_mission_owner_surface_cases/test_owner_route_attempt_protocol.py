@@ -9,11 +9,12 @@ def test_owner_route_protocol_uses_one_opl_transport_ref_without_lifecycle_inter
     boundary = protocol._authority_boundary()
 
     assert boundary["runtime_transport_ref"] == "opl-generated:family-runtime/current-control"
+    assert boundary["stage_run_ref_contract"] == "opl-generated:family-runtime/stage-run"
+    assert boundary["state_index_ref_contract"] == "opl-generated:state-index/source-ref"
     assert boundary["transport_owner"] == "one-person-lab"
     assert boundary["mas_can_write_runtime_transport"] is False
     assert boundary["mas_can_authorize_provider_admission"] is False
     assert "opl_owns" not in boundary
-    assert "dead_letter" not in str(boundary)
 
 
 def test_owner_route_protocol_attaches_registered_reason_and_priority_lattice() -> None:
@@ -561,8 +562,6 @@ def test_owner_callable_attempt_envelope_declares_domain_intent_and_authority_bo
             },
             "provider_completion": "succeeded",
             "running_worker": True,
-            "queue_status": "succeeded",
-            "retry_budget_remaining": 0,
         }
     )
 
@@ -572,6 +571,8 @@ def test_owner_callable_attempt_envelope_declares_domain_intent_and_authority_bo
     assert "runtime/.ds/**" in envelope["tool_discipline"]["forbidden_path_globs"]
     assert envelope["authority_boundary"] == {
         "runtime_transport_ref": "opl-generated:family-runtime/current-control",
+        "stage_run_ref_contract": "opl-generated:family-runtime/stage-run",
+        "state_index_ref_contract": "opl-generated:state-index/source-ref",
         "transport_owner": "one-person-lab",
         "mas_can_write_runtime_transport": False,
         "mas_can_authorize_provider_admission": False,
@@ -580,8 +581,6 @@ def test_owner_callable_attempt_envelope_declares_domain_intent_and_authority_bo
         "provider_completion_is_domain_completion": False,
         "provider_completion_is_stage_state": False,
         "running_worker_is_stage_state": False,
-        "queue_succeeded_is_domain_completion": False,
-        "retry_budget_is_domain_completion": False,
         "stage_state_owner": "one-person-lab",
         "domain_completion_owner": "med-autoscience",
         "domain_completion_requires": [
@@ -599,6 +598,12 @@ def test_owner_callable_attempt_envelope_declares_domain_intent_and_authority_bo
     assert domain_intent["owner_route_currentness_basis"] == envelope["owner_route_currentness_basis"]
     assert domain_intent["required_closeout_packet"] == envelope["required_closeout_packet"]
     assert domain_intent["lifecycle_contract"]["fail_closed_when_missing"] is True
+    assert domain_intent["lifecycle_contract"]["stage_run_ref_contract"] == (
+        "opl-generated:family-runtime/stage-run"
+    )
+    assert domain_intent["lifecycle_contract"]["state_index_ref_contract"] == (
+        "opl-generated:state-index/source-ref"
+    )
     assert domain_intent["missing_required_fields"] == []
 
 

@@ -43,6 +43,8 @@ PRIORITY_LATTICE = [
 
 AUTHORITY_BOUNDARY = {
     "runtime_transport_ref": "opl-generated:family-runtime/current-control",
+    "stage_run_ref_contract": "opl-generated:family-runtime/stage-run",
+    "state_index_ref_contract": "opl-generated:state-index/source-ref",
     "transport_owner": "one-person-lab",
     "mas_can_write_runtime_transport": False,
     "mas_can_authorize_provider_admission": False,
@@ -51,8 +53,6 @@ RUNTIME_COMPLETION_GUARD = {
     "provider_completion_is_domain_completion": False,
     "provider_completion_is_stage_state": False,
     "running_worker_is_stage_state": False,
-    "queue_succeeded_is_domain_completion": False,
-    "retry_budget_is_domain_completion": False,
     "stage_state_owner": "one-person-lab",
     "domain_completion_owner": "med-autoscience",
     "domain_completion_requires": [
@@ -457,7 +457,9 @@ def _domain_intent(
         "lifecycle_contract": {
             "fail_closed_when_missing": True,
             "provider_completion_is_domain_completion": False,
-            "queue_attempt_retry_liveness_owner": "one-person-lab",
+            "runtime_transport_ref": AUTHORITY_BOUNDARY["runtime_transport_ref"],
+            "stage_run_ref_contract": AUTHORITY_BOUNDARY["stage_run_ref_contract"],
+            "state_index_ref_contract": AUTHORITY_BOUNDARY["state_index_ref_contract"],
             "domain_completion_owner": "med-autoscience",
         },
     }
