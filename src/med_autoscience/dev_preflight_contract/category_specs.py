@@ -378,7 +378,7 @@ def build_category_specs(
             "tests/test_dev_preflight_contract.py",
             "tests/test_editable_shared_bootstrap.py",
             "tests/fixtures/opl_agent_lab_longline.json",
-            "tests/test_family_shared_release.py",
+            "tests/test_foundry_agent_series_consumer_contract.py",
             "tests/test_opl_agent_lab_longline_migration.py",
             "uv.lock",
         ),

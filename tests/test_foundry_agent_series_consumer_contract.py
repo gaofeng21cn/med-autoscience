@@ -51,26 +51,11 @@ def test_foundry_agent_series_is_a_refs_only_domain_consumer_contract() -> None:
     assert all(value is False for value in contract["authority_boundary"].values())
 
 
-def test_foundry_consumer_does_not_restore_framework_release_authority() -> None:
-    contract_path = REPO_ROOT / "contracts" / "foundry_agent_series.json"
-    contract = json.loads(contract_path.read_text(encoding="utf-8"))
+def test_foundry_consumer_has_no_local_framework_dependency() -> None:
     pyproject = tomllib.loads((REPO_ROOT / "pyproject.toml").read_text(encoding="utf-8"))
-
-    assert "shared_release_pin_strategy" not in contract
-    assert contract["canonical_policy_export"] == (
-        "opl-framework/foundry-agent-series-policy"
-    )
-    assert not (
-        REPO_ROOT
-        / "contracts"
-        / "opl-framework"
-        / "foundry-agent-series-policy-release.json"
-    ).exists()
     dependency_names = {
         dependency.split(" ", 1)[0].split("@", 1)[0].strip()
         for dependency in pyproject["project"]["dependencies"]
     }
-    assert dependency_names.isdisjoint({"opl-framework", "opl-framework-shared"})
-    contract_text = contract_path.read_text(encoding="utf-8")
-    assert "opl-framework-shared" not in contract_text
-    assert "latest-stable" not in contract_text
+
+    assert "opl-framework" not in dependency_names

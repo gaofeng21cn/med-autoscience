@@ -67,7 +67,7 @@ repo/source/control-plane structural completion 与 live acceptance 分开。Liv
 
 ## D-16 Foundry consumer contract
 
-Foundry 系列 canonical policy 只存在于 OPL Framework。MAS 不声明或安装 Framework policy carrier，只以 `contracts/foundry_agent_series.json` 保存 canonical refs、policy fingerprint、MAS domain delta 和完整 false-authority envelope；shared-release/latest-stable pin 与 OPL policy body 不在 MAS 维护。
+Foundry 系列 canonical policy 只存在于 OPL Framework。MAS 不声明或安装 Framework policy carrier，只以 `contracts/foundry_agent_series.json` 保存 canonical refs、policy fingerprint、MAS domain delta 和完整 false-authority envelope。
 
 ## 机器入口
 

@@ -44,7 +44,7 @@ FAMILY_FILES = {
     "tests/test_dev_preflight.py",
     "tests/test_dev_preflight_contract.py",
     "tests/test_editable_shared_bootstrap.py",
-    "tests/test_family_shared_release.py",
+    "tests/test_foundry_agent_series_consumer_contract.py",
     "tests/test_opl_agent_lab_longline_migration.py",
 }
 

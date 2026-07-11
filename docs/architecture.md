@@ -39,7 +39,7 @@ canonical id 固定为 `mas`。`med-autoscience` 仅是 repo/package/plugin loca
 
 Pack 只声明需求和能力，不实现通用 transport、installer、workspace bootstrap、runtime shell 或 workbench。
 
-Foundry 系列 policy 只由唯一 OPL Framework 持有。MAS 的 `contracts/foundry_agent_series.json` 是 refs-only consumer contract，只记录 canonical contract refs、policy fingerprint、MAS domain delta 与 false-authority envelope；不复制 OPL policy body，也不把 `opl-framework` 或已退役的 `opl-framework-shared` 声明为本地依赖。
+Foundry 系列 policy 只由唯一 OPL Framework 持有。MAS 的 `contracts/foundry_agent_series.json` 是 refs-only consumer contract，只记录 canonical contract refs、policy fingerprint、MAS domain delta 与 false-authority envelope；MAS 不复制 OPL policy body，也不声明本地 Framework 依赖。
 
 ## OPL 平台职责
 
