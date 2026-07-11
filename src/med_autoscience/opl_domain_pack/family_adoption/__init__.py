@@ -4,7 +4,7 @@ from collections.abc import Mapping
 from pathlib import Path
 from typing import Any
 
-from med_autoscience import stage_knowledge_contract
+from med_autoscience import research_memory_contract
 from med_autoscience import stage_quality_contract
 from med_autoscience import stage_skill_surface_projection
 from med_autoscience.ars_learning_projection import build_ars_learning_projection
@@ -51,7 +51,7 @@ PUBLICATION_ROUTE_MEMORY_SEED_FIXTURE_REF = (
 )
 STUDY_ARCHETYPES_REF = "docs/policies/study-workflow/study_archetypes.md"
 STAGE_KNOWLEDGE_PLANE_CONTRACT_REF = (
-    "med_autoscience.stage_knowledge_contract.stage_knowledge_plane_contract"
+    "med_autoscience.research_memory_contract.research_memory_contract"
 )
 STAGE_QUALITY_PACK_CONTRACT_REF = stage_quality_contract.CONTRACT_REF
 STAGE_SKILL_SURFACE_PROJECTION_REF = stage_skill_surface_projection.CONTRACT_REF
@@ -100,7 +100,7 @@ def build_family_stage_control_plane_descriptor() -> dict[str, Any]:
     route_ids = list(route_contracts)
     late_stage_progress_sprint_contract = late_stage_progress_sprint_contract_from_payload(route_contract_payload)
     route_obligations_descriptor = route_obligations_descriptor_from_payload(route_contract_payload)
-    knowledge_contract = stage_knowledge_contract.stage_knowledge_plane_contract()
+    knowledge_contract = research_memory_contract.research_memory_contract()
     packet_contracts = _mapping(knowledge_contract.get("packet_contracts"))
     packet_surfaces = list(packet_contracts)
     exploratory_stages = list(knowledge_contract.get("exploratory_stages") or [])
@@ -150,11 +150,11 @@ def build_family_stage_control_plane_descriptor() -> dict[str, Any]:
             "stage_deliverable_index_contract_source": STAGE_DELIVERABLE_INDEX_CONTRACT_REF,
             "packet_contract_surfaces": packet_surfaces,
             "quality_pack_contract_surfaces": list(stage_quality_contract.QUALITY_PACK_CONTRACT_SURFACES),
-            "stage_knowledge_root": str(stage_knowledge_contract.STAGE_KNOWLEDGE_ROOT),
+            "stage_state_owner_surface": state_index_source_refs.REPLACEMENT_OWNER_SURFACE,
             "test_evidence": [
                 "tests/test_stage_route_contract.py",
                 "tests/test_stage_route_assets.py",
-                "tests/test_stage_knowledge_plane.py",
+                "tests/test_research_memory.py",
                 "tests/test_stage_knowledge_entry_injection.py",
                 "tests/test_stage_knowledge_visibility.py",
                 "tests/test_stage_quality_contract.py",
@@ -173,7 +173,7 @@ def build_family_stage_control_plane_descriptor() -> dict[str, Any]:
         },
         "late_stage_progress_sprint_contract": late_stage_progress_sprint_contract,
         "route_obligations_descriptor": route_obligations_descriptor,
-        "stage_knowledge_plane": {
+        "research_memory": {
             "contract_ref": STAGE_KNOWLEDGE_PLANE_CONTRACT_REF,
             "contract_surface": knowledge_contract.get("surface"),
             "schema_version": knowledge_contract.get("schema_version"),
@@ -181,19 +181,22 @@ def build_family_stage_control_plane_descriptor() -> dict[str, Any]:
             "packet_surfaces": packet_surfaces,
         },
         "stage_packets": {
-            "knowledge_packet": stage_knowledge_contract.KNOWLEDGE_PACKET_SURFACE,
-            "memory_closeout_packet": stage_knowledge_contract.MEMORY_CLOSEOUT_SURFACE,
-            "memory_write_router_receipt": stage_knowledge_contract.MEMORY_ROUTER_SURFACE,
-            "stage_recall_index": stage_knowledge_contract.RECALL_INDEX_SURFACE,
+            "stage_refs": research_memory_contract.OPL_STAGE_REFS_SURFACE,
+            "memory_closeout": research_memory_contract.PUBLICATION_ROUTE_MEMORY_CLOSEOUT_SURFACE,
+            "memory_acceptance_receipt": (
+                research_memory_contract.PUBLICATION_ROUTE_MEMORY_ACCEPTANCE_RECEIPT_SURFACE
+            ),
         },
         "hypothesis_portfolio_evidence_pack": hypothesis_portfolio_evidence_pack,
         "memory_control": {
-            "closeout_categories": list(stage_knowledge_contract.TYPED_CLOSEOUT_CATEGORIES),
-            "router_receipt_surface": stage_knowledge_contract.MEMORY_ROUTER_SURFACE,
-            "recall_index_surface": stage_knowledge_contract.RECALL_INDEX_SURFACE,
-            "publication_route_memory_pack_surface": stage_knowledge_contract.PUBLICATION_ROUTE_MEMORY_PACK_SURFACE,
+            "closeout_categories": list(research_memory_contract.TYPED_CLOSEOUT_CATEGORIES),
+            "state_index_owner_surface": state_index_source_refs.REPLACEMENT_OWNER_SURFACE,
+            "acceptance_receipt_surface": (
+                research_memory_contract.PUBLICATION_ROUTE_MEMORY_ACCEPTANCE_RECEIPT_SURFACE
+            ),
+            "publication_route_memory_pack_surface": research_memory_contract.PUBLICATION_ROUTE_MEMORY_PACK_SURFACE,
             "publication_route_memory_apply_receipt_surface": (
-                stage_knowledge_contract.PUBLICATION_ROUTE_MEMORY_APPLY_RECEIPT_SURFACE
+                research_memory_contract.PUBLICATION_ROUTE_MEMORY_APPLY_RECEIPT_SURFACE
             ),
             "can_promote_memory_to_evidence": False,
         },
@@ -244,7 +247,7 @@ def build_family_stage_control_plane_descriptor() -> dict[str, Any]:
             "domain_truth_owner": "MedAutoScience",
             "hypothesis_truth_owner": "MedAutoScience",
             "route_contract_owner": "MedAutoScience",
-            "stage_knowledge_plane_owner": "MedAutoScience",
+            "research_memory_owner": "MedAutoScience",
             "evidence_ledger_owner": "MedAutoScience",
             "review_ledger_owner": "MedAutoScience",
             "controller_decision_owner": "MedAutoScience",
@@ -261,7 +264,7 @@ def build_family_stage_control_plane_descriptor() -> dict[str, Any]:
 
 
 def build_domain_memory_descriptor() -> dict[str, Any]:
-    knowledge_contract = stage_knowledge_contract.stage_knowledge_plane_contract()
+    knowledge_contract = research_memory_contract.research_memory_contract()
     exploratory_stages = list(knowledge_contract.get("exploratory_stages") or [])
     stage_applicability = ["scout", "idea", "decision", "analysis-campaign", "review"]
     return {
@@ -280,23 +283,23 @@ def build_domain_memory_descriptor() -> dict[str, Any]:
         "stage_applicability": stage_applicability,
         "retrieval_contract_ref": {
             "ref_kind": "surface_kind",
-            "ref": stage_knowledge_contract.KNOWLEDGE_PACKET_SURFACE,
-            "role": "stage_entry_retrieval_packet",
+            "ref": research_memory_contract.OPL_STAGE_REFS_SURFACE,
+            "role": "opl_stage_entry_refs",
         },
         "writeback_contract_ref": {
             "ref_kind": "surface_kind",
-            "ref": stage_knowledge_contract.MEMORY_CLOSEOUT_SURFACE,
-            "role": "typed_stage_closeout_proposal",
+            "ref": research_memory_contract.PUBLICATION_ROUTE_MEMORY_CLOSEOUT_SURFACE,
+            "role": "typed_publication_memory_closeout",
         },
         "receipt_contract_ref": {
             "ref_kind": "surface_kind",
-            "ref": stage_knowledge_contract.MEMORY_ROUTER_SURFACE,
-            "role": "domain_router_receipt",
+            "ref": research_memory_contract.PUBLICATION_ROUTE_MEMORY_ACCEPTANCE_RECEIPT_SURFACE,
+            "role": "domain_memory_acceptance_receipt",
         },
         "recall_projection_ref": {
             "ref_kind": "surface_kind",
-            "ref": stage_knowledge_contract.RECALL_INDEX_SURFACE,
-            "role": "stage_recall_projection",
+            "ref": state_index_source_refs.REPLACEMENT_OWNER_SURFACE,
+            "role": "opl_state_index_projection",
         },
         "migration_plan_ref": {
             "ref_kind": "human_doc",
@@ -320,8 +323,8 @@ def build_domain_memory_descriptor() -> dict[str, Any]:
             "role": "domain_owned_router_receipts",
         },
         "workspace_apply_surface": {
-            "seed_apply_receipt_surface": stage_knowledge_contract.PUBLICATION_ROUTE_MEMORY_APPLY_RECEIPT_SURFACE,
-            "memory_pack_surface": stage_knowledge_contract.PUBLICATION_ROUTE_MEMORY_PACK_SURFACE,
+            "seed_apply_receipt_surface": research_memory_contract.PUBLICATION_ROUTE_MEMORY_APPLY_RECEIPT_SURFACE,
+            "memory_pack_surface": research_memory_contract.PUBLICATION_ROUTE_MEMORY_PACK_SURFACE,
             "memory_pack_locator": f"{PUBLICATION_ROUTE_MEMORY_LOCATOR}/memory_pack.json",
             "migration_receipt_locator": f"{PUBLICATION_ROUTE_MEMORY_LOCATOR}/migration_receipts",
             "repo_tracks_real_pack_or_receipts": False,
@@ -336,7 +339,7 @@ def build_domain_memory_descriptor() -> dict[str, Any]:
         "freshness": {
             "status": "policy_seed",
             "refresh_policy": "rebuild_product_entry_manifest_before_opl_discovery",
-            "stage_knowledge_contract_schema_version": knowledge_contract.get("schema_version"),
+            "research_memory_contract_schema_version": knowledge_contract.get("schema_version"),
             "stage_knowledge_exploratory_stages": exploratory_stages,
             "stale_if_policy_or_stage_contract_missing": True,
         },

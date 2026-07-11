@@ -5,7 +5,7 @@ import json
 from collections.abc import Mapping, Sequence
 from typing import Any
 
-from med_autoscience.stage_knowledge_contract import SCHEMA_VERSION
+from med_autoscience.research_memory_contract import SCHEMA_VERSION
 
 
 SURFACE = "stage_research_frontier_board"

@@ -104,11 +104,11 @@ def should_attach_runtime_escalation_ref(status: dict[str, Any]) -> bool:
     if input_contract.get("all_required_refs_present") is True:
         return False
     missing_or_invalid = _text_set(input_contract.get("missing_or_invalid_refs"))
-    if "stage_knowledge_packet" not in missing_or_invalid:
+    if "opl_stage_folder_state_index_refs" not in missing_or_invalid:
         return False
-    stage_ref = _mapping(_mapping(input_contract.get("required_refs")).get("stage_knowledge_packet"))
+    stage_ref = _mapping(_mapping(input_contract.get("required_refs")).get("opl_stage_folder_state_index_refs"))
     ref = str(stage_ref.get("relative_path") or stage_ref.get("ref") or "").strip()
-    if ref and ref != "artifacts/stage_knowledge/review/latest.json":
+    if ref and ref != "opl-stage-folder://review/latest.json":
         return False
     missing_reasons = {
         *_text_set(stage_ref.get("missing_reasons")),

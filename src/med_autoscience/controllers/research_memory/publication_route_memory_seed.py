@@ -6,12 +6,12 @@ from collections.abc import Mapping, Sequence
 from pathlib import Path
 from typing import Any
 
-from med_autoscience.controllers.stage_knowledge_plane.publication_route_memory_cards import (
+from med_autoscience.controllers.research_memory.publication_route_memory_cards import (
     normalize_publication_route_card,
     publication_route_cards_from_markdown,
     publication_seed_blockers,
 )
-from med_autoscience.stage_knowledge_contract import (
+from med_autoscience.research_memory_contract import (
     PUBLICATION_ROUTE_MEMORY_APPLY_RECEIPT_SURFACE,
     PUBLICATION_ROUTE_MEMORY_PACK_SURFACE,
     SCHEMA_VERSION,

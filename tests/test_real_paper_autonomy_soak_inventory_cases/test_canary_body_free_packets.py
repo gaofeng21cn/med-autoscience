@@ -393,9 +393,9 @@ def test_owner_receipt_canary_closeout_materializes_body_free_packets(tmp_path: 
         },
     )
     _write_json(
-        dm002 / "artifacts" / "stage_knowledge" / "paper_soak_memory_apply_proof" / "latest.json",
+        dm002 / "artifacts" / "stage_knowledge" / "opl_state_index_memory_proof_ref" / "latest.json",
         {
-            "surface": "paper_soak_memory_apply_proof",
+            "surface": "opl_state_index_memory_proof_ref",
             "status": "ready",
             "stage_entry": {
                 "publication_route_memory_refs": [
@@ -446,11 +446,7 @@ def test_owner_receipt_canary_closeout_materializes_body_free_packets(tmp_path: 
     assert per_line_result["artifact_movement_refs"] == [
         str(dm002 / "artifacts" / "controller" / "repair_execution_receipts" / "latest.json")
     ]
-    assert per_line_result["publication_route_memory_writeback_receipt_refs"] == [
-        "receipt:memory-router",
-        "receipt:writeback",
-        "receipt:aion",
-    ]
+    assert per_line_result["publication_route_memory_writeback_receipt_refs"] == []
     assert per_line_result["artifact_lifecycle_receipt_refs"] == [
         "artifact-lifecycle-receipt:dm002:repair-execution-rebuild"
     ]
@@ -467,7 +463,6 @@ def test_owner_receipt_canary_closeout_materializes_body_free_packets(tmp_path: 
         "current_delta_ref_fields": [
             "owner_receipt_refs",
             "progress_delta_refs",
-            "publication_route_memory_writeback_receipt_refs",
             "artifact_lifecycle_receipt_refs",
         ],
     }
@@ -481,14 +476,14 @@ def test_owner_receipt_canary_closeout_materializes_body_free_packets(tmp_path: 
     assert tail_closure["all_required_tails_closed"] is False
     assert tail_closure["summary_counts"] == {
         "required_tail_count": 5,
-        "closed_tail_count": 4,
+        "closed_tail_count": 3,
         "evidence_gap_count": 0,
         "stable_blocker_count": 0,
-        "not_triggered_count": 1,
+        "not_triggered_count": 2,
     }
     assert tail_closure["tails"]["publication_route_memory_writeback"] == {
-        "status": "refs_observed",
-        "refs": ["receipt:memory-router", "receipt:writeback", "receipt:aion"],
+        "status": "not_triggered",
+        "refs": [],
         "required": True,
         "body_included": False,
     }
@@ -520,19 +515,12 @@ def test_owner_receipt_canary_closeout_materializes_body_free_packets(tmp_path: 
         str(dm002 / "artifacts" / "controller" / "repair_execution_evidence" / "latest.json"),
     } <= set(evidence_payload["record_payload"]["domain_owner_receipt_refs"])
     assert evidence_payload["record_payload"]["typed_blocker_refs"] == []
-    assert {
-        "receipt:memory-router",
-        "receipt:writeback",
-        "receipt:aion",
-        "artifact-lifecycle-receipt:dm002:repair-execution-rebuild",
-    } <= set(evidence_payload["record_payload"]["evidence_refs"])
+    assert "artifact-lifecycle-receipt:dm002:repair-execution-rebuild" in set(
+        evidence_payload["record_payload"]["evidence_refs"]
+    )
     assert evidence_payload["record_payload"]["details"][
         "publication_route_memory_writeback_receipt_refs"
-    ] == [
-        "receipt:memory-router",
-        "receipt:writeback",
-        "receipt:aion",
-    ]
+    ] == []
     assert evidence_payload["record_payload"]["details"]["artifact_lifecycle_receipt_refs"] == [
         "artifact-lifecycle-receipt:dm002:repair-execution-rebuild"
     ]
@@ -546,9 +534,6 @@ def test_owner_receipt_canary_closeout_materializes_body_free_packets(tmp_path: 
     expected_stage_refs = [
         str(dm002 / "artifacts" / "controller" / "repair_execution_receipts" / "latest.json"),
         str(dm002 / "artifacts" / "controller" / "repair_execution_evidence" / "latest.json"),
-        "receipt:memory-router",
-        "receipt:writeback",
-        "receipt:aion",
         "artifact-lifecycle-receipt:dm002:repair-execution-rebuild",
         "real_paper_autonomy_provider_hosted_guarded_apply_receipt/forbidden_write_guard",
     ]
@@ -563,10 +548,7 @@ def test_owner_receipt_canary_closeout_materializes_body_free_packets(tmp_path: 
     stage_packet_roles = {packet["role"] for packet in evidence_payload["body_free_evidence_packets"]}
     assert "stage_expected_receipt_ref" in stage_packet_roles
     assert "stage_monitor_freshness_ref" in stage_packet_roles
-    assert {
-        "publication_route_memory_writeback_receipt_ref",
-        "artifact_lifecycle_receipt_ref",
-    } <= packet_roles
+    assert "artifact_lifecycle_receipt_ref" in packet_roles
     for packet in payload["body_free_evidence_packets"]:
         _assert_body_free_canary_packet(packet, owner="MedAutoScience")
 

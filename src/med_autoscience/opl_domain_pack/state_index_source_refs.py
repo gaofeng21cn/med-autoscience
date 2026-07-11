@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from collections.abc import Mapping
+from collections.abc import Mapping, Sequence
 import hashlib
 import json
 from pathlib import Path
@@ -51,6 +51,35 @@ def emit_stage_artifact_delta_source(
         receipt=receipt,
         receipt_path=receipt_path,
     )
+
+
+def normalize_state_index_refs(
+    refs: object,
+) -> list[dict[str, str]]:
+    if not isinstance(refs, Sequence) or isinstance(refs, (str, bytes)):
+        return []
+    normalized: list[dict[str, str]] = []
+    seen: set[tuple[str, str]] = set()
+    for raw in refs:
+        if not isinstance(raw, Mapping):
+            continue
+        source_ref = str(raw.get("source_ref") or "").strip()
+        payload_sha256 = str(raw.get("payload_sha256") or "").strip()
+        if not source_ref or not payload_sha256:
+            continue
+        key = (source_ref, payload_sha256)
+        if key in seen:
+            continue
+        seen.add(key)
+        normalized.append(
+            {
+                "source_ref": source_ref,
+                "payload_sha256": payload_sha256,
+                "source_family": str(raw.get("source_family") or "stage_folder_refs").strip(),
+                "replacement_owner_surface": REPLACEMENT_OWNER_SURFACE,
+            }
+        )
+    return normalized
 
 
 def source_adapter_contract() -> dict[str, Any]:
@@ -191,6 +220,7 @@ __all__ = [
     "STATE_INDEX_SOURCE_ADAPTER_REF",
     "emit_owner_route_receipt_source",
     "emit_stage_artifact_delta_source",
+    "normalize_state_index_refs",
     "source_adapter_contract",
     "source_adapter_manifest",
 ]

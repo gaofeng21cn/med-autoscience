@@ -15,7 +15,7 @@ def owner_callable_typed_closeout_contract(*, action_type: str) -> dict[str, Any
         "free_text_closeout_accepted": False,
         "accepted_surface_kinds": [
             "stage_attempt_closeout_packet",
-            "stage_memory_closeout_packet",
+            "publication_route_memory_closeout",
             "domain_stage_closeout_packet",
         ],
         "required_ref_field": "closeout_refs",
@@ -90,7 +90,7 @@ def owner_callable_typed_closeout_contract(*, action_type: str) -> dict[str, Any
         "terminal_output_instruction": (
             "After completing the MAS owner-authorized work or identifying a typed blocker, "
             "end the response with exactly one JSON object whose surface_kind is one of "
-            "stage_attempt_closeout_packet, stage_memory_closeout_packet, or "
+            "stage_attempt_closeout_packet, publication_route_memory_closeout, or "
             "domain_stage_closeout_packet. Include closeout_refs with the owner receipt, "
             "artifact delta, or typed blocker evidence refs. Include paper_stage_log with "
             "stage_name, problem_summary, stage_goal, stage_work_done, changed_stage_surfaces, "

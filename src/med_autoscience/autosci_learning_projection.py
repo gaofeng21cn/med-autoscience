@@ -31,7 +31,7 @@ def build_autosci_learning_projection() -> dict[str, Any]:
                 "mas_mapping": "source_evidence_review_graph_refs",
                 "owner_surface": "source_truth_and_knowledge_graph",
                 "target_surfaces": [
-                    "stage_knowledge_packet",
+                    "opl_stage_folder_state_index_refs",
                     "evidence_ledger",
                     "review_ledger",
                     "source_readiness_refs",
@@ -70,8 +70,8 @@ def build_autosci_learning_projection() -> dict[str, Any]:
                 "owner_surface": "experiment_lifecycle_and_route_memory",
                 "target_surfaces": [
                     "publication_route_memory_pack",
-                    "stage_memory_closeout_packet",
-                    "memory_write_router_receipt",
+                    "publication_route_memory_closeout",
+                    "publication_route_memory_acceptance_receipt",
                 ],
                 "source_refs": [
                     ".claude/skills/ideate/SKILL.md",

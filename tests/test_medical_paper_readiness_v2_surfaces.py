@@ -118,8 +118,8 @@ def _route_candidate() -> dict[str, object]:
         },
         "evidence_refs": ["artifacts/medical_paper/literature_provider_runtime.json"],
         "stage_output_refs": [
-            "artifacts/stage_knowledge/idea/closeouts/transportable-risk-model.json",
-            "artifacts/stage_knowledge/idea/latest.json",
+            "opl-stage-folder://idea/closeouts/transportable-risk-model.json",
+            "opl-stage-folder://idea/latest.json",
         ],
     }
 

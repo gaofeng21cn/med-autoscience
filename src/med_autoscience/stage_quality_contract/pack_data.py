@@ -92,8 +92,8 @@ _PACK_OWNER_REFS = {
         _ref("surface_kind", "source_readiness_verdict", "source_readiness_stage_gate_owner"),
     ],
     "route_memory_pack": [
-        _ref("surface_kind", "stage_knowledge_packet", "route_memory_retrieval"),
-        _ref("surface_kind", "memory_write_router_receipt", "route_memory_router"),
+        _ref("surface_kind", "opl_stage_folder_state_index_refs", "route_memory_retrieval"),
+        _ref("surface_kind", "publication_route_memory_acceptance_receipt", "route_memory_router"),
     ],
     "stop_loss_pack": [
         _ref("workspace_locator", "artifacts/controller_decisions/latest.json", "controller_decision"),
@@ -174,13 +174,13 @@ _PACK_REQUIRED_REFS = {
         _ref("surface_kind", "stage_deliverable_index", "presentation_source_refs"),
     ],
     "life_science_source_discovery_pack": [
-        _ref("surface_kind", "stage_knowledge_packet", "entity_normalization_and_query_scope_refs"),
+        _ref("surface_kind", "opl_stage_folder_state_index_refs", "entity_normalization_and_query_scope_refs"),
         _ref("workspace_locator", "paper/evidence/evidence_ledger.json", "source_discovery_evidence_refs"),
         _ref("surface_kind", "typed_blocker", "missing_or_stale_source_discovery_blocker"),
     ],
     "route_memory_pack": [
-        _ref("surface_kind", "stage_knowledge_packet", "required_memory_refs"),
-        _ref("surface_kind", "stage_recall_index", "recall_projection"),
+        _ref("surface_kind", "opl_stage_folder_state_index_refs", "required_memory_refs"),
+        _ref("surface_kind", "opl_state_index_refs", "recall_projection"),
     ],
     "stop_loss_pack": [
         _ref("workspace_locator", "artifacts/controller_decisions/latest.json", "required_decision_refs"),

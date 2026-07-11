@@ -9,7 +9,7 @@ from med_autoscience.stage_route_contract import (
     late_stage_progress_sprint_contract_from_payload,
     load_stage_route_contract_payload,
 )
-from med_autoscience.stage_knowledge_contract import STAGE_OBLIGATIONS
+from med_autoscience.research_memory_contract import STAGE_OBLIGATIONS
 from med_autoscience.stage_quality_contract import build_stage_quality_pack_ref_projection
 
 MAIN_STAGE_ROUTE_IDS = (

@@ -107,7 +107,7 @@ def inventory_items() -> tuple[AuthorityKernelItem, ...]:
             surface_ref="contracts/mas-paper-study-stage-pack.json#/stages/4/stable_artifact_roles/2",
             active_caller_refs=(
                 "agent/knowledge/publication_route_memory.md",
-                "src/med_autoscience/controllers/stage_knowledge_plane/publication_route_memory_writeback.py",
+                "src/med_autoscience/controllers/research_memory/publication_route_memory_writeback.py",
                 "src/med_autoscience/controllers/study_transition_receipt_consumption/owner_receipts.py::publication_route_memory_writeback_receipt_consumption",
             ),
             allowed_writes=(

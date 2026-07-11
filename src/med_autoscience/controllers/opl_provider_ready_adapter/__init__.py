@@ -229,7 +229,7 @@ def _workspace_runtime_artifact_root_locator(*, profile: WorkspaceProfile) -> di
             "runtime_artifact_root": "studies/<study_id>/artifacts/runtime",
             "publication_eval": "studies/<study_id>/artifacts/publication_eval/latest.json",
             "controller_decisions": "studies/<study_id>/artifacts/controller_decisions/latest.json",
-            "stage_knowledge_packet": "studies/<study_id>/artifacts/stage_knowledge/<stage>/latest.json",
+            "opl_stage_folder_state_index_refs": "studies/<study_id>/opl-stage-folder://<stage>/latest.json",
             "dispatch_receipts": "runtime/artifacts/opl_family_domain_handler/dispatch_receipts",
             "state_index_source_adapter": (
                 "runtime/artifacts/opl_state_index_source_adapter/authority_refs_source.json"

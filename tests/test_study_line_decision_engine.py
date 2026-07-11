@@ -34,8 +34,8 @@ def _candidate(
             f"paper/data_dictionary/{line_id}.json",
         ],
         "stage_output_refs": [
-            f"artifacts/stage_knowledge/idea/closeouts/{line_id}.json",
-            "artifacts/stage_knowledge/idea/latest.json",
+            f"opl-stage-folder://idea/closeouts/{line_id}.json",
+            "opl-stage-folder://idea/latest.json",
         ],
     }
 

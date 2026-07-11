@@ -9,10 +9,10 @@ def _missing_reference_context_request() -> dict[str, object]:
     return {
         "input_contract": {
             "all_required_refs_present": False,
-            "missing_or_invalid_refs": ["stage_knowledge_packet"],
+            "missing_or_invalid_refs": ["opl_stage_folder_state_index_refs"],
             "required_refs": {
-                "stage_knowledge_packet": {
-                    "relative_path": "artifacts/stage_knowledge/review/latest.json",
+                "opl_stage_folder_state_index_refs": {
+                    "relative_path": "opl-stage-folder://review/latest.json",
                     "status": "missing",
                     "missing_reasons": ["missing_ref:study_reference_context"],
                 }

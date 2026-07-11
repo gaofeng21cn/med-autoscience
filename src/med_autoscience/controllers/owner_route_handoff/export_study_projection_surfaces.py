@@ -8,7 +8,6 @@ from med_autoscience.profiles import WorkspaceProfile
 
 from .. import publication_aftercare
 from .. import reviewer_refinement_loop
-from .. import stage_knowledge_plane
 from .authority_boundary import authority_boundary_payload
 from .export_study_projection_common import mapping, read_json_object, text, workspace_relative
 
@@ -113,37 +112,22 @@ def publication_aftercare_projection(
 
 
 def memory_paper_soak_proof_projection(*, study_root: Path, profile: WorkspaceProfile) -> dict[str, Any]:
-    proof_path = stage_knowledge_plane.paper_soak_memory_apply_proof_path(study_root=study_root)
-    proof = read_json_object(proof_path)
-    if proof is None:
-        return {
-            "surface_kind": "mas_memory_paper_soak_proof_projection",
-            "status": "missing",
-            "proof_ref": workspace_relative(proof_path, workspace_root=profile.workspace_root),
-            "receipt_refs": [],
-            "authority_boundary": authority_boundary_payload(),
-            "read_only_display_policy": {
-                "consumer": "OPL/Aion",
-                "body_included": False,
-                "can_write_mas_truth": False,
-            },
-        }
-    receipt_refs = [
-        dict(ref)
-        for ref in proof.get("opl_aion_readonly_receipt_refs") or []
-        if isinstance(ref, Mapping)
-    ]
     return {
         "surface_kind": "mas_memory_paper_soak_proof_projection",
-        "status": text(proof.get("status")) or "missing",
-        "proof_ref": workspace_relative(proof_path, workspace_root=profile.workspace_root),
-        "receipt_refs": receipt_refs,
-        "route_memory_ref_count": len(mapping(proof.get("stage_entry")).get("publication_route_memory_refs") or []),
-        "router_receipt_ref_count": len(proof.get("mas_router_receipt_refs") or []),
-        "writeback_proposal_ref_count": len(proof.get("typed_closeout_writeback_proposals") or []),
-        "source_fingerprint": text(proof.get("source_fingerprint")),
-        "authority_boundary": mapping(proof.get("authority_boundary")) or authority_boundary_payload(),
-        "read_only_display_policy": mapping(proof.get("read_only_display_policy")),
+        "status": "awaiting_explicit_opl_ref",
+        "study_id": study_root.name,
+        "proof_ref": None,
+        "payload_sha256": None,
+        "receipt_refs": [],
+        "required_ref_fields": ["source_ref", "payload_sha256"],
+        "replacement_owner_surface": "one-person-lab StateIndexKernel",
+        "authority_boundary": authority_boundary_payload(),
+        "read_only_display_policy": {
+            "consumer": "OPL/Aion",
+            "body_included": False,
+            "local_persistence": "absent",
+            "can_write_mas_truth": False,
+        },
     }
 
 

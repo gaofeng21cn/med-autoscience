@@ -1,22 +1,18 @@
 from __future__ import annotations
 
-from pathlib import Path
 from typing import Any
 
 
-SCHEMA_VERSION = 1
-CONTRACT_SURFACE = "stage_knowledge_plane_contract"
-KNOWLEDGE_PACKET_SURFACE = "stage_knowledge_packet"
-MEMORY_CLOSEOUT_SURFACE = "stage_memory_closeout_packet"
-MEMORY_ROUTER_SURFACE = "memory_write_router_receipt"
-RECALL_INDEX_SURFACE = "stage_recall_index"
+SCHEMA_VERSION = 2
+CONTRACT_SURFACE = "research_memory_contract"
 PUBLICATION_ROUTE_MEMORY_PACK_SURFACE = "publication_route_memory_pack"
 PUBLICATION_ROUTE_MEMORY_APPLY_RECEIPT_SURFACE = "publication_route_memory_apply_receipt"
-PAPER_SOAK_MEMORY_APPLY_PROOF_SURFACE = "paper_soak_memory_apply_proof"
+PUBLICATION_ROUTE_MEMORY_CLOSEOUT_SURFACE = "publication_route_memory_closeout"
+PUBLICATION_ROUTE_MEMORY_ACCEPTANCE_RECEIPT_SURFACE = "publication_route_memory_acceptance_receipt"
+OPL_STAGE_REFS_SURFACE = "opl_stage_folder_state_index_refs"
 
 EXPLORATORY_STAGES = ("scout", "idea", "analysis-campaign", "review")
 PUBLICATION_ROUTE_MEMORY_STAGES = ("scout", "idea", "decision", "analysis-campaign", "review")
-STAGE_KNOWLEDGE_ROOT = Path("artifacts/stage_knowledge")
 
 TYPED_CLOSEOUT_CATEGORIES = (
     "reusable_lessons",
@@ -216,20 +212,22 @@ STAGE_OBLIGATIONS: dict[str, dict[str, tuple[str, ...]]] = {
 }
 
 
-def stage_knowledge_plane_contract() -> dict[str, Any]:
+def research_memory_contract() -> dict[str, Any]:
     return {
         "surface": CONTRACT_SURFACE,
         "schema_version": SCHEMA_VERSION,
         "packet_contracts": {
-            KNOWLEDGE_PACKET_SURFACE: _packet_contract(KNOWLEDGE_PACKET_SURFACE),
-            MEMORY_CLOSEOUT_SURFACE: _packet_contract(MEMORY_CLOSEOUT_SURFACE),
-            MEMORY_ROUTER_SURFACE: _packet_contract(MEMORY_ROUTER_SURFACE),
-            RECALL_INDEX_SURFACE: _packet_contract(RECALL_INDEX_SURFACE),
+            OPL_STAGE_REFS_SURFACE: _packet_contract(OPL_STAGE_REFS_SURFACE),
             PUBLICATION_ROUTE_MEMORY_PACK_SURFACE: _packet_contract(PUBLICATION_ROUTE_MEMORY_PACK_SURFACE),
             PUBLICATION_ROUTE_MEMORY_APPLY_RECEIPT_SURFACE: _packet_contract(
                 PUBLICATION_ROUTE_MEMORY_APPLY_RECEIPT_SURFACE
             ),
-            PAPER_SOAK_MEMORY_APPLY_PROOF_SURFACE: _packet_contract(PAPER_SOAK_MEMORY_APPLY_PROOF_SURFACE),
+            PUBLICATION_ROUTE_MEMORY_CLOSEOUT_SURFACE: _packet_contract(
+                PUBLICATION_ROUTE_MEMORY_CLOSEOUT_SURFACE
+            ),
+            PUBLICATION_ROUTE_MEMORY_ACCEPTANCE_RECEIPT_SURFACE: _packet_contract(
+                PUBLICATION_ROUTE_MEMORY_ACCEPTANCE_RECEIPT_SURFACE
+            ),
         },
         "exploratory_stages": list(EXPLORATORY_STAGES),
         "publication_route_memory_stages": list(PUBLICATION_ROUTE_MEMORY_STAGES),
@@ -247,7 +245,10 @@ def packet_contract(surface: str) -> dict[str, Any]:
 
 def authority_boundary() -> dict[str, Any]:
     return {
-        "role": "stage_context_or_router_contract",
+        "role": "domain_memory_contract_and_opl_refs_consumer",
+        "opl_stage_state_owner": "one-person-lab",
+        "body_included_in_opl_refs": False,
+        "local_generic_persistence": "absent",
         "can_authorize_publication_quality": False,
         "can_authorize_submission_readiness": False,
         "can_replace_controller_decision": False,
@@ -269,19 +270,16 @@ __all__ = [
     "COMMON_PACKET_FIELDS",
     "CONTRACT_SURFACE",
     "EXPLORATORY_STAGES",
-    "KNOWLEDGE_PACKET_SURFACE",
-    "MEMORY_CLOSEOUT_SURFACE",
-    "MEMORY_ROUTER_SURFACE",
-    "PAPER_SOAK_MEMORY_APPLY_PROOF_SURFACE",
+    "OPL_STAGE_REFS_SURFACE",
+    "PUBLICATION_ROUTE_MEMORY_ACCEPTANCE_RECEIPT_SURFACE",
     "PUBLICATION_ROUTE_MEMORY_APPLY_RECEIPT_SURFACE",
+    "PUBLICATION_ROUTE_MEMORY_CLOSEOUT_SURFACE",
     "PUBLICATION_ROUTE_MEMORY_PACK_SURFACE",
     "PUBLICATION_ROUTE_MEMORY_STAGES",
-    "RECALL_INDEX_SURFACE",
     "SCHEMA_VERSION",
-    "STAGE_KNOWLEDGE_ROOT",
     "STAGE_OBLIGATIONS",
     "TYPED_CLOSEOUT_CATEGORIES",
     "authority_boundary",
     "packet_contract",
-    "stage_knowledge_plane_contract",
+    "research_memory_contract",
 ]

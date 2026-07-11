@@ -114,8 +114,8 @@ def test_classify_changed_files_routes_publication_route_memory_fixture_to_owner
         [
             "docs/policies/study-workflow/publication_route_memory_policy.md",
             "docs/policies/study-workflow/publication_route_memory_seed_fixture.json",
-            "src/med_autoscience/controllers/stage_knowledge_plane/publication_route_memory_cards.py",
-            "tests/test_stage_knowledge_plane.py",
+            "src/med_autoscience/controllers/research_memory/publication_route_memory_cards.py",
+            "tests/test_research_memory.py",
         ]
     )
 
@@ -125,7 +125,7 @@ def test_classify_changed_files_routes_publication_route_memory_fixture_to_owner
     )
     assert result.unclassified_changes == ()
     assert module.plan_commands_for_categories(result.matched_categories) == [
-        "make test-paths -- tests/test_stage_knowledge_plane.py -q",
+        "make test-paths -- tests/test_research_memory.py -q",
         "make test-paths -- tests/test_opl_family_contract_adoption.py -q",
     ]
 

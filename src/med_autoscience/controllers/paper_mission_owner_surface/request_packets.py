@@ -68,12 +68,11 @@ def materialize_request_packets(
         )
     if "return_to_ai_reviewer_workflow" in action_types:
         reviewer_action = _first_action(actions, "return_to_ai_reviewer_workflow")
-        stage_entry = stage_knowledge_entry.materialize_stage_knowledge_entry(
+        stage_entry = stage_knowledge_entry.build_stage_knowledge_entry(
             study_id=study_id,
             stage="review",
-            study_root=study_root,
-            workspace_root=workspace_root,
-            quest_root=quest_root,
+            stage_folder_refs=_mapping_list(publication_eval_payload.get("stage_folder_refs")),
+            state_index_refs=_mapping_list(publication_eval_payload.get("state_index_refs")),
         )
         handoff_reason = _text(reviewer_action.get("reason"))
         route_back_target = (
@@ -157,3 +156,9 @@ def _first_action(actions: list[dict[str, Any]], action_type: str) -> dict[str, 
         if _text(action.get("action_type")) == action_type:
             return dict(action)
     return {}
+
+
+def _mapping_list(value: object) -> list[dict[str, Any]]:
+    if not isinstance(value, list):
+        return []
+    return [dict(item) for item in value if isinstance(item, Mapping)]

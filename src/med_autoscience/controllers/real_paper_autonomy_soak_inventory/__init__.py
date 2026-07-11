@@ -5,7 +5,6 @@ from collections.abc import Iterable, Mapping, Sequence
 from pathlib import Path
 from typing import Any
 
-from med_autoscience.controllers import stage_knowledge_plane
 from med_autoscience.controllers.real_paper_autonomy_soak_inventory import (
     apply_evidence,
     guarded_apply,
@@ -648,9 +647,12 @@ def _study_soak_projection(study_root: Path) -> dict[str, Any]:
         "ai_reviewer_request": _read_json_mapping(
             study_root / "artifacts" / "supervision" / "requests" / "ai_reviewer" / "latest.json"
         ),
-        "memory_paper_soak_proof": _read_json_mapping(
-            stage_knowledge_plane.paper_soak_memory_apply_proof_path(study_root=study_root)
-        ),
+        "memory_paper_soak_proof": {
+            "status": "awaiting_explicit_opl_ref",
+            "required_ref_fields": ["source_ref", "payload_sha256"],
+            "replacement_owner_surface": "one-person-lab StateIndexKernel",
+            "body_included": False,
+        },
     }
     lifecycle = _study_lifecycle([payload for payload in surfaces.values() if isinstance(payload, Mapping)])
     final_projection = _final_projection(surfaces)

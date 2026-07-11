@@ -16,7 +16,7 @@ from med_autoscience.agent_entry.renderers import (
     sync_agent_entry_assets,
 )
 from med_autoscience.stage_route_contract import load_stage_route_contract_payload
-from med_autoscience.stage_knowledge_contract import STAGE_OBLIGATIONS
+from med_autoscience.research_memory_contract import STAGE_OBLIGATIONS
 
 EXPECTED_ROUTE_IDS = {
     "scout",
@@ -156,7 +156,7 @@ def test_canonical_payload_includes_global_route_and_evidence_review_contracts()
         assert isinstance(evidence_review_contract[field], list)
 
 
-def test_route_contract_stage_obligations_match_stage_knowledge_contract() -> None:
+def test_route_contract_stage_obligations_match_research_memory_contract() -> None:
     payload = render_stage_route_contract_payload()
     route_contracts = payload["route_contracts"]
 

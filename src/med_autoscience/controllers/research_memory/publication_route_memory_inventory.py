@@ -5,7 +5,7 @@ from collections.abc import Mapping, Sequence
 from pathlib import Path
 from typing import Any
 
-from med_autoscience.stage_knowledge_contract import (
+from med_autoscience.research_memory_contract import (
     PUBLICATION_ROUTE_MEMORY_STAGES,
     SCHEMA_VERSION,
     authority_boundary,

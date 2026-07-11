@@ -308,8 +308,8 @@ def _complete_route_candidate(line_id: str = "primary-risk-model") -> dict[str, 
         },
         "evidence_refs": ["artifacts/medical_paper/literature_provider_runtime.json"],
         "stage_output_refs": [
-            f"artifacts/stage_knowledge/idea/closeouts/{line_id}.json",
-            "artifacts/stage_knowledge/idea/latest.json",
+            f"opl-stage-folder://idea/closeouts/{line_id}.json",
+            "opl-stage-folder://idea/latest.json",
         ],
     }
 
@@ -649,8 +649,8 @@ def test_medical_paper_readiness_consumes_long_horizon_canonical_surfaces(tmp_pa
                     },
                     "evidence_refs": ["artifacts/medical_paper/literature_intelligence_os.json"],
                     "stage_output_refs": [
-                        "artifacts/stage_knowledge/idea/closeouts/primary-risk-model.json",
-                        "artifacts/stage_knowledge/idea/latest.json",
+                        "opl-stage-folder://idea/closeouts/primary-risk-model.json",
+                        "opl-stage-folder://idea/latest.json",
                     ],
                 }
             ],

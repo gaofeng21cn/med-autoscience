@@ -87,7 +87,7 @@ def project_domain_transition(
     )
     memory_writeback_receipt_consumption = (
         study_transition_receipt_consumption.publication_route_memory_writeback_receipt_consumption(
-            study_root=root
+            state_index_refs=_mapping_list(status.get("opl_state_index_refs"))
         )
     )
     source_refs = _present_refs(
@@ -404,10 +404,10 @@ def project_domain_transition(
                     "Publication-route memory writeback receipt was observed; MAS exposes refs only and keeps "
                     "generic runner resume disabled."
                 ),
-                required_owner_surface="artifacts/stage_knowledge/memory_write_router_receipts",
+                required_owner_surface="opl-stage-folder://publication_route_memory_acceptance_receipts",
             ),
             guard_boundary=_guard_boundary(
-                required_owner_surface="memory_write_router_receipt",
+                required_owner_surface="publication_route_memory_acceptance_receipt",
                 opl_generic_runner_may_resume=False,
             ),
             source_refs=source_refs,
@@ -872,6 +872,12 @@ def _path_mtime(path: Path) -> float | None:
 
 def _mapping(value: object) -> Mapping[str, Any]:
     return value if isinstance(value, Mapping) else {}
+
+
+def _mapping_list(value: object) -> list[Mapping[str, Any]]:
+    if not isinstance(value, list):
+        return []
+    return [item for item in value if isinstance(item, Mapping)]
 
 
 def _text(value: object) -> str:

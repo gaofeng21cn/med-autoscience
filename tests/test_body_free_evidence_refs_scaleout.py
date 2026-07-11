@@ -50,7 +50,7 @@ def test_publication_route_memory_inventory_delegates_generic_receipt_evidence_t
     tmp_path: Path,
 ) -> None:
     module = importlib.import_module(
-        "med_autoscience.controllers.stage_knowledge_plane.publication_route_memory_inventory"
+        "med_autoscience.controllers.research_memory.publication_route_memory_inventory"
     )
     receipt_root = (
         tmp_path

@@ -13,8 +13,8 @@ def _candidate(line_id: str, score: float, *, risk_cost: float = 1.0) -> dict[st
         "expected_artifact": f"artifacts/medical_paper/candidate_paths/{line_id}.json",
         "claim_boundary_change": "unchanged",
         "stage_output_refs": [
-            f"artifacts/stage_knowledge/idea/closeouts/{line_id}.json",
-            "artifacts/stage_knowledge/idea/latest.json",
+            f"opl-stage-folder://idea/closeouts/{line_id}.json",
+            "opl-stage-folder://idea/latest.json",
         ],
         "dimensions": {
             "novelty": score,

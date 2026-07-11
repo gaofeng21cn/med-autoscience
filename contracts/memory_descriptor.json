@@ -12,7 +12,7 @@
   },
   "freshness": {
     "refresh_policy": "rebuild_product_entry_manifest_before_opl_discovery",
-    "stage_knowledge_contract_schema_version": 1,
+    "research_memory_contract_schema_version": 1,
     "stage_knowledge_exploratory_stages": [
       "scout",
       "idea",
@@ -68,23 +68,23 @@
       "role": "first_generation_memory_seed"
     },
     {
-      "ref": "med_autoscience.stage_knowledge_contract.stage_knowledge_plane_contract",
+      "ref": "med_autoscience.research_memory_contract.research_memory_contract",
       "ref_kind": "python_symbol",
       "role": "retrieval_writeback_contract"
     }
   ],
   "recall_projection_ref": {
-    "ref": "stage_recall_index",
+    "ref": "opl_state_index_refs",
     "ref_kind": "surface_kind",
     "role": "stage_recall_projection"
   },
   "receipt_contract_ref": {
-    "ref": "memory_write_router_receipt",
+    "ref": "publication_route_memory_acceptance_receipt",
     "ref_kind": "surface_kind",
     "role": "domain_router_receipt"
   },
   "retrieval_contract_ref": {
-    "ref": "stage_knowledge_packet",
+    "ref": "opl_stage_folder_state_index_refs",
     "ref_kind": "surface_kind",
     "role": "stage_entry_retrieval_packet"
   },
@@ -113,7 +113,7 @@
     "seed_apply_receipt_surface": "publication_route_memory_apply_receipt"
   },
   "writeback_contract_ref": {
-    "ref": "stage_memory_closeout_packet",
+    "ref": "publication_route_memory_closeout",
     "ref_kind": "surface_kind",
     "role": "typed_stage_closeout_proposal"
   },

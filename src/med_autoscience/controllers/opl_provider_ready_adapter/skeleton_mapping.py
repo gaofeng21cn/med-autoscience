@@ -28,7 +28,7 @@ def build_domain_agent_skeleton_mapping_surface() -> dict[str, Any]:
         "skeleton": {
             "agent/stages": [
                 "agent/stages/stage_route_contract.yaml",
-                "med_autoscience.controllers.stage_knowledge_plane.stage_knowledge_plane_contract",
+                "med_autoscience.controllers.research_memory.research_memory_contract",
             ],
             "agent/prompts": [
                 "MAS app skill command contracts",
@@ -42,10 +42,10 @@ def build_domain_agent_skeleton_mapping_surface() -> dict[str, Any]:
                 domain_entry_handler_target("domain-handler-dispatch"),
             ],
             "agent/knowledge": [
-                "artifacts/stage_knowledge/<stage>/latest.json",
-                "stage_memory_closeout_packet",
-                "memory_write_router_receipt",
-                "stage_recall_index",
+                "med_autoscience.controllers.research_memory",
+                "med_autoscience.opl_domain_pack.state_index_source_refs",
+                "OPL Stage Folder refs with source_ref and payload_sha256",
+                "OPL StateIndex refs-only readback",
             ],
             "agent/quality_gates": [
                 "publication_eval/latest.json",
@@ -132,11 +132,12 @@ def build_physical_skeleton_layout_audit_surface() -> dict[str, Any]:
                 "docs/policies/study-workflow/stage_led_research_autonomy.md",
                 "agent/stages/stage_route_contract.yaml",
                 "src/med_autoscience/resources/stage_route_contract.yaml",
-                "src/med_autoscience/controllers/stage_knowledge_plane/__init__.py",
+                "src/med_autoscience/research_memory_contract.py",
+                "src/med_autoscience/opl_domain_pack/state_index_source_refs.py",
             ],
             mapping_explanation=(
-                "New stage definitions should land in the standard slot while existing stage policy "
-                "and stage knowledge controller paths remain the active repo mapping."
+                "Stage definitions remain declarative; runtime layout and indexing are consumed from "
+                "OPL Stage Folder and StateIndex refs while MAS retains domain memory authority."
             ),
         ),
         _physical_skeleton_slot(

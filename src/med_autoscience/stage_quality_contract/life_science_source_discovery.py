@@ -41,7 +41,7 @@ def build_life_science_source_discovery_pack() -> dict[str, object]:
             },
             {
                 "family_id": "target_disease_and_functional_context",
-                "mas_owner_surface": "stage_knowledge_packet_and_review_ledger_refs",
+                "mas_owner_surface": "opl_stage_folder_state_index_refs_and_review_ledger_refs",
                 "initial_builtin_sources": [
                     "human-protein-atlas-skill",
                     "uniprot-skill",

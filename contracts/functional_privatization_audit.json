@@ -210,9 +210,9 @@
       "module_id": "publication_route_memory_locator_transport",
       "classification": "refs_only_domain_adapter",
       "code_paths": [
-        "src/med_autoscience/controllers/stage_knowledge_plane/__init__.py",
-        "src/med_autoscience/controllers/stage_knowledge_plane/publication_route_memory_inventory.py",
-        "src/med_autoscience/controllers/stage_knowledge_plane/publication_route_memory_writeback.py"
+        "src/med_autoscience/controllers/research_memory/__init__.py",
+        "src/med_autoscience/controllers/research_memory/publication_route_memory_inventory.py",
+        "src/med_autoscience/controllers/research_memory/publication_route_memory_writeback.py"
       ],
       "active_callers": [
         "publication-route memory action",

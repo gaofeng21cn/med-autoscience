@@ -56,7 +56,7 @@ def build_ars_learning_projection() -> dict[str, Any]:
                 "source_pattern": "passport_as_reset_boundary",
                 "mas_mapping": "evidence_handoff_ref_pack",
                 "source_refs": [
-                    "stage_knowledge_packet",
+                    "opl_stage_folder_state_index_refs",
                     "evidence_ledger",
                     "review_ledger",
                     "controller_decisions/latest.json",
@@ -97,9 +97,9 @@ def build_ars_learning_projection() -> dict[str, Any]:
                 "artifacts/runtime/domain_diagnostic_report/latest.json",
             ],
             "handoff_refs": [
-                "stage_knowledge_packet",
-                "stage_memory_closeout_packet",
-                "memory_write_router_receipt",
+                "opl_stage_folder_state_index_refs",
+                "publication_route_memory_closeout",
+                "publication_route_memory_acceptance_receipt",
                 "artifacts/controller_decisions/latest.json",
                 "artifacts/publication_eval/latest.json",
             ],

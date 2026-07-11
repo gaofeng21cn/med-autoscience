@@ -500,8 +500,8 @@ def _materialize_candidate_path_graph(*, study_root: Path) -> dict[str, Any]:
         "question": "Can the current DM002 line clear AI-reviewer-backed publishability?",
         "evidence_refs": [evidence_ref],
         "stage_output_refs": [
-            "artifacts/stage_knowledge/idea/latest.json",
-            "artifacts/stage_knowledge/idea/closeouts/dm002-current-line.json",
+            "opl-stage-folder://idea/latest.json",
+            "opl-stage-folder://idea/closeouts/dm002-current-line.json",
         ],
         "evidence_basis": [evidence_ref, str(study_root / "artifacts" / "publication_eval" / "latest.json")],
         "expected_artifact": "artifacts/medical_paper/open_auto_research_candidate_path.json",

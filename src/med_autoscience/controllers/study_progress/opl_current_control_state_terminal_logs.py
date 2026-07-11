@@ -37,7 +37,7 @@ TERMINAL_STAGE_CLOSEOUT_ROOT_REFS = (
 TERMINAL_STAGE_LOG_CLOSEOUT_SURFACES = frozenset(
     {
         "stage_attempt_closeout_packet",
-        "stage_memory_closeout_packet",
+        "publication_route_memory_closeout",
         "domain_stage_closeout_packet",
     }
 )

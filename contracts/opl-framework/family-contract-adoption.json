@@ -146,10 +146,10 @@
       "docs/policies/study-workflow/study_archetypes.md",
       "publication_route_memory_pack",
       "publication_route_memory_apply_receipt",
-      "stage_knowledge_packet",
-      "stage_memory_closeout_packet",
-      "memory_write_router_receipt",
-      "stage_recall_index"
+      "opl_stage_folder_state_index_refs",
+      "publication_route_memory_closeout",
+      "publication_route_memory_acceptance_receipt",
+      "opl_state_index_refs"
     ],
     "migration_plan_ref": "docs/policies/study-workflow/publication_route_memory_policy.md#migration-plan",
     "canonical_body_ref": "docs/policies/study-workflow/publication_route_memory_library.md",
@@ -234,7 +234,7 @@
         "manuscript/current_package",
         "current_package.zip",
         "publication_route_memory_body",
-        "memory_write_router_receipt_acceptance"
+        "publication_route_memory_acceptance_receipt_acceptance"
       ]
     }
   },

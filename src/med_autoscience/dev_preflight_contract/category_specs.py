@@ -491,16 +491,16 @@ def build_category_specs(
         category_id="publication_route_memory_surface",
         exact_paths=(
             "docs/policies/study-workflow/publication_route_memory_seed_fixture.json",
-            "src/med_autoscience/controllers/stage_knowledge_plane/__init__.py",
-            "src/med_autoscience/stage_knowledge_contract.py",
+            "src/med_autoscience/controllers/research_memory/__init__.py",
+            "src/med_autoscience/research_memory_contract.py",
             "src/med_autoscience/stage_surface_contract.py",
-            "tests/test_stage_knowledge_plane.py",
+            "tests/test_research_memory.py",
         ),
         prefix_paths=(
-            "src/med_autoscience/controllers/stage_knowledge_plane/",
+            "src/med_autoscience/controllers/research_memory/",
         ),
         commands=(
-            f"{pytest_command} tests/test_stage_knowledge_plane.py -q",
+            f"{pytest_command} tests/test_research_memory.py -q",
             f"{pytest_command} tests/test_opl_family_contract_adoption.py -q",
         ),
     ),

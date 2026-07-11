@@ -112,7 +112,7 @@ _AUTOSCI_PACK_CONTRACTS: dict[str, tuple[dict[str, object], ...]] = {
                 "source_or_review_refs",
                 "active_duplicate_check_ref",
                 "memory_writeback_proposal_ref",
-                "memory_write_router_receipt_ref",
+                "publication_route_memory_acceptance_receipt_ref",
             ],
             "typed_blocker_if_missing": "negative_memory_or_duplicate_route_blocker",
             "failed_or_rejected_requires_reason": True,
