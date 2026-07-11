@@ -63,7 +63,7 @@ test-soak-golden:
 	@$(call run_isolated_python,-m pytest -q $(MAS_PYTEST_XDIST_ARGS) -m soak_or_golden)
 
 test-family:
-	@$(call run_isolated_python,-m pytest tests/test_foundry_agent_series_consumer_contract.py tests/test_editable_shared_bootstrap.py tests/test_dev_preflight_contract.py tests/test_dev_preflight.py -q)
+	@$(call run_isolated_python,-m pytest tests/test_foundry_agent_series_consumer_contract.py tests/test_framework_python_carrier.py tests/test_dev_preflight_contract.py tests/test_dev_preflight.py -q)
 	@$(call run_isolated_python,-m pytest tests/test_opl_agent_lab_longline_migration.py -q)
 
 test-paths:

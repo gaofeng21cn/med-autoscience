@@ -3,7 +3,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 from typing import Any
 
-from opl_harness_shared.family_entry_contracts import (
+from opl_framework.family_entry_contracts import (
     build_domain_agent_entry_spec as _build_shared_domain_agent_entry_spec,
     build_domain_entry_command_catalog as _build_shared_domain_entry_command_catalog,
     build_family_direct_opl_shared_handoff as _build_shared_family_direct_opl_shared_handoff,

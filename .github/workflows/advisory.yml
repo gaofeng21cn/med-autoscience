@@ -27,7 +27,7 @@ jobs:
             system_dependencies: none
             prepare_analysis_bundle: false
           - lane: family
-            label: Run family shared advisory tests
+            label: Run OPL Framework advisory tests
             system_dependencies: none
             prepare_analysis_bundle: false
           - lane: submission

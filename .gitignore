@@ -16,6 +16,7 @@ outputs/
 tmp/
 docs/site/latest/
 *.egg-info/
+/src/opl_framework
 profiles/*.local.toml
 !profiles/*.template.toml
 RTK.md

@@ -7,7 +7,7 @@ from importlib import import_module
 from pathlib import Path
 from typing import Any, Mapping
 
-from opl_harness_shared.status_narration import (
+from opl_framework.status_narration import (
     PROGRESS_ANSWER_CHECKLIST,
     build_status_narration_contract,
     build_status_narration_human_view,

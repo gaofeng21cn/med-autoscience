@@ -474,7 +474,6 @@ version = "0.1.0a4"
 source = { editable = "." }
 dependencies = [
     { name = "matplotlib" },
-    { name = "opl-harness-shared" },
     { name = "pypdf" },
     { name = "pyyaml" },
     { name = "xlsxwriter" },
@@ -513,7 +512,6 @@ requires-dist = [
     { name = "matplotlib", marker = "extra == 'analysis'", specifier = ">=3.9" },
     { name = "numpy", marker = "extra == 'analysis'", specifier = ">=1.26" },
     { name = "openpyxl", marker = "extra == 'analysis'", specifier = ">=3.1" },
-    { name = "opl-harness-shared", git = "https://github.com/gaofeng21cn/one-person-lab.git?subdirectory=python%2Fopl-harness-shared&rev=ee3829f968c6e055b23cd83f67aac76bace059cb" },
     { name = "pandas", marker = "extra == 'analysis'", specifier = ">=2.2" },
     { name = "pillow", marker = "extra == 'analysis'", specifier = ">=10.0" },
     { name = "pypdf", specifier = ">=5.0" },
@@ -619,11 +617,6 @@ sdist = { url = "https://files.pythonhosted.org/packages/3d/f9/88d94a75de065ea32
 wheels = [
     { url = "https://files.pythonhosted.org/packages/c0/da/977ded879c29cbd04de313843e76868e6e13408a94ed6b987245dc7c8506/openpyxl-3.1.5-py2.py3-none-any.whl", hash = "sha256:5282c12b107bffeef825f4617dc029afaf41d0ea60823bbb665ef3079dc79de2", size = 250910, upload-time = "2024-06-28T14:03:41.161Z" },
 ]
-
-[[package]]
-name = "opl-harness-shared"
-version = "0.1.0"
-source = { git = "https://github.com/gaofeng21cn/one-person-lab.git?subdirectory=python%2Fopl-harness-shared&rev=ee3829f968c6e055b23cd83f67aac76bace059cb#ee3829f968c6e055b23cd83f67aac76bace059cb" }
 
 [[package]]
 name = "packaging"

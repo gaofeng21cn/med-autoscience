@@ -264,7 +264,7 @@ def test_run_preflight_executes_family_shared_lane(monkeypatch, tmp_path: Path) 
     monkeypatch.setattr(module.subprocess, "run", fake_run)
 
     result = module.run_preflight(
-        changed_files=["tests/test_editable_shared_bootstrap.py"],
+        changed_files=["tests/test_framework_python_carrier.py"],
         repo_root=tmp_path,
     )
 
@@ -315,7 +315,7 @@ def test_family_verify_lane_is_exposed_from_makefile_and_verify_script() -> None
     assert "test-family:" in makefile
     assert (
         "@$(call run_isolated_python,-m pytest tests/test_foundry_agent_series_consumer_contract.py "
-        "tests/test_editable_shared_bootstrap.py tests/test_dev_preflight_contract.py "
+        "tests/test_framework_python_carrier.py tests/test_dev_preflight_contract.py "
         "tests/test_dev_preflight.py -q)"
     ) in makefile
     assert "@$(call run_isolated_python,-m pytest tests/test_opl_agent_lab_longline_migration.py -q)" in makefile

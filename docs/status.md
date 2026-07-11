@@ -22,6 +22,7 @@ MAS 的 12 项过度设计结构目标已经落地：repo-local platform surface
 | Environment | MAS 声明 requirements；OPL `env prepare/run` 负责准备与执行 |
 | Next action | `StageOutcome -> NextActionEnvelope` |
 | Foundry series | OPL canonical policy + MAS refs-only consumer contract；MAS 无本地 Framework 依赖 |
+| Framework Python | OPL 托管 `src/opl_framework` carrier；MAS manifest / lock 不锁 OPL implementation |
 | Test collection | pytest 原生递归收集 |
 | Legacy control plane | retired/tombstone/provenance only |
 

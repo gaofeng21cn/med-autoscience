@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from typing import Any
 
-from opl_harness_shared.product_entry_program_companions import (
+from opl_framework.product_entry_program_companions import (
     build_clearance_lane as _build_shared_clearance_lane,
     build_clearance_target as _build_shared_clearance_target,
     build_platform_target as _build_shared_platform_target,

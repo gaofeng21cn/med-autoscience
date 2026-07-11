@@ -3,7 +3,7 @@ from __future__ import annotations
 from typing import Any, Mapping, Sequence
 
 from med_autoscience.controllers.mainline_status import PROGRAM_ID as DEFAULT_PROGRAM_ID
-from opl_harness_shared.family_orchestration import (
+from opl_framework.family_orchestration import (
     build_family_human_gate as _build_shared_family_human_gate,
     build_family_orchestration_companion as _build_shared_family_orchestration_companion,
     resolve_active_run_id as _resolve_shared_active_run_id,

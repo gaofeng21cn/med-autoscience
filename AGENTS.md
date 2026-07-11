@@ -23,7 +23,7 @@
 - 若文档提到 `Hermes-Agent`，只能指上游外部 runtime 项目 / 服务；仓内的 seam、shim、adapter 或过渡 scaffold，不得写成“已接入 Hermes-Agent”。
 - 一旦目标 runtime topology 已明确，新增投入默认服务目标形态；旧 substrate 只允许作为迁移桥、兼容层或回归基线存在。
 - 私有功能面是例外而不是默认。保留在 MAS 的程序面必须是医学 truth、publication quality、artifact mutation、memory accept/reject、source readiness、owner receipt signing 或 domain-native helper 这类无法声明化的最小 authority function，并写清接口、active caller、不能上收原因、receipt/blocker/ref 输出边界和退役门。
-- `family shared modules / shared boundary refactor` 是当前允许推进的 lane；它服务四仓复用、shared helper 收口与 future monorepo readiness。
+- `OPL Framework modules / shared boundary refactor` 是当前允许推进的 lane；它服务四仓复用、Framework helper 收口与 future monorepo readiness。
 - external runtime gate、workspace / human gate 与对象边界仍然约束 `physical migration / monorepo absorb / runtime core ingest / controlled cutover`；`monorepo / runtime core ingest / controlled cutover` 继续作为后置长线推进。
 - 已被当前 owner surface 替代的模块、接口、CLI alias、wrapper、facade、聚合测试和文档入口，默认迁移 active caller 后直接退役；需要来龙去脉时只保留 history/tombstone/provenance，不新增 compatibility shim、别名或兼容测试。
 

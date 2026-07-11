@@ -29,9 +29,9 @@ MAS 保留 study/source truth、AI reviewer/publication quality、artifact/memor
 
 默认 next action 只有 `StageOutcome -> NextActionEnvelope`。旧 provider admission、current work unit、PaperRecovery 与 domain-action request producers 退役为 tombstone/provenance，不再作为 current control plane。
 
-## D-07 Standard packaging
+## D-07 Framework Python carrier
 
-Python import 不改写 `sys.path`、package path 或 `sys.modules`。依赖由标准 packaging、`uv sync`、OPL workspace override 与 environment substrate 解决。
+MAS 不把 OPL Framework 当作自身 Python dependency。OPL module workflow 维护 `src/opl_framework` carrier，MAS 只通过该 namespace 消费；import 不改写 `sys.path`、package path 或 `sys.modules`，构建配置只收集 `med_autoscience*`，不把 carrier vendoring 进 MAS wheel。
 
 ## D-08 Standard pytest collection
 

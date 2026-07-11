@@ -14,7 +14,6 @@ authors = [
 dependencies = [
   "PyYAML>=6.0",
   "matplotlib>=3.9",
-  "opl-harness-shared @ git+https://github.com/gaofeng21cn/one-person-lab.git@ee3829f968c6e055b23cd83f67aac76bace059cb#subdirectory=python/opl-harness-shared",
   "pypdf>=5.0",
   "xlsxwriter>=3.2",
 ]
@@ -45,6 +44,10 @@ dev = [
   "setuptools>=69",
 ]
 
+[tool.setuptools.packages.find]
+where = ["src"]
+include = ["med_autoscience*"]
+
 [tool.setuptools.package-data]
 "med_autoscience.styles" = ["*.csl"]
 "med_autoscience.resources" = ["stage_route_contract.yaml"]
@@ -57,7 +60,7 @@ markers = [
   "meta: repo-tracked docs, workflow, packaging, and command-surface checks",
   "display_heavy: display materialization and golden-regression tests that dominate wall-clock time",
   "submission_heavy: submission package materialization tests that dominate fast-lane wall-clock time",
-  "family: family shared boundary tests that depend on cross-repo shared-module topology",
+  "family: OPL Framework boundary tests that depend on cross-repo Framework topology",
   "contract: stable command, schema, and owner-surface contracts that protect public behavior",
   "integration: cross-entry or cross-module integration tests that are broader than unit contracts",
   "materialization_heavy: artifact/package materialization tests that should stay out of default regression",

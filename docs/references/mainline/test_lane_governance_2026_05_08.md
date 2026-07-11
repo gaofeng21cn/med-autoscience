@@ -13,7 +13,7 @@ Machine boundary: Human-readable reference only; current architecture and qualit
 
 - `smoke`: 4 collected tests after narrowing to the manifest-backed minimal entry surface.
 - `meta`: 215 collected tests after removing family-owned preflight files from meta and dropping the explicit architecture-owner rerun.
-- `family`: 55 collected tests, still owned by the family shared boundary lane.
+- `family`: 55 collected tests, still owned by the OPL Framework boundary lane.
 - `regression`: 2611 collected tests after excluding `materialization_heavy`.
 - `submission_heavy or materialization_heavy`: 248 collected tests.
 

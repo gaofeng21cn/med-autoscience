@@ -335,7 +335,7 @@ def test_ci_and_advisory_workflows_split_stable_push_and_advisory_jobs() -> None
     assert "meta-contracts:" not in ci_workflow
     assert "Run regression advisory tests" in advisory_workflow
     assert "Run meta advisory tests" in advisory_workflow
-    assert "Run family shared advisory tests" in advisory_workflow
+    assert "Run OPL Framework advisory tests" in advisory_workflow
     assert "Run submission-heavy advisory tests" in advisory_workflow
     assert "Run display-heavy advisory tests" in advisory_workflow
 
