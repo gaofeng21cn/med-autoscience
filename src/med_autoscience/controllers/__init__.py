@@ -7,7 +7,6 @@ __all__ = [
     "display_surface_materialization",
     "backend_audit",
     "external_research",
-    "figure_loop_guard",
     "journal_package",
     "journal_shortlist",
     "medical_analysis_contract",

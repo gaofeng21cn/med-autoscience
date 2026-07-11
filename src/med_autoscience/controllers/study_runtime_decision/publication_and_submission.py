@@ -115,7 +115,6 @@ _SUPERVISOR_TICK_EXPECTED_INTERVAL_SECONDS = 5 * 60
 _SUPERVISOR_TICK_STALE_AFTER_SECONDS = 2 * _SUPERVISOR_TICK_EXPECTED_INTERVAL_SECONDS
 _AUTO_RECOVERY_CONTROLLER_STOP_SOURCES = frozenset(
     {
-        "medautosci-figure-loop-guard",
         "codex-medical-publication-surface",
     }
 )

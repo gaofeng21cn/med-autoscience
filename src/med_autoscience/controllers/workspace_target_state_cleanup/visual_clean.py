@@ -85,7 +85,6 @@ OPS_MEDAUTOSCIENCE_ACTIVE_BIN_ENTRIES = {
     "paper-mission-owner-surface",
     "publication-gate",
     "medical-surface",
-    "figure-loop-guard",
     "resolve-submission-targets",
     "resolve-journal-shortlist",
     "init-portfolio-memory",

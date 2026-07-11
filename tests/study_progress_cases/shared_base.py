@@ -295,22 +295,6 @@ def _write_runtime_readback_report(quest_root: Path) -> Path:
                 "current_required_action": "return_to_publishability_gate",
                 "deferred_downstream_actions": ["submission_minimal"],
                 "controller_stage_note": "论文还没有通过可写门控，bundle 打包仍然属于后续步骤。",
-            },
-            "figure_loop_guard": {
-                "status": "blocked",
-                "action": "applied",
-                "blockers": [
-                    "figure_loop_budget_exceeded",
-                    "references_below_floor_during_figure_loop",
-                ],
-                "advisories": [],
-                "report_json": str(
-                    quest_root / "artifacts" / "reports" / "figure_loop_guard" / "latest.json"
-                ),
-                "report_markdown": str(
-                    quest_root / "artifacts" / "reports" / "figure_loop_guard" / "latest.md"
-                ),
-                "suppression_reason": None,
             }
         },
     }

@@ -26,6 +26,7 @@ def test_retired_execution_and_transport_aggregates_do_not_return_as_aliases() -
     retired_runtime_module = "_".join(_legacy_runtime_repair_marker().split("_")[-2:])
     for module_name in (
         "med_autoscience.runtime_control.owner_callable_registry",
+        "med_autoscience.controllers.figure_loop_guard",
         "med_autoscience.controllers.study_runtime_transport",
         f"med_autoscience.controllers.paper_mission_owner_surface.{retired_runtime_module}",
         *(f"med_autoscience.controllers.stage_outcome_authority.{part}" for part in retired_dispatch_parts),
@@ -88,12 +89,10 @@ def test_paper_mission_owner_surface_no_longer_accepts_tombstoned_runtime_apply_
 
 def test_retired_worker_transport_aliases_do_not_return() -> None:
     domain_status_projection = importlib.import_module("med_autoscience.controllers.domain_status_projection")
-    figure_loop_guard = importlib.import_module("med_autoscience.controllers.figure_loop_guard")
     medical_publication_surface = importlib.import_module("med_autoscience.controllers.medical_publication_surface")
 
     retired_transport_attr = "managed_runtime" + "_transport"
     assert not hasattr(domain_status_projection, retired_transport_attr)
-    assert not hasattr(figure_loop_guard, retired_transport_attr)
     assert not hasattr(medical_publication_surface, retired_transport_attr)
 
 
