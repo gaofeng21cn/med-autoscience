@@ -204,7 +204,7 @@ def build_stage_surface_contract(payload: dict[str, object] | None = None) -> di
             "markdown_role": "generated_human_reading_surface",
             "machine_truth_owners": [
                 "canonical route contract",
-                "stage knowledge plane contracts",
+                "MAS research memory contract",
                 "MAS controller/domain-authority refs surfaces",
                 "publication_eval/latest.json",
                 "controller_decisions/latest.json",

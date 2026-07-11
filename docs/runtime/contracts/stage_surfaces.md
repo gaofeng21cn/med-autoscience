@@ -11,7 +11,7 @@ OPL may only project, dispatch, and read refs.
 MAS keeps domain truth, quality verdict, owner receipts, typed blockers, and artifact authority.
 
 ## Machine Boundary
-- Machine truth owners: canonical route contract | stage knowledge plane contracts | MAS controller/domain-authority refs surfaces | publication_eval/latest.json | controller_decisions/latest.json | evidence/review ledgers | workspace artifact locator refs | OPL current-control-state for runtime control
+- Machine truth owners: canonical route contract | MAS research memory contract | MAS controller/domain-authority refs surfaces | publication_eval/latest.json | controller_decisions/latest.json | evidence/review ledgers | workspace artifact locator refs | OPL current-control-state for runtime control
 - OPL allowed: projection | dispatch | read_refs
 - OPL forbidden: domain_truth | quality_verdict | artifact_authority | memory_writeback_acceptance
 - MAS authority: domain_truth | quality_verdict | artifact_authority | runtime_authority_refs | owner_receipt | typed_blocker

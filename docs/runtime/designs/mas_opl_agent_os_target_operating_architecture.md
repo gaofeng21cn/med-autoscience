@@ -181,7 +181,7 @@ MAS 的所有 CLI、MCP、skill、domain-handler、owner callable、sidecar、na
 
 - `contracts/action_catalog.json` 直接声明 22 个 action id、effect、handler target、supported surface、workspace locator fields、schema refs 和 authority boundary；MAS 不再维护 catalog generator。
 - `contracts/pack_compiler_input.json` 与 `contracts/generated_surface_handoff.json` 请求 OPL 生成/托管 CLI、MCP、Skill、product-entry、status、workbench 和 harness surface；repo-local MCP registry/JSON-RPC transport 已退役。
-- `src/med_autoscience/runtime_control/owner_callable_registry.py` 继续表达 internal owner action 的 required inputs/outputs/idempotency/fingerprint scope，但不再编译成 MAS-local Tool Arsenal public ABI。
+- `src/med_autoscience/controllers/owner_callable_registry.py` 继续表达 internal owner action 的 required inputs/outputs/idempotency/fingerprint scope，但不再编译成 MAS-local Tool Arsenal public ABI。
 - `agent/primary_skill/SKILL.md` 是 canonical rich skill；`plugins/med-autoscience/skills/med-autoscience/SKILL.md` 是受控 carrier mirror。Agent-facing ordinary interface 由 OPL 从 action catalog/schema 生成。
 - `scientific_capability_registry` 是 catalog action；Display Pack 使用独立 `display_pack_*` actions。旧聚合 `display_pack_agent`、`authority_operations`、`agent_tool_arsenal` 和 diagnostic MCP tools 只属于 retired/provenance identity。
 - `lightweight_executor_receipts.py` 只生成 refs-only internal evidence；它不执行命令、不新增 external runtime/admission gate，也不能写 owner receipt、typed blocker、publication eval、controller decisions、current package、submission package、stage closeout、quality verdict 或 artifact authority。
