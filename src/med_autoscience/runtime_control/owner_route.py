@@ -9,7 +9,7 @@ from med_autoscience.controllers.owner_callable_action_policy import (
     request_output_surface_for_action_type,
     request_output_target_surface_for_action_type,
 )
-from med_autoscience.runtime_control import decision_trace_ledger
+from med_autoscience.controllers import paper_progress_transition_refs
 from med_autoscience.runtime_control import owner_route_attempt_protocol
 
 
@@ -88,12 +88,12 @@ def build_owner_route(
         source_fingerprint=source_fingerprint,
     )
     current_owner = _current_owner(status=status, progress=progress, active_run_id=active_run_id)
-    trace_projection = decision_trace_ledger.decision_trace_projection(
+    trace_projection = paper_progress_transition_refs.decision_trace_projection(
         status,
         progress,
         *normalized_actions,
     )
-    if decision_trace_ledger.repeated_failed_path_suppressed(
+    if paper_progress_transition_refs.repeated_failed_path_suppressed(
         actions=normalized_actions,
         trace_projection=trace_projection,
     ):
@@ -235,7 +235,7 @@ def ensure_owner_route_v2(route: Mapping[str, Any]) -> dict[str, Any]:
         if target_surface:
             payload["target_surface"] = target_surface
             payload["target_surface_source"] = "owner_route.allowed_action_target_surface"
-    trace_projection = decision_trace_ledger.decision_trace_projection(payload, source_refs)
+    trace_projection = paper_progress_transition_refs.decision_trace_projection(payload, source_refs)
     payload.update({key: value for key, value in trace_projection.items() if key not in payload})
     _attach_decision_trace_source_refs(payload)
     return owner_route_attempt_protocol.decorate_owner_route(payload)
@@ -341,7 +341,7 @@ def route_and_decorate_actions(
         next_owner=next_owner,
         active_run_id=active_run_id,
     )
-    actions = decision_trace_ledger.filter_actions_consuming_recorded_failed_paths(
+    actions = paper_progress_transition_refs.filter_actions_consuming_recorded_failed_paths(
         actions=normalized_actions,
         trace_projection=owner_route,
     )

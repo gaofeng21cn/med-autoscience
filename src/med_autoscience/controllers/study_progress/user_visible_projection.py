@@ -4,7 +4,7 @@ from collections.abc import Mapping
 from typing import Any
 
 from med_autoscience.controllers.paper_progress_state import build_paper_progress_state
-from med_autoscience.runtime_control.decision_trace_ledger import decision_trace_projection
+from med_autoscience.controllers.paper_progress_transition_refs import decision_trace_projection
 
 from .canonical_owner_action_projection import is_canonical_owner_action_projection, owner_action_next_step
 from .current_owner_handoff_projection import current_owner_handoff_action, current_owner_redrive_domain_transition

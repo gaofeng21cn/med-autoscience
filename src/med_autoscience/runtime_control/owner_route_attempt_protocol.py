@@ -7,7 +7,7 @@ from med_autoscience.controllers.owner_callable_closeout_contract import (
     owner_callable_typed_closeout_contract,
 )
 from med_autoscience.controllers.owner_callable_action_policy import owner_callable_search_discipline
-from med_autoscience.runtime_control import decision_trace_ledger
+from med_autoscience.controllers import paper_progress_transition_refs
 from med_autoscience.runtime_control.owner_route_attempt_reasons import (
     DEFAULT_FORBIDDEN_SURFACES,
     _REASON_REGISTRY,
@@ -209,7 +209,7 @@ def decorate_owner_route(owner_route: Mapping[str, Any]) -> dict[str, Any]:
     action_type = allowed_actions[0] if len(allowed_actions) == 1 else None
     reason_contract = owner_reason_contract(reason=reason, owner=owner, action_type=action_type)
     source_refs = dict(_mapping(route.get("source_refs")))
-    trace_projection = decision_trace_ledger.decision_trace_projection(route, source_refs)
+    trace_projection = paper_progress_transition_refs.decision_trace_projection(route, source_refs)
     route.update(trace_projection)
     source_refs = {
         **source_refs,
