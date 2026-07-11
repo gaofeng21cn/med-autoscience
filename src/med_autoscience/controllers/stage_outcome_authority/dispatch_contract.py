@@ -10,11 +10,9 @@ def prompt_contract_error(
     forbidden_surfaces: Iterable[str],
     dispatch_authority: str | None = None,
 ) -> str | None:
-    for key in ("prompt_budget", "compact_evidence_packet_ref", "do_not_repeat", "repeat_suppression_key"):
+    for key in ("prompt_budget", "compact_evidence_packet_ref"):
         if key not in prompt_contract:
             return f"{key}_missing"
-    if prompt_contract.get("do_not_repeat") is not True:
-        return "do_not_repeat_guard_missing"
     story_surface_write_handoff = _story_surface_write_handoff_prompt_contract(
         prompt_contract,
         dispatch_authority=dispatch_authority,

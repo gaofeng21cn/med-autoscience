@@ -392,9 +392,7 @@ def build_ai_reviewer_record_worker_handoff(
         / f"{ACTION_TYPE}.json"
     )
     closeout_contract = owner_callable_typed_closeout_contract(action_type=ACTION_TYPE)
-    repeat_key = _text(owner_route.get("work_unit_fingerprint")) if owner_route else None
-    if repeat_key is None and owner_route:
-        repeat_key = _text(owner_route.get("idempotency_key"))
+    work_unit_fingerprint = _text(owner_route.get("work_unit_fingerprint")) if owner_route else None
     source_refs = _mapping(owner_route.get("source_refs"))
     currentness_basis = owner_route_attempt_policy.currentness_basis(owner_route)
     work_unit_id = (
@@ -402,13 +400,13 @@ def build_ai_reviewer_record_worker_handoff(
         or _text(production_request.get("request_kind"))
         or _text(owner_route.get("owner_reason"))
     )
-    source_generation = repeat_key or _text(owner_route.get("idempotency_key"))
+    source_generation = work_unit_fingerprint or _text(owner_route.get("idempotency_key"))
     transition_request = build_transition_request(
         study_id=study_id,
         quest_id=quest_id,
         action_type=ACTION_TYPE,
         work_unit_id=work_unit_id,
-        work_unit_fingerprint=repeat_key,
+        work_unit_fingerprint=work_unit_fingerprint,
         next_owner="ai_reviewer",
         source_generation=source_generation,
         expected_version=source_generation,
@@ -432,8 +430,6 @@ def build_ai_reviewer_record_worker_handoff(
         "idempotency_key": _text(owner_route.get("idempotency_key")) if owner_route else None,
         "prompt_budget": {"max_prompt_tokens": 6000},
         "compact_evidence_packet_ref": f"artifacts/supervision/compact_evidence_packets/{ACTION_TYPE}.json",
-        "do_not_repeat": True,
-        "repeat_suppression_key": repeat_key,
         "request_packet_ref": REQUEST_PACKET_REF,
         "owner_route_currentness_basis": owner_route_currentness_basis or None,
         "owner_callable_payload_ref": _text(production_request.get("owner_callable_payload_ref")),
@@ -481,8 +477,7 @@ def build_ai_reviewer_record_worker_handoff(
         "dispatch_authority": DISPATCH_AUTHORITY,
         "owner_route": owner_route or None,
         "idempotency_key": _text(owner_route.get("idempotency_key")) if owner_route else None,
-        "repeat_suppression_key": repeat_key,
-        "action_fingerprint": repeat_key,
+        "action_fingerprint": work_unit_fingerprint,
         "consumer_mutation_scope": "executor_dispatch_request_only",
         "required_closeout_packet": closeout_contract,
         "terminal_output_instruction": closeout_contract["terminal_output_instruction"],

@@ -104,70 +104,6 @@ def compact_action_cost(value: object) -> dict[str, Any] | None:
     }
 
 
-def dispatch_budget_window(
-    *,
-    scope: str = "per_study_owner_route_action_fingerprint",
-    max_codex_dispatches_per_scope: int = 1,
-    workspace_global_max_codex_dispatches: int | None = None,
-) -> dict[str, Any]:
-    return {
-        "scope": scope,
-        "max_codex_dispatches_per_scope": int(max_codex_dispatches_per_scope),
-        "workspace_global_max_codex_dispatches": workspace_global_max_codex_dispatches,
-        "duplicate_policy": "suppress_same_action_fingerprint",
-        "dry_run_starts_llm": False,
-        "observe_only_starts_llm": False,
-    }
-
-
-def dispatch_action_fingerprint(*, dispatch: Mapping[str, Any], dispatch_path: Any) -> str:
-    prompt_contract = _mapping(dispatch.get("prompt_contract"))
-    for value in (
-        dispatch.get("work_unit_fingerprint"),
-        dispatch.get("action_fingerprint"),
-        prompt_contract.get("work_unit_fingerprint"),
-        prompt_contract.get("repeat_suppression_key"),
-        dispatch.get("idempotency_key"),
-        prompt_contract.get("idempotency_key"),
-    ):
-        if text := _text(value):
-            return text
-    return f"owner_callable_dispatch::{dispatch_path.as_posix()}"
-
-
-def executor_action_cost(
-    *,
-    action_type: str,
-    apply: bool,
-    execution: Mapping[str, Any],
-    action_fingerprint: str,
-) -> dict[str, Any]:
-    status = _text(execution.get("execution_status"))
-    if not apply or status == "dry_run":
-        return reconcile_dry_run_contract(
-            reason="owner_callable_dispatch_dry_run",
-            action_fingerprint=action_fingerprint,
-        )
-    if status in {"repeat_suppressed", "blocked"}:
-        return observe_only_contract(
-            reason=f"owner_callable_dispatch_{status}",
-            action_fingerprint=action_fingerprint,
-        )
-    if status == "handoff_ready":
-        return codex_worker_dispatch_contract(
-            reason="owner_callable_dispatch_writer_handoff_ready",
-            action_fingerprint=action_fingerprint,
-        )
-    return controller_apply_contract(
-        reason="owner_callable_dispatch_controller_apply",
-        action_fingerprint=action_fingerprint,
-    )
-
-
-def _mapping(value: object) -> dict[str, Any]:
-    return dict(value) if isinstance(value, Mapping) else {}
-
-
 def _text(value: object) -> str | None:
     text = str(value or "").strip()
     return text or None
@@ -183,9 +119,6 @@ __all__ = [
     "codex_worker_dispatch_contract",
     "compact_action_cost",
     "controller_apply_contract",
-    "dispatch_budget_window",
-    "dispatch_action_fingerprint",
-    "executor_action_cost",
     "observe_only_contract",
     "reconcile_dry_run_contract",
 ]

@@ -102,9 +102,7 @@ def _request(*, study_id: str, dispatch: Mapping[str, Any]) -> dict[str, Any]:
         or external_learning_adoption_closure.SIDECAR_RESULT_RELATIVE_PATH.as_posix(),
         "owner_route": owner_route,
         "idempotency_key": _text(dispatch.get("idempotency_key")) or _text(prompt_contract.get("idempotency_key")),
-        "work_unit_fingerprint": _text(owner_route.get("work_unit_fingerprint"))
-        or _text(dispatch.get("repeat_suppression_key"))
-        or _text(prompt_contract.get("repeat_suppression_key")),
+        "work_unit_fingerprint": _text(owner_route.get("work_unit_fingerprint")),
         "source_action_ref": {
             "action_type": _text(dispatch.get("action_type")) or _text(source_action.get("action_type")),
             "action_id": _text(dispatch.get("action_id")) or _text(source_action.get("action_id")),

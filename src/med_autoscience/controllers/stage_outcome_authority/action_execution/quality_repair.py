@@ -260,7 +260,6 @@ def _progress_first_currentness_routeback(
             "next_work_unit": next_work_unit,
             "owner_reason": AI_REVIEWER_CURRENT_MANUSCRIPT_RECORD_REASON,
             "stale_write_dispatch_reuse_allowed": False,
-            "repeat_write_dispatch_allowed": False,
             "reason": (
                 "The writer dispatch was bound to a stale AI reviewer manuscript digest; "
                 "Progress-First must refresh the AI reviewer record before redriving write."

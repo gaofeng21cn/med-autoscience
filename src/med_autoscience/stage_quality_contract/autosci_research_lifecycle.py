@@ -111,7 +111,6 @@ _AUTOSCI_PACK_CONTRACTS: dict[str, tuple[dict[str, object], ...]] = {
                 "failure_reason",
                 "source_or_review_refs",
                 "active_duplicate_check_ref",
-                "do_not_repeat_scope",
                 "memory_writeback_proposal_ref",
                 "memory_write_router_receipt_ref",
             ],

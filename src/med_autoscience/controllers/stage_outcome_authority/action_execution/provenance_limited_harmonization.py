@@ -76,9 +76,7 @@ def _request(*, study_id: str, dispatch: Mapping[str, Any]) -> dict[str, Any]:
         "required_output_surface": required_output_surface,
         "owner_route": owner_route,
         "idempotency_key": _text(dispatch.get("idempotency_key")) or _text(prompt_contract.get("idempotency_key")),
-        "work_unit_fingerprint": _text(owner_route.get("work_unit_fingerprint"))
-        or _text(dispatch.get("repeat_suppression_key"))
-        or _text(prompt_contract.get("repeat_suppression_key")),
+        "work_unit_fingerprint": _text(owner_route.get("work_unit_fingerprint")),
         "source_action_ref": {
             "action_type": _text(dispatch.get("action_type")),
             "action_id": _text(dispatch.get("action_id")),

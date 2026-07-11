@@ -15,7 +15,6 @@ ALLOWED_PAPER_PROGRESS_DEGRADATION_CLASSES: tuple[str, ...] = (
 )
 REQUIRED_PRODUCTION_DEGRADING_OVERLAY_IDS: tuple[str, ...] = (
     "owner_handoff_dispatch",
-    "repeat_suppression",
     "work_unit_redrive",
 )
 
@@ -150,15 +149,6 @@ PAPER_PROGRESS_DEGRADATION_OVERLAYS: tuple[dict[str, Any], ...] = (
         "production_path": "task_intake_to_controller_to_executor_dispatch",
         "rationale": "If owner handoff cannot route actionable paper work to the executor, automatic production stalls even when progress surfaces render.",
         "required_guard_surface": "owner_route/consumer latest/dispatch receipts",
-    },
-    {
-        "risk_id": "repeat_suppression",
-        "classification": "production_degrading",
-        "affects_automatic_paper_production": True,
-        "covered_by_behavior_surface": "memory_lesson_store",
-        "production_path": "no_op_suppression_and_incident_learning",
-        "rationale": "If repeat suppression fails, the runtime can burn turns on unchanged blockers instead of advancing the manuscript or package.",
-        "required_guard_surface": "managed_study_no_op_suppressions/runtime efficiency projection",
     },
     {
         "risk_id": "work_unit_redrive",

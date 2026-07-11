@@ -136,7 +136,6 @@ def test_scan_domain_routes_does_not_count_control_surface_progress_as_artifact_
     study = result["studies"][0]
     assert study["meaningful_artifact_delta"] is False
     assert study["artifact_delta"]["status"] == "not_observed"
-    assert "repeat_suppression" not in study
     assert study["blocked_reason"] == "ai_reviewer_assessment_required"
 
 

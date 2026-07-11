@@ -338,7 +338,6 @@ def retired_test_domain_owner_dispatch_enriches_repeat_suppressed_typed_blocker_
             "idempotency_key": owner_route["idempotency_key"],
             "prompt_budget": {"max_prompt_tokens": 6000},
             "compact_evidence_packet_ref": "artifacts/supervision/compact_evidence_packets/run_quality_repair_batch.json",
-            "do_not_repeat": True,
             "paper_package_mutation_allowed": False,
             "quality_gate_relaxation_allowed": False,
             "manual_study_patch_allowed": False,
