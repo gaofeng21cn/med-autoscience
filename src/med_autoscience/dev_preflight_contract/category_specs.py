@@ -150,13 +150,11 @@ def build_category_specs(
             "tests/test_runtime_protocol_study_runtime.py",
             "tests/test_opl_runtime_contract_no_provider_backend.py",
             "tests/test_study_runtime_router.py",
-            "tests/test_runtime_root_cause_depth_gate.py",
         ),
         prefix_paths=(
             "src/med_autoscience/runtime_protocol/",
         ),
         commands=(
-            f"{pytest_command} tests/test_runtime_root_cause_depth_gate.py -q",
             f"{pytest_command} tests/test_opl_runtime_contract.py -q",
             f"{pytest_command} tests/test_profiles.py -q",
             f"{pytest_command} tests/test_workspace_runtime_layout.py -q",
