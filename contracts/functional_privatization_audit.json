@@ -12,10 +12,18 @@
     "opl_can_authorize_quality_or_export": false
   },
   "default_surface_boundary": {
-    "state": "runtime_substrate_pending",
+    "state": "physically_absent",
     "owner": "one-person-lab",
     "domain_repo_can_own_default_surface": false
   },
+  "retired_default_surface_ids": [
+    "skill",
+    "product_entry",
+    "product_status",
+    "product_session",
+    "domain_handler",
+    "workbench"
+  ],
   "modules": [
     {
       "module_id": "study_truth",

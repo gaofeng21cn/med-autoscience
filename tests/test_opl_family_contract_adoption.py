@@ -346,15 +346,22 @@ def test_mas_pack_compiler_adoption_uses_compact_contract_readback() -> None:
     }
 
 
-def test_mas_compact_audit_keeps_runtime_substrate_retirement_pending() -> None:
+def test_mas_compact_audit_declares_physically_absent_default_surfaces() -> None:
     audit = json.loads(_read("contracts/functional_privatization_audit.json"))
 
     assert audit["default_surface_boundary"] == {
-        "state": "runtime_substrate_pending",
+        "state": "physically_absent",
         "owner": "one-person-lab",
         "domain_repo_can_own_default_surface": False,
     }
-    assert "retired_default_surface_ids" not in audit
+    assert audit["retired_default_surface_ids"] == [
+        "skill",
+        "product_entry",
+        "product_status",
+        "product_session",
+        "domain_handler",
+        "workbench",
+    ]
 
 
 def test_mas_ars_learning_projection_declares_external_patterns_without_boundary_drift() -> None:
