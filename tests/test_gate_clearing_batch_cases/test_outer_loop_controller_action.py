@@ -11,7 +11,7 @@ from tests.test_gate_clearing_batch_cases.shared import (
 
 def test_study_outer_loop_executes_gate_clearing_batch_controller_action(monkeypatch, tmp_path: Path) -> None:
     module = importlib.import_module("med_autoscience.controllers.study_outer_loop")
-    runtime_protocol = importlib.import_module("med_autoscience.runtime_protocol.study_runtime")
+    escalation_records = importlib.import_module("med_autoscience.runtime_escalation_record")
     profile = make_profile(tmp_path)
     study_root = write_study(
         profile.workspace_root,
@@ -51,7 +51,7 @@ def test_study_outer_loop_executes_gate_clearing_batch_controller_action(monkeyp
         module,
         "_resolve_runtime_escalation_record",
         lambda **_: (
-            runtime_protocol.RuntimeEscalationRecordRef(
+            escalation_records.RuntimeEscalationRecordRef(
                 record_id="runtime-escalation::001-risk::quest-001::publication_quality_gap::2026-04-21T12:42:39+00:00",
                 artifact_path=str(quest_root / "artifacts" / "reports" / "escalation" / "runtime_escalation_record.json"),
                 summary_ref=str(study_root / "artifacts" / "runtime" / "last_launch_report.json"),

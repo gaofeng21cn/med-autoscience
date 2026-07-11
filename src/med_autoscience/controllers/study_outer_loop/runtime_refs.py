@@ -12,6 +12,8 @@ from med_autoscience.runtime_escalation_record import (
     RuntimeEscalationRecord,
     RuntimeEscalationRecordRef,
     RuntimeEscalationTrigger,
+    read_runtime_escalation_record_ref,
+    write_runtime_escalation_record,
 )
 from med_autoscience.runtime_protocol import study_runtime as study_runtime_protocol
 
@@ -157,7 +159,7 @@ def _hydrate_managed_runtime_refs(status: dict[str, Any]) -> dict[str, Any]:
         if runtime_event_ref is not None:
             hydrated["runtime_event_ref"] = runtime_event_ref.to_dict()
     if not isinstance(hydrated.get("runtime_escalation_ref"), dict):
-        runtime_escalation_ref = study_runtime_protocol.read_runtime_escalation_record_ref(quest_root=quest_root)
+        runtime_escalation_ref = read_runtime_escalation_record_ref(quest_root=quest_root)
         if runtime_escalation_ref is not None:
             hydrated["runtime_escalation_ref"] = runtime_escalation_ref.to_dict()
     return hydrated
@@ -275,7 +277,7 @@ def _resolve_runtime_escalation_record(
             summary_ref=str(summary_path),
             artifact_path=None,
         )
-        written_record = study_runtime_protocol.write_runtime_escalation_record(
+        written_record = write_runtime_escalation_record(
             quest_root=quest_root,
             record=record,
         )

@@ -749,3 +749,101 @@ def test_run_quest_hydration_rewrites_stale_generated_display_registry_and_prese
     assert baseline_payload["catalog_id"] == "T1"
     assert baseline_payload["title"] == "Existing baseline table"
     assert baseline_payload["variables"][0]["label"] == "Age"
+
+
+def test_build_hydration_payload_preserves_domain_contract(monkeypatch, tmp_path: Path) -> None:
+    module = importlib.import_module("med_autoscience.controllers.quest_hydration")
+    reference_context = {
+        "selected_record_ids": ["pmid:12345"],
+        "records": [{"record_id": "pmid:12345", "title": "Anchor paper"}],
+    }
+    reference_module = importlib.import_module("med_autoscience.study_reference_context")
+    monkeypatch.setattr(reference_module, "build_study_reference_context", lambda **_: reference_context)
+    monkeypatch.setattr(module, "workspace_literature_status", lambda **_: {"record_count": 1})
+
+    payload = module.build_hydration_payload(
+        create_payload={
+            "startup_contract": {
+                "medical_analysis_contract_summary": {"study_archetype": "clinical_classifier"},
+                "medical_reporting_contract_summary": {"reporting_guideline_family": "TRIPOD"},
+                "entry_state_summary": " Study root ",
+            }
+        },
+        study_root=tmp_path / "workspace" / "studies" / "S1",
+        workspace_root=tmp_path / "workspace",
+    )
+
+    assert payload == {
+        "medical_analysis_contract": {"study_archetype": "clinical_classifier"},
+        "medical_reporting_contract": {"reporting_guideline_family": "TRIPOD"},
+        "entry_state_summary": "Study root",
+        "literature_records": reference_context["records"],
+        "workspace_literature": {"record_count": 1},
+        "study_reference_context": reference_context,
+    }
+
+
+def test_build_hydration_payload_preserves_startup_literature_records(monkeypatch) -> None:
+    module = importlib.import_module("med_autoscience.controllers.quest_hydration")
+    records = [{"record_id": "pmid:12345", "title": "Anchor paper"}]
+    monkeypatch.setattr(
+        module.startup_literature,
+        "resolve_startup_literature_records",
+        lambda *, startup_contract: records,
+    )
+
+    payload = module.build_hydration_payload(
+        create_payload={
+            "startup_contract": {
+                "medical_analysis_contract_summary": {},
+                "medical_reporting_contract_summary": {},
+                "entry_state_summary": "Study root",
+            }
+        }
+    )
+
+    assert payload["literature_records"] == records
+
+
+@pytest.mark.parametrize(
+    ("create_payload", "message"),
+    [
+        ({}, "create payload missing startup_contract"),
+        ({"startup_contract": {}}, "startup_contract missing medical_analysis_contract_summary"),
+        (
+            {"startup_contract": {"medical_analysis_contract_summary": {}}},
+            "startup_contract missing medical_reporting_contract_summary",
+        ),
+    ],
+)
+def test_build_hydration_payload_rejects_invalid_contract(create_payload: dict[str, object], message: str) -> None:
+    module = importlib.import_module("med_autoscience.controllers.quest_hydration")
+
+    with pytest.raises(ValueError, match=message):
+        module.build_hydration_payload(create_payload=create_payload)
+
+
+def test_write_startup_hydration_report_preserves_artifact_abi(tmp_path: Path) -> None:
+    module = importlib.import_module("med_autoscience.controllers.quest_hydration")
+    quest_root = tmp_path / "runtime" / "quests" / "S1"
+    report = module.StartupHydrationReport(
+        status=module.StartupHydrationStatus.HYDRATED,
+        recorded_at="2026-04-03T08:00:00+00:00",
+        quest_root=str(quest_root),
+        entry_state_summary="Study root",
+        literature_report={"record_count": 1},
+        written_files=(str(quest_root / "paper" / "medical_analysis_contract.json"),),
+    )
+
+    written = module.write_startup_hydration_report(quest_root=quest_root, report=report)
+
+    expected = quest_root / "artifacts" / "reports" / "startup" / "hydration_report.json"
+    assert written.report_path == str(expected)
+    assert json.loads(expected.read_text(encoding="utf-8")) == written.to_dict()
+
+
+def test_startup_hydration_report_rejects_missing_required_fields() -> None:
+    module = importlib.import_module("med_autoscience.controllers.quest_hydration")
+
+    with pytest.raises(ValueError, match="startup hydration payload missing recorded_at"):
+        module.StartupHydrationReport.from_payload({"status": "hydrated"})

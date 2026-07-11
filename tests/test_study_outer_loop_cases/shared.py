@@ -68,8 +68,8 @@ def _write_runtime_escalation_record(
     study_id: str = "001-risk",
     quest_id: str = "quest-001",
 ) -> dict[str, str]:
-    protocol = importlib.import_module("med_autoscience.runtime_protocol.study_runtime")
-    record = protocol.RuntimeEscalationRecord(
+    escalation_records = importlib.import_module("med_autoscience.runtime_escalation_record")
+    record = escalation_records.RuntimeEscalationRecord(
         schema_version=1,
         record_id=(
             f"runtime-escalation::{study_id}::{quest_id}::"
@@ -78,7 +78,7 @@ def _write_runtime_escalation_record(
         study_id=study_id,
         quest_id=quest_id,
         emitted_at="2026-04-05T05:55:00+00:00",
-        trigger=protocol.RuntimeEscalationTrigger(
+        trigger=escalation_records.RuntimeEscalationTrigger(
             trigger_id="startup_boundary_not_ready_for_resume",
             source="startup_boundary_gate",
         ),
@@ -90,7 +90,7 @@ def _write_runtime_escalation_record(
         runtime_context_refs={"launch_report_path": str(study_root / "artifacts" / "runtime" / "last_launch_report.json")},
         summary_ref=str(study_root / "artifacts" / "runtime" / "last_launch_report.json"),
     )
-    return protocol.write_runtime_escalation_record(quest_root=quest_root, record=record).ref().to_dict()
+    return escalation_records.write_runtime_escalation_record(quest_root=quest_root, record=record).ref().to_dict()
 
 
 def _write_runtime_event_record(
@@ -214,7 +214,6 @@ def _write_publication_eval(study_root: Path, quest_root: Path) -> dict[str, str
         "eval_id": payload["eval_id"],
         "artifact_path": str(study_root / "artifacts" / "publication_eval" / "latest.json"),
     }
-
 
 
 

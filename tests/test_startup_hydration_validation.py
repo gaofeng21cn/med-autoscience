@@ -4,6 +4,8 @@ import importlib
 import json
 from pathlib import Path
 
+import pytest
+
 
 def write_json(path: Path, payload: dict[str, object]) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
@@ -575,3 +577,39 @@ def test_startup_hydration_validation_blocks_semantic_display_without_catalog_id
     report = module.run_validation(quest_root=quest_root)
 
     assert "invalid_display_shell_plan" in report["blockers"]
+
+
+def test_write_startup_hydration_validation_report_preserves_artifact_abi(tmp_path: Path) -> None:
+    module = importlib.import_module("med_autoscience.controllers.startup_hydration_validation")
+    quest_root = tmp_path / "runtime" / "quests" / "S1"
+    report = module.StartupHydrationValidationReport(
+        status=module.StartupHydrationValidationStatus.CLEAR,
+        recorded_at="2026-04-03T08:05:00+00:00",
+        quest_root=str(quest_root),
+        blockers=(),
+        medical_analysis_contract_status="resolved",
+        medical_reporting_contract_status="resolved",
+        medical_analysis_contract_path=str(quest_root / "paper" / "medical_analysis_contract.json"),
+        medical_reporting_contract_path=str(quest_root / "paper" / "medical_reporting_contract.json"),
+    )
+
+    written = module.write_startup_hydration_validation_report(quest_root=quest_root, report=report)
+
+    expected = quest_root / "artifacts" / "reports" / "startup" / "hydration_validation_report.json"
+    assert written.report_path == str(expected)
+    assert json.loads(expected.read_text(encoding="utf-8")) == written.to_dict()
+
+
+def test_startup_hydration_validation_report_rejects_missing_checked_paths() -> None:
+    module = importlib.import_module("med_autoscience.controllers.startup_hydration_validation")
+
+    with pytest.raises(ValueError, match="startup hydration validation payload missing checked_paths"):
+        module.StartupHydrationValidationReport.from_payload(
+            {
+                "status": "clear",
+                "recorded_at": "2026-04-03T08:05:00+00:00",
+                "quest_root": "/tmp/runtime/quests/S1",
+                "blockers": [],
+                "contract_statuses": {},
+            }
+        )

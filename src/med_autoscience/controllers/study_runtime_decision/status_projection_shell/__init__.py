@@ -20,6 +20,7 @@ from .read_model_projection_assembly import (
 from med_autoscience.controllers.study_runtime_types import ProgressProjectionStatus
 from med_autoscience.runtime_protocol import quest_state
 from med_autoscience.runtime_protocol import study_runtime as study_runtime_protocol
+from med_autoscience.runtime_escalation_record import read_runtime_escalation_record_ref
 
 
 def finalize_status_projection_shell(
@@ -45,7 +46,7 @@ def finalize_status_projection_shell(
     if not status.should_refresh_startup_hydration_for_runtime_hold():
         status.extras.pop("runtime_escalation_ref", None)
     else:
-        runtime_escalation_ref = study_runtime_protocol.read_runtime_escalation_record_ref(quest_root=quest_root)
+        runtime_escalation_ref = read_runtime_escalation_record_ref(quest_root=quest_root)
         if runtime_escalation_ref is not None:
             status.record_runtime_escalation_ref(runtime_escalation_ref)
     if sync_runtime_summary:

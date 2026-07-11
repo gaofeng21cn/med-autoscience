@@ -1,6 +1,8 @@
 from __future__ import annotations
 
 import importlib
+import json
+from pathlib import Path
 
 import pytest
 
@@ -87,6 +89,33 @@ def test_runtime_escalation_record_from_payload_round_trips_minimal_shape() -> N
         "artifact_path": payload["artifact_path"],
         "summary_ref": payload["summary_ref"],
     }
+
+
+def test_runtime_escalation_writer_and_reader_preserve_quest_artifact_abi(tmp_path: Path) -> None:
+    module = importlib.import_module("med_autoscience.runtime_escalation_record")
+    quest_root = tmp_path / "runtime" / "quests" / "quest-001"
+    payload = {
+        "schema_version": 1,
+        "record_id": "runtime-escalation::001-risk::quest-001::blocked::2026-04-05T06:00:00+00:00",
+        "study_id": "001-risk",
+        "quest_id": "quest-001",
+        "emitted_at": "2026-04-05T06:00:00+00:00",
+        "trigger": {"trigger_id": "blocked", "source": "startup_boundary_gate"},
+        "scope": "quest",
+        "severity": "quest",
+        "reason": "blocked",
+        "recommended_actions": ["controller_review_required"],
+        "evidence_refs": [],
+        "runtime_context_refs": {"launch_report_path": "/tmp/last_launch_report.json"},
+        "summary_ref": "/tmp/last_launch_report.json",
+    }
+    record = module.RuntimeEscalationRecord.from_payload(payload)
+
+    written = module.write_runtime_escalation_record(quest_root=quest_root, record=record)
+
+    expected = quest_root / "artifacts" / "reports" / "escalation" / "runtime_escalation_record.json"
+    assert json.loads(expected.read_text(encoding="utf-8")) == written.to_dict()
+    assert module.read_runtime_escalation_record_ref(quest_root=quest_root) == written.ref()
 
 
 def test_runtime_escalation_record_requires_summary_ref() -> None:

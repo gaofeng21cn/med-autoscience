@@ -1,6 +1,8 @@
 from __future__ import annotations
 
 import importlib
+import json
+from pathlib import Path
 
 import pytest
 
@@ -80,6 +82,24 @@ def test_study_decision_record_from_payload_round_trips_minimal_shape() -> None:
         reason="Publication eval keeps the study on the same line.",
     )
     assert record.to_dict() == payload
+
+
+def test_write_study_decision_record_preserves_artifact_and_latest_abi(tmp_path: Path) -> None:
+    module = _load_module()
+    study_root = tmp_path / "workspace" / "studies" / "001-risk"
+    record = module.StudyDecisionRecord.from_payload(_minimal_payload())
+
+    written = module.write_study_decision_record(study_root=study_root, record=record)
+
+    expected = (
+        study_root
+        / "artifacts"
+        / "controller_decisions"
+        / "20260405T060000Z_study-decision-001-risk-quest-001-continue_same_line-2026-04-05T06-00-00-00-00.json"
+    )
+    assert written.artifact_path == str(expected)
+    assert json.loads(expected.read_text(encoding="utf-8")) == written.to_dict()
+    assert json.loads((expected.parent / "latest.json").read_text(encoding="utf-8")) == written.to_dict()
 
 
 def test_study_decision_record_rejects_missing_runtime_escalation_ref() -> None:

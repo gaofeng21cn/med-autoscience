@@ -1,10 +1,53 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
+from datetime import datetime, timezone
 from enum import StrEnum
+import json
+import os
+from pathlib import Path
+import re
+import tempfile
 from typing import Any
 
 from med_autoscience.runtime_escalation_record import RuntimeEscalationRecordRef
+
+
+def _write_json(path: Path, payload: dict[str, Any]) -> None:
+    path.parent.mkdir(parents=True, exist_ok=True)
+    content = json.dumps(payload, ensure_ascii=False, indent=2) + "\n"
+    temp_name: str | None = None
+    try:
+        with tempfile.NamedTemporaryFile(
+            "w",
+            encoding="utf-8",
+            dir=path.parent,
+            prefix=f".{path.name}.",
+            suffix=".tmp",
+            delete=False,
+        ) as handle:
+            temp_name = handle.name
+            handle.write(content)
+            handle.flush()
+            os.fsync(handle.fileno())
+        Path(temp_name).replace(path)
+    finally:
+        if temp_name is not None:
+            Path(temp_name).unlink(missing_ok=True)
+
+
+def _artifact_timestamp_slug(recorded_at: str) -> str:
+    normalized = recorded_at.strip()
+    if normalized.endswith("Z"):
+        normalized = f"{normalized[:-1]}+00:00"
+    return datetime.fromisoformat(normalized).astimezone(timezone.utc).strftime("%Y%m%dT%H%M%SZ")
+
+
+def _safe_artifact_id(value: str) -> str:
+    normalized = re.sub(r"[^A-Za-z0-9._-]+", "-", value.strip()).strip("-")
+    if not normalized:
+        raise ValueError("study decision record decision_id must produce a non-empty artifact filename")
+    return normalized
 
 
 _RECORD_ALLOWED_FIELDS = frozenset(
@@ -555,3 +598,21 @@ class StudyDecisionRecord:
             ),
             artifact_path=str(payload.get("artifact_path") or "").strip() or None,
         )
+
+
+def write_study_decision_record(
+    *,
+    study_root: Path,
+    record: StudyDecisionRecord,
+) -> StudyDecisionRecord:
+    path = (
+        Path(study_root).expanduser().resolve()
+        / "artifacts"
+        / "controller_decisions"
+        / f"{_artifact_timestamp_slug(record.emitted_at)}_{_safe_artifact_id(record.decision_id)}.json"
+    )
+    persisted_record = record.with_artifact_path(str(path))
+    payload = persisted_record.to_dict()
+    _write_json(path, payload)
+    _write_json(path.parent / "latest.json", payload)
+    return StudyDecisionRecord.from_payload(payload)

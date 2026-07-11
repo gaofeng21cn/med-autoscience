@@ -1,10 +1,15 @@
 from __future__ import annotations
 
+from dataclasses import dataclass
 from datetime import datetime, timezone
+from enum import StrEnum
 import json
+import os
 from pathlib import Path
+import tempfile
 from typing import Any
 
+from med_autoscience import startup_literature
 from med_autoscience.controllers._medical_display_surface_support import (
     build_required_display_surface_stub_payload,
     resolve_required_display_surface_stub,
@@ -12,7 +17,80 @@ from med_autoscience.controllers._medical_display_surface_support import (
 from med_autoscience.controllers import literature_hydration as literature_hydration_controller
 from med_autoscience import publication_display_contract
 from med_autoscience.controllers import paper_artifacts
-from med_autoscience.runtime_protocol import study_runtime as study_runtime_protocol
+from med_autoscience.workspace_contracts import workspace_literature_status
+
+
+class StartupHydrationStatus(StrEnum):
+    HYDRATED = "hydrated"
+
+
+@dataclass(frozen=True)
+class StartupHydrationReport:
+    status: StartupHydrationStatus
+    recorded_at: str
+    quest_root: str
+    entry_state_summary: str
+    literature_report: dict[str, Any]
+    written_files: tuple[str, ...]
+    report_path: str | None = None
+
+    def __post_init__(self) -> None:
+        object.__setattr__(self, "status", self._normalize_status(self.status))
+        object.__setattr__(self, "written_files", tuple(str(item) for item in self.written_files))
+        if self.report_path is not None:
+            object.__setattr__(self, "report_path", str(self.report_path))
+
+    def to_dict(self) -> dict[str, Any]:
+        payload: dict[str, Any] = {
+            "status": self.status.value,
+            "recorded_at": self.recorded_at,
+            "quest_root": self.quest_root,
+            "entry_state_summary": self.entry_state_summary,
+            "literature_report": dict(self.literature_report),
+            "written_files": list(self.written_files),
+        }
+        if self.report_path is not None:
+            payload["report_path"] = self.report_path
+        return payload
+
+    @classmethod
+    def from_payload(cls, payload: dict[str, Any]) -> "StartupHydrationReport":
+        if not isinstance(payload, dict):
+            raise TypeError("startup hydration payload must be a mapping")
+        if "recorded_at" not in payload or not str(payload.get("recorded_at") or "").strip():
+            raise ValueError("startup hydration payload missing recorded_at")
+        if "quest_root" not in payload or not str(payload.get("quest_root") or "").strip():
+            raise ValueError("startup hydration payload missing quest_root")
+        if "entry_state_summary" not in payload or not str(payload.get("entry_state_summary") or "").strip():
+            raise ValueError("startup hydration payload missing entry_state_summary")
+        written_files = payload.get("written_files") or []
+        if not isinstance(written_files, list):
+            raise ValueError("startup hydration payload written_files must be a list")
+        if "literature_report" not in payload:
+            raise ValueError("startup hydration payload missing literature_report")
+        literature_report = payload.get("literature_report") or {}
+        if not isinstance(literature_report, dict):
+            raise ValueError("startup hydration payload literature_report must be a mapping")
+        return cls(
+            status=payload.get("status"),
+            recorded_at=str(payload.get("recorded_at") or ""),
+            quest_root=str(payload.get("quest_root") or ""),
+            entry_state_summary=str(payload.get("entry_state_summary") or ""),
+            literature_report=dict(literature_report),
+            written_files=tuple(str(item) for item in written_files),
+            report_path=str(payload.get("report_path") or "") or None,
+        )
+
+    @staticmethod
+    def _normalize_status(value: StartupHydrationStatus | str) -> StartupHydrationStatus:
+        if isinstance(value, StartupHydrationStatus):
+            return value
+        if not isinstance(value, str):
+            raise TypeError("status must be str")
+        try:
+            return StartupHydrationStatus(value)
+        except ValueError as exc:
+            raise ValueError(f"unknown startup hydration status: {value}") from exc
 
 
 def _utc_now() -> str:
@@ -21,7 +99,79 @@ def _utc_now() -> str:
 
 def _write_json(path: Path, payload: dict[str, Any]) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
-    path.write_text(json.dumps(payload, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+    content = json.dumps(payload, ensure_ascii=False, indent=2) + "\n"
+    temp_name: str | None = None
+    try:
+        with tempfile.NamedTemporaryFile(
+            "w",
+            encoding="utf-8",
+            dir=path.parent,
+            prefix=f".{path.name}.",
+            suffix=".tmp",
+            delete=False,
+        ) as handle:
+            temp_name = handle.name
+            handle.write(content)
+            handle.flush()
+            os.fsync(handle.fileno())
+        Path(temp_name).replace(path)
+    finally:
+        if temp_name is not None:
+            Path(temp_name).unlink(missing_ok=True)
+
+
+def build_hydration_payload(
+    *,
+    create_payload: dict[str, Any],
+    study_root: Path | None = None,
+    workspace_root: Path | None = None,
+) -> dict[str, object]:
+    startup_contract = create_payload.get("startup_contract")
+    if not isinstance(startup_contract, dict):
+        raise ValueError("create payload missing startup_contract")
+    medical_analysis_contract = startup_contract.get("medical_analysis_contract_summary")
+    if not isinstance(medical_analysis_contract, dict):
+        raise ValueError("startup_contract missing medical_analysis_contract_summary")
+    medical_reporting_contract = startup_contract.get("medical_reporting_contract_summary")
+    if not isinstance(medical_reporting_contract, dict):
+        raise ValueError("startup_contract missing medical_reporting_contract_summary")
+    entry_state_summary = startup_contract.get("entry_state_summary")
+    if not isinstance(entry_state_summary, str) or not entry_state_summary.strip():
+        raise ValueError("startup_contract missing entry_state_summary")
+    payload: dict[str, object] = {
+        "medical_analysis_contract": dict(medical_analysis_contract),
+        "medical_reporting_contract": dict(medical_reporting_contract),
+        "entry_state_summary": entry_state_summary.strip(),
+        "literature_records": startup_literature.resolve_startup_literature_records(startup_contract=startup_contract),
+    }
+    if (study_root is None) != (workspace_root is None):
+        raise ValueError("study_root and workspace_root must be provided together")
+    if study_root is None or workspace_root is None:
+        return payload
+
+    from med_autoscience import study_reference_context
+
+    reference_context = study_reference_context.build_study_reference_context(
+        study_root=study_root,
+        workspace_root=workspace_root,
+        startup_contract=startup_contract,
+    )
+    payload["workspace_literature"] = workspace_literature_status(workspace_root=workspace_root)
+    payload["study_reference_context"] = reference_context
+    payload["literature_records"] = list(reference_context.get("records") or [])
+    return payload
+
+
+def write_startup_hydration_report(
+    *,
+    quest_root: Path,
+    report: StartupHydrationReport,
+) -> StartupHydrationReport:
+    path = Path(quest_root).expanduser().resolve() / "artifacts" / "reports" / "startup" / "hydration_report.json"
+    payload = report.to_dict()
+    payload["report_path"] = str(path)
+    _write_json(path, payload)
+    return StartupHydrationReport.from_payload(payload)
 
 
 def _read_json_dict(path: Path) -> dict[str, Any]:
@@ -445,10 +595,10 @@ def run_hydration(*, quest_root: Path, hydration_payload: dict[str, object]) -> 
     imported_records_path = literature_report.get("imported_records_path")
     if isinstance(imported_records_path, str) and imported_records_path:
         written_files.append(imported_records_path)
-    report = study_runtime_protocol.write_startup_hydration_report(
+    report = write_startup_hydration_report(
         quest_root=resolved_quest_root,
-        report=study_runtime_protocol.StartupHydrationReport(
-            status=study_runtime_protocol.StartupHydrationStatus.HYDRATED,
+        report=StartupHydrationReport(
+            status=StartupHydrationStatus.HYDRATED,
             recorded_at=_utc_now(),
             quest_root=str(resolved_quest_root),
             entry_state_summary=entry_state_summary,

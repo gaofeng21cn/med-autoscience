@@ -1,7 +1,44 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
+import json
+import os
+from pathlib import Path
+import tempfile
 from typing import Any
+
+
+def _write_json(path: Path, payload: dict[str, Any]) -> None:
+    path.parent.mkdir(parents=True, exist_ok=True)
+    content = json.dumps(payload, ensure_ascii=False, indent=2) + "\n"
+    temp_name: str | None = None
+    try:
+        with tempfile.NamedTemporaryFile(
+            "w",
+            encoding="utf-8",
+            dir=path.parent,
+            prefix=f".{path.name}.",
+            suffix=".tmp",
+            delete=False,
+        ) as handle:
+            temp_name = handle.name
+            handle.write(content)
+            handle.flush()
+            os.fsync(handle.fileno())
+        Path(temp_name).replace(path)
+    finally:
+        if temp_name is not None:
+            Path(temp_name).unlink(missing_ok=True)
+
+
+def _runtime_escalation_record_path(quest_root: Path) -> Path:
+    return (
+        Path(quest_root).expanduser().resolve()
+        / "artifacts"
+        / "reports"
+        / "escalation"
+        / "runtime_escalation_record.json"
+    )
 
 
 def _require_text(field_name: str, value: Any) -> str:
@@ -231,3 +268,28 @@ class RuntimeEscalationRecord:
             runtime_context_refs=_payload_text_mapping(payload, "runtime_context_refs"),
             artifact_path=artifact_path,
         )
+
+
+def write_runtime_escalation_record(
+    *,
+    quest_root: Path,
+    record: RuntimeEscalationRecord,
+) -> RuntimeEscalationRecord:
+    path = _runtime_escalation_record_path(quest_root)
+    persisted_record = record.with_artifact_path(str(path))
+    payload = persisted_record.to_dict()
+    _write_json(path, payload)
+    return RuntimeEscalationRecord.from_payload(payload)
+
+
+def read_runtime_escalation_record_ref(
+    *,
+    quest_root: Path,
+) -> RuntimeEscalationRecordRef | None:
+    path = _runtime_escalation_record_path(quest_root)
+    if not path.exists():
+        return None
+    payload = json.loads(path.read_text(encoding="utf-8")) or {}
+    if not isinstance(payload, dict):
+        raise ValueError("runtime escalation record artifact must contain a mapping payload")
+    return RuntimeEscalationRecord.from_payload(payload).ref()

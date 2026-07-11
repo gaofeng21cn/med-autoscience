@@ -11,47 +11,15 @@ from typing import TYPE_CHECKING, Any
 import yaml
 
 from med_autoscience import opl_runtime_contract
-from med_autoscience import startup_literature
 from med_autoscience.runtime_event_record import RuntimeEventRecord, RuntimeEventRecordRef
-from med_autoscience.runtime_escalation_record import (
-    RuntimeEscalationRecord,
-    RuntimeEscalationRecordRef,
-    RuntimeEscalationTrigger,
-)
-from med_autoscience.study_decision_record import StudyDecisionRecord
-
-from med_autoscience.workspace_contracts import (
-    build_workspace_runtime_layout_for_profile,
-    workspace_literature_status,
-)
+from med_autoscience.workspace_contracts import build_workspace_runtime_layout_for_profile
 from .study_runtime_models import (
-    StartupContractValidation,
-    StartupContractValidationStatus,
-    StartupHydrationReport,
-    StartupHydrationStatus,
-    StartupHydrationValidationReport,
-    StartupHydrationValidationStatus,
     StudyRuntimeArtifacts,
     StudyRuntimeContext,
 )
 
 if TYPE_CHECKING:
     from med_autoscience.profiles import WorkspaceProfile
-
-
-def _build_study_reference_context(
-    *,
-    study_root: Path,
-    workspace_root: Path,
-    startup_contract: dict[str, Any],
-) -> dict[str, object]:
-    from med_autoscience import study_reference_context
-
-    return study_reference_context.build_study_reference_context(
-        study_root=study_root,
-        workspace_root=workspace_root,
-        startup_contract=startup_contract,
-    )
 
 
 def _write_json(path: Path, payload: dict[str, Any]) -> None:
@@ -177,16 +145,6 @@ def _runtime_binding_opl_metadata(status: dict[str, Any]) -> tuple[str, str]:
     return runtime_ref, runtime_engine_id
 
 
-def _runtime_escalation_record_path(quest_root: Path) -> Path:
-    return (
-        Path(quest_root).expanduser().resolve()
-        / "artifacts"
-        / "reports"
-        / "escalation"
-        / "runtime_escalation_record.json"
-    )
-
-
 def _runtime_event_report_root(quest_root: Path) -> Path:
     return (
         Path(quest_root).expanduser().resolve()
@@ -210,43 +168,8 @@ def _safe_artifact_id(value: str) -> str:
     return normalized
 
 
-def _study_decision_record_path(*, study_root: Path, record: StudyDecisionRecord) -> Path:
-    resolved_study_root = Path(study_root).expanduser().resolve()
-    return (
-        resolved_study_root
-        / "artifacts"
-        / "controller_decisions"
-        / f"{_artifact_timestamp_slug(record.emitted_at)}_{_safe_artifact_id(record.decision_id)}.json"
-    )
-
-
 def _runtime_event_record_path(*, quest_root: Path, record: RuntimeEventRecord) -> Path:
     return _runtime_event_report_root(quest_root) / f"{_artifact_timestamp_slug(record.emitted_at)}_{_safe_artifact_id(record.event_kind)}.json"
-
-
-def write_runtime_escalation_record(
-    *,
-    quest_root: Path,
-    record: RuntimeEscalationRecord,
-) -> RuntimeEscalationRecord:
-    path = _runtime_escalation_record_path(quest_root)
-    persisted_record = record.with_artifact_path(str(path))
-    payload = persisted_record.to_dict()
-    _write_json(path, payload)
-    return RuntimeEscalationRecord.from_payload(payload)
-
-
-def read_runtime_escalation_record_ref(
-    *,
-    quest_root: Path,
-) -> RuntimeEscalationRecordRef | None:
-    path = _runtime_escalation_record_path(quest_root)
-    if not path.exists():
-        return None
-    payload = json.loads(path.read_text(encoding="utf-8")) or {}
-    if not isinstance(payload, dict):
-        raise ValueError("runtime escalation record artifact must contain a mapping payload")
-    return RuntimeEscalationRecord.from_payload(payload).ref()
 
 
 def write_runtime_event_record(
@@ -275,57 +198,6 @@ def read_runtime_event_record_ref(
     return RuntimeEventRecord.from_payload(payload).ref()
 
 
-def write_study_decision_record(
-    *,
-    study_root: Path,
-    record: StudyDecisionRecord,
-) -> StudyDecisionRecord:
-    path = _study_decision_record_path(study_root=study_root, record=record)
-    persisted_record = record.with_artifact_path(str(path))
-    payload = persisted_record.to_dict()
-    _write_json(path, payload)
-    _write_json(path.parent / "latest.json", payload)
-    return StudyDecisionRecord.from_payload(payload)
-
-
-def _startup_hydration_report_path(quest_root: Path) -> Path:
-    return Path(quest_root).expanduser().resolve() / "artifacts" / "reports" / "startup" / "hydration_report.json"
-
-
-def _startup_hydration_validation_report_path(quest_root: Path) -> Path:
-    return (
-        Path(quest_root).expanduser().resolve()
-        / "artifacts"
-        / "reports"
-        / "startup"
-        / "hydration_validation_report.json"
-    )
-
-
-def write_startup_hydration_report(
-    *,
-    quest_root: Path,
-    report: StartupHydrationReport,
-) -> StartupHydrationReport:
-    path = _startup_hydration_report_path(quest_root)
-    payload = report.to_dict()
-    payload["report_path"] = str(path)
-    _write_json(path, payload)
-    return StartupHydrationReport.from_payload(payload)
-
-
-def write_startup_hydration_validation_report(
-    *,
-    quest_root: Path,
-    report: StartupHydrationValidationReport,
-) -> StartupHydrationValidationReport:
-    path = _startup_hydration_validation_report_path(quest_root)
-    payload = report.to_dict()
-    payload["report_path"] = str(path)
-    _write_json(path, payload)
-    return StartupHydrationValidationReport.from_payload(payload)
-
-
 def resolve_study_runtime_context(
     *,
     profile: WorkspaceProfile,
@@ -342,165 +214,6 @@ def resolve_study_runtime_context(
         startup_payload_root=layout.startup_payload_root(study_id),
         launch_report_path=resolved_study_root / "artifacts" / "runtime" / "last_launch_report.json",
     )
-
-
-def build_hydration_payload(
-    *,
-    create_payload: dict[str, Any],
-    study_root: Path | None = None,
-    workspace_root: Path | None = None,
-) -> dict[str, object]:
-    startup_contract = create_payload.get("startup_contract")
-    if not isinstance(startup_contract, dict):
-        raise ValueError("create payload missing startup_contract")
-    medical_analysis_contract = startup_contract.get("medical_analysis_contract_summary")
-    if not isinstance(medical_analysis_contract, dict):
-        raise ValueError("startup_contract missing medical_analysis_contract_summary")
-    medical_reporting_contract = startup_contract.get("medical_reporting_contract_summary")
-    if not isinstance(medical_reporting_contract, dict):
-        raise ValueError("startup_contract missing medical_reporting_contract_summary")
-    entry_state_summary = startup_contract.get("entry_state_summary")
-    if not isinstance(entry_state_summary, str) or not entry_state_summary.strip():
-        raise ValueError("startup_contract missing entry_state_summary")
-    payload: dict[str, object] = {
-        "medical_analysis_contract": dict(medical_analysis_contract),
-        "medical_reporting_contract": dict(medical_reporting_contract),
-        "entry_state_summary": entry_state_summary.strip(),
-        "literature_records": startup_literature.resolve_startup_literature_records(startup_contract=startup_contract),
-    }
-    if (study_root is None) != (workspace_root is None):
-        raise ValueError("study_root and workspace_root must be provided together")
-    if study_root is None or workspace_root is None:
-        return payload
-
-    reference_context = _build_study_reference_context(
-        study_root=study_root,
-        workspace_root=workspace_root,
-        startup_contract=startup_contract,
-    )
-    payload["workspace_literature"] = workspace_literature_status(workspace_root=workspace_root)
-    payload["study_reference_context"] = reference_context
-    payload["literature_records"] = list(reference_context.get("records") or [])
-    return payload
-
-
-def validate_startup_contract_resolution(*, startup_contract: dict[str, Any]) -> StartupContractValidation:
-    def validate_contract(
-        *,
-        payload: object,
-        missing_blocker: str,
-        invalid_blocker: str,
-        unsupported_blocker: str,
-        unresolved_blocker: str,
-    ) -> tuple[str | None, str | None, str | None]:
-        if payload is None:
-            return None, missing_blocker, None
-        if not isinstance(payload, dict):
-            return None, invalid_blocker, None
-        status = str(payload.get("status") or "").strip()
-        reason_code = str(payload.get("reason_code") or "").strip() or None
-        if status == "resolved":
-            return status, None, reason_code
-        if status == "unsupported":
-            return status, unsupported_blocker, reason_code
-        return status or None, unresolved_blocker, reason_code
-
-    blockers: list[str] = []
-    analysis_status, analysis_blocker, analysis_reason = validate_contract(
-        payload=startup_contract.get("medical_analysis_contract_summary"),
-        missing_blocker="missing_medical_analysis_contract",
-        invalid_blocker="invalid_medical_analysis_contract",
-        unsupported_blocker="unsupported_medical_analysis_contract",
-        unresolved_blocker="unresolved_medical_analysis_contract",
-    )
-    reporting_status, reporting_blocker, reporting_reason = validate_contract(
-        payload=startup_contract.get("medical_reporting_contract_summary"),
-        missing_blocker="missing_medical_reporting_contract",
-        invalid_blocker="invalid_medical_reporting_contract",
-        unsupported_blocker="unsupported_medical_reporting_contract",
-        unresolved_blocker="unresolved_medical_reporting_contract",
-    )
-    if analysis_blocker is not None:
-        blockers.append(analysis_blocker)
-    if reporting_blocker is not None:
-        blockers.append(reporting_blocker)
-    return StartupContractValidation(
-        status=StartupContractValidationStatus.BLOCKED if blockers else StartupContractValidationStatus.CLEAR,
-        blockers=tuple(blockers),
-        medical_analysis_contract_status=analysis_status,
-        medical_reporting_contract_status=reporting_status,
-        medical_analysis_reason_code=analysis_reason,
-        medical_reporting_reason_code=reporting_reason,
-    )
-
-
-def should_refresh_startup_hydration_for_runtime_hold(status: dict[str, Any]) -> bool:
-    if not bool(status.get("quest_exists")):
-        return False
-    decision = str(status.get("decision") or "").strip()
-    quest_status = str(status.get("quest_status") or "").strip()
-    reason = str(status.get("reason") or "").strip()
-    if decision == "blocked" and quest_status in {"created", "idle", "paused"} and reason in {
-        "startup_boundary_not_ready_for_resume",
-        "runtime_reentry_not_ready_for_resume",
-        "quest_paused_but_auto_resume_disabled",
-        "quest_initialized_but_auto_resume_disabled",
-    }:
-        return True
-    if (
-        decision != "handoff_required"
-        or reason != "opl_stage_attempt_admission_required"
-        or quest_status not in {"active", "running", "paused"}
-    ):
-        return False
-    return _ai_reviewer_stage_knowledge_requires_reference_context_refresh(status)
-
-
-def _ai_reviewer_stage_knowledge_requires_reference_context_refresh(status: dict[str, Any]) -> bool:
-    request = _mapping(status.get("ai_reviewer_request")) or _read_ai_reviewer_request_from_status(status)
-    if not request:
-        return False
-    input_contract = _mapping(request.get("input_contract"))
-    if input_contract.get("all_required_refs_present") is True:
-        return False
-    missing_or_invalid = _text_set(input_contract.get("missing_or_invalid_refs"))
-    if "stage_knowledge_packet" not in missing_or_invalid:
-        return False
-    stage_ref = _mapping(_mapping(input_contract.get("required_refs")).get("stage_knowledge_packet"))
-    ref = str(stage_ref.get("relative_path") or stage_ref.get("ref") or "").strip()
-    if ref and ref != "artifacts/stage_knowledge/review/latest.json":
-        return False
-    missing_reasons = {
-        *_text_set(stage_ref.get("missing_reasons")),
-        *_text_set(request.get("stage_knowledge_missing_reasons")),
-    }
-    return "missing_ref:study_reference_context" in missing_reasons
-
-
-def _read_ai_reviewer_request_from_status(status: dict[str, Any]) -> dict[str, Any]:
-    study_root = str(status.get("study_root") or "").strip()
-    if not study_root:
-        return {}
-    path = Path(study_root).expanduser() / "artifacts" / "supervision" / "requests" / "ai_reviewer" / "latest.json"
-    try:
-        payload = json.loads(path.read_text(encoding="utf-8"))
-    except (OSError, json.JSONDecodeError):
-        return {}
-    if not isinstance(payload, dict):
-        return {}
-    if str(payload.get("surface_kind") or "").strip() == "legacy_control_surface_tombstone":
-        return {}
-    return dict(payload)
-
-
-def _mapping(value: object) -> dict[str, Any]:
-    return dict(value) if isinstance(value, dict) else {}
-
-
-def _text_set(value: object) -> set[str]:
-    if not isinstance(value, list):
-        return set()
-    return {text for item in value if (text := str(item or "").strip())}
 
 
 def write_runtime_binding(
@@ -633,4 +346,3 @@ def write_launch_report(
         }
     )
     _write_json(launch_report_path, report)
-

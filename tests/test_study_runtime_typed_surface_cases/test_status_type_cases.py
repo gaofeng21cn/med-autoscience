@@ -579,11 +579,13 @@ def test_startup_context_sync_result_requires_echoed_quest_id() -> None:
         )
 def test_progress_projection_records_typed_startup_hydration_reports() -> None:
     module = importlib.import_module("med_autoscience.controllers.domain_status_projection")
+    hydration_module = importlib.import_module("med_autoscience.controllers.quest_hydration")
+    validation_module = importlib.import_module("med_autoscience.controllers.startup_hydration_validation")
     status = module.ProgressProjectionStatus.from_payload(make_status_payload(execution={"quest_id": "quest-001"}))
-    hydration_report = module.study_runtime_protocol.StartupHydrationReport.from_payload(
+    hydration_report = hydration_module.StartupHydrationReport.from_payload(
         make_startup_hydration_report(Path("/tmp/runtime/quests/quest-001"))
     )
-    validation_report = module.study_runtime_protocol.StartupHydrationValidationReport.from_payload(
+    validation_report = validation_module.StartupHydrationValidationReport.from_payload(
         make_startup_hydration_validation_report(Path("/tmp/runtime/quests/quest-001"))
     )
 
@@ -594,8 +596,9 @@ def test_progress_projection_records_typed_startup_hydration_reports() -> None:
     assert payload["startup_hydration_validation"]["status"] == "clear"
 def test_progress_projection_records_typed_startup_contract_validation() -> None:
     module = importlib.import_module("med_autoscience.controllers.domain_status_projection")
+    result_types = importlib.import_module("med_autoscience.controllers.progress_projection.runtime_result_types")
     status = module.ProgressProjectionStatus.from_payload(make_status_payload(execution={"quest_id": "quest-001"}))
-    validation = module.study_runtime_protocol.StartupContractValidation.from_payload(
+    validation = result_types.StartupContractValidation.from_payload(
         make_startup_contract_validation_payload()
     )
 

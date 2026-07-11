@@ -1,6 +1,9 @@
 from __future__ import annotations
 
 from datetime import datetime, timezone
+import json
+from pathlib import Path
+from typing import Any
 
 if __name__ != "med_autoscience.controllers.study_runtime_decision":
     from .domain_transition_arbitration import *  # noqa: F403
@@ -15,10 +18,129 @@ if __name__ != "med_autoscience.controllers.study_runtime_decision":
 from . import publication_and_submission as _publication_and_submission
 from med_autoscience.controllers import study_truth_kernel
 from med_autoscience.controllers.paper_mission_owner_surface import opl_provider_attempts
+from med_autoscience.controllers.progress_projection.runtime_result_types import (
+    StartupContractValidation,
+    StartupContractValidationStatus,
+)
 from med_autoscience.runtime_protocol import quest_state as quest_state_protocol
 
 _OPL_CURRENT_CONTROL_STATE_STALE_AFTER_SECONDS = 10 * 60
 _OPL_TERMINAL_SUCCESS_STATES = {"succeeded"}
+
+
+def validate_startup_contract_resolution(*, startup_contract: dict[str, Any]) -> StartupContractValidation:
+    def validate_contract(
+        *,
+        payload: object,
+        missing_blocker: str,
+        invalid_blocker: str,
+        unsupported_blocker: str,
+        unresolved_blocker: str,
+    ) -> tuple[str | None, str | None, str | None]:
+        if payload is None:
+            return None, missing_blocker, None
+        if not isinstance(payload, dict):
+            return None, invalid_blocker, None
+        status = str(payload.get("status") or "").strip()
+        reason_code = str(payload.get("reason_code") or "").strip() or None
+        if status == "resolved":
+            return status, None, reason_code
+        if status == "unsupported":
+            return status, unsupported_blocker, reason_code
+        return status or None, unresolved_blocker, reason_code
+
+    blockers: list[str] = []
+    analysis_status, analysis_blocker, analysis_reason = validate_contract(
+        payload=startup_contract.get("medical_analysis_contract_summary"),
+        missing_blocker="missing_medical_analysis_contract",
+        invalid_blocker="invalid_medical_analysis_contract",
+        unsupported_blocker="unsupported_medical_analysis_contract",
+        unresolved_blocker="unresolved_medical_analysis_contract",
+    )
+    reporting_status, reporting_blocker, reporting_reason = validate_contract(
+        payload=startup_contract.get("medical_reporting_contract_summary"),
+        missing_blocker="missing_medical_reporting_contract",
+        invalid_blocker="invalid_medical_reporting_contract",
+        unsupported_blocker="unsupported_medical_reporting_contract",
+        unresolved_blocker="unresolved_medical_reporting_contract",
+    )
+    if analysis_blocker is not None:
+        blockers.append(analysis_blocker)
+    if reporting_blocker is not None:
+        blockers.append(reporting_blocker)
+    return StartupContractValidation(
+        status=StartupContractValidationStatus.BLOCKED if blockers else StartupContractValidationStatus.CLEAR,
+        blockers=tuple(blockers),
+        medical_analysis_contract_status=analysis_status,
+        medical_reporting_contract_status=reporting_status,
+        medical_analysis_reason_code=analysis_reason,
+        medical_reporting_reason_code=reporting_reason,
+    )
+
+
+def should_refresh_startup_hydration_for_runtime_hold(status: dict[str, Any]) -> bool:
+    if not bool(status.get("quest_exists")):
+        return False
+    decision = str(status.get("decision") or "").strip()
+    quest_status = str(status.get("quest_status") or "").strip()
+    reason = str(status.get("reason") or "").strip()
+    if decision == "blocked" and quest_status in {"created", "idle", "paused"} and reason in {
+        "startup_boundary_not_ready_for_resume",
+        "runtime_reentry_not_ready_for_resume",
+        "quest_paused_but_auto_resume_disabled",
+        "quest_initialized_but_auto_resume_disabled",
+    }:
+        return True
+    if (
+        decision != "handoff_required"
+        or reason != "opl_stage_attempt_admission_required"
+        or quest_status not in {"active", "running", "paused"}
+    ):
+        return False
+    request = _mapping(status.get("ai_reviewer_request")) or _read_ai_reviewer_request_from_status(status)
+    if not request:
+        return False
+    input_contract = _mapping(request.get("input_contract"))
+    if input_contract.get("all_required_refs_present") is True:
+        return False
+    missing_or_invalid = _text_set(input_contract.get("missing_or_invalid_refs"))
+    if "stage_knowledge_packet" not in missing_or_invalid:
+        return False
+    stage_ref = _mapping(_mapping(input_contract.get("required_refs")).get("stage_knowledge_packet"))
+    ref = str(stage_ref.get("relative_path") or stage_ref.get("ref") or "").strip()
+    if ref and ref != "artifacts/stage_knowledge/review/latest.json":
+        return False
+    missing_reasons = {
+        *_text_set(stage_ref.get("missing_reasons")),
+        *_text_set(request.get("stage_knowledge_missing_reasons")),
+    }
+    return "missing_ref:study_reference_context" in missing_reasons
+
+
+def _read_ai_reviewer_request_from_status(status: dict[str, Any]) -> dict[str, Any]:
+    study_root = str(status.get("study_root") or "").strip()
+    if not study_root:
+        return {}
+    path = Path(study_root).expanduser() / "artifacts" / "supervision" / "requests" / "ai_reviewer" / "latest.json"
+    try:
+        payload = json.loads(path.read_text(encoding="utf-8"))
+    except (OSError, json.JSONDecodeError):
+        return {}
+    if not isinstance(payload, dict):
+        return {}
+    if str(payload.get("surface_kind") or "").strip() == "legacy_control_surface_tombstone":
+        return {}
+    return dict(payload)
+
+
+def _mapping(value: object) -> dict[str, Any]:
+    return dict(value) if isinstance(value, dict) else {}
+
+
+def _text_set(value: object) -> set[str]:
+    if not isinstance(value, list):
+        return set()
+    return {text for item in value if (text := str(item or "").strip())}
 
 
 def _parsed_utc_datetime(value: object) -> datetime | None:
@@ -394,7 +516,7 @@ def _status_state(
         return _finalize_result()
 
     if sync_runtime_summary:
-        startup_contract_validation = study_runtime_protocol.validate_startup_contract_resolution(
+        startup_contract_validation = validate_startup_contract_resolution(
             startup_contract=router._build_startup_contract(
                 profile=profile,
                 study_id=study_id,
@@ -410,7 +532,7 @@ def _status_state(
             study_payload=study_payload,
         )
     result.record_startup_contract_validation(startup_contract_validation.to_dict())
-    if startup_contract_validation.status is not study_runtime_protocol.StartupContractValidationStatus.CLEAR:
+    if startup_contract_validation.status is not StartupContractValidationStatus.CLEAR:
         result.set_decision(
             StudyRuntimeDecision.BLOCKED,
             StudyRuntimeReason.STARTUP_CONTRACT_RESOLUTION_FAILED,
@@ -566,7 +688,7 @@ def _read_only_startup_contract_validation(
     profile: WorkspaceProfile,
     study_root: Path,
     study_payload: dict[str, object],
-) -> study_runtime_protocol.StartupContractValidation:
+) -> StartupContractValidation:
     from med_autoscience.controllers import (
         medical_analysis_contract as medical_analysis_contract_controller,
         medical_reporting_contract as medical_reporting_contract_controller,
@@ -582,7 +704,7 @@ def _read_only_startup_contract_validation(
         study_payload=study_payload,
         profile=profile,
     )
-    return study_runtime_protocol.validate_startup_contract_resolution(
+    return validate_startup_contract_resolution(
         startup_contract={
             "medical_analysis_contract_summary": medical_analysis_contract_summary,
             "medical_reporting_contract_summary": medical_reporting_contract_summary,

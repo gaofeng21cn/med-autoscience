@@ -8,7 +8,6 @@ from typing import Any
 
 from med_autoscience.profiles import WorkspaceProfile
 from med_autoscience.runtime_escalation_record import RuntimeEscalationRecordRef
-from med_autoscience.runtime_protocol import study_runtime as study_runtime_protocol
 from med_autoscience.study_decision_record import (
     StudyDecisionActionType,
     StudyDecisionCharterRef,
@@ -16,6 +15,7 @@ from med_autoscience.study_decision_record import (
     StudyDecisionPublicationEvalRef,
     StudyDecisionRecord,
     StudyDecisionType,
+    write_study_decision_record,
 )
 
 
@@ -102,7 +102,7 @@ def execute(
     request_path.parent.mkdir(parents=True, exist_ok=True)
     request["path"] = str(request_path)
     request_path.write_text(json.dumps(request, ensure_ascii=False, indent=2, sort_keys=True) + "\n", encoding="utf-8")
-    written_record = study_runtime_protocol.write_study_decision_record(
+    written_record = write_study_decision_record(
         study_root=study_root,
         record=_decision_record(
             study_root=study_root,

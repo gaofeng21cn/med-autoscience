@@ -14,6 +14,8 @@ from med_autoscience.controllers import (
     runtime_reentry_gate as runtime_reentry_gate_controller,
     startup_boundary_gate as startup_boundary_gate_controller,
 )
+from med_autoscience.controllers import quest_hydration as quest_hydration_controller
+from med_autoscience.controllers import startup_hydration_validation as startup_hydration_validation_controller
 from med_autoscience.controllers.study_runtime_types import (
     StudyRuntimeReentryGate,
     StudyRuntimeStartupBoundaryGate,
@@ -322,11 +324,11 @@ def _run_startup_hydration(
     study_root: Path | None = None,
     workspace_root: Path | None = None,
 ) -> tuple[
-    study_runtime_protocol.StartupHydrationReport,
-    study_runtime_protocol.StartupHydrationValidationReport,
+    quest_hydration_controller.StartupHydrationReport,
+    startup_hydration_validation_controller.StartupHydrationValidationReport,
 ]:
     router = _router_module()
-    build_hydration_payload = study_runtime_protocol.build_hydration_payload
+    build_hydration_payload = quest_hydration_controller.build_hydration_payload
     build_hydration_payload_params = inspect.signature(build_hydration_payload).parameters
     if (
         study_root is not None
@@ -347,10 +349,10 @@ def _run_startup_hydration(
     )
     validation_result = router.startup_hydration_validation_controller.run_validation(quest_root=quest_root)
     return (
-        study_runtime_protocol.StartupHydrationReport.from_payload(
+        quest_hydration_controller.StartupHydrationReport.from_payload(
             ProgressProjectionStatus._require_dict_field("startup_hydration", hydration_result)
         ),
-        study_runtime_protocol.StartupHydrationValidationReport.from_payload(
+        startup_hydration_validation_controller.StartupHydrationValidationReport.from_payload(
             ProgressProjectionStatus._require_dict_field("startup_hydration_validation", validation_result)
         ),
     )

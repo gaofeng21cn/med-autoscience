@@ -24,7 +24,7 @@ def _missing_reference_context_request() -> dict[str, object]:
 
 
 def test_should_refresh_startup_hydration_for_runtime_hold_accepts_ai_reviewer_reference_context_gap() -> None:
-    module = importlib.import_module("med_autoscience.runtime_protocol.study_runtime")
+    module = importlib.import_module("med_autoscience.controllers.domain_status_projection")
 
     assert (
         module.should_refresh_startup_hydration_for_runtime_hold(
@@ -43,7 +43,7 @@ def test_should_refresh_startup_hydration_for_runtime_hold_accepts_ai_reviewer_r
 def test_should_refresh_startup_hydration_for_runtime_hold_reads_ai_reviewer_reference_context_gap(
     tmp_path: Path,
 ) -> None:
-    module = importlib.import_module("med_autoscience.runtime_protocol.study_runtime")
+    module = importlib.import_module("med_autoscience.controllers.domain_status_projection")
     study_root = tmp_path / "studies" / "S1"
     request_path = study_root / "artifacts" / "supervision" / "requests" / "ai_reviewer" / "latest.json"
     request_path.parent.mkdir(parents=True, exist_ok=True)
@@ -69,7 +69,7 @@ def test_should_refresh_startup_hydration_for_runtime_hold_reads_ai_reviewer_ref
 def test_should_refresh_startup_hydration_ignores_migrated_ai_reviewer_request_tombstone(
     tmp_path: Path,
 ) -> None:
-    module = importlib.import_module("med_autoscience.runtime_protocol.study_runtime")
+    module = importlib.import_module("med_autoscience.controllers.domain_status_projection")
     study_root = tmp_path / "studies" / "S1"
     request_path = study_root / "artifacts" / "supervision" / "requests" / "ai_reviewer" / "latest.json"
     request_path.parent.mkdir(parents=True, exist_ok=True)

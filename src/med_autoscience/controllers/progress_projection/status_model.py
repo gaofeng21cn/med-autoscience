@@ -7,6 +7,9 @@ from os import PathLike
 from pathlib import Path
 from typing import Any
 
+from med_autoscience.controllers.quest_hydration import StartupHydrationReport
+from med_autoscience.controllers.startup_hydration_validation import StartupHydrationValidationReport
+from med_autoscience.runtime_escalation_record import RuntimeEscalationRecordRef
 from med_autoscience.runtime_protocol import study_runtime as study_runtime_protocol
 from med_autoscience.study_completion import (
     StudyCompletionState,
@@ -36,6 +39,7 @@ from .enums_and_audits import (
     StudyRuntimeContinuationState,
 )
 from .runtime_result_types import (
+    StartupContractValidation,
     StudyRuntimeAnalysisBundleResult,
     StudyRuntimeStartupContextSyncResult,
     StudyRuntimePartialQuestRecoveryResult,
@@ -262,7 +266,11 @@ class ProgressProjectionStatus(MutableMapping[str, Any]):
         return self.startup_data_readiness_report.has_unresolved_contract_for(study_id)
 
     def should_refresh_startup_hydration_for_runtime_hold(self) -> bool:
-        return study_runtime_protocol.should_refresh_startup_hydration_for_runtime_hold(self.to_dict())
+        from med_autoscience.controllers.domain_status_projection import (
+            should_refresh_startup_hydration_for_runtime_hold,
+        )
+
+        return should_refresh_startup_hydration_for_runtime_hold(self.to_dict())
 
     def _record_dict_extra(self, key: str, value: Any) -> None:
         self.extras[key] = self._require_dict_field(key, value)
@@ -311,12 +319,12 @@ class ProgressProjectionStatus(MutableMapping[str, Any]):
 
     def record_startup_contract_validation(
         self,
-        value: dict[str, Any] | study_runtime_protocol.StartupContractValidation,
+        value: dict[str, Any] | StartupContractValidation,
     ) -> None:
         startup_contract_validation = (
             value
-            if isinstance(value, study_runtime_protocol.StartupContractValidation)
-            else study_runtime_protocol.StartupContractValidation.from_payload(
+            if isinstance(value, StartupContractValidation)
+            else StartupContractValidation.from_payload(
                 self._require_dict_field("startup_contract_validation", value)
             )
         )
@@ -405,20 +413,20 @@ class ProgressProjectionStatus(MutableMapping[str, Any]):
 
     def record_startup_hydration(
         self,
-        hydration_result: dict[str, Any] | study_runtime_protocol.StartupHydrationReport,
-        validation_result: dict[str, Any] | study_runtime_protocol.StartupHydrationValidationReport,
+        hydration_result: dict[str, Any] | StartupHydrationReport,
+        validation_result: dict[str, Any] | StartupHydrationValidationReport,
     ) -> None:
         hydration_report = (
             hydration_result
-            if isinstance(hydration_result, study_runtime_protocol.StartupHydrationReport)
-            else study_runtime_protocol.StartupHydrationReport.from_payload(
+            if isinstance(hydration_result, StartupHydrationReport)
+            else StartupHydrationReport.from_payload(
                 self._require_dict_field("startup_hydration", hydration_result)
             )
         )
         validation_report = (
             validation_result
-            if isinstance(validation_result, study_runtime_protocol.StartupHydrationValidationReport)
-            else study_runtime_protocol.StartupHydrationValidationReport.from_payload(
+            if isinstance(validation_result, StartupHydrationValidationReport)
+            else StartupHydrationValidationReport.from_payload(
                 self._require_dict_field("startup_hydration_validation", validation_result)
             )
         )
@@ -611,12 +619,12 @@ class ProgressProjectionStatus(MutableMapping[str, Any]):
 
     def record_runtime_escalation_ref(
         self,
-        value: dict[str, Any] | study_runtime_protocol.RuntimeEscalationRecordRef,
+        value: dict[str, Any] | RuntimeEscalationRecordRef,
     ) -> None:
         runtime_escalation_ref = (
             value
-            if isinstance(value, study_runtime_protocol.RuntimeEscalationRecordRef)
-            else study_runtime_protocol.RuntimeEscalationRecordRef.from_payload(
+            if isinstance(value, RuntimeEscalationRecordRef)
+            else RuntimeEscalationRecordRef.from_payload(
                 self._require_dict_field("runtime_escalation_ref", value)
             )
         )

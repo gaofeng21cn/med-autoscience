@@ -37,6 +37,77 @@ from .enums_and_audits import (
 )
 
 
+class StartupContractValidationStatus(StrEnum):
+    CLEAR = "clear"
+    BLOCKED = "blocked"
+
+
+@dataclass(frozen=True)
+class StartupContractValidation:
+    status: StartupContractValidationStatus
+    blockers: tuple[str, ...]
+    medical_analysis_contract_status: str | None
+    medical_reporting_contract_status: str | None
+    medical_analysis_reason_code: str | None
+    medical_reporting_reason_code: str | None
+
+    def __post_init__(self) -> None:
+        object.__setattr__(self, "status", self._normalize_status(self.status))
+
+    def to_dict(self) -> dict[str, object]:
+        return {
+            "status": self.status.value,
+            "blockers": list(self.blockers),
+            "contract_statuses": {
+                "medical_analysis_contract": self.medical_analysis_contract_status,
+                "medical_reporting_contract": self.medical_reporting_contract_status,
+            },
+            "reason_codes": {
+                "medical_analysis_contract": self.medical_analysis_reason_code,
+                "medical_reporting_contract": self.medical_reporting_reason_code,
+            },
+        }
+
+    @classmethod
+    def from_payload(cls, payload: dict[str, Any]) -> "StartupContractValidation":
+        if not isinstance(payload, dict):
+            raise TypeError("startup contract validation payload must be a mapping")
+        if "status" not in payload:
+            raise ValueError("startup contract validation payload missing status")
+        blockers = payload.get("blockers") or []
+        if not isinstance(blockers, list):
+            raise ValueError("startup contract validation payload blockers must be a list")
+        if "contract_statuses" not in payload:
+            raise ValueError("startup contract validation payload missing contract_statuses")
+        contract_statuses = payload.get("contract_statuses") or {}
+        if not isinstance(contract_statuses, dict):
+            raise ValueError("startup contract validation payload contract_statuses must be a mapping")
+        if "reason_codes" not in payload:
+            raise ValueError("startup contract validation payload missing reason_codes")
+        reason_codes = payload.get("reason_codes") or {}
+        if not isinstance(reason_codes, dict):
+            raise ValueError("startup contract validation payload reason_codes must be a mapping")
+        return cls(
+            status=payload.get("status"),
+            blockers=tuple(str(item) for item in blockers),
+            medical_analysis_contract_status=(str(contract_statuses.get("medical_analysis_contract") or "") or None),
+            medical_reporting_contract_status=(str(contract_statuses.get("medical_reporting_contract") or "") or None),
+            medical_analysis_reason_code=(str(reason_codes.get("medical_analysis_contract") or "") or None),
+            medical_reporting_reason_code=(str(reason_codes.get("medical_reporting_contract") or "") or None),
+        )
+
+    @staticmethod
+    def _normalize_status(value: StartupContractValidationStatus | str) -> StartupContractValidationStatus:
+        if isinstance(value, StartupContractValidationStatus):
+            return value
+        if not isinstance(value, str):
+            raise TypeError("status must be str")
+        try:
+            return StartupContractValidationStatus(value)
+        except ValueError as exc:
+            raise ValueError(f"unknown startup contract validation status: {value}") from exc
+
+
 
 @dataclass(frozen=True)
 class StudyRuntimeAnalysisBundleResult:

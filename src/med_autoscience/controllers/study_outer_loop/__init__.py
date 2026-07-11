@@ -48,7 +48,6 @@ from med_autoscience.native_runtime_event import NativeRuntimeEventRecord
 from med_autoscience.profiles import WorkspaceProfile
 from med_autoscience.runtime_event_record import RuntimeEventRecord, RuntimeEventRecordRef
 from med_autoscience.runtime.autonomy_governance import build_autonomy_governance_contract
-from med_autoscience.runtime_protocol import study_runtime as study_runtime_protocol
 from med_autoscience.study_decision_record import (
     StudyDecisionActionType,
     StudyDecisionCharterRef,
@@ -56,6 +55,7 @@ from med_autoscience.study_decision_record import (
     StudyDecisionPublicationEvalRef,
     StudyDecisionRecord,
     StudyDecisionType,
+    write_study_decision_record,
 )
 
 from med_autoscience.controllers.study_outer_loop import tick_request as _tick_request
@@ -174,7 +174,7 @@ def _materialize_study_decision_record(
         requires_human_confirmation=requires_human_confirmation,
         direction_locked=True,
     )
-    written_record = study_runtime_protocol.write_study_decision_record(
+    written_record = write_study_decision_record(
         study_root=resolved_study_root,
         record=StudyDecisionRecord(
             schema_version=1,
