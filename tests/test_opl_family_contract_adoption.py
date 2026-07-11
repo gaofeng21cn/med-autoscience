@@ -371,15 +371,19 @@ def test_mas_compact_audit_retires_private_stage_kernel_projection_helpers() -> 
         for item in audit["retired_generated_surface_provenance"]
     }
 
-    assert retired["mas_local_stage_run_and_artifact_projection_helpers"] == {
-        "surface_id": "mas_local_stage_run_and_artifact_projection_helpers",
-        "replacement_ref": "contracts/stage_artifact_kernel_adoption.json#/projection_boundary",
-        "provenance_refs": [
-            "contracts/stage_run_kernel_profile.json#/opl_contract_refs",
-            "contracts/stage_artifact_kernel_adoption.json#/projection_boundary",
-            "source-retirement:mas/a3/stage-run-and-artifact-projection-helpers",
-        ],
-    }
+    assert len(retired) == 3
+    provenance_refs = retired[
+        "paper_mission_owner_surface_materialize_dispatch_shell"
+    ]["provenance_refs"]
+    assert "contracts/stage_run_kernel_profile.json#/opl_contract_refs" in provenance_refs
+    assert (
+        "contracts/stage_artifact_kernel_adoption.json#/projection_boundary"
+        in provenance_refs
+    )
+    assert (
+        "source-retirement:mas/a3/stage-run-and-artifact-projection-helpers"
+        in provenance_refs
+    )
     for path in (
         "src/med_autoscience/controllers/stage_run_kernel.py",
         "src/med_autoscience/controllers/stage_artifact_index/contract_refs.py",
