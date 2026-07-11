@@ -30,20 +30,3 @@ from tests.test_study_progress_mission_summary_cases.next_action_stage_closure i
     test_artifact_first_mission_summary_prefers_current_stage_closure_readback,
     test_paper_mission_run_nested_stage_closure_readback_keeps_terminalizer_fields,
 )
-
-
-def test_receipt_owner_consumption_route_checkpoint_maps_to_route_back_status() -> None:
-    module = importlib.import_module(
-        "med_autoscience.controllers.study_progress.mission_summary"
-    )
-
-    status = module._effective_consume_candidate_status_for_receipt_owner_consumption(
-        fallback="accepted",
-        receipt_owner_consumption_readback={
-            "mas_receipt_consumption": {
-                "status": "owner_consumed_route_checkpoint",
-            }
-        },
-    )
-
-    assert status == "route_back"

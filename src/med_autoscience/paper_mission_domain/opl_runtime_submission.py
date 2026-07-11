@@ -272,7 +272,7 @@ def refresh_consume_readback_after_opl_submission(
             consume_readback.get("authority_consume_readback")
         ),
         transaction_override=_mapping(consume_readback.get("paper_mission_transaction")),
-        transaction_source_override="paper_mission_consumption_ledger",
+        transaction_source_override="authority_consume_readback",
         enable_opl_live_probe=True,
         opl_bin=_optional_text(opl_runtime_submission.get("opl_bin")),
     )

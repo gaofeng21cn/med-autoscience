@@ -261,8 +261,6 @@ def test_artifact_first_mission_summary_prefers_current_stage_closure_readback(
     )
 
     monkeypatch.setattr(module, "_latest_materialized_mission", lambda *_: {})
-    monkeypatch.setattr(module, "_latest_consumption_ledger_readback", lambda **_: {})
-    monkeypatch.setattr(module, "_latest_receipt_owner_consumption_readback", lambda **_: {})
     monkeypatch.setattr(
         module,
         "_current_stage_closure_readback",

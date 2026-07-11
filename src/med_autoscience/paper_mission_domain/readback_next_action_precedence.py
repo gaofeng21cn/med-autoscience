@@ -14,7 +14,6 @@ def _stage_closure_next_action_should_own_next_action(
     stage_closure_decision: Mapping[str, Any],
     next_action: Mapping[str, Any] | None,
     domain_transition_next_action: Mapping[str, Any] | None = None,
-    receipt_owner_consumption_readback: Mapping[str, Any] | None = None,
     include_delivery_sync_actions: bool = True,
 ) -> bool:
     action = _mapping(next_action)
@@ -26,11 +25,6 @@ def _stage_closure_next_action_should_own_next_action(
         and outcome.get("kind") == "next_stage_transition"
         and outcome.get("transition_kind") == "route_back_candidate_checkpoint"
     ):
-        if _receipt_owner_consumed_route_checkpoint(receipt_owner_consumption_readback):
-            return not _owner_consumed_route_checkpoint_yields_to_domain_transition(
-                stage_closure_decision=stage_closure_decision,
-                domain_transition_next_action=domain_transition_next_action,
-            )
         return _route_checkpoint_matches_domain_transition(
             stage_closure_decision=stage_closure_decision,
             outcome=outcome,
@@ -70,39 +64,6 @@ def _stage_closure_owner_receipt_suppresses_transaction_next_action(
     return True
 
 
-def suppress_consumed_route_checkpoint_transaction_next_action(
-    *,
-    transaction_output_fields: Mapping[str, Any],
-    receipt_owner_consumption_readback: Mapping[str, Any] | None,
-) -> dict[str, Any]:
-    if not _receipt_owner_consumed_route_checkpoint(receipt_owner_consumption_readback):
-        return dict(transaction_output_fields)
-    action = _mapping(transaction_output_fields.get("next_action"))
-    if _optional_text(action.get("action_family")) != (
-        "paper.stage_closure.owner_consumption"
-    ):
-        return dict(transaction_output_fields)
-    suppressed = dict(transaction_output_fields)
-    suppressed.pop("next_action", None)
-    suppressed.pop("canonical_next_action_source", None)
-    nested = _mapping(suppressed.get("paper_mission_transaction_readback"))
-    if nested:
-        nested = dict(nested)
-        nested.pop("next_action", None)
-        suppressed["paper_mission_transaction_readback"] = nested
-    return suppressed
-
-
-def _receipt_owner_consumed_route_checkpoint(
-    readback: Mapping[str, Any] | None,
-) -> bool:
-    payload = _mapping(readback)
-    if _optional_text(payload.get("status")) != "owner_consumption_applied":
-        return False
-    consumption = _mapping(payload.get("mas_receipt_consumption"))
-    return _optional_text(consumption.get("status")) == "owner_consumed_route_checkpoint"
-
-
 def _route_checkpoint_matches_domain_transition(
     *,
     stage_closure_decision: Mapping[str, Any],
@@ -122,27 +83,6 @@ def _route_checkpoint_matches_domain_transition(
         )
         is not None
     )
-
-
-def _owner_consumed_route_checkpoint_yields_to_domain_transition(
-    *,
-    stage_closure_decision: Mapping[str, Any],
-    domain_transition_next_action: Mapping[str, Any] | None,
-) -> bool:
-    if _route_checkpoint_identity_matches_domain_transition(
-        stage_closure_decision=stage_closure_decision,
-        domain_transition_next_action=domain_transition_next_action,
-    ):
-        return True
-    action = _mapping(domain_transition_next_action)
-    if not _domain_transition_next_action_requests_stage_attempt(action):
-        return False
-    decision_stage = _optional_text(stage_closure_decision.get("stage_id"))
-    action_stage = _optional_text(action.get("stage_id"))
-    action_work_unit = _optional_text(action.get("work_unit_id"))
-    if action_stage is None or action_work_unit is None:
-        return False
-    return decision_stage in {action_stage, "submission_milestone_candidate"}
 
 
 def _route_checkpoint_identity_matches_domain_transition(
@@ -177,14 +117,12 @@ def _stage_closure_suppresses_domain_transition_next_action(
     stage_closure_decision: Mapping[str, Any],
     next_action: Mapping[str, Any] | None,
     domain_transition_next_action: Mapping[str, Any] | None,
-    receipt_owner_consumption_readback: Mapping[str, Any] | None = None,
 ) -> bool:
     action_override = _mapping(next_action)
     if _stage_closure_next_action_should_own_next_action(
         stage_closure_decision=stage_closure_decision,
         next_action=action_override,
         domain_transition_next_action=domain_transition_next_action,
-        receipt_owner_consumption_readback=receipt_owner_consumption_readback,
     ):
         return False
     action = _mapping(domain_transition_next_action)

@@ -18,10 +18,6 @@ from med_autoscience.controllers.owner_route_handoff.export_study_projection imp
     mapping,
     text,
 )
-from med_autoscience.controllers.owner_route_handoff.paper_mission_consumption_route_handoff import (
-    latest_paper_mission_consumption_route_handoff,
-    paper_mission_handoff_stage_packet_refs,
-)
 from med_autoscience.paper_mission_opl_readback import paper_mission_next_action_envelope
 from med_autoscience.profiles import WorkspaceProfile
 
@@ -42,32 +38,29 @@ def paper_mission_start_or_resume_task(
         source="domain-handler-export",
     )
     carrier = mapping(readback.get("opl_runtime_carrier"))
-    current_transaction_ref = (
-        text(carrier.get("paper_mission_transaction_ref"))
-        or text(mapping(readback.get("paper_mission_transaction")).get("transaction_id"))
-    )
-    route_handoff = latest_paper_mission_consumption_route_handoff(
-        workspace_root=profile.workspace_root,
-        study_id=study_id,
-        paper_mission_transaction_ref=current_transaction_ref,
-        route_identity_key=text(carrier.get("route_identity_key")),
-    ) or latest_paper_mission_consumption_route_handoff(
-        workspace_root=profile.workspace_root,
-        study_id=study_id,
-    )
-    default_route_handoff = _paper_mission_default_route_handoff(
-        route_handoff=route_handoff,
-        readback=readback,
-        current_carrier=carrier,
-    )
-    if default_route_handoff:
-        carrier = mapping(default_route_handoff.get("opl_runtime_carrier")) or carrier
-    stage_packet_refs = _paper_mission_stage_packet_refs(readback)
-    if default_route_handoff:
-        stage_packet_refs = paper_mission_handoff_stage_packet_refs(
-            default_route_handoff,
-            fallback_refs=stage_packet_refs,
+    route_command = mapping(readback.get("opl_route_command"))
+    has_route_identity = bool(
+        text(carrier.get("route_identity_key"))
+        or (
+            text(carrier.get("work_unit_id"))
+            and text(carrier.get("work_unit_fingerprint"))
         )
+    )
+    default_route_handoff = (
+        {
+            **carrier,
+            "opl_runtime_carrier": carrier,
+            "opl_route_command": route_command,
+            "stage_terminal_decision": mapping(
+                readback.get("stage_terminal_decision")
+            ),
+            "handoff_status": "ready_for_opl_route_command",
+            "workspace_root": str(profile.workspace_root),
+        }
+        if carrier and route_command and has_route_identity
+        else {}
+    )
+    stage_packet_refs = _paper_mission_stage_packet_refs(readback)
     payload = {
         "profile": str(profile_ref),
         "profile_ref": str(profile_ref),
@@ -80,7 +73,7 @@ def paper_mission_start_or_resume_task(
         "submit_opl_runtime": False,
         "dry_run": False,
         "dispatch_execution_boundary": {
-            "mode": "non_authority_candidate_package_and_consumption_ledger",
+            "mode": "non_authority_candidate_package_and_opl_carrier",
             "writes_authority": False,
             "writes_runtime": False,
             "writes_yang_authority": False,
@@ -117,14 +110,6 @@ def paper_mission_start_or_resume_task(
         )
         if stage_packet_refs:
             payload["stage_packet_ref"] = stage_packet_refs[0]
-    if route_handoff and default_route_handoff is None:
-        payload["paper_mission_consumption_ledger_diagnostic"] = (
-            _ignored_paper_mission_handoff_diagnostic(
-                route_handoff=route_handoff,
-                readback=readback,
-                current_carrier=carrier,
-            )
-        )
     if default_route_handoff:
         enriched_route_handoff = _enriched_paper_mission_route_handoff(
             route_handoff=default_route_handoff,
@@ -169,7 +154,7 @@ def paper_mission_start_or_resume_task(
                     if opl_transition_handoff_contract
                     else {}
                 ),
-                "paper_mission_default_handoff_source": "paper_mission_consumption_ledger",
+                "paper_mission_default_handoff_source": "opl_runtime_carrier",
                 "paper_mission_default_handoff_ref": text(default_route_handoff.get("source_ref")),
                 "opl_route_command": mapping(enriched_route_handoff.get("opl_route_command")),
                 "route_command_kind": text(enriched_route_handoff.get("route_command_kind")),
@@ -221,7 +206,7 @@ def paper_mission_start_or_resume_task(
                     if opl_transition_handoff_contract
                     else {}
                 ),
-                "paper_mission_default_handoff_source": "paper_mission_consumption_ledger",
+                "paper_mission_default_handoff_source": "opl_runtime_carrier",
                 "paper_mission_default_handoff_ref": text(default_route_handoff.get("source_ref")),
                 "route_command_kind": text(enriched_route_handoff.get("route_command_kind")),
                 "route_target": text(enriched_route_handoff.get("route_target")),
@@ -248,7 +233,7 @@ def paper_mission_start_or_resume_task(
     return task
 
 
-def paper_mission_consumption_route_handoff_task(
+def paper_mission_route_handoff_task(
     *,
     enriched_route_handoff: Mapping[str, Any],
     profile: WorkspaceProfile,
@@ -270,7 +255,7 @@ def paper_mission_consumption_route_handoff_task(
     source_ref = text(enriched_route_handoff.get("source_ref"))
     source_refs = [
         {
-            "role": "paper_mission_consumption_opl_route_handoff",
+            "role": "paper_mission_opl_route_handoff",
             "ref": source_ref,
             "exists": bool(source_ref),
         },
@@ -288,7 +273,7 @@ def paper_mission_consumption_route_handoff_task(
     evidence_record_payload = build_domain_dispatch_evidence_record_payload(
         task_kind="domain_route/stage-outcome",
         study_id=study_id,
-        reason="paper_mission_consumption_opl_route_handoff_pending",
+        reason="paper_mission_opl_route_handoff_pending",
         evidence_refs=source_refs,
         source_fingerprint=source_fingerprint,
         profile_name=profile.name,
@@ -313,7 +298,7 @@ def paper_mission_consumption_route_handoff_task(
         "opl_route_handoff_record": dict(enriched_route_handoff),
         "opl_route_command": command,
         "opl_domain_progress_transition_request": carrier,
-        "paper_mission_default_handoff_source": "paper_mission_consumption_ledger",
+        "paper_mission_default_handoff_source": "opl_runtime_carrier",
         "paper_mission_default_handoff_ref": source_ref,
     }
     next_action = paper_mission_next_action_envelope(
@@ -358,11 +343,11 @@ def paper_mission_consumption_route_handoff_task(
         "source": "mas-domain-handler-export",
         "requires_approval": False,
         "dedupe_key": (
-            f"mas:{profile.name}:{study_id}:paper-mission-consumption-route:"
+            f"mas:{profile.name}:{study_id}:paper-mission-opl-route:"
             f"{source_fingerprint}"
         ),
         "source_fingerprint": source_fingerprint,
-        "reason": "paper_mission_consumption_opl_route_handoff_pending",
+        "reason": "paper_mission_opl_route_handoff_pending",
         "payload": {key: value for key, value in payload.items() if value not in (None, "", [], {})},
         "source_refs": [ref for ref in source_refs if ref.get("ref") not in (None, "")],
         "dispatch_owner": "one-person-lab",
@@ -410,56 +395,6 @@ def _paper_mission_default_dispatch_run_id(study_id: str) -> str:
     return f"domain-handler-default-drive-{_slug(study_id)}"
 
 
-def _paper_mission_default_route_handoff(
-    *,
-    route_handoff: Mapping[str, Any] | None,
-    readback: Mapping[str, Any],
-    current_carrier: Mapping[str, Any],
-) -> dict[str, Any] | None:
-    if not route_handoff:
-        return None
-    handoff_carrier = mapping(route_handoff.get("opl_runtime_carrier"))
-    if not _carrier_has_opl_intake_identity(current_carrier):
-        return None
-    if not _carrier_has_opl_intake_identity(handoff_carrier):
-        return None
-    current_transaction_ref = (
-        text(current_carrier.get("paper_mission_transaction_ref"))
-        or text(mapping(readback.get("paper_mission_transaction")).get("transaction_id"))
-    )
-    if text(route_handoff.get("paper_mission_transaction_ref")) != current_transaction_ref:
-        return None
-    current_route_ref = text(current_carrier.get("opl_route_command_ref")) or (
-        f"{current_transaction_ref}#opl_route_command"
-        if current_transaction_ref
-        else None
-    )
-    if text(route_handoff.get("opl_route_command_ref")) != current_route_ref:
-        return None
-    for field in (
-        "paper_mission_transaction_ref",
-        "opl_route_command_ref",
-        "route_identity_key",
-    ):
-        current_value = text(current_carrier.get(field))
-        if current_value and text(handoff_carrier.get(field)) != current_value:
-            return None
-    return dict(route_handoff)
-
-
-def _carrier_has_opl_intake_identity(carrier: Mapping[str, Any]) -> bool:
-    return all(
-        text(carrier.get(field))
-        for field in (
-            "route_identity_key",
-            "attempt_idempotency_key",
-            "request_idempotency_key",
-            "paper_mission_transaction_ref",
-            "opl_route_command_ref",
-        )
-    )
-
-
 def _enriched_paper_mission_route_handoff(
     *,
     route_handoff: Mapping[str, Any],
@@ -481,30 +416,6 @@ def _enriched_paper_mission_route_handoff(
         "work_unit_id": text(carrier.get("work_unit_id")),
         "work_unit_fingerprint": text(carrier.get("work_unit_fingerprint")),
         "opl_domain_progress_transition_request": carrier,
-    }
-
-
-def _ignored_paper_mission_handoff_diagnostic(
-    *,
-    route_handoff: Mapping[str, Any],
-    readback: Mapping[str, Any],
-    current_carrier: Mapping[str, Any],
-) -> dict[str, Any]:
-    handoff_carrier = mapping(route_handoff.get("opl_runtime_carrier"))
-    return {
-        "surface_kind": "paper_mission_consumption_ledger_diagnostic",
-        "status": "ignored_for_default_paper_mission_task",
-        "reason": "handoff_identity_does_not_match_current_paper_mission_readback",
-        "source_ref": text(route_handoff.get("source_ref")),
-        "paper_mission_transaction_ref": text(route_handoff.get("paper_mission_transaction_ref")),
-        "current_paper_mission_transaction_ref": (
-            text(current_carrier.get("paper_mission_transaction_ref"))
-            or text(mapping(readback.get("paper_mission_transaction")).get("transaction_id"))
-        ),
-        "opl_route_command_ref": text(route_handoff.get("opl_route_command_ref")),
-        "current_opl_route_command_ref": text(current_carrier.get("opl_route_command_ref")),
-        "route_identity_key": text(handoff_carrier.get("route_identity_key")),
-        "current_route_identity_key": text(current_carrier.get("route_identity_key")),
     }
 
 

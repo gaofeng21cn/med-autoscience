@@ -7,11 +7,7 @@ from typing import Any
 from med_autoscience.paper_mission_domain.candidate_package_readback import (
     build_materialized_candidate_package_readback as _build_materialized_candidate_package_readback,
 )
-from med_autoscience.paper_mission_domain.common import (
-    _load_json_object,
-    _mapping,
-    _optional_text,
-)
+from med_autoscience.paper_mission_domain.common import _mapping
 from med_autoscience.paper_mission_domain.drive_helpers import (
     DEFAULT_PAPER_MISSION_DRIVE_FOLLOWTHROUGH_LIMIT,
     paper_mission_drive_result as _paper_mission_drive_result,
@@ -44,7 +40,6 @@ def paper_mission_drive_followthrough(
     study_id: str,
     root: Path,
     package_root: Path,
-    ledger_root: Path,
     source: str,
     opl_bin: str | Path | None,
     submit_opl_runtime: bool,
@@ -84,7 +79,6 @@ def paper_mission_drive_followthrough(
             break
         round_id = f"followthrough-{index + 1:02d}"
         package_round_root = package_root / round_id
-        ledger_round_root = ledger_root / round_id
         package_readback = _build_materialized_candidate_package_readback(
             profile=profile,
             profile_ref=profile_ref,
@@ -100,7 +94,6 @@ def paper_mission_drive_followthrough(
             study_id=study_id,
             paper_mission_command="consume-candidate",
             candidate=candidate_ref,
-            output_root=ledger_round_root,
             source=f"{source}:drive:{round_id}:consume-candidate",
             enable_opl_live_probe=True,
             opl_bin=opl_bin,
@@ -113,18 +106,7 @@ def paper_mission_drive_followthrough(
             consume_readback = _materialize_stage_closure_for_drive_readback(
                 consume_readback=consume_readback,
             )
-        handoff = _mapping(
-            _mapping(consume_readback.get("consume_output_manifest")).get(
-                "opl_route_handoff"
-            )
-        )
-        if not handoff:
-            handoff_ref = _optional_text(
-                _mapping(consume_readback.get("consume_output_manifest")).get(
-                    "opl_route_handoff_ref"
-                )
-            )
-            handoff = _load_json_object(Path(handoff_ref)) if handoff_ref else {}
+        handoff = _mapping(consume_readback.get("opl_route_handoff"))
         submission = _opl_runtime_submission_readback(
             handoff=handoff,
             submit_opl_runtime=submit_opl_runtime,
@@ -134,11 +116,7 @@ def paper_mission_drive_followthrough(
             consume_readback=consume_readback,
             opl_runtime_submission=submission,
         )
-        handoff = _mapping(
-            _mapping(consume_readback.get("consume_output_manifest")).get(
-                "opl_route_handoff"
-            )
-        ) or handoff
+        handoff = _mapping(consume_readback.get("opl_route_handoff")) or handoff
         stage_closure_decision = stage_closure_decision_projection(
             readback=consume_readback,
             handoff=handoff,

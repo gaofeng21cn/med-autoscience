@@ -19,7 +19,6 @@ from med_autoscience.paper_mission_domain.route_back_budget import (
 )
 from med_autoscience.paper_mission_output_roots import (
     PAPER_MISSION_CANDIDATE_PACKAGE_RELPATH,
-    PAPER_MISSION_CONSUMPTION_LEDGER_RELPATH,
     YANG_WORKSPACE_ROOT,
     _is_under_yang_workspace,
 )
@@ -156,11 +155,6 @@ def paper_mission_mas_owned_executor_delta_checkpoint(
             "package_manifest_ref": _optional_text(
                 output_manifest.get("package_manifest_ref")
             ),
-            "consume_readback_ref": _optional_text(
-                _mapping(consume_readback.get("consume_output_manifest")).get(
-                    "consume_readback_ref"
-                )
-            ),
         }
     )
     return {
@@ -200,11 +194,7 @@ def paper_mission_followthrough_trigger(
 ) -> str | None:
     drive_result = paper_mission_drive_result(
         consume_readback=consume_readback,
-        handoff=_mapping(
-            _mapping(consume_readback.get("consume_output_manifest")).get(
-                "opl_route_handoff"
-            )
-        ),
+        handoff=_mapping(consume_readback.get("opl_route_handoff")),
         opl_runtime_submission=opl_runtime_submission,
     )
     if drive_result.get("provider_attempt_running_observed") is True:
@@ -267,11 +257,7 @@ def paper_mission_followthrough_stop_reason(
         return "followthrough_available"
     drive_status = paper_mission_drive_result(
         consume_readback=consume_readback,
-        handoff=_mapping(
-            _mapping(consume_readback.get("consume_output_manifest")).get(
-                "opl_route_handoff"
-            )
-        ),
+        handoff=_mapping(consume_readback.get("opl_route_handoff")),
         opl_runtime_submission=opl_runtime_submission,
     ).get("status")
     return _optional_text(drive_status) or "no_followthrough_needed"
@@ -293,15 +279,11 @@ def paper_mission_drive_output_roots(
                 "candidate_package": (
                     workspace_root / PAPER_MISSION_CANDIDATE_PACKAGE_RELPATH / selected_run_id
                 ),
-                "consumption_ledger": (
-                    workspace_root / PAPER_MISSION_CONSUMPTION_LEDGER_RELPATH / selected_run_id
-                ),
             }
         selected_run_id = _optional_text(run_id) or "paper_mission_drive"
         return {
             "root": root,
             "candidate_package": root / "candidate_package",
-            "consumption_ledger": root / "consumption_ledger",
         }
     selected_run_id = _optional_text(run_id) or "paper_mission_drive"
     workspace_root = Path(profile.workspace_root).expanduser().resolve()
@@ -309,9 +291,6 @@ def paper_mission_drive_output_roots(
         "root": workspace_root / "ops" / "medautoscience",
         "candidate_package": (
             workspace_root / PAPER_MISSION_CANDIDATE_PACKAGE_RELPATH / selected_run_id
-        ),
-        "consumption_ledger": (
-            workspace_root / PAPER_MISSION_CONSUMPTION_LEDGER_RELPATH / selected_run_id
         ),
     }
 
@@ -382,4 +361,3 @@ def paper_mission_drive_result(
         "can_claim_runtime_ready": False,
         "authority_materialized": False,
     }
-

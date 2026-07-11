@@ -62,7 +62,6 @@ CLOSEOUT_RELATIVE_ROOTS = (
     Path("artifacts/supervision/consumer/stage_attempt_closeouts"),
 )
 WORKSPACE_CLOSEOUT_RELATIVE_ROOTS = (
-    Path("ops/medautoscience/paper_mission_consumption_ledger"),
     Path("ops/medautoscience/paper_mission_stage_attempts"),
 )
 TERMINAL_READBACK_STATUS = "opl_runtime_terminal_readback_observed"

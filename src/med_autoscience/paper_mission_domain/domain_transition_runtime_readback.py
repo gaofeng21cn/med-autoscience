@@ -4,11 +4,7 @@ from collections.abc import Callable, Mapping
 from pathlib import Path
 from typing import Any
 
-from med_autoscience.paper_mission_domain.common import (
-    _first_text,
-    _mapping,
-    _optional_text,
-)
+from med_autoscience.paper_mission_domain.common import _mapping, _optional_text
 from med_autoscience.paper_mission_domain.direct_next_action_handoff import (
     build_direct_next_action_handoff,
 )
@@ -114,7 +110,6 @@ def _override_next_action_from_direct_terminal_closeout(
     typed_blocker_resolution_readback: Mapping[str, Any] | None,
     next_action_override: Mapping[str, Any] | None,
     canonical_next_action_source: str | None,
-    receipt_owner_consumption_readback: Mapping[str, Any] | None = None,
     terminalize_stage_closure_from_readback: Callable[[Mapping[str, Any]], Mapping[str, Any]]
     | None = None,
     next_action_for_stage_closure_decision: Callable[..., Mapping[str, Any] | None] | None = None,
@@ -124,30 +119,6 @@ def _override_next_action_from_direct_terminal_closeout(
         "opl_runtime_terminal_readback_observed"
     ):
         return stage_closure_decision, next_action_override, canonical_next_action_source
-    receipt_owner_consumption = _mapping(receipt_owner_consumption_readback)
-    if (
-        _optional_text(receipt_owner_consumption.get("status"))
-        == "owner_consumption_applied"
-        and _optional_text(
-            _mapping(receipt_owner_consumption.get("mas_receipt_consumption")).get(
-                "status"
-            )
-        )
-        == "owner_consumed_route_checkpoint"
-    ):
-        handoff = _mapping(direct.get("opl_route_handoff"))
-        applied_owner_consumption_ref = _first_text(
-            receipt_owner_consumption.get("source_ref"),
-            receipt_owner_consumption.get("decision_ref"),
-        )
-        if applied_owner_consumption_ref is not None and _optional_text(
-            handoff.get("owner_consumption_readback_ref")
-        ) == applied_owner_consumption_ref:
-            return (
-                stage_closure_decision,
-                next_action_override,
-                canonical_next_action_source,
-            )
     carrier_readback = _mapping(direct.get("opl_runtime_carrier_readback"))
     if _optional_text(_mapping(carrier_readback.get("mas_receipt_consumption")).get("status")) != (
         "requires_mas_owner_consumption"
@@ -163,7 +134,6 @@ def _override_next_action_from_direct_terminal_closeout(
         stage_closure_decision=refreshed_stage_closure_decision,
         transaction_readback=transaction_readback,
         typed_blocker_resolution_readback=typed_blocker_resolution_readback,
-        receipt_owner_consumption_readback=receipt_owner_consumption_readback,
     )
     return (
         refreshed_stage_closure_decision,

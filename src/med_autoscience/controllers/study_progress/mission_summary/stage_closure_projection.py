@@ -53,19 +53,10 @@ def _canonical_next_legal_action(payload: Mapping[str, Any]) -> str | None:
     receipt_action = _non_empty_text(receipt_consumption.get("next_legal_action"))
     receipt_status = _non_empty_text(receipt_consumption.get("status"))
     if (
-        receipt_status == "owner_consumed_route_checkpoint"
-        and next_action_surface == "mas_next_action_envelope"
-        and next_action_family != "paper.stage_closure.owner_consumption"
-    ):
-        receipt_action = None
-    if (
         receipt_action
         and receipt_action != "request_opl_runtime_readback"
-        and receipt_status != "owner_consumed_typed_blocker"
     ):
         return receipt_action
-    if receipt_status == "owner_consumed_typed_blocker":
-        return None
     if next_action_surface != "mas_next_action_envelope":
         return None
     action_family = next_action_family

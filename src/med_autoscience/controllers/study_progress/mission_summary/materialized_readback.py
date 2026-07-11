@@ -5,15 +5,6 @@ import json
 from pathlib import Path
 from typing import Any
 
-from med_autoscience.paper_mission_consumption_readback import (
-    latest_paper_mission_consumption_transaction_readback,
-)
-from med_autoscience.controllers.paper_mission_receipt_owner_consumption import (
-    latest_receipt_owner_consumption_readback,
-)
-from med_autoscience.controllers.paper_mission_currentness import (
-    receipt_owner_consumption_superseded_by_consumption,
-)
 from med_autoscience.paper_mission_opl_carrier import (
     paper_mission_opl_runtime_carrier,
 )
@@ -123,24 +114,6 @@ def _materialized_mission_summary(
 
     mission = dict(materialized_mission)
     study_id = _non_empty_text(mission.get("study_id")) or _study_id(progress)
-    consumption_ledger_readback = _latest_consumption_ledger_readback(
-        progress=progress,
-        study_id=study_id,
-    )
-    if consumption_ledger_readback:
-        ledger_transaction = _mapping(
-            consumption_ledger_readback["paper_mission_transaction"]
-        )
-        ledger_mission_id = _non_empty_text(ledger_transaction.get("mission_id"))
-        mission["mission_state"] = _mission_state_for_consumption_ledger(
-            consumption_ledger_readback
-        )
-        if ledger_mission_id:
-            mission["mission_id"] = ledger_mission_id
-        mission["paper_mission_transaction"] = ledger_transaction
-        mission["consume_result"] = _consume_result_for_consumption_ledger(
-            consumption_ledger_readback
-        )
     default_readback = _mapping(mission.get("one_shot_migration_readback"))
     mission_state = _non_empty_text(mission.get("mission_state")) or "planned"
     current_mission = _mapping(default_readback.get("current_mission"))
@@ -198,17 +171,6 @@ def _materialized_mission_summary(
         platform_diagnostics=platform_diagnostics,
         next_owner_or_human_decision=next_owner_or_human_decision,
     )
-    if consumption_ledger_readback:
-        ledger_transaction = _mapping(
-            consumption_ledger_readback.get("paper_mission_transaction")
-        )
-        ledger_mission_id = _non_empty_text(ledger_transaction.get("mission_id"))
-        if ledger_mission_id:
-            paper_mission_run = {
-                **paper_mission_run,
-                "mission_id": ledger_mission_id,
-                "paper_mission_transaction": ledger_transaction,
-            }
     transaction = _mapping(paper_mission_run.get("paper_mission_transaction"))
     transaction_state = _transaction_state(transaction)
     carrier = paper_mission_opl_runtime_carrier(transaction)
@@ -227,48 +189,10 @@ def _materialized_mission_summary(
         mission,
         default_readback,
     )
-    if consumption_ledger_readback:
-        effective_consume_candidate_status = (
-            _non_empty_text(consumption_ledger_readback.get("consume_candidate_status"))
-            or effective_consume_candidate_status
-        )
-        next_owner_or_human_decision = _next_owner_decision_for_consumption_ledger(
-            readback=consumption_ledger_readback,
-            fallback=next_owner_or_human_decision,
-        )
-        ledger_next_owner = _non_empty_text(
-            next_owner_or_human_decision.get("next_owner")
-        )
-        if ledger_next_owner:
-            current_objective = {
-                **current_objective,
-                "next_owner": ledger_next_owner,
-            }
-            paper_mission_run = {
-                **paper_mission_run,
-                "current_objective": current_objective,
-                "next_owner_or_human_decision": next_owner_or_human_decision,
-            }
     stage_closure_readback = _current_stage_closure_readback(
         progress=progress,
-        consume_readback=consumption_ledger_readback,
+        consume_readback=None,
     )
-    receipt_owner_consumption_readback = _latest_receipt_owner_consumption_readback(
-        progress=progress,
-        study_id=study_id,
-    )
-    if receipt_owner_consumption_readback and receipt_owner_consumption_superseded_by_consumption(
-        receipt_owner_consumption_readback=receipt_owner_consumption_readback,
-        consumption_ledger_readback=consumption_ledger_readback,
-    ):
-        receipt_owner_consumption_readback = None
-    if receipt_owner_consumption_readback:
-        effective_consume_candidate_status = (
-            _effective_consume_candidate_status_for_receipt_owner_consumption(
-                fallback=effective_consume_candidate_status,
-                receipt_owner_consumption_readback=receipt_owner_consumption_readback,
-            )
-        )
     stage_closure_decision = stage_closure_decision_projection(
         readback={
             "paper_mission_transaction": effective_transaction,
@@ -276,13 +200,7 @@ def _materialized_mission_summary(
                 effective_transaction.get("stage_terminal_decision")
             ),
             **(
-                {
-                    "stage_closure_decision": receipt_owner_consumption_readback[
-                        "stage_closure_decision"
-                    ]
-                }
-                if receipt_owner_consumption_readback
-                else {"stage_closure_decision": stage_closure_readback}
+                {"stage_closure_decision": stage_closure_readback}
                 if stage_closure_readback
                 else {}
             ),
@@ -294,7 +212,6 @@ def _materialized_mission_summary(
                 else {}
             ),
         },
-        consumption_ledger_readback=consumption_ledger_readback,
     )
     paper_mission_run = _summary_helpers()._paper_mission_run_with_stage_closure_readback(
         paper_mission_run=paper_mission_run,
@@ -302,7 +219,6 @@ def _materialized_mission_summary(
     )
     receipt = helpers._opl_transition_receipt(
         progress=progress,
-        consumption_ledger_readback=consumption_ledger_readback,
         carrier=carrier,
     )
     summary = {
@@ -329,9 +245,6 @@ def _materialized_mission_summary(
         "consume_candidate_status": effective_consume_candidate_status,
         "stage_closure_decision": stage_closure_decision,
         "current_stage_closure_readback": stage_closure_readback or None,
-        "receipt_owner_consumption_readback": (
-            receipt_owner_consumption_readback or None
-        ),
         "latest_artifact_delta": latest_artifact_delta,
         "next_owner_or_human_decision": next_owner_or_human_decision,
         "default_progress_metric": "paper_mission_run",
@@ -359,23 +272,9 @@ def _materialized_mission_summary(
             "can_mark_dm002_dm003_complete": False,
         },
         "read_model_source": {
-            "source_kind": (
-                "paper_mission_consumption_ledger"
-                if consumption_ledger_readback
-                else "materialized_paper_mission_run"
-            ),
+            "source_kind": "materialized_paper_mission_run",
             "materialized_mission_ref": _non_empty_text(
                 mission.get("materialized_mission_ref")
-            ),
-            **(
-                {
-                    "consumption_ledger_ref": _non_empty_text(
-                        consumption_ledger_readback.get("source_ref")
-                    ),
-                    "consumption_ledger_role": "current_paper_mission_transaction",
-                }
-                if consumption_ledger_readback
-                else {}
             ),
             "legacy_projection_accepted": False,
         },
@@ -416,21 +315,6 @@ def _latest_materialized_mission(progress: Mapping[str, Any]) -> dict[str, Any]:
     return {}
 
 
-def _latest_consumption_ledger_readback(
-    *,
-    progress: Mapping[str, Any],
-    study_id: str,
-) -> dict[str, Any]:
-    study_root = _materialized_study_root(progress=progress)
-    workspace_root = _workspace_root_from_study_root(study_root)
-    if workspace_root is None:
-        return {}
-    return latest_paper_mission_consumption_transaction_readback(
-        workspace_root=workspace_root,
-        study_id=study_id,
-    ) or {}
-
-
 def _current_stage_closure_readback(
     *,
     progress: Mapping[str, Any],
@@ -441,123 +325,6 @@ def _current_stage_closure_readback(
     )
 
 
-def _latest_receipt_owner_consumption_readback(
-    *,
-    progress: Mapping[str, Any],
-    study_id: str,
-) -> dict[str, Any]:
-    study_root = _materialized_study_root(progress=progress)
-    workspace_root = _workspace_root_from_study_root(study_root)
-    if workspace_root is None:
-        return {}
-    return latest_receipt_owner_consumption_readback(
-        workspace_root=workspace_root,
-        study_id=study_id,
-    ) or {}
-
-
-def _mission_state_for_consumption_ledger(
-    readback: Mapping[str, Any],
-) -> str:
-    status = _non_empty_text(readback.get("consume_candidate_status"))
-    if status == "typed_blocker":
-        return "stable_blocker"
-    if status == "human_gate":
-        return "waiting_human_decision"
-    if status in {"route_back", "rejected"}:
-        return "route_back"
-    return "consumed"
-
-
-def _effective_consume_candidate_status_for_receipt_owner_consumption(
-    *,
-    fallback: str,
-    receipt_owner_consumption_readback: Mapping[str, Any],
-) -> str:
-    receipt = _mapping(receipt_owner_consumption_readback)
-    consumption = _mapping(receipt.get("mas_receipt_consumption"))
-    status = _non_empty_text(consumption.get("status"))
-    if status == "owner_consumed_route_checkpoint":
-        return "route_back"
-    if status == "owner_consumed_typed_blocker":
-        return "typed_blocker"
-    outcome = _mapping(_mapping(receipt.get("stage_closure_decision")).get("outcome"))
-    if (
-        _non_empty_text(outcome.get("kind")) == "next_stage_transition"
-        and _non_empty_text(outcome.get("transition_kind"))
-        == "route_back_candidate_checkpoint"
-    ):
-        return "route_back"
-    return fallback or "typed_blocker"
-
-
-def _consume_result_for_consumption_ledger(
-    readback: Mapping[str, Any],
-) -> dict[str, Any]:
-    status = _non_empty_text(readback.get("consume_candidate_status"))
-    selected_outcome = _non_empty_text(readback.get("selected_outcome"))
-    if status == "route_back":
-        result_status = "route_back"
-    elif status == "human_gate":
-        result_status = "human_gate"
-    elif status == "typed_blocker":
-        result_status = "typed_blocker"
-    elif status == "rejected":
-        result_status = "rejected"
-    elif status:
-        result_status = "accepted"
-    else:
-        result_status = "not_consumed"
-    return {
-        "status": result_status,
-        "outcome": status or selected_outcome or result_status,
-        "authority_materialized": False,
-    }
-
-
-def _next_owner_decision_for_consumption_ledger(
-    *,
-    readback: Mapping[str, Any],
-    fallback: Mapping[str, Any],
-) -> dict[str, Any]:
-    decision = _mapping(readback.get("stage_terminal_decision"))
-    handoff = _mapping(readback.get("opl_route_handoff"))
-    route = _mapping(readback.get("opl_route_command"))
-    next_owner = _first_text(
-        decision.get("next_owner"),
-        handoff.get("next_owner"),
-        readback.get("next_owner"),
-        fallback.get("next_owner"),
-    )
-    status = _first_text(
-        readback.get("consume_candidate_status"),
-        readback.get("selected_outcome"),
-        decision.get("decision_kind"),
-        fallback.get("summary"),
-    )
-    return _compact(
-        {
-            "kind": (
-                "human_decision"
-                if _non_empty_text(decision.get("decision_kind")) == "human_gate"
-                else "owner_or_route"
-            ),
-            "next_owner": next_owner,
-            "human_decision_required": (
-                _non_empty_text(decision.get("decision_kind")) == "human_gate"
-            ),
-            "summary": status,
-            "route_command": _non_empty_text(route.get("command_kind")),
-            "route_target": _first_text(
-                route.get("target"),
-                route.get("route_target"),
-                handoff.get("route_target"),
-            ),
-            "opl_route_handoff_ref": _non_empty_text(handoff.get("source_ref")),
-            "can_execute": False,
-            "can_authorize_provider_admission": False,
-        }
-    )
 
 
 def _materialized_study_root(*, progress: Mapping[str, Any]) -> Path:

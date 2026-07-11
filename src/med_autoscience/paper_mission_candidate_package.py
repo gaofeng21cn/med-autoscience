@@ -581,8 +581,6 @@ def _next_legal_command(
             study_id or "<study_id>",
             "--candidate",
             candidate_manifest_ref or "<package_manifest_ref>",
-            "--output-root",
-            "<workspace>/ops/medautoscience/paper_mission_consumption_ledger/<run_id>",
             "--format",
             "json",
         ],

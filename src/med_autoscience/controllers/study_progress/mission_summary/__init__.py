@@ -5,15 +5,10 @@ from pathlib import Path
 from typing import Any
 
 from med_autoscience.controllers.study_progress.mission_summary.materialized_readback import (
-    _consume_result_for_consumption_ledger,
-    _latest_consumption_ledger_readback,
-    _latest_receipt_owner_consumption_readback,
     _current_stage_closure_readback,
     _latest_materialized_mission,
     _materialized_mission_summary,
     _materialized_study_root,
-    _mission_state_for_consumption_ledger,
-    _next_owner_decision_for_consumption_ledger,
 )
 from med_autoscience.paper_mission_opl_carrier import paper_mission_opl_runtime_carrier
 from med_autoscience.paper_mission_opl_readback import (
@@ -21,9 +16,6 @@ from med_autoscience.paper_mission_opl_readback import (
     paper_mission_next_action_envelope,
 )
 from med_autoscience.controllers.stage_closure_terminalizer import stage_closure_decision_projection
-from med_autoscience.controllers.paper_mission_currentness import (
-    receipt_owner_consumption_superseded_by_consumption,
-)
 from ..canonical_next_action_gate import (
     has_canonical_next_action,
     legacy_next_action_authority_retirement,
@@ -39,9 +31,6 @@ from .paper_mission_payload import (
     _transaction_state,
 )
 from .stage_closure_projection import top_level_stage_closure_projection
-from med_autoscience.paper_mission_domain.stage_closure_next_action import (
-    next_action_for_stage_closure_decision as _next_action_for_stage_closure_decision,
-)
 
 
 PAPER_MISSION_RUN_CONTRACT_VERSION = "paper-mission-run.v1"
@@ -123,67 +112,13 @@ def build_artifact_first_mission_summary(
     effective_consume_candidate_status = _non_empty_text(
         _mapping(paper_mission_run.get("consume_result")).get("status")
     ) or "not_consumed"
-    consumption_ledger_readback = _latest_consumption_ledger_readback(
-        progress=progress,
-        study_id=_study_id(progress),
-    )
-    if consumption_ledger_readback:
-        effective_consume_candidate_status = (
-            _non_empty_text(consumption_ledger_readback.get("consume_candidate_status"))
-            or effective_consume_candidate_status
-        )
-        mission_state = _mission_state_for_consumption_ledger(consumption_ledger_readback)
-        next_owner_or_human_decision = _next_owner_decision_for_consumption_ledger(
-            readback=consumption_ledger_readback,
-            fallback=next_owner_or_human_decision,
-        )
-        ledger_next_owner = _non_empty_text(next_owner_or_human_decision.get("next_owner"))
-        if ledger_next_owner:
-            current_objective = {
-                **current_objective,
-                "next_owner": ledger_next_owner,
-            }
-        paper_mission_run = {
-            **paper_mission_run,
-            "mission_state": mission_state,
-            "consume_result": _consume_result_for_consumption_ledger(
-                consumption_ledger_readback
-            ),
-            "paper_mission_transaction": consumption_ledger_readback[
-                "paper_mission_transaction"
-            ],
-            "current_objective": current_objective,
-            "next_owner_or_human_decision": next_owner_or_human_decision,
-        }
     carrier = paper_mission_opl_runtime_carrier(paper_mission_run["paper_mission_transaction"])
     effective_transaction = _mapping(paper_mission_run["paper_mission_transaction"])
     stage_closure_readback = _current_stage_closure_readback(
         progress=progress,
-        consume_readback=consumption_ledger_readback,
+        consume_readback=None,
     )
-    receipt_owner_consumption_readback = _latest_receipt_owner_consumption_readback(
-        progress=progress,
-        study_id=_study_id(progress),
-    )
-    if receipt_owner_consumption_readback and receipt_owner_consumption_superseded_by_consumption(
-        receipt_owner_consumption_readback=receipt_owner_consumption_readback,
-        consumption_ledger_readback=consumption_ledger_readback,
-    ):
-        receipt_owner_consumption_readback = {}
-    if receipt_owner_consumption_readback:
-        effective_consume_candidate_status = (
-            _effective_consume_candidate_status_for_receipt_owner_consumption(
-                fallback=effective_consume_candidate_status,
-                receipt_owner_consumption_readback=receipt_owner_consumption_readback,
-            )
-        )
-        if effective_consume_candidate_status == "route_back":
-            mission_state = "route_back"
-    if receipt_owner_consumption_readback:
-        stage_closure_source = {
-            "stage_closure_decision": receipt_owner_consumption_readback["stage_closure_decision"]
-        }
-    elif stage_closure_readback:
+    if stage_closure_readback:
         stage_closure_source = {"stage_closure_decision": stage_closure_readback}
     elif _mapping(progress.get("stage_closure_decision")):
         stage_closure_source = {"stage_closure_decision": progress["stage_closure_decision"]}
@@ -205,36 +140,18 @@ def build_artifact_first_mission_summary(
             "opl_runtime_readback_status": runtime_readback_status,
             **({"opl_runtime_carrier_readback": carrier_readback} if carrier_readback else {}),
         },
-        consumption_ledger_readback=consumption_ledger_readback,
     )
-    next_action = (
-        _next_action_for_stage_closure_decision(
-            stage_closure_decision=stage_closure_decision,
-            transaction_readback={"paper_mission_transaction": effective_transaction},
-        )
-        if receipt_owner_consumption_readback
-        else paper_mission_next_action_envelope(
-            transaction=effective_transaction,
-            stage_terminal_decision=_mapping(effective_transaction.get("stage_terminal_decision")),
-            opl_route_command=_mapping(effective_transaction.get("opl_route_command")),
-            opl_runtime_carrier=carrier,
-            opl_route_handoff=_mapping(consumption_ledger_readback.get("opl_route_handoff"))
-            if consumption_ledger_readback
-            else {},
-            diagnostic_refs=[
-                ref
-                for ref in (
-                    _non_empty_text(consumption_ledger_readback.get("source_ref"))
-                    if consumption_ledger_readback
-                    else None,
-                )
-                if ref is not None
-            ],
-        )
+    next_action = paper_mission_next_action_envelope(
+        transaction=effective_transaction,
+        stage_terminal_decision=_mapping(effective_transaction.get("stage_terminal_decision")),
+        opl_route_command=_mapping(effective_transaction.get("opl_route_command")),
+        opl_runtime_carrier=carrier,
+        opl_runtime_carrier_readback=carrier_readback,
+        opl_route_handoff={},
+        diagnostic_refs=[],
     )
     receipt = _opl_transition_receipt(
         progress=progress,
-        consumption_ledger_readback=consumption_ledger_readback,
         carrier=carrier,
     )
     summary = {
@@ -258,7 +175,6 @@ def build_artifact_first_mission_summary(
         "consume_candidate_status": effective_consume_candidate_status,
         "stage_closure_decision": stage_closure_decision,
         "current_stage_closure_readback": stage_closure_readback or None,
-        "receipt_owner_consumption_readback": receipt_owner_consumption_readback or None,
         "current_objective": current_objective,
         "latest_artifact_delta": {
             **latest_artifact_delta,
@@ -294,28 +210,13 @@ def build_artifact_first_mission_summary(
             "can_mark_dm002_dm003_complete": False,
         },
         "read_model_source": {
-            "source_kind": (
-                "paper_mission_consumption_ledger"
-                if consumption_ledger_readback
-                else "legacy_progress_projection_fallback"
-            ),
-            **(
-                {
-                    "consumption_ledger_ref": _non_empty_text(
-                        consumption_ledger_readback.get("source_ref")
-                    ),
-                    "consumption_ledger_role": "current_paper_mission_transaction",
-                }
-                if consumption_ledger_readback
-                else {}
-            ),
+            "source_kind": "materialized_paper_mission_run",
             "legacy_projection_accepted": False,
         },
     }
     summary = _summary_with_receipt_projection(
         summary,
         progress=progress,
-        consumption_ledger_readback=consumption_ledger_readback,
     )
     summary["paper_mission_run"] = _paper_mission_run_with_stage_closure_readback(
         paper_mission_run=summary["paper_mission_run"],
@@ -343,10 +244,7 @@ def attach_artifact_first_mission_summary(
     )
     summary_next_action = _mapping(summary.get("next_action"))
     summary_next_action_promotable = _summary_next_action_is_promotable(summary)
-    summary_overrides_existing = _summary_next_action_should_override_existing(
-        payload=payload,
-        summary=summary,
-    )
+    summary_overrides_existing = False
     summary_selected_as_next_action = summary_next_action_promotable and (
         summary_overrides_existing or not existing_next_action
     )
@@ -384,8 +282,6 @@ def attach_artifact_first_mission_summary(
         updated["opl_runtime_carrier_readback"] = summary["opl_runtime_carrier_readback"]
     if "opl_runtime_readback_status" in summary:
         updated["opl_runtime_readback_status"] = summary["opl_runtime_readback_status"]
-    if "receipt_owner_consumption_readback" in summary:
-        updated["receipt_owner_consumption_readback"] = summary["receipt_owner_consumption_readback"]
     if next_action:
         updated["next_action"] = next_action
         updated["canonical_next_action_source"] = _summary_selected_next_action_source(
@@ -502,29 +398,6 @@ def _summary_next_action_is_promotable(summary: Mapping[str, Any]) -> bool:
     return (
         _non_empty_text(read_model_source.get("source_kind"))
         != "legacy_progress_projection_fallback"
-    )
-
-
-def _summary_next_action_should_override_existing(*, payload: Mapping[str, Any], summary: Mapping[str, Any]) -> bool:
-    summary_next_action = _mapping(summary.get("next_action"))
-    if not summary_next_action:
-        return False
-    if _non_empty_text(summary_next_action.get("action_family")) != (
-        "paper.stage_closure.owner_consumption"
-    ):
-        return False
-    receipt = _mapping(summary.get("receipt_owner_consumption_readback"))
-    consumption = _mapping(receipt.get("mas_receipt_consumption"))
-    if _non_empty_text(consumption.get("status")) != "owner_consumed_route_checkpoint":
-        return False
-    existing = _mapping(payload.get("next_action"))
-    if not existing:
-        return True
-    return (
-        _non_empty_text(existing.get("action_family"))
-        != "paper.stage_closure.owner_consumption"
-        or _non_empty_text(existing.get("work_unit_id"))
-        != _non_empty_text(summary_next_action.get("work_unit_id"))
     )
 
 
@@ -721,24 +594,6 @@ def _paper_mission_run_with_stage_closure_readback(*, paper_mission_run: Mapping
         "stage_closure_outcome": stage_closure_readback.get("outcome_kind")
         or _mapping(stage_closure_readback.get("outcome")).get("kind"),
     }
-
-
-def _effective_consume_candidate_status_for_receipt_owner_consumption(*, fallback: str, receipt_owner_consumption_readback: Mapping[str, Any]) -> str:
-    receipt = _mapping(receipt_owner_consumption_readback)
-    consumption = _mapping(receipt.get("mas_receipt_consumption"))
-    status = _non_empty_text(consumption.get("status"))
-    if status == "owner_consumed_route_checkpoint":
-        return "route_back"
-    if status == "owner_consumed_typed_blocker":
-        return "typed_blocker"
-    outcome = _mapping(_mapping(receipt.get("stage_closure_decision")).get("outcome"))
-    if (
-        _non_empty_text(outcome.get("kind")) == "next_stage_transition"
-        and _non_empty_text(outcome.get("transition_kind"))
-        == "route_back_candidate_checkpoint"
-    ):
-        return "route_back"
-    return fallback or "typed_blocker"
 
 
 def _top_level_current_package_projection(payload: Mapping[str, Any]) -> dict[str, Any]:

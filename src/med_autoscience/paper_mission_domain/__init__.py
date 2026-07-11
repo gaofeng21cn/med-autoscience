@@ -1,29 +1,13 @@
 from __future__ import annotations
 
-import importlib
 from collections.abc import Mapping
 from pathlib import Path
 from typing import Any, Callable
 
 from med_autoscience.paper_mission_authority import consume_paper_mission_candidate
-from med_autoscience.paper_mission_consumption_readback import (
-    latest_paper_mission_consumption_transaction_readback,
-)
-from med_autoscience.paper_mission_consumption_ledger import (
-    write_paper_mission_consumption_ledger_outputs,
-)
 from med_autoscience.paper_mission_terminal_owner_gate import (
     terminal_owner_gate_authority_readback as _terminal_owner_gate_authority_readback,
     terminal_owner_gate_from_carrier_readback as _terminal_owner_gate_from_carrier_readback,
-)
-from med_autoscience.paper_mission_output_roots import (
-    _assert_safe_consumption_ledger_output_root,
-    _is_yang_ops_consumption_ledger_root,
-)
-from .receipt_owner_consumption import (
-    build_receipt_owner_consumption_readback as _build_receipt_owner_consumption_readback,
-    latest_receipt_owner_consumption_readback as _latest_receipt_owner_consumption_readback,
-    receipt_owner_consumption_apply_mode as _receipt_owner_consumption_apply_mode,
 )
 from .candidate_package_readback import (
     build_materialized_candidate_package_readback as _build_materialized_candidate_package_readback,
@@ -50,7 +34,6 @@ from .drive_readback import (
 from .materialized_mission_readback import (
     build_materialized_mission_readback_if_available as _build_materialized_mission_readback_if_available,
     _domain_transition_direct_next_action_runtime_readback as _build_domain_transition_direct_next_action_runtime_readback,
-    suppress_consumed_route_checkpoint_transaction_next_action as _suppress_consumed_route_checkpoint_transaction_next_action,
 )
 from .materialized_readback_context import (
     dispatch_execution_policy as _dispatch_execution_policy,
@@ -73,11 +56,7 @@ from .stage_closure_next_action import (
 from .submission_gate_readback import (
     apply_submission_authority_owner_gate_readback as _apply_submission_authority_owner_gate_readback,
 )
-from .common import (
-    _load_optional_json_object,
-    _mapping,
-    _optional_text,
-)
+from .common import _mapping, _optional_text
 from .stage_closure_terminalizer import (
     stage_closure_decision_requires_reterminalize as _stage_closure_decision_requires_reterminalize,
     terminalize_stage_closure_from_readback as _terminalize_stage_closure_from_readback,
@@ -108,18 +87,6 @@ from med_autoscience.controllers.study_progress.canonical_next_action_selection 
     domain_transition_canonical_next_action as _domain_transition_canonical_next_action,
 )
 
-CONSUMPTION_LEDGER_FORBIDDEN_AUTHORITY_WRITES = (
-    "publication_eval/latest.json",
-    "controller_decisions/latest.json",
-    "owner receipt",
-    "typed blocker",
-    "human gate",
-    "current_package",
-    "runtime queue/provider attempts",
-    "Yang study truth surfaces",
-    "Yang runtime authority surfaces",
-    "Yang output outside ops/medautoscience/paper_mission_consumption_ledger",
-)
 _stage_closure_receipt_passthrough = _stage_closure_terminalizer_readback._stage_closure_receipt_passthrough
 _terminal_source_readback_newer = _stage_closure_terminalizer_readback._terminal_source_readback_newer
 _stage_closure_matches_current_transaction_with_terminal_closeout = (
@@ -146,12 +113,6 @@ _stage_packet_opl_runtime_carrier_readback = _stage_closure_terminalizer_readbac
 _load_json_object = _stage_closure_terminalizer_readback._load_json_object
 _typed_blocker_resolution_should_own_next_action = _stage_closure_terminalizer_readback._typed_blocker_resolution_should_own_next_action
 _stage_closure_next_action_should_own_next_action = _stage_closure_terminalizer_readback._stage_closure_next_action_should_own_next_action
-_receipt_owner_consumed_route_checkpoint = _stage_closure_terminalizer_readback._receipt_owner_consumed_route_checkpoint
-_align_current_carrier_owner_consumption = _stage_closure_terminalizer_readback._align_current_carrier_owner_consumption
-_preserve_direct_successor_runtime_readback = _stage_closure_terminalizer_readback._preserve_direct_successor_runtime_readback
-_route_checkpoint_matches_domain_transition = _stage_closure_terminalizer_readback._route_checkpoint_matches_domain_transition
-_owner_consumed_route_checkpoint_yields_to_domain_transition = _stage_closure_terminalizer_readback._owner_consumed_route_checkpoint_yields_to_domain_transition
-_route_checkpoint_identity_matches_domain_transition = _stage_closure_terminalizer_readback._route_checkpoint_identity_matches_domain_transition
 _domain_transition_next_action_requests_stage_attempt = _stage_closure_terminalizer_readback._domain_transition_next_action_requests_stage_attempt
 
 def _sync_stage_closure_terminalizer_readback_deps() -> None:
@@ -160,9 +121,6 @@ def _sync_stage_closure_terminalizer_readback_deps() -> None:
     )
     _stage_closure_terminalizer_readback._domain_transition_direct_terminal_source_readback = (
         _domain_transition_direct_terminal_source_readback
-    )
-    _stage_closure_terminalizer_readback.latest_paper_mission_consumption_transaction_readback = (
-        latest_paper_mission_consumption_transaction_readback
     )
     _stage_closure_terminalizer_readback._next_action_for_stage_closure_decision = (
         _next_action_for_stage_closure_decision
@@ -203,96 +161,6 @@ def _override_next_action_from_direct_terminal_closeout(**kwargs: Any) -> tuple[
 FORBIDDEN_AUTHORITY_CLAIMS = _TRANSACTION_FORBIDDEN_AUTHORITY_CLAIMS
 
 
-def _consumption_ledger_readback_module() -> Any:
-    return importlib.import_module(
-        "med_autoscience.paper_mission_domain.consumption_ledger_readback"
-    )
-
-
-def _sync_consumption_ledger_readback_deps() -> Any:
-    module = _consumption_ledger_readback_module()
-    module._latest_receipt_owner_consumption_readback = (
-        _latest_receipt_owner_consumption_readback
-    )
-    module._study_progress_paper_mission_overlay = (
-        _study_progress_paper_mission_overlay
-    )
-    module._consumption_ledger_route_back_projection = (
-        _consumption_ledger_route_back_projection
-    )
-    module._paper_mission_semantic_progress_readback = (
-        _paper_mission_semantic_progress_readback
-    )
-    return module
-
-
-def _consumption_ledger_inspect_readback(**kwargs: Any) -> dict[str, Any]:
-    module = _sync_consumption_ledger_readback_deps()
-    return module._consumption_ledger_inspect_readback(**kwargs)
-
-
-def _study_progress_paper_mission_overlay(**kwargs: Any) -> dict[str, Any]:
-    return _consumption_ledger_readback_module()._study_progress_paper_mission_overlay(
-        **kwargs
-    )
-
-
-def _merge_study_progress_overlay(
-    readback: Mapping[str, Any],
-    overlay: Mapping[str, Any],
-) -> dict[str, Any]:
-    return _consumption_ledger_readback_module()._merge_study_progress_overlay(
-        readback, overlay
-    )
-
-
-def _consumption_ledger_route_back_projection(**kwargs: Any) -> dict[str, Any] | None:
-    return _consumption_ledger_readback_module()._consumption_ledger_route_back_projection(
-        **kwargs
-    )
-
-
-def _transaction_readback_has_route_back_owner_answer(
-    transaction_readback: Mapping[str, Any],
-) -> bool:
-    return (
-        _consumption_ledger_readback_module()._transaction_readback_has_route_back_owner_answer(
-            transaction_readback
-        )
-    )
-
-
-def _receipt_owner_consumption_status(receipt_owner_consumption: Mapping[str, Any]) -> str:
-    return _consumption_ledger_readback_module()._receipt_owner_consumption_status(
-        receipt_owner_consumption
-    )
-
-
-def _consumption_ledger_current_route_next_action(**kwargs: Any) -> dict[str, Any] | None:
-    return _consumption_ledger_readback_module()._consumption_ledger_current_route_next_action(
-        **kwargs
-    )
-
-
-def _consumption_ledger_has_current_route_handoff(
-    consumption_readback: Mapping[str, Any],
-) -> bool:
-    return _consumption_ledger_readback_module()._consumption_ledger_has_current_route_handoff(
-        consumption_readback
-    )
-
-
-def _paper_mission_consume_non_advancing_fields(**kwargs: Any) -> dict[str, Any]:
-    module = _sync_consumption_ledger_readback_deps()
-    return module._paper_mission_consume_non_advancing_fields(**kwargs)
-
-
-def _paper_mission_semantic_progress_readback(
-    readback: Mapping[str, Any],
-) -> dict[str, Any]:
-    return _consumption_ledger_readback_module()._paper_mission_semantic_progress_readback(
-        readback
-    )
 
 def build_paper_mission_readback(
     *,
@@ -313,8 +181,6 @@ def build_paper_mission_readback(
     paper_facing_delta_ref: str | Path | None = None,
     paper_mission_readback_file: str | Path | None = None,
     stage_packet: str | Path | None = None,
-    receipt_apply_typed_blocker: bool = False,
-    receipt_apply_route_checkpoint: bool = False,
     typed_resolution_apply_owner_decision: bool = False,
     typed_resolution_apply_human_gate: bool = False,
     typed_resolution_apply_route_redesign: bool = False,
@@ -355,7 +221,6 @@ def build_paper_mission_readback(
             opl_bin=opl_bin,
             source=source,
             consume_candidate_readback_builder=build_paper_mission_readback,
-            consumption_ledger_forbidden_authority_writes=CONSUMPTION_LEDGER_FORBIDDEN_AUTHORITY_WRITES,
             forbidden_authority_claims=FORBIDDEN_AUTHORITY_CLAIMS,
         )
     if paper_mission_command == "terminalize-stage":
@@ -366,19 +231,6 @@ def build_paper_mission_readback(
             output_root=output_root,
             stage_packet=stage_packet,
             dry_run=dry_run,
-            source=source,
-        )
-    if paper_mission_command == "receipt-owner-consumption":
-        return _build_receipt_owner_consumption_readback(
-            profile=profile,
-            profile_ref=profile_ref,
-            study_id=study_id,
-            paper_mission_readback_file=paper_mission_readback_file,
-            output_root=output_root,
-            apply_mode=_receipt_owner_consumption_apply_mode(
-                apply_typed_blocker=receipt_apply_typed_blocker,
-                apply_route_checkpoint=receipt_apply_route_checkpoint,
-            ),
             source=source,
         )
     if paper_mission_command == "typed-blocker-resolution":
@@ -408,22 +260,6 @@ def build_paper_mission_readback(
         )
         if materialized is not None:
             return materialized
-        consumption_readback = latest_paper_mission_consumption_transaction_readback(
-            workspace_root=Path(profile.workspace_root),
-            study_id=study_id,
-        )
-        if consumption_readback is not None:
-            return _consumption_ledger_inspect_readback(
-                profile=profile,
-                profile_ref=profile_ref,
-                study_id=study_id,
-                paper_mission_command=paper_mission_command,
-                dry_run=dry_run,
-                consumption_readback=consumption_readback,
-                study_root=Path(profile.studies_root) / study_id,
-                enable_opl_live_probe=enable_opl_live_probe,
-                opl_bin=opl_bin,
-            )
     selected_objective = _objective_for_command(
         paper_mission_command=paper_mission_command,
         objective=objective,
@@ -455,14 +291,6 @@ def build_paper_mission_readback(
             source=source,
             dry_run=dry_run,
         )
-    previous_consumption_readback = (
-        latest_paper_mission_consumption_transaction_readback(
-            workspace_root=Path(profile.workspace_root),
-            study_id=study_id,
-        )
-        if paper_mission_command == "consume-candidate"
-        else None
-    )
     transaction_readback = _paper_mission_transaction_readback(
         mission_id=selected_mission_id,
         study_id=study_id,
@@ -496,6 +324,48 @@ def build_paper_mission_readback(
         )
     if authority_consume_readback is not None:
         transaction_readback["authority_consume_readback"] = authority_consume_readback
+        route = _mapping(transaction_readback.get("opl_route_command"))
+        carrier = _mapping(transaction_readback.get("opl_runtime_carrier"))
+        consume_status = _consume_candidate_status_for_transaction_readback(
+            transaction_readback=transaction_readback,
+            authority_consume_readback=authority_consume_readback,
+        )
+        handoff_status = (
+            "waiting_for_typed_blocker_authority"
+            if consume_status == "typed_blocker"
+            else "waiting_for_human_gate_authority"
+            if consume_status == "human_gate"
+            else "waiting_for_corrected_candidate"
+            if consume_status == "rejected"
+            else "ready_for_opl_route_command"
+            if _optional_text(route.get("command_kind"))
+            in {"start_next_stage", "resume_stage", "route_back"}
+            else "waiting_for_mission_complete_authority"
+            if _optional_text(route.get("command_kind")) == "complete_mission"
+            else "waiting_for_owner_resolution"
+        )
+        transaction_readback["opl_route_handoff"] = {
+            **carrier,
+            "handoff_status": handoff_status,
+            "candidate_ref": candidate_ref,
+            "paper_mission_transaction_ref": _optional_text(
+                _mapping(transaction_readback.get("paper_mission_transaction")).get(
+                    "transaction_id"
+                )
+            ),
+            "stage_terminal_decision": _mapping(
+                transaction_readback.get("stage_terminal_decision")
+            ),
+            "route_command_kind": _optional_text(route.get("command_kind")),
+            "route_target": _optional_text(route.get("target")),
+            "next_owner": _optional_text(
+                _mapping(transaction_readback.get("stage_terminal_decision")).get(
+                    "next_owner"
+                )
+            ),
+            "can_submit_to_opl_runtime": handoff_status
+            == "ready_for_opl_route_command",
+        }
     mission_candidate = _paper_mission_run_candidate(
         mission_id=candidate_mission_id,
         study_id=study_id,
@@ -507,35 +377,10 @@ def build_paper_mission_readback(
         authority_consume_readback=authority_consume_readback,
         paper_mission_transaction=transaction_readback["paper_mission_transaction"],
     )
-    consume_output_manifest = (
-        _write_paper_mission_consumption_ledger_outputs(
-            output_root=Path(output_root),
-            study_id=study_id,
-            candidate_ref=str(candidate_ref),
-            authority_consume_readback=authority_consume_readback,
-            transaction_readback=transaction_readback,
-            mission_candidate=mission_candidate,
-            source=source,
-        )
-        if (
-            paper_mission_command == "consume-candidate"
-            and output_root is not None
-            and candidate_ref is not None
-            and authority_consume_readback is not None
-        )
-        else None
-    )
     candidate_source_transaction = (
         _candidate_manifest_transaction(candidate_ref)
         if paper_mission_command == "consume-candidate"
         else {}
-    )
-    consumption_ledger_readback = (
-        _load_optional_json_object(
-            _mapping(consume_output_manifest).get("consume_readback_ref")
-        )
-        if consume_output_manifest is not None
-        else None
     )
     stage_closure_decision = stage_closure_decision_projection(
         readback={
@@ -546,17 +391,12 @@ def build_paper_mission_readback(
             ),
         },
         handoff=_mapping(transaction_readback.get("opl_route_handoff")),
-        consumption_ledger_readback=consumption_ledger_readback,
     )
     typed_blocker_resolution_readback = latest_typed_blocker_resolution_readback(
         workspace_root=Path(profile.workspace_root),
         study_id=study_id,
     )
     study_root = Path(profile.studies_root) / study_id
-    receipt_owner_consumption = _latest_receipt_owner_consumption_readback(
-        workspace_root=Path(profile.workspace_root),
-        study_id=study_id,
-    )
     domain_transition = study_domain_transition_table.project_domain_transition(
         study_id=study_id,
         study_root=study_root,
@@ -571,15 +411,9 @@ def build_paper_mission_readback(
         stage_closure_decision=stage_closure_decision,
         transaction_readback=transaction_readback,
         typed_blocker_resolution_readback=typed_blocker_resolution_readback,
-        receipt_owner_consumption_readback=receipt_owner_consumption,
     )
     canonical_next_action_source = None
-    current_handoff_next_action = _consumption_ledger_current_route_next_action(
-        transaction_readback=transaction_readback,
-        consumption_readback=consumption_ledger_readback or {},
-    )
-    if _receipt_owner_consumed_route_checkpoint(receipt_owner_consumption):
-        current_handoff_next_action = None
+    current_handoff_next_action = _mapping(transaction_readback.get("next_action")) or None
     if (
         domain_transition_next_action
         and current_handoff_next_action is None
@@ -599,10 +433,6 @@ def build_paper_mission_readback(
     elif next_action_override is not None and canonical_next_action_source is None:
         canonical_next_action_source = "stage_closure.next_action"
     transaction_output_fields = _transaction_readback_output_fields(transaction_readback)
-    transaction_output_fields = _suppress_consumed_route_checkpoint_transaction_next_action(
-        transaction_output_fields=transaction_output_fields,
-        receipt_owner_consumption_readback=receipt_owner_consumption,
-    )
     if next_action_override is not None:
         transaction_output_fields["next_action"] = next_action_override
         if canonical_next_action_source is not None:
@@ -621,7 +451,6 @@ def build_paper_mission_readback(
                 inspect_readback={
                     **mission_candidate,
                     **transaction_output_fields,
-                    "receipt_owner_consumption_readback": receipt_owner_consumption,
                 },
                 next_action=next_action_override,
                 canonical_next_action_source=canonical_next_action_source,
@@ -663,7 +492,6 @@ def build_paper_mission_readback(
                 typed_blocker_resolution_readback=typed_blocker_resolution_readback,
                 next_action_override=next_action_override,
                 canonical_next_action_source=canonical_next_action_source,
-                receipt_owner_consumption_readback=receipt_owner_consumption,
             )
             if next_action_override is not None:
                 transaction_output_fields["next_action"] = next_action_override
@@ -675,10 +503,6 @@ def build_paper_mission_readback(
                     **transaction_readback,
                     "next_action": next_action_override,
                 }
-    transaction_output_fields = _align_current_carrier_owner_consumption(
-        transaction_output_fields=transaction_output_fields,
-        receipt_owner_consumption_readback=receipt_owner_consumption,
-    )
     transaction_output_fields = _merge_stage_closure_typed_blocker_gate_fields(
         transaction_output_fields=transaction_output_fields,
         stage_closure_decision=stage_closure_decision,
@@ -754,11 +578,6 @@ def build_paper_mission_readback(
             else {}
         ),
         **(
-            {"consume_output_manifest": consume_output_manifest}
-            if consume_output_manifest is not None
-            else {}
-        ),
-        **(
             {"typed_blocker_resolution_readback": typed_blocker_resolution_readback}
             if typed_blocker_resolution_readback is not None
             else {}
@@ -769,19 +588,13 @@ def build_paper_mission_readback(
             else {}
         ),
         **paper_facing_action_fields,
-        **_paper_mission_consume_non_advancing_fields(
-            paper_mission_command=paper_mission_command,
-            transaction_readback=transaction_readback,
-            consume_output_manifest=consume_output_manifest,
-            previous_consumption_readback=previous_consumption_readback,
-        ),
         "contract_validation": _validate_with_contract_if_available(mission_candidate),
         "dispatch_plan": {
             "default_action_intent": DOMAIN_ROUTE_START_OR_RESUME_TASK_KIND,
             "domain_handler_task_kind": DOMAIN_ROUTE_START_OR_RESUME_TASK_KIND,
             "domain_handler_dispatch_mode": (
-                "governed_consume_record"
-                if consume_output_manifest is not None
+                "domain_authority_readback"
+                if authority_consume_readback is not None
                 else "dry_run_no_write"
             ),
             "old_owner_callable_dispatch_role": "diagnostic_or_migration_only",
@@ -832,32 +645,6 @@ def _build_one_shot_migration_cli_readback(
         paper_mission_transaction_readback=_paper_mission_transaction_readback,
         transaction_readback_output_fields=_transaction_readback_output_fields,
         validate_with_contract=_validate_with_contract_if_available,
-    )
-
-
-def _write_paper_mission_consumption_ledger_outputs(
-    *,
-    output_root: Path,
-    study_id: str,
-    candidate_ref: str,
-    authority_consume_readback: dict[str, Any],
-    transaction_readback: dict[str, Any],
-    mission_candidate: dict[str, Any],
-    source: str,
-) -> dict[str, Any]:
-    root = output_root.expanduser().resolve()
-    _assert_safe_consumption_ledger_output_root(root)
-    return write_paper_mission_consumption_ledger_outputs(
-        output_root=root,
-        study_id=study_id,
-        candidate_ref=candidate_ref,
-        authority_consume_readback=authority_consume_readback,
-        transaction_readback=transaction_readback,
-        mission_candidate=mission_candidate,
-        source=source,
-        writes_yang_ops_consumption_ledger=_is_yang_ops_consumption_ledger_root(root),
-        forbidden_authority_writes=CONSUMPTION_LEDGER_FORBIDDEN_AUTHORITY_WRITES,
-        forbidden_authority_claims=FORBIDDEN_AUTHORITY_CLAIMS,
     )
 
 

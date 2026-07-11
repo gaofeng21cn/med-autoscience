@@ -54,17 +54,11 @@ def build_direct_next_action_handoff(
         ).get("status")
     )
     owner_consumption_readback_ref = _optional_text(
-        _mapping(inspect_readback.get("current_opl_runtime_carrier_readback")).get(
-            "owner_consumption_readback_ref"
-        )
-    ) or _optional_text(
-        _mapping(inspect_readback.get("receipt_owner_consumption_readback")).get(
-            "source_ref"
-        )
-    ) or _optional_text(
-        _mapping(inspect_readback.get("receipt_owner_consumption_readback")).get(
-            "decision_ref"
-        )
+        _mapping(
+            _mapping(inspect_readback.get("current_opl_runtime_carrier_readback")).get(
+                "receipt_evidence"
+            )
+        ).get("receipt_ref")
     )
     route_checkpoint_evidence_ref = _optional_text(
         owner_consumption.get("route_checkpoint_evidence_ref")
@@ -344,25 +338,10 @@ def _append_task_intake_refs_to_transaction(
 
 
 def _current_owner_consumption(inspect_readback: Mapping[str, Any]) -> dict[str, Any]:
-    receipt_owner_consumption = _mapping(
-        _mapping(inspect_readback.get("receipt_owner_consumption_readback")).get(
-            "mas_receipt_consumption"
-        )
-    )
-    if _owner_consumption_is_materialized(receipt_owner_consumption):
-        return receipt_owner_consumption
     current_carrier = _mapping(
         inspect_readback.get("current_opl_runtime_carrier_readback")
-    )
-    current_owner_consumption = _mapping(current_carrier.get("mas_receipt_consumption"))
-    if current_owner_consumption:
-        return current_owner_consumption
-    return receipt_owner_consumption
-
-
-def _owner_consumption_is_materialized(owner_consumption: Mapping[str, Any]) -> bool:
-    status = _optional_text(owner_consumption.get("status"))
-    return bool(status and status.startswith("owner_consumed_"))
+    ) or _mapping(inspect_readback.get("opl_runtime_carrier_readback"))
+    return _mapping(current_carrier.get("mas_receipt_consumption"))
 
 
 def _direct_next_action_successor_epoch(
@@ -379,11 +358,8 @@ def _direct_next_action_successor_epoch(
     current_carrier = _mapping(
         inspect_readback.get("current_opl_runtime_carrier_readback")
     )
-    receipt_readback = _mapping(inspect_readback.get("receipt_owner_consumption_readback"))
-    owner_readback_ref = (
-        _optional_text(current_carrier.get("owner_consumption_readback_ref"))
-        or _optional_text(receipt_readback.get("source_ref"))
-        or _optional_text(receipt_readback.get("decision_ref"))
+    owner_readback_ref = _optional_text(
+        _mapping(current_carrier.get("receipt_evidence")).get("receipt_ref")
     )
     evidence_ref = (
         _optional_text(owner_consumption.get("route_checkpoint_evidence_ref"))

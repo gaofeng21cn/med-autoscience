@@ -8,17 +8,13 @@ from med_autoscience.paper_mission_domain.candidate_package_readback import (
     build_materialized_candidate_package_readback as _build_materialized_candidate_package_readback,
 )
 from med_autoscience.paper_mission_domain.command_metadata import (
+    FORBIDDEN_AUTHORITY_WRITES,
     PAPER_MISSION_CONTRACT_REF,
     PAPER_MISSION_CONTRACT_VERSION,
     action_intent as _action_intent,
 )
-from med_autoscience.paper_mission_domain.common import (
-    _load_json_object,
-    _mapping,
-    _optional_text,
-)
+from med_autoscience.paper_mission_domain.common import _mapping, _optional_text
 from .direct_next_action import (
-    drive_direct_next_action_already_owner_consumed as _drive_direct_next_action_already_owner_consumed,
     drive_direct_next_action_handoff as _drive_direct_next_action_handoff,
     drive_direct_next_action_result as _drive_direct_next_action_result,
     drive_next_action_has_submit_authority as _drive_next_action_has_submit_authority,
@@ -29,14 +25,8 @@ from .domain_transition_redrive_stop import (
     drive_domain_transition_redrive_block_payload as _drive_domain_transition_redrive_block_payload,
     drive_domain_transition_redrive_stop_readback as _drive_domain_transition_redrive_stop_readback,
 )
-from .existing_consumption_handoff import (
-    existing_consumption_handoff_drive_readback as _existing_consumption_handoff_drive_readback,
-)
 from .followthrough import (
     paper_mission_drive_followthrough as _paper_mission_drive_followthrough,
-)
-from med_autoscience.paper_mission_domain.receipt_owner_consumption import (
-    receipt_owner_consumption_output_root,
 )
 from med_autoscience.paper_mission_domain.drive_helpers import (
     paper_mission_drive_followthrough_empty as _paper_mission_drive_followthrough_empty,
@@ -60,17 +50,10 @@ from med_autoscience.paper_mission_domain.stage_closure_terminalizer import (
 )
 from med_autoscience.paper_mission_output_roots import (
     _is_yang_ops_candidate_package_root,
-    _is_yang_ops_consumption_ledger_root,
-)
-from med_autoscience.controllers.owner_route_handoff.paper_mission_consumption_route_handoff import (
-    latest_paper_mission_consumption_route_handoff,
 )
 from med_autoscience.controllers.stage_closure_terminalizer import (
     stage_closure_decision_missing,
     stage_closure_decision_projection,
-)
-from med_autoscience.controllers.paper_mission_receipt_owner_consumption import (
-    materialize_receipt_owner_consumption,
 )
 from med_autoscience.paper_mission_opl_readback import (
     paper_mission_opl_runtime_carrier_readback,
@@ -88,7 +71,6 @@ def build_paper_mission_drive_readback(
     opl_bin: str | Path | None,
     source: str,
     consume_candidate_readback_builder: Callable[..., dict[str, Any]],
-    consumption_ledger_forbidden_authority_writes: tuple[str, ...],
     forbidden_authority_claims: tuple[str, ...],
 ) -> dict[str, Any]:
     output_roots = _paper_mission_drive_output_roots(
@@ -98,11 +80,10 @@ def build_paper_mission_drive_readback(
     )
     root = output_roots["root"]
     package_root = output_roots["candidate_package"]
-    ledger_root = output_roots["consumption_ledger"]
     route_back_budget_ledger_ref = _paper_mission_route_back_budget_ledger_path(
         profile=profile,
         output_root=root,
-        ledger_root=ledger_root,
+        ledger_root=package_root,
         study_id=study_id,
     )
     route_back_budget_ledger = _load_paper_mission_route_back_budget_ledger(
@@ -156,35 +137,14 @@ def build_paper_mission_drive_readback(
         if _drive_can_package_from_next_action(next_action_source_readback)
         else None
     )
-    try:
-        package_readback = _build_materialized_candidate_package_readback(
-            profile=profile,
-            profile_ref=profile_ref,
-            study_id=study_id,
-            output_root=package_root,
-            source=f"{source}:drive:package-candidate",
-            source_readback_override=source_readback_override,
-        )
-    except ValueError as exc:
-        if "package-candidate requires a materialized PaperMissionRun" not in str(exc):
-            raise
-        existing_handoff = latest_paper_mission_consumption_route_handoff(
-            workspace_root=Path(profile.workspace_root).expanduser().resolve(),
-            study_id=study_id,
-        )
-        if existing_handoff is None:
-            raise
-        return _existing_consumption_handoff_drive_readback(
-            profile=profile,
-            profile_ref=profile_ref,
-            study_id=study_id,
-            output_root=root,
-            submit_opl_runtime=submit_opl_runtime,
-            opl_bin=opl_bin,
-            source=source,
-            handoff=existing_handoff,
-            forbidden_authority_claims=forbidden_authority_claims,
-        )
+    package_readback = _build_materialized_candidate_package_readback(
+        profile=profile,
+        profile_ref=profile_ref,
+        study_id=study_id,
+        output_root=package_root,
+        source=f"{source}:drive:package-candidate",
+        source_readback_override=source_readback_override,
+    )
     candidate_ref = package_readback["output_manifest"]["package_manifest_ref"]
     consume_readback = consume_candidate_readback_builder(
         profile=profile,
@@ -192,22 +152,10 @@ def build_paper_mission_drive_readback(
         study_id=study_id,
         paper_mission_command="consume-candidate",
         candidate=candidate_ref,
-        output_root=ledger_root,
         source=f"{source}:drive:consume-candidate",
         enable_opl_live_probe=True,
     )
-    handoff = _mapping(
-        _mapping(consume_readback.get("consume_output_manifest")).get(
-            "opl_route_handoff"
-        )
-    )
-    if not handoff:
-        handoff_ref = _optional_text(
-            _mapping(consume_readback.get("consume_output_manifest")).get(
-                "opl_route_handoff_ref"
-            )
-        )
-        handoff = _load_json_object(Path(handoff_ref)) if handoff_ref else {}
+    handoff = _mapping(consume_readback.get("opl_route_handoff"))
     runtime_submit_requested = submit_opl_runtime is not False
     initial_stage_closure_decision = stage_closure_decision_projection(
         readback=consume_readback,
@@ -256,18 +204,13 @@ def build_paper_mission_drive_readback(
             consume_readback=consume_readback,
             opl_runtime_submission=opl_runtime_submission,
         )
-        handoff = _mapping(
-            _mapping(consume_readback.get("consume_output_manifest")).get(
-                "opl_route_handoff"
-            )
-        ) or handoff
+        handoff = _mapping(consume_readback.get("opl_route_handoff")) or handoff
         followthrough = _paper_mission_drive_followthrough(
             profile=profile,
             profile_ref=profile_ref,
             study_id=study_id,
             root=root,
             package_root=package_root,
-            ledger_root=ledger_root,
             source=source,
             opl_bin=opl_bin,
             submit_opl_runtime=runtime_submit_requested,
@@ -390,21 +333,15 @@ def build_paper_mission_drive_readback(
             "writes_yang_ops_candidate_package": _is_yang_ops_candidate_package_root(
                 package_root
             ),
-            "writes_yang_ops_consumption_ledger": _is_yang_ops_consumption_ledger_root(
-                ledger_root
-            ),
             "writes_paper_body": False,
             "writes_candidate_workspace": True,
             "dry_run_only": False,
-            "forbidden_authority_writes": list(
-                consumption_ledger_forbidden_authority_writes
-            ),
+            "forbidden_authority_writes": list(FORBIDDEN_AUTHORITY_WRITES),
         },
         "output_manifest": {
             "mode": "paper_mission_drive",
             "output_root": str(root),
             "candidate_package": package_readback["output_manifest"],
-            "consumption_ledger": consume_readback.get("consume_output_manifest"),
             "route_back_budget_ledger_ref": followthrough[
                 "route_back_budget_ledger_ref"
             ],
@@ -415,9 +352,7 @@ def build_paper_mission_drive_readback(
             "writes_runtime": runtime_submit_requested
             and opl_runtime_submission.get("status") == "submitted",
         },
-        "forbidden_authority_writes": list(
-            consumption_ledger_forbidden_authority_writes
-        ),
+        "forbidden_authority_writes": list(FORBIDDEN_AUTHORITY_WRITES),
         "forbidden_authority_claims": list(forbidden_authority_claims),
         "drive_result": drive_result,
     }
@@ -548,7 +483,6 @@ def _drive_next_action_source_readback(
     source: str,
     consume_candidate_readback_builder: Callable[..., dict[str, Any]],
     enable_opl_live_probe: bool = False,
-    auto_apply_route_checkpoint: bool = True,
 ) -> dict[str, Any] | None:
     inspect_readback = consume_candidate_readback_builder(
         profile=profile,
@@ -565,98 +499,7 @@ def _drive_next_action_source_readback(
         return None
     if _optional_text(next_action.get("work_unit_id")) is None:
         return None
-    if auto_apply_route_checkpoint:
-        inspect_readback = _drive_route_checkpoint_owner_consumption_refresh(
-            profile=profile,
-            profile_ref=profile_ref,
-            study_id=study_id,
-            source=source,
-            consume_candidate_readback_builder=consume_candidate_readback_builder,
-            inspect_readback=inspect_readback,
-            enable_opl_live_probe=enable_opl_live_probe,
-        )
     return inspect_readback
-
-
-def _drive_route_checkpoint_owner_consumption_refresh(
-    *,
-    profile: Any,
-    profile_ref: str | Path,
-    study_id: str,
-    source: str,
-    consume_candidate_readback_builder: Callable[..., dict[str, Any]],
-    inspect_readback: Mapping[str, Any],
-    enable_opl_live_probe: bool,
-) -> dict[str, Any]:
-    readback = dict(inspect_readback)
-    apply_mode = _drive_auto_receipt_owner_consumption_apply_mode(readback)
-    if apply_mode != "route_checkpoint":
-        return readback
-    output_root = receipt_owner_consumption_output_root(
-        profile=profile,
-        output_root=None,
-    )
-    receipt_owner_consumption = materialize_receipt_owner_consumption(
-        paper_mission_readback=readback,
-        study_id=study_id,
-        profile_ref=str(profile_ref),
-        output_root=output_root,
-        apply_mode=apply_mode,
-        source=f"{source}:drive:auto-receipt-owner-consumption",
-    )
-    if _optional_text(receipt_owner_consumption.get("status")) != "owner_consumption_applied":
-        return readback
-    refreshed = _drive_next_action_source_readback(
-        profile=profile,
-        profile_ref=profile_ref,
-        study_id=study_id,
-        source=f"{source}:drive:post-route-checkpoint",
-        consume_candidate_readback_builder=consume_candidate_readback_builder,
-        enable_opl_live_probe=enable_opl_live_probe,
-        auto_apply_route_checkpoint=False,
-    )
-    if refreshed is None:
-        return {
-            **readback,
-            "receipt_owner_consumption_readback": receipt_owner_consumption,
-        }
-    refreshed_payload = dict(refreshed)
-    refreshed_payload.setdefault(
-        "receipt_owner_consumption_readback",
-        receipt_owner_consumption,
-    )
-    return refreshed_payload
-
-
-def _drive_auto_receipt_owner_consumption_apply_mode(
-    readback: Mapping[str, Any],
-) -> str | None:
-    if _drive_route_checkpoint_owner_consumption_already_applied(readback):
-        return None
-    current_consumption = _drive_current_opl_owner_consumption(readback)
-    if _optional_text(current_consumption.get("next_legal_action")) == (
-        "consume_route_back_checkpoint_or_materialize_terminalizer_outcome"
-    ):
-        return "route_checkpoint"
-    next_action = _mapping(readback.get("next_action"))
-    if _optional_text(next_action.get("action_family")) == (
-        "paper.stage_closure.owner_consumption"
-    ):
-        return "route_checkpoint"
-    outcome = _mapping(_mapping(readback.get("stage_closure_decision")).get("outcome"))
-    if _optional_text(outcome.get("transition_kind")) == "route_back_candidate_checkpoint":
-        return "route_checkpoint"
-    return None
-
-
-def _drive_route_checkpoint_owner_consumption_already_applied(
-    readback: Mapping[str, Any],
-) -> bool:
-    for applied in _drive_applied_receipt_owner_consumptions(readback):
-        if _optional_text(applied.get("status")) == "owner_consumed_route_checkpoint":
-            return True
-    current = _mapping(_drive_runtime_carrier_readback(readback).get("mas_receipt_consumption"))
-    return _optional_text(current.get("status")) == "owner_consumed_route_checkpoint"
 
 
 def _drive_canonical_next_action_source_readback(
@@ -709,17 +552,12 @@ def _drive_owner_action_stop_readback(
         return None
     can_package_from_next_action = _drive_can_package_from_next_action(readback)
     current_opl_owner_consumption = _drive_current_opl_owner_consumption(readback)
-    direct_next_action_already_consumed = _drive_direct_next_action_already_owner_consumed(
-        readback,
-        next_action,
-    )
     if _drive_should_submit_direct_next_action(readback):
         return None
-    if can_package_from_next_action and not direct_next_action_already_consumed:
+    if can_package_from_next_action:
         return None
     has_owner_stop = (
-        direct_next_action_already_consumed
-        or bool(current_opl_owner_consumption)
+        bool(current_opl_owner_consumption)
         or _drive_has_terminal_owner_consumption_action(readback)
         or (bool(_mapping(readback.get("typed_blocker_resolution_readback"))))
     )
@@ -813,9 +651,6 @@ def _drive_owner_action_stop_readback(
 def _drive_has_terminal_owner_consumption_action(
     readback: Mapping[str, Any],
 ) -> bool:
-    from_consumption_ledger = _optional_text(
-        readback.get("paper_mission_current_transaction_source")
-    ) == "paper_mission_consumption_ledger"
     owner_answer = _mapping(readback.get("terminal_owner_gate_owner_answer_readback"))
     consume_result = _mapping(owner_answer.get("consume_result"))
     owner_answer_route_back = (
@@ -825,12 +660,12 @@ def _drive_has_terminal_owner_consumption_action(
     if _optional_text(next_action.get("action_family")) == (
         "paper.stage_closure.owner_consumption"
     ):
-        return from_consumption_ledger or owner_answer_route_back
+        return True
     if _optional_text(next_action.get("action_type")) == "request_opl_stage_attempt":
         return False
     outcome = _mapping(_mapping(readback.get("stage_closure_decision")).get("outcome"))
     if outcome.get("transition_kind") == "route_back_candidate_checkpoint":
-        return from_consumption_ledger or owner_answer_route_back
+        return True
     if owner_answer_route_back:
         return True
     authority = _mapping(readback.get("terminal_owner_gate_authority_readback"))
@@ -839,7 +674,7 @@ def _drive_has_terminal_owner_consumption_action(
         "typed_blocker_required",
         "owner_gate_required",
     }:
-        return from_consumption_ledger
+        return True
     return False
 
 
@@ -857,12 +692,6 @@ def _drive_current_opl_owner_consumption(
         "consume_opl_transition_receipt",
     }:
         return {}
-    if _drive_receipt_owner_consumption_already_applied(
-        readback=readback,
-        current_consumption=consumption,
-        next_legal_action=next_legal_action,
-    ):
-        return {}
     return dict(consumption)
 
 
@@ -873,74 +702,7 @@ def _drive_runtime_carrier_readback(readback: Mapping[str, Any]) -> Mapping[str,
     return _mapping(readback.get("opl_runtime_carrier_readback"))
 
 
-def _drive_receipt_owner_consumption_already_applied(
-    *,
-    readback: Mapping[str, Any],
-    current_consumption: Mapping[str, Any],
-    next_legal_action: str | None,
-) -> bool:
-    status_by_action = {
-        "consume_route_back_checkpoint_or_materialize_terminalizer_outcome": {
-            "owner_consumed_route_checkpoint"
-        },
-        "record_typed_blocker": {
-            "owner_consumed_typed_blocker",
-            "owner_consumed_route_checkpoint",
-        },
-        "consume_opl_transition_receipt": {"owner_consumed_opl_transition_receipt"},
-    }
-    allowed_statuses = status_by_action.get(next_legal_action or "", set())
-    if not allowed_statuses:
-        return False
-    for applied in _drive_applied_receipt_owner_consumptions(readback):
-        if _optional_text(applied.get("status")) not in allowed_statuses:
-            continue
-        if _drive_consumption_identity_matches(
-            current=current_consumption,
-            applied=applied,
-        ):
-            return True
-    return False
-
-
-def _drive_applied_receipt_owner_consumptions(
-    readback: Mapping[str, Any],
-) -> tuple[Mapping[str, Any], ...]:
-    receipt_readback = _mapping(readback.get("receipt_owner_consumption_readback"))
-    candidates = (
-        _mapping(receipt_readback.get("mas_receipt_consumption")),
-        _mapping(readback.get("mas_receipt_consumption")),
-    )
-    return tuple(
-        candidate
-        for candidate in candidates
-        if _optional_text(candidate.get("surface_kind"))
-        == "mas_receipt_consumption_projection"
-    )
-
-
-def _drive_consumption_identity_matches(
-    *,
-    current: Mapping[str, Any],
-    applied: Mapping[str, Any],
-) -> bool:
-    for key in (
-        "route_back_evidence_ref",
-        "typed_runtime_blocker_ref",
-        "receipt_evidence_ref",
-        "route_checkpoint_evidence_ref",
-    ):
-        current_value = _optional_text(current.get(key))
-        applied_value = _optional_text(applied.get(key))
-        if current_value is not None and applied_value is not None:
-            return current_value == applied_value
-    return False
-
-
 def _drive_owner_action_stop_reason(readback: Mapping[str, Any]) -> str:
-    next_action = _mapping(readback.get("next_action"))
-    if _drive_direct_next_action_already_owner_consumed(readback, next_action):
-        return "current_opl_route_back_checkpoint_already_owner_consumed_no_redrive"
     current_consumption = _drive_current_opl_owner_consumption(readback)
     if current_consumption:
         next_legal_action = _optional_text(current_consumption.get("next_legal_action"))

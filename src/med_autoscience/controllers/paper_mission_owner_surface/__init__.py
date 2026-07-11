@@ -698,6 +698,33 @@ def _study_projection(
                         next_owner=next_owner,
                         active_run_id=_active_run_id(status_payload, progress_payload),
                     )
+    if (
+        not actions
+        and ai_reviewer_assessment.get("missing") is True
+        and blocked_reason in {None, "unknown_action"}
+        and not completion_evidence.completed_current_truth(
+            status_payload,
+            progress_payload,
+        )
+        and not parked_truth.current_truth(
+            status_payload,
+            progress_payload,
+            study_root=study_root,
+            publication_eval_payload=publication_eval_payload,
+        )
+    ):
+        blocked_reason = why_not_applied = "ai_reviewer_assessment_required"
+        next_owner = "ai_reviewer"
+        owner_route, actions = owner_route_part.route_and_decorate_actions(
+            study_id=study_id,
+            quest_id=resolved_quest_id,
+            status=status_payload,
+            progress=progress_payload,
+            actions=[],
+            blocked_reason=blocked_reason,
+            next_owner=next_owner,
+            active_run_id=_active_run_id(status_payload, progress_payload),
+        )
     paper_progress_stall_payload, actions = paper_progress_stall_projection.build_and_attach(
         status=status_payload,
         progress=progress_payload,

@@ -211,13 +211,11 @@ def stage_closure_decision_projection(
     readback: Mapping[str, Any],
     handoff: Mapping[str, Any] | None = None,
     opl_runtime_submission: Mapping[str, Any] | None = None,
-    consumption_ledger_readback: Mapping[str, Any] | None = None,
 ) -> dict[str, Any]:
     explicit = _first_mapping(
         _mapping(readback.get("stage_closure_decision")),
         _mapping(_mapping(readback.get("paper_mission_transaction")).get("stage_closure_decision")),
         _mapping(_mapping(readback.get("consume_readback")).get("stage_closure_decision")),
-        _mapping(_mapping(consumption_ledger_readback).get("stage_closure_decision")),
     )
     if explicit and _stage_closure_outcome_kind(explicit) in ALLOWED_OUTCOME_KINDS:
         return _normalize_stage_closure_decision(
@@ -228,14 +226,12 @@ def stage_closure_decision_projection(
         readback=readback,
         handoff=handoff,
         opl_runtime_submission=opl_runtime_submission,
-        consumption_ledger_readback=consumption_ledger_readback,
     ):
         return {}
     return _missing_stage_closure_decision(
         readback=readback,
         handoff=handoff,
         opl_runtime_submission=opl_runtime_submission,
-        consumption_ledger_readback=consumption_ledger_readback,
     )
 
 
@@ -307,9 +303,8 @@ def _readback_needs_stage_closure_decision(
     readback: Mapping[str, Any],
     handoff: Mapping[str, Any] | None,
     opl_runtime_submission: Mapping[str, Any] | None,
-    consumption_ledger_readback: Mapping[str, Any] | None = None,
 ) -> bool:
-    consume_result = _mapping(_mapping(consumption_ledger_readback).get("consume_result"))
+    consume_result = _mapping(readback.get("consume_result"))
     if _text(consume_result.get("paper_facing_delta_ref")) is not None:
         return False
     decision = _mapping(readback.get("stage_terminal_decision")) or _mapping(
@@ -348,7 +343,6 @@ def _missing_stage_closure_decision(
     readback: Mapping[str, Any],
     handoff: Mapping[str, Any] | None,
     opl_runtime_submission: Mapping[str, Any] | None,
-    consumption_ledger_readback: Mapping[str, Any] | None,
 ) -> dict[str, Any]:
     decision = _mapping(readback.get("stage_terminal_decision")) or _mapping(
         _mapping(readback.get("paper_mission_transaction")).get("stage_terminal_decision")
@@ -381,7 +375,6 @@ def _missing_stage_closure_decision(
                 readback=readback,
                 handoff=handoff,
                 opl_runtime_submission=opl_runtime_submission,
-                consumption_ledger_readback=consumption_ledger_readback,
             ),
             "forbidden_interpretations": [
                 "accepted_submission_milestone_candidate_is_durable_final",
@@ -416,7 +409,6 @@ def _stage_closure_known_blockers(
     readback: Mapping[str, Any],
     handoff: Mapping[str, Any] | None,
     opl_runtime_submission: Mapping[str, Any] | None,
-    consumption_ledger_readback: Mapping[str, Any] | None,
 ) -> list[str]:
     decision = _mapping(readback.get("stage_terminal_decision"))
     carrier = _mapping(readback.get("opl_runtime_carrier_readback"))
@@ -429,7 +421,6 @@ def _stage_closure_known_blockers(
             _mapping(readback.get("terminal_owner_gate")).get("blocked_reason"),
             _mapping(handoff).get("blocked_reason"),
             _mapping(opl_runtime_submission).get("reason"),
-            _mapping(consumption_ledger_readback).get("consume_candidate_status"),
             carrier.get("blocked_reason"),
         ]
     )

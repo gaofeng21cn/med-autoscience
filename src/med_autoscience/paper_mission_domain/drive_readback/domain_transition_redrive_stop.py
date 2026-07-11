@@ -65,10 +65,6 @@ def drive_domain_transition_redrive_stop_readback(
         "output_root": str(output_root),
         "inspect_readback": dict(readback),
         "domain_transition": _mapping(readback.get("domain_transition")) or None,
-        "receipt_owner_consumption_readback": _mapping(
-            readback.get("receipt_owner_consumption_readback")
-        )
-        or None,
         "stage_closure_decision": _mapping(readback.get("stage_closure_decision"))
         or None,
         **({"next_action": dict(next_action)} if next_action else {}),

@@ -22,7 +22,7 @@ from .. import opl_provider_ready_adapter
 from .. import publication_aftercare
 from ..domain_handler_export.paper_mission_task_shaping import (
     mark_non_default_paper_mission_tasks as _mark_non_default_paper_mission_tasks,
-    paper_mission_consumption_route_handoff_task as _paper_mission_consumption_route_handoff_task,
+    paper_mission_route_handoff_task as _paper_mission_route_handoff_task,
     paper_mission_start_or_resume_task as _paper_mission_start_or_resume_task,
 )
 from .. import opl_domain_progress_transition_contract
@@ -310,7 +310,7 @@ def _pending_family_tasks(
         )
         if default_route_handoff:
             tasks.append(
-                _paper_mission_consumption_route_handoff_task(
+                _paper_mission_route_handoff_task(
                     enriched_route_handoff=default_route_handoff,
                     profile=profile,
                     profile_ref=profile_ref,

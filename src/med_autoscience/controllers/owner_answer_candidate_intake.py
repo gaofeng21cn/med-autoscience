@@ -27,7 +27,6 @@ B003_GOVERNED_ANSWER_SHAPES = tuple(
 )
 FORBIDDEN_NON_AUTHORITY_RESPONSE_REF_MARKERS = (
     "paper_mission_candidate_package",
-    "paper_mission_consumption_ledger",
     "paper_mission_one_shot_migration",
     "candidate_manifest",
     "mission_candidate_artifact_delta",

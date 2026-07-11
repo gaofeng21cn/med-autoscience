@@ -335,8 +335,8 @@ def test_governed_response_rejects_candidate_or_handoff_refs_as_authority(
         expected_sha256=None,
         governed_response_kind="typed_blocker_ref",
         governed_response_ref=(
-            "ops/medautoscience/paper_mission_consumption_ledger/"
-            "b003/stage_terminal_decision.json#typed_blocker"
+            "ops/medautoscience/paper_mission_candidate_package/"
+            "b003/package_manifest.json#typed_blocker"
         ),
         governed_response_study_id="003-dpcc-primary-care-phenotype-treatment-gap",
         governed_response_owner_surface="MAS paper recovery / publication gate governed owner answer",
@@ -344,7 +344,7 @@ def test_governed_response_rejects_candidate_or_handoff_refs_as_authority(
 
     assert result["status"] == "governed_response_ref_not_authority_materialized"
     assert result["governed_answer_consumed"] is False
-    assert result["forbidden_non_authority_ref_marker"] == "paper_mission_consumption_ledger"
+    assert result["forbidden_non_authority_ref_marker"] == "paper_mission_candidate_package"
     assert result["required_ref_boundary"] == "MAS authority owner answer ref"
     assert result["authority_boundary"]["candidate_or_ledger_ref_can_satisfy_governed_answer"] is False
     assert result["write_plan"]["written_files"] == []

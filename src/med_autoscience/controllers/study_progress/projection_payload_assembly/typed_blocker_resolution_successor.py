@@ -44,7 +44,7 @@ def attach_typed_blocker_resolution_successor_projection(
         return dict(payload)
     if _domain_transition_redrive_supersedes_resolution(payload):
         return dict(payload)
-    if _current_consumption_route_supersedes_resolution(
+    if _current_runtime_route_supersedes_resolution(
         payload=payload,
         typed_blocker_resolution_readback=readback,
     ):
@@ -84,7 +84,7 @@ def _domain_transition_redrive_supersedes_resolution(payload: Mapping[str, Any])
     return _non_empty_text(next_action.get("owner")) is not None
 
 
-def _current_consumption_route_supersedes_resolution(
+def _current_runtime_route_supersedes_resolution(
     *,
     payload: Mapping[str, Any],
     typed_blocker_resolution_readback: Mapping[str, Any] | None,
@@ -96,32 +96,13 @@ def _current_consumption_route_supersedes_resolution(
     if _non_empty_text(next_action.get("action_family")) != "runtime.opl_route":
         return False
     summary = _mapping_copy(payload.get("artifact_first_mission_summary"))
-    read_model_source = _mapping_copy(summary.get("read_model_source"))
-    if (
-        _non_empty_text(read_model_source.get("source_kind"))
-        != "paper_mission_consumption_ledger"
-    ):
-        return False
-    consumption_ref = _non_empty_text(read_model_source.get("consumption_ledger_ref"))
-    resolution_ref = _non_empty_text(resolution.get("source_ref")) or _non_empty_text(
-        resolution.get("decision_ref")
+    carrier_readback = _mapping_copy(
+        payload.get("current_opl_runtime_carrier_readback")
+    ) or _mapping_copy(summary.get("opl_runtime_carrier_readback"))
+    return bool(
+        _mapping_copy(carrier_readback.get("opl_transition_receipt"))
+        or _mapping_copy(carrier_readback.get("terminal_closeout"))
     )
-    consumption_mtime = _path_mtime(consumption_ref)
-    resolution_mtime = _path_mtime(resolution_ref)
-    return (
-        consumption_mtime is not None
-        and resolution_mtime is not None
-        and consumption_mtime > resolution_mtime
-    )
-
-
-def _path_mtime(path_text: str | None) -> float | None:
-    if path_text is None:
-        return None
-    try:
-        return Path(path_text).expanduser().resolve().stat().st_mtime
-    except OSError:
-        return None
 
 
 def _reviewer_revision_supersedes_resolution(

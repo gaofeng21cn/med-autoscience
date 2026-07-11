@@ -31,7 +31,6 @@ def drive_should_submit_direct_next_action(
         and authority_boundary.get("can_submit_to_opl_runtime") is True
         and _optional_text(next_action.get("owner")) is not None
         and _optional_text(next_action.get("work_unit_id")) is not None
-        and not drive_direct_next_action_already_owner_consumed(readback, next_action)
         and (
             canonical_source == "paper_mission_next_action_envelope"
             or bool(_mapping(readback.get("terminal_owner_gate")))
@@ -46,8 +45,6 @@ def drive_should_submit_direct_next_action(
     ):
         return True
     if _optional_text(next_action.get("action_type")) == "request_opl_stage_attempt":
-        if drive_direct_next_action_already_owner_consumed(readback, next_action):
-            return False
         return True
     return (
         canonical_source == "domain_transition.next_action"
@@ -55,7 +52,6 @@ def drive_should_submit_direct_next_action(
         and action_family is not None
         and _optional_text(next_action.get("owner")) is not None
         and _optional_text(next_action.get("work_unit_id")) is not None
-        and not drive_direct_next_action_already_owner_consumed(readback, next_action)
     )
 
 
@@ -83,145 +79,6 @@ def drive_readback_has_submission_route_checkpoint(
         return False
     outcome = _mapping(_mapping(readback.get("stage_closure_decision")).get("outcome"))
     return _optional_text(outcome.get("transition_kind")) == "route_back_candidate_checkpoint"
-
-
-def drive_direct_next_action_already_owner_consumed(
-    readback: Mapping[str, Any],
-    next_action: Mapping[str, Any],
-) -> bool:
-    if _current_terminal_closeout_consumed_for_next_action(readback, next_action):
-        return True
-    return any(
-        _carrier_owner_consumed_same_next_action(current, next_action)
-        for current in _runtime_carrier_readbacks(readback)
-    )
-
-
-def _carrier_owner_consumed_same_next_action(
-    current: Mapping[str, Any],
-    next_action: Mapping[str, Any],
-) -> bool:
-    consumption = _mapping(current.get("mas_receipt_consumption"))
-    status = _optional_text(consumption.get("status")) or ""
-    if not status.startswith("owner_consumed_"):
-        return False
-    if status == "owner_consumed_route_checkpoint":
-        return _terminal_closeout_matches_next_action(current, next_action)
-    next_work_unit = _optional_text(next_action.get("work_unit_id"))
-    current_work_unit = (
-        _optional_text(_mapping(current.get("opl_transition_receipt")).get("work_unit_id"))
-        or _optional_text(_mapping(current.get("terminal_closeout")).get("work_unit_id"))
-        or _optional_text(_mapping(current.get("terminal_closeout")).get("stage_id"))
-        or _optional_text(consumption.get("work_unit_id"))
-        or _optional_text(current.get("work_unit_id"))
-    )
-    return (
-        next_work_unit is not None
-        and current_work_unit is not None
-        and next_work_unit == current_work_unit
-    )
-
-
-def _terminal_closeout_matches_next_action(
-    current: Mapping[str, Any],
-    next_action: Mapping[str, Any],
-) -> bool:
-    next_work_unit = _optional_text(next_action.get("work_unit_id"))
-    next_fingerprint = _optional_text(next_action.get("work_unit_fingerprint"))
-    terminal_closeout = _mapping(current.get("terminal_closeout"))
-    current_work_unit = _optional_text(
-        terminal_closeout.get("work_unit_id")
-    ) or _optional_text(terminal_closeout.get("stage_id"))
-    if next_fingerprint is not None:
-        current_fingerprint = _optional_text(
-            terminal_closeout.get("work_unit_fingerprint")
-        ) or _optional_text(current.get("work_unit_fingerprint"))
-        return current_fingerprint == next_fingerprint
-    return next_work_unit is not None and current_work_unit == next_work_unit
-
-
-def _current_terminal_closeout_consumed_for_next_action(
-    readback: Mapping[str, Any],
-    next_action: Mapping[str, Any],
-) -> bool:
-    for current in _runtime_carrier_readbacks(readback):
-        current_consumption = _mapping(current.get("mas_receipt_consumption"))
-        if (
-            _optional_text(current_consumption.get("status"))
-            != "requires_mas_owner_consumption"
-        ):
-            continue
-        next_work_unit = _optional_text(next_action.get("work_unit_id"))
-        next_fingerprint = _optional_text(next_action.get("work_unit_fingerprint"))
-        current_fingerprint = _optional_text(
-            _mapping(current.get("terminal_closeout")).get("work_unit_fingerprint")
-        ) or _optional_text(current.get("work_unit_fingerprint"))
-        if next_fingerprint is not None and current_fingerprint != next_fingerprint:
-            continue
-        current_work_unit = (
-            _optional_text(_mapping(current.get("terminal_closeout")).get("work_unit_id"))
-            or _optional_text(_mapping(current.get("terminal_closeout")).get("stage_id"))
-            or _optional_text(
-                _mapping(current.get("opl_transition_receipt")).get("work_unit_id")
-            )
-            or _optional_text(current_consumption.get("work_unit_id"))
-        )
-        if (
-            next_work_unit is None
-            or current_work_unit is None
-            or next_work_unit != current_work_unit
-        ):
-            continue
-        for applied in _applied_owner_consumptions(readback):
-            if _optional_text(applied.get("status")) != "owner_consumed_route_checkpoint":
-                continue
-            if _consumption_identity_matches(current=current_consumption, applied=applied):
-                return True
-    return False
-
-
-def _runtime_carrier_readbacks(
-    readback: Mapping[str, Any],
-) -> tuple[Mapping[str, Any], ...]:
-    carriers = (
-        _mapping(readback.get("current_opl_runtime_carrier_readback")),
-        _mapping(readback.get("opl_runtime_carrier_readback")),
-    )
-    return tuple(carrier for carrier in carriers if carrier)
-
-
-def _applied_owner_consumptions(
-    readback: Mapping[str, Any],
-) -> tuple[Mapping[str, Any], ...]:
-    receipt_readback = _mapping(readback.get("receipt_owner_consumption_readback"))
-    candidates = (
-        _mapping(receipt_readback.get("mas_receipt_consumption")),
-        _mapping(readback.get("mas_receipt_consumption")),
-    )
-    return tuple(
-        candidate
-        for candidate in candidates
-        if _optional_text(candidate.get("surface_kind"))
-        == "mas_receipt_consumption_projection"
-    )
-
-
-def _consumption_identity_matches(
-    *,
-    current: Mapping[str, Any],
-    applied: Mapping[str, Any],
-) -> bool:
-    for key in (
-        "route_back_evidence_ref",
-        "typed_runtime_blocker_ref",
-        "receipt_evidence_ref",
-        "route_checkpoint_evidence_ref",
-    ):
-        current_value = _optional_text(current.get(key))
-        applied_value = _optional_text(applied.get(key))
-        if current_value is not None and applied_value is not None:
-            return current_value == applied_value
-    return False
 
 
 def drive_direct_next_action_handoff(

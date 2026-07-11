@@ -274,8 +274,6 @@ def _transition_receipt_requires_route_checkpoint(
     transition_receipt: Mapping[str, Any],
     mas_receipt_consumption: Mapping[str, Any],
 ) -> bool:
-    if _text(mas_receipt_consumption.get("status")) == "owner_consumed_route_checkpoint":
-        return False
     return (
         _text(mas_receipt_consumption.get("next_legal_action"))
         == "consume_route_back_checkpoint_or_materialize_terminalizer_outcome"

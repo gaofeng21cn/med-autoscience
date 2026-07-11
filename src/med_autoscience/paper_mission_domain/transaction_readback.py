@@ -236,7 +236,7 @@ def _paper_mission_transaction_readback(
 
     owner_answer_readback_prefill = (
         _owner_answer_readback_for_route_back_without_artifact_delta(transaction)
-        if transaction_source_override != "paper_mission_consumption_ledger"
+        if transaction_source_override != "authority_consume_readback"
         else {}
     )
     if owner_answer_readback_prefill:
@@ -306,7 +306,7 @@ def _paper_mission_transaction_readback(
         terminal_owner_gate_authority_readback=terminal_gate_authority_readback,
         owner_answer_readback=owner_answer_readback,
     )
-    if owner_answer_readback and transaction_source_override != "paper_mission_consumption_ledger":
+    if owner_answer_readback and transaction_source_override != "authority_consume_readback":
         owner_answer_transaction = _mapping(
             owner_answer_readback.get("paper_mission_transaction")
         )
@@ -343,7 +343,7 @@ def _paper_mission_transaction_readback(
     )
     owner_answer_next_decision = (
         {}
-        if transaction_source_override == "paper_mission_consumption_ledger"
+        if transaction_source_override == "authority_consume_readback"
         else terminal_owner_gate_owner_answer_next_decision(owner_answer_readback)
     )
     readback["next_owner_or_human_decision"] = (
@@ -495,42 +495,10 @@ def _mission_state_for_materialized_readback(
     *,
     mission: Mapping[str, Any],
     transaction_readback: Mapping[str, Any],
-    consumption_ledger_readback: Mapping[str, Any] | None,
 ) -> str:
-    if consumption_ledger_readback is not None:
-        status = _optional_text(consumption_ledger_readback.get("consume_candidate_status"))
-        if status in {"typed_blocker", "human_gate"}:
-            return "stable_blocker" if status == "typed_blocker" else "waiting_human_decision"
-        if status in {"route_back", "rejected"}:
-            return "route_back"
-        return "consumed"
     if transaction_readback.get("consume_candidate_status_override") == "route_back":
         return "route_back"
     return _optional_text(mission.get("mission_state")) or "planned"
-
-
-def _consume_result_for_consumption_ledger_readback(
-    readback: Mapping[str, Any],
-) -> dict[str, Any]:
-    status = _optional_text(readback.get("consume_candidate_status"))
-    selected_outcome = _optional_text(readback.get("selected_outcome"))
-    if status == "route_back":
-        result_status = "route_back"
-    elif status == "human_gate":
-        result_status = "human_gate"
-    elif status == "typed_blocker":
-        result_status = "typed_blocker"
-    elif status == "rejected":
-        result_status = "rejected"
-    elif status:
-        result_status = "accepted"
-    else:
-        result_status = "not_consumed"
-    return {
-        "status": result_status,
-        "outcome": status or selected_outcome or result_status,
-        "authority_materialized": False,
-    }
 
 
 def _consume_candidate_status_for_transaction_readback(
@@ -564,64 +532,6 @@ def _consume_candidate_status_for_transaction_readback(
     return selected or status or "not_consumed"
 
 
-def _next_owner_decision_for_consumption_ledger_readback(
-    *,
-    readback: Mapping[str, Any],
-    fallback: Mapping[str, Any],
-) -> dict[str, Any]:
-    decision = _mapping(readback.get("stage_terminal_decision"))
-    handoff = _mapping(readback.get("opl_route_handoff"))
-    route = _mapping(readback.get("opl_route_command"))
-    next_owner = _first_text(
-        decision.get("next_owner"),
-        handoff.get("next_owner"),
-        readback.get("next_owner"),
-        fallback.get("next_owner"),
-    )
-    status = _first_text(
-        readback.get("consume_candidate_status"),
-        readback.get("selected_outcome"),
-        decision.get("decision_kind"),
-        fallback.get("summary"),
-    )
-    return {
-        "kind": (
-            "human_decision"
-            if _optional_text(decision.get("decision_kind")) == "human_gate"
-            else "owner_or_route"
-        ),
-        "next_owner": next_owner,
-        "human_decision_required": (
-            _optional_text(decision.get("decision_kind")) == "human_gate"
-        ),
-        "summary": status,
-        **(
-            {"route_command": route_command}
-            if (route_command := _optional_text(route.get("command_kind"))) is not None
-            else {}
-        ),
-        **(
-            {"route_target": route_target}
-            if (
-                route_target := _first_text(
-                    route.get("target"),
-                    route.get("route_target"),
-                    handoff.get("route_target"),
-                )
-            )
-            is not None
-            else {}
-        ),
-        **(
-            {"opl_route_handoff_ref": handoff_ref}
-            if (handoff_ref := _optional_text(handoff.get("source_ref"))) is not None
-            else {}
-        ),
-        "can_execute": False,
-        "can_authorize_provider_admission": False,
-    }
-
-
 def _transaction_readback_output_fields(
     transaction_readback: dict[str, Any],
 ) -> dict[str, Any]:
@@ -638,6 +548,11 @@ def _transaction_readback_output_fields(
         "opl_runtime_readback_status": transaction_readback[
             "opl_runtime_readback_status"
         ],
+        **(
+            {"opl_route_handoff": transaction_readback["opl_route_handoff"]}
+            if transaction_readback.get("opl_route_handoff")
+            else {}
+        ),
         "terminal_owner_gate": transaction_readback.get("terminal_owner_gate"),
         "terminal_owner_gate_authority_readback": transaction_readback.get(
             "terminal_owner_gate_authority_readback"

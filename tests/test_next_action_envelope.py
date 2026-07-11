@@ -376,63 +376,6 @@ def test_paper_mission_projection_does_not_promote_incomplete_opl_receipt() -> N
     assert envelope["executor_target"] == "opl_domain_progress_transition_runtime"
 
 
-def test_paper_mission_projection_does_not_repeat_consumed_route_checkpoint_owner_action() -> None:
-    transaction_ref = "paper-mission-transaction::dm003::route-checkpoint"
-    route_target = "submission_milestone_candidate::followthrough::followthrough-02"
-    carrier = _canonical_opl_carrier(
-        transaction_ref=transaction_ref,
-        route_target=route_target,
-        command_kind="resume_stage",
-    )
-    envelope = paper_mission_next_action_envelope(
-        transaction={
-            "transaction_id": transaction_ref,
-            "study_id": "003-dpcc-primary-care-phenotype-treatment-gap",
-            "stage_id": "submission_milestone_candidate",
-            "stage_terminal_decision": {
-                "decision_kind": "continue_same_stage",
-                "next_work_unit": route_target,
-            },
-            "opl_route_command": {
-                "command_kind": "resume_stage",
-                "target": route_target,
-                "runtime_owner": "one-person-lab",
-                "route_target": "opl_runtime_live_readback",
-            },
-        },
-        opl_runtime_carrier=carrier,
-        opl_runtime_carrier_readback={
-            "surface_kind": "paper_mission_opl_runtime_carrier_readback",
-            "carrier_status": "opl_runtime_terminal_readback_observed",
-            "opl_transition_receipt": _canonical_opl_transition_receipt(
-                carrier,
-                receipt_status="domain_gate_pending",
-                route_back_evidence_ref="opl://stage-attempts/sat-route/route-back",
-            ),
-            "terminal_closeout": {
-                "surface_kind": "stage_attempt_closeout_packet",
-                "stage_attempt_ref": "opl://stage-attempts/sat-route",
-            },
-            "mas_receipt_consumption": {
-                "surface_kind": "mas_receipt_consumption_projection",
-                "status": "owner_consumed_route_checkpoint",
-                "route_back_evidence_ref": "opl://stage-attempts/sat-route/route-back",
-                "route_checkpoint_evidence_ref": "opl://stage-attempts/sat-route/closeout",
-                "durable_stop_allowed": True,
-                "can_claim_paper_progress": False,
-                "can_claim_publication_ready": False,
-            },
-        },
-    )
-
-    assert envelope is not None
-    assert envelope["action_family"] == FAMILY_PAPER_GATE_PUBLISHABILITY_REPLAY
-    assert envelope["action_family"] != FAMILY_PAPER_STAGE_CLOSURE_OWNER_CONSUMPTION
-    assert "consume_route_back_checkpoint_or_materialize_terminalizer_outcome" not in (
-        envelope["allowed_actions"]
-    )
-
-
 def test_paper_mission_projection_keeps_new_exact_route_target_diagnostic() -> None:
     transaction_id = "paper-mission-transaction::dm004::synthetic-family-route"
     route_target = "dm004_never_allowlisted_runtime_resume_target"

@@ -4,9 +4,6 @@ from collections.abc import Mapping
 from pathlib import Path
 from typing import Any
 
-from med_autoscience.paper_mission_consumption_readback import (
-    latest_paper_mission_consumption_transaction_readback,
-)
 from med_autoscience.paper_mission_opl_readback import attach_opl_runtime_carrier_readback
 from med_autoscience.paper_mission_opl_carrier import paper_mission_opl_runtime_carrier
 from med_autoscience.paper_mission_transaction import PaperMissionTransactionContractError
@@ -26,16 +23,8 @@ from med_autoscience.paper_mission_domain.domain_transition_runtime_readback imp
     _override_next_action_from_direct_terminal_closeout as _shared_override_next_action_from_direct_terminal_closeout,
     _typed_blocker_resolution_should_own_next_action,
 )
-from med_autoscience.paper_mission_domain.owner_consumption_alignment import (
-    _align_current_carrier_owner_consumption,
-    _preserve_direct_successor_runtime_readback,
-    _receipt_owner_consumed_route_checkpoint,
-)
 from med_autoscience.paper_mission_domain.readback_next_action_precedence import (
     _domain_transition_next_action_requests_stage_attempt,
-    _owner_consumed_route_checkpoint_yields_to_domain_transition,
-    _route_checkpoint_identity_matches_domain_transition,
-    _route_checkpoint_matches_domain_transition,
     _stage_closure_next_action_should_own_next_action as _shared_stage_closure_next_action_should_own_next_action,
 )
 from med_autoscience.paper_mission_domain.stage_packet_route_back_readback import (
@@ -321,21 +310,6 @@ def _build_terminalizer_source_readback(
         )
         if stage_attempt_source is not None:
             return stage_attempt_source
-    consumption_readback = latest_paper_mission_consumption_transaction_readback(
-        workspace_root=Path(profile.workspace_root),
-        study_id=study_id,
-    )
-    if consumption_readback is not None:
-        return attach_opl_runtime_carrier_readback(
-            readback={
-                **consumption_readback,
-                "paper_mission_command": "terminalize-stage",
-                "source": "paper_mission_consumption_ledger",
-            },
-            study_root=Path(profile.studies_root) / study_id,
-            enable_opl_live_probe=True,
-            opl_bin=None,
-        )
     if source_readback is not None:
         materialized_run_stage_attempt = (
             _materialized_run_terminal_source_readback(
@@ -364,9 +338,6 @@ def _source_readback_has_owner_repair_receipt(readback: Mapping[str, Any]) -> bo
         _optional_text(_mapping(readback.get("mas_receipt_consumption")).get("status"))
         == "owner_consumed_mas_repair_delta"
     ):
-        return True
-    receipt = _mapping(readback.get("receipt_owner_consumption_readback"))
-    if _optional_text(receipt.get("source")) == "study_controller_owner_repair_receipt":
         return True
     decision = _mapping(readback.get("stage_closure_decision"))
     outcome = _mapping(decision.get("outcome"))
@@ -639,7 +610,6 @@ def _latest_stage_attempt_route_back_source_readback(
         _mapping(source_readback.get("paper_mission_transaction")).get("transaction_id")
     )
     preferred_stage_attempt_ids = _preferred_terminal_stage_attempt_ids(source_readback)
-    current_terminal_consumed = _current_terminal_owner_consumed(source_readback)
     workspace_root = Path(profile.workspace_root).expanduser().resolve()
     current_terminal_mtime = _terminal_closeout_mtime_from_readback(
         source_readback,
@@ -717,19 +687,7 @@ def _latest_stage_attempt_route_back_source_readback(
             )
             else 0
         )
-        consumed_successor_priority = (
-            1
-            if (
-                current_terminal_consumed
-                and matches_expected_identity
-                and transaction_priority == 0
-                and stage_attempt_id not in preferred_stage_attempt_ids
-                and current_terminal_mtime is not None
-                and packet_mtime > current_terminal_mtime
-            )
-            else 0
-        )
-        successor_priority = max(newer_successor_priority, consumed_successor_priority)
+        successor_priority = newer_successor_priority
         candidates.append(
             (
                 successor_priority,
@@ -776,32 +734,16 @@ def _terminal_closeout_mtime_from_readback(
     return max(mtimes) if mtimes else None
 
 
-def _current_terminal_owner_consumed(readback: Mapping[str, Any]) -> bool:
-    status = _optional_text(
-        _mapping(
-            _mapping(readback.get("current_opl_runtime_carrier_readback")).get(
-                "mas_receipt_consumption"
-            )
-        ).get("status")
-    )
-    return status in {
-        "owner_consumed_route_checkpoint",
-        "owner_consumed_typed_blocker",
-        "owner_consumption_applied",
-    }
-
 def _stage_closure_next_action_should_own_next_action(
     *,
     stage_closure_decision: Mapping[str, Any],
     next_action: Mapping[str, Any] | None,
     domain_transition_next_action: Mapping[str, Any] | None = None,
-    receipt_owner_consumption_readback: Mapping[str, Any] | None = None,
 ) -> bool:
     return _shared_stage_closure_next_action_should_own_next_action(
         stage_closure_decision=stage_closure_decision,
         next_action=next_action,
         domain_transition_next_action=domain_transition_next_action,
-        receipt_owner_consumption_readback=receipt_owner_consumption_readback,
         include_delivery_sync_actions=False,
     )
 
