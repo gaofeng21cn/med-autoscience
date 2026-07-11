@@ -12,7 +12,7 @@ def _module_reexport(module) -> None:
 _module_reexport(_shared)
 
 
-def test_study_progress_projects_stage_log_from_live_opl_queue_when_handoff_lacks_study(
+def test_study_progress_projects_stage_log_from_live_opl_attempt_when_handoff_lacks_study(
     monkeypatch,
     tmp_path: Path,
 ) -> None:
@@ -57,7 +57,7 @@ def test_study_progress_projects_stage_log_from_live_opl_queue_when_handoff_lack
             "runtime_liveness_audit": {
                 "status": "live",
                 "source": "opl_current_control_state_provider_attempt",
-                "provider_attempt_source": "opl_family_runtime_queue_inspect",
+                "provider_attempt_source": "opl_family_runtime_attempt_inspect",
                 "authority": "observability_only",
                 "active_run_id": "opl-stage-attempt://sat-live-queue",
                 "active_stage_attempt_id": "sat-live-queue",

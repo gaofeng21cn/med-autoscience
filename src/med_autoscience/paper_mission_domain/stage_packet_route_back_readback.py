@@ -37,10 +37,9 @@ def _terminal_closeout_is_live_runtime_observed(
     closeout_ref = _optional_text(closeout.get("closeout_ref"))
     return (
         closeout_ref is not None
-        and closeout_ref.startswith("opl://family-runtime/tasks/")
+        and closeout_ref.startswith("opl://stage-attempts/")
     ) or _optional_text(closeout.get("runtime_readback_source")) in {
-        "opl_family_runtime_queue_inspect",
-        "opl_family_runtime_queue_list",
+        "opl_family_runtime_stage_attempt_query",
     }
 
 

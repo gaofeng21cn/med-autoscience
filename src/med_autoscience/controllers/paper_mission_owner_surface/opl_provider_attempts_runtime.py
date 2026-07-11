@@ -107,37 +107,6 @@ def remaining_seconds(deadline: float) -> float:
     return max(0.0, deadline - time.monotonic())
 
 
-def candidate_tasks(
-    queue_payload: Mapping[str, Any],
-    *,
-    profile: Any,
-    study_id: str,
-    task_matches_study: Callable[[Mapping[str, Any]], bool],
-    task_linked_liveness_has_terminal_closeout: Callable[[Mapping[str, Any]], bool],
-    preferred_actions: Iterable[Mapping[str, Any]] | None = None,
-) -> list[dict[str, Any]]:
-    queue = _mapping(queue_payload.get("family_runtime_queue"))
-    tasks = [
-        dict(item)
-        for item in queue.get("tasks") or queue.get("queue") or []
-        if isinstance(item, Mapping)
-    ]
-    matched = [
-        task
-        for task in tasks
-        if task_matches_study(task)
-        and _text(task.get("task_kind")) == STAGE_OUTCOME_OPL_HANDOFF_TASK_KIND
-        and _text(task.get("status")) in LIVE_ATTEMPT_STATES
-        and not task_linked_liveness_has_terminal_closeout(task)
-    ]
-    preferred = preferred_action_keys(preferred_actions)
-    matched.sort(key=lambda task: _text(task.get("updated_at")) or "", reverse=True)
-    if preferred:
-        matched.sort(key=lambda task: _preferred_task_rank(task, preferred))
-    matched.sort(key=_task_status_priority)
-    return matched
-
-
 def candidate_attempts(
     attempts_payload: Mapping[str, Any],
     *,
@@ -160,12 +129,10 @@ def candidate_attempts(
         and attempt_is_live(attempt)
         and not attempt_has_terminal_owner_callable_closeout(attempt)
     ]
-    preferred = preferred_action_keys(preferred_actions)
-    matched.sort(key=lambda attempt: _attempt_updated_at(attempt) or "", reverse=True)
-    if preferred:
-        matched.sort(key=lambda attempt: _preferred_attempt_rank(attempt, preferred))
-    matched.sort(key=_attempt_status_priority)
-    return matched
+    return _prefer_matching_attempts(
+        matched,
+        preferred=preferred_action_keys(preferred_actions),
+    )
 
 
 def candidate_terminal_attempts(
@@ -190,11 +157,10 @@ def candidate_terminal_attempts(
         and attempt_is_terminal(attempt)
         and not attempt_has_terminal_owner_callable_closeout(attempt)
     ]
-    preferred = preferred_action_keys(preferred_actions)
-    matched.sort(key=lambda attempt: _attempt_updated_at(attempt) or "", reverse=True)
-    if preferred:
-        matched.sort(key=lambda attempt: _preferred_attempt_rank(attempt, preferred))
-    return matched
+    return _prefer_matching_attempts(
+        matched,
+        preferred=preferred_action_keys(preferred_actions),
+    )
 
 
 def preferred_action_keys(
@@ -280,23 +246,27 @@ def attempt_is_terminal(attempt: Mapping[str, Any]) -> bool:
     )
 
 
-def _attempt_status_priority(attempt: Mapping[str, Any]) -> int:
-    return 0 if attempt_is_live(attempt) else 1
+def _prefer_matching_attempts(
+    attempts: list[dict[str, Any]],
+    *,
+    preferred: set[tuple[str | None, str | None, str | None]],
+) -> list[dict[str, Any]]:
+    if not preferred:
+        return attempts
+    matching = [
+        attempt
+        for attempt in attempts
+        if _attempt_matches_preferred(attempt, preferred)
+    ]
+    if not matching:
+        return attempts
+    return matching + [attempt for attempt in attempts if attempt not in matching]
 
 
-def _attempt_updated_at(attempt: Mapping[str, Any]) -> str | None:
-    provider_run = _mapping(attempt.get("provider_run"))
-    return (
-        _text(provider_run.get("last_heartbeat_at"))
-        or _text(attempt.get("updated_at"))
-        or _text(attempt.get("created_at"))
-    )
-
-
-def _preferred_attempt_rank(
+def _attempt_matches_preferred(
     attempt: Mapping[str, Any],
     preferred: set[tuple[str | None, str | None, str | None]],
-) -> int:
+) -> bool:
     locator = _mapping(attempt.get("workspace_locator"))
     payload_like = {
         "action_type": _text(locator.get("action_type")) or _text(attempt.get("action_type")),
@@ -307,36 +277,24 @@ def _preferred_attempt_rank(
         or _text(attempt.get("controller_work_unit_id")),
         "dispatch_ref": _text(locator.get("dispatch_ref")) or _text(attempt.get("dispatch_ref")),
     }
-    return _preferred_task_rank({"payload": payload_like}, preferred)
-
-
-def _task_status_priority(task: Mapping[str, Any]) -> int:
-    status = _text(task.get("status"))
-    return 0 if status in LIVE_ATTEMPT_STATES else 1
-
-
-def _preferred_task_rank(
-    task: Mapping[str, Any],
-    preferred: set[tuple[str | None, str | None, str | None]],
-) -> int:
-    payload = _mapping(task.get("payload"))
-    task_action_type = _text(payload.get("action_type"))
-    task_work_unit_ids = _task_work_unit_ids(payload)
-    task_dispatch_refs = _action_dispatch_refs(payload)
-    best_rank = 99
+    attempt_action_type = _text(payload_like.get("action_type"))
+    attempt_work_unit_ids = _task_work_unit_ids(payload_like)
+    attempt_dispatch_refs = _action_dispatch_refs(payload_like)
     for preferred_action, preferred_work_unit, preferred_dispatch_ref in preferred:
-        if preferred_action is not None and preferred_action != task_action_type:
+        if preferred_action is not None and preferred_action != attempt_action_type:
             continue
-        if preferred_work_unit is not None and preferred_work_unit not in task_work_unit_ids:
+        if (
+            preferred_work_unit is not None
+            and preferred_work_unit not in attempt_work_unit_ids
+        ):
             continue
-        if preferred_dispatch_ref is not None and preferred_dispatch_ref not in task_dispatch_refs:
+        if (
+            preferred_dispatch_ref is not None
+            and preferred_dispatch_ref not in attempt_dispatch_refs
+        ):
             continue
-        specificity = sum(
-            value is not None
-            for value in (preferred_action, preferred_work_unit, preferred_dispatch_ref)
-        )
-        best_rank = min(best_rank, max(0, 3 - specificity))
-    return best_rank
+        return True
+    return False
 
 
 def _action_work_unit_ids(action: Mapping[str, Any]) -> set[str]:
@@ -381,7 +339,6 @@ def _text(value: object) -> str | None:
 
 __all__ = [
     "candidate_attempts",
-    "candidate_tasks",
     "candidate_terminal_attempts",
     "current_provider_status_payload",
     "opl_bin",

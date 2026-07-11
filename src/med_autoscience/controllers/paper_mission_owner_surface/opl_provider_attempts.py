@@ -12,7 +12,6 @@ from med_autoscience.controllers.paper_mission_owner_surface.owner_callable_clos
 )
 from med_autoscience.controllers.paper_mission_owner_surface.opl_provider_attempts_runtime import (
     candidate_attempts as _candidate_attempts,
-    candidate_tasks as _candidate_tasks,
     candidate_terminal_attempts as _candidate_terminal_attempts,
     attempt_is_live as _attempt_is_live,
     attempt_is_terminal as _attempt_is_terminal,
@@ -69,6 +68,7 @@ OPL_PROVIDER_READINESS_KEYS = (
     "can_authorize_publication_ready",
 )
 STAGE_OUTCOME_OPL_HANDOFF_TASK_KIND = "stage_outcome/opl-handoff"
+OPL_STAGE_ATTEMPT_DOMAIN = "mas"
 
 
 def live_provider_attempt_for_study(
@@ -83,50 +83,7 @@ def live_provider_attempt_for_study(
     if opl_bin is None:
         return None
     deadline = time.monotonic() + max(timeout_seconds, 0.0)
-    queue_payload = _run_opl_json(
-        opl_bin,
-        ("family-runtime", "queue", "list", "--json"),
-        timeout_seconds=_remaining_seconds(deadline),
-    )
-    if queue_payload is not None:
-        candidate_tasks = _candidate_tasks(
-            queue_payload,
-            profile=profile,
-            study_id=study_id,
-            task_matches_study=lambda task: _task_matches_study(
-                task,
-                profile=profile,
-                study_id=study_id,
-            ),
-            task_linked_liveness_has_terminal_closeout=lambda task: (
-                _task_linked_liveness_has_terminal_closeout(
-                    task,
-                    profile=profile,
-                    study_id=study_id,
-                )
-            ),
-            preferred_actions=preferred_actions,
-        )
-        for task in candidate_tasks:
-            projection = _live_projection_from_queue_task(task, profile=profile, study_id=study_id)
-            if projection is not None:
-                return projection
-        for task in candidate_tasks[: max(0, max_inspect_count)]:
-            remaining_seconds = _remaining_seconds(deadline)
-            if remaining_seconds <= 0:
-                return None
-            task_id = _text(task.get("task_id"))
-            if task_id is None:
-                continue
-            inspected = _run_opl_json(
-                opl_bin,
-                ("family-runtime", "queue", "inspect", task_id, "--json"),
-                timeout_seconds=remaining_seconds,
-            )
-            projection = _live_projection_from_inspect(inspected, profile=profile, study_id=study_id)
-            if projection is not None:
-                return projection
-    return _live_projection_from_attempt_ledger(
+    return _live_projection_from_scoped_attempts(
         opl_bin=opl_bin,
         profile=profile,
         study_id=study_id,
@@ -150,7 +107,7 @@ def terminal_provider_attempt_closeout_for_study(
     deadline = time.monotonic() + max(timeout_seconds, 0.0)
     attempts_payload = _run_opl_json(
         opl_bin,
-        ("family-runtime", "attempt", "list", "--json"),
+        _scoped_attempt_list_args(study_id),
         timeout_seconds=_remaining_seconds(deadline),
     )
     if attempts_payload is None:
@@ -364,7 +321,21 @@ def _ranked_opl_bin_candidates() -> list[Path]:
     return ranked
 
 
-def _live_projection_from_attempt_ledger(
+def _scoped_attempt_list_args(study_id: str) -> tuple[str, ...]:
+    return (
+        "family-runtime",
+        "attempt",
+        "list",
+        "--domain",
+        OPL_STAGE_ATTEMPT_DOMAIN,
+        "--study",
+        study_id,
+        "--full",
+        "--json",
+    )
+
+
+def _live_projection_from_scoped_attempts(
     *,
     opl_bin: Path,
     profile: Any,
@@ -378,7 +349,7 @@ def _live_projection_from_attempt_ledger(
         return None
     attempts_payload = _run_opl_json(
         opl_bin,
-        ("family-runtime", "attempt", "list", "--json"),
+        _scoped_attempt_list_args(study_id),
         timeout_seconds=remaining_seconds,
     )
     if attempts_payload is None:
@@ -459,38 +430,6 @@ def _attempt_is_terminal(attempt: Mapping[str, Any]) -> bool:
     )
 
 
-def _task_matches_study(task: Mapping[str, Any], *, profile: Any, study_id: str) -> bool:
-    payload = _mapping(task.get("payload"))
-    if _text(payload.get("study_id")) != study_id:
-        return False
-    profile_ref = _text(payload.get("profile"))
-    if profile_ref is None:
-        workspace_root = _text(payload.get("workspace_root"))
-        return workspace_root is None or Path(workspace_root).expanduser().resolve() == profile.workspace_root.resolve()
-    try:
-        resolved_profile = Path(profile_ref).expanduser().resolve()
-    except OSError:
-        return False
-    return profile.workspace_root.resolve() in resolved_profile.parents
-
-
-def _task_linked_liveness_has_terminal_closeout(
-    task: Mapping[str, Any],
-    *,
-    profile: Any,
-    study_id: str,
-) -> bool:
-    liveness = _mapping(task.get("linked_stage_attempt_liveness"))
-    stage_attempt_id = _text(liveness.get("stage_attempt_id"))
-    if stage_attempt_id is None:
-        return False
-    return has_terminal_owner_callable_closeout(
-        profile=profile,
-        study_id=study_id,
-        stage_attempt_id=stage_attempt_id,
-    )
-
-
 def _action_work_unit_ids(action: Mapping[str, Any]) -> set[str]:
     next_work_unit = action.get("next_work_unit")
     candidates = {
@@ -520,182 +459,6 @@ def _action_dispatch_refs(action: Mapping[str, Any]) -> set[str]:
         _text(action.get("dispatch_path")),
     }
     return {candidate for candidate in candidates if candidate is not None}
-
-
-def _live_projection_from_inspect(
-    inspect_payload: Mapping[str, Any] | None,
-    *,
-    profile: Any,
-    study_id: str,
-) -> dict[str, Any] | None:
-    if inspect_payload is None:
-        return None
-    task_surface = _mapping(inspect_payload.get("family_runtime_task"))
-    task = _mapping(task_surface.get("task"))
-    payload = _mapping(task.get("payload"))
-    if _text(payload.get("study_id")) != study_id:
-        return None
-    control = _mapping(task.get("current_control_state"))
-    if control.get("running_provider_attempt") is not True:
-        return None
-    active_run_id = _text(control.get("active_run_id"))
-    if active_run_id is None:
-        return None
-    stage_attempt_id = _text(control.get("active_stage_attempt_id")) or _stage_attempt_id_from_active_run_id(
-        active_run_id
-    )
-    if stage_attempt_id is not None and has_terminal_owner_callable_closeout(
-        profile=profile,
-        study_id=study_id,
-        stage_attempt_id=stage_attempt_id,
-    ):
-        return None
-    provider_run = _mapping(control.get("provider_run"))
-    provider_status = _text(provider_run.get("provider_status"))
-    attempt_state = _text(control.get("current_attempt_state")) or _text(control.get("reconciliation_status"))
-    if provider_status not in LIVE_ATTEMPT_STATES and attempt_state not in LIVE_ATTEMPT_STATES:
-        return None
-    workspace_locator = _mapping(_first_attempt(task_surface).get("workspace_locator"))
-    workspace_root = _text(workspace_locator.get("workspace_root"))
-    if workspace_root is not None and Path(workspace_root).expanduser().resolve() != profile.workspace_root.resolve():
-        return None
-    projection = {
-        "surface_kind": "opl_current_control_state_provider_attempt",
-        "source": "opl_family_runtime_queue_inspect",
-        "active_run_id": active_run_id,
-        "active_stage_attempt_id": stage_attempt_id,
-        "active_workflow_id": _text(control.get("active_workflow_id")),
-        "running_provider_attempt": True,
-        "runtime_owner": "one-person-lab",
-        "provider_attempt_owner": "one-person-lab",
-        "queue_owner": "one-person-lab",
-        "task_id": _text(task.get("task_id")) or _text(control.get("task_id")),
-        "task_kind": _text(task.get("task_kind")) or _text(control.get("task_kind")),
-        "provider_kind": _text(control.get("provider_kind")),
-        "action_type": _text(payload.get("action_type")) or _text(workspace_locator.get("action_type")),
-        "work_unit_id": _text(payload.get("work_unit_id")),
-        "dispatch_ref": _text(payload.get("dispatch_ref")) or _text(workspace_locator.get("dispatch_ref")),
-        "current_attempt_state": attempt_state,
-        "reconciliation_status": _text(control.get("reconciliation_status")),
-        "provider_run": dict(provider_run),
-        "runtime_health": {
-            "health_status": "running",
-            "runtime_liveness_status": "live",
-            "summary": "OPL family-runtime has a live provider-backed stage attempt for this study.",
-            "provider_status": provider_status,
-        },
-        "refs": {
-            "opl_queue_task": f"opl://family-runtime/tasks/{_text(task.get('task_id')) or _text(control.get('task_id'))}",
-            "opl_stage_attempt": (
-                f"opl://stage_attempts/{_text(control.get('active_stage_attempt_id'))}"
-                if _text(control.get("active_stage_attempt_id")) is not None
-                else None
-            ),
-        },
-        "authority_boundary": {
-            "opl": "provider_attempt_liveness_projection_only",
-            "domain": "truth_quality_artifact_gate_owner",
-            "provider_completion_is_domain_ready": False,
-            "can_write_domain_truth": False,
-            "can_authorize_publication_ready": False,
-        },
-    }
-    stage_progress_log = _stage_progress_log(control.get("stage_progress_log"))
-    if stage_progress_log:
-        projection["stage_progress_log"] = stage_progress_log
-    return projection
-
-
-def _live_projection_from_queue_task(
-    task: Mapping[str, Any],
-    *,
-    profile: Any,
-    study_id: str,
-) -> dict[str, Any] | None:
-    if not _task_matches_study(task, profile=profile, study_id=study_id):
-        return None
-    liveness = _mapping(task.get("linked_stage_attempt_liveness"))
-    if _text(liveness.get("status")) != "live":
-        return None
-    provider_status = _text(liveness.get("provider_status"))
-    attempt_state = _text(liveness.get("stage_attempt_status"))
-    if provider_status not in LIVE_ATTEMPT_STATES and attempt_state not in LIVE_ATTEMPT_STATES:
-        return None
-    stage_attempt_id = _text(liveness.get("stage_attempt_id"))
-    if stage_attempt_id is None:
-        return None
-    liveness_observed_at = _liveness_observed_at(liveness)
-    if liveness_observed_at is None:
-        return None
-    if has_terminal_owner_callable_closeout(
-        profile=profile,
-        study_id=study_id,
-        stage_attempt_id=stage_attempt_id,
-    ):
-        return None
-    payload = _mapping(task.get("payload"))
-    workspace_root = _text(payload.get("workspace_root"))
-    if workspace_root is not None and Path(workspace_root).expanduser().resolve() != profile.workspace_root.resolve():
-        return None
-    workflow_id = _text(liveness.get("workflow_id"))
-    task_id = _text(task.get("task_id"))
-    provider_run = {
-        key: value
-        for key, value in {
-            "provider_kind": _text(liveness.get("provider_kind")),
-            "workflow_id": workflow_id,
-            "provider_status": provider_status,
-            "last_heartbeat_at": _text(liveness.get("last_heartbeat_at")),
-            "ledger_last_heartbeat_at": _text(liveness.get("ledger_last_heartbeat_at")),
-            "liveness_observed_at": liveness_observed_at,
-            "liveness_source": _text(liveness.get("liveness_source")),
-            "last_activity_heartbeat_kind": _text(liveness.get("last_activity_heartbeat_kind")),
-            "last_runner_event_kind": _text(liveness.get("last_runner_event_kind")),
-        }.items()
-        if value is not None
-    }
-    return {
-        "surface_kind": "opl_current_control_state_provider_attempt",
-        "source": "opl_family_runtime_queue_list_linked_liveness",
-        "active_run_id": f"opl-stage-attempt://{stage_attempt_id}",
-        "active_stage_attempt_id": stage_attempt_id,
-        "active_workflow_id": workflow_id,
-        "running_provider_attempt": True,
-        "runtime_owner": "one-person-lab",
-        "provider_attempt_owner": "one-person-lab",
-        "queue_owner": "one-person-lab",
-        "task_id": task_id,
-        "task_kind": _text(task.get("task_kind")),
-        "provider_kind": _text(liveness.get("provider_kind")),
-        "action_type": _text(payload.get("action_type")),
-        "work_unit_id": _text(payload.get("work_unit_id")),
-        "work_unit_fingerprint": _text(payload.get("work_unit_fingerprint"))
-        or _text(payload.get("action_fingerprint"))
-        or _text(payload.get("source_fingerprint")),
-        "dispatch_ref": _text(payload.get("dispatch_ref")),
-        "dispatch_path": _text(payload.get("dispatch_path")),
-        "current_attempt_state": attempt_state,
-        "reconciliation_status": attempt_state,
-        "provider_run": provider_run,
-        "runtime_health": {
-            "health_status": "running",
-            "runtime_liveness_status": "live",
-            "summary": "OPL family-runtime has a live provider-backed stage attempt for this study.",
-            "provider_status": provider_status,
-            "liveness_observed_at": liveness_observed_at,
-        },
-        "refs": {
-            "opl_queue_task": f"opl://family-runtime/tasks/{task_id}" if task_id is not None else None,
-            "opl_stage_attempt": f"opl://stage_attempts/{stage_attempt_id}",
-        },
-        "authority_boundary": {
-            "opl": "provider_attempt_liveness_projection_only",
-            "domain": "truth_quality_artifact_gate_owner",
-            "provider_completion_is_domain_ready": False,
-            "can_write_domain_truth": False,
-            "can_authorize_publication_ready": False,
-        },
-    }
 
 
 def _live_projection_from_attempt_inspect(
@@ -880,29 +643,6 @@ def _terminal_closeout_projection_from_attempt_inspect(
         },
     }
     return {key: value for key, value in projection.items() if value not in (None, "", [], {})}
-
-
-def _first_attempt(task_surface: Mapping[str, Any]) -> dict[str, Any]:
-    for item in task_surface.get("stage_attempts") or []:
-        if isinstance(item, Mapping):
-            return dict(item)
-    return {}
-
-
-def _liveness_observed_at(liveness: Mapping[str, Any]) -> str | None:
-    return (
-        _text(liveness.get("last_heartbeat_at"))
-        or _text(liveness.get("ledger_last_heartbeat_at"))
-        or _text(liveness.get("updated_at"))
-        or _text(liveness.get("observed_at"))
-    )
-
-
-def _stage_attempt_id_from_active_run_id(active_run_id: str) -> str | None:
-    prefix = "opl-stage-attempt://"
-    if active_run_id.startswith(prefix):
-        return active_run_id[len(prefix) :] or None
-    return None
 
 
 def _iter_values(value: object) -> Iterable[object]:

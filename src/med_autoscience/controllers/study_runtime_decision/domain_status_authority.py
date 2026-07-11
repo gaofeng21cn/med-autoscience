@@ -824,8 +824,10 @@ def _opl_live_provider_attempt_liveness_projection(
     return {
         "status": "live",
         "source": "opl_current_control_state_provider_attempt",
-        "provider_attempt_source": str(live_attempt.get("source") or "opl_family_runtime_queue_inspect").strip()
-        or "opl_family_runtime_queue_inspect",
+        "provider_attempt_source": str(
+            live_attempt.get("source") or "opl_family_runtime_attempt_inspect"
+        ).strip()
+        or "opl_family_runtime_attempt_inspect",
         "runtime_owner": "one-person-lab",
         "domain_owner": "med-autoscience",
         "mas_provider_live_query_retired": True,

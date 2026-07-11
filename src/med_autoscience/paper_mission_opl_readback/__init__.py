@@ -23,11 +23,9 @@ from .opl_cli_probe import (
 )
 from .opl_task_readback import (
     OPL_DOMAIN_ID,
-    OPL_STAGE_ROUTE_TASK_KIND,
     matching_opl_runtime_payload_closeout as _matching_opl_runtime_payload_closeout,
     matching_opl_runtime_payload_running_attempt as _matching_opl_runtime_payload_running_attempt,
-    matching_opl_tasks_from_list as _matching_opl_tasks_from_list,
-    ranked_opl_probe_tasks as _ranked_opl_probe_tasks,
+    matching_opl_stage_attempts_from_list as _matching_opl_stage_attempts_from_list,
 )
 from .primitives import (
     first_text as _first_text,
@@ -71,7 +69,7 @@ TERMINAL_READBACK_STATUS = "opl_runtime_terminal_readback_observed"
 RUNNING_READBACK_STATUS = "opl_runtime_attempt_running_observed"
 WAITING_READBACK_STATUS = "waiting_for_opl_runtime_live_readback"
 DEFAULT_OPL_LIVE_PROBE_BUDGET_SECONDS = 30.0
-DEFAULT_OPL_LIVE_PROBE_MAX_INSPECT_COUNT = 2
+DEFAULT_OPL_LIVE_PROBE_MAX_QUERY_COUNT = 2
 
 def paper_mission_opl_runtime_carrier_readback(
     *,
@@ -327,12 +325,11 @@ def _closeout_is_live_runtime_terminal(
     closeout: Mapping[str, Any],
     closeout_ref: str,
 ) -> bool:
-    if _text(closeout.get("runtime_readback_source")) in {
-        "opl_family_runtime_queue_inspect",
-        "opl_family_runtime_queue_list",
-    }:
+    if _text(closeout.get("runtime_readback_source")) == (
+        "opl_family_runtime_stage_attempt_query"
+    ):
         return True
-    return closeout_ref.startswith("opl://family-runtime/tasks/")
+    return closeout_ref.startswith("opl://stage-attempts/")
 
 
 def _matches_running_attempt_closeout(
@@ -510,55 +507,8 @@ def _matching_opl_runtime_terminal_closeout(
         )
     if not enable_opl_live_probe:
         return None
-    deadline = time.monotonic() + DEFAULT_OPL_LIVE_PROBE_BUDGET_SECONDS
-    list_args = (
-        "family-runtime",
-        "queue",
-        "list",
-        "--domain",
-        OPL_DOMAIN_ID,
-        "--study",
-        _text(carrier.get("study_id")) or "",
-        "--task-kind",
-        OPL_STAGE_ROUTE_TASK_KIND,
-        "--json",
-    )
-    inspect_args_prefix = (
-        "family-runtime",
-        "queue",
-        "inspect",
-    )
-    for candidate in _ranked_opl_bin_candidates():
-        if not candidate.exists():
-            continue
-        list_payload = _run_opl_json(
-            candidate,
-            list_args,
-            timeout_seconds=remaining_seconds(deadline),
-        )
-        for task in _matching_opl_tasks_from_list(
-            carrier=carrier,
-            payload=list_payload,
-        )[:DEFAULT_OPL_LIVE_PROBE_MAX_INSPECT_COUNT]:
-            task_id = _text(task.get("task_id"))
-            if task_id is None:
-                continue
-            inspect_payload = _run_opl_json(
-                candidate,
-                (
-                    *inspect_args_prefix,
-                    task_id,
-                    "--json",
-                ),
-                timeout_seconds=remaining_seconds(deadline),
-            )
-            matched = _matching_opl_runtime_payload_closeout(
-                carrier=carrier,
-                payload=inspect_payload,
-            )
-            if matched is not None:
-                return matched
-    return None
+    probe = _matching_opl_runtime_live_probe(carrier=carrier)
+    return (probe[1], probe[2]) if probe is not None and probe[0] == "terminal" else None
 
 def _matching_opl_runtime_live_probe(
     *,
@@ -568,78 +518,40 @@ def _matching_opl_runtime_live_probe(
     if not _carrier_has_opl_route_identity(carrier):
         return None
     deadline = time.monotonic() + DEFAULT_OPL_LIVE_PROBE_BUDGET_SECONDS
-    list_args = (
-        "family-runtime",
-        "queue",
-        "list",
-        "--domain",
-        OPL_DOMAIN_ID,
-        "--study",
-        _text(carrier.get("study_id")) or "",
-        "--task-kind",
-        OPL_STAGE_ROUTE_TASK_KIND,
-        "--json",
-    )
-    terminal_match: tuple[dict[str, Any], str] | None = None
-    inspect_args_prefix = (
-        "family-runtime",
-        "queue",
-        "inspect",
-    )
     for candidate in _ranked_opl_live_probe_bin_candidates(opl_bin=opl_bin):
         if not candidate.exists():
             continue
         list_payload = _run_opl_json(
             candidate,
-            list_args,
+            _scoped_attempt_list_args(carrier),
             timeout_seconds=remaining_seconds(deadline),
         )
-        matched_running = _matching_opl_runtime_payload_running_attempt(
+        terminal_match: tuple[dict[str, Any], str] | None = None
+        for attempt in _matching_opl_stage_attempts_from_list(
             carrier=carrier,
             payload=list_payload,
-        )
-        if matched_running is not None:
-            attempt, attempt_ref = matched_running
-            return "running", attempt, attempt_ref
-        terminal_match = _matching_opl_runtime_payload_closeout(
-            carrier=carrier,
-            payload=list_payload,
-        )
-        if terminal_match is not None:
-            closeout, closeout_ref = terminal_match
-            return "terminal", closeout, closeout_ref
-        for task in _ranked_opl_probe_tasks(
-            _matching_opl_tasks_from_list(carrier=carrier, payload=list_payload),
-            carrier=carrier,
-        )[:DEFAULT_OPL_LIVE_PROBE_MAX_INSPECT_COUNT]:
-            task_id = _text(task.get("task_id"))
-            if task_id is None:
+        )[:DEFAULT_OPL_LIVE_PROBE_MAX_QUERY_COUNT]:
+            stage_attempt_id = _text(attempt.get("stage_attempt_id"))
+            if stage_attempt_id is None:
                 continue
-            inspect_payload = _run_opl_json(
+            query_payload = _run_opl_json(
                 candidate,
-                (
-                    *inspect_args_prefix,
-                    task_id,
-                    "--json",
-                ),
+                _attempt_query_args(stage_attempt_id),
                 timeout_seconds=remaining_seconds(deadline),
             )
+            matched_running = _matching_opl_runtime_payload_running_attempt(
+                carrier=carrier,
+                payload=query_payload,
+            )
+            if matched_running is not None:
+                attempt_projection, attempt_ref = matched_running
+                return "running", attempt_projection, attempt_ref
             matched_terminal = _matching_opl_runtime_payload_closeout(
                 carrier=carrier,
-                payload=inspect_payload,
+                payload=query_payload,
             )
-            if matched_terminal is not None:
-                closeout, closeout_ref = matched_terminal
-                return "terminal", closeout, closeout_ref
-            inspected_running = _matching_opl_runtime_payload_running_attempt(
-                carrier=carrier,
-                payload=inspect_payload,
-            )
-            if inspected_running is not None:
-                matched_running = inspected_running
-        if matched_running is not None:
-            attempt, attempt_ref = matched_running
-            return "running", attempt, attempt_ref
+            if terminal_match is None and matched_terminal is not None:
+                terminal_match = matched_terminal
         if terminal_match is not None:
             closeout, closeout_ref = terminal_match
             return "terminal", closeout, closeout_ref
@@ -660,61 +572,26 @@ def _matching_opl_runtime_running_attempt(
         )
     if not enable_opl_live_probe:
         return None
-    deadline = time.monotonic() + DEFAULT_OPL_LIVE_PROBE_BUDGET_SECONDS
-    list_args = (
+    probe = _matching_opl_runtime_live_probe(carrier=carrier)
+    return (probe[1], probe[2]) if probe is not None and probe[0] == "running" else None
+
+
+def _scoped_attempt_list_args(carrier: Mapping[str, Any]) -> tuple[str, ...]:
+    return (
         "family-runtime",
-        "queue",
+        "attempt",
         "list",
         "--domain",
         OPL_DOMAIN_ID,
         "--study",
         _text(carrier.get("study_id")) or "",
-        "--task-kind",
-        OPL_STAGE_ROUTE_TASK_KIND,
+        "--full",
         "--json",
     )
-    inspect_args_prefix = (
-        "family-runtime",
-        "queue",
-        "inspect",
-    )
-    for candidate in _ranked_opl_bin_candidates():
-        if not candidate.exists():
-            continue
-        list_payload = _run_opl_json(
-            candidate,
-            list_args,
-            timeout_seconds=remaining_seconds(deadline),
-        )
-        matched = _matching_opl_runtime_payload_running_attempt(
-            carrier=carrier,
-            payload=list_payload,
-        )
-        if matched is not None:
-            return matched
-        for task in _matching_opl_tasks_from_list(
-            carrier=carrier,
-            payload=list_payload,
-        )[:DEFAULT_OPL_LIVE_PROBE_MAX_INSPECT_COUNT]:
-            task_id = _text(task.get("task_id"))
-            if task_id is None:
-                continue
-            inspect_payload = _run_opl_json(
-                candidate,
-                (
-                    *inspect_args_prefix,
-                    task_id,
-                    "--json",
-                ),
-                timeout_seconds=remaining_seconds(deadline),
-            )
-            matched = _matching_opl_runtime_payload_running_attempt(
-                carrier=carrier,
-                payload=inspect_payload,
-            )
-            if matched is not None:
-                return matched
-    return None
+
+
+def _attempt_query_args(stage_attempt_id: str) -> tuple[str, ...]:
+    return ("family-runtime", "attempt", "query", stage_attempt_id, "--json")
 
 def _ranked_opl_bin_candidates(opl_bin: str | Path | None = None) -> list[Path]:
     return ranked_opl_bin_candidates(opl_bin=opl_bin)

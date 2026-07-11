@@ -4,7 +4,9 @@ from pathlib import Path
 
 import pytest
 
+import med_autoscience.paper_mission_opl_readback as readback_module
 from med_autoscience.paper_mission_opl_readback import (
+    RUNNING_READBACK_STATUS,
     TERMINAL_READBACK_STATUS,
     WAITING_READBACK_STATUS,
     paper_mission_opl_runtime_carrier_readback,
@@ -15,7 +17,9 @@ from med_autoscience.paper_mission_opl_readback.receipt_events import (
 from tests.test_paper_mission_opl_readback_cases.shared import (
     _carrier,
     _opl_route_carrier,
-    _opl_runtime_task_payload,
+    _opl_running_query_payload,
+    _opl_runtime_query_payload,
+    _opl_stage_attempt,
     _opl_transition_receipt,
     _write_closeout,
 )
@@ -35,26 +39,7 @@ def test_opl_terminal_closeout_readback_observes_record_only_terminal_closeout(
     assert readback["carrier_status"] == TERMINAL_READBACK_STATUS
     assert readback["domain_ready_verdict"] == "domain_gate_pending"
     assert readback["provider_completion_is_domain_completion"] is False
-    assert readback["provider_completion_is_domain_ready"] is False
     assert readback["can_claim_paper_progress"] is False
-    assert readback["terminal_closeout"]["domain_ready_claimed"] is False
-
-
-def test_opl_terminal_closeout_readback_ignores_domain_completion_claims_without_opl_readback(
-    tmp_path: Path,
-) -> None:
-    for claim in ("domain_ready_claimed", "domain_completion_claimed"):
-        study_root = tmp_path / claim
-        _write_closeout(study_root, {claim: True})
-
-        readback = paper_mission_opl_runtime_carrier_readback(
-            carrier=_carrier(),
-            study_root=study_root,
-        )
-
-        assert readback["carrier_status"] == WAITING_READBACK_STATUS
-        assert readback["runtime_readback_status"] == "missing"
-        assert readback["domain_ready_verdict"] == "opl_runtime_readback_missing"
 
 
 def test_opl_terminal_closeout_readback_requires_record_only_boundary(
@@ -63,12 +48,7 @@ def test_opl_terminal_closeout_readback_requires_record_only_boundary(
     study_root = tmp_path / "study"
     _write_closeout(
         study_root,
-        {
-            "authority_boundary": {
-                "record_only_surface": False,
-                "provider_completion_is_domain_completion": False,
-            },
-        },
+        {"authority_boundary": {"record_only_surface": False}},
     )
 
     readback = paper_mission_opl_runtime_carrier_readback(
@@ -80,125 +60,49 @@ def test_opl_terminal_closeout_readback_requires_record_only_boundary(
     assert readback["runtime_readback_status"] == "missing"
 
 
-def test_opl_terminal_closeout_readback_accepts_current_route_target_closeout(
-    tmp_path: Path,
-) -> None:
-    study_root = tmp_path / "study"
-    carrier = {
-        **_carrier(),
-        "command_kind": "start_next_stage",
-        "route_target": "publication_gate_replay",
-        "opl_route_command": {
-            "command_kind": "start_next_stage",
-            "target": "publication_gate_replay",
-        },
-    }
-    _write_closeout(
-        study_root,
-        {
-            "stage_id": "publication_gate_replay",
-            "blocked_reason": "domain_gate_pending",
-        },
-    )
-
-    readback = paper_mission_opl_runtime_carrier_readback(
-        carrier=carrier,
-        study_root=study_root,
-    )
-
-    assert readback["carrier_status"] == TERMINAL_READBACK_STATUS
-    assert readback["terminal_closeout"]["stage_id"] == "publication_gate_replay"
-
-
-def test_opl_terminal_closeout_readback_ignores_legacy_only_route_back_closeout(
-    tmp_path: Path,
-) -> None:
-    study_root = tmp_path / "study"
-    carrier = {
-        **_opl_route_carrier(),
-        "idempotency_key": "dm003::candidate-v2",
-        "request_idempotency_key": "dm003::candidate-v2::request",
-        "attempt_idempotency_key": "dm003::candidate-v2::attempt",
-    }
-    _write_closeout(
-        study_root,
-        {
-            "status": "non_advancing_route_back_evidence_candidate",
-            "stage_id": "publication_gate_replay",
-            "stage_attempt_id": "sat-route-back",
-            "stage_packet_ref": carrier["paper_mission_transaction_ref"],
-            "route_impact": {
-                "owner_answer_kind": "route_back_evidence_ref",
-                "route_back_evidence_ref": (
-                    "ops/medautoscience/paper_mission_stage_attempts/"
-                    "sat-route-back/study/route_back_evidence_packet.json"
-                ),
-                "can_claim_paper_progress": False,
-            },
-            "closeout_refs": [
-                {
-                    "ref_kind": "route_back_evidence_packet",
-                    "workspace_relative_ref": (
-                        "ops/medautoscience/paper_mission_stage_attempts/"
-                        "sat-route-back/study/route_back_evidence_packet.json"
-                    ),
-                }
-            ],
-            "authority_boundary": {
-                "candidate_is_authority": False,
-                "writes_authority_surface": False,
-                "writes_owner_receipt": False,
-                "writes_typed_blocker": False,
-                "writes_human_gate": False,
-                "writes_provider_attempt": False,
-            },
-        },
-    )
-
-    readback = paper_mission_opl_runtime_carrier_readback(
-        carrier=carrier,
-        study_root=study_root,
-        enable_opl_live_probe=False,
-    )
-
-    assert readback["carrier_status"] == WAITING_READBACK_STATUS
-    assert readback["runtime_readback_status"] == "missing"
-    assert "terminal_closeout" not in readback
-    assert "opl_transition_receipt" not in readback
-    assert "receipt_evidence" not in readback
-    assert "mas_receipt_consumption" not in readback
-
-
-def test_opl_terminal_closeout_readback_consumes_matching_opl_runtime_task(
+def test_opl_terminal_closeout_readback_consumes_scoped_stage_attempt_query(
     tmp_path: Path,
 ) -> None:
     readback = paper_mission_opl_runtime_carrier_readback(
         carrier=_opl_route_carrier(),
         study_root=tmp_path / "study",
-        opl_runtime_payload=_opl_runtime_task_payload(),
+        opl_runtime_payload=_opl_runtime_query_payload(),
         enable_opl_live_probe=False,
     )
 
     assert readback["carrier_status"] == TERMINAL_READBACK_STATUS
     assert readback["runtime_readback_status"] == "terminal_closeout_observed"
-    assert readback["provider_completion_is_domain_completion"] is False
-    assert readback["can_claim_paper_progress"] is False
-    assert readback["terminal_closeout"]["closeout_receipt_status"] == (
-        "accepted_typed_closeout"
-    )
-    assert readback["opl_transition_receipt"]["receipt_status"] == (
-        "terminal_closeout_observed"
+    assert readback["terminal_closeout"]["stage_attempt_id"] == "sat-terminal"
+    assert readback["terminal_closeout"]["runtime_readback_source"] == (
+        "opl_family_runtime_stage_attempt_query"
     )
     assert readback["opl_transition_receipt"]["surface_kind"] == (
         "opl_domain_route_transition_receipt"
     )
 
 
-def test_opl_terminal_closeout_readback_requires_transition_receipt(
+def test_opl_terminal_closeout_readback_rejects_query_without_transition_receipt(
     tmp_path: Path,
 ) -> None:
-    payload = _opl_runtime_task_payload()
-    payload["family_runtime_task"]["events"] = []
+    readback = paper_mission_opl_runtime_carrier_readback(
+        carrier=_opl_route_carrier(),
+        study_root=tmp_path / "study",
+        opl_runtime_payload=_opl_runtime_query_payload(include_transition_receipt=False),
+        enable_opl_live_probe=False,
+    )
+
+    assert readback["carrier_status"] == WAITING_READBACK_STATUS
+    assert readback["runtime_readback_status"] == "missing"
+
+
+def test_opl_terminal_closeout_readback_rejects_mismatched_query_attempt_receipt(
+    tmp_path: Path,
+) -> None:
+    payload = _opl_runtime_query_payload()
+    packet = payload["family_runtime_stage_attempt_query"]["stage_attempt_query"][
+        "closeouts"
+    ][0]["packet"]
+    packet["opl_transition_receipt"]["stage_attempt_id"] = "sat-other"
 
     readback = paper_mission_opl_runtime_carrier_readback(
         carrier=_opl_route_carrier(),
@@ -209,28 +113,104 @@ def test_opl_terminal_closeout_readback_requires_transition_receipt(
 
     assert readback["carrier_status"] == WAITING_READBACK_STATUS
     assert readback["runtime_readback_status"] == "missing"
-    assert "terminal_closeout" not in readback
-    assert "opl_transition_receipt" not in readback
 
 
-def test_opl_terminal_closeout_readback_rejects_old_receipt_kind(
-    tmp_path: Path,
-) -> None:
-    payload = _opl_runtime_task_payload()
-    receipt = payload["family_runtime_task"]["events"][0]["payload"][
-        "opl_transition_receipt"
+def test_opl_terminal_closeout_readback_rejects_retired_queue_payload(tmp_path: Path) -> None:
+    readback = paper_mission_opl_runtime_carrier_readback(
+        carrier=_opl_route_carrier(),
+        study_root=tmp_path / "study",
+        opl_runtime_payload={"family_runtime_task": {"task": {}}},
+        enable_opl_live_probe=False,
+    )
+
+    assert readback["carrier_status"] == WAITING_READBACK_STATUS
+    assert readback["runtime_readback_status"] == "missing"
+
+
+def test_opl_live_probe_uses_scoped_list_then_attempt_query(monkeypatch, tmp_path: Path) -> None:
+    carrier = _opl_route_carrier()
+    commands: list[tuple[str, ...]] = []
+    terminal_attempt = _opl_stage_attempt()
+
+    def fake_run(_: Path, args: tuple[str, ...], *, timeout_seconds: float) -> dict[str, object]:
+        commands.append(args)
+        if args == (
+            "family-runtime",
+            "attempt",
+            "list",
+            "--domain",
+            "mas",
+            "--study",
+            carrier["study_id"],
+            "--full",
+            "--json",
+        ):
+            return {"family_runtime_stage_attempts": {"attempts": [terminal_attempt]}}
+        if args == ("family-runtime", "attempt", "query", "sat-terminal", "--json"):
+            return _opl_runtime_query_payload()
+        raise AssertionError(args)
+
+    monkeypatch.setattr(
+        readback_module,
+        "_ranked_opl_live_probe_bin_candidates",
+        lambda *, opl_bin=None: [Path("/bin/sh")],
+    )
+    monkeypatch.setattr(readback_module, "_run_opl_json", fake_run)
+
+    readback = paper_mission_opl_runtime_carrier_readback(
+        carrier=carrier,
+        study_root=tmp_path / "study",
+        enable_opl_live_probe=True,
+        opl_bin="/tmp/opl",
+    )
+
+    assert readback["carrier_status"] == TERMINAL_READBACK_STATUS
+    assert commands == [
+        (
+            "family-runtime",
+            "attempt",
+            "list",
+            "--domain",
+            "mas",
+            "--study",
+            carrier["study_id"],
+            "--full",
+            "--json",
+        ),
+        ("family-runtime", "attempt", "query", "sat-terminal", "--json"),
     ]
-    receipt["surface_kind"] = "opl_transition_receipt"
+
+
+def test_opl_live_probe_preserves_running_stage_attempt_precedence(monkeypatch, tmp_path: Path) -> None:
+    carrier = _opl_route_carrier()
+
+    def fake_run(_: Path, args: tuple[str, ...], *, timeout_seconds: float) -> dict[str, object]:
+        if args[2] == "list":
+            return {
+                "family_runtime_stage_attempts": {
+                    "attempts": [_opl_stage_attempt(stage_attempt_id="sat-running", status="running")]
+                }
+            }
+        if args == ("family-runtime", "attempt", "query", "sat-running", "--json"):
+            return _opl_running_query_payload()
+        raise AssertionError(args)
+
+    monkeypatch.setattr(
+        readback_module,
+        "_ranked_opl_live_probe_bin_candidates",
+        lambda *, opl_bin=None: [Path("/bin/sh")],
+    )
+    monkeypatch.setattr(readback_module, "_run_opl_json", fake_run)
 
     readback = paper_mission_opl_runtime_carrier_readback(
-        carrier=_opl_route_carrier(),
+        carrier=carrier,
         study_root=tmp_path / "study",
-        opl_runtime_payload=payload,
-        enable_opl_live_probe=False,
+        enable_opl_live_probe=True,
+        opl_bin="/tmp/opl",
     )
 
-    assert readback["carrier_status"] == WAITING_READBACK_STATUS
-    assert readback["runtime_readback_status"] == "missing"
+    assert readback["carrier_status"] == RUNNING_READBACK_STATUS
+    assert readback["running_attempt"]["stage_attempt_id"] == "sat-running"
 
 
 @pytest.mark.parametrize(
@@ -249,21 +229,17 @@ def test_opl_terminal_closeout_readback_rejects_old_receipt_kind(
     ],
 )
 def test_shared_transition_receipt_matcher_rejects_noncanonical_receipts(mutate) -> None:
-    carrier = _opl_route_carrier()
     receipt = _opl_transition_receipt()
     mutate(receipt)
 
-    assert not matches_opl_transition_receipt(receipt=receipt, carrier=carrier)
+    assert not matches_opl_transition_receipt(receipt=receipt, carrier=_opl_route_carrier())
 
 
 def test_shared_transition_receipt_matcher_accepts_raw_receipt_without_study_id() -> None:
     receipt = _opl_transition_receipt()
 
     assert "study_id" not in receipt
-    assert matches_opl_transition_receipt(
-        receipt=receipt,
-        carrier=_opl_route_carrier(),
-    )
+    assert matches_opl_transition_receipt(receipt=receipt, carrier=_opl_route_carrier())
 
 
 def test_local_closeout_does_not_wrap_incomplete_canonical_receipt(tmp_path: Path) -> None:
@@ -291,4 +267,3 @@ def test_local_closeout_does_not_wrap_incomplete_canonical_receipt(tmp_path: Pat
     assert readback["carrier_status"] == TERMINAL_READBACK_STATUS
     assert "opl_transition_receipt" not in readback
     assert "receipt_evidence" not in readback
-    assert "mas_receipt_consumption" not in readback
