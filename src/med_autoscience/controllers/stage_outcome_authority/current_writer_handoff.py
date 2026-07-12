@@ -5,7 +5,7 @@ from collections.abc import Mapping
 from pathlib import Path
 from typing import Any
 
-from med_autoscience.controllers.study_transition_receipt_consumption import (
+from med_autoscience.controllers.study_stage_attempt_receipt_consumption import (
     owner_callable_receipt_consumption,
 )
 from med_autoscience.profiles import WorkspaceProfile

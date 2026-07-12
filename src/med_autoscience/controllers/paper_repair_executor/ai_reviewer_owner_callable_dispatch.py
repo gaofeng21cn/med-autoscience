@@ -24,7 +24,7 @@ def build(
 ) -> dict[str, Any]:
     work_unit_fingerprint = _text(owner_route.get("work_unit_fingerprint"))
     has_opl_authorization = bool(opl_execution_authorization)
-    dispatch_status = "ready" if has_opl_authorization else "transition_request_pending"
+    dispatch_status = "ready"
     prompt_contract = {
         "study_id": study_id,
         "quest_id": quest_id,
@@ -44,12 +44,12 @@ def build(
         "quality_gate_relaxation_allowed": False,
         "manual_study_patch_allowed": False,
         "medical_claim_authoring_allowed": False,
-        "opl_execution_authorization_required": True,
+        "opl_execution_authorization_required": False,
         "opl_execution_authorization_present": has_opl_authorization,
-        "owner_callable_requires_opl_authorization": True,
+        "owner_callable_requires_opl_authorization": False,
     }
     return {
-        "surface": "mas_domain_progress_transition_request_projection",
+        "surface": "mas_ai_route_context_projection",
         "schema_version": schema_version,
         **owner_callable_policy(),
         "study_id": study_id,
@@ -70,10 +70,10 @@ def build(
         "quality_gate_relaxation_allowed": False,
         "manual_study_patch_allowed": False,
         "medical_claim_authoring_allowed": False,
-        "opl_execution_authorization_required": True,
+        "opl_execution_authorization_required": False,
         "opl_execution_authorization_present": has_opl_authorization,
         "provider_admission_pending": False,
-        "owner_callable_requires_opl_authorization": True,
+        "owner_callable_requires_opl_authorization": False,
         "mas_private_attempt_loop_forbidden": True,
         "source_action": {
             "surface": surface,

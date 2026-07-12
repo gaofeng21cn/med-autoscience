@@ -8,6 +8,6 @@ from tests.test_study_progress_mission_summary_cases.governed_consumption_readba
     test_typed_blocker_resolution_successor_supersedes_stale_wakeup_top_level,
 )
 from tests.test_study_progress_mission_summary_cases.submission_owner_gate_readback import (
-    test_submission_authority_owner_gate_removes_superseded_next_action,
+    test_submission_authority_owner_gate_records_claim_gate_without_blocking_next_action,
     test_submission_authority_owner_gate_keeps_new_next_action_for_different_identity,
 )

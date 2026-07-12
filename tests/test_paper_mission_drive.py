@@ -140,14 +140,14 @@ def test_opl_stage_route_request_requires_request_idempotency_key() -> None:
 
 
 
-def test_stage_closure_projection_missing_blocks_single_pass_drive() -> None:
+def test_missing_stage_closure_projection_does_not_block_single_pass_drive() -> None:
     commands = importlib.import_module("med_autoscience.paper_mission_domain")
     terminalizer = importlib.import_module(
         "med_autoscience.controllers.stage_closure_terminalizer"
     )
     readback = _route_back_consume_readback()
     readback["consume_candidate_status"] = "accepted_submission_milestone_candidate"
-    readback["opl_runtime_readback_status"] = "opl_runtime_terminal_readback_observed"
+    readback["opl_stage_attempt_readback_status"] = "opl_runtime_terminal_readback_observed"
     handoff = _route_back_handoff()
 
     decision = terminalizer.stage_closure_decision_projection(
@@ -160,16 +160,19 @@ def test_stage_closure_projection_missing_blocks_single_pass_drive() -> None:
         stage_closure_decision=decision,
     )
 
-    assert decision["projection_status"] == "stage_closure_decision_missing"
+    assert decision["projection_status"] == (
+        "quality_debt_stage_closure_context_missing"
+    )
     assert decision["decision_ref"] == (
         "paper-mission-transaction::dm003#stage_closure_decision"
     )
-    assert decision["outcome"]["kind"] == "stage_closure_decision_missing"
+    assert decision["outcome"]["kind"] == "next_stage_transition"
     assert decision.get("repair_budget") is None
     assert "accepted_submission_milestone_candidate" in decision["known_blockers"]
-    assert decision["can_continue_same_stage"] is False
-    assert drive_result["status"] == "stage_closure_decision_missing"
-    assert drive_result["stage_closure_outcome"] == "stage_closure_decision_missing"
+    assert decision["can_continue_same_stage"] is True
+    assert decision["next_stage_may_start"] is True
+    assert drive_result["status"] == "opl_terminal_closeout_observed"
+    assert drive_result["stage_closure_outcome"] == "next_stage_transition"
 
 
 def test_stage_closure_projection_exposes_terminalizer_outcome() -> None:
@@ -233,7 +236,7 @@ def _route_back_consume_readback() -> dict[str, object]:
             "repair_scope": "continue paper-facing submission milestone work",
             "route_back_evidence_ref": "route-back-evidence::same",
         },
-        "opl_route_command": {
+        "ai_route_context": {
             "command_kind": "route_back",
             "target": "submission_milestone_candidate",
         },
@@ -245,7 +248,7 @@ def _route_back_consume_readback() -> dict[str, object]:
         "mission_id": transaction["mission_id"],
         "paper_mission_transaction": transaction,
         "stage_terminal_decision": transaction["stage_terminal_decision"],
-        "opl_route_command": transaction["opl_route_command"],
+        "ai_route_context": transaction["ai_route_context"],
         "next_owner_or_human_decision": {
             "next_owner": "mission_executor",
             "human_decision_required": False,
@@ -270,12 +273,12 @@ def _route_back_handoff(
 ) -> dict[str, object]:
     transaction_ref = "paper-mission-transaction::dm003"
     return {
-        "handoff_status": "ready_for_opl_route_command",
+        "handoff_status": "ready_for_ai_route_context",
         "study_id": "003-dpcc-primary-care-phenotype-treatment-gap",
         "mission_id": "paper-mission::dm003",
         "candidate_ref": candidate_ref,
         "paper_mission_transaction_ref": transaction_ref,
-        "opl_route_command_ref": "/tmp/opl-route-command.json",
+        "ai_route_context_ref": "/tmp/opl-route-command.json",
         "route_command_kind": "route_back",
         "route_target": "submission_milestone_candidate",
         "declarative_target_stage_id": "review_and_quality_gate",
@@ -283,7 +286,7 @@ def _route_back_handoff(
         "workspace_root": "/tmp/dm-cvd-workspace",
         "request_idempotency_key": transaction_ref,
         "transaction_materialized": True,
-        "opl_route_command": {
+        "ai_route_context": {
             "command_kind": "route_back",
             "target": "submission_milestone_candidate",
             "declarative_target_stage_id": "review_and_quality_gate",

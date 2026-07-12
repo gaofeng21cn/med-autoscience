@@ -319,7 +319,7 @@
         "packet_id": "progress_delta_ref_packet",
         "owner": "med-autoscience",
         "required_role": "progress_delta_ref",
-        "owner_surface": "opl_current_control_state.stage_run.transition_receipt.progress_delta_refs",
+        "owner_surface": "opl_current_control_state.stage_run.stage_attempt_receipt.progress_delta_refs",
         "body_included": false,
         "opl_ingestable": true,
         "opl_projection_only": true,

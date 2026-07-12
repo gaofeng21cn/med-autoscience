@@ -234,7 +234,7 @@ def _explicit_request_requires_opl_blocker_projection(
         return False
     if _text(dispatch.get("dispatch_status")) != "ready":
         return False
-    if not _is_domain_progress_transition_request_projection(dispatch):
+    if not _is_ai_route_context_projection(dispatch):
         return False
     if opl_execution_preflight.provider_hosted_exact_stage_run_current_execution_authority(
         dispatch
@@ -512,19 +512,6 @@ def selected_dispatches(
             selected.append(payload)
             selected_keys.add(key)
             selected_by_key[key] = len(selected) - 1
-    if not selected:
-        for payload in consumer_dispatch_readback.explicit_transition_request_blocker_dispatches(
-            study_id=study_id,
-            requested=requested,
-            consumer_payload=consumer_payload,
-            consumer_latest_path=consumer_latest_path,
-        ):
-            key = (_text(_mapping(payload.get("refs")).get("dispatch_path")), _text(payload.get("action_type")))
-            if key in selected_keys:
-                continue
-            selected.append(payload)
-            selected_keys.add(key)
-            selected_by_key[key] = len(selected) - 1
     stage_native_missing_proof_selected = [
         payload for payload in selected if _stage_native_dispatch_missing_opl_proof(payload)
     ]
@@ -646,8 +633,8 @@ _stage_native_dispatch_missing_opl_proof = (
 )
 _dispatch_owner_route = persisted_dispatch_selection.dispatch_owner_route
 _dispatch_work_unit_id = persisted_dispatch_selection.dispatch_work_unit_id
-_is_domain_progress_transition_request_projection = (
-    persisted_dispatch_selection.is_domain_progress_transition_request_projection
+_is_ai_route_context_projection = (
+    persisted_dispatch_selection.is_ai_route_context_projection
 )
 
 def _read_json_object(path: Path) -> dict[str, Any] | None:

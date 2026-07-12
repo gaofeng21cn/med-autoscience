@@ -92,6 +92,12 @@ def paper_mission_domain_handler_dispatch_receipt(
             ),
             "result": readback,
         },
+        "semantic_route_boundary": {
+            "owner": "codex_cli",
+            "domain_readback_is_advisory_input": True,
+            "readable_artifact_allows_any_declared_stage": True,
+            "program_can_execute_or_block_route": False,
+        },
         "authority_boundary": {
             "domain_truth_owner": "MedAutoScience",
             "runtime_owner": "one-person-lab",
@@ -116,10 +122,9 @@ def _domain_handler_paper_mission_command(
 ) -> str:
     if dry_run:
         return requested_command or "start"
-    if _optional_text(task.get("task_kind")) == start_or_resume_task_kind:
-        if requested_command in {None, "start", "resume"}:
-            return "drive"
-    return requested_command or "inspect"
+    if requested_command in {None, "start", "resume", "drive"}:
+        return "inspect"
+    return requested_command
 
 
 def _default_domain_handler_drive_run_id(

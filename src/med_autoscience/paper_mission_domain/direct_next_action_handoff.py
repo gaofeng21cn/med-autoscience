@@ -10,7 +10,7 @@ from med_autoscience.paper_mission_domain.common import (
     _slug,
     _stable_sha256,
 )
-from med_autoscience.paper_mission_opl_carrier import paper_mission_opl_runtime_carrier
+from med_autoscience.paper_mission_stage_run_context import paper_mission_stage_run_context
 from med_autoscience.paper_mission_transaction import build_paper_mission_transaction
 from med_autoscience import study_task_intake
 from med_autoscience.study_task_intake_surfaces import latest_task_intake_json_path
@@ -39,8 +39,8 @@ def build_direct_next_action_handoff(
             transaction=transaction,
             task_intake_ref=task_intake_ref,
         )
-    carrier = paper_mission_opl_runtime_carrier(transaction)
-    route = _mapping(transaction.get("opl_route_command"))
+    carrier = paper_mission_stage_run_context(transaction)
+    route = _mapping(transaction.get("ai_route_context"))
     decision = _mapping(transaction.get("stage_terminal_decision"))
     route_target = _optional_text(route.get("target"))
     owner_consumption = _current_owner_consumption(inspect_readback)
@@ -48,14 +48,14 @@ def build_direct_next_action_handoff(
         owner_consumption.get("status")
     ) or _optional_text(
         _mapping(
-            _mapping(inspect_readback.get("current_opl_runtime_carrier_readback")).get(
+            _mapping(inspect_readback.get("current_opl_stage_attempt_readback")).get(
                 "mas_receipt_consumption"
             )
         ).get("status")
     )
     owner_consumption_readback_ref = _optional_text(
         _mapping(
-            _mapping(inspect_readback.get("current_opl_runtime_carrier_readback")).get(
+            _mapping(inspect_readback.get("current_opl_stage_attempt_readback")).get(
                 "receipt_evidence"
             )
         ).get("receipt_ref")
@@ -66,12 +66,12 @@ def build_direct_next_action_handoff(
     return {
         "surface_kind": "mas_paper_mission_opl_route_handoff_record",
         "schema_version": 1,
-        "handoff_status": "ready_for_opl_route_command",
+        "handoff_status": "ready_for_ai_route_context",
         "study_id": study_id,
         "mission_id": transaction["mission_id"],
         "paper_mission_transaction_ref": transaction["transaction_id"],
         "stage_terminal_decision_ref": f"{transaction['transaction_id']}#stage_terminal_decision",
-        "opl_route_command_ref": f"{transaction['transaction_id']}#opl_route_command",
+        "ai_route_context_ref": f"{transaction['transaction_id']}#ai_route_context",
         "stage_run_ref": transaction["stage_run_ref"],
         "stage_id": transaction["stage_id"],
         "work_unit_id": carrier["work_unit_id"],
@@ -83,8 +83,8 @@ def build_direct_next_action_handoff(
         "transaction_materialized": True,
         "paper_mission_transaction": transaction,
         "stage_terminal_decision": decision,
-        "opl_route_command": route,
-        "opl_runtime_carrier": carrier,
+        "ai_route_context": route,
+        "opl_stage_run_context": carrier,
         "route_identity_key": carrier["route_identity_key"],
         "attempt_idempotency_key": carrier["attempt_idempotency_key"],
         "request_idempotency_key": carrier["request_idempotency_key"],
@@ -339,8 +339,8 @@ def _append_task_intake_refs_to_transaction(
 
 def _current_owner_consumption(inspect_readback: Mapping[str, Any]) -> dict[str, Any]:
     current_carrier = _mapping(
-        inspect_readback.get("current_opl_runtime_carrier_readback")
-    ) or _mapping(inspect_readback.get("opl_runtime_carrier_readback"))
+        inspect_readback.get("current_opl_stage_attempt_readback")
+    ) or _mapping(inspect_readback.get("opl_stage_attempt_readback"))
     return _mapping(current_carrier.get("mas_receipt_consumption"))
 
 
@@ -349,14 +349,14 @@ def _direct_next_action_successor_epoch(
 ) -> str | None:
     owner_consumption = _current_owner_consumption(inspect_readback)
     status = _optional_text(owner_consumption.get("status")) or _optional_text(
-        _mapping(inspect_readback.get("current_opl_runtime_carrier_readback")).get(
+        _mapping(inspect_readback.get("current_opl_stage_attempt_readback")).get(
             "owner_consumption_status"
         )
     )
     if not status or not status.startswith("owner_consumed_"):
         return None
     current_carrier = _mapping(
-        inspect_readback.get("current_opl_runtime_carrier_readback")
+        inspect_readback.get("current_opl_stage_attempt_readback")
     )
     owner_readback_ref = _optional_text(
         _mapping(current_carrier.get("receipt_evidence")).get("receipt_ref")

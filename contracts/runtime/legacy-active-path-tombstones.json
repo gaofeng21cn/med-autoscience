@@ -79,7 +79,7 @@
       "no_resurrection_guard",
       "superseded_by_next_action_envelope"
     ],
-    "replacement_route": "StageOutcome -> NextActionEnvelope -> OPL TransitionReceipt / MAS owner consumption",
+    "replacement_route": "StageOutcome -> NextActionEnvelope -> OPL StageAttemptReceipt / MAS owner consumption",
     "forbidden_claims": [
       "default owner/action",
       "default next action selector",
@@ -95,7 +95,7 @@
     ],
     "evidence_required_for_live_acceptance": [
       "fresh paper-mission inspect or study_progress readback",
-      "same-identity OPL StageRun or TransitionReceipt readback",
+      "same-identity OPL StageRun or StageAttemptReceipt readback",
       "MAS owner receipt, stable typed blocker, human gate, route-back, artifact delta, or successor handoff"
     ],
     "docs_or_tests_can_close_live_acceptance": false,
@@ -219,7 +219,7 @@
       "replacement_contract": {
         "contract_ref": "docs/runtime/control/next_action_control_plane.md",
         "machine_contract": "StageOutcome -> NextActionEnvelope",
-        "transport_receipt_contract": "OPL TransitionReceipt is receipt-only evidence and MAS owner-consumption input",
+        "transport_receipt_contract": "OPL StageAttemptReceipt is receipt-only evidence and MAS owner-consumption input",
         "canonical_projection_ref": "study_progress.next_action_envelope",
         "canonical_owner": "mas_next_action_compiler"
       },

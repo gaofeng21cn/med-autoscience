@@ -11,7 +11,6 @@ from med_autoscience.controllers.study_paper_context import resolve_study_paper_
 
 publication_gate = lazy_controller_module("publication_gate")
 study_delivery_sync = lazy_controller_module("study_delivery_sync")
-study_outer_loop = lazy_controller_module("study_outer_loop")
 
 
 class _StudyProgressProxy:
@@ -117,18 +116,11 @@ def replay_post_submission_minimal_sync(
         study_id=context.study_id,
         study_root=context.study_root,
     )
-    controller_decision_refresh = study_outer_loop.refresh_parked_submission_milestone_controller_decision(
-        profile=profile,
-        study_id=context.study_id,
-        study_root=context.study_root,
-        source="submission-minimal-post-materialization",
-    )
     return _synced_payload(
         context=context,
         gate_refresh=gate_refresh,
         post_gate_delivery_sync=post_gate_delivery_sync,
         progress_payload=progress_payload,
-        controller_decision_refresh=controller_decision_refresh,
     )
 
 
@@ -156,7 +148,6 @@ def _synced_payload(
     gate_refresh: Mapping[str, Any],
     post_gate_delivery_sync: Mapping[str, Any] | None,
     progress_payload: Mapping[str, Any],
-    controller_decision_refresh: Mapping[str, Any],
 ) -> dict[str, Any]:
     refs = dict(progress_payload.get("refs") or {})
     return {
@@ -173,5 +164,6 @@ def _synced_payload(
             "runtime_status_summary_path": str(refs.get("runtime_status_summary_path") or "").strip() or None,
             "publication_eval_path": str(refs.get("publication_eval_path") or "").strip() or None,
         },
-        "controller_decision_refresh": controller_decision_refresh,
+        "controller_decision_refresh": None,
+        "semantic_route_owner": "codex_cli",
     }

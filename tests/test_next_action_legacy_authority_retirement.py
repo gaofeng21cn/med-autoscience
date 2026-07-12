@@ -66,7 +66,7 @@ def test_domain_handler_exports_only_identity_complete_next_action() -> None:
         "work_unit_id": "canonical-write-repair",
         "work_unit_fingerprint": "canonical-write-repair::fingerprint",
         "expected_output_contract": {
-            "output_kind": "opl_domain_route_transition_receipt"
+            "output_kind": "opl_stage_attempt_transport_receipt"
         },
     }
 

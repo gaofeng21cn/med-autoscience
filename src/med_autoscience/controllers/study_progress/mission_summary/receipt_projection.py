@@ -3,9 +3,9 @@ from __future__ import annotations
 from collections.abc import Mapping
 from typing import Any
 
-from med_autoscience.paper_mission_opl_readback.receipt_events import (
+from med_autoscience.paper_mission_stage_run_readback.receipt_events import (
     matches_mas_receipt_consumption,
-    matches_opl_transition_receipt,
+    matches_opl_stage_attempt_receipt,
     matches_receipt_evidence,
 )
 
@@ -26,12 +26,12 @@ def _summary_with_receipt_projection(
     progress: Mapping[str, Any] | None = None,
 ) -> dict[str, Any]:
     updated = dict(summary)
-    receipt = _opl_transition_receipt(
+    receipt = _opl_stage_attempt_receipt(
         progress=progress,
         summary=updated,
     )
     if receipt:
-        updated["opl_transition_receipt"] = receipt
+        updated["opl_stage_attempt_receipt"] = receipt
     updated["receipt_evidence"] = (
         _receipt_evidence(
             progress=progress,
@@ -47,7 +47,7 @@ def _summary_with_receipt_projection(
     return updated
 
 
-def _opl_transition_receipt(
+def _opl_stage_attempt_receipt(
     *,
     progress: Mapping[str, Any] | None = None,
     summary: Mapping[str, Any] | None = None,
@@ -63,8 +63,8 @@ def _opl_transition_receipt(
         summary=summary,
         progress=progress,
     ):
-        receipt = _mapping(source.get("opl_transition_receipt"))
-        if matches_opl_transition_receipt(
+        receipt = _mapping(source.get("opl_stage_attempt_receipt"))
+        if matches_opl_stage_attempt_receipt(
             receipt=receipt,
             carrier=request_carrier,
         ):
@@ -85,16 +85,16 @@ def _receipt_projection_sources(
 ) -> tuple[Mapping[str, Any], ...]:
     return (
         _mapping(summary),
-        _mapping(_mapping(summary).get("opl_runtime_carrier_readback")),
+        _mapping(_mapping(summary).get("opl_stage_attempt_readback")),
         _mapping(
-            _mapping(_mapping(summary).get("opl_runtime_carrier_readback")).get(
+            _mapping(_mapping(summary).get("opl_stage_attempt_readback")).get(
                 "terminal_closeout"
             )
         ),
         _mapping(progress),
-        _mapping(_mapping(progress).get("opl_runtime_carrier_readback")),
+        _mapping(_mapping(progress).get("opl_stage_attempt_readback")),
         _mapping(
-            _mapping(_mapping(progress).get("opl_runtime_carrier_readback")).get(
+            _mapping(_mapping(progress).get("opl_stage_attempt_readback")).get(
                 "terminal_closeout"
             )
         ),
@@ -110,7 +110,7 @@ def _request_carrier(
         _mapping(summary),
         _mapping(progress),
     ):
-        carrier = _mapping(source.get("opl_runtime_carrier"))
+        carrier = _mapping(source.get("opl_stage_run_context"))
         if carrier:
             return carrier
     return {}
@@ -130,7 +130,7 @@ def _receipt_evidence(
         progress=progress,
     ):
         evidence = _mapping(source.get("receipt_evidence"))
-        receipt = _mapping(source.get("opl_transition_receipt"))
+        receipt = _mapping(source.get("opl_stage_attempt_receipt"))
         if request_carrier and matches_receipt_evidence(
             evidence=evidence,
             receipt=receipt,
@@ -160,9 +160,9 @@ def _mas_receipt_consumption(
         progress=progress,
     ):
         consumption = _mapping(source.get("mas_receipt_consumption"))
-        receipt = _mapping(source.get("opl_transition_receipt"))
+        receipt = _mapping(source.get("opl_stage_attempt_receipt"))
         evidence = _mapping(source.get("receipt_evidence"))
-        if request_carrier and matches_opl_transition_receipt(
+        if request_carrier and matches_opl_stage_attempt_receipt(
             receipt=receipt,
             carrier=request_carrier,
         ) and matches_receipt_evidence(
@@ -176,8 +176,10 @@ def _mas_receipt_consumption(
             return dict(consumption)
     return {
         "surface_kind": "mas_receipt_consumption_projection",
-        "status": "not_requested_from_study_progress",
-        "next_legal_action": "request_opl_runtime_readback",
+        "status": "optional_transport_receipt_missing_quality_debt",
+        "next_legal_action": "codex_select_any_declared_stage",
+        "next_stage_may_start": True,
+        "route_selection_owner": "codex_cli",
         "durable_stop_allowed": False,
         "can_claim_paper_progress": False,
         "can_claim_publication_ready": False,

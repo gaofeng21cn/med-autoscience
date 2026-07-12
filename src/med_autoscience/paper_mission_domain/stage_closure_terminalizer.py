@@ -61,7 +61,7 @@ def stage_closure_decision_requires_reterminalize(
     observability_gaps = _text_list(decision.get("observability_gaps"))
     if current_package_is_submission_ready_clear(_mapping(current_package)):
         return True
-    if _optional_text(opl_closeout.get("status")) == "waiting_for_opl_runtime_payload":
+    if _optional_text(opl_closeout.get("status")) == "optional_stage_attempt_readback_missing":
         return True
     if outcome.get("transition_kind") == "route_back_candidate_checkpoint":
         return True
@@ -273,7 +273,7 @@ def stage_closure_readback_blockers(readback: Mapping[str, Any]) -> list[str]:
 
 
 def _route_back_checkpoint_blocker(readback: Mapping[str, Any]) -> str | None:
-    carrier = _mapping(readback.get("opl_runtime_carrier_readback"))
+    carrier = _mapping(readback.get("opl_stage_attempt_readback"))
     receipt_consumption = _mapping(carrier.get("mas_receipt_consumption"))
     if _optional_text(receipt_consumption.get("next_legal_action")) == (
         "consume_route_back_checkpoint_or_materialize_terminalizer_outcome"
@@ -347,12 +347,12 @@ def stage_closure_opl_closeout(
     existing_stage_closure: Mapping[str, Any] | None = None,
     transaction: Mapping[str, Any] | None = None,
 ) -> dict[str, Any]:
-    carrier = _mapping(readback.get("opl_runtime_carrier_readback"))
+    carrier = _mapping(readback.get("opl_stage_attempt_readback"))
     terminal_closeout = _mapping(carrier.get("terminal_closeout"))
     return _compact_mapping(
         {
             "status": _first_text(
-                readback.get("opl_runtime_readback_status"),
+                readback.get("opl_stage_attempt_readback_status"),
                 carrier.get("carrier_status"),
                 terminal_closeout.get("status"),
             ),
@@ -493,8 +493,8 @@ def _owner_repair_decision_refs(readback: Mapping[str, Any]) -> list[str]:
 
 
 def _owner_repair_sources(readback: Mapping[str, Any]) -> list[Mapping[str, Any]]:
-    carrier = _mapping(readback.get("current_opl_runtime_carrier_readback")) or _mapping(
-        readback.get("opl_runtime_carrier_readback")
+    carrier = _mapping(readback.get("current_opl_stage_attempt_readback")) or _mapping(
+        readback.get("opl_stage_attempt_readback")
     )
     sources = [
         _mapping(readback.get("receipt_evidence")),

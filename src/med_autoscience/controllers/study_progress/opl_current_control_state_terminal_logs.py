@@ -5,11 +5,11 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
 
-from med_autoscience.controllers.study_transition_receipt_consumption.owner_callable_candidates import (
+from med_autoscience.controllers.study_stage_attempt_receipt_consumption.owner_callable_candidates import (
     owner_callable_receipt_candidates,
 )
 from med_autoscience.controllers.stage_outcome_authority import execution_surfaces
-from med_autoscience.controllers.study_transition_receipt_consumption.missing_refs_typed_closeout import (
+from med_autoscience.controllers.study_stage_attempt_receipt_consumption.missing_refs_typed_closeout import (
     is_blocked_typed_closeout,
 )
 from med_autoscience.profiles import WorkspaceProfile
@@ -311,7 +311,7 @@ def _normalize_terminal_stage_log_progress_fields(projection: dict[str, Any]) ->
             projection["paper_stage_log"] = normalized_log
             return projection
     projection = dict(projection)
-    projection["typed_blocker_reason"] = "typed_closeout_packet_required"
+    projection["quality_debt_reason"] = "typed_closeout_packet_required"
     projection["diagnostic"] = "user_stage_log_missing_required_progress_fields"
     projection["missing_user_stage_log_fields"] = missing
     projection["missing_domain_fields"] = missing
@@ -319,9 +319,11 @@ def _normalize_terminal_stage_log_progress_fields(projection: dict[str, Any]) ->
     if missing == ["progress_delta_classification"]:
         return projection
     normalized_log = dict(paper_stage_log)
-    normalized_log["outcome"] = "typed_blocker"
-    normalized_log["remaining_blockers"] = ["typed_closeout_packet_required"]
-    projection["status"] = "typed_blocker"
+    normalized_log["outcome"] = "completed_with_quality_debt"
+    normalized_log["remaining_blockers"] = []
+    normalized_log["quality_debt"] = ["typed_closeout_packet_required"]
+    projection["status"] = "completed_with_quality_debt"
+    projection["next_stage_may_start"] = True
     projection["paper_stage_log"] = normalized_log
     return projection
 

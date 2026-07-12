@@ -2,9 +2,7 @@ from __future__ import annotations
 
 from typing import Any
 
-from med_autoscience.controllers import study_domain_transition_guard as domain_transition_guard
 from med_autoscience.controllers.owner_callable_registry import callable_owner_names
-from med_autoscience.controllers.study_progress import canonical_next_action_gate
 
 
 _EXTERNAL_INPUT_DECISION_TYPES = frozenset(
@@ -40,13 +38,6 @@ def _has_structured_reply_schema(reply_schema: dict[str, Any]) -> bool:
     if set(reply_schema) == {"type"} and str(reply_schema.get("type") or "").strip().lower() == "free_text":
         return False
     return True
-
-
-def _canonical_next_action_bound(domain_transition: dict[str, Any]) -> bool:
-    next_action = domain_transition.get("next_action")
-    if not isinstance(next_action, dict):
-        next_action = domain_transition.get("next_action_envelope")
-    return isinstance(next_action, dict) and canonical_next_action_gate.canonical_next_action_identity_complete(next_action)
 
 
 def _invalid_decision_request_note(
@@ -99,9 +90,7 @@ def arbitrate_waiting_for_user(
     controller_authorization: dict[str, Any] | None = None,
     domain_transition: dict[str, Any] | None = None,
 ) -> dict[str, Any]:
-    domain_transition_arbitration = _domain_transition_arbitration(domain_transition)
-    if domain_transition_arbitration is not None:
-        return domain_transition_arbitration
+    _ = domain_transition
 
     if submission_metadata_only:
         return {
@@ -220,75 +209,10 @@ def arbitrate_waiting_for_user(
         "decision_type": decision_type,
         "source_artifact_path": source_artifact_path,
         "controller_stage_note": (
-            "MAS-managed studies must keep routing, finalize, adequacy, publishability, and completion decisions "
-            "inside the MAS outer loop; runtime blocking may only ask for external secrets or credentials."
+            "Codex CLI owns semantic stage routing; MAS quality and publication observations remain route context. "
+            "Runtime blocking may only ask for external secrets, credentials, or an explicit human authority decision."
         ),
     }
-
-
-def _domain_transition_arbitration(domain_transition: dict[str, Any] | None) -> dict[str, Any] | None:
-    if not isinstance(domain_transition, dict):
-        return None
-    if not _canonical_next_action_bound(domain_transition):
-        return None
-    decision_type = _text(domain_transition.get("decision_type"))
-    if decision_type is None:
-        return None
-    next_work_unit = domain_transition.get("next_work_unit")
-    next_work_unit_id = _text(next_work_unit.get("unit_id")) if isinstance(next_work_unit, dict) else None
-    typed_blocker = domain_transition.get("typed_blocker")
-    blocker_id = _text(typed_blocker.get("blocker_id")) if isinstance(typed_blocker, dict) else None
-    base = {
-        "requires_user_input": False,
-        "kind": "domain_transition",
-        "decision_type": None,
-        "source_artifact_path": None,
-        "domain_transition_decision_type": decision_type,
-        "domain_transition_route_target": _text(domain_transition.get("route_target")),
-        "domain_transition_controller_action": _text(domain_transition.get("controller_action")),
-        "next_work_unit_id": next_work_unit_id,
-        "typed_blocker_id": blocker_id,
-    }
-    if decision_type == "publication_gate_blocker":
-        return {
-            **base,
-            "classification": "domain_transition_publication_blocker",
-            "action": "resume",
-            "reason_code": "domain_transition_publication_gate_blocker",
-            "valid_blocking": False,
-            "controller_stage_note": (
-                "MAS domain transition oracle classifies the current state as a publication blocker; "
-                "route to the owner work unit instead of treating an old completion request as user wait."
-            ),
-        }
-    if decision_type in domain_transition_guard.RUNTIME_REDRIVE_DECISION_TYPES:
-        return {
-            **base,
-            "classification": "domain_transition_runtime_redrive",
-            "action": "resume",
-            "reason_code": domain_transition_guard.REASON_BY_DECISION_TYPE.get(
-                decision_type,
-                f"domain_transition_{decision_type}",
-            ),
-            "valid_blocking": False,
-            "controller_stage_note": (
-                "MAS domain transition oracle selected a runtime redrive owner; resume controller dispatch "
-                "instead of treating the waiting state as a user wait."
-            ),
-        }
-    if decision_type in domain_transition_guard.TERMINAL_OR_HANDOFF_DECISION_TYPES:
-        return {
-            **base,
-            "classification": "domain_transition_terminal_or_handoff",
-            "action": "block",
-            "reason_code": f"domain_transition_{decision_type}",
-            "valid_blocking": True,
-            "controller_stage_note": (
-                "MAS domain transition oracle blocks automatic redrive for terminal, delivered-package, "
-                "or human-gated states."
-            ),
-        }
-    return None
 
 
 def _pending_user_message_redrive(continuation_state: dict[str, Any] | None) -> dict[str, Any] | None:

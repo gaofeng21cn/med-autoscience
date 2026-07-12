@@ -6,542 +6,189 @@ from pathlib import Path
 import pytest
 
 from med_autoscience.controllers.stage_closure_terminalizer import (
-    ALLOWED_OUTCOME_KINDS,
     classify_stage_closure_blockers,
+    stage_closure_decision_missing,
     stage_closure_decision_projection,
     terminalize_stage_closure,
-)
-from med_autoscience.paper_mission_domain.stage_closure_next_action import (
-    next_action_for_stage_closure_decision,
 )
 
 
 pytestmark = [pytest.mark.contract]
-
 REPO_ROOT = Path(__file__).resolve().parents[1]
 
 
-def test_contract_declares_four_terminal_outcomes_and_forbids_same_stage_loop() -> None:
+def test_contract_declares_quality_projection_without_route_authority() -> None:
     contract = json.loads(
         (REPO_ROOT / "contracts" / "mas-stage-closure-terminalizer.json").read_text(
             encoding="utf-8"
         )
     )
 
-    assert set(contract["required_outcome_kinds"]) == ALLOWED_OUTCOME_KINDS
-    assert contract["decision_requirements"]["must_emit_exactly_one_outcome"] is True
-    assert (
-        "continue_same_stage_without_semantic_delta"
-        in contract["forbidden_terminal_interpretations"]
-    )
-    assert "opl_completed_is_paper_progress" in contract["forbidden_terminal_interpretations"]
-    assert contract["decision_requirements"]["repair_budget_sources"] == [
-        "quality_repair_batch",
-        "gate_clearing_batch",
-    ]
-    assert (
-        contract["package_authority_split"]["current_package"]["requires_bundle_build_allowed"]
-        is False
-    )
-    assert (
-        contract["package_authority_split"]["submission_ready_package"][
-            "requires_bundle_build_allowed"
-        ]
-        is True
-    )
+    requirements = contract["decision_requirements"]
+    assert contract["machine_boundary"]["role"] == "quality_debt_projection_only"
+    assert requirements["must_emit_exactly_one_outcome"] is False
+    assert requirements["must_fail_closed_when_no_semantic_delta_repeats"] is False
+    assert requirements["route_selection_owner"] == "codex_cli"
+    assert requirements["projection_can_select_stage_route"] is False
+    assert requirements["quality_debt_blocks_stage_transition"] is False
 
 
-def test_current_package_mirror_stale_routes_to_mirror_sync_without_bundle_authority() -> None:
-    decision = terminalize_stage_closure(
-        study_id="003-dm-china-us-mortality-attribution",
-        stage_id="publication_supervision",
-        work_unit_id="submission_milestone_candidate",
-        work_unit_fingerprint="dm003-followthrough",
-        gate_replay={"gate_replay_status": "blocked"},
-        delivery_readback={
-            "freshness": "missing",
-            "current_package_exists": False,
-            "blocked_reason": "authority_snapshot_missing",
-            "bundle_build_allowed": False,
-        },
-        repair_budget={"repair_budget_max": 3, "repair_attempt_count": 1},
-    )
-
-    outcome = decision["outcome"]
-    assert outcome["kind"] == "next_stage_transition"
-    assert outcome["transition_kind"] == "current_package_mirror_sync"
-    assert outcome["package_kind"] == "current_package"
-    assert outcome["can_submit"] is False
-    assert outcome["requires_bundle_build_allowed"] is False
-    assert "current_package_missing" in outcome["known_blockers"]
-    assert "authority_snapshot_missing" in outcome["known_blockers"]
-    assert (
-        decision["authority_boundary"]["writes_current_package"] is False
-    ), "terminalizer only decides; delivery sync owns the actual mirror write"
-
-
-def test_quality_blockers_budget_exhausted_degrade_to_handoff_package() -> None:
-    decision = terminalize_stage_closure(
-        study_id="002-dm-china-us-mortality-attribution",
-        stage_id="publication_supervision",
-        work_unit_id="analysis_claim_evidence_repair",
-        work_unit_fingerprint="dm002-claim-evidence",
-        gate_replay={
-            "gate_replay_status": "blocked",
-            "gate_replay_blockers": [
-                "reviewer_first_concerns_unresolved",
-                "claim_evidence_consistency_failed",
-                "submission_hardening_incomplete",
-            ],
-        },
-        delivery_readback={
-            "freshness": "stale",
-            "freshness_reason": "delivery_manifest_source_changed",
-            "bundle_build_allowed": False,
-        },
-        repair_budget={
-            "repair_budget_max": 3,
-            "repair_attempt_count": 3,
-        },
-        semantic_delta={"paper_delta_refs": ["artifact:repaired-manuscript"]},
-    )
-
-    outcome = decision["outcome"]
-    assert outcome["kind"] == "next_stage_transition"
-    assert outcome["transition_kind"] == "completed_with_quality_debt"
-    assert outcome["completion_status"] == "completed_with_quality_debt"
-    assert outcome["quality_debt"]["blocks_stage_transition"] is False
-    assert outcome["quality_debt"]["blocks_quality_export_or_ready_claims"] is True
-    assert outcome["package_kind"] == "degraded_handoff_package"
-    assert outcome["can_submit"] is False
-    assert outcome["requires_bundle_build_allowed"] is False
-    assert decision["repair_budget"]["repair_budget_status"] == "exhausted"
-    assert set(decision["blocker_taxonomy"]["quality_repairable"]) >= {
+@pytest.mark.parametrize(
+    "blocker",
+    [
         "reviewer_first_concerns_unresolved",
-        "claim_evidence_consistency_failed",
-        "submission_hardening_incomplete",
-    }
-
-
-def test_unknown_quality_shape_with_artifact_advances_as_quality_debt() -> None:
-    decision = terminalize_stage_closure(
-        study_id="quality-debt-study",
-        stage_id="manuscript_authoring",
-        work_unit_id="draft-v1",
-        gate_replay={
-            "gate_replay_status": "blocked",
-            "gate_replay_blockers": ["unclassified_reviewer_shape_gap"],
-        },
-        semantic_delta={"paper_delta_refs": ["artifact:manuscript-v1"]},
-    )
-
-    outcome = decision["outcome"]
-    assert outcome["kind"] == "next_stage_transition"
-    assert outcome["transition_kind"] == "completed_with_quality_debt"
-    assert outcome["quality_debt"]["blocks_stage_transition"] is False
-    assert outcome["can_submit"] is False
-
-
-def test_runtime_retry_budget_exhaustion_with_artifact_advances_as_quality_debt() -> None:
-    decision = terminalize_stage_closure(
-        study_id="runtime-recovery-study",
-        stage_id="manuscript_authoring",
-        work_unit_id="draft-after-runtime-retries",
-        gate_replay={
-            "gate_replay_status": "blocked",
-            "gate_replay_blockers": ["runtime_recovery_retry_budget_exhausted"],
-        },
-        semantic_delta={"paper_delta_refs": ["artifact:manuscript-best-available"]},
-    )
-
-    outcome = decision["outcome"]
-    assert outcome["kind"] == "next_stage_transition"
-    assert outcome["transition_kind"] == "completed_with_quality_debt"
-    assert outcome["quality_debt"]["blocks_stage_transition"] is False
-    assert outcome["can_submit"] is False
-
-
-def test_quality_repair_batch_nested_budget_exhaustion_degrades_to_handoff() -> None:
-    decision = terminalize_stage_closure(
-        study_id="002-dm-china-us-mortality-attribution",
-        stage_id="publication_supervision",
-        work_unit_id="run_quality_repair_batch",
-        work_unit_fingerprint="dm002-quality-repair-budget",
-        gate_replay={
-            "gate_replay_status": "blocked",
-            "gate_replay_blockers": ["claim_evidence_consistency_failed"],
-        },
-        repair_budget={
-            "quality_repair_batch": {
-                "repair_budget_max": 2,
-                "repair_attempt_count": 2,
-                "repair_budget_status": "exhausted",
-                "on_exhausted": "degraded_handoff",
-            },
-            "gate_clearing_batch": {
-                "repair_budget_max": 3,
-                "repair_attempt_count": 1,
-                "repair_budget_status": "remaining",
-            },
-        },
-        semantic_delta={"paper_delta_refs": ["artifact:quality-repair-v2"]},
-    )
-
-    assert decision["repair_budget"] == {
-        "repair_budget_max": 2,
-        "repair_attempt_count": 2,
-        "repair_budget_status": "exhausted",
-        "on_exhausted": "degraded_handoff",
-    }
-    assert decision["outcome"]["kind"] == "next_stage_transition"
-    assert decision["outcome"]["transition_kind"] == "completed_with_quality_debt"
-    assert decision["outcome"]["next_action"] == "advance_next_stage_with_quality_debt"
-
-
-def test_same_signature_without_semantic_delta_terminalizes_to_typed_blocker() -> None:
-    first = terminalize_stage_closure(
-        study_id="002-dm-china-us-mortality-attribution",
-        stage_id="publication_supervision",
-        work_unit_id="analysis_claim_evidence_repair",
-        work_unit_fingerprint="same",
-        gate_replay={
-            "gate_replay_status": "blocked",
-            "gate_replay_blockers": ["claim_evidence_consistency_failed"],
-        },
-        repair_budget={"repair_budget_max": 3, "repair_attempt_count": 1},
-    )
-    second = terminalize_stage_closure(
-        study_id="002-dm-china-us-mortality-attribution",
-        stage_id="publication_supervision",
-        work_unit_id="analysis_claim_evidence_repair",
-        work_unit_fingerprint="same",
-        gate_replay={
-            "gate_replay_status": "blocked",
-            "gate_replay_blockers": ["claim_evidence_consistency_failed"],
-        },
-        repair_budget={"repair_budget_max": 3, "repair_attempt_count": 1},
-        previous_signature=first["decision_signature"],
-    )
-
-    assert second["repeated_without_semantic_delta"] is True
-    assert second["outcome"]["kind"] == "typed_blocker"
-    assert second["outcome"]["blocker_type"] == "same_signature_without_semantic_delta"
-
-
-def test_route_back_checkpoint_blockers_do_not_become_unclassified() -> None:
-    decision = terminalize_stage_closure(
-        study_id="003-dm-china-us-mortality-attribution",
-        stage_id="submission_milestone_candidate",
-        work_unit_id="route-back-checkpoint",
-        gate_replay={
-            "gate_replay_status": "blocked",
-            "gate_replay_blockers": [
-                "accepted_submission_milestone_candidate",
-                "paper_mission_stage_route_domain_gate_pending",
-                "MAS mission executor consumed route-back/domain-gate evidence as a fresh paper-facing candidate and is continuing the PaperMission stage.",
-            ],
-        },
-    )
-
-    assert decision["blocker_taxonomy"]["unknown"] == []
-    assert decision["blocker_taxonomy"]["route_back_checkpoint"] == [
+        "current_package_stale",
+        "bundle_build_allowed_false",
         "accepted_submission_milestone_candidate",
-        "paper_mission_stage_route_domain_gate_pending",
-        "MAS mission executor consumed route-back/domain-gate evidence as a fresh paper-facing candidate and is continuing the PaperMission stage.",
-    ]
+        "unclassified_reviewer_shape_gap",
+    ],
+)
+def test_non_authority_gaps_advance_with_quality_debt(blocker: str) -> None:
+    decision = terminalize_stage_closure(
+        study_id="progress-first-study",
+        stage_id="review",
+        work_unit_id="review-attempt",
+        gate_replay={
+            "gate_replay_status": "blocked",
+            "gate_replay_blockers": [blocker],
+        },
+    )
+
     outcome = decision["outcome"]
     assert outcome["kind"] == "next_stage_transition"
-    assert outcome["transition_kind"] == "route_back_candidate_checkpoint"
-    assert outcome["next_action"] == (
-        "consume_route_back_checkpoint_or_materialize_terminalizer_outcome"
-    )
+    assert outcome["transition_kind"] == "completed_with_quality_debt"
+    assert outcome["quality_debt"]["blocks_stage_transition"] is False
+    assert outcome["next_owner"] == "codex_cli"
+    assert decision["next_stage_may_start"] is True
+    assert decision["authority_boundary"]["can_select_stage_route"] is False
 
 
-def test_route_back_checkpoint_projects_owner_consumption_next_action() -> None:
-    decision = terminalize_stage_closure(
-        study_id="obesity_multicenter_phenotype_atlas",
-        stage_id="write",
-        work_unit_id="write",
-        work_unit_fingerprint="paper-mission::obesity::write::route-back",
-        identity={
-            "paper_mission_transaction_ref": (
-                "paper-mission-transaction::obesity::write"
-            ),
-            "consume_candidate_status": "accepted_submission_milestone_candidate",
-            "transaction_state": "route_back",
-        },
-        gate_replay={
-            "gate_replay_status": "blocked",
-            "gate_replay_blockers": [
-                "accepted_submission_milestone_candidate",
-                "paper_mission_stage_route_domain_gate_pending",
-            ],
-        },
-        semantic_delta={
-            "paper_delta_refs": ["route-back:paper-mission-terminal-owner-gate:obesity:1"],
-        },
-    )
-
-    action = next_action_for_stage_closure_decision(
-        stage_closure_decision=decision,
-        transaction_readback={
-            "paper_mission_transaction": {
-                "transaction_id": "paper-mission-transaction::obesity::write",
-                "study_id": "obesity_multicenter_phenotype_atlas",
-                "stage_id": "write",
-                "stage_terminal_decision": {
-                    "route_back_evidence_ref": (
-                        "route-back:paper-mission-terminal-owner-gate:obesity:1"
-                    )
-                },
-            }
-        },
-    )
-
-    assert action is not None
-    assert action["surface_kind"] == "mas_next_action_envelope"
-    assert action["action_family"] == "paper.stage_closure.owner_consumption"
-    assert action["action_type"] == (
-        "consume_route_back_checkpoint_or_materialize_terminalizer_outcome"
-    )
-    assert action["owner"] == "MedAutoScience"
-    assert action["work_unit_id"] == "write"
-    assert action["authority_boundary"]["can_claim_publication_ready"] is False
-
-
-def test_route_back_checkpoint_supersedes_old_typed_blocker_resolution_action() -> None:
-    decision = terminalize_stage_closure(
-        study_id="obesity_multicenter_phenotype_atlas",
-        stage_id="write",
-        work_unit_id="submission_milestone_candidate",
-        work_unit_fingerprint="paper-mission::obesity::write::route-back",
-        identity={
-            "paper_mission_transaction_ref": (
-                "paper-mission-transaction::obesity::write"
-            ),
-            "consume_candidate_status": "accepted_submission_milestone_candidate",
-            "transaction_state": "accepted_submission_milestone_candidate",
-        },
-        gate_replay={
-            "gate_replay_status": "blocked",
-            "gate_replay_blockers": [
-                "accepted_submission_milestone_candidate",
-                "paper_mission_stage_route_domain_gate_pending",
-            ],
-        },
-        semantic_delta={
-            "paper_delta_refs": ["route-back:paper-mission-terminal-owner-gate:obesity:1"],
-        },
-    )
-
-    action = next_action_for_stage_closure_decision(
-        stage_closure_decision=decision,
-        transaction_readback={
-            "paper_mission_transaction": {
-                "transaction_id": "paper-mission-transaction::obesity::write",
-                "study_id": "obesity_multicenter_phenotype_atlas",
-                "stage_id": "write",
-            }
-        },
-        typed_blocker_resolution_readback={
-            "surface_kind": "paper_mission_typed_blocker_resolution",
-            "status": "owner_route_redesign_applied",
-            "source_ref": "/tmp/old-typed-blocker-resolution.json",
-            "next_owner_action": {
-                "next_owner": "mas_authority_kernel",
-                "work_unit_id": "submission_blocker_degraded_handoff_or_quality_repair",
-                "work_unit_fingerprint": "old-typed-blocker-resolution",
-                "action_type": (
-                    "classify_quality_blockers_or_materialize_degraded_handoff_gate"
-                ),
-                "allowed_actions": [
-                    "classify_quality_blockers_or_materialize_degraded_handoff_gate"
-                ],
-            },
-        },
-    )
-
-    assert action is not None
-    assert action["action_family"] == "paper.stage_closure.owner_consumption"
-    assert action["action_type"] == (
-        "consume_route_back_checkpoint_or_materialize_terminalizer_outcome"
-    )
-    assert action["work_unit_id"] == (
-        "submission_milestone_candidate"
-    )
-
-
-def test_repeated_route_back_checkpoint_stops_same_stage_redrive() -> None:
+def test_retry_budget_and_repeated_signature_never_block_progress() -> None:
     first = terminalize_stage_closure(
-        study_id="003-dm-china-us-mortality-attribution",
-        stage_id="submission_milestone_candidate",
-        work_unit_id="route-back-checkpoint",
+        study_id="progress-first-study",
+        stage_id="analysis",
+        work_unit_id="negative-result",
         gate_replay={
             "gate_replay_status": "blocked",
-            "gate_replay_blockers": [
-                "accepted_submission_milestone_candidate",
-                "paper_mission_stage_route_domain_gate_pending",
-            ],
-        },
-    )
-    second = terminalize_stage_closure(
-        study_id="003-dm-china-us-mortality-attribution",
-        stage_id="submission_milestone_candidate",
-        work_unit_id="route-back-checkpoint",
-        gate_replay={
-            "gate_replay_status": "blocked",
-            "gate_replay_blockers": [
-                "accepted_submission_milestone_candidate",
-                "paper_mission_stage_route_domain_gate_pending",
-            ],
-        },
-        previous_signature=first["decision_signature"],
-    )
-
-    assert second["repeated_without_semantic_delta"] is True
-    outcome = second["outcome"]
-    assert outcome["kind"] == "typed_blocker"
-    assert outcome["blocker_type"] == "route_back_checkpoint_without_semantic_delta"
-    assert outcome["next_action"] == "materialize_typed_blocker_or_route_redesign"
-
-
-def test_route_back_checkpoint_budget_exhaustion_degrades_to_handoff() -> None:
-    decision = terminalize_stage_closure(
-        study_id="003-dm-china-us-mortality-attribution",
-        stage_id="submission_milestone_candidate",
-        work_unit_id="route-back-checkpoint",
-        gate_replay={
-            "gate_replay_status": "blocked",
-            "gate_replay_blockers": ["accepted_submission_milestone_candidate"],
+            "gate_replay_blockers": ["claim_evidence_consistency_failed"],
         },
         repair_budget={"repair_budget_max": 2, "repair_attempt_count": 2},
-        semantic_delta={"paper_delta_refs": ["artifact:route-back-candidate"]},
     )
-
-    outcome = decision["outcome"]
-    assert outcome["kind"] == "next_stage_transition"
-    assert outcome["transition_kind"] == "completed_with_quality_debt"
-    assert outcome["package_kind"] == "degraded_handoff_package"
-    assert decision["repair_budget"]["repair_budget_status"] == "exhausted"
-
-
-def test_closeout_observability_accepts_actual_stage_log_field_names() -> None:
-    decision = terminalize_stage_closure(
-        study_id="003-dm-china-us-mortality-attribution",
-        stage_id="publication_supervision",
-        work_unit_id="return_to_ai_reviewer_workflow",
-        gate_replay={"gate_replay_status": "blocked"},
-        opl_closeout={
-            "status": "completed",
-            "duration": {
-                "started_at": "2026-06-28T23:30:00Z",
-                "completed_at": "2026-06-28T23:40:00Z",
-            },
-            "token_usage": {"total_tokens": 1200},
-            "cost": {
-                "status": "missing",
-                "reason": "provider attempt cost telemetry is not exposed",
-            },
-        },
-    )
-
-    assert "observability_gaps" not in decision
-
-
-def test_closeout_observability_records_missing_reasons_without_unknown_gaps() -> None:
-    decision = terminalize_stage_closure(
-        study_id="002-dm-china-us-mortality-attribution",
-        stage_id="submission_milestone_candidate",
-        work_unit_id="followthrough-02",
+    repeated = terminalize_stage_closure(
+        study_id="progress-first-study",
+        stage_id="analysis",
+        work_unit_id="negative-result",
         gate_replay={
             "gate_replay_status": "blocked",
-            "gate_replay_blockers": ["accepted_submission_milestone_candidate"],
+            "gate_replay_blockers": ["claim_evidence_consistency_failed"],
         },
-        opl_closeout={"status": "waiting_for_opl_runtime_payload"},
+        repair_budget={"repair_budget_max": 2, "repair_attempt_count": 2},
+        previous_signature=first["decision_signature"],
     )
 
-    assert "observability_gaps" not in decision
-    closeout = decision["opl_closeout"]
-    assert closeout["duration"]["missing_duration_reason"] == (
-        "waiting_for_opl_runtime_payload::duration_not_recorded"
-    )
-    assert closeout["token_usage"]["missing_token_usage_reason"] == (
-        "waiting_for_opl_runtime_payload::token_usage_not_recorded"
-    )
-    assert closeout["cost"]["missing_cost_reason"] == (
-        "waiting_for_opl_runtime_payload::cost_not_recorded"
-    )
+    assert repeated["repeated_without_semantic_delta"] is True
+    assert repeated["outcome"]["kind"] == "next_stage_transition"
+    assert repeated["outcome"]["transition_kind"] == "completed_with_quality_debt"
+    assert repeated["next_stage_may_start"] is True
 
 
-def test_legacy_unclassified_checkpoint_decision_projects_as_route_back_checkpoint() -> None:
+def test_negative_result_artifact_can_feed_any_declared_stage() -> None:
+    decision = terminalize_stage_closure(
+        study_id="hypothesis-study",
+        stage_id="analysis",
+        work_unit_id="negative-primary-result",
+        semantic_delta={
+            "paper_delta_refs": ["artifact:negative-result"],
+            "failed_path_refs": ["artifact:failed-hypothesis-lineage"],
+        },
+        gate_replay={
+            "gate_replay_status": "blocked",
+            "gate_replay_blockers": ["reviewer_first_concerns_unresolved"],
+        },
+    )
+
+    assert decision["outcome"]["next_action"] == (
+        "select_any_declared_stage_with_quality_debt"
+    )
+    assert decision["outcome"]["next_owner"] == "codex_cli"
+
+
+def test_only_real_hard_authority_boundary_can_stop_stage_transition() -> None:
+    decision = terminalize_stage_closure(
+        study_id="protected-study",
+        stage_id="external-submission",
+        work_unit_id="submit",
+        gate_replay={
+            "gate_replay_status": "blocked",
+            "gate_replay_blockers": [
+                "irreversible_external_submission_authorization_required"
+            ],
+        },
+    )
+
+    assert decision["outcome"]["kind"] == "typed_blocker"
+    assert decision["outcome"]["blocker_type"] == "hard_authority_blocker"
+    assert decision["next_stage_may_start"] is False
+
+
+def test_zero_readable_output_is_the_only_non_authority_stop() -> None:
+    decision = terminalize_stage_closure(
+        study_id="empty-study",
+        stage_id="analysis",
+        work_unit_id="empty-attempt",
+    )
+
+    assert decision["outcome"]["kind"] == "typed_blocker"
+    assert decision["outcome"]["blocker_type"] == "zero_readable_stage_output"
+
+
+def test_clean_attempt_advances_without_claiming_readiness() -> None:
+    decision = terminalize_stage_closure(
+        study_id="clean-study",
+        stage_id="analysis",
+        work_unit_id="analysis-v1",
+        semantic_delta={"paper_delta_refs": ["artifact:analysis-v1"]},
+    )
+
+    assert decision["outcome"]["transition_kind"] == "completed"
+    assert decision["outcome"]["next_owner"] == "codex_cli"
+    assert decision["outcome"]["can_submit"] is False
+
+
+def test_missing_stage_closure_context_is_quality_debt_not_fail_closed() -> None:
     projection = stage_closure_decision_projection(
         readback={
-            "stage_closure_decision": {
-                "surface_kind": "mas_stage_closure_decision",
-                "outcome": {
-                    "kind": "typed_blocker",
-                    "blocker_type": "unclassified_stage_closure_blocker",
-                    "next_action": "materialize_typed_blocker_or_route_redesign",
-                },
-                "known_blockers": [
-                    "accepted_submission_milestone_candidate",
-                    (
-                        "MAS mission executor consumed route-back/domain-gate evidence "
-                        "as a fresh paper-facing candidate and is continuing the "
-                        "PaperMission stage."
-                    ),
-                    "paper_mission_stage_route_domain_gate_pending",
-                ],
-            }
+            "consume_candidate_status": "route_back",
+            "stage_terminal_decision": {
+                "decision_kind": "route_back",
+                "repair_budget": {"repair_attempt_count": 4},
+            },
         }
     )
 
-    assert projection["outcome_kind"] == "next_stage_transition"
+    assert projection["projection_status"] == (
+        "quality_debt_stage_closure_context_missing"
+    )
+    assert projection["fail_closed"] is False
+    assert projection["next_stage_may_start"] is True
+    assert projection["route_selection_owner"] == "codex_cli"
     assert projection["outcome"]["kind"] == "next_stage_transition"
-    assert projection["outcome"]["transition_kind"] == "route_back_candidate_checkpoint"
-    assert "blocker_type" not in projection["outcome"]
+    assert stage_closure_decision_missing(projection) is False
 
 
-def test_blocker_taxonomy_keeps_submission_authority_separate_from_mirror_sync() -> None:
-    classes = classify_stage_closure_blockers(
+def test_blocker_taxonomy_is_diagnostic_only() -> None:
+    taxonomy = classify_stage_closure_blockers(
         [
-            "authority_snapshot_missing",
-            "delivery_manifest_source_changed",
-            "reviewer_first_concerns_unresolved",
-            "paper_mission_stage_route_domain_gate_pending",
+            "claim_evidence_consistency_failed",
+            "current_package_stale",
+            "bundle_build_allowed_false",
+            "credential_boundary",
+            "unknown-shape",
         ]
     )
 
-    assert classes["submission_authority"] == ["authority_snapshot_missing"]
-    assert classes["mirror_sync"] == ["delivery_manifest_source_changed"]
-    assert classes["quality_repairable"] == ["reviewer_first_concerns_unresolved"]
-    assert classes["route_back_checkpoint"] == [
-        "paper_mission_stage_route_domain_gate_pending"
-    ]
-
-
-def test_delivery_known_blockers_block_owner_receipt_when_current_package_cannot_submit() -> None:
-    decision = terminalize_stage_closure(
-        study_id="002-dm-china-us-mortality-attribution",
-        stage_id="publication_supervision",
-        work_unit_id="submission_milestone_candidate",
-        work_unit_fingerprint="dm002-current-package-authority",
-        gate_replay={"gate_replay_status": "blocked"},
-        delivery_readback={
-            "package_kind": "submission_ready_package",
-            "can_submit": False,
-            "quality_gate_status": "blocked",
-            "freshness": "current",
-            "generated_from_current_source": True,
-            "root": "/tmp/current-package",
-            "zip_exists": True,
-            "known_blockers": ["authority_snapshot_missing"],
-        },
-    )
-
-    assert decision["known_blockers"] == ["authority_snapshot_missing"]
-    assert decision["blocker_taxonomy"]["submission_authority"] == [
-        "authority_snapshot_missing"
-    ]
-    assert decision["outcome"]["kind"] == "human_gate"
-    assert decision["outcome"]["gate_type"] == "submission_authority_required"
+    assert taxonomy["quality_repairable"] == ["claim_evidence_consistency_failed"]
+    assert taxonomy["mirror_sync"] == ["current_package_stale"]
+    assert taxonomy["submission_authority"] == ["bundle_build_allowed_false"]
+    assert taxonomy["hard_authority"] == ["credential_boundary"]
+    assert taxonomy["unknown"] == ["unknown-shape"]

@@ -4,7 +4,7 @@
   "domain_id": "med-autoscience",
   "owner": "MedAutoScience / OPL Framework",
   "state": "active_contract",
-  "purpose": "Machine-readable StageRun Kernel profile for Stage Native execution: stage folder, stage_manifest, role artifacts, and validated progress receipt, owner answer, or legal hard stop.",
+  "purpose": "Machine-readable StageRun transport profile for Stage Native execution: any readable artifact is Codex route input; structured manifests, receipts, review and repair improve quality but do not control progression.",
   "machine_boundary": "This profile defines a minimal StageRun state shell and authority boundary. It does not declare paper closure, publication readiness, domain readiness, quality readiness, artifact readiness, current_package freshness, or production readiness.",
   "source_design_ref": "human_doc:mas_opl_stage_native_state_machine",
   "stage_folder_contract_ref": "contracts/opl-framework/stage-artifact-runtime-contract.json",
@@ -31,12 +31,14 @@
   ],
   "kernel_role": "minimal_state_shell_not_mas_controller_system",
   "stage_folder_manifest_role": "artifact_evidence_and_structure_contract",
-  "transition_authority": {
-    "terminal_transition_authority": "consumable_artifact_progress_or_owner_answer_or_hard_stop",
-    "provider_completion_counts_as_transition": false,
-    "file_presence_counts_as_transition": false,
-    "quality_budget_exhaustion_blocks_transition": false,
-    "owner_receipt_required_for_quality_or_ready_claim": true
+  "codex_semantic_route_policy": {
+    "semantic_owner": "codex_cli",
+    "readable_artifact_allows_any_declared_stage": true,
+    "provider_completion_is_route_decision": false,
+    "file_presence_without_readability_is_progress": false,
+    "quality_budget_exhaustion_blocks_route": false,
+    "owner_receipt_required_for_quality_or_ready_claim": true,
+    "framework_can_accept_reject_rank_or_override_route": false
   },
   "required_object_models": [
     "StageRun",
@@ -74,11 +76,12 @@
       "artifact_ref_must_include_lineage": true
     },
     "closeout_contract": {
-      "requires_progress_receipt_or_owner_answer_or_hard_stop": true,
+      "structured_progress_receipt_preferred_not_required": true,
+      "readable_artifact_sufficient_for_progress": true,
       "owner_receipt_required_for_quality_or_ready_claim": true,
       "owner_receipt_ref_role": "domain_quality_or_ready_claim_authority",
       "typed_blocker_ref_role": "legal_hard_stop_authority",
-      "output_only_stage_folder_is_orphan": true
+      "output_only_stage_folder_is_orphan": false
     },
     "projection_contract": {
       "projection_directory_is_authority": false,
@@ -106,21 +109,19 @@
     ],
     "state_meanings": {
       "Declared": "Stage spec exists and input refs are not yet satisfied.",
-      "InputsReady": "Required role artifacts and knowledge packet refs satisfy the entry contract.",
+      "InputsReady": "Available role artifacts, partial outputs, diagnostics, negative results, and knowledge refs are exposed to Codex; missing optional structure becomes quality debt.",
       "Admitted": "OPL accepted a WorkUnitRun and created task, lease, or attempt refs.",
       "Running": "Provider attempt has live proof.",
       "Terminalizing": "Provider wrote a closeout packet and OPL is ingesting terminal refs.",
-      "DomainAccepted": "MAS validated consumable artifact progress, consumed an owner answer, or recorded a legal hard stop.",
-      "NextStageReady": "Route emitted the next StageRun spec from validated progress, an owner answer, or a legal hard stop."
-    },
-    "terminal_transition_authority": {
-      "DomainAccepted": "MAS validates consumable artifact progress, consumes an owner answer, or records a legal hard stop",
-      "NextStageReady": "route emitted from validated progress, an owner answer, or a legal hard stop"
+      "DomainAccepted": "Passive projection observed readable progress, an owner answer, or a legal hard stop; this is not semantic route authority.",
+      "NextStageReady": "Passive projection observed the next stage selected by Codex CLI."
     },
     "provider_completion_counts_as_domain_accepted": false,
     "stage_folder_files_count_as_next_stage_ready": false,
     "latest_json_counts_as_domain_accepted": false,
-    "validated_consumable_artifact_progress_counts_as_transition": true,
+    "read_model_can_select_semantic_route": false,
+    "readable_artifact_counts_as_progress_input": true,
+    "codex_can_route_to_any_declared_stage": true,
     "quality_debt_counts_as_quality_acceptance": false,
     "active_run_id_counts_as_paper_progress": false
   },
@@ -131,10 +132,11 @@
       "scope",
       "selected_executor",
       "authority_boundary",
-      "required_role_artifacts",
-      "receipt_or_blocker_shape",
       "forbidden_write",
-      "replay_audit_lineage"
+      "currentness",
+      "permission_or_credential",
+      "irreversible_action",
+      "explicit_human_gate"
     ],
     "advisory_refs": [
       "prompt_refs",
@@ -160,6 +162,7 @@
     "executor_output_requirement": "concrete_delta",
     "accepted_closeout_shapes": [
       "ProgressDeltaReceipt",
+      "RawReadableArtifact",
       "OwnerReceipt",
       "TypedBlocker",
       "human_gate_ref",
@@ -328,12 +331,13 @@
         "body_included"
       ],
       "body_included": false,
-      "file_presence_counts_as_completion": false
+      "file_presence_counts_as_completion": false,
+      "readable_file_counts_as_progress_input": true
     },
     "OwnerReceipt": {
       "owner": "med-autoscience",
       "role": "domain_success_or_route_handoff_receipt",
-      "transition_authority": "success_or_route_handoff",
+      "codex_route_input_role": "quality_or_owner_answer_context",
       "required_fields": [
         "receipt_id",
         "stage_run_id",
@@ -349,7 +353,7 @@
     "TypedBlocker": {
       "owner": "med-autoscience",
       "role": "stable_domain_blocker_or_deferred_outcome",
-      "transition_authority": "blocked_or_deferred_domain_outcome",
+      "codex_route_input_role": "legal_hard_stop_or_deferred_context",
       "required_fields": [
         "blocker_id",
         "stage_run_id",
@@ -376,7 +380,7 @@
       ],
       "authority_boundary": {
         "rebuildable_projection": true,
-        "can_write_transition": false,
+        "can_select_semantic_route": false,
         "can_promote_latest_to_authority": false,
         "can_write_mas_truth": false
       }
@@ -402,7 +406,7 @@
       "memory_accept_reject",
       "owner_receipt",
       "typed_blocker",
-      "route_decision"
+      "domain_route_context"
     ],
     "forbidden_opl_authority": [
       "write_mas_study_truth",
@@ -456,7 +460,7 @@
       "mas_owns_session_store",
       "mas_owns_status_shell",
       "mas_owns_workbench_wrapper",
-      "mas_workbench_status_can_authorize_stage_transition"
+      "mas_workbench_status_can_select_codex_route"
     ],
     "new_mas_local_wrapper_requires": [
       "mas_domain_authority_reason",
@@ -469,7 +473,7 @@
   "projection_boundary": {
     "read_models_are_rebuildable": true,
     "latest_progress_portal_and_workbench_are_projection_only": true,
-    "forbidden_transition_authority": [
+    "forbidden_semantic_route_sources": [
       "publication_eval/latest.json",
       "controller_decisions/latest.json",
       "study_progress_projection",
@@ -529,9 +533,9 @@
       "publication_ready",
       "artifact_mutation_authorized",
       "current_package_updated",
-      "legacy_runtime_residue_authorizes_transition"
+      "legacy_runtime_residue_authorizes_semantic_route"
     ],
-    "legacy_runtime_residue_can_authorize_transition": false,
+    "legacy_runtime_residue_can_select_semantic_route": false,
     "operator_summary_can_write_domain_truth": false,
     "operator_summary_can_close_stage": false,
     "operator_summary_can_resume_dm002_dm003": false

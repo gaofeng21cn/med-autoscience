@@ -50,7 +50,6 @@ def test_classify_changed_files_matches_runtime_contract_surface() -> None:
             "contracts/runtime/mas-root-cause-depth-gate.json",
             "src/med_autoscience/profiles.py",
             "profiles/workspace.profile.template.toml",
-            "src/med_autoscience/controllers/study_outer_loop/__init__.py",
             "src/med_autoscience/controllers/study_runtime_decision/__init__.py",
             "src/med_autoscience/controllers/study_runtime_resolution.py",
             "src/med_autoscience/controllers/domain_status_projection.py",
@@ -337,30 +336,24 @@ def test_classify_changed_files_matches_study_owner_gate_decision_surface() -> N
     ]
 
 
-def test_classify_changed_files_matches_paper_progress_transition_boundary_surface() -> None:
+def test_classify_changed_files_matches_paper_progress_ai_route_boundary_surface() -> None:
     module = importlib.import_module("med_autoscience.dev_preflight_contract")
 
     result = module.classify_changed_files(
         [
-            "contracts/opl_domain_progress_transition_runtime_contract.json",
-            "contracts/paper_progress_replay_live_evidence_status.json",
-            "contracts/paper_progress_transition_runtime_completion_audit.json",
             "contracts/runtime/mas-runtime-surface-retirement-inventory.json",
             "docs/active/mas-ideal-state-gap-plan.md",
             "docs/runtime/control/controllers.md",
-            "docs/runtime/designs/" + "paper_progress_" + "transition_kernel_target.md",
             "docs/status.md",
-            "src/med_autoscience/controllers/opl_domain_progress_transition_contract.py",
-            "src/med_autoscience/controllers/opl_transition_readback.py",
-            "src/med_autoscience/controllers/paper_progress_policy_adapter.py",
-            "tests/test_opl_domain_progress_transition_runtime_contract.py",
-            "tests/test_opl_transition_readback_contract.py",
+            "src/med_autoscience/controllers/ai_route_context.py",
+            "src/med_autoscience/controllers/opl_stage_attempt_readback.py",
+            "tests/test_ai_route_context.py",
             "tests/test_mas_workspace_domain_projection.py",
         ]
     )
 
     assert result.matched_categories == (
-        "paper_progress_transition_boundary_surface",
+        "paper_progress_ai_route_boundary_surface",
         "documentation_review_only",
     )
     assert result.unclassified_changes == ()
@@ -368,13 +361,9 @@ def test_classify_changed_files_matches_paper_progress_transition_boundary_surfa
     assert "make test-control-plane" not in planned_commands
     assert (
         "make test-paths -- "
-        "tests/test_opl_transition_readback_contract.py "
+        "tests/test_ai_route_context.py "
         "tests/test_mas_workspace_domain_projection.py "
         "tests/test_live_stage_run_progress_evidence.py -q"
-    ) in planned_commands
-    assert (
-        "make test-paths -- "
-        "tests/test_opl_domain_progress_transition_runtime_contract.py -q"
     ) in planned_commands
 
 
@@ -403,7 +392,7 @@ def test_classify_changed_files_covers_current_contract_and_carrier_surfaces() -
     assert result.matched_categories == (
         "standard_agent_pack_surface",
         "production_acceptance_surface",
-        "paper_progress_transition_boundary_surface",
+        "paper_progress_ai_route_boundary_surface",
         "research_integrity_surface",
         "runtime_contract_surface",
         "codex_plugin_surface",
@@ -581,7 +570,6 @@ def test_classify_changed_files_matches_standard_agent_pack_surface() -> None:
             "contracts/standard_agent_completion_acceptance.json",
             "contracts/standard_agent_completion_evidence_status.json",
             "contracts/stage_artifact_kernel_adoption.json",
-            "contracts/stage_route_reconcile_contract.json",
             "contracts/stage_run_kernel_profile.json",
             "templates/codex/medautoscience-entry.SKILL.md",
             "templates/openclaw/medautoscience-entry.prompt.md",
@@ -598,8 +586,7 @@ def test_classify_changed_files_matches_standard_agent_pack_surface() -> None:
             "tests/test_standard_agent_completion_acceptance_contract.py "
             "tests/test_test_lane_governance.py "
             "tests/test_stage_quality_contract.py "
-            "tests/test_stage_route_contract.py "
-            "tests/test_stage_route_reconcile_contract.py -q"
+            "tests/test_stage_route_contract.py -q"
         ),
         "make test-paths -- tests/test_domain_route_profile.py -q",
         "make test-paths -- tests/test_mas_workspace_domain_projection.py -q",
@@ -647,8 +634,7 @@ def test_classify_changed_files_matches_external_learning_sidecar_surface() -> N
             "tests/test_standard_agent_completion_acceptance_contract.py "
             "tests/test_test_lane_governance.py "
             "tests/test_stage_quality_contract.py "
-            "tests/test_stage_route_contract.py "
-            "tests/test_stage_route_reconcile_contract.py -q"
+            "tests/test_stage_route_contract.py -q"
         ),
         "make test-paths -- tests/test_domain_route_profile.py -q",
         "make test-paths -- tests/test_mas_workspace_domain_projection.py -q",

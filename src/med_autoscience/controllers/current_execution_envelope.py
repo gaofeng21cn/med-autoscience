@@ -8,7 +8,7 @@ RETIRED_AUTHORITY_BOUNDARY = {
     "surface_kind": "legacy_current_execution_envelope_authority_boundary",
     "status": "retired",
     "authority": "retired_projection",
-    "replacement_authority": "StageOutcome -> NextActionEnvelope -> OPL TransitionReceipt",
+    "replacement_authority": "StageOutcome -> NextActionEnvelope -> OPL StageAttemptReceipt",
     "default_selector_policy": "fail_closed",
     "diagnostic_only": True,
     "can_select_next_action": False,

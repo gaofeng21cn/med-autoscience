@@ -16,13 +16,13 @@ def _handoff(candidate_ref: str) -> dict[str, object]:
     transaction_ref = "paper-mission-transaction::study-001"
     return {
         "paper_mission_transaction_ref": transaction_ref,
-        "opl_route_command_ref": f"{transaction_ref}#opl_route_command",
+        "ai_route_context_ref": f"{transaction_ref}#ai_route_context",
         "route_command_kind": "route_back",
         "route_target": "review_and_quality_gate",
         "declarative_target_stage_id": "review_and_quality_gate",
         "request_idempotency_key": f"{transaction_ref}::request",
         "candidate_ref": candidate_ref,
-        "opl_route_command": {
+        "ai_route_context": {
             "command_kind": "route_back",
             "target": "review_and_quality_gate",
             "declarative_target_stage_id": "review_and_quality_gate",
@@ -94,13 +94,13 @@ def test_paper_mission_handoff_is_normalized_to_generic_domain_route(tmp_path: P
     assert request["domain_route_transaction_ref"] == (
         "paper-mission-transaction::study-001"
     )
-    assert request["domain_route_command_ref"].endswith("#opl_route_command")
+    assert request["domain_route_command_ref"].endswith("#ai_route_context")
     assert request["route_identity"]["route_identity_key"].endswith("::route")
     assert request["attempt_identity"]["attempt_idempotency_key"].endswith("::attempt")
     assert request["authority_boundary"]["writes_runtime_queue"] is False
     rendered = json.dumps(request, ensure_ascii=False)
     assert "paper_mission_transaction_ref" not in rendered
-    assert "opl_route_command" not in request
+    assert "ai_route_context" not in request
     assert "study_id" not in request
 
 
@@ -127,7 +127,7 @@ def test_runtime_request_rejects_missing_explicit_stage_without_route_target_inf
     candidate.write_text(json.dumps({"version": 1}), encoding="utf-8")
     handoff = _handoff(str(candidate))
     handoff.pop("declarative_target_stage_id")
-    handoff["opl_route_command"].pop("declarative_target_stage_id")
+    handoff["ai_route_context"].pop("declarative_target_stage_id")
 
     readback = build_domain_route_handoff_intake_readback(handoff)
 
@@ -144,7 +144,7 @@ def test_runtime_request_rejects_conflicting_explicit_stage_identity(
     candidate = tmp_path / "candidate.json"
     candidate.write_text(json.dumps({"version": 1}), encoding="utf-8")
     handoff = _handoff(str(candidate))
-    handoff["opl_route_command"]["declarative_target_stage_id"] = (
+    handoff["ai_route_context"]["declarative_target_stage_id"] = (
         "06-manuscript_authoring"
     )
 
@@ -161,7 +161,7 @@ def test_runtime_request_rejects_conflicting_explicit_stage_identity(
 def test_terminal_domain_route_discriminators_are_generic() -> None:
     typed_blocker = _handoff("candidate.json")
     typed_blocker["route_command_kind"] = "stop_with_typed_blocker"
-    typed_blocker["opl_route_command"] = {
+    typed_blocker["ai_route_context"] = {
         "command_kind": "stop_with_typed_blocker",
         "target": "current_owner_resolution",
     }
@@ -176,7 +176,7 @@ def test_terminal_domain_route_discriminators_are_generic() -> None:
 
     complete = _handoff("candidate.json")
     complete["route_command_kind"] = "complete_mission"
-    complete["opl_route_command"] = {
+    complete["ai_route_context"] = {
         "command_kind": "complete_mission",
         "target": "mission_complete",
     }

@@ -34,7 +34,7 @@ def current_quality_repair_writer_handoff_route(
     if _text(batch.get("next_owner")) != "write":
         return None
     handoff = _mapping(batch.get("writer_worker_handoff"))
-    if _text(handoff.get("surface")) != "mas_domain_progress_transition_request_projection":
+    if _text(handoff.get("surface")) != "mas_ai_route_context_projection":
         return None
     if _text(handoff.get("dispatch_status")) != "ready":
         return None

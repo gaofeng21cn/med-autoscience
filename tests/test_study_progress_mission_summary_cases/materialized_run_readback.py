@@ -161,17 +161,18 @@ def test_artifact_first_mission_summary_prefers_materialized_paper_mission_run(
         mission_run["mission_id"]
     )
     assert payload["stage_terminal_decision"]["decision_kind"] == "typed_blocker"
-    assert payload["opl_route_command"]["command_kind"] == "stop_with_typed_blocker"
-    assert payload["opl_runtime_carrier"]["surface_kind"] == (
-        "mas_domain_progress_transition_request"
+    assert payload["ai_route_context"]["command_kind"] == "stop_with_typed_blocker"
+    assert payload["opl_stage_run_context"]["surface_kind"] == (
+        "mas_paper_mission_stage_run_context"
     )
-    assert payload["opl_runtime_carrier"]["opl_route_command"]["command_kind"] == (
+    assert payload["opl_stage_run_context"]["route_context"]["command_kind"] == (
         "stop_with_typed_blocker"
     )
-    assert payload["opl_runtime_carrier"][
+    assert payload["opl_stage_run_context"][
         "provider_admission_requires_opl_runtime_result"
-    ] is True
-    assert payload["opl_runtime_carrier"]["can_write_opl_stage_run"] is False
+    ] is False
+    assert payload["opl_stage_run_context"]["next_stage_may_start"] is True
+    assert payload["opl_stage_run_context"]["route_selection_owner"] == "codex_cli"
     assert payload["transaction_state"] == {
         "transaction_id": transaction["transaction_id"],
         "contract_ref": "contracts/paper_mission_transaction_contract.json",
@@ -303,11 +304,11 @@ def test_materialized_mission_summary_does_not_let_opl_closeout_override_stage_o
                     f"paper-mission::{study_id}::gate-clearing"
                     "#stage_terminal_decision"
                 ),
-                "opl_route_command_ref": (
+                "ai_route_context_ref": (
                     f"paper-mission-transaction::{study_id}::"
                     "gate_clearing_claim_evidence_repair::"
                     f"paper-mission::{study_id}::gate-clearing"
-                    "#opl_route_command"
+                    "#ai_route_context"
                 ),
                 "provider_completion_is_domain_completion": False,
                 "provider_completion_is_domain_ready": False,
@@ -319,7 +320,7 @@ def test_materialized_mission_summary_does_not_let_opl_closeout_override_stage_o
                     f"paper-mission-transaction::{study_id}::"
                     "gate_clearing_claim_evidence_repair::"
                     f"paper-mission::{study_id}::gate-clearing"
-                    "#opl_route_command",
+                    "#ai_route_context",
                     "closeout.json",
                     "typed-blocker:domain_gate_pending",
                 ],
@@ -343,15 +344,16 @@ def test_materialized_mission_summary_does_not_let_opl_closeout_override_stage_o
     )
 
     summary = payload["artifact_first_mission_summary"]
-    assert summary["opl_runtime_carrier"]["carrier_status"] == (
-        "waiting_for_opl_runtime_payload"
+    assert summary["opl_stage_run_context"]["carrier_status"] == "context_available"
+    assert summary["opl_stage_run_context"]["next_stage_may_start"] is True
+    assert summary["opl_stage_run_context"]["route_selection_owner"] == "codex_cli"
+    assert "opl_stage_attempt_receipt" not in summary
+    assert summary["opl_stage_attempt_readback_status"] == "context_available"
+    assert summary["opl_stage_attempt_readback"]["carrier_status"] == (
+        "context_available"
     )
-    assert "opl_transition_receipt" not in summary
-    assert summary["opl_runtime_readback_status"] == "waiting_for_opl_runtime_payload"
-    assert summary["opl_runtime_carrier_readback"]["carrier_status"] == (
-        "waiting_for_opl_runtime_payload"
-    )
-    assert summary["opl_runtime_carrier_readback"]["writes_runtime"] is False
+    assert summary["opl_stage_attempt_readback"]["writes_runtime"] is False
+    assert summary["opl_stage_attempt_readback"]["next_stage_may_start"] is True
     assert "terminal_owner_gate" not in summary
     assert summary["next_owner_or_human_decision"] == {
         "kind": "owner_or_route",
@@ -366,7 +368,7 @@ def test_materialized_mission_summary_does_not_let_opl_closeout_override_stage_o
         summary["next_owner_or_human_decision"]
     )
     assert summary["stage_terminal_decision"]["decision_kind"] == "advance"
-    assert summary["opl_route_command"]["command_kind"] == "start_next_stage"
+    assert summary["ai_route_context"]["command_kind"] == "start_next_stage"
     assert summary["mission_state"] == "consumed"
     assert summary["transaction_state"]["decision_kind"] == "advance"
     assert summary["transaction_state"]["route_command_kind"] == "start_next_stage"

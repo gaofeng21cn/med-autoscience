@@ -11,7 +11,7 @@ from med_autoscience.paper_mission_domain.common import (
 from med_autoscience.paper_mission_domain.stage_packet_route_back_readback import (
     _first_non_empty_text,
 )
-from med_autoscience.paper_mission_opl_readback.route_identity import (
+from med_autoscience.paper_mission_stage_run_readback.route_identity import (
     route_ref_matches,
 )
 
@@ -23,10 +23,10 @@ def _terminal_source_readback_newer(
     workspace_root: Path,
 ) -> bool:
     candidate_closeout = _mapping(
-        _mapping(candidate.get("opl_runtime_carrier_readback")).get("terminal_closeout")
+        _mapping(candidate.get("opl_stage_attempt_readback")).get("terminal_closeout")
     )
     current_closeout = _mapping(
-        _mapping(current.get("opl_runtime_carrier_readback")).get("terminal_closeout")
+        _mapping(current.get("opl_stage_attempt_readback")).get("terminal_closeout")
     )
     return _terminal_closeout_newer(
         candidate=candidate_closeout,
@@ -58,13 +58,13 @@ def _stage_closure_matches_current_transaction_with_terminal_closeout(
     opl_closeout = _mapping(stage_closure.get("opl_closeout"))
     stage_attempt_id = _optional_text(opl_closeout.get("stage_attempt_id"))
     live_terminal_closeout = _mapping(
-        _mapping(readback.get("opl_runtime_carrier_readback")).get("terminal_closeout")
+        _mapping(readback.get("opl_stage_attempt_readback")).get("terminal_closeout")
     )
     live_stage_attempt_id = _optional_text(live_terminal_closeout.get("stage_attempt_id"))
     if not _terminal_closeout_uses_stage_attempt_packet(live_terminal_closeout):
         return False
     direct_terminal_closeout = _mapping(
-        _mapping(readback.get("current_opl_runtime_carrier_readback")).get(
+        _mapping(readback.get("current_opl_stage_attempt_readback")).get(
             "terminal_closeout"
         )
     )
@@ -100,7 +100,7 @@ def _readback_has_current_transaction_terminal_closeout(
     if transaction_ref is None:
         return False
     terminal_closeout = _mapping(
-        _mapping(readback.get("opl_runtime_carrier_readback")).get("terminal_closeout")
+        _mapping(readback.get("opl_stage_attempt_readback")).get("terminal_closeout")
     )
     if not _terminal_closeout_uses_stage_attempt_packet(terminal_closeout):
         return False
@@ -126,7 +126,7 @@ def _stage_closure_decision_uses_stale_terminal_closeout(
         return False
     current_stage_attempt_id = _optional_text(
         _mapping(
-            _mapping(source_readback.get("opl_runtime_carrier_readback")).get(
+            _mapping(source_readback.get("opl_stage_attempt_readback")).get(
                 "terminal_closeout"
             )
         ).get("stage_attempt_id")

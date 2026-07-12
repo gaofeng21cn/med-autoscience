@@ -51,7 +51,6 @@ Date: `2026-06-16`
 | Plane | 长期 owner | 职责 | 禁止越界 |
 | --- | --- | --- | --- |
 | Intent / Policy Plane | MAS pack + MAS policy adapter | `current_owner_delta`、stage semantics、source/data/artifact/publication/memory policy、accepted answer shape。 | 不持有 queue、attempt、fixed-point apply、worker residency 或 generic scheduler。 |
-| Command / Event Plane | OPL Runway / DomainProgressTransitionRuntime | command normalization、event append、expected version、idempotency、replay、NonAdvancingApply。 | 不解释医学 quality、publication-ready、artifact authority 或 memory verdict。 |
 | Transactional Outbox Plane | OPL Runway | provider start、MAS owner callable、human gate、tool invocation 的 outbox item；同一 transition 内提交。 | MAS 不创建 OPL outbox record；read model 不反向入队。 |
 | Execution Plane | OPL StageRun + Codex/default executor | attempt identity、lease、retry/dead-letter、resume、worker liveness、terminal closeout refs。 | provider completion 不等于 MAS owner answer 或 paper progress。 |
 | Authority Answer Plane | MAS Medical Authority Kernel | owner receipt、typed blocker、quality gate receipt、human answer consumption、route-back evidence、artifact/memory/source authority。 | 程序函数不替代 independent reviewer / auditor 的开放式质量判断。 |
@@ -444,7 +443,6 @@ MAS 的所有 CLI、MCP、skill、domain-handler、owner callable、sidecar、na
 | --- | --- | --- |
 | Pack Compiler | `compile_domain_agent_pack(pack_root)` | 从 MAS `agent/` 和 `contracts/` 生成 hosted surfaces |
 | StageRun Kernel | `start/query/signal/closeout_stage_run` | MAS 只消费 attempt refs、lease refs、closeout binding |
-| DomainProgressTransitionRuntime | `submit_transition_command` / `append_transition_event` / `replay_transition_stream` / `read_projection_with_generation` | MAS 只提交 policy result / transition request，并消费 OPL command/event/outbox/StageRun readback；MAS 不持有 fixed-point runtime |
 | Transactional Outbox | `enqueue_side_effect_from_transition_event` / `read_outbox_item` / `mark_outbox_delivered` | MAS owner callable 只消费绑定同一 transition event 的 outbox item；outbox item 不等于 owner receipt 或 running proof |
 | RecoveryObligationStore | `open/query/update_obligation` with expected version | MAS 生成 obligation input；OPL 存储 desired/current/status、timeout、decision 和 no-progress budget |
 | State Index Kernel | `rebuild/read/checkpoint refs index` | MAS 提供 file truth / receipt refs；OPL 生成 read model |
@@ -468,7 +466,6 @@ OPL primitive 的目标 ABI 必须统一满足以下字段族：
 
 ### Machine ABI landing
 
-本设计的最小机器 ABI 切片已落到 `contracts/opl_domain_progress_transition_runtime_contract.json#/transition_spine_abi_contract`。该节点固定 `DomainIntent -> OPL Command -> OPL Event -> TransactionalOutbox -> StageRun -> MAS OwnerAnswer -> DerivedProjection` 七段 spine 的 `identity`、`causality`、`authority_boundary`、`exactly_one_outcome` 和 `projection_metadata` 字段族，并用 false-authority flags 明确 event、outbox、provider completion、projection fresh、queue empty 和 trace visible 都不能解释为 paper progress 或 MAS owner answer。
 
 该 contract 只证明 repo/source 层的 ABI shape 可被后续 OPL 基座消费；不声明 OPL runtime 已接入、live provider 已推进、MAS owner answer 已产生或 paper progress 已发生。
 
@@ -507,7 +504,6 @@ OPL primitive 的目标 ABI 必须统一满足以下字段族：
 ### Anti-regression gate
 
 - `current_owner_delta` 不得被 worklist 空、sidecar 缺失、old dispatch 或 stale read-model 覆盖。
-- `DomainProgressTransitionRuntime` 未给出 command/event/outbox/readback 时，MAS provider admission 只能停在 transition request / diagnostic，不得自签 provider admission 或 materialize ready dispatch。
 - `Paper Autonomy Supervisor`、domain diagnostic、`current_work_unit`、`paper_recovery_state`、domain-handler export 和 Workbench 只能消费 OPL transition event + MAS policy result；不得各自从 queue、stage index、old dispatch、provider count 或 prose status 重新选择下一步。
 - external advisory 缺失默认 fail open。
 - observability、lineage、provider completion、queue completion、descriptor ready 都不能声明 paper closure。

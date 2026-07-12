@@ -257,7 +257,7 @@
       "authority_boundary": "paper_progress_read_model_owner_handoff_guard",
       "implementation_status": {
         "paper_progress_degradation_classifier": "landed",
-        "opl_transition_receipt_current_identity_gate": "landed",
+        "opl_stage_attempt_receipt_current_identity_gate": "landed",
         "paper_progress_stall_safe_reconcile": "landed",
         "paper_progress_degradation_evidence": "landed_read_model",
         "production_blocker_impact_projection": "landed"

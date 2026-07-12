@@ -96,7 +96,7 @@ def test_study_progress_projects_stage_log_from_live_opl_attempt_when_handoff_la
     result = module.read_study_progress(profile=profile, study_id="001-risk")
 
     dashboard = result["opl_current_control_state_handoff"]
-    assert dashboard["surface_kind"] == "opl_current_control_state_provider_attempt_handoff"
+    assert dashboard["surface_kind"] == "opl_stage_attempt_context_handoff"
     assert dashboard["source_path"] == str(handoff_path)
     assert dashboard["authority"] == "observability_only"
     assert dashboard["active_run_id"] == "opl-stage-attempt://sat-live-queue"
@@ -108,3 +108,5 @@ def test_study_progress_projects_stage_log_from_live_opl_attempt_when_handoff_la
         dashboard["stage_progress_log"]["authority_boundary"]["can_authorize_quality_verdict"]
         is False
     )
+    assert dashboard["progress_first"]["next_stage_may_start"] is True
+    assert dashboard["progress_first"]["route_selection_owner"] == "codex_cli"

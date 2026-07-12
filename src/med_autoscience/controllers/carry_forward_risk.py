@@ -156,7 +156,7 @@ def carry_forward_successor_action(payload: Mapping[str, Any] | None) -> dict[st
             "typed_blocker:manuscript_story_surface_delta_missing",
             CARRY_FORWARD_RECEIPT_SURFACE_KIND,
         ],
-        "owner_receipt_required": True,
+        "owner_receipt_required_for_quality_or_ready_claim": True,
         "carry_forward_risk": carry_forward_status(payload),
         "forbidden_claims": _forbidden_claims(receipt),
         "owner_route_currentness_basis": _mapping(

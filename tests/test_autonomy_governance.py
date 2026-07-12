@@ -1,12 +1,7 @@
 from __future__ import annotations
 
 import importlib
-import json
-from pathlib import Path
-
 import pytest
-
-from tests.study_runtime_test_helpers import make_profile, write_study
 
 
 def test_direction_locked_bounded_analysis_is_autonomous_with_stable_scope() -> None:
@@ -130,68 +125,3 @@ def test_direction_unlocked_decision_requires_human_gate_class() -> None:
     assert contract["continuation_scope"] == "direction_lock"
     assert contract["human_gate_class"] == "direction_not_locked"
     assert contract["next_stage"] == "direction_lock"
-
-
-def test_study_outer_loop_decision_artifact_carries_autonomy_governance_contract(
-    monkeypatch: pytest.MonkeyPatch,
-    tmp_path: Path,
-) -> None:
-    outer_loop = importlib.import_module("med_autoscience.controllers.study_outer_loop")
-    outer_loop_tests = importlib.import_module("tests.test_study_outer_loop_cases.shared")
-    profile = make_profile(tmp_path)
-    study_root = write_study(profile.workspace_root, "001-risk")
-    quest_root = profile.managed_runtime_home / "quests" / "quest-001"
-    runtime_escalation_ref = outer_loop_tests._write_runtime_escalation_record(outer_loop, quest_root, study_root)
-    charter_ref = outer_loop_tests._write_charter(study_root)
-    publication_eval_ref = outer_loop_tests._write_publication_eval(study_root, quest_root)
-
-    monkeypatch.setattr(
-        outer_loop.domain_status_projection,
-        "progress_projection",
-        lambda **_: {
-            "study_id": "001-risk",
-            "quest_id": "quest-001",
-            "decision": "blocked",
-            "reason": "quest_stopped_requires_explicit_rerun",
-            "runtime_escalation_ref": runtime_escalation_ref,
-        },
-    )
-    result = outer_loop.study_outer_loop_tick(
-        profile=profile,
-        study_id="001-risk",
-        charter_ref=charter_ref,
-        publication_eval_ref=publication_eval_ref,
-        decision_type="bounded_analysis",
-        route_target="analysis-campaign",
-        route_key_question="What narrow robustness check is still needed?",
-        route_rationale="The study direction is locked and only one bounded check remains.",
-        requires_human_confirmation=False,
-        controller_actions=[
-            {
-                "action_type": "request_opl_stage_attempt_relaunch",
-                "payload_ref": str(study_root / "artifacts" / "controller_decisions" / "latest.json"),
-            }
-        ],
-        reason="Run the bounded supplementary analysis before the next gate pass.",
-        source="test-source",
-        recorded_at="2026-04-05T06:00:00+00:00",
-    )
-
-    payload = json.loads(Path(result["study_decision_ref"]["artifact_path"]).read_text(encoding="utf-8"))
-    assert payload["autonomy_governance_contract"] == {
-        "contract_kind": "study_autonomy_governance_contract",
-        "lane_id": "bounded_analysis",
-        "continuation_scope": "bounded_supplementary_analysis",
-        "next_stage": "analysis-campaign",
-        "human_gate_class": "none",
-        "requires_human_confirmation": False,
-        "controller_action_types": ["request_opl_stage_attempt_relaunch"],
-        "decision_type": "bounded_analysis",
-        "reason_code": "direction_locked_bounded_analysis_stays_autonomous",
-    }
-    assert not {"family_event_envelope", "family_checkpoint_lineage", "family_human_gates"} & payload.keys()
-    executed = result["executed_controller_action"]
-    assert executed["action_type"] == "request_opl_stage_attempt_relaunch"
-    assert executed["result"]["status"] == "opl_stage_attempt_admission_required"
-    assert executed["result"]["typed_blocker"]["owner"] == "one-person-lab"
-    assert executed["result"]["typed_blocker"]["reason"] == "mas_runtime_attempt_execution_retired"

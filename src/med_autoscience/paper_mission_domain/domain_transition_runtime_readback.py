@@ -17,8 +17,8 @@ from med_autoscience.paper_mission_domain.stage_closure_next_action import (
 from med_autoscience.paper_mission_domain.stage_closure_terminalizer import (
     terminalize_stage_closure_from_readback as _terminalize_stage_closure_from_readback,
 )
-from med_autoscience.paper_mission_opl_readback import (
-    paper_mission_opl_runtime_carrier_readback,
+from med_autoscience.paper_mission_stage_run_readback import (
+    paper_mission_stage_run_context_readback,
 )
 
 
@@ -59,8 +59,8 @@ def _domain_transition_direct_next_action_runtime_readback(
         inspect_readback=inspect_readback,
         next_action=next_action,
     )
-    carrier = _mapping(handoff.get("opl_runtime_carrier"))
-    carrier_readback = paper_mission_opl_runtime_carrier_readback(
+    carrier = _mapping(handoff.get("opl_stage_run_context"))
+    carrier_readback = paper_mission_stage_run_context_readback(
         carrier=carrier,
         study_root=study_root,
         opl_runtime_payload=opl_runtime_payload,
@@ -73,10 +73,10 @@ def _domain_transition_direct_next_action_runtime_readback(
         "opl_route_handoff": handoff,
         "paper_mission_transaction": handoff["paper_mission_transaction"],
         "stage_terminal_decision": handoff["stage_terminal_decision"],
-        "opl_route_command": handoff["opl_route_command"],
-        "opl_runtime_carrier": carrier,
-        "opl_runtime_carrier_readback": carrier_readback,
-        "opl_runtime_readback_status": carrier_readback["carrier_status"],
+        "ai_route_context": handoff["ai_route_context"],
+        "opl_stage_run_context": carrier,
+        "opl_stage_attempt_readback": carrier_readback,
+        "opl_stage_attempt_readback_status": carrier_readback["carrier_status"],
         "transaction_state": "domain_transition_direct_stage_attempt",
         "consume_candidate_status": "not_applicable_domain_transition_direct",
         "authority_boundary": {
@@ -113,11 +113,11 @@ def _override_next_action_from_direct_terminal_closeout(
     next_action_for_stage_closure_decision: Callable[..., Mapping[str, Any] | None] | None = None,
 ) -> tuple[Mapping[str, Any], Mapping[str, Any] | None, str | None]:
     direct = _mapping(direct_next_action_runtime)
-    if _optional_text(direct.get("opl_runtime_readback_status")) != (
+    if _optional_text(direct.get("opl_stage_attempt_readback_status")) != (
         "opl_runtime_terminal_readback_observed"
     ):
         return stage_closure_decision, next_action_override, canonical_next_action_source
-    carrier_readback = _mapping(direct.get("opl_runtime_carrier_readback"))
+    carrier_readback = _mapping(direct.get("opl_stage_attempt_readback"))
     if _optional_text(_mapping(carrier_readback.get("mas_receipt_consumption")).get("status")) != (
         "requires_mas_owner_consumption"
     ):

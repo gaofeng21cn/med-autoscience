@@ -36,7 +36,7 @@ def test_open_runtime_surfaces_cannot_use_active_callers_as_retention_reason() -
 
 def test_owner_callable_receipt_latest_reader_consumes_canonical_receipt(tmp_path) -> None:
     candidates = importlib.import_module(
-        "med_autoscience.controllers.study_transition_receipt_consumption.owner_callable_candidates"
+        "med_autoscience.controllers.study_stage_attempt_receipt_consumption.owner_callable_candidates"
     )
     study_root = tmp_path / "studies" / "study-1"
     canonical_path = study_root / "artifacts" / "supervision" / "consumer" / "owner_callable_adapter_receipts" / "latest.json"

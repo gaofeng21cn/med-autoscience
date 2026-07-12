@@ -17,7 +17,6 @@ from med_autoscience.controllers.story_surface_work_units import (
     is_claim_evidence_alignment_write_work_unit,
     is_story_surface_delta_write_work_unit,
 )
-from med_autoscience.controllers.study_domain_transition_table import ai_reviewer_transitions
 from med_autoscience.controllers.paper_mission_owner_surface import gate_replay_routes
 from med_autoscience.controllers.current_truth_owner import writer_handoff
 from med_autoscience.controllers.gate_clearing_batch_work_units import PUBLICATION_GATE_REPLAY_WORK_UNIT_IDS
@@ -358,12 +357,43 @@ def current_manuscript_digest_mismatch_ai_reviewer_route(
     }
 
 
+def _requires_owner_authorized_publication_gate_recheck_only(
+    publication_eval: Mapping[str, Any],
+) -> bool:
+    provenance = _mapping(publication_eval.get("assessment_provenance"))
+    if _text(provenance.get("owner")) != "ai_reviewer" or provenance.get("ai_reviewer_required") is not False:
+        return False
+    reviewer_os = _mapping(publication_eval.get("reviewer_operating_system"))
+    claim_alignment = _mapping(reviewer_os.get("claim_evidence_alignment"))
+    if _text(claim_alignment.get("status")) != "ready":
+        return False
+    if claim_alignment.get("missing_required_fields") or claim_alignment.get("blockers"):
+        return False
+    readiness = _mapping(reviewer_os.get("publication_quality_readiness"))
+    missing = {
+        text
+        for item in readiness.get("missing_required_fields") or []
+        if (text := _text(item)) is not None
+    }
+    if _text(readiness.get("status")) != "blocked" or missing != {"owner_authorized_publication_gate_recheck"}:
+        return False
+    return all(
+        _text(readiness.get(field)) is not None
+        for field in (
+            "current_manuscript_digest",
+            "review_request_digest",
+            "evidence_ledger_digest",
+            "claim_evidence_alignment_digest",
+        )
+    )
+
+
 def current_ai_reviewer_write_routeback_route(
     *,
     study_root: Path,
     publication_eval_payload: Mapping[str, Any],
 ) -> dict[str, Any] | None:
-    if ai_reviewer_transitions.requires_owner_authorized_publication_gate_recheck_only(publication_eval_payload):
+    if _requires_owner_authorized_publication_gate_recheck_only(publication_eval_payload):
         return None
     if not _ai_reviewer_write_routeback_current(publication_eval_payload):
         return None

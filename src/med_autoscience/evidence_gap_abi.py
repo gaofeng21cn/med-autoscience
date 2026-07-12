@@ -36,7 +36,7 @@ ABI_COMPONENTS = (
 CONSUMER_REFS = {
     "study_progress": "/study_progress/evidence_gap_decisions",
     "domain_diagnostic_report": "/domain_diagnostic_report/evidence_gap_decisions",
-    "domain_action_materializer": "/domain_progress_transition_requests/*/evidence_gap_decisions",
+    "domain_action_materializer": "/ai_route_contexts/*/evidence_gap_decisions",
     "opl_stage_control_plane": "/product_entry_manifest/evidence_gap_consumption_abi",
     "workbench": "/study_workbench/evidence_gap_view",
     "mcp_action_catalog": "/mcp_tools/*/metadata/evidence_gap_consumption_abi",

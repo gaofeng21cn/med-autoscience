@@ -18,12 +18,12 @@ from med_autoscience.controllers.study_interventions import read_intervention_ev
 from med_autoscience.controllers.study_progress.canonical_owner_action_projection import (
     submission_authority_owner_gate_readback,
 )
-from med_autoscience.paper_mission_opl_carrier import paper_mission_opl_runtime_carrier
-from med_autoscience.paper_mission_opl_readback.receipt_events import (
+from med_autoscience.paper_mission_stage_run_context import paper_mission_stage_run_context
+from med_autoscience.paper_mission_stage_run_readback.receipt_events import (
     matches_receipt_bundle,
 )
-from med_autoscience.paper_mission_opl_readback import (
-    attach_opl_runtime_carrier_readback,
+from med_autoscience.paper_mission_stage_run_readback import (
+    attach_opl_stage_attempt_readback,
     attach_paper_mission_next_action,
 )
 from med_autoscience.paper_mission_owner_answer import (
@@ -178,7 +178,7 @@ def _paper_mission_run_candidate(
         },
         "paper_mission_transaction": transaction,
         "stage_terminal_decision": _mapping(transaction.get("stage_terminal_decision")),
-        "opl_route_command": _mapping(transaction.get("opl_route_command")),
+        "ai_route_context": _mapping(transaction.get("ai_route_context")),
         "transaction_state": _transaction_state(transaction),
     }
 
@@ -196,7 +196,7 @@ def _paper_mission_transaction_readback(
     transaction_override: dict[str, Any] | None = None,
     transaction_source_override: str | None = None,
     opl_runtime_payload: Mapping[str, Any] | None = None,
-    attach_runtime_readback=attach_opl_runtime_carrier_readback,
+    attach_runtime_readback=attach_opl_stage_attempt_readback,
     attach_next_action=attach_paper_mission_next_action,
 ) -> dict[str, Any]:
     transaction = _first_mapping(
@@ -253,8 +253,8 @@ def _paper_mission_transaction_readback(
         "source": source,
         "paper_mission_transaction": transaction,
         "stage_terminal_decision": _mapping(transaction.get("stage_terminal_decision")),
-        "opl_route_command": _mapping(transaction.get("opl_route_command")),
-        "opl_runtime_carrier": paper_mission_opl_runtime_carrier(transaction),
+        "ai_route_context": _mapping(transaction.get("ai_route_context")),
+        "opl_stage_run_context": paper_mission_stage_run_context(transaction),
         "transaction_state": _transaction_state(transaction),
         "writes_authority": False,
         "writes_runtime": False,
@@ -276,10 +276,10 @@ def _paper_mission_transaction_readback(
         )
     )
     if suppress_terminal_owner_gate:
-        readback["opl_runtime_carrier_readback"] = (
+        readback["opl_stage_attempt_readback"] = (
             _runtime_readback_superseded_by_authority_consumption(readback)
         )
-        readback["opl_runtime_readback_status"] = "waiting_for_opl_runtime_payload"
+        readback["opl_stage_attempt_readback_status"] = "optional_stage_attempt_readback_missing"
     readback = attach_next_action(readback)
     terminal_owner_gate = (
         {}
@@ -314,17 +314,17 @@ def _paper_mission_transaction_readback(
             readback["stage_terminal_decision"] = _mapping(
                 owner_answer_transaction.get("stage_terminal_decision")
             )
-            readback["opl_route_command"] = _mapping(
-                owner_answer_transaction.get("opl_route_command")
+            readback["ai_route_context"] = _mapping(
+                owner_answer_transaction.get("ai_route_context")
             )
-            readback["opl_runtime_carrier"] = paper_mission_opl_runtime_carrier(
+            readback["opl_stage_run_context"] = paper_mission_stage_run_context(
                 owner_answer_transaction
             )
             readback["transaction_state"] = _transaction_state(owner_answer_transaction)
             readback["consume_candidate_status_override"] = "route_back"
             if not _carrier_readback_has_consumable_receipt(
-                _mapping(readback.get("opl_runtime_carrier_readback")),
-                request_carrier=_mapping(readback.get("opl_runtime_carrier")),
+                _mapping(readback.get("opl_stage_attempt_readback")),
+                request_carrier=_mapping(readback.get("opl_stage_run_context")),
             ):
                 readback = attach_runtime_readback(
                     readback=readback,
@@ -424,7 +424,7 @@ def _authority_acceptance_is_newer_than_terminal_closeout(
     if source_ref is None:
         return True
     terminal_closeout = _mapping(
-        _mapping(readback.get("opl_runtime_carrier_readback")).get("terminal_closeout")
+        _mapping(readback.get("opl_stage_attempt_readback")).get("terminal_closeout")
     )
     closeout_ref = _optional_text(terminal_closeout.get("closeout_ref"))
     if closeout_ref is None:
@@ -441,14 +441,14 @@ def _authority_acceptance_is_newer_than_terminal_closeout(
 def _runtime_readback_superseded_by_authority_consumption(
     readback: Mapping[str, Any],
 ) -> dict[str, Any]:
-    carrier_readback = _mapping(readback.get("opl_runtime_carrier_readback"))
+    carrier_readback = _mapping(readback.get("opl_stage_attempt_readback"))
     terminal_closeout = _mapping(carrier_readback.get("terminal_closeout"))
     return {
-        "surface_kind": "paper_mission_opl_runtime_carrier_readback",
+        "surface_kind": "paper_mission_stage_run_context_readback",
         "schema_version": 1,
-        "carrier_status": "waiting_for_opl_runtime_payload",
+        "carrier_status": "context_available",
         "runtime_readback_status": "terminal_closeout_superseded",
-        "dispatch_status": "transition_request_pending",
+        "dispatch_status": "ai_route_context_available",
         "domain_ready_verdict": "authority_consumed_candidate_supersedes_terminal_closeout",
         "provider_completion_is_domain_completion": False,
         "provider_completion_is_domain_ready": False,
@@ -457,6 +457,8 @@ def _runtime_readback_superseded_by_authority_consumption(
         "can_claim_runtime_ready": False,
         "authority_materialized": False,
         "request_carrier_preserved": True,
+        "next_stage_may_start": True,
+        "route_selection_owner": "codex_cli",
         **(
             {"superseded_terminal_closeout_ref": terminal_closeout["closeout_ref"]}
             if terminal_closeout.get("closeout_ref")
@@ -530,13 +532,13 @@ def _transaction_readback_output_fields(
             "paper_mission_transaction"
         ],
         "stage_terminal_decision": transaction_readback["stage_terminal_decision"],
-        "opl_route_command": transaction_readback["opl_route_command"],
-        "opl_runtime_carrier": transaction_readback["opl_runtime_carrier"],
-        "opl_runtime_carrier_readback": transaction_readback[
-            "opl_runtime_carrier_readback"
+        "ai_route_context": transaction_readback["ai_route_context"],
+        "opl_stage_run_context": transaction_readback["opl_stage_run_context"],
+        "opl_stage_attempt_readback": transaction_readback[
+            "opl_stage_attempt_readback"
         ],
-        "opl_runtime_readback_status": transaction_readback[
-            "opl_runtime_readback_status"
+        "opl_stage_attempt_readback_status": transaction_readback[
+            "opl_stage_attempt_readback_status"
         ],
         **(
             {"opl_route_handoff": transaction_readback["opl_route_handoff"]}
@@ -642,7 +644,7 @@ def _terminal_owner_gate_from_transaction_readback(
     readback: Mapping[str, Any],
 ) -> dict[str, Any]:
     carrier_gate = terminal_owner_gate_from_carrier_readback(
-        _mapping(readback.get("opl_runtime_carrier_readback"))
+        _mapping(readback.get("opl_stage_attempt_readback"))
     )
     if carrier_gate:
         return carrier_gate
@@ -661,7 +663,7 @@ def _next_owner_or_human_decision_from_transaction_readback(
         return terminal_owner_gate_next_decision(terminal_owner_gate)
     return stage_terminal_next_owner_or_human_decision(
         stage_terminal_decision=_mapping(readback.get("stage_terminal_decision")),
-        opl_route_command=_mapping(readback.get("opl_route_command")),
+        ai_route_context=_mapping(readback.get("ai_route_context")),
     )
 
 
@@ -679,7 +681,7 @@ def _carrier_readback_has_consumable_receipt(
     request_carrier: Mapping[str, Any],
 ) -> bool:
     return matches_receipt_bundle(
-        receipt=_mapping(payload.get("opl_transition_receipt")),
+        receipt=_mapping(payload.get("opl_stage_attempt_receipt")),
         evidence=_mapping(payload.get("receipt_evidence")),
         consumption=_mapping(payload.get("mas_receipt_consumption")),
         carrier=request_carrier,

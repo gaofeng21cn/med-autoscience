@@ -39,7 +39,6 @@ body-free source adapter 可以引用：
 - archive、checksum、migration/export provenance；
 - stage artifact delta ref metadata。
 
-`paper_progress_transition_refs` 不属于 StateIndex adapter family；它直接保留 body-free policy-request receipt JSONL，由 OPL `DomainProgressTransitionRuntime` 消费。
 
 它不得持有或授权：
 

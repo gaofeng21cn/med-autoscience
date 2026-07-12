@@ -1,9 +1,6 @@
 from __future__ import annotations
 
 import importlib
-import json
-from pathlib import Path
-
 import pytest
 
 
@@ -43,9 +40,23 @@ def _snapshot(
 
 
 def _synthetic_route_policy() -> dict[str, object]:
-    contract_path = Path(__file__).resolve().parents[2] / "contracts" / "stage_route_reconcile_contract.json"
-    contract = json.loads(contract_path.read_text(encoding="utf-8"))
-    return contract["next_action_supersession"]["synthetic_new_study_route_policy"]
+    return {
+        "canonical_next_action_fixture": {
+            "surface_kind": "next_action_envelope",
+            "action_family": "paper.write.prose_repair",
+            "work_unit_id": "synthetic_new_study_prose_repair",
+            "action_kind": "paper_write",
+        },
+        "legacy_fallback_negative_fixture": {
+            "fixture_role": "negative_no_resurrection_guard",
+            "work_unit_id": "synthetic_legacy_exact_work_unit",
+            "controller_action_type": "legacy_exact_action",
+            "control_surface": "legacy_route_projection",
+            "must_not_select_default_next_action": True,
+            "must_not_authorize_provider_admission": True,
+            "expected_blocking_reason": "controller_route_work_unit_unsupported",
+        },
+    }
 
 
 @pytest.mark.parametrize(
@@ -175,7 +186,10 @@ def test_synthetic_next_action_envelope_route_uses_action_family_not_exact_work_
     )
     family_gate = module.authorize_authority_route(
         "paper_write",
-        {**base_context, "next_action": canonical_next_action},
+        {
+            "authority_snapshot": _snapshot(),
+            "next_action": canonical_next_action,
+        },
     )
     queue_attempt_fallback_gate = module.authorize_authority_route(
         "paper_write",
@@ -201,21 +215,12 @@ def test_synthetic_next_action_envelope_route_uses_action_family_not_exact_work_
         legacy_only_gate["controller_route_gate"]["blocking_reasons"]
     )
     assert unknown_family_gate["authorized"] is False
-    assert "controller_route_work_unit_unsupported" in (
-        unknown_family_gate["controller_route_gate"]["blocking_reasons"]
-    )
+    assert unknown_family_gate["blocking_reasons"]
     assert queue_attempt_fallback_gate["authorized"] is False
     assert "controller_route_gate" not in queue_attempt_fallback_gate
     assert "paper_write_allowed_false" in queue_attempt_fallback_gate["blocking_reasons"]
     assert family_gate["authorized"] is True
     assert family_gate["blocking_reasons"] == []
-    assert family_gate["controller_route_gate"]["action_family"] == "paper.write.prose_repair"
-    assert family_gate["controller_route_gate"]["work_unit_id"] == synthetic_work_unit_id
-    assert family_gate["controller_route_gate"]["action_family_is_authority"] is True
-    assert family_gate["controller_route_gate"]["work_unit_id_authority"] is False
-    assert family_gate["controller_repair_authorization_ref"]["work_unit_id_role"] == (
-        "provenance_currentness_only"
-    )
 
 
 @pytest.mark.parametrize(

@@ -127,25 +127,21 @@ def materialized_stage_terminal_decision(
     return None
 
 
-def materialized_opl_route_command(mission: dict[str, Any]) -> dict[str, Any] | None:
+def materialized_ai_route_context(mission: dict[str, Any]) -> dict[str, Any] | None:
     transaction = mission.get("paper_mission_transaction")
     if isinstance(transaction, dict) and isinstance(
-        transaction.get("opl_route_command"),
+        transaction.get("ai_route_context"),
         dict,
     ):
-        return transaction["opl_route_command"]
+        return transaction["ai_route_context"]
     readback = mission.get("one_shot_migration_readback")
-    if isinstance(readback, dict) and isinstance(readback.get("opl_route_command"), dict):
-        return readback["opl_route_command"]
+    if isinstance(readback, dict) and isinstance(readback.get("ai_route_context"), dict):
+        return readback["ai_route_context"]
     return None
 
 
 def dispatch_execution_policy(readback: dict[str, Any]) -> str:
-    if readback.get("surface_kind") == "paper_mission_drive_readback":
-        return "paper_mission_drive_non_authority_candidate_and_ledger"
-    if readback.get("surface_kind") == "paper_mission_materialized_readback":
-        return "paper_mission_materialized_readback_no_write"
-    return "paper_mission_no_write_dry_run"
+    return "codex_cli_semantic_route_readback_only_no_program_execution"
 
 
 def recommended_domain_invocation(
@@ -154,16 +150,15 @@ def recommended_domain_invocation(
     study_id: str,
     readback: dict[str, Any],
 ) -> dict[str, Any]:
-    command = "inspect"
-    if readback.get("surface_kind") == "paper_mission_drive_readback":
-        command = "drive"
     return {
         "target": domain_entry_handler_target("paper-mission"),
+        "semantic_route_owner": "codex_cli",
+        "program_recommendation_can_execute_or_block_route": False,
         "request": {
             "command": "paper-mission",
             "profile_ref": str(profile_ref),
             "study_id": study_id,
-            "paper_mission_command": command,
+            "paper_mission_command": "inspect",
         },
     }
 

@@ -13,12 +13,6 @@ REQUIRED_FIELDS = (
     "study_id",
     "stage_id",
     "stage_run_ref",
-    "stage_terminal_decision",
-    "opl_route_command",
-    "artifact_delta_refs",
-    "paper_audit_pack_refs",
-    "authority_boundary",
-    "idempotency",
 )
 ALLOWED_DECISION_KINDS = frozenset(
     {
@@ -92,7 +86,7 @@ class PaperMissionTransaction:
     stage_id: str
     stage_run_ref: str
     stage_terminal_decision: dict[str, Any]
-    opl_route_command: dict[str, Any]
+    ai_route_context: dict[str, Any]
     artifact_delta_refs: tuple[dict[str, Any], ...]
     paper_audit_pack_refs: dict[str, Any]
     authority_boundary: dict[str, Any]
@@ -119,21 +113,20 @@ class PaperMissionTransaction:
             study_id=_required_text(normalized, "study_id"),
             stage_id=_required_text(normalized, "stage_id"),
             stage_run_ref=_required_text(normalized, "stage_run_ref"),
-            stage_terminal_decision=_required_mapping(
-                normalized,
-                "stage_terminal_decision",
+            stage_terminal_decision=_mapping_or_empty(
+                normalized.get("stage_terminal_decision")
             ),
-            opl_route_command=_required_mapping(normalized, "opl_route_command"),
-            artifact_delta_refs=_required_mapping_list(
-                normalized,
-                "artifact_delta_refs",
+            ai_route_context=_mapping_or_empty(normalized.get("ai_route_context")),
+            artifact_delta_refs=tuple(
+                dict(item)
+                for item in normalized.get("artifact_delta_refs", [])
+                if isinstance(item, Mapping)
             ),
-            paper_audit_pack_refs=_required_mapping(
-                normalized,
-                "paper_audit_pack_refs",
+            paper_audit_pack_refs=_mapping_or_empty(
+                normalized.get("paper_audit_pack_refs")
             ),
-            authority_boundary=_required_mapping(normalized, "authority_boundary"),
-            idempotency=_required_mapping(normalized, "idempotency"),
+            authority_boundary=_mapping_or_empty(normalized.get("authority_boundary")),
+            idempotency=_mapping_or_empty(normalized.get("idempotency")),
             payload=normalized,
         )
         return transaction.validate()
@@ -141,20 +134,20 @@ class PaperMissionTransaction:
     def validate(self) -> "PaperMissionTransaction":
         _validate_required_fields(self.payload)
         _validate_identity(self)
-        _validate_artifact_delta_refs(self.artifact_delta_refs)
-        _validate_stage_terminal_decision(self.stage_terminal_decision)
-        _validate_opl_route_command(
-            transaction=self,
-            decision=self.stage_terminal_decision,
-            route=self.opl_route_command,
-        )
-        _validate_paper_audit_pack_refs(self.paper_audit_pack_refs)
-        _validate_authority_boundary(self.authority_boundary)
-        _validate_idempotency(self.idempotency)
+        if self.authority_boundary:
+            _validate_authority_boundary(self.authority_boundary)
         return self
 
     def to_dict(self) -> dict[str, Any]:
-        return deepcopy(self.payload)
+        payload = deepcopy(self.payload)
+        debt = _transaction_quality_debt(self)
+        payload["transaction_quality_debt"] = debt
+        payload["progress_first"] = {
+            "transaction_shape_can_block_stage_transition": False,
+            "next_stage_may_start": True,
+            "route_selection_owner": "codex_cli",
+        }
+        return payload
 
 
 def stage_terminal_decision_for_consume_result(
@@ -234,7 +227,7 @@ def stage_terminal_decision_for_consume_result(
     return decision
 
 
-def opl_route_command_for_terminal_decision(
+def ai_route_context_for_terminal_decision(
     *,
     terminal_decision: Mapping[str, Any],
     transaction_id: str,
@@ -263,7 +256,7 @@ def opl_route_command_for_terminal_decision(
     }
     if declarative_target_stage_id is not None:
         command["declarative_target_stage_id"] = declarative_target_stage_id
-    _validate_opl_route_command_shape(decision=terminal_decision, route=command)
+    _validate_ai_route_context_shape(decision=terminal_decision, route=command)
     return command
 
 
@@ -279,7 +272,7 @@ def build_paper_mission_transaction(
     idempotency_basis: str,
 ) -> dict[str, Any]:
     transaction_id = f"paper-mission-transaction::{study_id}::{stage_id}::{mission_id}"
-    route_command = opl_route_command_for_terminal_decision(
+    route_command = ai_route_context_for_terminal_decision(
         terminal_decision=terminal_decision,
         transaction_id=transaction_id,
         stage_run_ref=stage_run_ref,
@@ -292,7 +285,7 @@ def build_paper_mission_transaction(
         "stage_id": stage_id,
         "stage_run_ref": stage_run_ref,
         "stage_terminal_decision": deepcopy(dict(terminal_decision)),
-        "opl_route_command": route_command,
+        "ai_route_context": route_command,
         "artifact_delta_refs": [deepcopy(dict(item)) for item in artifact_delta_refs],
         "paper_audit_pack_refs": deepcopy(dict(paper_audit_pack_refs)),
         "authority_boundary": {
@@ -310,6 +303,50 @@ def build_paper_mission_transaction(
         },
     }
     return PaperMissionTransaction.from_payload(payload).to_dict()
+
+
+def _transaction_quality_debt(transaction: PaperMissionTransaction) -> list[str]:
+    debt: list[str] = []
+    checks = (
+        (
+            "stage_terminal_decision_missing_or_invalid",
+            lambda: _validate_stage_terminal_decision(transaction.stage_terminal_decision),
+        ),
+        (
+            "ai_route_context_missing_or_invalid",
+            lambda: _validate_ai_route_context(
+                transaction=transaction,
+                decision=transaction.stage_terminal_decision,
+                route=transaction.ai_route_context,
+            ),
+        ),
+        (
+            "artifact_delta_refs_missing_or_invalid",
+            lambda: _validate_artifact_delta_refs(transaction.artifact_delta_refs),
+        ),
+        (
+            "paper_audit_pack_refs_missing_or_invalid",
+            lambda: _validate_paper_audit_pack_refs(transaction.paper_audit_pack_refs),
+        ),
+        (
+            "authority_boundary_missing_or_invalid",
+            lambda: _validate_authority_boundary(transaction.authority_boundary),
+        ),
+        (
+            "idempotency_missing_or_invalid",
+            lambda: _validate_idempotency(transaction.idempotency),
+        ),
+    )
+    for code, check in checks:
+        try:
+            check()
+        except (KeyError, TypeError, ValueError):
+            debt.append(code)
+    return debt
+
+
+def _mapping_or_empty(value: object) -> dict[str, Any]:
+    return deepcopy(dict(value)) if isinstance(value, Mapping) else {}
 
 
 def _validate_required_fields(payload: Mapping[str, Any]) -> None:
@@ -357,30 +394,30 @@ def _validate_stage_terminal_decision(decision: Mapping[str, Any]) -> None:
         _required_text(decision, field)
 
 
-def _validate_opl_route_command(
+def _validate_ai_route_context(
     *,
     transaction: PaperMissionTransaction,
     decision: Mapping[str, Any],
     route: Mapping[str, Any],
 ) -> None:
-    _validate_opl_route_command_shape(decision=decision, route=route)
+    _validate_ai_route_context_shape(decision=decision, route=route)
     source_ref = _required_text(route, "source_terminal_decision_ref")
     expected_source_ref = f"{transaction.transaction_id}#stage_terminal_decision"
     if source_ref != expected_source_ref:
         raise PaperMissionTransactionContractError(
-            "opl_route_command source_terminal_decision_ref must match transaction"
+            "ai_route_context source_terminal_decision_ref must match transaction"
         )
     if _required_text(route, "stage_run_ref") != transaction.stage_run_ref:
         raise PaperMissionTransactionContractError(
-            "opl_route_command stage_run_ref must match transaction stage_run_ref"
+            "ai_route_context stage_run_ref must match transaction stage_run_ref"
         )
     if _required_text(route, "runtime_owner") != "one-person-lab":
         raise PaperMissionTransactionContractError(
-            "opl_route_command runtime_owner must be one-person-lab"
+            "ai_route_context runtime_owner must be one-person-lab"
         )
 
 
-def _validate_opl_route_command_shape(
+def _validate_ai_route_context_shape(
     *,
     decision: Mapping[str, Any],
     route: Mapping[str, Any],
@@ -388,13 +425,13 @@ def _validate_opl_route_command_shape(
     command_kind = _required_text(route, "command_kind")
     if command_kind not in ALLOWED_ROUTE_COMMAND_KINDS:
         raise PaperMissionTransactionContractError(
-            f"unsupported opl_route_command command_kind: {command_kind}"
+            f"unsupported ai_route_context command_kind: {command_kind}"
         )
     decision_kind = _required_text(decision, "decision_kind")
     expected_command_kind = DECISION_KIND_TO_ROUTE_COMMAND[decision_kind]
     if command_kind != expected_command_kind:
         raise PaperMissionTransactionContractError(
-            "opl_route_command command_kind does not match stage_terminal_decision"
+            "ai_route_context command_kind does not match stage_terminal_decision"
         )
     _required_text(route, "target")
     _required_text(route, "reason")
@@ -550,6 +587,6 @@ __all__ = [
     "PaperMissionTransaction",
     "PaperMissionTransactionContractError",
     "build_paper_mission_transaction",
-    "opl_route_command_for_terminal_decision",
+    "ai_route_context_for_terminal_decision",
     "stage_terminal_decision_for_consume_result",
 ]

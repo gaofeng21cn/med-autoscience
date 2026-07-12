@@ -76,9 +76,9 @@ def materialize_typed_blocker_resolution(
 
     package = _current_package_summary(paper_mission_readback)
     carrier_readback = _mapping(
-        paper_mission_readback.get("current_opl_runtime_carrier_readback")
-    ) or _mapping(paper_mission_readback.get("opl_runtime_carrier_readback"))
-    receipt = _mapping(carrier_readback.get("opl_transition_receipt"))
+        paper_mission_readback.get("current_opl_stage_attempt_readback")
+    ) or _mapping(paper_mission_readback.get("opl_stage_attempt_readback"))
+    receipt = _mapping(carrier_readback.get("opl_stage_attempt_receipt"))
     decision = _mapping(paper_mission_readback.get("stage_closure_decision"))
     outcome = _mapping(decision.get("outcome"))
     consumption = _mapping(carrier_readback.get("mas_receipt_consumption"))
@@ -137,9 +137,9 @@ def materialize_typed_blocker_resolution(
             "required_inputs": [
                 "paper-mission inspect --request-opl-runtime-readback JSON",
                 "next_action.action_family=blocked.typed",
-                "opl_runtime_carrier_readback.opl_transition_receipt",
-                "opl_runtime_carrier_readback.mas_receipt_consumption.status=requires_mas_owner_consumption",
-                "opl_runtime_carrier_readback.mas_receipt_consumption.next_legal_action=record_typed_blocker",
+                "opl_stage_attempt_readback.opl_stage_attempt_receipt",
+                "opl_stage_attempt_readback.mas_receipt_consumption.status=requires_mas_owner_consumption",
+                "opl_stage_attempt_readback.mas_receipt_consumption.next_legal_action=record_typed_blocker",
                 "stage_closure_decision.outcome.kind=typed_blocker",
                 "current_package projection",
             ],
@@ -228,7 +228,7 @@ def _apply_typed_blocker_resolution(
         "next_work_unit": successor["work_unit_id"],
         "next_action": successor["next_action"],
         "current_package": dict(package),
-        "source_opl_transition_receipt": {
+        "source_opl_stage_attempt_receipt": {
             "receipt_status": _text(receipt.get("receipt_status")),
             "stage_attempt_ref": _text(receipt.get("stage_attempt_ref")),
             "mas_receipt_consumption_status": _text(consumption.get("status")),
@@ -461,7 +461,7 @@ def _next_owner_action(
             if executable_route
             else {}
         ),
-        "owner_receipt_required": True,
+        "owner_receipt_required_for_quality_or_ready_claim": True,
         "authority": "study_progress.current_executable_owner_action",
         "authority_boundary": {
             "projection_only": True,
@@ -738,9 +738,9 @@ def _validate_readback(
     decision = _mapping(paper_mission_readback.get("stage_closure_decision"))
     outcome = _mapping(decision.get("outcome"))
     carrier_readback = _mapping(
-        paper_mission_readback.get("current_opl_runtime_carrier_readback")
-    ) or _mapping(paper_mission_readback.get("opl_runtime_carrier_readback"))
-    receipt = _mapping(carrier_readback.get("opl_transition_receipt"))
+        paper_mission_readback.get("current_opl_stage_attempt_readback")
+    ) or _mapping(paper_mission_readback.get("opl_stage_attempt_readback"))
+    receipt = _mapping(carrier_readback.get("opl_stage_attempt_receipt"))
     consumption = _mapping(carrier_readback.get("mas_receipt_consumption"))
     consumable_typed_blocker = (
         _text(outcome.get("kind")) == "typed_blocker"
@@ -772,14 +772,14 @@ def _validate_readback(
         elif _text(outcome.get("kind")) != "typed_blocker":
             mismatched.append("stage_closure_decision.outcome.kind")
         if not carrier_readback:
-            missing.append("opl_runtime_carrier_readback")
+            missing.append("opl_stage_attempt_readback")
         elif not receipt:
-            missing.append("opl_runtime_carrier_readback.opl_transition_receipt")
+            missing.append("opl_stage_attempt_readback.opl_stage_attempt_receipt")
         else:
             if _text(consumption.get("status")) != "requires_mas_owner_consumption":
-                mismatched.append("opl_runtime_carrier_readback.mas_receipt_consumption.status")
+                mismatched.append("opl_stage_attempt_readback.mas_receipt_consumption.status")
             if _text(consumption.get("next_legal_action")) != "record_typed_blocker":
-                mismatched.append("opl_runtime_carrier_readback.mas_receipt_consumption.next_legal_action")
+                mismatched.append("opl_stage_attempt_readback.mas_receipt_consumption.next_legal_action")
         if (action_family, action_kind) not in allowed_next_actions:
             mismatched.append("next_action.action_family")
             mismatched.append("next_action.action_kind")

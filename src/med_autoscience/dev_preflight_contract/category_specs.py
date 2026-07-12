@@ -135,7 +135,6 @@ def build_category_specs(
             "contracts/runtime/mas-runtime-live-tail-work-orders.json",
             "contracts/runtime/mas-root-cause-depth-gate.json",
             "contracts/runtime_environment_requirements.json",
-            "src/med_autoscience/controllers/study_outer_loop/__init__.py",
             "src/med_autoscience/controllers/study_runtime_decision/__init__.py",
             "src/med_autoscience/controllers/study_runtime_resolution.py",
             "src/med_autoscience/controllers/domain_status_projection.py",
@@ -261,7 +260,6 @@ def build_category_specs(
             "contracts/standard_agent_completion_evidence_status.json",
             "contracts/standard-agent-principles-adoption.json",
             "contracts/stage_artifact_kernel_adoption.json",
-            "contracts/stage_route_reconcile_contract.json",
             "contracts/stage_run_kernel_profile.json",
             "src/med_autoscience/resources/stage_route_contract.yaml",
             "templates/codex/medautoscience-entry.SKILL.md",
@@ -283,8 +281,7 @@ def build_category_specs(
                 "tests/test_standard_agent_completion_acceptance_contract.py "
                 "tests/test_test_lane_governance.py "
                 "tests/test_stage_quality_contract.py "
-                "tests/test_stage_route_contract.py "
-                "tests/test_stage_route_reconcile_contract.py -q"
+                "tests/test_stage_route_contract.py -q"
             ),
             (
                 f"{pytest_command} "
@@ -415,7 +412,6 @@ def build_category_specs(
             "src/med_autoscience/controllers/control_identity.py",
             "src/med_autoscience/controllers/restore_proof_compaction_helpers.py",
             "src/med_autoscience/controllers/domain_authority_snapshot.py",
-            "src/med_autoscience/controllers/study_outer_loop_dispatch.py",
             "src/med_autoscience/controllers/study_delivery_sync/sync_orchestration.py",
             "src/med_autoscience/controllers/study_delivery_sync/sync_cli.py",
             "src/med_autoscience/controllers/study_progress/projection.py",
@@ -460,33 +456,24 @@ def build_category_specs(
         ),
     ),
     spec_type(
-        category_id="paper_progress_transition_boundary_surface",
+        category_id="paper_progress_ai_route_boundary_surface",
         exact_paths=(
             "contracts/live_stage_run_progress_evidence.json",
-            "contracts/opl_domain_progress_transition_runtime_contract.json",
             "contracts/paper_autonomy_live_supervisor_canary_contract.json",
             "contracts/paper_autonomy_supervisor_contract.json",
-            "contracts/paper_progress_replay_live_evidence_status.json",
-            "contracts/paper_progress_transition_runtime_completion_audit.json",
             "contracts/runtime/mas-runtime-surface-retirement-inventory.json",
-            "src/med_autoscience/controllers/opl_domain_progress_transition_contract.py",
-            "src/med_autoscience/controllers/opl_transition_readback.py",
-            "src/med_autoscience/controllers/paper_progress_policy_adapter.py",
-            "tests/test_opl_domain_progress_transition_runtime_contract.py",
-            "tests/test_opl_transition_readback_contract.py",
+            "src/med_autoscience/controllers/ai_route_context.py",
+            "src/med_autoscience/controllers/opl_stage_attempt_readback.py",
+            "tests/test_ai_route_context.py",
             "tests/test_mas_workspace_domain_projection.py",
         ),
         prefix_paths=(),
         commands=(
             (
                 f"{pytest_command} "
-                "tests/test_opl_transition_readback_contract.py "
+                "tests/test_ai_route_context.py "
                 "tests/test_mas_workspace_domain_projection.py "
                 "tests/test_live_stage_run_progress_evidence.py -q"
-            ),
-            (
-                f"{pytest_command} "
-                "tests/test_opl_domain_progress_transition_runtime_contract.py -q"
             ),
         ),
     ),

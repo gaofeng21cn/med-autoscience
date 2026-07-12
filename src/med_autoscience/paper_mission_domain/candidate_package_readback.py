@@ -251,8 +251,8 @@ def build_materialized_candidate_package_readback(
         "objective": readback["objective"],
         "materialized_mission_ref": readback["materialized_mission_ref"],
         "stage_terminal_decision": readback["stage_terminal_decision"],
-        "opl_route_command": readback["opl_route_command"],
-        "opl_runtime_readback_status": readback["opl_runtime_readback_status"],
+        "ai_route_context": readback["ai_route_context"],
+        "opl_stage_attempt_readback_status": readback["opl_stage_attempt_readback_status"],
         "terminal_owner_gate": readback.get("terminal_owner_gate"),
         "terminal_owner_gate_authority_readback": readback.get(
             "terminal_owner_gate_authority_readback"

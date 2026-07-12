@@ -322,7 +322,7 @@
         "command": "med_autoscience.domain_entry:MedAutoScienceDomainEntry.dispatch#study_state_matrix",
         "surface_kind": "study_state_matrix"
       },
-      "summary": "只读物化 MAS-owned study_state_matrix，包括 domain_transition_table、family_transition_spec 和 family_transition_matrix_cases，供 OPL generic transition runner 消费；不写 study truth、不执行 domain action、不授权论文质量或投稿就绪。",
+      "summary": "只读物化 MAS-owned study_state_matrix 与非权威 route context，供 Codex CLI 判断前进、重复、跳过或 route-back；不写 study truth、不执行状态机、不阻止 stage transition。",
       "supported_surfaces": {
         "ai_sdk": {
           "tool_name": "study_state_matrix"

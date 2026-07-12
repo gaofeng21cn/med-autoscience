@@ -6,7 +6,7 @@ from pathlib import Path
 from typing import Any
 
 from med_autoscience.controllers.owner_callable_adapter_projection import (
-    domain_progress_transition_requests,
+    ai_route_contexts,
 )
 
 
@@ -21,7 +21,7 @@ def current_consumer_dispatches(
         return []
     dispatches: list[dict[str, Any]] = []
     seen: set[tuple[str | None, str | None]] = set()
-    for dispatch in domain_progress_transition_requests(latest):
+    for dispatch in ai_route_contexts(latest):
         payload = _with_owner_callable_adapter_semantics(_mapping(dispatch))
         if _text(payload.get("study_id")) != study_id:
             continue
@@ -39,7 +39,7 @@ def current_consumer_dispatches(
     return dispatches
 
 
-def explicit_transition_request_blocker_dispatches(
+def explicit_ai_route_context_blocker_dispatches(
     *,
     study_id: str,
     requested: set[str],
@@ -53,28 +53,28 @@ def explicit_transition_request_blocker_dispatches(
         return []
     dispatches: list[dict[str, Any]] = []
     seen: set[tuple[str | None, str | None]] = set()
-    for dispatch in domain_progress_transition_requests(latest):
+    for dispatch in ai_route_contexts(latest):
         payload = _with_owner_callable_adapter_semantics(_mapping(dispatch))
         if _text(payload.get("study_id")) != study_id:
             continue
         if _text(payload.get("action_type")) not in requested:
             continue
-        if _text(payload.get("dispatch_status")) != "transition_request_pending":
+        if _text(payload.get("dispatch_status")) != "ai_route_context_pending":
             continue
-        if not _is_domain_progress_transition_request_projection(payload):
+        if not _is_ai_route_context_projection(payload):
             continue
         refs = _mapping(payload.get("refs"))
         key = (_text(refs.get("dispatch_path")), _text(payload.get("action_type")))
         if key in seen:
             continue
         seen.add(key)
-        dispatches.append(_as_transition_request_blocker_projection(payload))
+        dispatches.append(_as_ai_route_context_blocker_projection(payload))
     return dispatches
 
 
-def _is_domain_progress_transition_request_projection(dispatch: Mapping[str, Any]) -> bool:
+def _is_ai_route_context_projection(dispatch: Mapping[str, Any]) -> bool:
     return (
-        _text(dispatch.get("surface")) == "mas_domain_progress_transition_request_projection"
+        _text(dispatch.get("surface")) == "mas_ai_route_context_projection"
         and dispatch.get("projection_only") is True
         and dispatch.get("owner_callable_carrier_projection_only") is True
     )
@@ -97,9 +97,9 @@ def _with_owner_callable_adapter_semantics(dispatch: Mapping[str, Any]) -> dict[
     return payload
 
 
-def _as_transition_request_blocker_projection(dispatch: Mapping[str, Any]) -> dict[str, Any]:
+def _as_ai_route_context_blocker_projection(dispatch: Mapping[str, Any]) -> dict[str, Any]:
     payload = dict(dispatch)
-    payload["dispatch_role"] = "transition_request_blocker_projection"
+    payload["dispatch_role"] = "ai_route_context_blocker_projection"
     payload["blocker_dispatch_only"] = True
     payload["default_next_action_authority"] = False
     payload["mas_dispatch_authority"] = False
@@ -109,7 +109,7 @@ def _as_transition_request_blocker_projection(dispatch: Mapping[str, Any]) -> di
     payload["can_start_provider_attempt"] = False
     payload["authority_boundary"] = {
         **_mapping(payload.get("authority_boundary")),
-        "dispatch_role": "transition_request_blocker_projection",
+        "dispatch_role": "ai_route_context_blocker_projection",
         "blocker_dispatch_only": True,
         "default_next_action_authority": False,
         "mas_dispatch_authority": False,
@@ -139,5 +139,5 @@ def _text(value: object) -> str | None:
 
 __all__ = [
     "current_consumer_dispatches",
-    "explicit_transition_request_blocker_dispatches",
+    "explicit_ai_route_context_blocker_dispatches",
 ]

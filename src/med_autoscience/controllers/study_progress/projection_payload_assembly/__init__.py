@@ -4,7 +4,7 @@ from pathlib import Path
 from typing import Any, Mapping
 
 import med_autoscience.controllers.pi_action_projection as pi_action_projection
-from med_autoscience.paper_mission_opl_readback import (
+from med_autoscience.paper_mission_stage_run_readback import (
     paper_mission_next_action_envelope,
 )
 from med_autoscience.controllers.production_blocker_impact_projection import (
@@ -13,7 +13,6 @@ from med_autoscience.controllers.production_blocker_impact_projection import (
 from med_autoscience.controllers.evidence_gap_projection import (
     attach_evidence_gap_projection,
 )
-from med_autoscience.controllers import study_domain_transition_table
 from med_autoscience.controllers.study_interventions import read_intervention_events
 
 from ..ai_first_runtime_projection import attach_ai_first_runtime_projection
@@ -24,10 +23,6 @@ from ..canonical_owner_action_projection import (
     build_canonical_owner_action_projection,
     submission_authority_owner_gate_readback,
 )
-from ..canonical_next_action_selection import (
-    domain_transition_canonical_next_action as _domain_transition_canonical_next_action,
-)
-from ..macro_state_projection import compact_study_macro_state_from_payload
 from ..mission_summary import (
     attach_artifact_first_mission_summary,
     refresh_top_level_stage_closure_projection,
@@ -286,13 +281,7 @@ def assemble_study_progress_payload(
     }
     payload = _attach_opl_supervisor_decision_readback(payload, profile=profile)
     payload.update(build_progress_first_projection(payload))
-    payload = _attach_fresh_domain_transition(
-        payload=payload,
-        study_root=study_root,
-        status=status,
-        current_active_run_id=current_active_run_id,
-        publication_eval_payload=publication_eval_payload,
-    )
+    payload = _attach_ai_route_context(payload)
     payload["production_blocker_impact"] = build_production_blocker_impact_projection(
         payload,
         status,
@@ -340,23 +329,11 @@ def _attach_submission_authority_owner_gate_readback(payload: Mapping[str, Any])
         return dict(payload)
     updated = dict(payload)
     updated["submission_authority_owner_gate_readback"] = readback
-    updated["current_executable_owner_action"] = None
-    updated.pop("next_action", None)
-    updated.pop("canonical_next_action_source", None)
-    transaction_readback = _mapping_copy(updated.get("paper_mission_transaction_readback"))
-    if transaction_readback:
-        transaction_readback.pop("next_action", None)
-        updated["paper_mission_transaction_readback"] = transaction_readback
     return updated
 
 
 def _attach_single_next_action_projection(payload: Mapping[str, Any]) -> dict[str, Any]:
     updated = dict(payload)
-    domain_transition_next_action = _domain_transition_canonical_next_action(updated)
-    if domain_transition_next_action:
-        updated["next_action"] = domain_transition_next_action
-        updated["canonical_next_action_source"] = "domain_transition.next_action"
-        return _sync_user_visible_next_action_owner(updated)
     existing = _mapping_copy(updated.get("next_action"))
     if existing:
         updated["next_action"] = existing
@@ -377,8 +354,8 @@ def _attach_single_next_action_projection(payload: Mapping[str, Any]) -> dict[st
     envelope = paper_mission_next_action_envelope(
         transaction=transaction,
         stage_terminal_decision=_mapping_copy(updated.get("stage_terminal_decision")),
-        opl_route_command=_mapping_copy(updated.get("opl_route_command")),
-        opl_runtime_carrier=_mapping_copy(updated.get("opl_runtime_carrier")),
+        ai_route_context=_mapping_copy(updated.get("ai_route_context")),
+        opl_stage_run_context=_mapping_copy(updated.get("opl_stage_run_context")),
         opl_route_handoff=handoff,
         diagnostic_refs=[
             ref
@@ -434,51 +411,22 @@ def _apply_post_user_visible_status_overrides(payload: dict[str, Any]) -> dict[s
     return _apply_terminal_delivery_user_visible_status(updated)
 
 
-def _attach_fresh_domain_transition(
-    *,
-    payload: dict[str, Any],
-    study_root: Path,
-    status: Mapping[str, Any],
-    current_active_run_id: str | None,
-    publication_eval_payload: dict[str, Any] | None,
-) -> dict[str, Any]:
+def _attach_ai_route_context(payload: Mapping[str, Any]) -> dict[str, Any]:
     updated = dict(payload)
-    macro_state = compact_study_macro_state_from_payload(updated) or {}
-    delivered_package = _mapping_copy(updated.get("delivered_package"))
-    transition = study_domain_transition_table.project_domain_transition(
-        study_id=_non_empty_text(updated.get("study_id")) or "unknown-study",
-        study_root=study_root,
-        status={
-            **status,
-            **updated,
-            **({"publication_eval": publication_eval_payload} if publication_eval_payload else {}),
-        },
-        macro_state=macro_state,
-        active_run_id=current_active_run_id,
-        running_provider_attempt=_running_provider_attempt_from_payload(updated),
-        delivered_package=delivered_package if delivered_package else None,
-    )
-    if transition and _fresh_domain_transition_should_attach(transition):
-        updated["domain_transition"] = transition
+    updated.pop("domain_transition", None)
+    updated["ai_route_context"] = {
+        "surface_kind": "mas_ai_route_context",
+        "semantic_route_owner": "codex_cli",
+        "may_start_any_declared_stage": True,
+        "may_advance_repeat_skip_or_route_back": True,
+        "readable_partial_negative_or_failed_artifact_is_progress": True,
+        "quality_debt_blocks_stage_transition": False,
+        "program_recommendation_can_execute_or_block_route": False,
+        "current_stage": _non_empty_text(updated.get("current_stage")),
+        "current_artifact_refs": [
+            value
+            for value in _mapping_copy(updated.get("refs")).values()
+            if isinstance(value, str) and value.strip()
+        ],
+    }
     return updated
-
-
-def _fresh_domain_transition_should_attach(transition: Mapping[str, Any]) -> bool:
-    decision_type = _non_empty_text(transition.get("decision_type"))
-    if decision_type is None:
-        return False
-    if decision_type == "fail_closed":
-        return False
-    return True
-
-
-def _running_provider_attempt_from_payload(payload: Mapping[str, Any]) -> bool | None:
-    handoff = _mapping_copy(payload.get("opl_current_control_state_handoff"))
-    if handoff.get("running_provider_attempt") is True:
-        return True
-    if handoff.get("running_provider_attempt") is False:
-        return False
-    envelope = _mapping_copy(payload.get("current_execution_envelope"))
-    if _non_empty_text(envelope.get("state_kind")) == "running_provider_attempt":
-        return True
-    return None

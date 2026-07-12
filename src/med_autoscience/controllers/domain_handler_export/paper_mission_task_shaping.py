@@ -10,7 +10,6 @@ from med_autoscience.paper_mission_domain import (
     DOMAIN_ROUTE_START_OR_RESUME_TASK_KIND,
     build_paper_mission_readback,
 )
-from med_autoscience.controllers import opl_domain_progress_transition_contract
 from med_autoscience.controllers.domain_dispatch_evidence_payload import (
     build_domain_dispatch_evidence_record_payload,
 )
@@ -18,7 +17,7 @@ from med_autoscience.controllers.owner_route_handoff.export_study_projection imp
     mapping,
     text,
 )
-from med_autoscience.paper_mission_opl_readback import paper_mission_next_action_envelope
+from med_autoscience.paper_mission_stage_run_readback import paper_mission_next_action_envelope
 from med_autoscience.profiles import WorkspaceProfile
 
 
@@ -37,8 +36,8 @@ def paper_mission_start_or_resume_task(
         dry_run=True,
         source="domain-handler-export",
     )
-    carrier = mapping(readback.get("opl_runtime_carrier"))
-    route_command = mapping(readback.get("opl_route_command"))
+    carrier = mapping(readback.get("opl_stage_run_context"))
+    route_command = mapping(readback.get("ai_route_context"))
     has_route_identity = bool(
         text(carrier.get("route_identity_key"))
         or (
@@ -49,12 +48,12 @@ def paper_mission_start_or_resume_task(
     default_route_handoff = (
         {
             **carrier,
-            "opl_runtime_carrier": carrier,
-            "opl_route_command": route_command,
+            "opl_stage_run_context": carrier,
+            "ai_route_context": route_command,
             "stage_terminal_decision": mapping(
                 readback.get("stage_terminal_decision")
             ),
-            "handoff_status": "ready_for_opl_route_command",
+            "handoff_status": "ready_for_ai_route_context",
             "workspace_root": str(profile.workspace_root),
         }
         if carrier and route_command and has_route_identity
@@ -86,8 +85,8 @@ def paper_mission_start_or_resume_task(
     if carrier:
         payload.update(
             {
-                "opl_runtime_carrier": carrier,
-                "opl_domain_progress_transition_request": carrier,
+                "opl_stage_run_context": carrier,
+                "ai_route_context": mapping(carrier.get("ai_route_context")) or carrier,
                 "dispatch_authority": "paper_mission_transaction",
                 "action_type": text(carrier.get("action_type")),
                 "work_unit_id": text(carrier.get("work_unit_id")),
@@ -103,7 +102,11 @@ def paper_mission_start_or_resume_task(
                 "next_executable_owner": "med-autoscience",
                 "provider_attempt_or_lease_required": False,
                 "provider_completion_is_domain_completion": False,
-                "stage_transition_authority_boundary": carrier.get("authority_boundary"),
+                "semantic_route_boundary": {
+                    "owner": "codex_cli",
+                    "program_can_execute_or_block_route": False,
+                    "transport_authority_boundary": carrier.get("authority_boundary"),
+                },
                 "stage_packet_refs": stage_packet_refs,
             }
         )
@@ -118,50 +121,24 @@ def paper_mission_start_or_resume_task(
         next_action = paper_mission_next_action_envelope(
             transaction=mapping(readback.get("paper_mission_transaction")),
             stage_terminal_decision=mapping(enriched_route_handoff.get("stage_terminal_decision")),
-            opl_route_command=mapping(enriched_route_handoff.get("opl_route_command")),
-            opl_runtime_carrier=mapping(enriched_route_handoff.get("opl_runtime_carrier")),
+            ai_route_context=mapping(enriched_route_handoff.get("ai_route_context")),
+            opl_stage_run_context=mapping(enriched_route_handoff.get("opl_stage_run_context")),
             opl_route_handoff=enriched_route_handoff,
-        )
-        opl_transition_handoff_contract = (
-            opl_domain_progress_transition_contract.opl_transition_handoff_contract(
-                next_action,
-                provenance={
-                    "legacy_work_unit_identity_role": "provenance_currentness_only",
-                    "work_unit_id": text(mapping(next_action or {}).get("work_unit_id")),
-                    "work_unit_fingerprint": text(
-                        mapping(next_action or {}).get("work_unit_fingerprint")
-                    ),
-                    "route_identity_key": text(enriched_route_handoff.get("route_identity_key")),
-                    "attempt_idempotency_key": text(
-                        enriched_route_handoff.get("attempt_idempotency_key")
-                    ),
-                    "request_idempotency_key": text(
-                        enriched_route_handoff.get("request_idempotency_key")
-                    ),
-                },
-            )
-            if next_action
-            else None
         )
         payload.update(
             {
                 "opl_route_handoff": enriched_route_handoff,
                 "opl_route_handoff_record": enriched_route_handoff,
                 **({"next_action": next_action} if next_action else {}),
-                **(
-                    {"opl_transition_handoff_contract": opl_transition_handoff_contract}
-                    if opl_transition_handoff_contract
-                    else {}
-                ),
-                "paper_mission_default_handoff_source": "opl_runtime_carrier",
+                "paper_mission_default_handoff_source": "opl_stage_run_context",
                 "paper_mission_default_handoff_ref": text(default_route_handoff.get("source_ref")),
-                "opl_route_command": mapping(enriched_route_handoff.get("opl_route_command")),
+                "ai_route_context": mapping(enriched_route_handoff.get("ai_route_context")),
                 "route_command_kind": text(enriched_route_handoff.get("route_command_kind")),
                 "route_target": text(enriched_route_handoff.get("route_target")),
                 "paper_mission_transaction_ref": text(
                     enriched_route_handoff.get("paper_mission_transaction_ref")
                 ),
-                "opl_route_command_ref": text(enriched_route_handoff.get("opl_route_command_ref")),
+                "ai_route_context_ref": text(enriched_route_handoff.get("ai_route_context_ref")),
                 "candidate_ref": text(enriched_route_handoff.get("candidate_ref")),
                 "source_ref": text(enriched_route_handoff.get("source_ref")),
                 "mission_id": text(enriched_route_handoff.get("mission_id")),
@@ -200,19 +177,14 @@ def paper_mission_start_or_resume_task(
                 "opl_route_handoff": enriched_route_handoff,
                 "opl_route_handoff_record": enriched_route_handoff,
                 **({"next_action": next_action} if next_action else {}),
-                **(
-                    {"opl_transition_handoff_contract": opl_transition_handoff_contract}
-                    if opl_transition_handoff_contract
-                    else {}
-                ),
-                "paper_mission_default_handoff_source": "opl_runtime_carrier",
+                "paper_mission_default_handoff_source": "opl_stage_run_context",
                 "paper_mission_default_handoff_ref": text(default_route_handoff.get("source_ref")),
                 "route_command_kind": text(enriched_route_handoff.get("route_command_kind")),
                 "route_target": text(enriched_route_handoff.get("route_target")),
                 "paper_mission_transaction_ref": text(
                     enriched_route_handoff.get("paper_mission_transaction_ref")
                 ),
-                "opl_route_command_ref": text(enriched_route_handoff.get("opl_route_command_ref")),
+                "ai_route_context_ref": text(enriched_route_handoff.get("ai_route_context_ref")),
                 "candidate_ref": text(enriched_route_handoff.get("candidate_ref")),
                 "source_ref": text(enriched_route_handoff.get("source_ref")),
                 "mission_id": text(enriched_route_handoff.get("mission_id")),
@@ -239,8 +211,8 @@ def paper_mission_route_handoff_task(
     profile_ref: Path,
     study_id: str,
 ) -> dict[str, Any]:
-    carrier = mapping(enriched_route_handoff.get("opl_runtime_carrier"))
-    command = mapping(enriched_route_handoff.get("opl_route_command"))
+    carrier = mapping(enriched_route_handoff.get("opl_stage_run_context"))
+    command = mapping(enriched_route_handoff.get("ai_route_context"))
     action_type = text(command.get("command_kind")) or text(
         enriched_route_handoff.get("route_command_kind")
     )
@@ -264,8 +236,8 @@ def paper_mission_route_handoff_task(
             "exists": True,
         },
         {
-            "role": "opl_route_command",
-            "ref": text(enriched_route_handoff.get("opl_route_command_ref")),
+            "role": "ai_route_context",
+            "ref": text(enriched_route_handoff.get("ai_route_context_ref")),
             "exists": True,
         },
     ]
@@ -290,45 +262,24 @@ def paper_mission_route_handoff_task(
         "work_unit_fingerprint": work_unit_fingerprint,
         "source_fingerprint": source_fingerprint,
         "next_executable_owner": "one-person-lab",
-        "authority_boundary": "mas_domain_progress_transition_request_only",
+        "authority_boundary": "mas_ai_route_context_only",
         "provider_admission_pending": False,
-        "provider_admission_requires_opl_runtime_result": True,
+        "provider_admission_requires_opl_runtime_result": False,
         "opl_route_handoff": dict(enriched_route_handoff),
         "opl_route_handoff_record": dict(enriched_route_handoff),
-        "opl_route_command": command,
-        "opl_domain_progress_transition_request": carrier,
-        "paper_mission_default_handoff_source": "opl_runtime_carrier",
+        "ai_route_context": command,
+        "ai_route_context": mapping(carrier.get("ai_route_context")) or carrier,
+        "paper_mission_default_handoff_source": "opl_stage_run_context",
         "paper_mission_default_handoff_ref": source_ref,
     }
     next_action = paper_mission_next_action_envelope(
         stage_terminal_decision=mapping(enriched_route_handoff.get("stage_terminal_decision")),
-        opl_route_command=command,
-        opl_runtime_carrier=carrier,
+        ai_route_context=command,
+        opl_stage_run_context=carrier,
         opl_route_handoff=enriched_route_handoff,
-    )
-    opl_transition_handoff_contract = (
-        opl_domain_progress_transition_contract.opl_transition_handoff_contract(
-            next_action,
-            provenance={
-                "legacy_work_unit_identity_role": "provenance_currentness_only",
-                "work_unit_id": work_unit_id,
-                "work_unit_fingerprint": work_unit_fingerprint,
-                "route_identity_key": text(enriched_route_handoff.get("route_identity_key")),
-                "attempt_idempotency_key": text(
-                    enriched_route_handoff.get("attempt_idempotency_key")
-                ),
-                "request_idempotency_key": text(
-                    enriched_route_handoff.get("request_idempotency_key")
-                ),
-            },
-        )
-        if next_action
-        else None
     )
     if next_action:
         payload["next_action"] = next_action
-    if opl_transition_handoff_contract:
-        payload["opl_transition_handoff_contract"] = opl_transition_handoff_contract
     return {
         "domain_id": "medautoscience",
         "task_kind": "domain_route/stage-outcome",
@@ -354,14 +305,9 @@ def paper_mission_route_handoff_task(
         "queue_owner": "one-person-lab",
         "profile_name": profile.name,
         "provider_admission_pending": False,
-        "provider_admission_requires_opl_runtime_result": True,
-        "opl_domain_progress_transition_request": carrier,
+        "provider_admission_requires_opl_runtime_result": False,
+        "ai_route_context": mapping(carrier.get("ai_route_context")) or carrier,
         **({"next_action": next_action} if next_action else {}),
-        **(
-            {"opl_transition_handoff_contract": opl_transition_handoff_contract}
-            if opl_transition_handoff_contract
-            else {}
-        ),
         "opl_route_handoff": dict(enriched_route_handoff),
         "opl_route_handoff_record": dict(enriched_route_handoff),
         "domain_dispatch_evidence_record_payload": evidence_record_payload,
@@ -400,7 +346,7 @@ def _enriched_paper_mission_route_handoff(
     workspace_root: Path,
     profile_ref: Path,
 ) -> dict[str, Any]:
-    carrier = mapping(route_handoff.get("opl_runtime_carrier"))
+    carrier = mapping(route_handoff.get("opl_stage_run_context"))
     return {
         **dict(route_handoff),
         "workspace_root": str(workspace_root),
@@ -414,12 +360,12 @@ def _enriched_paper_mission_route_handoff(
         "action_type": text(carrier.get("action_type")),
         "work_unit_id": text(carrier.get("work_unit_id")),
         "work_unit_fingerprint": text(carrier.get("work_unit_fingerprint")),
-        "opl_domain_progress_transition_request": carrier,
+        "ai_route_context": mapping(carrier.get("ai_route_context")) or carrier,
     }
 
 
 def _paper_mission_stage_packet_refs(readback: Mapping[str, Any]) -> list[str]:
-    carrier = mapping(readback.get("opl_runtime_carrier"))
+    carrier = mapping(readback.get("opl_stage_run_context"))
     refs = [
         text(carrier.get("stage_run_ref")),
         text(readback.get("materialized_mission_ref")),

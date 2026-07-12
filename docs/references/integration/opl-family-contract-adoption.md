@@ -19,7 +19,6 @@ Machine boundary: Human-readable integration reference only; callable and genera
 
 这些 surface 可以向 `OPL` 投影 attempt state、attempt count、retry/backoff、workspace boundary、failure reason、reconciliation status 和 last observed projection。2026-05-16 起，MAS adoption contract 还接受 `opl_family_runtime_attempt_contract.v1` 的 stability projection 字段：`control_loop_summary`、`usage_projection`、`resource_pressure` 和 `observability_export`。这些字段只能作为 read-only operator stability projection；它们不能执行 domain action、切换 executor、自动降级、写 study truth / memory body、授权 domain ready 或关闭 quality verdict。`OPL Runtime Manager` 只能读取和索引；study runtime truth、controller decision、workspace write authority 继续由 `MAS` 持有。
 
-`opl_stage_attempt_admission_required` 是 refs-only handoff，不是 MAS runtime state mutation。当前 MAS 通过 PaperMission / DomainProgressTransitionRuntime route command 和 owner-route protocol refs 让 OPL hydrate queue / attempt；`domain-handler export` 不再把 `stage_outcome/opl-handoff` 投影为 ordinary pending family task。`.ds/runtime_state.json`、`.ds/events.jsonl`、active run liveness、provider worker 状态、queue retry/dead-letter 均归 OPL runtime manager / provider。
 
 ## Quality Projection
 

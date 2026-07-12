@@ -328,9 +328,12 @@ def current_owner_handoff_next_action(
         owner_text = f"{owner} owner" if owner is not None else "当前 owner"
         current_work_unit = _mapping_copy(payload.get("current_work_unit"))
         output_contract = _mapping_copy(current_work_unit.get("required_output_contract"))
-        if output_contract.get("owner_receipt_required") is True:
-            return f"等待 {owner_text} 处理 work unit {work_unit_id}，产出 owner receipt、typed blocker 或下一 owner handoff。"
-        return f"等待 {owner_text} 处理 work unit {work_unit_id}。"
+        if output_contract.get("owner_receipt_required_for_quality_or_ready_claim") is True:
+            return (
+                f"{owner_text} 可继续处理 work unit {work_unit_id}；Codex 也可带当前可读产物推进，"
+                "owner receipt 只约束质量或 ready 声明。"
+            )
+        return f"{owner_text} 可继续处理 work unit {work_unit_id}；该 work unit 不阻止其他 declared stage。"
     intervention_lane = _mapping_copy(payload.get("intervention_lane"))
     auto_parked = _mapping_copy(payload.get("auto_runtime_parked"))
     stale_parked_lane = (

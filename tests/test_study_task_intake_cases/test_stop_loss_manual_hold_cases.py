@@ -40,32 +40,6 @@ def test_publishability_stop_loss_intake_preempts_reviewer_revision_route() -> N
     assert override["same_line_route_truth"]["route_target"] == "stop"
 
 
-def test_publishability_stop_loss_task_intake_recommends_stop_runtime_action(tmp_path: Path) -> None:
-    intake_module = importlib.import_module("med_autoscience.study_task_intake")
-    outer_loop_intake = importlib.import_module("med_autoscience.controllers.study_outer_loop_task_intake")
-    study_root = tmp_path / "studies" / "004-invasive-architecture"
-    _write_json(
-        intake_module.latest_task_intake_json_path(study_root=study_root),
-        {
-            "task_id": "study-task::004-invasive-architecture::20260429T020000Z",
-            "task_intake_kind": "publishability_stop_loss",
-            "task_intent": (
-                "这篇论文没有临床意义；Knosp 本来就是看侵袭性，当前队列没有新结论，"
-                "继续包装会浪费 token，应触发 publishability stop-loss。"
-            ),
-            "constraints": ["不要路由到 reviewer_revision。"],
-        },
-    )
-
-    action = outer_loop_intake.recommended_task_intake_action(study_root=study_root)
-
-    assert action is not None
-    assert action["action_type"] == "stop_loss"
-    assert action["route_target"] == "stop"
-    assert action["controller_action_type"] == "stop_runtime"
-    assert action["requires_controller_decision"] is True
-
-
 def test_publishability_stop_loss_requires_structured_task_intake_contract() -> None:
     module = importlib.import_module("med_autoscience.study_task_intake")
 

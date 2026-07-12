@@ -300,7 +300,7 @@ def _build_one_shot_mission(
         consume_result=mission["consume_result"],
     )
     readback["stage_terminal_decision"] = transaction["stage_terminal_decision"]
-    readback["opl_route_command"] = transaction["opl_route_command"]
+    readback["ai_route_context"] = transaction["ai_route_context"]
     readback["paper_mission_transaction_ref"] = transaction["transaction_id"]
     mission["one_shot_migration_readback"] = readback
     mission["paper_mission_transaction"] = transaction
@@ -400,7 +400,7 @@ def _build_mission(
         consume_result=payload["consume_result"],
     )
     readback["stage_terminal_decision"] = transaction["stage_terminal_decision"]
-    readback["opl_route_command"] = transaction["opl_route_command"]
+    readback["ai_route_context"] = transaction["ai_route_context"]
     readback["paper_mission_transaction_ref"] = transaction["transaction_id"]
     payload["canary_import_readback"] = dict(readback)
     payload["paper_mission_transaction"] = transaction
@@ -480,7 +480,7 @@ def _paper_mission_run_payload(
     payload["canary_import_readback"] = {
         **dict(readback),
         "stage_terminal_decision": transaction["stage_terminal_decision"],
-        "opl_route_command": transaction["opl_route_command"],
+        "ai_route_context": transaction["ai_route_context"],
         "paper_mission_transaction_ref": transaction["transaction_id"],
     }
     payload["paper_mission_transaction"] = transaction
@@ -613,7 +613,7 @@ def _formal_one_shot_mission_payload(
     payload["one_shot_migration_readback"] = {
         **readback,
         "stage_terminal_decision": transaction["stage_terminal_decision"],
-        "opl_route_command": transaction["opl_route_command"],
+        "ai_route_context": transaction["ai_route_context"],
         "paper_mission_transaction_ref": transaction["transaction_id"],
     }
     payload["paper_mission_transaction"] = transaction

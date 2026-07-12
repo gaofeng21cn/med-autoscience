@@ -51,3 +51,30 @@ def test_budget_exhausted_decision_blocks_fatal_evidence_or_authority_risk() -> 
         "human_or_operator_gate",
         "route_redesign",
     ]
+
+
+def test_nonconsumable_redrive_budget_exhaustion_is_quality_debt_not_a_blocker() -> None:
+    module = importlib.import_module(
+        "med_autoscience.controllers.study_stage_attempt_receipt_consumption.nonconsumable_redrive_budget"
+    )
+
+    receipt = module.consumption(
+        latest={
+            "receipt_ref": "attempt.closeout.json",
+            "execution_id": "attempt-1",
+            "action_type": "run_quality_repair_batch",
+            "reason": "manuscript_story_surface_delta_missing",
+        },
+        owner_route={
+            "idempotency_key": "route-1",
+            "route_epoch": "1",
+            "source_fingerprint": "sha256:test",
+        },
+        repeat_count=3,
+    )
+
+    assert receipt["execution_status"] == "completed_with_quality_debt"
+    assert receipt["next_stage_may_start"] is True
+    assert receipt["quality_debt"]["blocks_stage_transition"] is False
+    assert "typed_blocker" not in receipt
+    assert "blocked_reason" not in receipt

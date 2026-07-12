@@ -188,13 +188,13 @@
       "artifact_mutation_authorized",
       "current_package_updated",
       "quality_or_export_authorized",
-      "legacy_runtime_residue_authorizes_transition"
+      "legacy_runtime_residue_authorizes_semantic_route"
     ],
     "must_classify_as": "platform_repair_controlled_fixture",
     "overclaim_guard_fails_closed": true
   },
   "legacy_runtime_residue_guard": {
-    "guard_kind": "legacy_runtime_residue_transition_authority_guard",
+    "guard_kind": "legacy_runtime_residue_no_semantic_route_authority_guard",
     "retired_surfaces": [
       "generic_scheduler",
       "generic_runner",
@@ -211,7 +211,7 @@
       "provenance_tombstone"
     ],
     "forbidden_authority": [
-      "stage_transition",
+      "semantic_stage_route_selection",
       "domain_closeout",
       "publication_quality_verdict",
       "artifact_mutation_authorization",
@@ -241,7 +241,7 @@
       "artifact_mutation_authorized",
       "current_package_updated",
       "quality_or_export_authorized",
-      "legacy_runtime_residue_authorizes_transition"
+      "legacy_runtime_residue_authorizes_semantic_route"
     ],
     "overclaim_boundary_ref": "contracts/stage_run_canary_evidence.json#/overclaim_boundary",
     "legacy_runtime_residue_guard_ref": "contracts/stage_run_canary_evidence.json#/legacy_runtime_residue_guard",

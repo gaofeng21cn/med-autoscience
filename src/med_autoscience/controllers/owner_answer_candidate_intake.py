@@ -33,7 +33,7 @@ FORBIDDEN_NON_AUTHORITY_RESPONSE_REF_MARKERS = (
     "owner_decision_packet",
     "stage_terminal_decision",
     "op-routes",
-    "opl_route_command",
+    "ai_route_context",
     "opl_route_handoff",
 )
 

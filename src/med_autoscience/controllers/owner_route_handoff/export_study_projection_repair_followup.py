@@ -156,7 +156,7 @@ def _repair_progress_current_owner_action(*, repair_progress: Mapping[str, Any])
             "work_unit_id": work_unit_id,
             "action_type": action_type,
             "allowed_actions": [action_type] if action_type is not None else [],
-            "owner_receipt_required": True,
+            "owner_receipt_required_for_quality_or_ready_claim": True,
             "target_surface": target_surface or None,
             "target_surface_specificity": "repair_progress_followup_owner_surface",
             "source_ref": source_ref,

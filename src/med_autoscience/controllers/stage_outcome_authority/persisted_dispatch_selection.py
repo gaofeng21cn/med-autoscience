@@ -354,7 +354,7 @@ def prefer_current_dispatch(
     consumer_score = dispatch_currentness_score(consumer_dispatch, current_study)
     persisted_score = dispatch_currentness_score(persisted_dispatch, current_study)
     if (
-        is_domain_progress_transition_request_projection(consumer_dispatch)
+        is_ai_route_context_projection(consumer_dispatch)
         and persisted_score >= consumer_score
         and persisted_score > (0, 0)
     ):
@@ -385,9 +385,9 @@ def dispatch_work_unit_id(dispatch: Mapping[str, Any]) -> str | None:
     return fresh_progress_owner_actions.dispatch_work_unit_id(dispatch)
 
 
-def is_domain_progress_transition_request_projection(dispatch: Mapping[str, Any]) -> bool:
+def is_ai_route_context_projection(dispatch: Mapping[str, Any]) -> bool:
     return (
-        _text(dispatch.get("surface")) == "mas_domain_progress_transition_request_projection"
+        _text(dispatch.get("surface")) == "mas_ai_route_context_projection"
         or dispatch.get("owner_callable_carrier_projection_only") is True
     )
 

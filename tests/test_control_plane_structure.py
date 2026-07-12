@@ -6,8 +6,6 @@ from pathlib import Path
 REPO_ROOT = Path(__file__).resolve().parents[1]
 
 RUNTIME_FACT_CONSUMERS = (
-    "src/med_autoscience/controllers/study_outer_loop_recovery_policy.py",
-    "src/med_autoscience/controllers/study_outer_loop/runtime_refs.py",
     "src/med_autoscience/controllers/study_progress/projection.py",
     "src/med_autoscience/controllers/study_progress/runtime_efficiency.py",
     "src/med_autoscience/controllers/study_progress/runtime_liveness_projection.py",

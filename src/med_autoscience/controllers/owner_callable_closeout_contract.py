@@ -11,15 +11,15 @@ from .owner_callable_stage_log import (
 
 def owner_callable_typed_closeout_contract(*, action_type: str) -> dict[str, Any]:
     return {
-        "typed_closeout_required_for_completion": True,
-        "free_text_closeout_accepted": False,
+        "typed_closeout_is_optional_quality_projection": True,
+        "free_text_closeout_accepted": True,
         "accepted_surface_kinds": [
             "stage_attempt_closeout_packet",
             "publication_route_memory_closeout",
             "domain_stage_closeout_packet",
         ],
         "required_ref_field": "closeout_refs",
-        "minimum_closeout_refs": 1,
+        "minimum_closeout_refs": 0,
         "required_user_stage_log_field": "paper_stage_log",
         "accepted_user_stage_log_fields": [
             "paper_stage_log",

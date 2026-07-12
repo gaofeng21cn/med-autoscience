@@ -228,11 +228,11 @@ def _payload_has_running_provider_attempt(payload: Mapping[str, Any]) -> bool:
 
 
 def _paper_mission_carrier_has_running_attempt(payload: Mapping[str, Any]) -> bool:
-    carrier = _mapping_copy(payload.get("opl_runtime_carrier_readback"))
+    carrier = _mapping_copy(payload.get("opl_stage_attempt_readback"))
     if not carrier:
         carrier = _mapping_copy(
             _mapping_copy(payload.get("artifact_first_mission_summary")).get(
-                "opl_runtime_carrier_readback"
+                "opl_stage_attempt_readback"
             )
         )
     if carrier.get("can_claim_provider_running") is not True:

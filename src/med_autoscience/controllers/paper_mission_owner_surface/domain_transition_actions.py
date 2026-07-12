@@ -99,7 +99,7 @@ def actions(
         "request_owner": owner,
         "recommended_owner": owner,
         "reason": reason,
-        "summary": "MAS domain transition oracle selected the current owner work unit.",
+        "summary": "MAS projected a non-authoritative route hint for Codex to consider.",
         "required_output_surface": _required_output_surface(action_type),
         "next_work_unit": work_unit_id,
         "paper_package_mutation_allowed": False,
@@ -142,13 +142,13 @@ def actions(
         action["recommended_owner"] = "one-person-lab"
         action["reason"] = current_truth_owner.RUNTIME_CONTROLLER_REDRIVE_REASON
         action["summary"] = (
-            "MAS domain transition oracle selected bundle-stage finalization; request OPL stage "
-            "attempt admission instead of redriving a MAS-owned runtime repair action."
+            "MAS projected bundle-stage finalization as a route hint; Codex may advance, repeat, "
+            "skip, or route back to any declared stage."
         )
         action["controller_route_required"] = True
         action["domain_transition_decision_type"] = decision_type
     elif decision_type == "publication_gate_blocker":
-        action["summary"] = "MAS domain transition oracle selected the publication gate blocker owner route."
+        action["summary"] = "MAS projected publication debt and a repair hint without blocking stage progress."
         action["controller_action"] = "run_gate_clearing_batch"
         action["domain_transition_decision_type"] = decision_type
     return [action]

@@ -100,12 +100,7 @@ def validate_hypothesis_portfolio_candidate_refs(
         if _present_ref(candidate.get(ref_family))
     ]
     forbidden_authority_claims = _forbidden_progress_enhancement_authority_claims(candidate)
-    consumable_candidate = _present_ref(candidate.get("candidate_id")) or _present_ref(
-        candidate.get("hypothesis_candidate_ref")
-    )
-    if forbidden_authority_claims or (missing_ref_families and not consumable_candidate):
-        status = "typed_blocker"
-    elif missing_ref_families:
+    if missing_ref_families or forbidden_authority_claims:
         status = "completed_with_quality_debt"
     else:
         status = "validated"
@@ -132,44 +127,28 @@ def validate_hypothesis_portfolio_candidate_refs(
         "progress_enhancement_authority_boundary": dict(PROGRESS_ENHANCEMENT_AUTHORITY_BOUNDARY),
         "forbidden_authority_claims": forbidden_authority_claims,
     }
-    if missing_ref_families and consumable_candidate and not forbidden_authority_claims:
+    if missing_ref_families or forbidden_authority_claims:
         result["quality_debt"] = {
             "status": "open",
-            "debt_code": "missing_hypothesis_portfolio_ref_family",
+            "debt_code": (
+                "progress_enhancement_authority_leak"
+                if forbidden_authority_claims
+                else "missing_hypothesis_portfolio_ref_family"
+            ),
             "missing_ref_families": missing_ref_families,
+            "forbidden_authority_claims": forbidden_authority_claims,
             "blocks_stage_transition": False,
             "blocks_candidate_promotion_or_ready_claims": True,
-        }
-    elif missing_ref_families:
-        typed_blocker = {
-            "blocker_id": "missing_hypothesis_portfolio_ref_family",
-            "blocker_family": "hypothesis_portfolio_missing_required_ref",
             "route_back_owner": route_back_owner,
-            "missing_ref_families": missing_ref_families,
-            "required_action": "record_missing_refs_or_return_route_back_owner_typed_blocker",
+            "negative_or_empty_candidate_is_consumable_diagnostic_progress": True,
         }
-        result.update(
-            {
-                "blocker_id": typed_blocker["blocker_id"],
-                "route_back_owner": route_back_owner,
-                "typed_blocker": typed_blocker,
-            }
-        )
-    elif forbidden_authority_claims:
-        typed_blocker = {
-            "blocker_id": "progress_enhancement_authority_leak",
-            "blocker_family": "progress_enhancement_must_remain_advisory",
-            "route_back_owner": route_back_owner,
-            "forbidden_authority_claims": forbidden_authority_claims,
-            "required_action": "remove_authority_claim_or_return_route_back_owner_typed_blocker",
+        result["route_back_recommendation"] = {
+            "selection_owner": "codex_cli",
+            "suggested_stage": route_back_owner,
+            "may_target_any_declared_stage": True,
+            "must_carry_negative_failed_path_refs": True,
+            "blocks_stage_transition": False,
         }
-        result.update(
-            {
-                "blocker_id": typed_blocker["blocker_id"],
-                "route_back_owner": route_back_owner,
-                "typed_blocker": typed_blocker,
-            }
-        )
     return result
 
 
@@ -205,8 +184,8 @@ def build_hypothesis_portfolio_evidence_pack_descriptor() -> dict[str, object]:
         "candidate_promotion_requires_validator": True,
         "advisory_refs_are_authority": False,
         "progress_enhancement_refs_block_route": False,
-        "fail_closed_policy": (
-            "missing_required_candidate_ref_family_returns_typed_blocker_with_route_back_owner"
+        "progress_policy": (
+            "missing_refs_empty_candidate_or_forbidden_claims_record_quality_debt_and_ai_route_back"
         ),
         "authority_boundary": {
             "hypothesis_truth_owner": DOMAIN_OWNER,
@@ -253,12 +232,12 @@ def build_hypothesis_portfolio_evidence_pack_contract() -> dict[str, object]:
         "candidate_validation_output_contract": {
             "success_status": "validated",
             "consumable_candidate_missing_refs_status": "completed_with_quality_debt",
-            "blocked_status": "typed_blocker",
+            "degraded_status": "completed_with_quality_debt",
             "can_promote_candidate_requires": "all_required_ref_families_present",
-            "missing_required_ref_blocker_id": "missing_hypothesis_portfolio_ref_family",
             "quality_debt_blocks_stage_transition": False,
             "quality_debt_blocks_candidate_promotion_or_ready_claims": True,
-            "route_back_owner_required_when_blocked": True,
+            "route_back_selection_owner": "codex_cli",
+            "route_back_may_target_any_declared_stage": True,
         },
         "progress_enhancement_contract": {
             "role": "advisory_progress_accelerator",
@@ -282,7 +261,7 @@ def build_hypothesis_portfolio_evidence_pack_contract() -> dict[str, object]:
         ],
         "missing_ref_policy": {
             "consumable_candidate": "completed_with_quality_debt_and_continue",
-            "zero_consumable_candidate": "emit_typed_blocker_and_route_back_owner",
+            "zero_consumable_candidate": "completed_with_quality_debt_and_ai_selected_route_back",
             "quality_debt_blocks_stage_transition": False,
             "quality_debt_blocks_candidate_promotion_or_ready_claims": True,
         },
@@ -315,9 +294,10 @@ def stage_hypothesis_portfolio_evidence_pack_contract() -> dict[str, object]:
                 "blocks_candidate_promotion_or_ready_claims": True,
             },
             "zero_consumable_candidate": {
-                "status": "typed_blocker",
-                "blocker_id": "missing_hypothesis_portfolio_ref_family",
-                "route_back_owner": "required",
+                "status": "completed_with_quality_debt",
+                "blocks_stage_transition": False,
+                "blocks_candidate_promotion_or_ready_claims": True,
+                "route_back_selection_owner": "codex_cli",
             },
         },
     }

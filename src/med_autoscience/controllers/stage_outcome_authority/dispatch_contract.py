@@ -59,7 +59,7 @@ def dispatch_contract_error(
     apply: bool,
     supported_action_types: frozenset[str],
 ) -> str | None:
-    if _text(dispatch.get("surface")) != "mas_domain_progress_transition_request_projection":
+    if _text(dispatch.get("surface")) != "mas_ai_route_context_projection":
         return "unsupported_dispatch_surface"
     mas_foreground_owner_callable = (
         _text(dispatch.get("adapter_kind")) == "mas_foreground_owner_callable_adapter"

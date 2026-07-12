@@ -443,7 +443,7 @@ def test_owner_callable_attempt_envelope_declares_domain_intent_and_authority_bo
             "allowed_write_surfaces": ["paper/draft.md", "paper/build/review_manuscript.md"],
             "forbidden_surfaces": ["artifacts/publication_eval/latest.json"],
             "required_closeout_packet": {
-                "typed_closeout_required_for_completion": True,
+                "typed_closeout_is_optional_quality_projection": True,
                 "free_text_closeout_accepted": False,
                 "accepted_surface_kinds": ["stage_attempt_closeout_packet"],
                 "completion_boundary": {"provider_completion_is_domain_ready": False},
@@ -600,15 +600,15 @@ def test_owner_callable_attempt_envelope_preallocates_closeout_first_contract() 
         "schema_version": 1,
         "stage_id": "stage_outcome/opl-handoff",
         "required_ref_field": "closeout_refs",
-        "minimum_closeout_refs": 1,
+        "minimum_closeout_refs": 0,
     }
     assert contract["required_paper_stage_log_field"] == "paper_stage_log"
     assert "evidence_refs" in contract["required_paper_stage_log_fields"]
     assert contract["evidence_refs_expectation"] == {
         "required_ref_field": "closeout_refs",
-        "minimum_closeout_refs": 1,
-        "missing_refs_closeout": "typed_blocker",
-        "typed_blocker_reason": "typed_closeout_packet_required",
+        "minimum_closeout_refs": 0,
+        "missing_refs_closeout": "completed_with_quality_debt",
+        "typed_blocker_reason": None,
     }
     assert contract["terminal_outcomes"] == [
         "typed_blocker",
@@ -638,7 +638,7 @@ def test_owner_callable_attempt_envelope_fails_closed_without_domain_intent_requ
                 "source_refs": {"work_unit_id": "ai_reviewer_medical_prose_quality_review"},
             },
             "required_closeout_packet": {
-                "typed_closeout_required_for_completion": True,
+                "typed_closeout_is_optional_quality_projection": True,
                 "free_text_closeout_accepted": False,
             },
         }

@@ -63,12 +63,12 @@ def paper_mission_drive_result(
     stage_closure_decision: Mapping[str, Any] | None = None,
 ) -> dict[str, Any]:
     handoff_ready = _optional_text(handoff.get("handoff_status")) == (
-        "ready_for_opl_route_command"
+        "ready_for_ai_route_context"
     )
-    route = _mapping(consume_readback.get("opl_route_command"))
+    route = _mapping(consume_readback.get("ai_route_context"))
     decision = _mapping(consume_readback.get("stage_terminal_decision"))
-    carrier_readback = _mapping(consume_readback.get("opl_runtime_carrier_readback"))
-    runtime_status = _optional_text(consume_readback.get("opl_runtime_readback_status"))
+    carrier_readback = _mapping(consume_readback.get("opl_stage_attempt_readback"))
+    runtime_status = _optional_text(consume_readback.get("opl_stage_attempt_readback_status"))
     status = (
         "opl_stage_route_running"
         if runtime_status == "opl_runtime_attempt_running_observed"
@@ -98,7 +98,7 @@ def paper_mission_drive_result(
             ),
         ),
         "can_submit_to_opl_runtime": bool(handoff.get("can_submit_to_opl_runtime")),
-        "opl_runtime_readback_status": runtime_status,
+        "opl_stage_attempt_readback_status": runtime_status,
         "provider_attempt_running_observed": (
             runtime_status == "opl_runtime_attempt_running_observed"
         ),

@@ -75,12 +75,6 @@
       "owner": "one-person-lab",
       "status": "descriptor_source_available",
       "surface_id": "workbench_drilldown"
-    },
-    {
-      "domain_repo_can_own_generated_surface": false,
-      "owner": "one-person-lab",
-      "status": "descriptor_source_available",
-      "surface_id": "functional_harness_cases"
     }
   ],
   "oma_agent_evidence_handoff": {

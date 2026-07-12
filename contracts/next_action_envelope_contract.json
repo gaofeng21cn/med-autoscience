@@ -4,7 +4,7 @@
   "owner": "MedAutoScience",
   "state": "active_contract",
   "purpose": "Single MAS-owned next-action envelope compiled from a stage terminal outcome before OPL transport or owner callable dispatch. It prevents exact work-unit ids, read models, queues, attempts, delivery mirrors, or materializer registries from becoming competing next-action authorities.",
-  "machine_boundary": "Only MAS compiles NextActionEnvelope from StageOutcome/StageTerminalDecision. OPL consumes the envelope as runtime transport intent and returns TransitionReceipt. OPL must not infer medical quality or stage completion from queues, attempts, provider completion, or read-model status.",
+  "machine_boundary": "Only MAS compiles NextActionEnvelope from StageOutcome/StageTerminalDecision. OPL consumes the envelope as runtime transport intent and returns StageAttemptReceipt. OPL must not infer medical quality or stage completion from queues, attempts, provider completion, or read-model status.",
   "required_fields": [
     "surface_kind",
     "schema_version",
@@ -55,7 +55,7 @@
   "default_projection_policy": {
     "paper_mission_inspect": "Project the current NextActionEnvelope as the only default next action.",
     "study_progress": "Project the current NextActionEnvelope as current owner/action. Legacy current_work_unit, queue, attempt, delivery, and recovery surfaces are diagnostic refs only.",
-    "opl_handoff": "Consume action_id and idempotency_key. Return TransitionReceipt; do not decide stage completion.",
+    "opl_handoff": "Consume action_id and idempotency_key. Return StageAttemptReceipt; do not decide stage completion.",
     "submission_ready_owner_receipt": "An owner_receipt with package_kind=submission_ready_package, can_submit=true, quality_gate_status clear/passed/cleared, current/fresh/synced delivery projection, existing package root and zip, and no known blockers resolves to mission.complete. Bare owner_receipt, missing/stale package evidence, or blocked package evidence never resolves to mission.complete."
   },
   "forbidden_authorities": [

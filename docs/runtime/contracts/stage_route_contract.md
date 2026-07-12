@@ -7,36 +7,9 @@ Machine boundary: Human-readable runtime contract support only; enforceable runt
 
 Canonical source: `agent/stages/stage_route_contract.yaml`.
 
-Currentness and recovery-obligation source: `contracts/stage_route_reconcile_contract.json`.
-
 `managed_entry_actions` below mirrors legacy route-semantic labels from the canonical YAML. `doctor`、`bootstrap`、`request-opl-stage-attempt` and `study-progress` are not current repo-local commands or action-catalog ids; they are provenance/no-resurrection metadata pending a separate machine-contract migration. Current public actions come only from `contracts/action_catalog.json` and OPL generated surfaces.
 
-The YAML route contract selects stages and route families. It does not authorize provider admission, OPL StageRun execution, terminal closeout consumption, paper progress, owner receipt, typed blocker, publication readiness, or current package truth. Those boundaries are held by the reconcile contract and by fresh runtime readback.
-
-## Currentness Conformance Invariants
-
-Legacy diagnostic execution chain, superseded for default next-action authority by `StageOutcome -> NextActionEnvelope`:
-
-```mermaid
-flowchart LR
-  A["NextActionEnvelope-derived owner delta"] --> B["current_work_unit diagnostic"]
-  B --> C["current_execution_envelope"]
-  C --> D["provider_admission_current_control"]
-  D --> E["OPL StageRun"]
-  E --> F["terminal_closeout"]
-  F --> G["MAS closeout consume or reject"]
-  G --> H["next StageOutcome / NextActionEnvelope"]
-```
-
-- diagnostic_chain_only: StageOutcome -> NextActionEnvelope -> OPLTransitionReceipt_or_StageRunReadback -> MAS_owner_consumption -> MAS_owner_receipt_or_stable_typed_blocker_or_human_gate_or_route_back -> next_StageOutcome
-- default_next_action_authority: StageOutcome -> NextActionEnvelope
-- forbidden_domain_authority_sources: queue_entry | queue_empty | active_run_id | transport_status | trace_span_ref | lineage_ref | read_model_projection | stale_persisted_dispatch | old_route_back_packet | provider_completion
-- false_authority_violation_effect: diagnostic_only_no_owner_delta_no_paper_progress_no_provider_admission
-- stage_packet_blocker: stage_packet_not_current_selected_dispatch; owner: one-person-lab; same_work_unit_redrive_allowed: false
-- stage_packet_safe_exits: OPL_authorization_repair_owner_action | derived_repair_action_with_next_action_envelope_binding | successor_recovery_obligation_ref | human_gate_ref | route_back_evidence_ref
-- typed_blocker_self_authorization: provider_admission=false, readiness_execution=false, owner_receipt=false
-- terminal_closeout_accounting: required fields under `paper_stage_log` must be present or use `missing_with_reason` with refs.
-- terminal_closeout_missing_without_reason_effect: consume_terminal_closeout_as_typed_blocker; typed_blocker: domain_closeout_provided_incomplete_user_stage_log; paper_progress_credit: false; automatic_redrive_allowed: false
+The YAML route contract selects stages and route families. It does not authorize provider admission, OPL StageRun execution, terminal closeout consumption, paper progress, owner receipt, typed blocker, publication readiness, or current package truth. Codex CLI alone selects stage routes; fresh runtime readback is transport evidence and cannot veto or rewrite that route.
 
 ## Compatible Agents
 - Codex, Claude Code, OpenClaw
@@ -245,7 +218,7 @@ flowchart LR
 - default_progress_root: NextActionEnvelope
 - stage_goal_source: stage_run_next_action_envelope
 - executor_output_requirement: concrete_delta
-- accepted_closeout_shapes: ProgressDeltaReceipt | OwnerReceipt | TypedBlocker | human_gate_ref | route_back_ref
+- accepted_closeout_shapes: ProgressDeltaReceipt | RawReadableArtifact | OwnerReceipt | TypedBlocker | human_gate_ref | route_back_ref
 - progress_delta_receipt_kind: ProgressDeltaReceipt
 - progress_delta_receipt_artifact_tier: T0_progress_delta
 - progress_delta_receipt_role: ordinary_step_handoff_not_stage_completion
@@ -265,36 +238,11 @@ flowchart LR
 - audit_sidecar_can_close_stage: False
 - audit_sidecar_can_claim_domain_ready: False
 
-## Stage-route Reconcile And Currentness Boundary
-- reconcile_contract: `contracts/stage_route_reconcile_contract.json`; source_design_ref: `docs/runtime/designs/stage_route_reconcile_target.md`.
-- stage_route_arbiter_surface: provider admission is a transport handoff candidate and cannot self-authorize currentness; legacy current-work-unit refs are diagnostic only and cannot replace the canonical `StageOutcome -> NextActionEnvelope` identity.
-- current_control_action_can_self_authorize: false
-- typed_blocker_can_self_authorize_owner_action: false
-- provider_admission_projection_shape: provider_admission_pending_count=0, provider_admission_candidates=[]; empty_semantics=explicit_no_current_provider_admission_candidate_not_missing_projection; candidate_presence_is_not_running_proof=true.
-A terminal closeout for the same stage attempt suppresses stale running projection before any running watch is reported; a terminal closeout for an old identity must not consume a different current successor owner action.
-A `typed blocker` is a stop or owner-route signal, not execution authority. Blocker-only state must not execute `complete_medical_paper_readiness_surface` or redrive the same work unit without a new owner receipt, route-back, human gate, successor identity, or owner-authorized action.
-domain diagnostic dry-run, domain diagnostic apply, worker restart, provider-slo tick, and family runtime hydrate/tick boundaries are defined by `runtime_supervision_operator_policy` (mas_opl_runtime_supervision_operator_policy); use that policy to distinguish observe-only diagnostics, closeout consumption, worker repair, and provider attempt admission.
-
-### Stage-route Invocation Graph
-
-```mermaid
-flowchart TD
-  stage_outcome["MAS StageOutcome"] -->|"compile_canonical_next_action"| next_action_envelope["NextActionEnvelope"]
-  next_action_envelope["NextActionEnvelope"] -->|"transport_request_only"| opl_transition_receipt["OPL TransitionReceipt / StageRun readback"]
-  opl_transition_receipt["OPL TransitionReceipt / StageRun readback"] -->|"consume_same_identity_result"| mas_owner_consumption["MAS owner consumption"]
-  mas_owner_consumption["MAS owner consumption"] -->|"accept_domain_answer_or_stable_blocker"| mas_owner_receipt_or_typed_blocker["MAS owner receipt / typed blocker / human gate / route-back"]
-  mas_owner_receipt_or_typed_blocker["MAS owner receipt / typed blocker / human gate / route-back"] -->|"terminalize_next_mas_stage_result"| next_stage_outcome["next StageOutcome"]
-  legacy_diagnostics["legacy current_work_unit / current_execution_envelope / provider admission projections"] -->|"diagnostic_only_cannot_override_next_action"| stage_route_arbiter_decisions["stage_route_arbiter_decisions"]
-  trace_span_refs["trace/span refs"] -->|"correlate_observability_refs"| stage_route_arbiter_decisions["stage_route_arbiter_decisions"]
-```
-
-- same_identity_order: stage_outcome -> next_action_envelope -> opl_transition_receipt -> mas_owner_consumption -> mas_owner_receipt_or_typed_blocker -> next_stage_outcome
-- feedback_edge: next_stage_outcome -> stage_outcome
-- feedback_requires_any: new_work_unit_identity | new_owner_receipt_ref | quality_gate_receipt_ref | canonical_changed_surface_ref | stable_typed_blocker_ref | human_gate_ref | route_back_evidence_ref | stop_loss
-- feedback_forbidden_when: same_work_unit_without_new_consumed_evidence | same_identity_terminal_closeout_unconsumed | same_identity_anti_loop_budget_exhausted | status_or_observability_only_delta
-- forbidden_edges: trace_span_refs -> next_action_envelope: observability refs cannot generate next action | active_run_id_or_transport_status -> next_action_envelope: transport status cannot become canonical next action | legacy_diagnostics -> next_action_envelope: legacy projections cannot override canonical next action | typed_blocker_only -> provider_admission_current_control: typed blocker cannot self-authorize provider admission or readiness execution | provider_completion -> mas_owner_receipt_or_typed_blocker: provider completion is not MAS domain acceptance | old_persisted_dispatch -> provider_admission_current_control: stale dispatch cannot bypass selected-dispatch currentness
-- dead_loop_risk_guards: typed_blocker_self_authorization blocked_by owner_action_dispatch_authority_policy.typed_blocker_can_self_authorize_owner_action=false, current_typed_blocker_precedes_provider_admission | stale_running_projection blocked_by currentness_precedence.terminal_closeout_for_same_stage_attempt, identity_policy.minimum_match_for_provider_running | same_work_unit_redrive_loop blocked_by anti_loop_policy.max_same_identity_terminal_without_progress, dm002_dm003_recovery_acceptance_policy.same_work_unit_stop_loss_policy | terminal_closeout_unconsumed blocked_by runtime_supervision_operator_policy.operator_actions.terminal_closeout_consumer_gate, closeout_handshake.required_sequence | stale_dispatch_reselected blocked_by owner_action_dispatch_authority_policy.stage_native_next_action_policy, identity_policy.shared_identity_helper
-- graph_authority_boundary: can_generate_owner_delta=false, can_authorize_provider_admission=false, can_mark_paper_progress=false.
+## Single AI Route Boundary
+- route_selection_owner: `codex_cli`.
+- Any readable artifact, partial draft, failed attempt, negative result, or diagnostic may be passed to any declared next stage.
+- Transport receipts, schemas, packet validators, read models, retry budgets, and closeout projections cannot select, reject, or rewrite a stage route.
+- Quality debt blocks accepted/publication/export/readiness claims, never ordinary stage transition.
 
 ## Late-Stage Progress Sprint Contract
 - sprint_id: publishability_repair_sprint

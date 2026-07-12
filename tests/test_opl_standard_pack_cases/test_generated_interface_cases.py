@@ -87,10 +87,6 @@ def test_opl_conformance_accepts_mas_foundry_consumer_and_runtime_refs_adapters(
             "mds_behavior_equivalence_provenance",
             "refs_only_domain_adapter",
         ),
-        "src/med_autoscience/paper_mission_opl_readback/opl_task_readback.py": (
-            "opl_hosted_runtime_readback_consumer",
-            "refs_only_domain_adapter",
-        ),
     }
     allowed = {entry["path"]: entry["audit_coverage"] for entry in source_behavior["allowed_matches"]}
     for path, (module_id, migration_class) in expected_adapters.items():

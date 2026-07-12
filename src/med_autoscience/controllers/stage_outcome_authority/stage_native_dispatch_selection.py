@@ -3,7 +3,7 @@ from __future__ import annotations
 from collections.abc import Mapping
 from typing import Any
 
-from med_autoscience.controllers import opl_domain_progress_transition_contract
+from med_autoscience.controllers.ai_route_context import next_action_identity_complete
 from med_autoscience.profiles import WorkspaceProfile
 from med_autoscience.controllers.stage_outcome_authority import owner_route_policy as owner_route_part
 
@@ -62,9 +62,7 @@ def dispatch_uses_stage_native_next_action(dispatch: Mapping[str, Any]) -> bool:
 
 
 def dispatch_has_canonical_next_action_envelope(dispatch: Mapping[str, Any]) -> bool:
-    return opl_domain_progress_transition_contract.next_action_identity_complete(
-        _dispatch_next_action(dispatch)
-    )
+    return next_action_identity_complete(_dispatch_next_action(dispatch))
 
 
 def dispatch_has_opl_execution_proof(dispatch: Mapping[str, Any]) -> bool:

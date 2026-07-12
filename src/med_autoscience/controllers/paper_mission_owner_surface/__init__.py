@@ -21,8 +21,7 @@ from med_autoscience.controllers.paper_mission_owner_surface import request_pack
 from med_autoscience.controllers.paper_mission_owner_surface import runtime_facts, scan_output, status_projection
 from med_autoscience.controllers.paper_mission_owner_surface import stale_redrive_resolution
 from med_autoscience.controllers.paper_mission_owner_surface import story_surface_delta_actions, study_identity
-from med_autoscience.controllers.paper_mission_owner_surface import submission_milestone_parking
-from med_autoscience.controllers.paper_mission_owner_surface import submission_milestone_projection, workspace_daemon
+from med_autoscience.controllers.paper_mission_owner_surface import workspace_daemon
 from med_autoscience.controllers.paper_mission_owner_surface import supervision_surfaces
 from med_autoscience.controllers.stage_outcome_authority import owner_route_policy as owner_route_part
 from med_autoscience.opl_domain_pack import state_index_source_refs
@@ -412,48 +411,7 @@ def _study_projection(
     status_payload = provider_readiness_runtime_health.refresh_status(
         status_payload, study_root, study_id, resolved_quest_id, provider_readiness, generated_at
     )
-    submission_milestone_parked_refresh = submission_milestone_projection.refresh_if_opl_stage_attempt_required(
-        profile=profile,
-        study_id=study_id,
-        study_root=study_root,
-        status_payload=status_payload,
-        developer_mode=developer_mode,
-        enabled=developer_mode.safe_actions_enabled,
-        opl_stage_attempt_required=_opl_stage_attempt_required(status_payload, progress_payload),
-    )
-    if submission_milestone_projection.applied(submission_milestone_parked_refresh):
-        status_payload, progress_payload, resolved_quest_id, publication_eval_payload = _read_study_projection_inputs(
-            profile=profile,
-            study_id=study_id,
-            study_root=study_root,
-        )
-        status_payload, progress_payload = _attach_study_macro_state(
-            study_id=study_id,
-            status_payload=status_payload,
-            progress_payload=progress_payload,
-            publication_eval_payload=publication_eval_payload,
-        )
-    if submission_milestone_parked_refresh is None:
-        submission_milestone_parked_refresh = submission_milestone_projection.reconcile_stopped_parking(
-            profile=profile,
-            study_id=study_id,
-            study_root=study_root,
-            status_payload=status_payload,
-            developer_mode=developer_mode,
-            enabled=developer_mode.safe_actions_enabled,
-        )
-        if submission_milestone_projection.applied(submission_milestone_parked_refresh):
-            from med_autoscience.controllers.study_progress.projection import read_study_progress
-
-            progress_payload = _mapping(
-                read_study_progress(profile=profile, study_id=study_id, study_root=study_root)
-            )
-            status_payload, progress_payload = _attach_study_macro_state(
-                study_id=study_id,
-                status_payload=status_payload,
-                progress_payload=progress_payload,
-                publication_eval_payload=publication_eval_payload,
-            )
+    submission_milestone_parked_refresh = None
     gate_specificity = _publication_gate_specificity_required(
         status_payload,
         progress_payload,

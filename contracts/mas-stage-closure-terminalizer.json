@@ -3,7 +3,7 @@
   "schema_version": 1,
   "contract_id": "mas.stage_closure_terminalizer.v1",
   "machine_boundary": {
-    "role": "pure_stage_closeout_decision_contract",
+    "role": "quality_debt_projection_only",
     "writes_authority_surface": false,
     "writes_owner_receipt": false,
     "writes_typed_blocker": false,
@@ -13,12 +13,7 @@
     "writes_runtime_queue_or_provider_attempt": false,
     "opl_can_infer_mas_authority": false
   },
-  "required_outcome_kinds": [
-    "owner_receipt",
-    "typed_blocker",
-    "human_gate",
-    "next_stage_transition"
-  ],
+  "required_outcome_kinds": ["typed_blocker", "next_stage_transition"],
   "forbidden_terminal_interpretations": [
     "provider_completion_is_domain_ready",
     "candidate_is_submission_ready",
@@ -87,11 +82,14 @@
     }
   },
   "decision_requirements": {
-    "must_emit_exactly_one_outcome": true,
+    "must_emit_exactly_one_outcome": false,
+    "route_selection_owner": "codex_cli",
+    "projection_can_select_stage_route": false,
+    "quality_debt_blocks_stage_transition": false,
     "must_classify_gate_blockers": true,
     "must_preserve_known_blockers": true,
     "must_record_observability_gap_without_blocking_closure": true,
-    "must_fail_closed_when_no_semantic_delta_repeats": true,
+    "must_fail_closed_when_no_semantic_delta_repeats": false,
     "must_project_repair_budget_fields": [
       "repair_budget_max",
       "repair_attempt_count",

@@ -202,10 +202,10 @@ def _terminal_owner_gate_owner(blocked_reason: str | None) -> str:
 def stage_terminal_next_owner_or_human_decision(
     *,
     stage_terminal_decision: Mapping[str, Any],
-    opl_route_command: Mapping[str, Any] | None = None,
+    ai_route_context: Mapping[str, Any] | None = None,
 ) -> dict[str, Any]:
     decision = _mapping(stage_terminal_decision)
-    route = _mapping(opl_route_command)
+    route = _mapping(ai_route_context)
     decision_kind = _text(decision.get("decision_kind"))
     status = _text(decision.get("status"))
     needs_human = decision_kind in {

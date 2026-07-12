@@ -4,7 +4,7 @@ from pathlib import Path
 from typing import Any, Mapping
 
 from med_autoscience.profiles import WorkspaceProfile
-from med_autoscience.controllers.study_transition_receipt_consumption.owner_callable_candidates import (
+from med_autoscience.controllers.study_stage_attempt_receipt_consumption.owner_callable_candidates import (
     latest_owner_callable_receipt_payload,
 )
 

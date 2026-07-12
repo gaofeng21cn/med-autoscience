@@ -8,10 +8,7 @@ from typing import Any
 
 from med_autoscience.controllers.owner_callable_action_policy import owner_callable_search_discipline
 from med_autoscience.controllers.owner_callable_closeout_contract import owner_callable_typed_closeout_contract
-from med_autoscience.controllers.opl_domain_progress_transition_contract import (
-    mas_request_transport_fields as domain_progress_transition_request_transport_fields,
-)
-from med_autoscience.controllers.paper_progress_policy_adapter import build_transition_request
+from med_autoscience.controllers.ai_route_context import build_ai_route_context
 from med_autoscience.profiles import WorkspaceProfile
 from med_autoscience.controllers.stage_outcome_authority import owner_route_policy as owner_route_part
 from med_autoscience.study_decision_record import StudyDecisionActionType
@@ -147,7 +144,7 @@ def build_writer_worker_handoff(
         or _non_empty_text(owner_route.get("idempotency_key"))
     )
     source_generation = work_unit_fingerprint or _non_empty_text(owner_route.get("source_fingerprint"))
-    transition_request = build_transition_request(
+    ai_route_context = build_ai_route_context(
         study_id=study_id,
         quest_id=quest_id,
         action_type=StudyDecisionActionType.RUN_QUALITY_REPAIR_BATCH.value,
@@ -164,7 +161,6 @@ def build_writer_worker_handoff(
             "source_eval_id": source_eval_id,
         },
     )
-    transition_authority_fields = domain_progress_transition_request_transport_fields()
     prompt_contract = {
         "study_id": study_id,
         "quest_id": quest_id,
@@ -193,13 +189,12 @@ def build_writer_worker_handoff(
         "quality_gate_relaxation_allowed": False,
         "manual_study_patch_allowed": False,
         "medical_claim_authoring_allowed": True,
-        "opl_domain_progress_transition_request": transition_request,
+        "ai_route_context": ai_route_context,
         "provider_admission_pending": False,
-        "provider_admission_requires_opl_runtime_result": True,
-        **transition_authority_fields,
+        "provider_admission_requires_opl_runtime_result": False,
     }
     return {
-        "surface": "mas_domain_progress_transition_request_projection",
+        "surface": "mas_ai_route_context_projection",
         "schema_version": schema_version,
         **_owner_callable_policy(),
         "study_id": study_id,
@@ -222,10 +217,9 @@ def build_writer_worker_handoff(
         "quality_gate_relaxation_allowed": False,
         "manual_study_patch_allowed": False,
         "medical_claim_authoring_allowed": True,
-        "opl_domain_progress_transition_request": transition_request,
+        "ai_route_context": ai_route_context,
         "provider_admission_pending": False,
-        "provider_admission_requires_opl_runtime_result": True,
-        **transition_authority_fields,
+        "provider_admission_requires_opl_runtime_result": False,
         "source_action": {
             "surface": "quality_repair_batch",
             "blocked_reason": blocked_repair_reason,

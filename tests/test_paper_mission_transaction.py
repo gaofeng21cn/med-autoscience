@@ -11,7 +11,7 @@ from med_autoscience.paper_mission_transaction import (
     build_paper_mission_transaction,
     stage_terminal_decision_for_consume_result,
 )
-from med_autoscience.paper_mission_opl_carrier import paper_mission_opl_runtime_carrier
+from med_autoscience.paper_mission_stage_run_context import paper_mission_stage_run_context
 
 
 pytestmark = [pytest.mark.contract, pytest.mark.meta]
@@ -94,7 +94,7 @@ def test_contract_declares_terminalizer_boundary() -> None:
     assert contract["surface_kind"] == "mas_paper_mission_transaction_contract"
     assert contract["version"] == "paper-mission-transaction.v1"
     assert contract["stage_terminal_decision"]["owner"] == "MedAutoScience"
-    assert contract["opl_route_command"]["owner"] == "one-person-lab"
+    assert contract["ai_route_context"]["owner"] == "one-person-lab"
     assert contract["stage_terminal_decision"]["allowed_decision_kinds"] == [
         "advance",
         "continue_same_stage",
@@ -104,21 +104,21 @@ def test_contract_declares_terminalizer_boundary() -> None:
         "mission_complete",
     ]
     assert "read_model_status_is_stage_terminal_decision" in contract[
-        "opl_route_command"
+        "ai_route_context"
     ]["forbidden_runtime_claims"]
-    assert contract["opl_runtime_carrier"]["surface_kind"] == (
+    assert contract["opl_stage_run_context"]["surface_kind"] == (
         "opl_domain_route_runtime_request"
     )
-    assert contract["opl_runtime_carrier"]["target_runtime_kind"] == (
+    assert contract["opl_stage_run_context"]["target_runtime_kind"] == (
         "domain_route/stage-route"
     )
-    assert contract["opl_runtime_carrier"]["request_only_flags"][
+    assert contract["opl_stage_run_context"]["request_only_flags"][
         "writes_runtime_queue"
     ] is False
-    assert contract["opl_runtime_carrier"]["domain_route_profile_ref"] == (
+    assert contract["opl_stage_run_context"]["domain_route_profile_ref"] == (
         "contracts/domain_route_profile.json"
     )
-    attempt_consumer = contract["opl_runtime_carrier"]["runtime_attempt_consumer"]
+    attempt_consumer = contract["opl_stage_run_context"]["runtime_attempt_consumer"]
     assert attempt_consumer["runtime_domain_id"] == "medautoscience"
     assert attempt_consumer["stage_argument_source"] == (
         "declarative_target_stage_id"
@@ -127,10 +127,10 @@ def test_contract_declares_terminalizer_boundary() -> None:
         "opl family-runtime enqueue",
         "opl family-runtime tick",
     ]
-    assert contract["opl_route_command"]["required_fields_by_command_kind"][
+    assert contract["ai_route_context"]["required_fields_by_command_kind"][
         "start_next_stage"
     ] == ["declarative_target_stage_id"]
-    assert "stage_run_identity" in contract["opl_runtime_carrier"][
+    assert "stage_run_identity" in contract["opl_stage_run_context"][
         "forbidden_runtime_fields"
     ]
 
@@ -146,19 +146,21 @@ def test_contract_declares_terminalizer_boundary() -> None:
         ("mission_complete", "complete_mission"),
     ),
 )
-def test_transaction_maps_terminal_decision_to_opl_route_command(
+def test_transaction_maps_terminal_decision_to_ai_route_context(
     decision_kind: str,
     expected_command: str,
 ) -> None:
     transaction = PaperMissionTransaction.from_payload(
         _valid_transaction(decision_kind)
     )
-    carrier = paper_mission_opl_runtime_carrier(transaction.to_dict())
+    carrier = paper_mission_stage_run_context(transaction.to_dict())
 
     assert transaction.stage_terminal_decision["decision_kind"] == decision_kind
-    assert transaction.opl_route_command["command_kind"] == expected_command
-    assert carrier["opl_route_command"]["command_kind"] == expected_command
-    assert carrier["provider_admission_requires_opl_runtime_result"] is True
+    assert transaction.ai_route_context["command_kind"] == expected_command
+    assert carrier["route_context"]["command_kind"] == expected_command
+    assert carrier["provider_admission_requires_opl_runtime_result"] is False
+    assert carrier["next_stage_may_start"] is True
+    assert carrier["route_selection_owner"] == "codex_cli"
     assert transaction.authority_boundary["writes_runtime_queue"] is False
     assert transaction.authority_boundary["writes_provider_attempt"] is False
 
@@ -166,77 +168,80 @@ def test_transaction_maps_terminal_decision_to_opl_route_command(
 def test_advance_transaction_exports_explicit_declarative_target_stage() -> None:
     transaction = PaperMissionTransaction.from_payload(_valid_transaction("advance"))
 
-    assert transaction.opl_route_command["declarative_target_stage_id"] == (
+    assert transaction.ai_route_context["declarative_target_stage_id"] == (
         transaction.stage_terminal_decision["next_stage_id"]
     )
 
 
-def test_resume_transaction_rejects_missing_declarative_target_stage() -> None:
+def test_resume_transaction_records_missing_declarative_target_stage_as_quality_debt() -> None:
     payload = _valid_transaction("continue_same_stage")
     payload["stage_terminal_decision"].pop("target_stage_id")
 
-    with pytest.raises(
-        PaperMissionTransactionContractError,
-        match="target_stage_id must be a non-empty string",
-    ):
-        PaperMissionTransaction.from_payload(payload)
+    transaction = PaperMissionTransaction.from_payload(payload).to_dict()
+
+    assert "stage_terminal_decision_missing_or_invalid" in transaction[
+        "transaction_quality_debt"
+    ]
+    assert transaction["progress_first"]["next_stage_may_start"] is True
 
 
-def test_transaction_fails_closed_without_audit_family() -> None:
+def test_transaction_records_missing_audit_family_as_quality_debt() -> None:
     payload = _valid_transaction()
     audit_refs = dict(payload["paper_audit_pack_refs"])
     audit_refs.pop("failed_path_ledger")
     payload["paper_audit_pack_refs"] = audit_refs
 
-    with pytest.raises(
-        PaperMissionTransactionContractError,
-        match="paper_audit_pack_refs.failed_path_ledger must be a list of mappings",
-    ):
-        PaperMissionTransaction.from_payload(payload)
+    transaction = PaperMissionTransaction.from_payload(payload).to_dict()
+
+    assert "paper_audit_pack_refs_missing_or_invalid" in transaction[
+        "transaction_quality_debt"
+    ]
+    assert transaction["progress_first"]["next_stage_may_start"] is True
 
 
-def test_transaction_rejects_provider_completion_as_domain_completion() -> None:
+def test_transaction_does_not_let_route_shape_block_stage_progress() -> None:
     payload = _valid_transaction()
-    payload["opl_route_command"] = {
-        **payload["opl_route_command"],
+    payload["ai_route_context"] = {
+        **payload["ai_route_context"],
         "command_kind": "complete_mission",
     }
 
-    with pytest.raises(
-        PaperMissionTransactionContractError,
-        match="command_kind does not match stage_terminal_decision",
-    ):
-        PaperMissionTransaction.from_payload(payload)
+    transaction = PaperMissionTransaction.from_payload(payload).to_dict()
+
+    assert "ai_route_context_missing_or_invalid" in transaction[
+        "transaction_quality_debt"
+    ]
+    assert transaction["progress_first"]["route_selection_owner"] == "codex_cli"
 
 
-def test_transaction_rejects_cross_identity_terminal_decision_ref() -> None:
+def test_transaction_records_cross_identity_terminal_decision_ref_as_quality_debt() -> None:
     payload = _valid_transaction()
-    payload["opl_route_command"] = {
-        **payload["opl_route_command"],
+    payload["ai_route_context"] = {
+        **payload["ai_route_context"],
         "source_terminal_decision_ref": (
             "paper-mission-transaction::other#stage_terminal_decision"
         ),
     }
 
-    with pytest.raises(
-        PaperMissionTransactionContractError,
-        match="source_terminal_decision_ref must match transaction",
-    ):
-        PaperMissionTransaction.from_payload(payload)
+    transaction = PaperMissionTransaction.from_payload(payload).to_dict()
+
+    assert "ai_route_context_missing_or_invalid" in transaction[
+        "transaction_quality_debt"
+    ]
 
 
-def test_transaction_rejects_cross_identity_stage_run_ref() -> None:
+def test_transaction_records_cross_identity_stage_run_ref_as_quality_debt() -> None:
     payload = _valid_transaction()
-    payload["opl_route_command"] = {
-        **payload["opl_route_command"],
+    payload["ai_route_context"] = {
+        **payload["ai_route_context"],
         "stage_run_ref": "opl-stage-run://other/stage/attempt",
     }
 
-    with pytest.raises(
-        PaperMissionTransactionContractError,
-        match="stage_run_ref must match transaction stage_run_ref",
-    ):
-        PaperMissionTransaction.from_payload(payload)
+    transaction = PaperMissionTransaction.from_payload(payload).to_dict()
+
+    assert "ai_route_context_missing_or_invalid" in transaction[
+        "transaction_quality_debt"
+    ]
 
 
 def test_transaction_preserves_external_fingerprint_for_opl_identity() -> None:
@@ -247,12 +252,10 @@ def test_transaction_preserves_external_fingerprint_for_opl_identity() -> None:
     }
 
     transaction = PaperMissionTransaction.from_payload(payload)
-    carrier = paper_mission_opl_runtime_carrier(transaction.to_dict())
+    carrier = paper_mission_stage_run_context(transaction.to_dict())
 
     assert carrier["work_unit_fingerprint"] == "external-fingerprint::opaque-owner-route"
-    assert carrier["aggregate_identity"]["work_unit_fingerprint"] == (
-        "external-fingerprint::opaque-owner-route"
-    )
+    assert carrier["next_stage_may_start"] is True
 
 
 def test_terminal_decision_for_not_consumed_continues_same_stage() -> None:

@@ -54,14 +54,14 @@ def _canonical_next_legal_action(payload: Mapping[str, Any]) -> str | None:
     receipt_status = _non_empty_text(receipt_consumption.get("status"))
     if (
         receipt_action
-        and receipt_action != "request_opl_runtime_readback"
+        and receipt_action != "codex_select_any_declared_stage"
     ):
         return receipt_action
     if next_action_surface != "mas_next_action_envelope":
         return None
     action_family = next_action_family
     if action_family == "runtime.opl_route":
-        return "request_opl_runtime_readback"
+        return "codex_select_any_declared_stage"
     if action_family == "paper.gate.publishability_replay":
         return "run_publication_gate_replay"
     if action_family == "blocked.typed":
@@ -72,7 +72,7 @@ def _canonical_next_legal_action(payload: Mapping[str, Any]) -> str | None:
         if _non_empty_text(stage_outcome.get("next_action")):
             return None
         stage_decision = _mapping(payload.get("stage_terminal_decision"))
-        route_command = _mapping(payload.get("opl_route_command"))
+        route_command = _mapping(payload.get("ai_route_context"))
         if (
             _non_empty_text(stage_decision.get("decision_kind")) == "human_gate"
             or _non_empty_text(route_command.get("command_kind")) == "wait_for_human"

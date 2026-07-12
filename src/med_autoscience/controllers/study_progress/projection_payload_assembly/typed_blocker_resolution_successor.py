@@ -97,10 +97,10 @@ def _current_runtime_route_supersedes_resolution(
         return False
     summary = _mapping_copy(payload.get("artifact_first_mission_summary"))
     carrier_readback = _mapping_copy(
-        payload.get("current_opl_runtime_carrier_readback")
-    ) or _mapping_copy(summary.get("opl_runtime_carrier_readback"))
+        payload.get("current_opl_stage_attempt_readback")
+    ) or _mapping_copy(summary.get("opl_stage_attempt_readback"))
     return bool(
-        _mapping_copy(carrier_readback.get("opl_transition_receipt"))
+        _mapping_copy(carrier_readback.get("opl_stage_attempt_receipt"))
         or _mapping_copy(carrier_readback.get("terminal_closeout"))
     )
 

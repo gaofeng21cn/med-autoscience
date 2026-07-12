@@ -3,11 +3,11 @@
 Owner: `MedAutoScience`
 Purpose: `paper_recovery_authority_and_replay_runbook`
 State: `superseded_control_design`
-Machine boundary: 本文是人读设计与事故 replay runbook。机器真相归 `contracts/paper_recovery_kernel_contract.json`、`contracts/stage_route_reconcile_contract.json`、fresh `study_progress`、domain diagnostic dry-run / apply、OPL current-control、owner receipt、typed blocker、human gate、route-back evidence 和 canonical changed surface refs。
+Machine boundary: 本文是人读设计与事故 replay runbook。机器真相归 `contracts/paper_recovery_kernel_contract.json`、fresh `study_progress`、Codex CLI route judgment、owner receipt、typed blocker、human gate、route-back evidence 和 canonical changed surface refs；transport readback 不选择或阻断 stage route。
 
 ## Supersession notice
 
-2026-06-29 之后，默认论文 next action authority 已由 [Next Action Control Plane](./next_action_control_plane.md) 持有：`StageOutcome -> NextActionEnvelope`。`OPL TransitionReceipt` 只作 transport receipt-only evidence 和 MAS owner-consumption input。本文只保留 PaperRecovery 事故 replay、migration diagnostic、provenance 和 no-resurrection guard 读法；不得再用 PaperRecovery / `paper_recovery_state` 生成 `current_executable_owner_action`、provider admission、默认 next action、paper progress、publication-ready 或 submission-ready claim。
+2026-06-29 之后，默认论文 next action authority 已由 [Next Action Control Plane](./next_action_control_plane.md) 持有：`StageOutcome -> NextActionEnvelope`。`OPL StageAttemptReceipt` 只作 transport receipt-only evidence 和 MAS owner-consumption input。本文只保留 PaperRecovery 事故 replay、migration diagnostic、provenance 和 no-resurrection guard 读法；不得再用 PaperRecovery / `paper_recovery_state` 生成 `current_executable_owner_action`、provider admission、默认 next action、paper progress、publication-ready 或 submission-ready claim。
 
 Reader rule：本文不是 active runbook、active backlog 或 provider admission 入口。下文保留的 `Kernel`、`Phase`、`Replay`、`Derived surfaces` 和 `Manual foreground adoption` 只解释历史事故如何被判读，以及为什么旧 surface 不应复活；若与当前 [Next Action Control Plane](./next_action_control_plane.md)、`docs/status.md` 或 fresh runtime/owner readback 冲突，以当前 envelope / owner surface 为准。
 
@@ -15,7 +15,7 @@ Reader rule：本文不是 active runbook、active backlog 或 provider admissio
 
 `PaperRecovery` 是历史 recovery obligation kernel，不再是当前控制面。OPL 是 execution substrate，负责 StageRun、attempt ledger、provider liveness、terminal closeout transport、queue / retry / dead-letter 与 workbench shell；OPL 不选择 recovery obligation，不签 MAS owner receipt，不声明 paper progress、publication readiness 或 manual foreground adoption。
 
-历史 `study_progress`、domain diagnostic provider admission、operator card、OPL admission 和 human workbench card 曾从 `paper_recovery_state` 派生。当前默认读面只能从 StageOutcome / NextActionEnvelope / OPL TransitionReceipt 派生；本文中的 `paper_recovery_state` 只能展示事故 replay、迁移诊断或历史 recovery obligation，不能从 queue、active run、transport status、operator card、old handoff 或 docs claim 反向生成 current next action。
+历史 `study_progress`、domain diagnostic provider admission、operator card、OPL admission 和 human workbench card 曾从 `paper_recovery_state` 派生。当前默认读面只能从 StageOutcome / NextActionEnvelope / OPL StageAttemptReceipt 派生；本文中的 `paper_recovery_state` 只能展示事故 replay、迁移诊断或历史 recovery obligation，不能从 queue、active run、transport status、operator card、old handoff 或 docs claim 反向生成 current next action。
 
 历史目标接口详见 [PaperRecovery Obligation 目标架构](../designs/paper_recovery_obligation_target_architecture.md)：`RecoveryObligationKernel` 曾用于把 MAS owner evidence、OPL execution observation、terminal closeout refs、manual / human gate refs 和 read-model projection status 归一为 `paper_recovery_state`。当前只能把该 shape 当作诊断/provenance；operator projection 不得从它、queue、active run、transport status 或旧 handoff 重判 currentness。
 

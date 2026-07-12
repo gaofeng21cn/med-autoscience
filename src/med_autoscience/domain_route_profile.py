@@ -109,19 +109,19 @@ def build_domain_route_profile() -> dict[str, Any]:
         "runtime_request_surface_kind": RUNTIME_REQUEST_SURFACE_KIND,
         "source_paths": [
             "src/med_autoscience/domain_route_profile.py",
-            "src/med_autoscience/paper_mission_opl_carrier.py",
+            "src/med_autoscience/paper_mission_stage_run_context.py",
             "src/med_autoscience/controllers/owner_route_handoff/task_kinds.py",
         ],
         "task_kind_normalization": dict(TASK_KIND_NORMALIZATION),
         "field_mapping": {
-            "command_kind": ["route_command_kind", "opl_route_command.command_kind"],
-            "route_target": ["route_target", "opl_route_command.target"],
+            "command_kind": ["route_command_kind", "ai_route_context.command_kind"],
+            "route_target": ["route_target", "ai_route_context.target"],
             "declarative_target_stage_id": [
                 "declarative_target_stage_id",
-                "opl_route_command.declarative_target_stage_id",
+                "ai_route_context.declarative_target_stage_id",
             ],
             "domain_route_transaction_ref": "paper_mission_transaction_ref",
-            "domain_route_command_ref": "opl_route_command_ref",
+            "domain_route_command_ref": "ai_route_context_ref",
             "route_identity.route_identity_key": "route_identity_key",
             "route_identity.request_idempotency_key": "request_idempotency_key",
             "attempt_identity.attempt_idempotency_key": "attempt_idempotency_key",
@@ -138,7 +138,7 @@ def build_domain_route_profile() -> dict[str, Any]:
             "task_kinds": sorted(TASK_KIND_NORMALIZATION),
             "handoff_surface_kinds": [
                 "mas_paper_mission_opl_route_handoff_record",
-                "mas_domain_progress_transition_request",
+                "mas_ai_route_context",
             ],
             "runtime_request_surface_kinds": [
                 "opl_mas_paper_mission_route_runtime_request"
@@ -209,7 +209,7 @@ def build_domain_route_profile() -> dict[str, Any]:
 def build_domain_route_handoff_intake_readback(
     handoff: Mapping[str, Any],
 ) -> dict[str, Any]:
-    route = _mapping(handoff.get("opl_route_command"))
+    route = _mapping(handoff.get("ai_route_context"))
     command_kind = _first_text(handoff.get("route_command_kind"), route.get("command_kind"))
     route_target = _first_text(handoff.get("route_target"), route.get("target"))
     handoff_target_stage_id = _text(handoff.get("declarative_target_stage_id"))
@@ -219,10 +219,10 @@ def build_domain_route_handoff_intake_readback(
         handoff.get("paper_mission_transaction_ref")
     )
     command_ref = _text(handoff.get("domain_route_command_ref")) or _text(
-        handoff.get("opl_route_command_ref")
+        handoff.get("ai_route_context_ref")
     )
     if command_ref is None and transaction_ref is not None:
-        command_ref = f"{transaction_ref}#opl_route_command"
+        command_ref = f"{transaction_ref}#ai_route_context"
     handoff_ref = _text(handoff.get("domain_route_handoff_ref"))
     if handoff_ref is None and transaction_ref is not None:
         handoff_ref = f"{transaction_ref}#domain_route_handoff"
@@ -461,15 +461,15 @@ def _source_fingerprint(*, handoff: Mapping[str, Any], source_refs: list[str]) -
         "candidate_sha256": candidate_sha256,
         "command_kind": _first_text(
             handoff.get("route_command_kind"),
-            _mapping(handoff.get("opl_route_command")).get("command_kind"),
+            _mapping(handoff.get("ai_route_context")).get("command_kind"),
         ),
         "route_target": _first_text(
             handoff.get("route_target"),
-            _mapping(handoff.get("opl_route_command")).get("target"),
+            _mapping(handoff.get("ai_route_context")).get("target"),
         ),
         "declarative_target_stage_id": _first_text(
             handoff.get("declarative_target_stage_id"),
-            _mapping(handoff.get("opl_route_command")).get(
+            _mapping(handoff.get("ai_route_context")).get(
                 "declarative_target_stage_id"
             ),
         ),

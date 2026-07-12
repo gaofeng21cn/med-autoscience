@@ -70,7 +70,7 @@ def dispatch(
     )
     authorization = opl_execution_authorization(study_id=study_id, action_type=action_type)
     return {
-        "surface": "mas_domain_progress_transition_request_projection",
+        "surface": "mas_ai_route_context_projection",
         "schema_version": 1,
         "executor_kind": "codex_cli_default",
         "executor_name": "Codex CLI",
@@ -150,8 +150,8 @@ def write_scan_latest(profile, study_id: str, owner_route: dict[str, object]) ->
 def transition_request_projection(dispatch: dict[str, object]) -> dict[str, object]:
     from med_autoscience.controllers import owner_callable_adapter_projection
 
-    return owner_callable_adapter_projection.domain_progress_transition_requests(
-        {"domain_progress_transition_requests": [dispatch]}
+    return owner_callable_adapter_projection.ai_route_contexts(
+        {"ai_route_contexts": [dispatch]}
     )[0]
 
 
@@ -160,9 +160,9 @@ def transition_request_consumer_latest(*dispatches: dict[str, object]) -> dict[s
     return {
         "surface": "stage_outcome_authority_transition_requests",
         "schema_version": 1,
-        "canonical_transition_request_surface": "domain_progress_transition_requests",
-        "domain_progress_transition_requests": transition_requests,
-        "domain_progress_transition_request_count": len(transition_requests),
+        "canonical_transition_request_surface": "ai_route_contexts",
+        "ai_route_contexts": transition_requests,
+        "ai_route_context_count": len(transition_requests),
     }
 
 

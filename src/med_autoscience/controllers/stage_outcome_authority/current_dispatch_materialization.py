@@ -5,7 +5,7 @@ from typing import Any
 
 from med_autoscience.profiles import WorkspaceProfile
 from med_autoscience.controllers.owner_callable_adapter_projection import (
-    domain_progress_transition_requests,
+    ai_route_contexts,
 )
 
 
@@ -20,10 +20,10 @@ def current_materialized_dispatches(
     mode: str,
     apply: bool,
     fresh_progress: Mapping[str, Any] | None = None,
-    transition_request_projection_producer: TransitionRequestProjectionProducer,
+    ai_route_context_projection_producer: TransitionRequestProjectionProducer,
     text: Callable[[object], str | None],
 ) -> list[dict[str, Any]]:
-    payload = transition_request_projection_producer(
+    payload = ai_route_context_projection_producer(
         profile=profile,
         study_ids=(study_id,),
         mode=mode,
@@ -41,7 +41,7 @@ def current_materialized_dispatches(
         return foreground_dispatches
     return [
         dict(dispatch)
-        for dispatch in domain_progress_transition_requests(payload)
+        for dispatch in ai_route_contexts(payload)
         if isinstance(dispatch, Mapping)
         and (not requested or text(dispatch.get("action_type")) in requested)
         and not _superseded_by_current_mas_owner_callable(
@@ -80,7 +80,7 @@ def _superseded_by_current_mas_owner_callable(
     dispatch: Mapping[str, Any],
     text: Callable[[object], str | None],
 ) -> bool:
-    if not progress or text(dispatch.get("surface")) != "mas_domain_progress_transition_request_projection":
+    if not progress or text(dispatch.get("surface")) != "mas_ai_route_context_projection":
         return False
     current_action = _mapping(progress.get("next_action"))
     if not _mas_owner_callable_action_is_current(
@@ -104,8 +104,6 @@ def _mas_owner_callable_action_is_current(
     if text(current_action.get("surface_kind")) != "mas_next_action_envelope":
         return False
     if text(current_action.get("action_type")) is None:
-        return False
-    if any(_flag(current_action, key) for key in _OPL_TRANSITION_FLAGS):
         return False
     return True
 
@@ -258,15 +256,6 @@ def _flag(payload: Mapping[str, Any], key: str) -> bool:
 
 def _mapping(value: object) -> dict[str, Any]:
     return dict(value) if isinstance(value, Mapping) else {}
-
-
-_OPL_TRANSITION_FLAGS = (
-    "provider_admission_pending",
-    "transition_request_pending",
-    "provider_attempt_or_lease_required",
-    "provider_admission_requires_opl_runtime_result",
-    "opl_transition_runtime_required",
-)
 
 
 __all__ = ["current_materialized_dispatches"]

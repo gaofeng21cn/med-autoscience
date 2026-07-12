@@ -44,7 +44,8 @@ def minimum_forward_delta_contract(stage: Mapping[str, Any]) -> dict[str, Any]:
         "owner_action": {
             "next_owner": "MedAutoScience",
             "allowed_action_refs": list(stage["allowed_action_refs"]),
-            "owner_receipt_required": True,
+            "owner_receipt_required_for_quality_or_ready_claim": True,
+            "readable_artifact_sufficient_for_progress": True,
         },
         "authority_boundary": {
             "can_write_domain_truth": False,

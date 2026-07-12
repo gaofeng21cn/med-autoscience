@@ -48,28 +48,6 @@ def render_stage_route_contract_payload() -> dict[str, object]:
 
 def render_stage_route_contract_guide() -> str:
     payload = render_stage_route_contract_payload()
-    reconcile_contract = _stage_route_reconcile_contract_payload()
-    arbiter_policy = _mapping(reconcile_contract.get("stage_route_arbiter_surface"), "stage_route_arbiter_surface")
-    carrier_identity_policy = _mapping(
-        arbiter_policy.get("carrier_self_identity_policy"),
-        "stage_route_arbiter_surface.carrier_self_identity_policy",
-    )
-    projection_shape_policy = _mapping(
-        arbiter_policy.get("provider_admission_projection_shape_policy"),
-        "stage_route_arbiter_surface.provider_admission_projection_shape_policy",
-    )
-    dispatch_authority_policy = _mapping(
-        reconcile_contract.get("owner_action_dispatch_authority_policy"),
-        "owner_action_dispatch_authority_policy",
-    )
-    runtime_supervision_policy = _mapping(
-        reconcile_contract.get("runtime_supervision_operator_policy"),
-        "runtime_supervision_operator_policy",
-    )
-    conformance_invariants = _mapping(
-        reconcile_contract.get("stage_route_conformance_invariants"),
-        "stage_route_conformance_invariants",
-    )
     compatible_agents = _string_list(payload.get("compatible_agents"), field="compatible_agents")
     modes = _mode_payload_list(payload)
     route_contracts = _route_contract_payload_map(payload)
@@ -92,8 +70,6 @@ def render_stage_route_contract_guide() -> str:
         "",
         f"Canonical source: `{STAGE_ROUTE_CONTRACT_REF}`.",
         "",
-        f"Currentness and recovery-obligation source: `{STAGE_ROUTE_RECONCILE_CONTRACT_REF}`.",
-        "",
         "`managed_entry_actions` below mirrors legacy route-semantic labels from the canonical YAML. "
         "`doctor`、`bootstrap`、`request-opl-stage-attempt` and `study-progress` are not current "
         "repo-local commands or action-catalog ids; they are provenance/no-resurrection metadata pending a "
@@ -102,10 +78,9 @@ def render_stage_route_contract_guide() -> str:
         "",
         "The YAML route contract selects stages and route families. It does not authorize provider admission, "
         "OPL StageRun execution, terminal closeout consumption, paper progress, owner receipt, typed blocker, "
-        "publication readiness, or current package truth. Those boundaries are held by the reconcile contract "
-        "and by fresh runtime readback.",
+        "publication readiness, or current package truth. Codex CLI alone selects stage routes; fresh runtime "
+        "readback is transport evidence and cannot veto or rewrite that route.",
     ]
-    lines.extend(_render_stage_route_conformance_invariants(conformance_invariants))
     lines.extend(
         (
             "",
@@ -164,27 +139,13 @@ def render_stage_route_contract_guide() -> str:
     lines.extend(
         (
             "",
-            "## Stage-route Reconcile And Currentness Boundary",
-            f"- reconcile_contract: `{STAGE_ROUTE_RECONCILE_CONTRACT_REF}`; source_design_ref: `{reconcile_contract.get('source_design_ref')}`.",
-            "- stage_route_arbiter_surface: provider admission is a transport handoff candidate and cannot self-authorize currentness; legacy current-work-unit refs are diagnostic only and cannot replace the canonical `StageOutcome -> NextActionEnvelope` identity.",
-            f"- current_control_action_can_self_authorize: {_render_json_scalar(carrier_identity_policy.get('current_control_action_can_self_authorize'))}",
-            f"- typed_blocker_can_self_authorize_owner_action: {_render_json_scalar(dispatch_authority_policy.get('typed_blocker_can_self_authorize_owner_action'))}",
-            "- provider_admission_projection_shape: "
-            f"provider_admission_pending_count={_mapping(projection_shape_policy.get('suppressed_or_absent_shape'), 'suppressed_or_absent_shape').get('provider_admission_pending_count')}, "
-            "provider_admission_candidates=[]; "
-            f"empty_semantics={projection_shape_policy.get('empty_candidates_semantics')}; "
-            f"candidate_presence_is_not_running_proof={_render_json_scalar(projection_shape_policy.get('candidate_presence_is_not_running_proof'))}.",
-            "A terminal closeout for the same stage attempt suppresses stale running projection before any running "
-            "watch is reported; a terminal closeout for an old identity must not consume a different current successor "
-            "owner action.",
-            "A `typed blocker` is a stop or owner-route signal, not execution authority. Blocker-only state must not "
-            "execute `complete_medical_paper_readiness_surface` or redrive the same work unit without a new owner "
-            "receipt, route-back, human gate, successor identity, or owner-authorized action.",
-            "domain diagnostic dry-run, domain diagnostic apply, worker restart, provider-slo tick, and family runtime hydrate/tick boundaries are "
-            f"defined by `runtime_supervision_operator_policy` ({runtime_supervision_policy.get('surface_kind')}); use that policy to distinguish observe-only diagnostics, closeout consumption, worker repair, and provider attempt admission.",
+            "## Single AI Route Boundary",
+            "- route_selection_owner: `codex_cli`.",
+            "- Any readable artifact, partial draft, failed attempt, negative result, or diagnostic may be passed to any declared next stage.",
+            "- Transport receipts, schemas, packet validators, read models, retry budgets, and closeout projections cannot select, reject, or rewrite a stage route.",
+            "- Quality debt blocks accepted/publication/export/readiness claims, never ordinary stage transition.",
         )
     )
-    lines.extend(_render_stage_route_call_graph(reconcile_contract))
     lines.extend(_render_late_stage_progress_sprint_contract(sprint_contract))
 
     lines.extend(
@@ -239,148 +200,6 @@ def render_stage_route_contract_guide() -> str:
         )
     )
     return "\n".join(lines).rstrip() + "\n"
-
-
-STAGE_ROUTE_RECONCILE_CONTRACT_REF = "contracts/stage_route_reconcile_contract.json"
-
-
-def _stage_route_reconcile_contract_payload() -> dict[str, object]:
-    path = Path(__file__).resolve().parents[3] / STAGE_ROUTE_RECONCILE_CONTRACT_REF
-    payload = json.loads(path.read_text(encoding="utf-8"))
-    if not isinstance(payload, dict):
-        raise ValueError(f"{STAGE_ROUTE_RECONCILE_CONTRACT_REF} must be a JSON object")
-    return payload
-
-
-def _render_stage_route_conformance_invariants(conformance: dict[str, object]) -> list[str]:
-    owner_path = _mapping(
-        conformance.get("unique_current_owner_path_invariant"),
-        "stage_route_conformance_invariants.unique_current_owner_path_invariant",
-    )
-    false_authority = _mapping(
-        conformance.get("false_authority_generation_invariant"),
-        "stage_route_conformance_invariants.false_authority_generation_invariant",
-    )
-    selected_dispatch = _mapping(
-        conformance.get("stage_packet_not_current_selected_dispatch_invariant"),
-        "stage_route_conformance_invariants.stage_packet_not_current_selected_dispatch_invariant",
-    )
-    typed_blocker = _mapping(
-        conformance.get("typed_blocker_self_authorization_invariant"),
-        "stage_route_conformance_invariants.typed_blocker_self_authorization_invariant",
-    )
-    terminal_closeout = _mapping(
-        conformance.get("terminal_closeout_accounting_invariant"),
-        "stage_route_conformance_invariants.terminal_closeout_accounting_invariant",
-    )
-    missing_shape = _mapping(
-        terminal_closeout.get("missing_field_shape"),
-        "stage_route_conformance_invariants.terminal_closeout_accounting_invariant.missing_field_shape",
-    )
-    chain = _string_list(
-        owner_path.get("only_chain"),
-        field="stage_route_conformance_invariants.unique_current_owner_path_invariant.only_chain",
-    )
-    forbidden_sources = _string_list(
-        false_authority.get("forbidden_domain_authority_sources"),
-        field="stage_route_conformance_invariants.false_authority_generation_invariant.forbidden_domain_authority_sources",
-    )
-    safe_exits = _string_list(
-        selected_dispatch.get("must_route_through_any"),
-        field="stage_route_conformance_invariants.stage_packet_not_current_selected_dispatch_invariant.must_route_through_any",
-    )
-    return [
-        "",
-        "## Currentness Conformance Invariants",
-        "",
-        "Legacy diagnostic execution chain, superseded for default next-action authority by `StageOutcome -> NextActionEnvelope`:",
-        "",
-        "```mermaid",
-        "flowchart LR",
-        '  A["NextActionEnvelope-derived owner delta"] --> B["current_work_unit diagnostic"]',
-        '  B --> C["current_execution_envelope"]',
-        '  C --> D["provider_admission_current_control"]',
-        '  D --> E["OPL StageRun"]',
-        '  E --> F["terminal_closeout"]',
-        '  F --> G["MAS closeout consume or reject"]',
-        '  G --> H["next StageOutcome / NextActionEnvelope"]',
-        "```",
-        "",
-        "- diagnostic_chain_only: " + " -> ".join(chain),
-        "- default_next_action_authority: StageOutcome -> NextActionEnvelope",
-        "- forbidden_domain_authority_sources: " + " | ".join(forbidden_sources),
-        f"- false_authority_violation_effect: {false_authority.get('violation_effect')}",
-        f"- stage_packet_blocker: {selected_dispatch.get('blocker')}; owner: {selected_dispatch.get('owner')}; "
-        f"same_work_unit_redrive_allowed: {_render_json_scalar(selected_dispatch.get('same_work_unit_redrive_allowed'))}",
-        "- stage_packet_safe_exits: " + " | ".join(safe_exits),
-        "- typed_blocker_self_authorization: "
-        f"provider_admission={_render_json_scalar(typed_blocker.get('typed_blocker_can_self_authorize_provider_admission'))}, "
-        f"readiness_execution={_render_json_scalar(typed_blocker.get('typed_blocker_can_self_authorize_readiness_execution'))}, "
-        f"owner_receipt={_render_json_scalar(typed_blocker.get('typed_blocker_can_become_owner_receipt'))}",
-        "- terminal_closeout_accounting: required fields under "
-        f"`{terminal_closeout.get('stage_log_field')}` must be present or use "
-        f"`{missing_shape.get('status')}` with refs.",
-        f"- terminal_closeout_missing_without_reason_effect: {terminal_closeout.get('missing_without_reason_effect')}; "
-        f"typed_blocker: {terminal_closeout.get('missing_without_reason_typed_blocker')}; "
-        "paper_progress_credit: false; "
-        f"automatic_redrive_allowed: {_render_json_scalar(terminal_closeout.get('automatic_redrive_allowed_when_incomplete'))}",
-    ]
-
-
-def _render_stage_route_call_graph(reconcile_contract: dict[str, object]) -> list[str]:
-    graph = _mapping(reconcile_contract.get("stage_route_call_graph"), "stage_route_call_graph")
-    lines = [
-        "",
-        "### Stage-route Invocation Graph",
-        "",
-        "```mermaid",
-        "flowchart TD",
-    ]
-    labels = {
-        _string_value(node, "id"): _string_value(node, "label")
-        for node in _mapping_list(graph.get("nodes"), "stage_route_call_graph.nodes")
-    }
-    for edge in _mapping_list(graph.get("edges"), "stage_route_call_graph.edges"):
-        source = _string_value(edge, "from")
-        target = _string_value(edge, "to")
-        source_label = labels.get(source, source)
-        target_label = labels.get(target, target)
-        effect = _string_value(edge, "authority_effect")
-        lines.append(
-            f'  {source}["{source_label}"] -->|"{effect}"| {target}["{target_label}"]'
-        )
-    lines.extend(("```", ""))
-    same_identity_order = _string_list(
-        graph.get("acyclic_same_identity_order"),
-        field="acyclic_same_identity_order",
-    )
-    lines.append("- same_identity_order: " + " -> ".join(same_identity_order))
-    feedback_policy = _mapping(
-        graph.get("same_identity_feedback_policy"),
-        "stage_route_call_graph.same_identity_feedback_policy",
-    )
-    lines.append(f"- feedback_edge: {feedback_policy.get('feedback_edge')}")
-    lines.append(_render_list_line("feedback_requires_any", feedback_policy.get("requires_any", [])))
-    lines.append(_render_list_line("feedback_forbidden_when", feedback_policy.get("forbidden_when", [])))
-    forbidden_edges = [
-        f"{_string_value(edge, 'from')} -> {_string_value(edge, 'to')}: {_string_value(edge, 'reason')}"
-        for edge in _mapping_list(graph.get("forbidden_edges"), "stage_route_call_graph.forbidden_edges")
-    ]
-    lines.append(_render_list_line("forbidden_edges", forbidden_edges))
-    risk_guards = [
-        f"{_string_value(item, 'risk')} blocked_by "
-        f"{', '.join(_string_list(item.get('blocked_by'), field='blocked_by'))}"
-        for item in _mapping_list(graph.get("dead_loop_risk_guards"), "stage_route_call_graph.dead_loop_risk_guards")
-    ]
-    lines.append(_render_list_line("dead_loop_risk_guards", risk_guards))
-    boundary = _mapping(graph.get("authority_boundary"), "stage_route_call_graph.authority_boundary")
-    lines.append(
-        "- graph_authority_boundary: "
-        f"can_generate_owner_delta={_render_json_scalar(boundary.get('can_generate_owner_delta'))}, "
-        f"can_authorize_provider_admission={_render_json_scalar(boundary.get('can_authorize_provider_admission'))}, "
-        f"can_mark_paper_progress={_render_json_scalar(boundary.get('can_mark_paper_progress'))}."
-    )
-    return lines
 
 
 def _render_json_scalar(value: object) -> str:

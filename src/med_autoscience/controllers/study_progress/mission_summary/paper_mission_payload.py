@@ -475,7 +475,7 @@ def _next_stage_id(*, stage_id: str) -> str:
 def _transaction_state(transaction: Mapping[str, Any]) -> dict[str, Any]:
     helpers = _summary_helpers()
     decision = _mapping(transaction.get("stage_terminal_decision"))
-    route = _mapping(transaction.get("opl_route_command"))
+    route = _mapping(transaction.get("ai_route_context"))
     boundary = _mapping(transaction.get("authority_boundary"))
     return _compact(
         {

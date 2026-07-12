@@ -52,6 +52,7 @@ ordinary_progress_handoff_policy:
   executor_output_requirement: concrete_delta
   accepted_closeout_shapes:
     - ProgressDeltaReceipt
+    - RawReadableArtifact
     - OwnerReceipt
     - TypedBlocker
     - human_gate_ref
@@ -183,16 +184,14 @@ anti_loop_policy:
     - owner_action_projected_but_not_materialized
     - typed_blocker_or_dispatch_blocker_observed
     - repeat_suppressed_owner_delta_required
-    - provider_handoff_written_transition_request_pending
+    - optional_stage_attempt_transport_readback_missing
     - provider_attempt_started
     - max_passes_exhausted_owner_delta_required
   exhausted_budget_outputs:
-    - TypedBlocker
-    - human_gate_ref
-    - stop_loss
-    - route_back_ref
-    - CarryForwardRiskReceipt
-    - budget_exhausted_decision_ref
+    - completed_with_quality_debt
+    - quality_debt_ref
+    - best_available_artifact_ref
+    - route_back_candidate_ref
     - advance_with_nonfatal_findings
   dry_run_write_policy:
     may_refresh_diagnostic_reports: true

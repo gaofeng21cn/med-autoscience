@@ -4,7 +4,7 @@
   "owner": "MedAutoScience",
   "state": "active_contract",
   "purpose": "Machine-readable contract for the MAS-owned stage terminal decision that lets OPL route a paper mission without inferring medical quality from runtime completion.",
-  "machine_boundary": "PaperMissionTransaction is the transaction boundary between an OPL StageRun and MAS paper authority. OPL may carry the transaction, retry/resume the StageRun, and consume opl_route_command, but only MAS can author stage_terminal_decision, paper audit evidence, owner decision packet, typed blocker request, or human gate request. This contract cannot write publication_eval/latest.json, controller_decisions/latest.json, owner receipts, typed blockers, human gates, current_package, runtime queues, provider attempts, or Yang authority surfaces.",
+  "machine_boundary": "PaperMissionTransaction is the transaction boundary between an OPL StageRun and MAS paper authority. OPL may carry the transaction, retry/resume the StageRun, and consume ai_route_context, but only MAS can author stage_terminal_decision, paper audit evidence, owner decision packet, typed blocker request, or human gate request. This contract cannot write publication_eval/latest.json, controller_decisions/latest.json, owner receipts, typed blockers, human gates, current_package, runtime queues, provider attempts, or Yang authority surfaces.",
   "source_design_ref": "docs/active/mas_executor_first_rearchitecture_program.md",
   "required_fields": [
     "transaction_id",
@@ -13,7 +13,7 @@
     "stage_id",
     "stage_run_ref",
     "stage_terminal_decision",
-    "opl_route_command",
+    "ai_route_context",
     "artifact_delta_refs",
     "paper_audit_pack_refs",
     "authority_boundary",
@@ -61,7 +61,7 @@
       ]
     }
   },
-  "opl_route_command": {
+  "ai_route_context": {
     "owner": "one-person-lab",
     "role": "Runtime carrier command derived from the MAS terminal decision. It is not a medical quality verdict.",
     "required_fields": [
@@ -107,7 +107,7 @@
       "domain_diagnostic_clean_is_paper_progress"
     ]
   },
-  "opl_runtime_carrier": {
+  "opl_stage_run_context": {
     "surface_kind": "opl_domain_route_runtime_request",
     "source_kind": "mas_paper_mission_compatibility_normalized",
     "target_runtime_owner": "one-person-lab",
@@ -155,8 +155,6 @@
       "current_control_command_outbox_record",
       "opl_domain_progress_command",
       "opl_domain_progress_command_outbox_record",
-      "opl_domain_progress_transition_event",
-      "opl_domain_progress_transition_outbox_item",
       "opl_event_log_record",
       "opl_outbox_record",
       "projection_metadata",

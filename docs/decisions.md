@@ -82,4 +82,3 @@ Foundry 系列 canonical policy 只存在于 OPL Framework。MAS 不声明或安
 - `contracts/authority_kernel_inventory.json`
 - `contracts/runtime_environment_requirements.json`
 - `contracts/opl_agent_package_manifest.json`
-- `contracts/paper_progress_transition_runtime_completion_audit.json`

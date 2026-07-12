@@ -79,10 +79,6 @@ from .transaction_readback import (
 from med_autoscience.controllers.stage_closure_terminalizer import (
     stage_closure_decision_projection,
 )
-from med_autoscience.controllers import study_domain_transition_table
-from med_autoscience.controllers.study_progress.canonical_next_action_selection import (
-    domain_transition_canonical_next_action as _domain_transition_canonical_next_action,
-)
 
 _stage_closure_receipt_passthrough = _stage_closure_terminalizer_readback._stage_closure_receipt_passthrough
 _terminal_source_readback_newer = _stage_closure_terminalizer_readback._terminal_source_readback_newer
@@ -106,7 +102,7 @@ _paper_mission_transaction_stage_id = _stage_closure_terminalizer_readback._pape
 _stage_packet_transaction_priority = _stage_closure_terminalizer_readback._stage_packet_transaction_priority
 _stage_packet_route_back_semantic_priority = _stage_closure_terminalizer_readback._stage_packet_route_back_semantic_priority
 _first_non_empty_text = _stage_closure_terminalizer_readback._first_non_empty_text
-_stage_packet_opl_runtime_carrier_readback = _stage_closure_terminalizer_readback._stage_packet_opl_runtime_carrier_readback
+_stage_packet_opl_stage_attempt_readback = _stage_closure_terminalizer_readback._stage_packet_opl_stage_attempt_readback
 _load_json_object = _stage_closure_terminalizer_readback._load_json_object
 _typed_blocker_resolution_should_own_next_action = _stage_closure_terminalizer_readback._typed_blocker_resolution_should_own_next_action
 _stage_closure_next_action_should_own_next_action = _stage_closure_terminalizer_readback._stage_closure_next_action_should_own_next_action
@@ -316,8 +312,8 @@ def build_paper_mission_readback(
         )
     if authority_consume_readback is not None:
         transaction_readback["authority_consume_readback"] = authority_consume_readback
-        route = _mapping(transaction_readback.get("opl_route_command"))
-        carrier = _mapping(transaction_readback.get("opl_runtime_carrier"))
+        route = _mapping(transaction_readback.get("ai_route_context"))
+        carrier = _mapping(transaction_readback.get("opl_stage_run_context"))
         consume_status = _consume_candidate_status_for_transaction_readback(
             transaction_readback=transaction_readback,
             authority_consume_readback=authority_consume_readback,
@@ -329,7 +325,7 @@ def build_paper_mission_readback(
             if consume_status == "human_gate"
             else "waiting_for_corrected_candidate"
             if consume_status == "rejected"
-            else "ready_for_opl_route_command"
+            else "ready_for_ai_route_context"
             if _optional_text(route.get("command_kind"))
             in {"start_next_stage", "resume_stage", "route_back"}
             else "waiting_for_mission_complete_authority"
@@ -356,7 +352,7 @@ def build_paper_mission_readback(
                 )
             ),
             "can_submit_to_opl_runtime": handoff_status
-            == "ready_for_opl_route_command",
+            == "ready_for_ai_route_context",
         }
     mission_candidate = _paper_mission_run_candidate(
         mission_id=candidate_mission_id,
@@ -389,16 +385,13 @@ def build_paper_mission_readback(
         study_id=study_id,
     )
     study_root = Path(profile.studies_root) / study_id
-    domain_transition = study_domain_transition_table.project_domain_transition(
-        study_id=study_id,
-        study_root=study_root,
-        status={},
-        macro_state={},
-        active_run_id=None,
-    )
-    domain_transition_next_action = _domain_transition_canonical_next_action(
-        {"domain_transition": domain_transition}
-    )
+    domain_transition = {
+        "surface_kind": "mas_ai_route_context",
+        "semantic_route_owner": "codex_cli",
+        "program_recommendation_can_execute_or_block_route": False,
+        "readable_artifact_allows_any_declared_stage": True,
+    }
+    domain_transition_next_action = None
     next_action_override = _next_action_for_stage_closure_decision(
         stage_closure_decision=stage_closure_decision,
         transaction_readback=transaction_readback,
@@ -453,17 +446,17 @@ def build_paper_mission_readback(
             transaction_output_fields["domain_transition_direct_stage_attempt"] = (
                 direct_next_action_runtime
             )
-            transaction_output_fields["current_opl_runtime_carrier"] = (
-                direct_next_action_runtime["opl_runtime_carrier"]
+            transaction_output_fields["current_opl_stage_run_context"] = (
+                direct_next_action_runtime["opl_stage_run_context"]
             )
-            transaction_output_fields["current_opl_runtime_carrier_readback"] = (
-                direct_next_action_runtime["opl_runtime_carrier_readback"]
+            transaction_output_fields["current_opl_stage_attempt_readback"] = (
+                direct_next_action_runtime["opl_stage_attempt_readback"]
             )
-            transaction_output_fields["current_opl_runtime_readback_status"] = (
-                direct_next_action_runtime["opl_runtime_readback_status"]
+            transaction_output_fields["current_opl_stage_attempt_readback_status"] = (
+                direct_next_action_runtime["opl_stage_attempt_readback_status"]
             )
             direct_terminal_owner_gate = _terminal_owner_gate_from_carrier_readback(
-                direct_next_action_runtime["opl_runtime_carrier_readback"]
+                direct_next_action_runtime["opl_stage_attempt_readback"]
             )
             if direct_terminal_owner_gate:
                 transaction_output_fields["terminal_owner_gate"] = (

@@ -44,12 +44,12 @@ def test_owner_packets_keep_authority_and_reviewer_gaps_explicit() -> None:
             "reason": "missing_opl_runtime_readback",
             "blocker_id": "typed-blocker:demo",
         },
-        "opl_route_command": {
+        "ai_route_context": {
             "command_kind": "stop_with_typed_blocker",
             "target": "one-person-lab",
         },
         "next_owner_or_human_decision": {"next_owner": "one-person-lab"},
-        "opl_runtime_readback_status": "waiting_for_opl_runtime_payload",
+        "opl_stage_attempt_readback_status": "optional_stage_attempt_readback_missing",
     }
     summary = {"next_owner": "one-person-lab"}
     handoff = {"status": "not_routed_to_mission_executor"}
@@ -106,7 +106,7 @@ def test_route_back_owner_fallback_exposes_ai_owner_decision_sidecars() -> None:
             "route_back_evidence_ref": "route-back:study-1:mission-1",
             "target_stage_id": "paper-write",
         },
-        "opl_route_command": {
+        "ai_route_context": {
             "command_kind": "route_back",
             "target": "mission_executor",
         },
@@ -114,7 +114,7 @@ def test_route_back_owner_fallback_exposes_ai_owner_decision_sidecars() -> None:
             "next_owner": "mission_executor",
             "route_back_evidence_ref": "route-back:study-1:mission-1",
         },
-        "opl_runtime_readback_status": "route_back",
+        "opl_stage_attempt_readback_status": "route_back",
     }
     summary = {
         "next_owner": "mission_executor",

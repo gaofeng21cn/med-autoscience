@@ -77,12 +77,6 @@ def test_replay_post_submission_minimal_sync_restores_submission_minimal_after_g
             "refs": {},
         },
     )
-    monkeypatch.setattr(
-        module.study_outer_loop,
-        "refresh_parked_submission_milestone_controller_decision",
-        lambda **_: {"status": "refreshed"},
-    )
-
     result = module.replay_post_submission_minimal_sync(paper_root=paper_root)
 
     assert calls == ["gate", "final_sync"]
@@ -107,7 +101,6 @@ def test_replay_post_submission_minimal_sync_refreshes_gate_and_progress(monkeyp
     )
     gate_calls: list[tuple[Path, bool, str, bool, object]] = []
     progress_calls: list[tuple[object, Path, str, Path]] = []
-    decision_refresh_calls: list[tuple[object, Path, str]] = []
     sync_calls: list[tuple[Path, str, str, object]] = []
     route_context = {
         "action": "delivery_sync",
@@ -174,19 +167,6 @@ def test_replay_post_submission_minimal_sync_refreshes_gate_and_progress(monkeyp
         raising=False,
     )
     monkeypatch.setattr(module.study_progress, "read_study_progress", fake_read_study_progress)
-    monkeypatch.setattr(
-        module.study_outer_loop,
-        "refresh_parked_submission_milestone_controller_decision",
-        lambda *, profile, study_root, study_id, source: (
-            decision_refresh_calls.append((profile, study_root, study_id)),
-            {
-                "status": "refreshed",
-                "decision_type": "continue_same_line",
-                "route_target": "finalize",
-            },
-        )[1],
-    )
-
     result = module.replay_post_submission_minimal_sync(
         paper_root=paper_root,
         authority_route_context=route_context,
@@ -207,13 +187,6 @@ def test_replay_post_submission_minimal_sync_refreshes_gate_and_progress(monkeyp
             tmp_path / "profiles" / "test.local.toml",
             "001-risk",
             context.study_root,
-        )
-    ]
-    assert decision_refresh_calls == [
-        (
-            decision_refresh_calls[0][0],
-            context.study_root,
-            "001-risk",
         )
     ]
     assert result == {
@@ -242,11 +215,8 @@ def test_replay_post_submission_minimal_sync_refreshes_gate_and_progress(monkeyp
             "runtime_status_summary_path": "/tmp/runtime/runtime_status_summary.json",
             "publication_eval_path": "/tmp/publication_eval/latest.json",
         },
-        "controller_decision_refresh": {
-            "status": "refreshed",
-            "decision_type": "continue_same_line",
-            "route_target": "finalize",
-        },
+        "controller_decision_refresh": None,
+        "semantic_route_owner": "codex_cli",
     }
     assert sync_calls == [(context.paper_root, "submission_minimal", "general_medical_journal", route_context)]
 

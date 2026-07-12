@@ -6,7 +6,6 @@ from pathlib import Path
 from typing import Any
 
 if __name__ != "med_autoscience.controllers.study_runtime_decision":
-    from .domain_transition_arbitration import *  # noqa: F403
     from .manual_finish_dominance import *  # noqa: F403
     from .publication_and_submission import *  # noqa: F403
     from .runtime_events import *  # noqa: F403
@@ -312,7 +311,6 @@ def _status_state(
             _runtime_liveness_active_run_id(runtime_liveness_audit) is not None
         ),
     )
-    record_domain_transition_if_required(status=result, study_root=study_root)
     _record_interaction_arbitration_if_required(
         status=result,
         execution=execution,

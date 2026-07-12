@@ -90,10 +90,12 @@ admission after the packet; the executor does not convert specialist output,
 test pass, generated bundle, provider completion, upload readiness, or package
 freshness into publication-ready or submission-ready.
 
-Fail closed to route-back, typed blocker, or human gate when quality/source/
-artifact/journal/package refs are missing or stale, handoff would change claim
-or package authority, or external submission, credentials, PI/journal strategy,
-or irreversible delivery requires human authorization.
+Missing or stale quality/source/artifact/journal/package refs become quality
+debt and route-back recommendations while a readable manuscript/package exists;
+they close publication/submission-ready claims but do not block other declared
+stages. Use a typed blocker or human gate only when handoff would cross claim or
+package authority, credentials/permission/safety, identity/currentness,
+irreversible delivery, zero readable output, or explicit PI/journal authority.
 
 ## Receipt And Route-Back
 

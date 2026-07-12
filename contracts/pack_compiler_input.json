@@ -91,8 +91,7 @@
     "product_entry_manifest",
     "domain_handler",
     "status_read_model",
-    "workbench_drilldown",
-    "functional_harness_cases"
+    "workbench_drilldown"
   ],
   "hypothesis_portfolio_evidence_pack_contract": {
     "advisory_only_fields": [
@@ -146,13 +145,13 @@
       "owner_receipt_or_typed_blocker_ref"
     ],
     "candidate_validation_output_contract": {
-      "blocked_status": "typed_blocker",
+      "degraded_status": "completed_with_quality_debt",
       "can_promote_candidate_requires": "all_required_ref_families_present",
-      "missing_required_ref_blocker_id": "missing_hypothesis_portfolio_ref_family",
-      "route_back_owner_required_when_blocked": true,
+      "route_back_selection_owner": "codex_cli",
+      "route_back_may_target_any_declared_stage": true,
       "success_status": "validated"
     },
-    "fail_closed_missing_ref_policy": "emit_typed_blocker_naming_missing_hypothesis_portfolio_ref_family_and_route_back_owner",
+    "missing_ref_policy": "record_quality_debt_block_promotion_and_allow_ai_selected_route_back",
     "knowledge_ref": "agent/knowledge/hypothesis_portfolio_evidence_pack.md",
     "owner": "MedAutoScience",
     "portfolio_role": "mas_owned_hypothesis_candidate_and_evidence_ref_pack",

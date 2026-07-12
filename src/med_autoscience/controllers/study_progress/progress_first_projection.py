@@ -8,8 +8,8 @@ from med_autoscience.controllers.owner_callable_action_policy import (
     request_output_target_surface_for_action_type,
     request_owner_for_action_type,
 )
-from med_autoscience.controllers.opl_transition_readback import (
-    has_opl_transition_readback as _has_opl_transition_readback,
+from med_autoscience.controllers.opl_stage_attempt_readback import (
+    has_opl_stage_attempt_readback as _has_opl_stage_attempt_readback,
 )
 from med_autoscience.controllers.ai_reviewer_record_work_units import (
     AI_REVIEWER_RECORD_CONSUMPTION_WORK_UNIT_IDS,
@@ -319,8 +319,8 @@ def _provider_transition_or_admission_handoff_action_queue(handoff: Mapping[str,
         return False
     status = _text(action.get("status")) or _text(handoff.get("quest_status"))
     return (
-        _has_opl_transition_readback(handoff)
-        or _has_opl_transition_readback(action)
+        _has_opl_stage_attempt_readback(handoff)
+        or _has_opl_stage_attempt_readback(action)
         or status in {"provider_admission_pending", "transition_request_pending"}
         or handoff.get("provider_admission_pending_count") not in (None, 0)
         or handoff.get("transition_request_pending_count") not in (None, 0)
@@ -410,7 +410,7 @@ def _owner_route_from_handoff_action_queue(handoff: Mapping[str, Any]) -> dict[s
             "next_owner": next_owner,
             "work_unit_id": work_unit_id,
             "allowed_actions": [action_type],
-            "owner_receipt_required": True,
+            "owner_receipt_required_for_quality_or_ready_claim": True,
         },
         "target_surface": target_surface,
         "target_surface_source": (
@@ -493,7 +493,7 @@ def _owner_route_with_policy_target_surface(route: Mapping[str, Any]) -> dict[st
             "next_owner": _text(payload.get("next_owner")) or request_owner_for_action_type(action_type),
             "work_unit_id": work_unit_id,
             "allowed_actions": [action_type],
-            "owner_receipt_required": True,
+            "owner_receipt_required_for_quality_or_ready_claim": True,
         }
     return payload
 
@@ -553,7 +553,7 @@ def _owner_route_from_domain_transition(payload: Mapping[str, Any]) -> dict[str,
             "next_owner": next_owner,
             "work_unit_id": work_unit_id,
             "allowed_actions": [action_type] if action_type is not None else [],
-            "owner_receipt_required": True,
+            "owner_receipt_required_for_quality_or_ready_claim": True,
         },
     }
     if action_type is not None:
@@ -700,7 +700,7 @@ def _owner_action(*, owner_route: Mapping[str, Any], state: Mapping[str, Any]) -
         "next_owner": _text(owner_route.get("next_owner")) or _text(state.get("next_owner")),
         "work_unit_id": _text(state.get("work_unit_id")),
         "allowed_actions": list(allowed_actions) if isinstance(allowed_actions, list) else [],
-        "owner_receipt_required": True,
+        "owner_receipt_required_for_quality_or_ready_claim": True,
     }
 
 

@@ -66,11 +66,14 @@ class MedAutoScienceDomainEntry:
         if command == "paper-mission":
             profile_ref = Path(str(request["profile_ref"])).expanduser().resolve()
             profile = self._profile_loader(profile_ref)
+            requested_paper_mission_command = str(request.get("paper_mission_command") or "inspect")
+            if requested_paper_mission_command == "drive":
+                requested_paper_mission_command = "inspect"
             payload = build_paper_mission_readback(
                 profile=profile,
                 profile_ref=profile_ref,
                 study_id=str(request["study_id"]),
-                paper_mission_command=str(request.get("paper_mission_command") or "inspect"),
+                paper_mission_command=requested_paper_mission_command,
                 objective=_optional_text(request.get("objective")),
                 mission_id=_optional_text(request.get("mission_id")),
                 candidate=_optional_text(request.get("candidate")),

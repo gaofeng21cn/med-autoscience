@@ -4,8 +4,8 @@ from collections.abc import Mapping
 from pathlib import Path
 from typing import Any
 
-from med_autoscience.controllers.opl_transition_readback import (
-    has_opl_transition_readback,
+from med_autoscience.controllers.opl_stage_attempt_readback import (
+    has_opl_stage_attempt_readback,
 )
 from med_autoscience.controllers.opl_execution_boundary import (
     OPL_EXECUTION_AUTHORIZATION_BLOCKER,
@@ -72,7 +72,7 @@ def writer_worker_handoff_ready(
 ) -> bool:
     handoff = _mapping(owner_result.get("writer_worker_handoff"))
     return (
-        _text(handoff.get("surface")) == "mas_domain_progress_transition_request_projection"
+        _text(handoff.get("surface")) == "mas_ai_route_context_projection"
         and _text(handoff.get("dispatch_status")) == "ready"
         and _text(handoff.get("next_executable_owner")) == "write"
         and _handoff_has_opl_proof(handoff, owner_result, opl_execution_authorization=opl_execution_authorization)
@@ -86,7 +86,7 @@ def ai_reviewer_record_worker_handoff_ready(
 ) -> bool:
     handoff = _mapping(owner_result.get("ai_reviewer_record_worker_handoff"))
     return (
-        _text(handoff.get("surface")) == "mas_domain_progress_transition_request_projection"
+        _text(handoff.get("surface")) == "mas_ai_route_context_projection"
         and _text(handoff.get("dispatch_status")) == "ready"
         and _text(handoff.get("dispatch_authority")) == "ai_reviewer_record_production_handoff"
         and _text(handoff.get("next_executable_owner")) == "ai_reviewer"
@@ -237,7 +237,7 @@ def _executions(owner_result: Mapping[str, Any]) -> list[Mapping[str, Any]]:
 def _raw_writer_worker_handoff_ready(owner_result: Mapping[str, Any]) -> bool:
     handoff = _mapping(owner_result.get("writer_worker_handoff"))
     return (
-        _text(handoff.get("surface")) == "mas_domain_progress_transition_request_projection"
+        _text(handoff.get("surface")) == "mas_ai_route_context_projection"
         and _text(handoff.get("dispatch_status")) == "ready"
         and _text(handoff.get("next_executable_owner")) == "write"
     )
@@ -246,7 +246,7 @@ def _raw_writer_worker_handoff_ready(owner_result: Mapping[str, Any]) -> bool:
 def _raw_ai_reviewer_record_worker_handoff_ready(owner_result: Mapping[str, Any]) -> bool:
     handoff = _mapping(owner_result.get("ai_reviewer_record_worker_handoff"))
     return (
-        _text(handoff.get("surface")) == "mas_domain_progress_transition_request_projection"
+        _text(handoff.get("surface")) == "mas_ai_route_context_projection"
         and _text(handoff.get("dispatch_status")) == "ready"
         and _text(handoff.get("dispatch_authority")) == "ai_reviewer_record_production_handoff"
         and _text(handoff.get("next_executable_owner")) == "ai_reviewer"
@@ -257,12 +257,12 @@ def _handoff_has_opl_proof(
     *payloads: Mapping[str, Any],
     opl_execution_authorization: Mapping[str, Any] | None = None,
 ) -> bool:
-    if has_opl_transition_readback({"opl_runtime_result": opl_execution_authorization or {}}):
+    if has_opl_stage_attempt_readback({"opl_runtime_result": opl_execution_authorization or {}}):
         return True
     if first_trusted_opl_execution_authorization(opl_execution_authorization) is not None:
         return True
     for payload in payloads:
-        if has_opl_transition_readback(payload):
+        if has_opl_stage_attempt_readback(payload):
             return True
         prompt_contract = _mapping(payload.get("prompt_contract"))
         owner_route = _mapping(payload.get("owner_route"))

@@ -75,7 +75,7 @@ FAMILY_EXECUTOR_TARGET = {
     FAMILY_HUMAN_APPROVAL: "human_gate",
     FAMILY_BLOCKED_TYPED: "mas_authority_kernel",
     FAMILY_RUNTIME_WAIT_RECEIPT: "opl_runtime_readback",
-    FAMILY_RUNTIME_OPL_ROUTE: "opl_domain_progress_transition_runtime",
+    FAMILY_RUNTIME_OPL_ROUTE: "codex_cli_ai_selected_stage_route",
     FAMILY_MISSION_COMPLETE: "mas_terminal",
 }
 
@@ -227,7 +227,7 @@ def compile_next_action_envelope(
             "current_executable_owner_action": "diagnostic_readback_only",
         },
         "completion_authority": "stage_outcome_only",
-        "runtime_receipt_authority": "opl_domain_route_transition_receipt_only",
+        "runtime_receipt_authority": "opl_stage_attempt_transport_receipt_only",
     }
     for field in (
         "paper_facing_delta",
@@ -368,7 +368,7 @@ def expected_output_contract_for_family(action_family: str) -> dict[str, Any]:
         }
     if action_family == FAMILY_RUNTIME_OPL_ROUTE:
         return {
-            "output_kind": "opl_domain_route_transition_receipt",
+            "output_kind": "opl_stage_attempt_transport_receipt",
             "accepted_refs": [
                 "domain_route_handoff_ref",
                 "domain_route_transaction_ref",

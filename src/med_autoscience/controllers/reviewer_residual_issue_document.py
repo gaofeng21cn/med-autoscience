@@ -45,21 +45,17 @@ def build_bounded_review_repair_policy(
         required_calibration_refs=required_calibration_refs,
     )
     residual_issues = residual_issues_from_worklog(worklog)
-    strict_authority_blocked = bool(authority_blockers or required_calibration_refs)
+    quality_claim_authority_blocked = bool(authority_blockers)
     no_clear_actionable_issues = bool(accept_blockers) and not residual_issues
     repair_round_budget_exhausted = bool(residual_issues) and round_state["current_round"] >= round_state["max_rounds"]
-    budget_exhausted = repair_round_budget_exhausted and not hard_blockers and not strict_authority_blocked
-    auto_advance_allowed = (
-        not hard_blockers
-        and not strict_authority_blocked
-        and (no_clear_actionable_issues or budget_exhausted)
-    )
-    if strict_authority_blocked:
-        status = "authority_blocked"
-        next_action = "restore_ai_reviewer_authority"
-    elif hard_blockers:
+    budget_exhausted = repair_round_budget_exhausted and not hard_blockers
+    auto_advance_allowed = not hard_blockers
+    if hard_blockers:
         status = "hard_blocked"
         next_action = "resolve_hard_reviewer_blocker"
+    elif quality_claim_authority_blocked or required_calibration_refs:
+        status = "auto_advance_with_reviewer_authority_or_calibration_debt"
+        next_action = "advance_and_route_back_reviewer_debt"
     elif no_clear_actionable_issues:
         status = "auto_advance_no_clear_actionable_reviewer_issue"
         next_action = "advance_to_next_stage"
@@ -67,8 +63,8 @@ def build_bounded_review_repair_policy(
         status = "auto_advance_with_residual_user_review"
         next_action = "advance_to_next_stage_with_residual_user_review"
     elif accept_blockers:
-        status = "repair_round_available"
-        next_action = "continue_bounded_repair_recheck"
+        status = "auto_advance_with_repair_budget_available"
+        next_action = "advance_and_optionally_continue_bounded_repair_recheck"
     else:
         status = "accepted"
         next_action = "advance_to_next_stage"
@@ -85,7 +81,9 @@ def build_bounded_review_repair_policy(
         "no_clear_actionable_reviewer_issue": no_clear_actionable_issues,
         "budget_exhausted": budget_exhausted,
         "repair_round_budget_exhausted": repair_round_budget_exhausted,
-        "strict_authority_blocked": strict_authority_blocked,
+        "strict_authority_blocked": False,
+        "quality_claim_authority_blocked": quality_claim_authority_blocked,
+        "required_calibration_refs_block_stage_progress": False,
         "residual_user_review_required": status == "auto_advance_with_residual_user_review",
         "residual_issue_count": len(residual_issues),
         "hard_blockers": hard_blockers,
@@ -97,6 +95,7 @@ def build_bounded_review_repair_policy(
             "can_mutate_paper_body": False,
             "can_bypass_hard_gate": False,
             "residual_user_review_can_block_auto_advance": False,
+            "authority_or_calibration_debt_can_block_auto_advance": False,
         },
     }
 
@@ -233,8 +232,15 @@ def hard_review_blockers(
     authority_blockers: list[str],
     required_calibration_refs: list[str],
 ) -> list[str]:
-    _ = authority_blockers, required_calibration_refs
+    _ = required_calibration_refs
     blockers: list[str] = []
+    blockers.extend(
+        blocker
+        for blocker in authority_blockers
+        if "currentness_checks" in blocker
+        or "source_fingerprint" in blocker
+        or "stage_identity" in blocker
+    )
     for gap in _list_of_mappings(publication_eval.get("gaps")):
         if _has_hard_gate_marker(gap):
             blockers.append(f"hard_reviewer_gap:{_text(gap.get('gap_id')) or _text(gap.get('summary')) or 'unnamed'}")

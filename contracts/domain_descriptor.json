@@ -17,8 +17,7 @@
     "product_entry_manifest",
     "domain_handler",
     "status_read_model",
-    "workbench_drilldown",
-    "functional_harness_cases"
+    "workbench_drilldown"
   ],
   "generated_surface_owner": "one-person-lab",
   "package_role": "opl_standard_domain_agent",

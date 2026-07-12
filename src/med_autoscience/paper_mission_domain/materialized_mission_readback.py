@@ -24,7 +24,7 @@ from med_autoscience.paper_mission_domain.domain_transition_runtime_readback imp
 )
 from med_autoscience.paper_mission_domain.materialized_readback_context import (
     consume_candidate_status as _consume_candidate_status,
-    materialized_opl_route_command as _materialized_opl_route_command,
+    materialized_ai_route_context as _materialized_ai_route_context,
     materialized_stage_terminal_decision as _materialized_stage_terminal_decision,
     materialized_study_id as _materialized_study_id,
     materialized_study_root as _materialized_study_root,
@@ -64,10 +64,6 @@ from med_autoscience.paper_mission_domain.transaction_readback import (
 )
 from med_autoscience.paper_mission_domain.typed_blocker_resolution import (
     latest_typed_blocker_resolution_readback,
-)
-from med_autoscience.controllers import study_domain_transition_table
-from med_autoscience.controllers.study_progress.canonical_next_action_selection import (
-    domain_transition_canonical_next_action as _domain_transition_canonical_next_action,
 )
 from med_autoscience.controllers.stage_closure_terminalizer import (
     stage_closure_decision_missing,
@@ -200,16 +196,13 @@ def build_materialized_mission_readback_if_available(
                 ),
             }
         )
-    domain_transition = study_domain_transition_table.project_domain_transition(
-        study_id=resolved_study_id,
-        study_root=resolved_study_root,
-        status={},
-        macro_state={},
-        active_run_id=None,
-    )
-    domain_transition_next_action = _domain_transition_canonical_next_action(
-        {"domain_transition": domain_transition}
-    )
+    domain_transition = {
+        "surface_kind": "mas_ai_route_context",
+        "semantic_route_owner": "codex_cli",
+        "program_recommendation_can_execute_or_block_route": False,
+        "readable_artifact_allows_any_declared_stage": True,
+    }
+    domain_transition_next_action = None
     next_action_override = _next_action_for_stage_closure_decision(
         stage_closure_decision=stage_closure_decision,
         transaction_readback=transaction_readback,
@@ -285,14 +278,14 @@ def build_materialized_mission_readback_if_available(
             transaction_output_fields["domain_transition_direct_stage_attempt"] = (
                 direct_next_action_runtime
             )
-            transaction_output_fields["current_opl_runtime_carrier"] = (
-                direct_next_action_runtime["opl_runtime_carrier"]
+            transaction_output_fields["current_opl_stage_run_context"] = (
+                direct_next_action_runtime["opl_stage_run_context"]
             )
-            transaction_output_fields["current_opl_runtime_carrier_readback"] = (
-                direct_next_action_runtime["opl_runtime_carrier_readback"]
+            transaction_output_fields["current_opl_stage_attempt_readback"] = (
+                direct_next_action_runtime["opl_stage_attempt_readback"]
             )
-            transaction_output_fields["current_opl_runtime_readback_status"] = (
-                direct_next_action_runtime["opl_runtime_readback_status"]
+            transaction_output_fields["current_opl_stage_attempt_readback_status"] = (
+                direct_next_action_runtime["opl_stage_attempt_readback_status"]
             )
             (
                 stage_closure_decision,
@@ -339,14 +332,14 @@ def build_materialized_mission_readback_if_available(
             transaction_output_fields["domain_transition_direct_stage_attempt"] = (
                 direct_next_action_runtime
             )
-            transaction_output_fields["current_opl_runtime_carrier"] = (
-                direct_next_action_runtime["opl_runtime_carrier"]
+            transaction_output_fields["current_opl_stage_run_context"] = (
+                direct_next_action_runtime["opl_stage_run_context"]
             )
-            transaction_output_fields["current_opl_runtime_carrier_readback"] = (
-                direct_next_action_runtime["opl_runtime_carrier_readback"]
+            transaction_output_fields["current_opl_stage_attempt_readback"] = (
+                direct_next_action_runtime["opl_stage_attempt_readback"]
             )
-            transaction_output_fields["current_opl_runtime_readback_status"] = (
-                direct_next_action_runtime["opl_runtime_readback_status"]
+            transaction_output_fields["current_opl_stage_attempt_readback_status"] = (
+                direct_next_action_runtime["opl_stage_attempt_readback_status"]
             )
             (
                 stage_closure_decision,
@@ -446,7 +439,7 @@ def build_materialized_mission_readback_if_available(
             "paper_mission_transaction"
         ],
         "stage_terminal_decision": transaction_readback["stage_terminal_decision"],
-        "opl_route_command": transaction_readback["opl_route_command"],
+        "ai_route_context": transaction_readback["ai_route_context"],
         "stage_closure_decision": stage_closure_decision,
         "stage_closure_decision_ref": stage_closure_decision.get("decision_ref"),
         "stage_closure_outcome": _mapping(
@@ -488,7 +481,7 @@ def build_materialized_mission_readback_if_available(
             "domain_handler_task_kind": DOMAIN_ROUTE_START_OR_RESUME_TASK_KIND,
             "domain_handler_dispatch_mode": "materialized_mission_readback_no_write",
             "old_owner_callable_dispatch_role": "diagnostic_or_migration_only",
-            "opl_consumes": "paper_mission_transaction.opl_route_command",
+            "opl_consumes": "paper_mission_transaction.ai_route_context",
             "mas_terminalizes": "paper_mission_transaction.stage_terminal_decision",
         },
         "cutover_proof": {
@@ -498,7 +491,7 @@ def build_materialized_mission_readback_if_available(
             "stage_terminal_decision_present": bool(
                 _materialized_stage_terminal_decision(mission)
             ),
-            "opl_route_command_present": bool(_materialized_opl_route_command(mission)),
+            "ai_route_context_present": bool(_materialized_ai_route_context(mission)),
             "legacy_blocker_controls_default_execution": False,
             "authority_materialized": False,
         },

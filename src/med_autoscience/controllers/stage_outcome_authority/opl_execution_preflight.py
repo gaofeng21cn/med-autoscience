@@ -8,7 +8,6 @@ from typing import Any
 
 from med_autoscience.controllers.opl_execution_boundary import (
     first_trusted_opl_execution_authorization,
-    typed_blocker as opl_execution_authorization_typed_blocker,
 )
 from .stage_outcome import STAGE_OUTCOME_TASK_KIND
 from . import opl_owner_callable_proof
@@ -19,30 +18,9 @@ def block_if_missing_authorization(
     owner_route_basis: str | None,
     current_study: Mapping[str, Any],
 ) -> dict[str, Any] | None:
-    if _authorized(
-        dispatch=dispatch,
-        owner_route_basis=owner_route_basis,
-        current_study=current_study,
-    ):
-        return None
-    return {
-        "execution_status": "blocked",
-        "blocked_reason": "opl_execution_authorization_required",
-        "typed_blocker": opl_execution_authorization_typed_blocker(),
-        "owner_callable_surface": None,
-        "adapter_kind": "opl_authorized_owner_callable_adapter",
-        "target_runtime_owner": "one-person-lab",
-        "mas_private_attempt_loop_forbidden": True,
-        "mas_dispatch_authority": False,
-        "mas_creates_opl_outbox": False,
-        "mas_creates_opl_event": False,
-        "mas_creates_opl_stage_run": False,
-        "provider_admission_pending": False,
-        "provider_admission_requires_opl_runtime_result": True,
-        "provider_completion_is_domain_completion": False,
-        "provider_attempt_or_lease_required": False,
-        "opl_transition_runtime_required": True,
-    }
+    # StageRun authorization is optional transport evidence. It cannot veto a
+    # Codex-selected stage or turn a usable artifact into a typed blocker.
+    return None
 
 
 def _authorized(
@@ -353,7 +331,7 @@ def _canonical_stage_packet_matches(
     packet: Mapping[str, Any],
     stage_packet_ref: str,
 ) -> bool:
-    if _text(packet.get("surface")) != "mas_domain_progress_transition_request_projection":
+    if _text(packet.get("surface")) != "mas_ai_route_context_projection":
         return False
     if _text(packet.get("dispatch_status")) != "ready":
         return False

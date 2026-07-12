@@ -5,8 +5,8 @@ import json
 from pathlib import Path
 from typing import Any
 
-from med_autoscience.paper_mission_opl_carrier import (
-    paper_mission_opl_runtime_carrier,
+from med_autoscience.paper_mission_stage_run_context import (
+    paper_mission_stage_run_context,
 )
 from med_autoscience.controllers.stage_closure_terminalizer import (
     stage_closure_decision_projection,
@@ -172,17 +172,17 @@ def _materialized_mission_summary(
     )
     transaction = _mapping(paper_mission_run.get("paper_mission_transaction"))
     transaction_state = _transaction_state(transaction)
-    carrier = paper_mission_opl_runtime_carrier(transaction)
+    carrier = paper_mission_stage_run_context(transaction)
     live_readback = helpers._study_progress_opl_runtime_readback(
         study_root=_materialized_study_root(progress=progress),
         carrier=carrier,
         opl_runtime_payload=_mapping(progress.get("opl_runtime_payload")),
     )
     runtime_readback_status = (
-        _non_empty_text(live_readback.get("opl_runtime_readback_status"))
+        _non_empty_text(live_readback.get("opl_stage_attempt_readback_status"))
         or "not_requested_from_study_progress"
     )
-    carrier_readback = _mapping(live_readback.get("opl_runtime_carrier_readback"))
+    carrier_readback = _mapping(live_readback.get("opl_stage_attempt_readback"))
     effective_transaction = transaction
     effective_consume_candidate_status = _consume_candidate_status(
         mission,
@@ -204,9 +204,9 @@ def _materialized_mission_summary(
                 else {}
             ),
             "consume_candidate_status": effective_consume_candidate_status,
-            "opl_runtime_readback_status": runtime_readback_status,
+            "opl_stage_attempt_readback_status": runtime_readback_status,
             **(
-                {"opl_runtime_carrier_readback": carrier_readback}
+                {"opl_stage_attempt_readback": carrier_readback}
                 if carrier_readback
                 else {}
             ),
@@ -216,7 +216,7 @@ def _materialized_mission_summary(
         paper_mission_run=paper_mission_run,
         stage_closure_decision=stage_closure_decision,
     )
-    receipt = helpers._opl_transition_receipt(
+    receipt = helpers._opl_stage_attempt_receipt(
         progress=progress,
         carrier=carrier,
     )
@@ -232,11 +232,11 @@ def _materialized_mission_summary(
         "stage_terminal_decision": _mapping(
             effective_transaction.get("stage_terminal_decision")
         ),
-        "opl_route_command": _mapping(effective_transaction.get("opl_route_command")),
-        "opl_runtime_carrier": carrier,
-        **({"opl_runtime_carrier_readback": carrier_readback} if carrier_readback else {}),
-        "opl_runtime_readback_status": runtime_readback_status,
-        **({"opl_transition_receipt": receipt} if receipt else {}),
+        "ai_route_context": _mapping(effective_transaction.get("ai_route_context")),
+        "opl_stage_run_context": carrier,
+        **({"opl_stage_attempt_readback": carrier_readback} if carrier_readback else {}),
+        "opl_stage_attempt_readback_status": runtime_readback_status,
+        **({"opl_stage_attempt_receipt": receipt} if receipt else {}),
         "transaction_state": transaction_state,
         "mission_state": mission_state,
         "current_objective": current_objective,

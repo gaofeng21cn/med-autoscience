@@ -371,7 +371,7 @@ def build_paper_line_guarded_apply_evidence_scaleout_surface() -> dict[str, Any]
             _paper_line_scaleout_ref_packet(
                 packet_id="progress_delta_ref_packet",
                 required_role="progress_delta_ref",
-                owner_surface="opl_current_control_state.stage_run.transition_receipt.progress_delta_refs",
+                owner_surface="opl_current_control_state.stage_run.stage_attempt_receipt.progress_delta_refs",
             ),
             _paper_line_scaleout_ref_packet(
                 packet_id="ai_reviewer_gate_receipt_ref_packet",

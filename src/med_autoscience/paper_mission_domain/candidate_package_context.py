@@ -12,7 +12,7 @@ def mission_executor_handoff(
     forbidden_authority_claims: tuple[str, ...],
 ) -> dict[str, Any]:
     terminal_decision = _mapping(readback.get("stage_terminal_decision"))
-    route_command = _mapping(readback.get("opl_route_command"))
+    route_command = _mapping(readback.get("ai_route_context"))
     next_decision = _mapping(readback.get("next_owner_or_human_decision"))
     next_owner = _first_text(
         next_decision.get("next_owner"),
@@ -169,7 +169,7 @@ def foreground_owner_decision_summary(
             "unblock_condition": terminal_decision.get("unblock_condition"),
         },
         "runtime_touchpoint": {
-            "opl_runtime_readback_status": readback.get("opl_runtime_readback_status"),
+            "opl_stage_attempt_readback_status": readback.get("opl_stage_attempt_readback_status"),
             "terminal_owner_gate": terminal_owner_gate or None,
             "next_owner_or_human_decision": next_decision,
         },

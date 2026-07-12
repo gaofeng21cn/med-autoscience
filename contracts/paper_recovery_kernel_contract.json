@@ -7,7 +7,6 @@
   "machine_boundary": "This contract defines PaperRecovery diagnostic/provenance projection invariants and replay acceptance only. It is not default next-action authority, cannot generate or replace a NextActionEnvelope or StageOutcome, cannot authorize provider admission or completion, and does not declare publication readiness, submission readiness, current package freshness, quality verdicts, artifact mutation authority, production readiness, or live study truth.",
   "source_design_ref": "docs/runtime/control/paper_recovery_replay.md",
   "related_contract_refs": [
-    "contracts/stage_route_reconcile_contract.json",
     "contracts/stage_run_kernel_profile.json",
     "contracts/owner_receipt_contract.json",
     "contracts/progress_first_safety_envelope.json",
@@ -227,7 +226,7 @@
         "materialize_successor_owner_action",
         "materialize_successor_owner_gate",
         "materialize_mas_transition_request_or_owner_callable",
-        "await_opl_transition_readback_or_non_advancing_apply",
+        "record_optional_stage_attempt_context",
         "provide_opl_execution_authorization_or_human_gate",
         "resolve_owner_gate_decision",
         "route_back_to_owner_or_repair_materialization",
@@ -334,17 +333,17 @@
         "current_owner_delta_can_claim_completion": false
       },
       "materialize_mas_transition_request_or_owner_callable": {
-        "meaning": "MAS may emit domain policy intent or run a MAS owner callable; OPL owns command/event/outbox/StageRun materialization.",
+        "meaning": "MAS may emit non-authoritative AI route context or run a MAS owner callable; OPL owns StageRun transport only.",
         "mas_can_create_opl_outbox_record": false,
         "mas_can_authorize_provider_admission": false,
-        "provider_admission_pending_requires_opl_transition_boundary": true
+        "provider_admission_pending_requires_opl_transition_boundary": false
       },
-      "await_opl_transition_readback_or_non_advancing_apply": {
-        "meaning": "MAS has emitted or observed a domain transition request, but provider admission is not pending until OPL DomainProgressTransitionRuntime returns event, outbox, and StageRun identity readback; without advancing evidence MAS must surface a NonAdvancingApply typed blocker.",
+      "record_optional_stage_attempt_context": {
+        "meaning": "MAS has emitted or observed AI route context. Missing provider readback is transport diagnostic only: Codex may start any declared stage with the available artifact and preserved failed-path evidence.",
         "mas_can_create_opl_outbox_record": false,
         "mas_can_authorize_provider_admission": false,
-        "provider_admission_pending_requires_opl_transition_boundary": true,
-        "non_advancing_apply_is_typed_blocker": true
+        "provider_admission_pending_requires_opl_transition_boundary": false,
+        "missing_readback_blocks_stage_transition": false
       },
       "admit_provider_attempt": {
         "meaning": "Legacy action name retained only for historical contract compatibility and diagnostic replay; current MAS recovery state must use StageOutcome -> NextActionEnvelope and same-identity OPL readback before any provider-admission interpretation.",
@@ -364,7 +363,7 @@
         "meaning": "A complete same-transition OPL provider-admission runtime readback exists; MAS may consume the derived projection but cannot authorize or start provider attempts.",
         "mas_can_create_opl_outbox_record": false,
         "mas_can_authorize_provider_admission": false,
-        "provider_admission_requires_opl_runtime_result": true,
+        "provider_admission_requires_opl_runtime_result": false,
         "requires_claimable_live_readback_source": true,
         "provider_completion_is_domain_completion": false
       }

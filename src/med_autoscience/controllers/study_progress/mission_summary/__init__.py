@@ -10,9 +10,9 @@ from med_autoscience.controllers.study_progress.mission_summary.materialized_rea
     _materialized_mission_summary,
     _materialized_study_root,
 )
-from med_autoscience.paper_mission_opl_carrier import paper_mission_opl_runtime_carrier
-from med_autoscience.paper_mission_opl_readback import (
-    attach_opl_runtime_carrier_readback,
+from med_autoscience.paper_mission_stage_run_context import paper_mission_stage_run_context
+from med_autoscience.paper_mission_stage_run_readback import (
+    attach_opl_stage_attempt_readback,
     paper_mission_next_action_envelope,
 )
 from med_autoscience.controllers.stage_closure_terminalizer import stage_closure_decision_projection
@@ -21,7 +21,7 @@ from ..canonical_next_action_gate import (
     legacy_next_action_authority_retirement,
 )
 from .receipt_projection import (
-    _opl_transition_receipt,
+    _opl_stage_attempt_receipt,
     _summary_with_receipt_projection,
 )
 from .paper_mission_payload import (
@@ -109,7 +109,7 @@ def build_artifact_first_mission_summary(
     effective_consume_candidate_status = _non_empty_text(
         _mapping(paper_mission_run.get("consume_result")).get("status")
     ) or "not_consumed"
-    carrier = paper_mission_opl_runtime_carrier(paper_mission_run["paper_mission_transaction"])
+    carrier = paper_mission_stage_run_context(paper_mission_run["paper_mission_transaction"])
     effective_transaction = _mapping(paper_mission_run["paper_mission_transaction"])
     stage_closure_readback = _current_stage_closure_readback(
         progress=progress,
@@ -126,28 +126,27 @@ def build_artifact_first_mission_summary(
         carrier=carrier,
         opl_runtime_payload=_mapping(progress.get("opl_runtime_payload")),
     )
-    runtime_readback_status = _non_empty_text(live_readback.get("opl_runtime_readback_status")) or "not_requested_from_study_progress"
-    carrier_readback = _mapping(live_readback.get("opl_runtime_carrier_readback"))
+    runtime_readback_status = _non_empty_text(live_readback.get("opl_stage_attempt_readback_status")) or "not_requested_from_study_progress"
+    carrier_readback = _mapping(live_readback.get("opl_stage_attempt_readback"))
     stage_closure_decision = stage_closure_decision_projection(
         readback={
             **stage_closure_source,
             "paper_mission_transaction": effective_transaction,
             "stage_terminal_decision": _mapping(effective_transaction.get("stage_terminal_decision")),
             "consume_candidate_status": effective_consume_candidate_status,
-            "opl_runtime_readback_status": runtime_readback_status,
-            **({"opl_runtime_carrier_readback": carrier_readback} if carrier_readback else {}),
+            "opl_stage_attempt_readback_status": runtime_readback_status,
+            **({"opl_stage_attempt_readback": carrier_readback} if carrier_readback else {}),
         },
     )
     next_action = paper_mission_next_action_envelope(
         transaction=effective_transaction,
         stage_terminal_decision=_mapping(effective_transaction.get("stage_terminal_decision")),
-        opl_route_command=_mapping(effective_transaction.get("opl_route_command")),
-        opl_runtime_carrier=carrier,
-        opl_runtime_carrier_readback=carrier_readback,
+        ai_route_context=_mapping(effective_transaction.get("ai_route_context")),
+        opl_stage_run_context=carrier,
         opl_route_handoff={},
         diagnostic_refs=[],
     )
-    receipt = _opl_transition_receipt(
+    receipt = _opl_stage_attempt_receipt(
         progress=progress,
         carrier=carrier,
     )
@@ -161,12 +160,12 @@ def build_artifact_first_mission_summary(
         "paper_mission_run": paper_mission_run,
         "paper_mission_transaction": effective_transaction,
         "stage_terminal_decision": _mapping(effective_transaction.get("stage_terminal_decision")),
-        "opl_route_command": _mapping(effective_transaction.get("opl_route_command")),
-        "opl_runtime_carrier": carrier,
-        **({"opl_runtime_carrier_readback": carrier_readback} if carrier_readback else {}),
-        "opl_runtime_readback_status": runtime_readback_status,
+        "ai_route_context": _mapping(effective_transaction.get("ai_route_context")),
+        "opl_stage_run_context": carrier,
+        **({"opl_stage_attempt_readback": carrier_readback} if carrier_readback else {}),
+        "opl_stage_attempt_readback_status": runtime_readback_status,
         "next_action": next_action,
-        **({"opl_transition_receipt": receipt} if receipt else {}),
+        **({"opl_stage_attempt_receipt": receipt} if receipt else {}),
         "transaction_state": _transaction_state(effective_transaction),
         "mission_state": mission_state,
         "consume_candidate_status": effective_consume_candidate_status,
@@ -268,12 +267,12 @@ def attach_artifact_first_mission_summary(
     updated["next_owner_or_human_decision"] = summary["next_owner_or_human_decision"]
     updated["paper_mission_transaction"] = summary["paper_mission_transaction"]
     updated["stage_terminal_decision"] = summary["stage_terminal_decision"]
-    updated["opl_route_command"] = summary["opl_route_command"]
-    updated["opl_runtime_carrier"] = summary["opl_runtime_carrier"]
-    if "opl_runtime_carrier_readback" in summary:
-        updated["opl_runtime_carrier_readback"] = summary["opl_runtime_carrier_readback"]
-    if "opl_runtime_readback_status" in summary:
-        updated["opl_runtime_readback_status"] = summary["opl_runtime_readback_status"]
+    updated["ai_route_context"] = summary["ai_route_context"]
+    updated["opl_stage_run_context"] = summary["opl_stage_run_context"]
+    if "opl_stage_attempt_readback" in summary:
+        updated["opl_stage_attempt_readback"] = summary["opl_stage_attempt_readback"]
+    if "opl_stage_attempt_readback_status" in summary:
+        updated["opl_stage_attempt_readback_status"] = summary["opl_stage_attempt_readback_status"]
     if next_action:
         updated["next_action"] = next_action
         updated["canonical_next_action_source"] = _summary_selected_next_action_source(
@@ -287,10 +286,10 @@ def attach_artifact_first_mission_summary(
         updated.pop("next_action", None)
         updated.pop("canonical_next_action_source", None)
         updated = without_legacy_next_action_authority(updated)
-    if "opl_transition_receipt" in summary:
-        updated["opl_transition_receipt"] = summary["opl_transition_receipt"]
+    if "opl_stage_attempt_receipt" in summary:
+        updated["opl_stage_attempt_receipt"] = summary["opl_stage_attempt_receipt"]
     else:
-        updated.pop("opl_transition_receipt", None)
+        updated.pop("opl_stage_attempt_receipt", None)
     updated["receipt_evidence"] = summary["receipt_evidence"]
     updated["mas_receipt_consumption"] = summary["mas_receipt_consumption"]
     updated["transaction_state"] = summary["transaction_state"]
@@ -379,7 +378,7 @@ def _current_executable_owner_action_from_paper_facing_action(value: object) -> 
         "accepted_answer_shape": _mapping(action.get("accepted_answer_shape")),
         "route_back": _mapping(action.get("route_back")),
         "verification": _mapping(action.get("verification")),
-        "owner_receipt_required": True,
+        "owner_receipt_required_for_quality_or_ready_claim": True,
         "authority": "study_progress.current_executable_owner_action",
         "authority_boundary": _mapping(action.get("authority_boundary")),
     }
@@ -415,8 +414,8 @@ def _study_progress_opl_runtime_readback(
     carrier: Mapping[str, Any],
     opl_runtime_payload: Mapping[str, Any] | None = None,
 ) -> dict[str, Any]:
-    return attach_opl_runtime_carrier_readback(
-        readback={"opl_runtime_carrier": carrier},
+    return attach_opl_stage_attempt_readback(
+        readback={"opl_stage_run_context": carrier},
         study_root=study_root,
         opl_runtime_payload=opl_runtime_payload,
     )

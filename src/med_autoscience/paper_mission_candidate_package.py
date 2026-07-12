@@ -125,7 +125,7 @@ def paper_mission_owner_blocker_packet(
     forbidden_authority_claims: Sequence[str],
 ) -> dict[str, Any]:
     terminal_decision = _mapping(readback.get("stage_terminal_decision"))
-    route_command = _mapping(readback.get("opl_route_command"))
+    route_command = _mapping(readback.get("ai_route_context"))
     terminal_owner_gate = _mapping(readback.get("terminal_owner_gate"))
     next_decision = _mapping(readback.get("next_owner_or_human_decision"))
     next_owner = _first_text(
@@ -204,8 +204,8 @@ def paper_mission_owner_blocker_packet(
         ),
         "required_quality_gate_refs": _pending_ref_items(REQUIRED_QUALITY_GATE_REFS),
         "runtime_touchpoint": {
-            "opl_runtime_readback_status": readback.get("opl_runtime_readback_status"),
-            "opl_runtime_carrier_readback": readback.get("opl_runtime_carrier_readback"),
+            "opl_stage_attempt_readback_status": readback.get("opl_stage_attempt_readback_status"),
+            "opl_stage_attempt_readback": readback.get("opl_stage_attempt_readback"),
         },
         "required_owner_resolution": required_owner_resolution,
         "owner_question": _owner_question(
@@ -478,11 +478,11 @@ def _owner_blocker_kind(
 ) -> str:
     decision_kind = _text(terminal_decision.get("decision_kind"))
     consume_status = _text(readback.get("consume_candidate_status"))
-    runtime_status = _text(readback.get("opl_runtime_readback_status"))
+    runtime_status = _text(readback.get("opl_stage_attempt_readback_status"))
     if terminal_owner_gate:
         return _text(terminal_owner_gate.get("gate_kind")) or "terminal_owner_gate"
     if decision_kind == "typed_blocker" or consume_status == "typed_blocker":
-        if runtime_status == "waiting_for_opl_runtime_payload":
+        if runtime_status == "optional_stage_attempt_readback_missing":
             return "missing_opl_runtime_readback"
         return "typed_blocker_owner_resolution"
     return "route_back_without_blocker"

@@ -39,7 +39,16 @@
     "retry_review_and_repair_limits_are_quality_budgets": true,
     "quality_budget_exhaustion_status": "completed_with_quality_debt",
     "quality_debt_blocks_stage_transition": false,
-    "quality_debt_blocks_quality_export_or_ready_claims": true
+    "quality_debt_blocks_quality_export_or_ready_claims": true,
+    "codex_cli_is_single_semantic_control_plane": true,
+    "output_schema_control_plane_enabled": false,
+    "normalizer_or_validator_failure_blocks_stage": false,
+    "raw_or_partial_output_advances": true,
+    "negative_evidence_counts_as_progress": true,
+    "ai_selects_next_or_route_back_stage": true,
+    "ai_route_back_may_target_any_declared_stage": true,
+    "negative_result_may_route_back_to_hypothesis_or_design": true,
+    "framework_static_transition_table_can_reject_ai_route_back": false
   },
   "default_read_surface": {
     "root": "current_owner_delta",

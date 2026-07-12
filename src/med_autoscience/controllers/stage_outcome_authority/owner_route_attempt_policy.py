@@ -333,8 +333,8 @@ def payload_fields_for_owner_callable_dispatch(
 
 def closeout_packet_for_transport(closeout_packet: Mapping[str, Any]) -> dict[str, Any]:
     packet = {
-        "typed_closeout_required_for_completion": bool(
-            closeout_packet.get("typed_closeout_required_for_completion")
+        "typed_closeout_is_optional_quality_projection": bool(
+            closeout_packet.get("typed_closeout_is_optional_quality_projection")
         ),
         "free_text_closeout_accepted": bool(closeout_packet.get("free_text_closeout_accepted")),
         "accepted_surface_kinds": list(closeout_packet.get("accepted_surface_kinds") or []),
@@ -463,12 +463,12 @@ def _closeout_first_contract(
         "evidence_refs_expectation": {
             "required_ref_field": required_ref_field,
             "minimum_closeout_refs": minimum_closeout_refs,
-            "missing_refs_closeout": "typed_blocker",
-            "typed_blocker_reason": "typed_closeout_packet_required",
+            "missing_refs_closeout": "completed_with_quality_debt",
+            "typed_blocker_reason": None,
         },
         "terminal_outcomes": list(CLOSEOUT_FIRST_TERMINAL_OUTCOMES),
         "provider_completion_is_domain_completion": False,
-        "provider_completion_without_closeout_refs": "typed_closeout_packet_required",
+        "provider_completion_without_closeout_refs": "derive_minimal_progress_envelope",
         "completed_blocked_double_state_allowed": False,
     }
 

@@ -71,5 +71,11 @@ or generated descriptors never close an AI-first quality gate.
 
 Ordinary progression reads canonical `StageOutcome` and
 `NextActionEnvelope`; legacy next-action or diagnostic projections are not
-transition authority. Stop at a typed blocker, durable human gate, owner receipt,
-or explicit route-back when the required authority is unavailable.
+transition authority. Typed blockers and owner receipts scope authority or ready claims; they remain consumable inputs for the next stage or an AI-selected route-back. Only durable human/safety/permission/currentness hard gates stop execution.
+
+## Progress-first and route-back
+
+- Codex CLI is the single semantic control plane. Raw or partial research artifacts, negative results, failed analyses, reviewer findings, and route-back notes all advance the StageRun; schema, validator, calibration, receipt, or formatting gaps are quality debt.
+- Codex selects the next stage or any declared route-back target. Re-entering an earlier stage is valid progress, not an illegal transition.
+- A negative or non-supportive result must be preserved with lineage and failed-path refs. Codex may route back to `idea`, `baseline`, or another declared stage to revise the hypothesis, endpoint, cohort, design, or claim while carrying the negative evidence forward.
+- Only zero readable artifact, corrupt bytes/path, safety or permission boundaries, identity/currentness mismatch, explicit human authority, or irreversible mutation may hard stop progression.

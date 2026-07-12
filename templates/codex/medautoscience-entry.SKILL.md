@@ -178,7 +178,7 @@ Runtime modes: lightweight, managed
 - default_progress_root: NextActionEnvelope
 - stage_goal_source: stage_run_next_action_envelope
 - executor_output_requirement: concrete_delta
-- accepted_closeout_shapes: ProgressDeltaReceipt | OwnerReceipt | TypedBlocker | human_gate_ref | route_back_ref
+- accepted_closeout_shapes: ProgressDeltaReceipt | RawReadableArtifact | OwnerReceipt | TypedBlocker | human_gate_ref | route_back_ref
 - progress_delta_receipt_kind: ProgressDeltaReceipt
 - progress_delta_receipt_artifact_tier: T0_progress_delta
 - progress_delta_receipt_role: ordinary_step_handoff_not_stage_completion

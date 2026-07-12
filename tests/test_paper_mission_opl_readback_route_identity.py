@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from med_autoscience.paper_mission_opl_readback.route_identity import (
+from med_autoscience.paper_mission_stage_run_readback.route_identity import (
     matches_carrier,
 )
 
@@ -17,7 +17,7 @@ def _carrier() -> dict[str, object]:
         "work_unit_fingerprint": "sha256:current-revision",
         "domain_route_handoff_ref": f"{transaction_ref}#domain_route_handoff",
         "domain_route_transaction_ref": transaction_ref,
-        "domain_route_command_ref": f"{transaction_ref}#opl_route_command",
+        "domain_route_command_ref": f"{transaction_ref}#ai_route_context",
         "idempotency_key": "003::write::calendar-year",
         "request_idempotency_key": "003::write::calendar-year::opl-request",
         "attempt_idempotency_key": "003::write::calendar-year::opl-attempt",
@@ -80,7 +80,7 @@ def test_matches_carrier_rejects_cross_route_closeout_even_with_opaque_idempoten
         "work_unit_fingerprint": carrier["work_unit_fingerprint"],
         "domain_route_handoff_ref": f"{other_transaction_ref}#domain_route_handoff",
         "domain_route_transaction_ref": other_transaction_ref,
-        "domain_route_command_ref": f"{other_transaction_ref}#opl_route_command",
+        "domain_route_command_ref": f"{other_transaction_ref}#ai_route_context",
         "stage_attempt_id": "sat_stale",
         "status": "completed",
         "idempotency_key": "idem_provider_attempt_closeout",
@@ -101,7 +101,7 @@ def test_matches_carrier_accepts_only_canonical_domain_route_refs() -> None:
         "work_unit_fingerprint": "sha256:current-revision",
         "domain_route_handoff_ref": f"{transaction_ref}#domain_route_handoff",
         "domain_route_transaction_ref": transaction_ref,
-        "domain_route_command_ref": f"{transaction_ref}#opl_route_command",
+        "domain_route_command_ref": f"{transaction_ref}#ai_route_context",
         "idempotency_key": "003::write::calendar-year",
         "request_idempotency_key": "003::write::calendar-year::opl-request",
         "attempt_idempotency_key": "003::write::calendar-year::opl-attempt",
@@ -130,7 +130,7 @@ def test_matches_carrier_rejects_wrong_canonical_domain_route_ref() -> None:
         "work_unit_fingerprint": "sha256:current-revision",
         "domain_route_handoff_ref": f"{transaction_ref}#domain_route_handoff",
         "domain_route_transaction_ref": transaction_ref,
-        "domain_route_command_ref": f"{transaction_ref}#opl_route_command",
+        "domain_route_command_ref": f"{transaction_ref}#ai_route_context",
         "command_kind": "route_back",
         "route_target": "write",
     }
@@ -142,7 +142,7 @@ def test_matches_carrier_rejects_wrong_canonical_domain_route_ref() -> None:
         "work_unit_fingerprint": carrier["work_unit_fingerprint"],
         "domain_route_handoff_ref": "paper-mission-transaction::other#domain_route_handoff",
         "domain_route_transaction_ref": "paper-mission-transaction::other",
-        "domain_route_command_ref": "paper-mission-transaction::other#opl_route_command",
+        "domain_route_command_ref": "paper-mission-transaction::other#ai_route_context",
         "authority_boundary": _record_only_boundary(),
     }
 

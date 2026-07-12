@@ -14,8 +14,8 @@ def test_start_or_resume_does_not_invent_handoff_without_canonical_route(
         paper_mission_task_shaping,
         "build_paper_mission_readback",
         lambda **_: {
-            "opl_runtime_carrier": {},
-            "opl_route_command": {},
+            "opl_stage_run_context": {},
+            "ai_route_context": {},
             "stage_terminal_decision": {},
             "forbidden_authority_writes": [],
         },

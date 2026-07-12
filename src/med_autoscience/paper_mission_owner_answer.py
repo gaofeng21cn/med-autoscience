@@ -125,7 +125,7 @@ def terminal_owner_gate_owner_answer_readback(
         "stage_terminal_decision": owner_answer_transaction[
             "stage_terminal_decision"
         ],
-        "opl_route_command": owner_answer_transaction["opl_route_command"],
+        "ai_route_context": owner_answer_transaction["ai_route_context"],
         "paper_mission_transaction": owner_answer_transaction,
         "consume_result": {
             "status": "route_back",
@@ -197,7 +197,7 @@ def terminal_owner_gate_authority_consume_readback(
             "carry_forward_risk_receipt_ref"
         ),
         "stage_terminal_decision": owner_answer.get("stage_terminal_decision"),
-        "opl_route_command": owner_answer.get("opl_route_command"),
+        "ai_route_context": owner_answer.get("ai_route_context"),
         "consume_result": owner_answer["consume_result"],
         "write_plan": owner_answer["write_plan"],
         "authority_boundary": owner_answer["authority_boundary"],
@@ -210,14 +210,14 @@ def terminal_owner_gate_owner_answer_next_decision(
     owner_answer = _mapping(owner_answer_readback)
     if not owner_answer:
         return {}
-    route = _mapping(owner_answer.get("opl_route_command"))
+    route = _mapping(owner_answer.get("ai_route_context"))
     decision = {
         "kind": "owner_or_route",
         "next_owner": _text(owner_answer.get("next_owner")) or "mission_executor",
         "human_decision_required": False,
         "summary": _text(owner_answer.get("status")) or "route_back",
         "route_back_evidence_ref": owner_answer.get("route_back_evidence_ref"),
-        "opl_route_command_ref": route.get("source_terminal_decision_ref"),
+        "ai_route_context_ref": route.get("source_terminal_decision_ref"),
         "carry_forward_risk_receipt_ref": owner_answer.get(
             "carry_forward_risk_receipt_ref"
         ),

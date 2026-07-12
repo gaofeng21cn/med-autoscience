@@ -16,15 +16,15 @@ def _preferred_terminal_stage_attempt_ids(
 ) -> set[str]:
     stage_attempt_ids = set()
     for carrier_key in (
-        "opl_runtime_carrier_readback",
-        "current_opl_runtime_carrier_readback",
+        "opl_stage_attempt_readback",
+        "current_opl_stage_attempt_readback",
     ):
         terminal_closeout = _mapping(
             _mapping(readback.get(carrier_key)).get("terminal_closeout")
         )
         stage_attempt_id = _optional_text(terminal_closeout.get("stage_attempt_id"))
         if stage_attempt_id is not None and (
-            carrier_key == "current_opl_runtime_carrier_readback"
+            carrier_key == "current_opl_stage_attempt_readback"
             or _terminal_closeout_is_live_runtime_observed(terminal_closeout)
         ):
             stage_attempt_ids.add(stage_attempt_id)
@@ -198,7 +198,7 @@ def _first_non_empty_text(*values: object) -> str | None:
     return None
 
 
-def _stage_packet_opl_runtime_carrier_readback(
+def _stage_packet_opl_stage_attempt_readback(
     *,
     packet: Mapping[str, Any],
     route_back: Mapping[str, Any],
@@ -217,7 +217,7 @@ def _stage_packet_opl_runtime_carrier_readback(
         or "paper_mission_stage_route_domain_gate_pending"
     )
     return {
-        "surface_kind": "paper_mission_opl_runtime_carrier_readback",
+        "surface_kind": "paper_mission_stage_run_context_readback",
         "schema_version": 1,
         "carrier_status": "opl_runtime_terminal_readback_observed",
         "runtime_readback_status": "terminal_closeout_observed",

@@ -223,57 +223,13 @@ def test_render_stage_route_contract_guide_contains_required_contract_context() 
         assert _extract_contract_list(guide, field) == evidence_review_contract[field]
 
 
-def test_render_stage_route_contract_guide_points_to_currentness_reconcile_contract() -> None:
+def test_render_stage_route_contract_guide_declares_single_ai_route_boundary() -> None:
     guide = render_stage_route_contract_guide()
-    repo_root = Path(__file__).resolve().parents[1]
-    reconcile_contract = json.loads(
-        (repo_root / "contracts" / "stage_route_reconcile_contract.json").read_text(encoding="utf-8")
-    )
-    arbiter = reconcile_contract["stage_route_arbiter_surface"]
-    carrier_identity = arbiter["carrier_self_identity_policy"]
-    projection_shape = arbiter["provider_admission_projection_shape_policy"]
-    dispatch_authority = reconcile_contract["owner_action_dispatch_authority_policy"]
-    conformance = reconcile_contract["stage_route_conformance_invariants"]
-    selected_dispatch = conformance["stage_packet_not_current_selected_dispatch_invariant"]
-    terminal_closeout = conformance["terminal_closeout_accounting_invariant"]
-
-    assert "## Currentness Conformance Invariants" in guide
-    assert "StageOutcome -> NextActionEnvelope" in guide
-    assert "stage_outcome -> next_action_envelope -> opl_transition_receipt" in guide
-    assert "legacy current_work_unit / current_execution_envelope" in guide
-    assert "diagnostic_only_cannot_override_next_action" in guide
-    assert "queue_empty" in guide
-    assert "provider_completion" in guide
-    assert selected_dispatch["blocker"] in guide
-    assert f"same_work_unit_redrive_allowed: {json.dumps(selected_dispatch['same_work_unit_redrive_allowed'])}" in guide
-    assert terminal_closeout["missing_without_reason_effect"] in guide
-    assert terminal_closeout["missing_without_reason_typed_blocker"] in guide
-    assert "paper_progress_credit: false" in guide
-    assert "## Stage-route Reconcile And Currentness Boundary" in guide
-    assert "`contracts/stage_route_reconcile_contract.json`" in guide
-    assert "`runtime_supervision_operator_policy`" in guide
-    assert "provider admission" in guide
-    assert "self-authorize currentness" in guide
-    assert "typed blocker" in guide
-    assert "`complete_medical_paper_readiness_surface`" in guide
-    assert (
-        f"current_control_action_can_self_authorize: "
-        f"{json.dumps(carrier_identity['current_control_action_can_self_authorize'])}"
-    ) in guide
-    assert (
-        f"typed_blocker_can_self_authorize_owner_action: "
-        f"{json.dumps(dispatch_authority['typed_blocker_can_self_authorize_owner_action'])}"
-    ) in guide
-    assert (
-        "provider_admission_pending_count="
-        f"{projection_shape['suppressed_or_absent_shape']['provider_admission_pending_count']}"
-    ) in guide
-    assert "provider_admission_candidates=[]" in guide
-    assert projection_shape["empty_candidates_semantics"] in guide
-    assert (
-        "candidate_presence_is_not_running_proof="
-        f"{json.dumps(projection_shape['candidate_presence_is_not_running_proof'])}"
-    ) in guide
+    assert "## Single AI Route Boundary" in guide
+    assert "route_selection_owner: `codex_cli`" in guide
+    assert "failed attempt" in guide
+    assert "cannot select, reject, or rewrite a stage route" in guide
+    assert "stage_route_reconcile_contract" not in guide
 
 
 @pytest.mark.parametrize("render_prompt", [render_codex_entry_skill, render_openclaw_entry_prompt])

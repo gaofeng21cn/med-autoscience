@@ -4,10 +4,10 @@ from collections.abc import Mapping
 from pathlib import Path
 from typing import Any
 
-from med_autoscience.controllers import study_transition_receipt_consumption
+from med_autoscience.controllers import study_stage_attempt_receipt_consumption
 from med_autoscience.controllers.paper_mission_owner_surface import controller_followthrough_actions
 from med_autoscience.controllers.paper_mission_owner_surface import current_truth_owner
-from med_autoscience.controllers.study_transition_receipt_consumption.owner_callable_candidates import (
+from med_autoscience.controllers.study_stage_attempt_receipt_consumption.owner_callable_candidates import (
     owner_callable_receipt_candidates,
 )
 from med_autoscience.controllers.stage_outcome_authority import owner_route_policy as owner_route_part
@@ -40,13 +40,13 @@ def route_and_consume_current_execution_receipt(
         for action in routed_actions
         if owner_route_part.route_allows_action(action=action, owner_route=owner_route)
     ]
-    receipt = study_transition_receipt_consumption.owner_callable_receipt_followthrough_consumption(
+    receipt = study_stage_attempt_receipt_consumption.owner_callable_receipt_followthrough_consumption(
         study_root=study_root,
         owner_route=owner_route,
         actions=routed_actions,
     )
     if not receipt:
-        receipt = study_transition_receipt_consumption.owner_callable_receipt_consumption(
+        receipt = study_stage_attempt_receipt_consumption.owner_callable_receipt_consumption(
             study_root=study_root,
             owner_route=owner_route,
             actions=routed_actions,
@@ -57,7 +57,7 @@ def route_and_consume_current_execution_receipt(
             status=status,
         )
         if followthrough_candidate is not None:
-            receipt = study_transition_receipt_consumption.owner_callable_receipt_consumption(
+            receipt = study_stage_attempt_receipt_consumption.owner_callable_receipt_consumption(
                 study_root=study_root,
                 owner_route=followthrough_candidate["owner_route"],
                 actions=followthrough_candidate["actions"],

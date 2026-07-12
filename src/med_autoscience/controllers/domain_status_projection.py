@@ -97,9 +97,3 @@ def progress_projection(
         sync_runtime_summary=sync_runtime_summary,
         include_progress_projection=include_progress_projection,
     )
-
-
-def study_outer_loop_tick(**kwargs: Any) -> dict[str, Any]:
-    from med_autoscience.controllers import study_outer_loop
-
-    return study_outer_loop.study_outer_loop_tick(**kwargs)

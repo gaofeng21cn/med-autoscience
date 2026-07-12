@@ -90,10 +90,11 @@ candidate). MAS owner/gate decides admission after the packet; the executor does
 not convert specialist output, test pass, generated surface status, provider
 completion, or package freshness into `manuscript_draft_reviewable`.
 
-Fail closed to route-back, typed blocker, or human gate when required refs are
-missing/stale, canonical manuscript authority is unclear, artifact mutation or
-source readiness is unresolved, or PI/journal/external-source authority is
-needed.
+Missing/stale refs, unresolved source readiness, thin sections, and review
+findings become quality debt and exact route-back recommendations when any
+readable manuscript artifact exists. Use a typed blocker or human gate only for
+zero/corrupt output, authority ambiguity, permission/safety, identity/currentness,
+irreversible mutation, or a genuinely unavailable external decision.
 
 ## Receipt And Route-Back
 

@@ -4,15 +4,14 @@ from collections.abc import Mapping
 from pathlib import Path
 from typing import Any
 
-from med_autoscience.paper_mission_opl_readback import attach_opl_runtime_carrier_readback
-from med_autoscience.paper_mission_opl_carrier import paper_mission_opl_runtime_carrier
+from med_autoscience.paper_mission_stage_run_readback import attach_opl_stage_attempt_readback
+from med_autoscience.paper_mission_stage_run_context import paper_mission_stage_run_context
 from med_autoscience.paper_mission_transaction import PaperMissionTransactionContractError
 from med_autoscience.paper_mission_domain.command_metadata import (
     action_intent as _action_intent,
 )
 from med_autoscience.paper_mission_domain.materialized_mission_readback import (
     build_materialized_mission_readback_if_available as _build_materialized_mission_readback_if_available,
-    _domain_transition_direct_next_action_runtime_readback as _build_domain_transition_direct_next_action_runtime_readback,
 )
 from med_autoscience.paper_mission_domain.common import (
     _load_optional_json_object,
@@ -34,7 +33,7 @@ from med_autoscience.paper_mission_domain.stage_packet_route_back_readback impor
     _load_stage_packet_route_back_evidence,
     _paper_mission_transaction_stage_id,
     _preferred_terminal_stage_attempt_ids,
-    _stage_packet_opl_runtime_carrier_readback,
+    _stage_packet_opl_stage_attempt_readback,
     _stage_packet_route_back_semantic_priority,
     _stage_packet_route_stage_id,
     _stage_packet_transaction_priority,
@@ -60,10 +59,6 @@ from med_autoscience.paper_mission_domain.stage_closure_next_action import (
     next_action_for_stage_closure_decision as _next_action_for_stage_closure_decision,
 )
 from med_autoscience.controllers.stage_closure_terminalizer import stage_closure_decision_missing
-from med_autoscience.controllers import study_domain_transition_table
-from med_autoscience.controllers.study_progress.canonical_next_action_selection import (
-    domain_transition_canonical_next_action as _domain_transition_canonical_next_action,
-)
 
 
 def _build_paper_mission_readback(**kwargs: Any) -> dict[str, Any]:
@@ -173,8 +168,8 @@ def _stage_closure_receipt_passthrough(
     result: dict[str, Any] = {}
     for key in (
         "current_package",
-        "opl_runtime_carrier_readback",
-        "current_opl_runtime_carrier_readback",
+        "opl_stage_attempt_readback",
+        "current_opl_stage_attempt_readback",
     ):
         value = _mapping(source_readback.get(key))
         if value:
@@ -348,51 +343,13 @@ def _domain_transition_direct_terminal_source_readback(
 ) -> dict[str, Any] | None:
     readback = _mapping(materialized_readback)
     direct = _mapping(readback.get("domain_transition_direct_stage_attempt"))
-    if not direct and profile is not None and study_id:
-        next_action = _mapping(readback.get("next_action"))
-        canonical_next_action_source = _optional_text(
-            readback.get("canonical_next_action_source")
-        )
-        domain_transition = _mapping(readback.get("domain_transition"))
-        stage_closure_outcome = _mapping(
-            _mapping(readback.get("stage_closure_decision")).get("outcome")
-        )
-        if (
-            canonical_next_action_source != "domain_transition.next_action"
-            and stage_closure_outcome.get("kind") != "typed_blocker"
-        ):
-            domain_transition_next_action = _domain_transition_canonical_next_action(
-                {"domain_transition": domain_transition}
-            )
-            if not domain_transition_next_action and readback:
-                domain_transition = study_domain_transition_table.project_domain_transition(
-                    study_id=study_id,
-                    study_root=study_root,
-                    status={},
-                    macro_state={},
-                    active_run_id=None,
-                )
-                domain_transition_next_action = _domain_transition_canonical_next_action(
-                    {"domain_transition": domain_transition}
-                )
-            if domain_transition_next_action:
-                next_action = domain_transition_next_action
-                canonical_next_action_source = "domain_transition.next_action"
-        direct = _build_domain_transition_direct_next_action_runtime_readback(
-            profile=profile,
-            study_id=study_id,
-            study_root=study_root,
-            inspect_readback=readback,
-            next_action=next_action,
-            canonical_next_action_source=canonical_next_action_source,
-        )
     if not direct:
         return None
-    direct = attach_opl_runtime_carrier_readback(
+    direct = attach_opl_stage_attempt_readback(
         readback=direct,
         study_root=study_root,
     )
-    if _optional_text(direct.get("opl_runtime_readback_status")) != (
+    if _optional_text(direct.get("opl_stage_attempt_readback_status")) != (
         "opl_runtime_terminal_readback_observed"
     ):
         return None
@@ -438,14 +395,14 @@ def _materialized_run_terminal_source_readback(
     ):
         return None
     try:
-        carrier = paper_mission_opl_runtime_carrier(run_transaction)
+        carrier = paper_mission_stage_run_context(run_transaction)
     except (KeyError, TypeError, ValueError, PaperMissionTransactionContractError):
         return None
-    readback = attach_opl_runtime_carrier_readback(
-        readback={"opl_runtime_carrier": carrier},
+    readback = attach_opl_stage_attempt_readback(
+        readback={"opl_stage_run_context": carrier},
         study_root=study_root,
     )
-    if _optional_text(readback.get("opl_runtime_readback_status")) != (
+    if _optional_text(readback.get("opl_stage_attempt_readback_status")) != (
         "opl_runtime_terminal_readback_observed"
     ):
         return None
@@ -453,12 +410,12 @@ def _materialized_run_terminal_source_readback(
         **dict(materialized_readback),
         "paper_mission_command": "terminalize-stage",
         "source": "paper_mission_run_legacy_transaction",
-        "opl_runtime_carrier": carrier,
-        "opl_runtime_carrier_readback": _mapping(
-            readback.get("opl_runtime_carrier_readback")
+        "opl_stage_run_context": carrier,
+        "opl_stage_attempt_readback": _mapping(
+            readback.get("opl_stage_attempt_readback")
         ),
-        "opl_runtime_readback_status": _optional_text(
-            readback.get("opl_runtime_readback_status")
+        "opl_stage_attempt_readback_status": _optional_text(
+            readback.get("opl_stage_attempt_readback_status")
         ),
     }
 
@@ -559,8 +516,8 @@ def _build_terminalizer_source_readback_from_stage_packet(
         },
         "transaction_state": "route_back",
         "consume_candidate_status": "route_back",
-        "opl_runtime_readback_status": "opl_runtime_terminal_readback_observed",
-        "opl_runtime_carrier_readback": _stage_packet_opl_runtime_carrier_readback(
+        "opl_stage_attempt_readback_status": "opl_runtime_terminal_readback_observed",
+        "opl_stage_attempt_readback": _stage_packet_opl_stage_attempt_readback(
             packet=packet,
             route_back=route_back,
             stage_attempt_id=stage_attempt_id,
@@ -706,8 +663,8 @@ def _terminal_closeout_mtime_from_readback(
 ) -> float | None:
     mtimes: list[float] = []
     for carrier_key in (
-        "current_opl_runtime_carrier_readback",
-        "opl_runtime_carrier_readback",
+        "current_opl_stage_attempt_readback",
+        "opl_stage_attempt_readback",
     ):
         mtime = _terminal_closeout_mtime(
             _mapping(_mapping(readback.get(carrier_key)).get("terminal_closeout")),

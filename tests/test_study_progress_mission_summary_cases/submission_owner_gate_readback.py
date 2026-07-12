@@ -6,7 +6,7 @@ import importlib
 SUBMISSION_AUTHORITY_ACTION = "await_human_or_mas_authority_decision_for_submission_blocker"
 
 
-def test_submission_authority_owner_gate_removes_superseded_next_action() -> None:
+def test_submission_authority_owner_gate_records_claim_gate_without_blocking_next_action() -> None:
     module = importlib.import_module(
         "med_autoscience.controllers.study_progress.projection_payload_assembly"
     )
@@ -15,10 +15,12 @@ def test_submission_authority_owner_gate_removes_superseded_next_action() -> Non
 
     updated = module._attach_submission_authority_owner_gate_readback(payload)
 
-    assert "next_action" not in updated
-    assert "canonical_next_action_source" not in updated
-    assert "next_action" not in updated["paper_mission_transaction_readback"]
-    assert updated["current_executable_owner_action"] is None
+    assert updated["next_action"] == payload["next_action"]
+    assert updated["canonical_next_action_source"] == "precomputed_canonical_next_action"
+    assert updated["paper_mission_transaction_readback"]["next_action"] == {
+        "action_type": SUBMISSION_AUTHORITY_ACTION
+    }
+    assert updated["current_executable_owner_action"] == payload["current_executable_owner_action"]
     assert updated["submission_authority_owner_gate_readback"]["status"] == (
         "owner_gate_recorded"
     )

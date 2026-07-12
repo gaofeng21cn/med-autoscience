@@ -42,10 +42,10 @@ def test_top_level_next_legal_action_prefers_canonical_runtime_readback_request(
     assert payload["stage_closure"]["next_legal_action"] == (
         "materialize_typed_blocker_or_route_redesign"
     )
-    assert payload["next_legal_action"] == "request_opl_runtime_readback"
+    assert payload["next_legal_action"] == "codex_select_any_declared_stage"
 
 
-def test_single_next_action_projection_prefers_domain_transition_reviewer_action() -> None:
+def test_single_next_action_projection_does_not_accept_program_domain_transition_override() -> None:
     module = importlib.import_module(
         "med_autoscience.controllers.study_progress.projection_payload_assembly"
     )
@@ -93,14 +93,12 @@ def test_single_next_action_projection_prefers_domain_transition_reviewer_action
         }
     )
 
-    assert payload["canonical_next_action_source"] == "domain_transition.next_action"
-    assert payload["next_action"]["action_family"] == "paper.review.ai_reviewer"
-    assert payload["next_action"]["owner"] == "ai_reviewer"
-    assert payload["next_action"]["work_unit_id"] == (
-        "ai_reviewer_medical_prose_quality_review"
-    )
-    assert payload["user_visible_projection"]["next_owner"] == "ai_reviewer"
-    assert payload["user_visible_projection"]["conditions"][0]["message"] == "ai_reviewer"
+    assert payload["canonical_next_action_source"] == "paper_mission_next_action_envelope"
+    assert payload["next_action"]["action_family"] == "runtime.opl_route"
+    assert payload["next_action"]["owner"] == "one-person-lab"
+    assert payload["next_action"]["work_unit_id"] == "submission_milestone_candidate"
+    assert payload["user_visible_projection"]["next_owner"] == "one-person-lab"
+    assert payload["user_visible_projection"]["conditions"][0]["message"] == "one-person-lab"
 
 
 def test_typed_blocker_successor_does_not_override_domain_transition_reviewer_action(
@@ -235,7 +233,7 @@ def test_top_level_next_legal_action_prefers_receipt_consumption_over_stage_repl
             "mas_receipt_consumption": {
                 "surface_kind": "mas_receipt_consumption_projection",
                 "status": "requires_mas_owner_consumption",
-                "next_legal_action": "consume_opl_transition_receipt",
+                "next_legal_action": "consume_opl_stage_attempt_receipt",
             },
             "stage_closure_decision": {
                 "projection_status": "terminalizer_outcome_observed",
@@ -249,7 +247,7 @@ def test_top_level_next_legal_action_prefers_receipt_consumption_over_stage_repl
         }
     )
 
-    assert payload["next_legal_action"] == "consume_opl_transition_receipt"
+    assert payload["next_legal_action"] == "consume_opl_stage_attempt_receipt"
 
 
 def test_artifact_first_mission_summary_prefers_current_stage_closure_readback(
@@ -288,8 +286,8 @@ def test_artifact_first_mission_summary_prefers_current_stage_closure_readback(
         module,
         "_study_progress_opl_runtime_readback",
         lambda **_: {
-            "opl_runtime_readback_status": "opl_runtime_terminal_readback_observed",
-            "opl_runtime_carrier_readback": {
+            "opl_stage_attempt_readback_status": "opl_runtime_terminal_readback_observed",
+            "opl_stage_attempt_readback": {
                 "carrier_status": "opl_runtime_terminal_readback_observed",
                 "terminal_closeout": {
                     "stage_attempt_id": "sat-current",

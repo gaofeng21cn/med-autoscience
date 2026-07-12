@@ -10,7 +10,7 @@ from med_autoscience.controllers import provenance_limited_harmonization_owner_r
 from med_autoscience.controllers import source_provenance_owner_result
 from med_autoscience.controllers.paper_mission_owner_surface import hard_methodology_currentness
 from med_autoscience.controllers.paper_mission_owner_surface import methodology_reframe_actions
-from med_autoscience.controllers.study_transition_receipt_consumption.owner_callable_candidates import (
+from med_autoscience.controllers.study_stage_attempt_receipt_consumption.owner_callable_candidates import (
     latest_owner_callable_receipt_payload,
 )
 

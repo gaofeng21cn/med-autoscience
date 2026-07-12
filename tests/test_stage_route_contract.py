@@ -63,17 +63,27 @@ def test_stage_native_semantic_pack_covers_all_stage_obligation_fields() -> None
     standard_completion = pack["standard_stage_completion_policy"]
     assert standard_completion["surface_kind"] == "domain_stage_completion_policy"
     assert standard_completion["completion_judgment_owner"] == "domain_stage"
-    assert standard_completion["closeout_packet_required"] is True
+    assert standard_completion["closeout_packet_required"] is False
+    assert standard_completion["closeout_packet_required_for_progress"] is False
+    assert standard_completion["closeout_packet_required_for_quality_acceptance"] is True
+    assert standard_completion["raw_artifact_sufficient_for_progress"] is True
+    assert standard_completion["raw_or_partial_artifact_advances"] is True
+    assert standard_completion["framework_derives_minimal_progress_envelope"] is True
     assert standard_completion["provider_completion_is_domain_completion"] is False
     assert standard_completion["opl_content_judgment_allowed"] is False
-    assert standard_completion["next_stage_transition_owner"] == "opl_runtime"
+    assert standard_completion["semantic_next_or_route_back_owner"] == "codex_cli"
+    assert standard_completion["next_stage_transition_owner"] == "codex_cli"
+    assert standard_completion["transition_transport_owner"] == "opl_runtime"
     assert set(standard_completion["required_closeout_outcomes"]) >= {
         "completed_and_continue",
+        "completed_with_quality_debt",
         "completed_and_wait_owner",
         "route_back",
         "blocked",
         "rejected",
     }
+    assert standard_completion["authority_boundary"]["readable_file_counts_as_stage_progress"] is True
+    assert standard_completion["authority_boundary"]["framework_can_accept_reject_or_override_codex_route"] is False
     assert set(standard_completion["accepted_closeout_ref_fields"]) >= {
         "owner_receipt_ref",
         "typed_blocker_ref",
@@ -83,9 +93,11 @@ def test_stage_native_semantic_pack_covers_all_stage_obligation_fields() -> None
     assert standard_completion["authority_boundary"] == {
         "opl_can_decide_domain_completion": False,
         "provider_completion_counts_as_stage_complete": False,
-        "file_presence_counts_as_stage_complete": False,
+        "readable_file_counts_as_stage_progress": True,
+        "framework_can_accept_reject_or_override_codex_route": False,
         "suite_pass_counts_as_stage_complete": False,
         "conformance_pass_counts_as_stage_complete": False,
+        "raw_or_partial_artifact_counts_as_stage_progress": True,
     }
     assert pack["advisory_signal_policy"]["forbidden_authority_uses"]
     assert "ranking" in pack["advisory_signal_policy"]["advisory_only"]
@@ -384,17 +396,15 @@ def test_stage_route_contract_declares_machine_anti_loop_policy() -> None:
     assert {
         "dispatch_materialized_but_not_selected",
         "typed_blocker_or_dispatch_blocker_observed",
-        "provider_handoff_written_transition_request_pending",
+        "optional_stage_attempt_transport_readback_missing",
         "provider_attempt_started",
         "max_passes_exhausted_owner_delta_required",
     } <= set(policy["terminal_diagnostics"])
     assert policy["exhausted_budget_outputs"] == [
-        "TypedBlocker",
-        "human_gate_ref",
-        "stop_loss",
-        "route_back_ref",
-        "CarryForwardRiskReceipt",
-        "budget_exhausted_decision_ref",
+        "completed_with_quality_debt",
+        "quality_debt_ref",
+        "best_available_artifact_ref",
+        "route_back_candidate_ref",
         "advance_with_nonfatal_findings",
     ]
     assert policy["dry_run_write_policy"] == {

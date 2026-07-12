@@ -12,7 +12,6 @@
     "human_doc:mas_status",
     "human_doc:mas_decisions",
     "contracts/paper_recovery_kernel_contract.json",
-    "contracts/stage_route_reconcile_contract.json",
     "contracts/runtime/mas-live-runtime-evidence-rollup.json",
     "external_repo:one-person-lab/contracts/opl-framework/standard-agent-landing-acceptance-contract.json"
   ],
@@ -52,7 +51,6 @@
       "source_of_truth": [
         "canonical StageOutcome -> NextActionEnvelope",
         "contracts/paper_recovery_kernel_contract.json",
-        "contracts/stage_route_reconcile_contract.json",
         "fresh study_progress and domain diagnostic dry-run for live studies"
       ],
       "requires": [
@@ -118,26 +116,24 @@
       ]
     },
     {
-      "gate_id": "stage_route_and_stop_loss_have_single_arbiter",
+      "gate_id": "stage_route_has_single_ai_owner",
       "required_status": "satisfied",
       "source_of_truth": [
-        "contracts/stage_route_reconcile_contract.json",
-        "tests/test_stage_route_reconcile_contract.py",
-        "OPL stage_route_arbiter_substrate_contract"
+        "contracts/stage_operating_principles.json",
+        "tests/test_ai_route_context.py",
+        "Codex CLI route selection"
       ],
       "requires": [
-        "provider admission requires strong route identity and attempt idempotency identity",
-        "terminal closeout precedence suppresses stale running projection without swallowing different-identity successor",
-        "same identity no-progress redrive stops at budget",
-        "stop-loss exit requires identity-different successor, owner answer, human gate, route-back evidence, provider hard-gate clearance, or stable typed blocker",
-        "record-only refs remain audit unless current identity matches"
+        "Codex CLI alone selects forward, skip, repeat, reverse, or route-back stage movement",
+        "transport receipts, schemas, validators, retry budgets, and read models cannot veto or rewrite the route",
+        "any readable artifact, partial draft, failed attempt, negative result, or diagnostic can feed the next declared stage",
+        "quality debt blocks accepted, publication, export, and readiness claims but not stage transition"
       ],
       "cannot_be_satisfied_by": [
-        "same action label match",
-        "record ref alone",
-        "provider heartbeat",
-        "workflow completed",
-        "same work-unit redrive"
+        "transition runner output",
+        "receipt completeness",
+        "schema completeness",
+        "retry budget exhaustion"
       ]
     },
     {
@@ -146,7 +142,7 @@
       "source_of_truth": [
         "tests/test_standard_agent_completion_acceptance_contract.py",
         "tests/test_next_action_legacy_authority_retirement.py",
-        "tests/test_stage_route_reconcile_contract.py",
+        "tests/test_ai_route_context.py",
         "tests/test_foundry_agent_os_domain_kernel_manifest_contract.py"
       ],
       "requires": [

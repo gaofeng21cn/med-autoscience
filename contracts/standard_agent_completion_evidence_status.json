@@ -34,17 +34,17 @@
       "required_evidence_refs": [
         "canonical StageOutcome -> NextActionEnvelope",
         "contracts/paper_recovery_kernel_contract.json",
-        "contracts/stage_route_reconcile_contract.json",
+        "contracts/stage_operating_principles.json",
         "tests/test_next_action_legacy_authority_retirement.py",
-        "tests/test_stage_route_reconcile_contract.py"
+        "tests/test_ai_route_context.py"
       ],
       "observed_refs": [
         "contracts/paper_recovery_kernel_contract.json#/metadata/default_next_action_authority=false",
         "contracts/paper_recovery_kernel_contract.json#/metadata/stage_outcome_to_next_action_authority=StageOutcome->NextActionEnvelope",
         "contracts/paper_recovery_kernel_contract.json#/authority_boundaries/forbidden_authority_claims",
-        "contracts/stage_route_reconcile_contract.json#/paper_recovery_kernel_consumption",
+        "contracts/stage_operating_principles.json#/speed_policy",
         "tests/test_next_action_legacy_authority_retirement.py::legacy projections require canonical NextActionEnvelope",
-        "tests/test_stage_route_reconcile_contract.py::test_stage_route_reconcile_contract_consumes_paper_recovery_kernel",
+        "tests/test_ai_route_context.py::test_ai_route_context_is_non_authoritative_and_progress_first",
         "workspace:Yang/DM-CVD-Mortality-Risk#domain diagnostic-apply-2026-06-15T15:08:10Z/exactly_one_obligation_actuator_outcomes",
         "workspace:Yang/DM-CVD-Mortality-Risk#study-progress-2026-06-15T15:09:08Z/DM002-DM003-post-apply-readback"
       ],
@@ -122,32 +122,25 @@
       ]
     },
     {
-      "gate_id": "stage_route_and_stop_loss_have_single_arbiter",
+      "gate_id": "stage_route_has_single_ai_owner",
       "status": "satisfied_with_repo_evidence",
       "required_evidence_refs": [
-        "contracts/stage_route_reconcile_contract.json",
-        "tests/test_stage_route_reconcile_contract.py",
-        "OPL_stage_route_arbiter_substrate_contract_ref"
+        "contracts/stage_operating_principles.json",
+        "tests/test_ai_route_context.py",
+        "Codex_CLI_route_selection_owner"
       ],
       "observed_refs": [
-        "contracts/stage_route_reconcile_contract.json#/stage_route_arbiter",
-        "contracts/stage_route_reconcile_contract.json#/runtime_supervision_operator_policy",
-        "tests/test_stage_route_reconcile_contract.py",
-        "workspace:Yang/DM-CVD-Mortality-Risk/studies/002-dm-china-us-mortality-attribution#supervision-consumer-owner-callable-execution-sat_67e10efde628859185249aa0-closeout-typed-blocker",
-        "workspace:Yang/DM-CVD-Mortality-Risk#domain diagnostic-apply-2026-06-15T15:08:10Z/DM002-typed_blocker_ref-postcondition_ok",
-        "external_repo:one-person-lab@cca17b60401151b83f6195c6f315cbe055209c57#contracts/opl-framework/stage-route-scheduler-contract.json#/stage_route_arbiter_substrate_contract",
-        "external_repo:one-person-lab@cca17b60401151b83f6195c6f315cbe055209c57#contracts/opl-framework/standard-agent-landing-evidence-status.json#/gate_statuses/stage_route_arbiter_and_stop_loss",
-        "external_repo:one-person-lab@cca17b60401151b83f6195c6f315cbe055209c57#tests/src/stage-route-scheduler-arbiter-substrate-contract.test.ts",
-        "external_repo:one-person-lab@cca17b60401151b83f6195c6f315cbe055209c57#tests/src/family-runtime-stage-run-currentness-identity.test.ts",
-        "external_repo:one-person-lab@cca17b60401151b83f6195c6f315cbe055209c57#tests/src/standard-agent-landing-acceptance-contract.test.ts"
+        "contracts/stage_operating_principles.json#/speed_policy",
+        "tests/test_ai_route_context.py",
+        "tests/test_stage_closure_terminalizer.py::test_retry_budget_and_repeated_signature_never_block_progress",
+        "tests/test_paper_mission_stage_run_readback.py"
       ],
       "missing_evidence_tails": [],
       "false_completion_boundary": [
-        "same_action_label_match",
+        "transition_runner_output",
         "record_ref_alone",
-        "provider_heartbeat",
-        "workflow_completed",
-        "same_work_unit_redrive"
+        "schema_or_receipt_completeness",
+        "retry_budget_exhaustion"
       ]
     },
     {
@@ -156,14 +149,14 @@
       "required_evidence_refs": [
         "tests/test_standard_agent_completion_acceptance_contract.py",
         "tests/test_next_action_legacy_authority_retirement.py",
-        "tests/test_stage_route_reconcile_contract.py",
+        "tests/test_ai_route_context.py",
         "tests/test_foundry_agent_os_domain_kernel_manifest_contract.py"
       ],
       "observed_refs": [
         "tests/test_standard_agent_completion_acceptance_contract.py::test_standard_agent_completion_acceptance_false_completion_claims_are_explicit",
         "tests/test_standard_agent_completion_acceptance_contract.py::test_standard_agent_completion_evidence_ledger_keeps_false_claims_rejected",
         "tests/test_next_action_legacy_authority_retirement.py",
-        "tests/test_stage_route_reconcile_contract.py",
+        "tests/test_ai_route_context.py",
         "tests/test_foundry_agent_os_domain_kernel_manifest_contract.py",
         "tests/test_standard_agent_completion_acceptance_contract.py::test_standard_agent_completion_evidence_ledger_records_retired_owner_callable_adapter_residue_cleanup_receipt_without_progress_claim",
         "external_repo:one-person-lab@e56b9a7583b64d26f275062f3d2c5561bcf4dc20#contracts/opl-framework/standard-agent-negative-conformance-samples.json",

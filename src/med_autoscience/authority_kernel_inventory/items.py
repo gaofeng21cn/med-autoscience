@@ -108,7 +108,7 @@ def inventory_items() -> tuple[AuthorityKernelItem, ...]:
             active_caller_refs=(
                 "agent/knowledge/publication_route_memory.md",
                 "src/med_autoscience/controllers/research_memory/publication_route_memory_writeback.py",
-                "src/med_autoscience/controllers/study_transition_receipt_consumption/owner_receipts.py::publication_route_memory_writeback_receipt_consumption",
+                "src/med_autoscience/controllers/study_stage_attempt_receipt_consumption/owner_receipts.py::publication_route_memory_writeback_receipt_consumption",
             ),
             allowed_writes=(
                 "artifacts/stage_outputs/05-evidence_synthesis/memory_accept_reject_receipts.json",

@@ -38,7 +38,7 @@ Machine boundary: Human-readable reference only; current architecture and qualit
 当前 repo-side 已经开始把这件事压成可读、可测的具体 truth：
 
 - 质量闭环不再只写成泛化 blocker，而是要求说清当前是同线质量修复还是 `bounded_analysis`，以及为什么要回到该现有主线。
-- 当 `publication_eval/latest.json` 已经把当前 blocked route 收口成 `bounded_analysis`，且 `publication_gate` 只剩 scientific-anchor 冻结、paper-facing surface repair、display/export refresh、submission-minimal replay 或 stale delivery replay 这类可确定修复项时，`study_outer_loop` 会把这条同线 route-back 前推成一次 `run_gate_clearing_batch`，先清当前 gate，再把 study 送回同一条托管主线。
+- 当 `publication_eval/latest.json` 暴露 `bounded_analysis` 或其他质量缺口时，它只形成 Codex 可消费的 evidence 与 route-back context。Codex 可以继续当前 stage、进入任意 declared stage，或携带阴性/失败 artifact 回到假设、证据或分析设计；不存在自动选择并强制执行 `run_gate_clearing_batch` 的 MAS outer loop。
 - 用户可见面不再把质量修复、有限补充分析、runtime recovery、human gate 混成同一种“待确认”，而是要求投影出不同 owner 语义。
 - 这条 gate-clearing batch 同时服务三个目标：对质量面，它并行清掉当前论文线里可确定修复的稿面/锚点/交付阻塞；对自治面，它把“先清 gate 再继续”保留在 controller-owned continuation 链里；对 single-project 边界，它继续只写 `publication_eval`、`controller_decisions`、`artifacts/controller/gate_clearing_batch/latest.json` 与 gate replay 这组既有 `MAS` durable surface。
 - program 口径不再把 `MDS` 当作长期并行 owner，而是把它固定在 oracle / backend / intake buffer 三个迁移期角色里。

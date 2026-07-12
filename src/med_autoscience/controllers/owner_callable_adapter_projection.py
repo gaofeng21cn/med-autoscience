@@ -8,32 +8,32 @@ def owner_callable_adapters(payload: Mapping[str, Any]) -> list[dict[str, Any]]:
     """Retired active body reader.
 
     Top-level owner_callable_adapters is no longer a controller/readiness/action
-    carrier. Use domain_progress_transition_requests for active reads and
+    carrier. Use ai_route_contexts for active reads and
     legacy_owner_callable_adapter_refs for migration diagnostics.
     """
     return []
 
 
-def domain_progress_transition_requests(payload: Mapping[str, Any]) -> list[dict[str, Any]]:
-    requests = payload.get("domain_progress_transition_requests")
+def ai_route_contexts(payload: Mapping[str, Any]) -> list[dict[str, Any]]:
+    requests = payload.get("ai_route_contexts")
     if isinstance(requests, list):
-        return [_normalized_transition_request_record(item) for item in requests if isinstance(item, Mapping)]
+        return [_normalized_ai_route_context_record(item) for item in requests if isinstance(item, Mapping)]
     return []
 
 
-def transition_request_count(payload: Mapping[str, Any]) -> int:
-    if "domain_progress_transition_request_count" in payload:
-        return _int_value(payload.get("domain_progress_transition_request_count"))
-    return len(domain_progress_transition_requests(payload))
+def ai_route_context_count(payload: Mapping[str, Any]) -> int:
+    if "ai_route_context_count" in payload:
+        return _int_value(payload.get("ai_route_context_count"))
+    return len(ai_route_contexts(payload))
 
 
-def transition_request_status_count(payload: Mapping[str, Any], status: str) -> int:
-    key = f"{status}_domain_progress_transition_request_count"
+def ai_route_context_status_count(payload: Mapping[str, Any], status: str) -> int:
+    key = f"{status}_ai_route_context_count"
     if key in payload:
         return _int_value(payload.get(key))
     return sum(
         _text(item.get("dispatch_status")) == status
-        for item in domain_progress_transition_requests(payload)
+        for item in ai_route_contexts(payload)
     )
 
 
@@ -83,21 +83,21 @@ def legacy_owner_callable_adapter_diagnostics(payload: Mapping[str, Any]) -> dic
         legacy_dispatch_refs = [_legacy_owner_callable_adapter_ref(item) for item in adapters]
         legacy_ready_count = _status_count(adapters, "ready")
         legacy_blocked_count = _status_count(adapters, "blocked")
-        legacy_transition_request_pending_count = _status_count(
+        legacy_ai_route_context_pending_count = _status_count(
             adapters,
-            "transition_request_pending",
+            "ai_route_context_pending",
         )
     else:
         legacy_dispatch_refs = legacy_owner_callable_adapter_refs(payload)
         legacy_ready_count = _status_count(legacy_dispatch_refs, "ready")
         legacy_blocked_count = _status_count(legacy_dispatch_refs, "blocked")
-        legacy_transition_request_pending_count = _status_count(
+        legacy_ai_route_context_pending_count = _status_count(
             legacy_dispatch_refs,
-            "transition_request_pending",
+            "ai_route_context_pending",
         )
     return {
         "surface": "legacy_owner_callable_adapter_diagnostics",
-        "canonical_transition_request_surface": "domain_progress_transition_requests",
+        "canonical_ai_route_context_surface": "ai_route_contexts",
         "diagnostic_only": True,
         "counts_authority": False,
         "readiness_authority": False,
@@ -107,7 +107,7 @@ def legacy_owner_callable_adapter_diagnostics(payload: Mapping[str, Any]) -> dic
         "legacy_dispatch_count": len(legacy_dispatch_refs),
         "legacy_ready_count": legacy_ready_count,
         "legacy_blocked_count": legacy_blocked_count,
-        "legacy_transition_request_pending_count": legacy_transition_request_pending_count,
+        "legacy_ai_route_context_pending_count": legacy_ai_route_context_pending_count,
         "legacy_payload_scope": "identity_refs_only",
         "legacy_dispatch_refs": legacy_dispatch_refs,
         "legacy_dispatches": legacy_dispatch_refs,
@@ -116,11 +116,11 @@ def legacy_owner_callable_adapter_diagnostics(payload: Mapping[str, Any]) -> dic
             "authority_boundary",
             "domain_intent",
             "handoff_packet",
-            "opl_domain_progress_transition_request",
+            "opl_ai_route_context",
             "owner_route",
             "prompt_contract",
             "source_action",
-            "stage_transition_authority_boundary",
+            "semantic_route_boundary",
         ],
     }
 
@@ -128,44 +128,32 @@ def legacy_owner_callable_adapter_diagnostics(payload: Mapping[str, Any]) -> dic
 def with_owner_callable_adapter_projection(payload: Mapping[str, Any]) -> dict[str, Any]:
     projected = dict(payload)
     adapters = _legacy_owner_callable_adapter_bodies(projected)
-    transition_requests = domain_progress_transition_requests(projected)
+    route_contexts = ai_route_contexts(projected)
     diagnostics = legacy_owner_callable_adapter_diagnostics(projected) if adapters else None
     for key in (
         "owner_callable_adapters",
         "owner_callable_adapter_count",
         "ready_owner_callable_adapter_count",
         "blocked_owner_callable_adapter_count",
-        "transition_request_pending_owner_callable_adapter_count",
+        "ai_route_context_pending_owner_callable_adapter_count",
     ):
         projected.pop(key, None)
-    projected.setdefault("canonical_transition_request_surface", "domain_progress_transition_requests")
+    projected.setdefault("canonical_ai_route_context_surface", "ai_route_contexts")
     if diagnostics:
         projected.setdefault("legacy_owner_callable_adapter_diagnostics", diagnostics)
-    projected.setdefault("domain_progress_transition_request_count", len(transition_requests))
-    projected.setdefault(
-        "ready_domain_progress_transition_request_count",
-        _status_count(transition_requests, "ready"),
-    )
-    projected.setdefault(
-        "blocked_domain_progress_transition_request_count",
-        _status_count(transition_requests, "blocked"),
-    )
-    projected.setdefault(
-        "transition_request_pending_domain_progress_transition_request_count",
-        _status_count(transition_requests, "transition_request_pending"),
-    )
-    projected.setdefault("domain_progress_transition_requests", transition_requests)
+    projected.setdefault("ai_route_context_count", len(route_contexts))
+    projected.setdefault("ai_route_contexts", route_contexts)
     return projected
 
 
-def _normalized_transition_request_record(value: Mapping[str, Any]) -> dict[str, Any]:
+def _normalized_ai_route_context_record(value: Mapping[str, Any]) -> dict[str, Any]:
     record = {key: item for key, item in dict(value).items() if item is not None}
-    request = _mapping(record.get("opl_domain_progress_transition_request"))
+    request = _mapping(record.get("ai_route_context"))
     if request:
-        record["opl_domain_progress_transition_request"] = request
-    record.setdefault("surface", "mas_domain_progress_transition_request_projection")
+        record["ai_route_context"] = request
+    record.setdefault("surface", "mas_ai_route_context_projection")
     record.setdefault("provider_admission_pending", False)
-    record.setdefault("provider_admission_requires_opl_runtime_result", True)
+    record.setdefault("provider_admission_requires_opl_runtime_result", False)
     record.setdefault("provider_completion_is_domain_completion", False)
     record.setdefault("mas_dispatch_authority", False)
     record.setdefault("mas_creates_owner_callable_carrier", False)
@@ -173,7 +161,7 @@ def _normalized_transition_request_record(value: Mapping[str, Any]) -> dict[str,
     record.setdefault("mas_creates_opl_event", False)
     record.setdefault("mas_creates_opl_stage_run", False)
     record.setdefault("target_runtime_owner", "one-person-lab")
-    record.setdefault("dispatch_status", "transition_request_pending")
+    record.setdefault("dispatch_status", "context_available")
     return record
 
 
@@ -219,9 +207,9 @@ def _legacy_owner_callable_adapter_ref(adapter: Mapping[str, Any]) -> dict[str, 
         "target_runtime_owner": _text(adapter.get("target_runtime_owner")),
         "dispatch_path": _text(adapter.get("dispatch_path")) or _text(refs.get("dispatch_path")),
         "dispatch_ref": _text(adapter.get("dispatch_path")) or _text(refs.get("dispatch_path")),
-        "transition_request_ref": (
-            _text(adapter.get("transition_request_ref"))
-            or _text(refs.get("transition_request_ref"))
+        "ai_route_context_ref": (
+            _text(adapter.get("ai_route_context_ref"))
+            or _text(refs.get("ai_route_context_ref"))
         ),
         "stage_packet_ref": _text(adapter.get("stage_packet_ref")) or _text(refs.get("stage_packet_ref")),
         "stage_packet_refs": adapter.get("stage_packet_refs") or refs.get("stage_packet_refs"),
@@ -248,13 +236,13 @@ def _int_value(value: object) -> int:
 __all__ = [
     "adapter_count",
     "adapter_status_count",
-    "domain_progress_transition_requests",
+    "ai_route_contexts",
     "legacy_owner_callable_adapter_count",
     "legacy_owner_callable_adapter_diagnostics",
     "legacy_owner_callable_adapter_refs",
     "legacy_owner_callable_adapter_status_count",
     "owner_callable_adapters",
-    "transition_request_count",
-    "transition_request_status_count",
+    "ai_route_context_count",
+    "ai_route_context_status_count",
     "with_owner_callable_adapter_projection",
 ]

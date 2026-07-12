@@ -135,13 +135,11 @@ OWNER_LAYERS: tuple[dict[str, Any], ...] = (
     {
         "layer_id": "opl_progress_spine",
         "owner": "one-person-lab",
-        "role": "progress_transition_runtime_owner",
+        "role": "stage_run_transport_owner",
         "hub_role": "authority",
         "authority_surfaces": sorted(OPL_PROGRESS_SPINE_SURFACES),
         "canonical_surfaces": [
-            "OPL DomainProgressTransitionRuntime",
-            "OPL command/event log",
-            "OPL transactional outbox",
+            "OPL StageRun attempt transport",
             "OPL StageRun / ToolInvocation / HumanGateTransport",
             "OPL RecoveryObligationStore",
             "OPL StateIndexKernel",

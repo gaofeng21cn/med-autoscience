@@ -85,7 +85,7 @@ def test_standard_agent_completion_acceptance_gates_require_sources_and_negative
         "single_default_recovery_and_progress_root",
         "physical_retirement_contract_readback",
         "active_caller_migration_and_no_resurrection",
-        "stage_route_and_stop_loss_have_single_arbiter",
+        "stage_route_has_single_ai_owner",
         "negative_false_completion_tests",
         "live_owner_evidence_for_representative_paper_lines",
         "family_standard_agent_feedback_loop",
@@ -331,41 +331,22 @@ def test_standard_agent_completion_evidence_ledger_records_opl_family_negative_c
     assert ledger["completion_claim_allowed"] is False
 
 
-def test_standard_agent_completion_evidence_ledger_records_opl_stage_route_current_verification_without_completion_claim() -> None:
+def test_standard_agent_completion_evidence_ledger_records_single_ai_route_owner_without_completion_claim() -> None:
     ledger = _ledger()
     gates = {gate["gate_id"]: gate for gate in ledger["gate_evidence_status"]}
-    stage_route = gates["stage_route_and_stop_loss_have_single_arbiter"]
+    stage_route = gates["stage_route_has_single_ai_owner"]
 
-    opl_sha = "cca17b60401151b83f6195c6f315cbe055209c57"
     expected_refs = {
-        (
-            f"external_repo:one-person-lab@{opl_sha}#"
-            "contracts/opl-framework/stage-route-scheduler-contract.json#/"
-            "stage_route_arbiter_substrate_contract"
-        ),
-        (
-            f"external_repo:one-person-lab@{opl_sha}#"
-            "contracts/opl-framework/standard-agent-landing-evidence-status.json#/"
-            "gate_statuses/stage_route_arbiter_and_stop_loss"
-        ),
-        (
-            f"external_repo:one-person-lab@{opl_sha}#"
-            "tests/src/stage-route-scheduler-arbiter-substrate-contract.test.ts"
-        ),
-        (
-            f"external_repo:one-person-lab@{opl_sha}#"
-            "tests/src/family-runtime-stage-run-currentness-identity.test.ts"
-        ),
-        (
-            f"external_repo:one-person-lab@{opl_sha}#"
-            "tests/src/standard-agent-landing-acceptance-contract.test.ts"
-        ),
+        "contracts/stage_operating_principles.json#/speed_policy",
+        "tests/test_ai_route_context.py",
+        "tests/test_stage_closure_terminalizer.py::test_retry_budget_and_repeated_signature_never_block_progress",
+        "tests/test_paper_mission_stage_run_readback.py",
     }
 
     assert stage_route["status"] == "satisfied_with_repo_evidence"
     assert expected_refs <= set(stage_route["observed_refs"])
     assert (
-        "OPL_stage_route_arbiter_substrate_contract_current_verification_ref"
+        "second_semantic_control_plane_removal_ref"
         not in stage_route["missing_evidence_tails"]
     )
     assert stage_route["missing_evidence_tails"] == []

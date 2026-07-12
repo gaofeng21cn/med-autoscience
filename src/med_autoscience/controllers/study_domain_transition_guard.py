@@ -18,6 +18,7 @@ TERMINAL_OR_HANDOFF_DECISION_TYPES = frozenset(
         "artifact_delta_live_apply",
     }
 )
+HARD_EXECUTION_GATE_DECISION_TYPES = frozenset({"human_gate"})
 RUNTIME_REDRIVE_DECISION_TYPES = frozenset(
     {
         "ai_reviewer_re_eval",
@@ -54,13 +55,13 @@ def transition_decision_type(transition: Mapping[str, Any]) -> str | None:
 
 def blocks_auto_redrive(status: Mapping[str, Any]) -> bool:
     decision = decision_type(status)
-    return decision in TERMINAL_OR_HANDOFF_DECISION_TYPES
+    return decision in HARD_EXECUTION_GATE_DECISION_TYPES
 
 
 def redrive_block_payload(status: Mapping[str, Any]) -> dict[str, Any] | None:
     transition = transition_from_status(status)
     decision = transition_decision_type(transition)
-    if decision not in TERMINAL_OR_HANDOFF_DECISION_TYPES:
+    if decision not in HARD_EXECUTION_GATE_DECISION_TYPES:
         return None
     next_work_unit = _mapping(transition.get("next_work_unit"))
     typed_blocker = _mapping(transition.get("typed_blocker"))
@@ -118,6 +119,7 @@ __all__ = [
     "ACTION_TYPE_BY_DECISION_TYPE",
     "REASON_BY_DECISION_TYPE",
     "RUNTIME_REDRIVE_DECISION_TYPES",
+    "HARD_EXECUTION_GATE_DECISION_TYPES",
     "TERMINAL_OR_HANDOFF_DECISION_TYPES",
     "blocks_auto_redrive",
     "decision_type",

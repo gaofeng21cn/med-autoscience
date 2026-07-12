@@ -59,7 +59,7 @@
     {
       "surface_id": "owner_callable_dispatch_request",
       "disposition": "physically_retired",
-      "replacement_ref": "opl:domain-progress-transition-runtime",
+      "replacement_ref": "opl:stage-run-ai-route-context-transport",
       "tombstone_ref": "human_doc:mas-private-surface-retirement#default_executor_dispatch_request",
       "retained_mas_role": "none",
       "mas_runtime_authority": false
@@ -67,7 +67,7 @@
     {
       "surface_id": "domain_action_request_materializer_local_carrier_persistence_api",
       "disposition": "physically_retired",
-      "replacement_ref": "opl:domain-progress-transition-runtime",
+      "replacement_ref": "opl:stage-run-ai-route-context-transport",
       "tombstone_ref": "human_doc:mas-private-surface-retirement#domain_action_request_materializer_local_carrier_persistence_api",
       "retained_mas_role": "none",
       "mas_runtime_authority": false
@@ -75,7 +75,7 @@
     {
       "surface_id": "owner_callable_adapter_legacy_dispatch_projection_alias",
       "disposition": "physically_retired",
-      "replacement_ref": "opl:domain-progress-transition-runtime",
+      "replacement_ref": "opl:stage-run-ai-route-context-transport",
       "tombstone_ref": "human_doc:mas-private-surface-retirement#owner_callable_adapter_legacy_dispatch_projection_alias",
       "retained_mas_role": "none",
       "mas_runtime_authority": false
@@ -83,7 +83,7 @@
     {
       "surface_id": "domain_action_request_materializer_current_owner_callable_adapters_api",
       "disposition": "physically_retired",
-      "replacement_ref": "opl:domain-progress-transition-runtime",
+      "replacement_ref": "opl:stage-run-ai-route-context-transport",
       "tombstone_ref": "human_doc:mas-private-surface-retirement#domain_action_request_materializer_current_default_executor_dispatches_api",
       "retained_mas_role": "none",
       "mas_runtime_authority": false
@@ -91,7 +91,7 @@
     {
       "surface_id": "domain_action_request_materializer_owner_callable_adapter_projection",
       "disposition": "physically_retired",
-      "replacement_ref": "opl:domain-progress-transition-runtime",
+      "replacement_ref": "opl:stage-run-ai-route-context-transport",
       "tombstone_ref": "human_doc:mas-private-surface-retirement#domain_action_request_materializer_owner_callable_adapter_projection",
       "retained_mas_role": "none",
       "mas_runtime_authority": false
@@ -99,7 +99,7 @@
     {
       "surface_id": "domain_action_request_materializer_request_tasks_projection",
       "disposition": "physically_retired",
-      "replacement_ref": "opl:domain-progress-transition-runtime",
+      "replacement_ref": "opl:stage-run-ai-route-context-transport",
       "tombstone_ref": "human_doc:mas-private-surface-retirement#domain_action_request_materializer_request_tasks_projection",
       "retained_mas_role": "none",
       "mas_runtime_authority": false
@@ -107,7 +107,7 @@
     {
       "surface_id": "domain_action_request_materializer_canonical_transition_request_body_projection",
       "disposition": "physically_retired",
-      "replacement_ref": "opl:domain-progress-transition-runtime",
+      "replacement_ref": "opl:stage-run-ai-route-context-transport",
       "tombstone_ref": "human_doc:mas-private-surface-retirement#domain_action_request_materializer_canonical_transition_request_body_projection",
       "retained_mas_role": "none",
       "mas_runtime_authority": false
@@ -123,7 +123,7 @@
     {
       "surface_id": "stage_outcome_authority",
       "disposition": "retained_domain_authority_adapter",
-      "replacement_ref": "opl:domain-progress-transition-runtime",
+      "replacement_ref": "opl:stage-run-ai-route-context-transport",
       "tombstone_ref": null,
       "retained_mas_role": "owner_callable_policy_and_typed_blocker_adapter",
       "mas_runtime_authority": false

@@ -283,7 +283,7 @@ def _placeholder_paper_mission_transaction(
         "stage_id": stage_id,
         "stage_run_ref": stage_run_ref,
         "stage_terminal_decision": terminal_decision,
-        "opl_route_command": route_command,
+        "ai_route_context": route_command,
         "artifact_delta_refs": [
             {
                 "ref_id": "paper_mission_cli_no_write_plan",

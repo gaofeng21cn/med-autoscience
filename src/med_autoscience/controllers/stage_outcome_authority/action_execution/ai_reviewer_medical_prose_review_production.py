@@ -9,9 +9,6 @@ from typing import Any
 from med_autoscience.controllers.owner_callable_closeout_contract import (
     owner_callable_typed_closeout_contract,
 )
-from med_autoscience.controllers.opl_domain_progress_transition_contract import (
-    mas_request_transport_fields as domain_progress_transition_request_transport_fields,
-)
 from med_autoscience.controllers.runtime_ai_repair_policy import owner_callable_policy
 from med_autoscience.medical_prose_review_request import materialize_medical_prose_review_request
 from med_autoscience.profiles import WorkspaceProfile
@@ -91,8 +88,8 @@ def build_ai_reviewer_medical_prose_review_production_request(
         "owner_callable_surface": "publication materialize-ai-medical-prose-review",
         "review_must_consume_refs": [request_ref],
         "followup_actions": [
-            "record owner callable result refs for OPL DomainProgressTransitionRuntime intake",
-            "wait for OPL current_owner_delta or DomainProgressTransitionRuntime live readback",
+            "record owner callable result refs as next-stage context",
+            "continue with quality debt when StageRun transport readback is absent",
         ],
         "authority_contract": {
             "paper_package_mutation_allowed": False,
@@ -114,7 +111,7 @@ def build_ai_reviewer_medical_prose_review_worker_handoff(
     dispatch: Mapping[str, Any] | None,
     production_request: Mapping[str, Any],
 ) -> dict[str, Any]:
-    from med_autoscience.controllers.paper_progress_policy_adapter import build_transition_request
+    from med_autoscience.controllers.ai_route_context import build_ai_route_context
 
     owner_route = owner_route_part.ensure_owner_route_v2(
         _mapping(_mapping(dispatch).get("owner_route"))
@@ -138,7 +135,7 @@ def build_ai_reviewer_medical_prose_review_worker_handoff(
         or _text(owner_route.get("owner_reason"))
     )
     source_generation = work_unit_fingerprint or _text(owner_route.get("idempotency_key"))
-    transition_request = build_transition_request(
+    ai_route_context = build_ai_route_context(
         study_id=study_id,
         quest_id=study_id,
         action_type=ACTION_TYPE,
@@ -155,7 +152,6 @@ def build_ai_reviewer_medical_prose_review_worker_handoff(
             "request_kind": _text(production_request.get("request_kind")),
         },
     )
-    transition_authority_fields = domain_progress_transition_request_transport_fields()
     prompt_contract = {
         "study_id": study_id,
         "quest_id": study_id,
@@ -175,13 +171,12 @@ def build_ai_reviewer_medical_prose_review_worker_handoff(
         "quality_gate_relaxation_allowed": False,
         "manual_study_patch_allowed": False,
         "medical_claim_authoring_allowed": False,
-        "opl_domain_progress_transition_request": transition_request,
+        "ai_route_context": ai_route_context,
         "provider_admission_pending": False,
-        "provider_admission_requires_opl_runtime_result": True,
-        **transition_authority_fields,
+        "provider_admission_requires_opl_runtime_result": False,
     }
     return {
-        "surface": "mas_domain_progress_transition_request_projection",
+        "surface": "mas_ai_route_context_projection",
         "schema_version": 1,
         **owner_callable_policy(),
         "study_id": study_id,
@@ -205,10 +200,9 @@ def build_ai_reviewer_medical_prose_review_worker_handoff(
         "quality_gate_relaxation_allowed": False,
         "manual_study_patch_allowed": False,
         "medical_claim_authoring_allowed": False,
-        "opl_domain_progress_transition_request": transition_request,
+        "ai_route_context": ai_route_context,
         "provider_admission_pending": False,
-        "provider_admission_requires_opl_runtime_result": True,
-        **transition_authority_fields,
+        "provider_admission_requires_opl_runtime_result": False,
         "ai_reviewer_medical_prose_review_production_request": dict(production_request),
         "source_action": {
             "surface": "ai_reviewer_medical_prose_review_production_request",

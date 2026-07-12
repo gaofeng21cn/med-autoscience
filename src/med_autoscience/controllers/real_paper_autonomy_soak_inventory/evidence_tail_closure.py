@@ -19,7 +19,7 @@ def build_evidence_tail_closure_summary(
     owner_receipt_refs: Sequence[str],
     stable_blocker_refs: Sequence[str],
     live_evidence_refs: Mapping[str, Any],
-    family_transition_receipt_refs: Sequence[str],
+    family_stage_attempt_receipt_refs: Sequence[str],
 ) -> dict[str, Any]:
     owner_refs = _dedupe_text(owner_receipt_refs)
     blocker_refs = _dedupe_text(stable_blocker_refs)
@@ -41,7 +41,7 @@ def build_evidence_tail_closure_summary(
             stable_blocker_refs=blocker_refs,
         ),
         "family_transition_live_receipt": _tail_status(
-            refs=family_transition_receipt_refs,
+            refs=family_stage_attempt_receipt_refs,
             stable_blocker_refs=blocker_refs,
         ),
     }

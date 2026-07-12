@@ -12,7 +12,7 @@ from med_autoscience.controllers.stage_outcome_authority import (
 from tests.stage_outcome_authority_helpers import opl_execution_authorization
 from tests.stage_outcome_authority_helpers import write_json
 from tests.study_runtime_test_helpers import make_profile, write_study
-from tests.opl_transition_readback_helpers import opl_transition_readback
+from tests.opl_stage_attempt_readback_helpers import opl_stage_attempt_readback
 
 
 STUDY_ID = "003-dpcc-primary-care-phenotype-treatment-gap"
@@ -200,9 +200,9 @@ def test_live_provider_attempt_route_accepts_trusted_opl_authorization() -> None
     assert ACTION_TYPE in route["allowed_actions"]
 
 
-def test_live_provider_attempt_route_accepts_bound_opl_transition_readback() -> None:
+def test_live_provider_attempt_route_accepts_bound_opl_stage_attempt_readback() -> None:
     dispatch = _running_attempt_dispatch()
-    readback = opl_transition_readback(
+    readback = opl_stage_attempt_readback(
         STUDY_ID,
         action_fingerprint=WORK_UNIT_FINGERPRINT,
         work_unit_id=WORK_UNIT_ID,
@@ -216,7 +216,7 @@ def test_live_provider_attempt_route_accepts_bound_opl_transition_readback() -> 
             _running_attempt_study(
                 opl_provider_attempt={
                     **_running_attempt_payload(),
-                    "opl_domain_progress_transition_result": readback,
+                    "opl_stage_attempt_readback": readback,
                 }
             )
         ]
@@ -245,8 +245,8 @@ def test_stage_native_workspace_next_action_file_is_not_default_dispatch_authori
             "owner": "write",
             "source_surface": "control/next_action.json",
             "current_stage_id": "08-publication_package_handoff",
-            "stage_transition_authority_boundary": {
-                "stage_transition_authority": "one-person-lab",
+            "semantic_route_boundary": {
+                "semantic_route_owner": "codex_cli",
                 "intent_can_write_stage_current_pointer": False,
                 "intent_can_write_stage_run_terminal_state": False,
                 "intent_can_publish_current_owner_delta": False,
@@ -270,7 +270,7 @@ def test_stage_native_workspace_next_action_file_is_not_default_dispatch_authori
     )
     write_json(dispatch_path, {**dispatch, "refs": {"dispatch_path": str(dispatch_path)}})
     consumer_payload = {
-        "domain_progress_transition_requests": [
+        "ai_route_contexts": [
             {**dispatch, "refs": {"dispatch_path": str(dispatch_path)}}
         ]
     }
@@ -297,7 +297,7 @@ def test_stage_native_workspace_next_action_file_is_not_default_dispatch_authori
     ) == []
 
 
-def test_transition_request_pending_projection_is_blocker_only_dispatch(tmp_path) -> None:
+def test_ai_route_context_is_not_materialized_as_a_blocker_dispatch(tmp_path) -> None:
     profile = make_profile(tmp_path)
     study_root = write_study(profile.workspace_root, STUDY_ID, quest_id=f"quest-{STUDY_ID}")
     dispatch_path = (
@@ -309,14 +309,14 @@ def test_transition_request_pending_projection_is_blocker_only_dispatch(tmp_path
         / f"{ACTION_TYPE}.json"
     )
     consumer_payload = {
-        "domain_progress_transition_requests": [
+        "ai_route_contexts": [
             {
-                "surface": "mas_domain_progress_transition_request_projection",
+                "surface": "mas_ai_route_context_projection",
                 "projection_only": True,
                 "owner_callable_carrier_projection_only": True,
                 "study_id": STUDY_ID,
                 "action_type": ACTION_TYPE,
-                "dispatch_status": "transition_request_pending",
+                "dispatch_status": "context_available",
                 "refs": {"dispatch_path": str(dispatch_path)},
             }
         ]
@@ -334,25 +334,7 @@ def test_transition_request_pending_projection_is_blocker_only_dispatch(tmp_path
         fresh_progress={},
     )
 
-    assert len(selected) == 1
-    projection = selected[0]
-    assert projection["dispatch_role"] == "transition_request_blocker_projection"
-    assert projection["blocker_dispatch_only"] is True
-    assert projection["default_next_action_authority"] is False
-    assert projection["mas_dispatch_authority"] is False
-    assert projection["dispatch_ready_for_execution_authority"] is False
-    assert projection["dispatch_ready_for_execution"] is False
-    assert projection["can_select_next_action"] is False
-    assert projection["can_start_provider_attempt"] is False
-    assert projection["authority_boundary"] == {
-        "dispatch_role": "transition_request_blocker_projection",
-        "blocker_dispatch_only": True,
-        "default_next_action_authority": False,
-        "mas_dispatch_authority": False,
-        "dispatch_ready_for_execution_authority": False,
-        "can_select_next_action": False,
-        "can_start_provider_attempt": False,
-    }
+    assert selected == []
 
 
 def test_canonical_next_action_envelope_drives_stage_native_dispatch_authority() -> None:
@@ -365,7 +347,7 @@ def test_canonical_next_action_envelope_drives_stage_native_dispatch_authority()
             "idempotency_key": "request::dm003::repair",
             "action_family": "runtime.opl_route",
             "expected_output_contract": {
-                "output_kind": "opl_domain_route_transition_receipt"
+                "output_kind": "opl_stage_attempt_transport_receipt"
             },
         },
         opl_proof=opl_execution_authorization(study_id=STUDY_ID, action_type=ACTION_TYPE),
@@ -462,7 +444,7 @@ def _stage_native_dispatch(
     opl_proof: dict[str, object] | None = None,
 ) -> dict[str, object]:
     payload: dict[str, object] = {
-        "surface": "mas_domain_progress_transition_request_projection",
+        "surface": "mas_ai_route_context_projection",
         "dispatch_status": "ready",
         "study_id": STUDY_ID,
         "quest_id": f"quest-{STUDY_ID}",

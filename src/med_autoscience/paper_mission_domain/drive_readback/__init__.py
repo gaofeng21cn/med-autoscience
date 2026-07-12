@@ -42,8 +42,8 @@ from med_autoscience.controllers.stage_closure_terminalizer import (
 from med_autoscience.domain_route_profile import (
     build_domain_route_handoff_intake_readback,
 )
-from med_autoscience.paper_mission_opl_readback import (
-    paper_mission_opl_runtime_carrier_readback,
+from med_autoscience.paper_mission_stage_run_readback import (
+    paper_mission_stage_run_context_readback,
 )
 
 
@@ -184,13 +184,13 @@ def build_paper_mission_drive_readback(
         ),
         "consume_readback": consume_readback,
         "stage_terminal_decision": consume_readback["stage_terminal_decision"],
-        "opl_route_command": consume_readback["opl_route_command"],
-        "opl_runtime_carrier": consume_readback["opl_runtime_carrier"],
-        "opl_runtime_carrier_readback": consume_readback[
-            "opl_runtime_carrier_readback"
+        "ai_route_context": consume_readback["ai_route_context"],
+        "opl_stage_run_context": consume_readback["opl_stage_run_context"],
+        "opl_stage_attempt_readback": consume_readback[
+            "opl_stage_attempt_readback"
         ],
-        "opl_runtime_readback_status": consume_readback[
-            "opl_runtime_readback_status"
+        "opl_stage_attempt_readback_status": consume_readback[
+            "opl_stage_attempt_readback_status"
         ],
         "terminal_owner_gate": consume_readback.get("terminal_owner_gate"),
         "terminal_owner_gate_authority_readback": consume_readback.get(
@@ -261,8 +261,8 @@ def _opl_runtime_handoff_readback(
         "next_owner": "one-person-lab",
         "required_next_action": "submit_typed_domain_route_request",
         "writes_runtime": False,
-        "opl_runtime_carrier": _mapping(handoff.get("opl_runtime_carrier")),
-        "route_command": _mapping(handoff.get("opl_route_command")),
+        "opl_stage_run_context": _mapping(handoff.get("opl_stage_run_context")),
+        "route_command": _mapping(handoff.get("ai_route_context")),
         "runtime_request": _mapping(route_intake.get("runtime_request")),
         "blockers": route_intake.get("blockers") or [],
     }
@@ -287,8 +287,8 @@ def _drive_direct_next_action_readback(
         inspect_readback=readback,
         next_action=next_action,
     )
-    carrier = _mapping(handoff.get("opl_runtime_carrier"))
-    carrier_readback = paper_mission_opl_runtime_carrier_readback(
+    carrier = _mapping(handoff.get("opl_stage_run_context"))
+    carrier_readback = paper_mission_stage_run_context_readback(
         carrier=carrier,
         study_root=Path(profile.studies_root) / study_id,
         opl_runtime_payload=opl_runtime_payload,
@@ -324,10 +324,10 @@ def _drive_direct_next_action_readback(
         "next_action": dict(next_action),
         "paper_mission_transaction": handoff["paper_mission_transaction"],
         "stage_terminal_decision": handoff["stage_terminal_decision"],
-        "opl_route_command": handoff["opl_route_command"],
-        "opl_runtime_carrier": carrier,
-        "opl_runtime_carrier_readback": carrier_readback,
-        "opl_runtime_readback_status": carrier_readback["carrier_status"],
+        "ai_route_context": handoff["ai_route_context"],
+        "opl_stage_run_context": carrier,
+        "opl_stage_attempt_readback": carrier_readback,
+        "opl_stage_attempt_readback_status": carrier_readback["carrier_status"],
         "opl_route_handoff": handoff,
         "opl_runtime_handoff": _opl_runtime_handoff_readback(
             handoff=handoff,
@@ -437,184 +437,8 @@ def _drive_owner_action_stop_readback(
     inspect_readback: Mapping[str, Any] | None,
     forbidden_authority_claims: tuple[str, ...],
 ) -> dict[str, Any] | None:
-    readback = _mapping(inspect_readback)
-    next_action = _mapping(readback.get("next_action"))
-    if _optional_text(next_action.get("surface_kind")) != "mas_next_action_envelope":
-        return None
-    can_package_from_next_action = _drive_can_package_from_next_action(readback)
-    current_opl_owner_consumption = _drive_current_opl_owner_consumption(readback)
-    if _drive_should_submit_direct_next_action(readback):
-        return None
-    if can_package_from_next_action:
-        return None
-    has_owner_stop = (
-        bool(current_opl_owner_consumption)
-        or _drive_has_terminal_owner_consumption_action(readback)
-        or (bool(_mapping(readback.get("typed_blocker_resolution_readback"))))
-    )
-    if not has_owner_stop:
-        return None
-    current_action = _mapping(readback.get("current_executable_owner_action"))
-    reason = _drive_owner_action_stop_reason(readback)
-    drive_result = {
-        "surface_kind": "paper_mission_drive_result",
-        "status": "owner_action_ready_no_redrive",
-        "reason": reason,
-        "next_legal_action": _optional_text(
-            current_opl_owner_consumption.get("next_legal_action")
-        )
-        or _optional_text(next_action.get("action_type")),
-        "can_submit_to_opl_runtime": False,
-        "can_claim_paper_progress": False,
-        "can_claim_runtime_ready": False,
-        "authority_materialized": False,
-    }
-    return {
-        "surface_kind": "paper_mission_drive_readback",
-        "schema_version": 1,
-        "contract_ref": PAPER_MISSION_CONTRACT_REF,
-        "contract_version": PAPER_MISSION_CONTRACT_VERSION,
-        "paper_mission_command": "drive",
-        "action_intent": _action_intent("drive"),
-        "source": source,
-        "drive_mode": "owner_action_ready_no_redrive",
-        "dry_run": False,
-        "profile": {
-            "profile_name": str(getattr(profile, "name", "")),
-            "profile_ref": str(profile_ref),
-        },
-        "requested_study_id": study_id,
-        "study_id": study_id,
-        "study_root": str(Path(profile.studies_root) / study_id),
-        "study_root_exists": (Path(profile.studies_root) / study_id).exists(),
-        "mission_id": readback.get("mission_id"),
-        "objective": readback.get("objective"),
-        "output_root": str(output_root),
-        "inspect_readback": dict(readback),
-        "next_action": dict(next_action),
-        "stage_closure_decision": _mapping(readback.get("stage_closure_decision"))
-        or None,
-        "terminal_owner_gate_authority_readback": _mapping(
-            readback.get("terminal_owner_gate_authority_readback")
-        )
-        or None,
-        "terminal_owner_gate_owner_answer_readback": _mapping(
-            readback.get("terminal_owner_gate_owner_answer_readback")
-        )
-        or None,
-        **(
-            {"current_executable_owner_action": dict(current_action)}
-            if current_action
-            else {}
-        ),
-        "typed_blocker_resolution_readback": dict(
-            _mapping(readback.get("typed_blocker_resolution_readback"))
-        ),
-        **(
-            {"current_opl_owner_consumption": dict(current_opl_owner_consumption)}
-            if current_opl_owner_consumption
-            else {}
-        ),
-        "drive_result": drive_result,
-        "mutation_policy": {
-            "writes_authority": False,
-            "writes_runtime": False,
-            "writes_yang_authority": False,
-            "writes_yang_ops_candidate_package": False,
-            "writes_yang_ops_consumption_ledger": False,
-            "writes_paper_body": False,
-            "writes_candidate_workspace": False,
-            "dry_run_only": True,
-        },
-        "output_manifest": {
-            "mode": "paper_mission_drive_owner_action_ready_no_redrive",
-            "output_root": str(output_root),
-            "writes_authority": False,
-            "writes_yang_authority": False,
-            "writes_runtime": False,
-            "writes_candidate_workspace": False,
-        },
-        "forbidden_authority_claims": list(forbidden_authority_claims),
-    }
-
-
-def _drive_has_terminal_owner_consumption_action(
-    readback: Mapping[str, Any],
-) -> bool:
-    owner_answer = _mapping(readback.get("terminal_owner_gate_owner_answer_readback"))
-    consume_result = _mapping(owner_answer.get("consume_result"))
-    owner_answer_route_back = (
-        _optional_text(consume_result.get("outcome")) == "route_back_evidence_ref"
-    )
-    next_action = _mapping(readback.get("next_action"))
-    if _optional_text(next_action.get("action_family")) == (
-        "paper.stage_closure.owner_consumption"
-    ):
-        return True
-    if _optional_text(next_action.get("action_type")) == "request_opl_stage_attempt":
-        return False
-    outcome = _mapping(_mapping(readback.get("stage_closure_decision")).get("outcome"))
-    if outcome.get("transition_kind") == "route_back_candidate_checkpoint":
-        return True
-    if owner_answer_route_back:
-        return True
-    authority = _mapping(readback.get("terminal_owner_gate_authority_readback"))
-    if _optional_text(authority.get("status")) in {
-        "owner_answer_required",
-        "typed_blocker_required",
-        "owner_gate_required",
-    }:
-        return True
-    return False
-
-
-def _drive_current_opl_owner_consumption(
-    readback: Mapping[str, Any],
-) -> dict[str, Any]:
-    current_readback = _drive_runtime_carrier_readback(readback)
-    consumption = _mapping(current_readback.get("mas_receipt_consumption"))
-    if _optional_text(consumption.get("status")) != "requires_mas_owner_consumption":
-        return {}
-    next_legal_action = _optional_text(consumption.get("next_legal_action"))
-    if next_legal_action not in {
-        "consume_route_back_checkpoint_or_materialize_terminalizer_outcome",
-        "record_typed_blocker",
-        "consume_opl_transition_receipt",
-    }:
-        return {}
-    return dict(consumption)
-
-
-def _drive_runtime_carrier_readback(readback: Mapping[str, Any]) -> Mapping[str, Any]:
-    current_readback = _mapping(readback.get("current_opl_runtime_carrier_readback"))
-    if current_readback:
-        return current_readback
-    return _mapping(readback.get("opl_runtime_carrier_readback"))
-
-
-def _drive_owner_action_stop_reason(readback: Mapping[str, Any]) -> str:
-    current_consumption = _drive_current_opl_owner_consumption(readback)
-    if current_consumption:
-        next_legal_action = _optional_text(current_consumption.get("next_legal_action"))
-        if next_legal_action == (
-            "consume_route_back_checkpoint_or_materialize_terminalizer_outcome"
-        ):
-            return "current_opl_route_back_checkpoint_requires_owner_consumption"
-        if next_legal_action == "record_typed_blocker":
-            return "current_opl_terminal_closeout_requires_typed_blocker"
-        return "current_opl_transition_receipt_requires_owner_consumption"
-    if _mapping(readback.get("typed_blocker_resolution_readback")):
-        return "typed_blocker_resolution_successor_requires_owner_action"
-    next_action = _mapping(readback.get("next_action"))
-    if _optional_text(next_action.get("action_family")) == (
-        "paper.stage_closure.owner_consumption"
-    ):
-        return "stage_closure_route_back_checkpoint_requires_owner_consumption"
-    owner_answer = _mapping(readback.get("terminal_owner_gate_owner_answer_readback"))
-    consume_result = _mapping(owner_answer.get("consume_result"))
-    if _optional_text(consume_result.get("outcome")) == "route_back_evidence_ref":
-        return "terminal_owner_gate_route_back_evidence_requires_owner_consumption"
-    return "terminal_owner_gate_requires_owner_action"
-
+    # Owner-consumption/readback shapes are optional evidence. Codex may route
+    # forward or back without waiting for this legacy no-redrive projection.
+    return None
 
 __all__ = ["build_paper_mission_drive_readback"]

@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from .. import shared as _shared
-from tests.opl_transition_readback_helpers import opl_transition_readback
+from tests.opl_stage_attempt_readback_helpers import opl_stage_attempt_readback
 
 
 def _module_reexport(module) -> None:
@@ -160,7 +160,7 @@ def test_opl_current_control_state_handoff_preserves_running_attempt_identity(
                     "work_unit_id": "medical_prose_write_repair",
                     "work_unit_fingerprint": "publication-blockers::0915410f804b3697",
                     "action_fingerprint": "publication-blockers::0915410f804b3697",
-                    "opl_domain_progress_transition_runtime_live_readback": opl_transition_readback(
+                    "opl_stage_attempt_readback": opl_stage_attempt_readback(
                         study_id,
                         action_fingerprint="publication-blockers::0915410f804b3697",
                         work_unit_id="medical_prose_write_repair",
@@ -370,14 +370,11 @@ def test_provider_admission_handoff_without_active_attempt_ids_is_not_running(
 
     handoff = result["opl_current_control_state_handoff"]
     assert handoff["running_provider_attempt"] is False
-    assert handoff["provider_attempt_owner"] is None
-    assert handoff["runtime_owner"] is None
-    assert handoff["queue_owner"] is None
     assert handoff["active_run_id"] is None
     assert handoff["active_stage_attempt_id"] is None
     assert handoff["active_workflow_id"] is None
-    assert handoff["action_queue"][0]["action_type"] == "run_gate_clearing_batch"
-    assert handoff["action_queue"][0]["work_unit_fingerprint"] == fingerprint
+    assert handoff["progress_first"]["next_stage_may_start"] is True
+    assert handoff["progress_first"]["route_selection_owner"] == "codex_cli"
 
 
 def test_study_progress_keeps_unbound_live_attempt_as_observability_only(

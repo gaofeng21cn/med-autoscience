@@ -131,7 +131,7 @@ def test_publication_route_memory_inventory_delegates_generic_receipt_evidence_t
 
 
 def test_human_gate_resume_receipt_consumption_includes_body_free_resume_ref(tmp_path: Path) -> None:
-    module = importlib.import_module("med_autoscience.controllers.study_transition_receipt_consumption")
+    module = importlib.import_module("med_autoscience.controllers.study_stage_attempt_receipt_consumption")
     study_root = tmp_path / "workspace" / "studies" / "002-human-gate"
     decision_id = "study-decision::002-human-gate::quest-002::resume::2026-05-15T09:00:00+00:00"
     controller_decision = {

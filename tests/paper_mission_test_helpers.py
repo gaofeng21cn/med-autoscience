@@ -92,7 +92,7 @@ def _write_fake_opl_stage_route_runtime(
                 return (ps[-1] if terminal_on_first else ps[0]) if ps else {{}}
             def workspace_locator(payload):
                 return {{key: payload.get(key) for key in (
-                    'study_id', 'paper_mission_transaction_ref', 'opl_route_command_ref',
+                    'study_id', 'paper_mission_transaction_ref', 'ai_route_context_ref',
                     'command_kind', 'route_target'
                 )}}
             def running_attempt(payload):
@@ -114,7 +114,7 @@ def _write_fake_opl_stage_route_runtime(
                     'typed_blocker_ref': 'typed-blocker:domain-gate-pending',
                     'blocked_reason': 'paper_mission_stage_route_domain_gate_pending',
                     'domain_ready_verdict': 'domain_gate_pending',
-                    'closeout_refs': [payload.get('opl_route_command_ref'), payload.get('paper_mission_transaction_ref')],
+                    'closeout_refs': [payload.get('ai_route_context_ref'), payload.get('paper_mission_transaction_ref')],
                     'workspace_locator': workspace_locator(payload),
                 }}
             def current_attempt(payload):
@@ -403,7 +403,7 @@ def _paper_mission_transaction_payload(
         "stage_id": stage_id,
         "stage_run_ref": stage_run_ref,
         "stage_terminal_decision": terminal_decision,
-        "opl_route_command": route_command,
+        "ai_route_context": route_command,
         "artifact_delta_refs": [
             {
                 "ref_id": "artifact-delta::pmc-001",
@@ -473,9 +473,9 @@ def _write_matching_domain_gate_closeout(
                 "surface_kind": "stage_attempt_closeout_packet",
                 "status": "blocked",
                 "study_id": study_id,
-                "stage_id": transaction["opl_route_command"]["target"],
+                "stage_id": transaction["ai_route_context"]["target"],
                 "stage_attempt_id": "sat-terminal",
-                "action_type": transaction["opl_route_command"]["command_kind"],
+                "action_type": transaction["ai_route_context"]["command_kind"],
                 "work_unit_id": transaction["stage_id"],
                 "work_unit_fingerprint": transaction["idempotency"][
                     "transaction_fingerprint"
@@ -483,8 +483,8 @@ def _write_matching_domain_gate_closeout(
                 "stage_packet_ref": (
                     f"{transaction['transaction_id']}#stage_terminal_decision"
                 ),
-                "opl_route_command_ref": (
-                    f"{transaction['transaction_id']}#opl_route_command"
+                "ai_route_context_ref": (
+                    f"{transaction['transaction_id']}#ai_route_context"
                 ),
                 "provider_attempt_ref": "temporal://attempt/sat-terminal",
                 "provider_completion_is_domain_completion": False,
@@ -497,7 +497,7 @@ def _write_matching_domain_gate_closeout(
                 ),
                 "blocked_reason": "domain_gate_pending",
                 "closeout_refs": [
-                    f"{transaction['transaction_id']}#opl_route_command",
+                    f"{transaction['transaction_id']}#ai_route_context",
                     "artifacts/supervision/consumer/owner_callable_adapter_receipt/"
                     "sat-terminal.closeout.json",
                     "typed-blocker:domain_gate_pending",

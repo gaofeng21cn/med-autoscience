@@ -19,7 +19,7 @@ from med_autoscience.controllers.next_action_envelope import (
     compile_next_action_envelope,
     resolve_action_family,
 )
-from med_autoscience.paper_mission_opl_readback import paper_mission_next_action_envelope
+from med_autoscience.paper_mission_stage_run_readback import paper_mission_next_action_envelope
 
 
 pytestmark = [pytest.mark.contract]
@@ -34,29 +34,29 @@ def _canonical_opl_carrier(
     command_kind: str,
 ) -> dict[str, object]:
     return {
-        "surface_kind": "mas_domain_progress_transition_request",
+        "surface_kind": "mas_ai_route_context",
         "domain_id": "mas",
         "domain_route_handoff_ref": f"{transaction_ref}#domain_route_handoff",
         "domain_route_transaction_ref": transaction_ref,
-        "domain_route_command_ref": f"{transaction_ref}#opl_route_command",
+        "domain_route_command_ref": f"{transaction_ref}#ai_route_context",
         "idempotency_key": f"{transaction_ref}::idempotency",
         "request_idempotency_key": f"{transaction_ref}::request",
         "attempt_idempotency_key": f"{transaction_ref}::attempt",
         "command_kind": command_kind,
         "route_target": route_target,
-        "opl_route_command": {
+        "ai_route_context": {
             "command_kind": command_kind,
             "target": route_target,
         },
     }
 
 
-def _canonical_opl_transition_receipt(
+def _canonical_opl_stage_attempt_receipt(
     carrier: dict[str, object],
     **overrides: object,
 ) -> dict[str, object]:
     return {
-        "surface_kind": "opl_domain_route_transition_receipt",
+        "surface_kind": "opl_stage_attempt_transport_receipt",
         "role": "transport_receipt_only",
         "domain_id": "mas",
         "task_kind": "domain_route/stage-route",
@@ -234,9 +234,9 @@ def test_runtime_route_envelope_keeps_opl_as_receipt_owner_not_stage_authority()
     assert envelope["action_kind"] == "submit_to_opl_runtime"
     assert envelope["owner"] == "one-person-lab"
     assert envelope["idempotency_key"] == "request::003::submission"
-    assert envelope["executor_target"] == "opl_domain_progress_transition_runtime"
+    assert envelope["executor_target"] == "codex_cli_ai_selected_stage_route"
     assert envelope["runtime_receipt_authority"] == (
-        "opl_domain_route_transition_receipt_only"
+        "opl_stage_attempt_transport_receipt_only"
     )
     assert envelope["completion_authority"] == "stage_outcome_only"
     assert envelope["authority_boundary"]["can_submit_to_opl_runtime"] is True
@@ -244,7 +244,7 @@ def test_runtime_route_envelope_keeps_opl_as_receipt_owner_not_stage_authority()
     assert envelope["authority_boundary"]["can_write_provider_attempt"] is False
 
 
-def test_opl_transition_receipt_owner_family_supersedes_runtime_route_redrive() -> None:
+def test_opl_stage_attempt_receipt_owner_family_supersedes_runtime_route_redrive() -> None:
     envelope = compile_next_action_envelope(
         study_id="003-dpcc-primary-care-phenotype-treatment-gap",
         stage_id="submission_milestone_candidate",
@@ -262,8 +262,8 @@ def test_opl_transition_receipt_owner_family_supersedes_runtime_route_redrive() 
         owner_route={
             "action_family": FAMILY_PAPER_GATE_PUBLISHABILITY_REPLAY,
             "next_owner": "mas_authority_kernel",
-            "opl_transition_receipt": {
-                "surface_kind": "opl_domain_route_transition_receipt",
+            "opl_stage_attempt_receipt": {
+                "surface_kind": "opl_stage_attempt_transport_receipt",
                 "receipt_status": "terminal_closeout_observed",
                 "can_claim_paper_progress": False,
             },
@@ -277,7 +277,7 @@ def test_opl_transition_receipt_owner_family_supersedes_runtime_route_redrive() 
     assert envelope["authority_boundary"]["can_submit_to_opl_runtime"] is False
 
 
-def test_paper_mission_projection_routes_typed_opl_receipt_to_typed_blocker_owner() -> None:
+def test_paper_mission_projection_ignores_transport_receipt_for_route_selection() -> None:
     transaction_ref = "paper-mission-transaction::dm002::submission"
     route_target = "submission_milestone_candidate"
     carrier = _canonical_opl_carrier(
@@ -294,45 +294,24 @@ def test_paper_mission_projection_routes_typed_opl_receipt_to_typed_blocker_owne
                 "decision_kind": "continue_same_stage",
                 "next_work_unit": route_target,
             },
-            "opl_route_command": {
+            "ai_route_context": {
                 "command_kind": "resume_stage",
                 "target": route_target,
                 "runtime_owner": "one-person-lab",
                 "route_target": "opl_runtime_live_readback",
             },
         },
-        opl_runtime_carrier=carrier,
-        opl_runtime_carrier_readback={
-            "surface_kind": "paper_mission_opl_runtime_carrier_readback",
-            "carrier_status": "opl_runtime_terminal_readback_observed",
-            "opl_transition_receipt": _canonical_opl_transition_receipt(
-                carrier,
-                receipt_status="terminal_closeout_observed",
-                typed_runtime_blocker_ref="opl://stage-attempts/sat-typed/typed-blocker",
-            ),
-            "terminal_closeout": {
-                "surface_kind": "stage_attempt_closeout_packet",
-                "stage_attempt_ref": "opl://stage-attempts/sat-typed",
-            },
-            "mas_receipt_consumption": {
-                "surface_kind": "mas_receipt_consumption_projection",
-                "status": "requires_mas_owner_consumption",
-                "next_legal_action": "record_typed_blocker",
-                "typed_runtime_blocker_ref": "opl://stage-attempts/sat-typed/typed-blocker",
-            },
-        },
+        opl_stage_run_context=carrier,
     )
 
     assert envelope is not None
-    assert envelope["action_family"] == FAMILY_BLOCKED_TYPED
-    assert envelope["action_kind"] == "stop_with_typed_blocker"
-    assert envelope["owner"] == "mas_authority_kernel"
-    assert envelope["executor_target"] == "mas_authority_kernel"
-    assert envelope["expected_output_contract"]["accepted_refs"] == ["typed_blocker_ref"]
-    assert envelope["authority_boundary"]["can_submit_to_opl_runtime"] is False
+    assert envelope["action_family"] == FAMILY_RUNTIME_OPL_ROUTE
+    assert envelope["action_kind"] == "submit_to_opl_runtime"
+    assert envelope["owner"] == "one-person-lab"
+    assert envelope["executor_target"] == "codex_cli_ai_selected_stage_route"
 
 
-def test_paper_mission_projection_does_not_promote_incomplete_opl_receipt() -> None:
+def test_paper_mission_projection_does_not_require_transport_receipt() -> None:
     transaction_ref = "paper-mission-transaction::dm002::incomplete-receipt"
     route_target = "submission_milestone_candidate"
     carrier = _canonical_opl_carrier(
@@ -350,24 +329,18 @@ def test_paper_mission_projection_does_not_promote_incomplete_opl_receipt() -> N
                 "decision_kind": "continue_same_stage",
                 "next_work_unit": route_target,
             },
-            "opl_route_command": {
+            "ai_route_context": {
                 "command_kind": "resume_stage",
                 "target": route_target,
                 "runtime_owner": "one-person-lab",
             },
         },
-        opl_runtime_carrier=carrier,
-        opl_runtime_carrier_readback={
-            "opl_transition_receipt": {
-                "surface_kind": "opl_domain_route_transition_receipt",
-                "can_claim_paper_progress": False,
-            },
-        },
+        opl_stage_run_context=carrier,
     )
 
     assert envelope is not None
     assert envelope["owner"] == "one-person-lab"
-    assert envelope["executor_target"] == "opl_domain_progress_transition_runtime"
+    assert envelope["executor_target"] == "codex_cli_ai_selected_stage_route"
 
 
 def test_paper_mission_projection_keeps_new_exact_route_target_diagnostic() -> None:
@@ -385,7 +358,7 @@ def test_paper_mission_projection_keeps_new_exact_route_target_diagnostic() -> N
                 "next_owner": "mission_executor",
                 "next_work_unit": route_target,
             },
-            "opl_route_command": {
+            "ai_route_context": {
                 "command_kind": "resume_stage",
                 "target": route_target,
                 "reason": "DM004 candidate accepted for runtime handoff.",
@@ -403,7 +376,7 @@ def test_paper_mission_projection_keeps_new_exact_route_target_diagnostic() -> N
     assert envelope["action_family"] == FAMILY_RUNTIME_OPL_ROUTE
     assert envelope["action_kind"] == "submit_to_opl_runtime"
     assert envelope["owner"] == "one-person-lab"
-    assert envelope["executor_target"] == "opl_domain_progress_transition_runtime"
+    assert envelope["executor_target"] == "codex_cli_ai_selected_stage_route"
     assert envelope["work_unit_id"] == route_target
     assert envelope["idempotency_key"] != route_target
     assert envelope["authority_boundary"]["can_submit_to_opl_runtime"] is True

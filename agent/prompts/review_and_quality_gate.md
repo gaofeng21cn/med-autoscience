@@ -87,10 +87,12 @@ MAS owner/gate decides admission after the packet; the executor does not convert
 specialist output, test pass, provider completion, generated surface status, or
 package freshness into quality, publication, or submission readiness.
 
-Fail closed to route-back, typed blocker, or human gate when reviewed refs are
-missing/stale, the same invocation is trying to self-review, research-integrity
-input is unresolved, or an official go/stop/reroute/external-release decision is
-needed.
+Missing/stale reviewed refs, self-review findings, and unresolved integrity
+inputs become quality debt and route-back recommendations while a readable
+research artifact exists; they close quality/publication/submission claims but
+do not block another declared stage. Use a typed blocker or human gate only for
+authority, permission/safety, identity/currentness, irreversible release, zero
+readable output, or an official external decision that cannot be inferred.
 
 ## Receipt And Route-Back
 

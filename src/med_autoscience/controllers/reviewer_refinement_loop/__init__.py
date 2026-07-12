@@ -587,7 +587,7 @@ def build_reviewer_refinement_loop_read_model(*, study_root: str | Path) -> dict
         ),
     )
     bounded_auto_advance_allowed = bounded_review_repair_policy["auto_advance_allowed"] is True
-    effective_accepted = accepted or bounded_auto_advance_allowed
+    effective_accepted = accepted
     residual_user_review = build_residual_user_review_payload(
         study_id=_text(publication_eval.get("study_id")),
         quest_id=_text(publication_eval.get("quest_id")),
@@ -635,7 +635,7 @@ def build_reviewer_refinement_loop_read_model(*, study_root: str | Path) -> dict
             else "reviewer_refinement_accepted",
         },
     }
-    if bounded_auto_advance_allowed:
+    if bounded_auto_advance_allowed and accepted:
         repair_loop = {
             **repair_loop,
             "status": _text(bounded_review_repair_policy.get("status")),
@@ -659,6 +659,14 @@ def build_reviewer_refinement_loop_read_model(*, study_root: str | Path) -> dict
         "schema_version": _SCHEMA_VERSION,
         "study_root": str(resolved_study_root),
         "mode": _ACCEPTED_MODE if effective_accepted else _REPAIR_PLANNING_MODE,
+        "stage_progress": {
+            "advance_allowed": bounded_auto_advance_allowed,
+            "accepted": accepted,
+            "quality_debt_recorded": bounded_auto_advance_allowed and not accepted,
+            "next_stage_may_start": bounded_auto_advance_allowed,
+            "route_back_selection_owner": "codex_cli",
+            "route_back_may_target_any_declared_stage": True,
+        },
         "snapshot": {
             "source_surface": "publication_eval/latest.json",
             "source_eval_id": _text(publication_eval.get("eval_id")),
@@ -669,15 +677,13 @@ def build_reviewer_refinement_loop_read_model(*, study_root: str | Path) -> dict
             "authority_blockers": authority_blockers,
         },
         "accept": {
-            "accepted": effective_accepted,
+            "accepted": accepted,
             "status": (
                 "accepted"
                 if accepted
-                else "accepted_with_residual_user_review"
-                if bounded_review_repair_policy["residual_user_review_required"] is True
-                else "accepted_no_clear_actionable_reviewer_issue"
-                if bounded_auto_advance_allowed
-                else "blocked"
+                else "hard_blocked"
+                if hard_review_blocked
+                else "not_accepted_quality_debt"
             ),
             "source": "ai_reviewer_backed_publication_eval_latest",
             "blockers": accept_blockers,
@@ -690,10 +696,10 @@ def build_reviewer_refinement_loop_read_model(*, study_root: str | Path) -> dict
         "repair_work_units": repair_loop["repair_work_units"],
         "repair_loop": repair_loop,
         "revert": {
-            "required": not effective_accepted,
-            "strategy": "same_line_route_back" if not effective_accepted else "none",
+            "required": not accepted,
+            "strategy": "ai_selected_route_back_with_negative_or_review_evidence" if not accepted else "none",
             "direct_package_mutation_allowed": False,
-            "route_back": None if effective_accepted else route_back,
+            "route_back": None if accepted else route_back,
         },
         "bounded_review_repair_policy": bounded_review_repair_policy,
         "residual_user_review": residual_user_review,

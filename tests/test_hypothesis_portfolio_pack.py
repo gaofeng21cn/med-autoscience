@@ -82,8 +82,11 @@ def test_hypothesis_portfolio_candidate_missing_required_refs_records_quality_de
         "status": "open",
         "debt_code": "missing_hypothesis_portfolio_ref_family",
         "missing_ref_families": result["missing_ref_families"],
+        "forbidden_authority_claims": [],
         "blocks_stage_transition": False,
         "blocks_candidate_promotion_or_ready_claims": True,
+        "route_back_owner": "idea",
+        "negative_or_empty_candidate_is_consumable_diagnostic_progress": True,
     }
 
 
@@ -108,12 +111,19 @@ def test_advisory_refs_never_authorize_hypothesis_promotion() -> None:
     assert set(result["missing_ref_families"]) == set(HYPOTHESIS_PORTFOLIO_REQUIRED_REFS)
 
 
-def test_zero_consumable_hypothesis_candidate_remains_typed_blocker() -> None:
+def test_zero_candidate_validation_is_negative_progress_and_can_route_back() -> None:
     result = _validate_candidate({}, route_back_owner="decision")
 
-    assert result["status"] == "typed_blocker"
+    assert result["status"] == "completed_with_quality_debt"
     assert result["can_promote_candidate"] is False
-    assert result["blocker_id"] == "missing_hypothesis_portfolio_ref_family"
+    assert result["quality_debt"]["blocks_stage_transition"] is False
+    assert result["route_back_recommendation"] == {
+        "selection_owner": "codex_cli",
+        "suggested_stage": "decision",
+        "may_target_any_declared_stage": True,
+        "must_carry_negative_failed_path_refs": True,
+        "blocks_stage_transition": False,
+    }
 
 
 def test_missing_progress_enhancement_refs_do_not_block_complete_candidate() -> None:
@@ -138,7 +148,7 @@ def test_missing_progress_enhancement_refs_do_not_block_complete_candidate() -> 
     }
 
 
-def test_progress_enhancement_authority_leak_fails_closed() -> None:
+def test_progress_enhancement_authority_leak_blocks_promotion_not_stage_progress() -> None:
     candidate = _complete_candidate()
     candidate.update(
         {
@@ -153,20 +163,14 @@ def test_progress_enhancement_authority_leak_fails_closed() -> None:
 
     result = _validate_candidate(candidate, route_back_owner="decision")
 
-    assert result["status"] == "typed_blocker"
+    assert result["status"] == "completed_with_quality_debt"
     assert result["can_promote_candidate"] is False
-    assert result["blocker_id"] == "progress_enhancement_authority_leak"
     assert result["forbidden_authority_claims"] == [
         "closes_quality_gate",
         "counts_prefetch_as_paper_progress",
     ]
-    assert result["typed_blocker"] == {
-        "blocker_id": "progress_enhancement_authority_leak",
-        "blocker_family": "progress_enhancement_must_remain_advisory",
-        "route_back_owner": "decision",
-        "forbidden_authority_claims": result["forbidden_authority_claims"],
-        "required_action": "remove_authority_claim_or_return_route_back_owner_typed_blocker",
-    }
+    assert result["quality_debt"]["debt_code"] == "progress_enhancement_authority_leak"
+    assert result["quality_debt"]["blocks_stage_transition"] is False
 
 
 def test_hypothesis_portfolio_contract_exposes_progress_first_validator() -> None:
@@ -183,12 +187,12 @@ def test_hypothesis_portfolio_contract_exposes_progress_first_validator() -> Non
     assert contract["candidate_validation_output_contract"] == {
         "success_status": "validated",
         "consumable_candidate_missing_refs_status": "completed_with_quality_debt",
-        "blocked_status": "typed_blocker",
+        "degraded_status": "completed_with_quality_debt",
         "can_promote_candidate_requires": "all_required_ref_families_present",
-        "missing_required_ref_blocker_id": "missing_hypothesis_portfolio_ref_family",
         "quality_debt_blocks_stage_transition": False,
         "quality_debt_blocks_candidate_promotion_or_ready_claims": True,
-        "route_back_owner_required_when_blocked": True,
+        "route_back_selection_owner": "codex_cli",
+        "route_back_may_target_any_declared_stage": True,
     }
     assert contract["progress_enhancement_contract"] == {
         "role": "advisory_progress_accelerator",
@@ -211,8 +215,9 @@ def test_hypothesis_portfolio_contract_exposes_progress_first_validator() -> Non
             "blocks_candidate_promotion_or_ready_claims": True,
         },
         "zero_consumable_candidate": {
-            "status": "typed_blocker",
-            "blocker_id": "missing_hypothesis_portfolio_ref_family",
-            "route_back_owner": "required",
+            "status": "completed_with_quality_debt",
+            "blocks_stage_transition": False,
+            "blocks_candidate_promotion_or_ready_claims": True,
+            "route_back_selection_owner": "codex_cli",
         },
     }

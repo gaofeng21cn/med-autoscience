@@ -385,8 +385,7 @@ TRUTH_BOUNDARIES: tuple[dict[str, Any], ...] = (
     {
         "boundary_id": "opl_progress_spine",
         "authority_owner": (
-            "one-person-lab DomainProgressTransitionRuntime owns command/event/outbox, fixed-point "
-            "reconcile, StageRun/tool/human transport, provider admission, attempt lifecycle, "
+            "one-person-lab owns StageRun/tool/human transport, provider admission, attempt lifecycle, "
             "state index, workbench shell, and tool selector"
         ),
         "projection_consumers": [

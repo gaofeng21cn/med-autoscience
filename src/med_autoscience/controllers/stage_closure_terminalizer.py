@@ -115,8 +115,10 @@ def terminalize_stage_closure(
 
     gate = _mapping(gate_replay)
     delivery = _mapping(delivery_readback)
-    closeout = _closeout_with_explicit_accounting(_mapping(opl_closeout))
-    delta = _semantic_delta(semantic_delta)
+    raw_closeout = _mapping(opl_closeout)
+    closeout = _closeout_with_explicit_accounting(raw_closeout)
+    raw_delta = _mapping(semantic_delta)
+    delta = _semantic_delta(raw_delta)
     budget = _repair_budget(repair_budget)
     blockers = _unique_texts(
         [
@@ -140,12 +142,8 @@ def terminalize_stage_closure(
         classes=classes,
         gate=gate,
         delivery=delivery,
-        semantic_delta=delta,
-        repair_budget=budget,
-        repeated_without_delta=repeated_without_delta,
-        consumable_artifact_observed=_has_consumable_artifact(
-            semantic_delta=delta,
-            delivery=delivery,
+        attempt_evidence_observed=bool(
+            raw_delta or gate or delivery or raw_closeout or _mapping(inputs)
         ),
     )
     observability_gaps = _observability_gaps(closeout)
@@ -180,7 +178,10 @@ def terminalize_stage_closure(
             "writes_runtime_queue_or_provider_attempt": False,
             "can_claim_submission_ready": False,
             "can_claim_publication_ready": False,
+            "can_select_stage_route": False,
+            "route_selection_owner": "codex_cli",
         },
+        "next_stage_may_start": outcome.get("kind") == OUTCOME_NEXT_STAGE_TRANSITION,
     }
     return _compact(decision)
 
@@ -237,7 +238,8 @@ def stage_closure_decision_projection(
 
 
 def stage_closure_decision_missing(decision: Mapping[str, Any]) -> bool:
-    return _text(decision.get("projection_status")) == "stage_closure_decision_missing"
+    # Missing terminalizer context is quality debt, never a stage-transition gate.
+    return False
 
 
 def stage_closure_signature(
@@ -314,8 +316,8 @@ def _readback_needs_stage_closure_decision(
     terms = {
         _text(readback.get("consume_candidate_status")),
         _text(readback.get("transaction_state")),
-        _text(readback.get("opl_runtime_readback_status")),
-        _text(_mapping(readback.get("opl_runtime_carrier_readback")).get("carrier_status")),
+        _text(readback.get("opl_stage_attempt_readback_status")),
+        _text(_mapping(readback.get("opl_stage_attempt_readback")).get("carrier_status")),
         _text(_mapping(handoff).get("route_command_kind")),
     }
     return any(
@@ -344,17 +346,24 @@ def _missing_stage_closure_decision(
     return _compact(
         {
             "surface_kind": "mas_stage_closure_decision_projection",
-            "projection_status": "stage_closure_decision_missing",
+            "projection_status": "quality_debt_stage_closure_context_missing",
             "missing": True,
             "target_ref": "docs/runtime/designs/stage_closure_terminalizer_target.md",
             "decision_ref": _stage_closure_decision_ref(readback),
             "outcome": {
-                "kind": "stage_closure_decision_missing",
+                "kind": OUTCOME_NEXT_STAGE_TRANSITION,
+                "transition_kind": "completed_with_quality_debt",
+                "completion_status": "completed_with_quality_debt",
                 "authority_materialized": False,
-                "next_owner": "MedAutoScience.stage_closure_terminalizer",
-                "next_action": "run_stage_closure_terminalizer",
+                "next_owner": "codex_cli",
+                "next_action": "select_any_declared_stage",
+                "quality_debt": {
+                    "status": "open",
+                    "blocks_stage_transition": False,
+                    "blocks_quality_export_or_ready_claims": True,
+                },
             },
-            "outcome_kind": "stage_closure_decision_missing",
+            "outcome_kind": OUTCOME_NEXT_STAGE_TRANSITION,
             "repair_budget": _mapping(decision.get("repair_budget")) or None,
             "package_kind": _first_text(
                 readback.get("package_kind"),
@@ -370,8 +379,10 @@ def _missing_stage_closure_decision(
                 "bundle_build_allowed_false_is_durable_final",
                 "continue_same_stage_without_terminalizer_outcome",
             ],
-            "fail_closed": True,
-            "can_continue_same_stage": False,
+            "fail_closed": False,
+            "can_continue_same_stage": True,
+            "next_stage_may_start": True,
+            "route_selection_owner": "codex_cli",
             "can_claim_durable_final": False,
             "can_claim_paper_progress": False,
             "authority_materialized": False,
@@ -399,7 +410,7 @@ def _stage_closure_known_blockers(
     handoff: Mapping[str, Any] | None,
 ) -> list[str]:
     decision = _mapping(readback.get("stage_terminal_decision"))
-    carrier = _mapping(readback.get("opl_runtime_carrier_readback"))
+    carrier = _mapping(readback.get("opl_stage_attempt_readback"))
     return _unique_texts(
         [
             readback.get("blocked_reason"),
@@ -419,20 +430,9 @@ def _select_outcome(
     classes: Mapping[str, Sequence[str]],
     gate: Mapping[str, Any],
     delivery: Mapping[str, Any],
-    semantic_delta: Mapping[str, Any],
-    repair_budget: Mapping[str, Any],
-    repeated_without_delta: bool,
-    consumable_artifact_observed: bool,
+    attempt_evidence_observed: bool,
 ) -> dict[str, Any]:
-    gate_status = _text(gate.get("gate_replay_status")) or _text(gate.get("status"))
-    mirror_blockers = list(classes.get("mirror_sync") or [])
-    submission_authority_blockers = list(classes.get("submission_authority") or [])
-    quality_blockers = list(classes.get("quality_repairable") or [])
     hard_authority_blockers = list(classes.get("hard_authority") or [])
-    route_back_checkpoint_blockers = list(classes.get("route_back_checkpoint") or [])
-    unknown_blockers = list(classes.get("unknown") or [])
-    budget_status = _text(repair_budget.get("repair_budget_status"))
-
     if hard_authority_blockers:
         return _typed_blocker_outcome(
             blocker_type="hard_authority_blocker",
@@ -440,133 +440,25 @@ def _select_outcome(
             next_owner="MedAutoScience",
             resume_condition="resolve hard authority boundary before stage closure can proceed",
         )
-    if route_back_checkpoint_blockers and budget_status == "exhausted":
-        if consumable_artifact_observed:
-            return _quality_debt_transition(blockers=blockers)
+    if not attempt_evidence_observed:
         return _typed_blocker_outcome(
-            blocker_type="zero_consumable_artifact",
-            blockers=route_back_checkpoint_blockers,
-            next_owner="MedAutoScience",
-            resume_condition="materialize at least one readable paper-facing artifact before advancing",
-        )
-    if route_back_checkpoint_blockers and repeated_without_delta and not consumable_artifact_observed:
-        return _typed_blocker_outcome(
-            blocker_type="route_back_checkpoint_without_semantic_delta",
-            blockers=route_back_checkpoint_blockers,
-            next_owner="MedAutoScience",
-            resume_condition=(
-                "stop redriving the same PaperMission stage; materialize a degraded "
-                "handoff, owner decision, human gate, or typed blocker"
-            ),
-        )
-    if route_back_checkpoint_blockers and not hard_authority_blockers:
-        return {
-            "kind": OUTCOME_NEXT_STAGE_TRANSITION,
-            "transition_kind": "route_back_candidate_checkpoint",
-            "next_owner": "MedAutoScience",
-            "next_action": "consume_route_back_checkpoint_or_materialize_terminalizer_outcome",
-            "package_kind": _text(delivery.get("package_kind")),
-            "can_submit": False,
-            "requires_bundle_build_allowed": False,
-            "known_blockers": blockers,
-            "resume_condition": (
-                "route-back candidate checkpoint must be consumed into owner "
-                "receipt, typed blocker, human gate, or next stage transition"
-            ),
-            "authority_materialized": False,
-        }
-    if unknown_blockers and not (quality_blockers or mirror_blockers or submission_authority_blockers):
-        if consumable_artifact_observed:
-            return _quality_debt_transition(blockers=blockers)
-        return _typed_blocker_outcome(
-            blocker_type="unclassified_stage_closure_blocker",
-            blockers=unknown_blockers,
-            next_owner="MedAutoScience",
-            resume_condition="classify blocker into MAS stage closure taxonomy",
-        )
-    if mirror_blockers and not quality_blockers and not hard_authority_blockers:
-        return {
-            "kind": OUTCOME_NEXT_STAGE_TRANSITION,
-            "transition_kind": "current_package_mirror_sync",
-            "next_owner": "MedAutoScience",
-            "next_action": "sync_current_package_mirror",
-            "package_kind": "current_package",
-            "can_submit": False,
-            "requires_bundle_build_allowed": False,
-            "known_blockers": blockers,
-            "resume_condition": "refresh human-facing current_package mirror from current source package",
-            "authority_materialized": False,
-        }
-    if quality_blockers and budget_status == "exhausted":
-        if consumable_artifact_observed:
-            return _quality_debt_transition(blockers=blockers)
-        return _typed_blocker_outcome(
-            blocker_type="zero_consumable_artifact",
-            blockers=quality_blockers,
-            next_owner="MedAutoScience",
-            resume_condition="materialize at least one readable paper-facing artifact before advancing",
-        )
-    if repeated_without_delta and consumable_artifact_observed:
-        return _quality_debt_transition(blockers=blockers)
-    if repeated_without_delta:
-        return _typed_blocker_outcome(
-            blocker_type="same_signature_without_semantic_delta",
+            blocker_type="zero_readable_stage_output",
             blockers=blockers,
-            next_owner="MedAutoScience",
-            resume_condition="produce a paper-facing delta, owner decision, human gate, or scoped carry-forward decision before retry",
+            next_owner="codex_cli",
+            resume_condition="produce any readable artifact, partial draft, failed-attempt evidence, or diagnostic",
         )
-    if quality_blockers and budget_status == "remaining":
-        return {
-            "kind": OUTCOME_NEXT_STAGE_TRANSITION,
-            "transition_kind": "bounded_quality_repair_iteration",
-            "next_owner": "analysis-campaign",
-            "next_action": "run_quality_repair_batch",
-            "package_kind": "current_package" if mirror_blockers else None,
-            "can_submit": False,
-            "requires_bundle_build_allowed": False,
-            "known_blockers": blockers,
-            "resume_condition": "produce a new semantic repair delta or terminal owner answer",
-            "authority_materialized": False,
-        }
-    if quality_blockers and consumable_artifact_observed:
+    if blockers:
         return _quality_debt_transition(blockers=blockers)
-    if quality_blockers:
-        return _typed_blocker_outcome(
-            blocker_type="zero_consumable_artifact",
-            blockers=quality_blockers,
-            next_owner="MedAutoScience",
-            resume_condition="materialize at least one readable paper-facing artifact before advancing",
-        )
-    if submission_authority_blockers:
-        return _human_gate_outcome(
-            gate_type="submission_authority_required",
-            blockers=submission_authority_blockers,
-            resume_condition="MAS owner or human authorizes submission-ready package authority, or records a typed blocker",
-        )
-    if gate_status in {"passed", "clear", "cleared"} or not blockers:
-        return {
-            "kind": OUTCOME_OWNER_RECEIPT,
-            "next_owner": "MedAutoScience",
-            "next_action": "materialize_stage_owner_receipt_or_next_stage_transition",
-            "package_kind": _text(delivery.get("package_kind")),
-            "can_submit": delivery.get("can_submit") is True,
-            "quality_gate_status": gate_status,
-            "freshness": _text(delivery.get("freshness")),
-            "generated_from_current_source": delivery.get("generated_from_current_source") is True,
-            "source_signature": _text(delivery.get("source_signature")),
-            "root": _text(delivery.get("root")),
-            "zip_path": _text(delivery.get("zip_path")),
-            "zip_exists": delivery.get("zip_exists") is True,
-            "known_blockers": blockers,
-            "resume_condition": "owner receipt materialization remains MAS authority action",
-            "authority_materialized": False,
-        }
-    return _typed_blocker_outcome(
-        blocker_type="stage_closure_unresolved",
-        blockers=blockers,
-        next_owner="MedAutoScience",
-        resume_condition="stage closure reducer could not select a legal next transition",
-    )
+    return {
+        "kind": OUTCOME_NEXT_STAGE_TRANSITION,
+        "transition_kind": "completed",
+        "completion_status": "completed",
+        "next_owner": "codex_cli",
+        "next_action": "select_any_declared_stage",
+        "can_submit": False,
+        "known_blockers": [],
+        "authority_materialized": False,
+    }
 
 
 def _quality_debt_transition(*, blockers: Sequence[str]) -> dict[str, Any]:
@@ -574,8 +466,8 @@ def _quality_debt_transition(*, blockers: Sequence[str]) -> dict[str, Any]:
         "kind": OUTCOME_NEXT_STAGE_TRANSITION,
         "transition_kind": "completed_with_quality_debt",
         "completion_status": "completed_with_quality_debt",
-        "next_owner": "next_stage_owner",
-        "next_action": "advance_next_stage_with_quality_debt",
+        "next_owner": "codex_cli",
+        "next_action": "select_any_declared_stage_with_quality_debt",
         "package_kind": "degraded_handoff_package",
         "can_submit": False,
         "requires_bundle_build_allowed": False,

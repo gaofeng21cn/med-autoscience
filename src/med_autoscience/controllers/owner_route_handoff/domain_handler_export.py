@@ -25,8 +25,7 @@ from ..domain_handler_export.paper_mission_task_shaping import (
     paper_mission_route_handoff_task as _paper_mission_route_handoff_task,
     paper_mission_start_or_resume_task as _paper_mission_start_or_resume_task,
 )
-from .. import opl_domain_progress_transition_contract
-from ..study_domain_transition_table import family_transition_spec
+from ..ai_route_context import next_action_identity_complete
 from .authority_boundary import authority_boundary_payload
 from .export_study_projection import (
     build_study_projection,
@@ -178,9 +177,6 @@ def export_family_domain_handler(
         "evo_scientist_learning_projection": build_evo_scientist_learning_projection(),
         "external_learning_adoption_closure": build_external_learning_adoption_closure(),
         "display_pack_agent_capability": display_pack_capability_discover(repo_root=_repo_root()),
-        "family_transition_spec_descriptor": (
-            family_transition_spec.build_family_transition_spec_descriptor()
-        ),
         "provider_ready_adapter": provider_ready_contract,
         "managed_temporal_state_consistency": (
             opl_provider_ready_adapter.build_managed_temporal_state_consistency_read_model(
@@ -393,7 +389,7 @@ def _export_current_owner_action(
 ) -> Mapping[str, Any]:
     del study
     next_action = mapping(current_progress.get("next_action"))
-    if not opl_domain_progress_transition_contract.next_action_identity_complete(next_action):
+    if not next_action_identity_complete(next_action):
         return {}
     return next_action
 

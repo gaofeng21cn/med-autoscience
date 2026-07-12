@@ -3,7 +3,7 @@
 Owner: `MedAutoScience / OPL Framework`
 Purpose: `paper_recovery_obligation_target_architecture`
 State: `superseded_diagnostic_design`
-Machine boundary: 本文是人读目标架构与迁移说明。机器真相归 `contracts/paper_recovery_kernel_contract.json`、`contracts/stage_route_reconcile_contract.json`、源码、测试、fresh `study_progress`、domain diagnostic dry-run / apply、OPL current-control / attempt ledger、owner receipt、typed blocker、human gate、route-back evidence 和 canonical changed surface refs。
+Machine boundary: 本文是人读目标架构与迁移说明。机器真相归 `contracts/paper_recovery_kernel_contract.json`、源码、测试、fresh `study_progress`、Codex CLI route judgment、owner receipt、typed blocker、human gate、route-back evidence 和 canonical changed surface refs；OPL current-control / attempt ledger 只提供 transport evidence。
 
 2026-06-30 supersession note：本文描述的是 `StageOutcome -> NextActionEnvelope` 收敛前的 PaperRecovery obligation 目标架构。当前默认 next action 不再由 `paper_recovery_state`、`current_work_unit`、provider admission 或 domain-handler export 选择；这些面只能作为 diagnostic / provenance / readback support，不能生成默认 next action、provider admission、paper progress、publication-ready 或 submission-ready 结论。
 
@@ -13,7 +13,7 @@ Reader rule：本文不是 active implementation plan。下文的接口、迁移
 
 DM002 / DM003 暴露的反复卡点不是单个 reducer 分支漏判，而是多个 projection / selector / export 面各自重新解释 currentness。当前目标态已经收敛为：
 
-`StageOutcome -> NextActionEnvelope -> OPL TransitionReceipt -> MAS owner consumption`
+`StageOutcome -> NextActionEnvelope -> OPL StageAttemptReceipt -> MAS owner consumption`
 
 PaperRecovery 只保留为诊断/恢复解释层：可以解释 owner receipt、typed blocker、human gate、route-back evidence、transport receipt 和历史 projection 为什么不能推进，但不能替代 `NextActionEnvelope` 生成默认下一步。
 
@@ -29,7 +29,7 @@ flowchart TD
   S --> P["study_progress diagnostic drilldown"]
   S --> O["operator / workbench diagnostic projections"]
   SO["StageOutcome"] --> NA["NextActionEnvelope"]
-  NA --> TR["OPL TransitionReceipt"]
+  NA --> TR["OPL StageAttemptReceipt"]
   TR --> MC["MAS owner consumption"]
 ```
 
@@ -77,14 +77,14 @@ MAS 不继续在私有 runtime 中裁判 StageRun currentness、queue residue、
 
 ## Historical migration notes
 
-旧迁移方向曾包括 decision fixture、current-work-unit/domain-diagnostic 共用 kernel、domain-handler export consume-only、operator/workbench phase projection 和 selector 退役。2026-06-29 之后，这些不再作为 active backlog 逐项执行；当前 cleanup 只保留 no-resurrection guard，并把仍有价值的行为迁到 `StageOutcome -> NextActionEnvelope`、OPL TransitionReceipt readback 或 MAS owner-consumption surface。
+旧迁移方向曾包括 decision fixture、current-work-unit/domain-diagnostic 共用 kernel、domain-handler export consume-only、operator/workbench phase projection 和 selector 退役。2026-06-29 之后，这些不再作为 active backlog 逐项执行；当前 cleanup 只保留 no-resurrection guard，并把仍有价值的行为迁到 `StageOutcome -> NextActionEnvelope`、OPL StageAttemptReceipt readback 或 MAS owner-consumption surface。
 
 ## Historical verification
 
 下列命令是历史验证线索，不是当前完成门：
 
-- `python3 -m pytest tests/test_paper_recovery_kernel_contract.py tests/test_stage_route_reconcile_contract.py -q`
-- `make test-paths -- tests/test_paper_recovery_kernel_contract.py tests/test_stage_route_reconcile_contract.py -q`
+- `python3 -m pytest tests/test_paper_recovery_kernel_contract.py -q`
+- `make test-paths -- tests/test_paper_recovery_kernel_contract.py -q`
 - `make test-meta`
 
 历史行为验证口径：
@@ -94,4 +94,4 @@ MAS 不继续在私有 runtime 中裁判 StageRun currentness、queue residue、
 - terminal closeout 未被 MAS consume/reject 时，只进入 `terminal_closeout_ready`，不产生 paper progress。
 - stop-loss 同一 obligation 无 successor / human gate 时保持 fail closed。
 
-当前验证应改查 [Next Action Control Plane](../control/next_action_control_plane.md)、legacy active path tombstones、fresh `study_progress` / `paper-mission inspect`、OPL TransitionReceipt readback、MAS owner receipt、typed blocker、human gate、route-back evidence 或 artifact delta。
+当前验证应改查 [Next Action Control Plane](../control/next_action_control_plane.md)、legacy active path tombstones、fresh `study_progress` / `paper-mission inspect`、OPL StageAttemptReceipt readback、MAS owner receipt、typed blocker、human gate、route-back evidence 或 artifact delta。

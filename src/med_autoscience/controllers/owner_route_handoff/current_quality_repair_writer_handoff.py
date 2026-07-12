@@ -7,7 +7,7 @@ from typing import Any
 
 from med_autoscience.controllers.owner_callable_action_policy import request_output_surface_for_action_type
 from med_autoscience.controllers.quality_repair_batch import writer_handoff as quality_repair_writer_handoff
-from med_autoscience.controllers.study_transition_receipt_consumption import (
+from med_autoscience.controllers.study_stage_attempt_receipt_consumption import (
     owner_callable_receipt_consumption,
 )
 from med_autoscience.profiles import WorkspaceProfile

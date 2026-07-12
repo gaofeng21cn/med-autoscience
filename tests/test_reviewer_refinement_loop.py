@@ -320,7 +320,7 @@ def test_reviewer_refinement_loop_accepts_only_ai_reviewer_backed_publication_ev
         "source": "ai_reviewer_backed_publication_eval_latest",
         "blockers": [],
         "package_mutation_allowed": False,
-        "bounded_auto_advance": False,
+        "bounded_auto_advance": True,
     }
     assert read_model["revert"] == {
         "required": False,
@@ -364,7 +364,9 @@ def test_reviewer_refinement_loop_maps_revert_to_same_line_route_back_without_pa
     assert read_model["accept"]["accepted"] is False
     assert read_model["accept"]["package_mutation_allowed"] is False
     assert read_model["revert"]["required"] is True
-    assert read_model["revert"]["strategy"] == "same_line_route_back"
+    assert read_model["revert"]["strategy"] == (
+        "ai_selected_route_back_with_negative_or_review_evidence"
+    )
     assert read_model["revert"]["direct_package_mutation_allowed"] is False
     assert read_model["revert"]["route_back"] == {
         "action_id": "route-back-claim-strength",
@@ -576,10 +578,13 @@ def test_reviewer_refinement_loop_generates_executable_repair_work_units_for_blo
     assert recheck_unit["required_outputs"] == ["artifacts/publication_eval/latest.json"]
     assert recheck_unit["artifact_delta_predicate"] == "ai_reviewer_judgement_updated"
     assert recheck_unit["gate_replay_target"] == "controller_decisions/latest.json"
-    assert read_model["bounded_review_repair_policy"]["status"] == "repair_round_available"
+    assert read_model["bounded_review_repair_policy"]["status"] == (
+        "auto_advance_with_repair_budget_available"
+    )
     assert read_model["bounded_review_repair_policy"]["current_round"] == 1
     assert read_model["bounded_review_repair_policy"]["remaining_rounds"] == 2
-    assert read_model["bounded_review_repair_policy"]["auto_advance_allowed"] is False
+    assert read_model["bounded_review_repair_policy"]["auto_advance_allowed"] is True
+    assert read_model["stage_progress"]["next_stage_may_start"] is True
     assert read_model["residual_user_review"]["required"] is False
 
 
@@ -594,16 +599,14 @@ def test_reviewer_refinement_loop_caps_non_hard_repair_after_three_rounds_with_r
 
     read_model = module.build_reviewer_refinement_loop_read_model(study_root=study_root)
 
-    assert read_model["accept"]["accepted"] is True
-    assert read_model["accept"]["status"] == "accepted_with_residual_user_review"
+    assert read_model["accept"]["accepted"] is False
+    assert read_model["accept"]["status"] == "not_accepted_quality_debt"
     assert read_model["accept"]["bounded_auto_advance"] is True
-    assert read_model["mode"] == "accepted"
-    assert read_model["revert"] == {
-        "required": False,
-        "strategy": "none",
-        "direct_package_mutation_allowed": False,
-        "route_back": None,
-    }
+    assert read_model["mode"] == "repair_planning_only"
+    assert read_model["stage_progress"]["next_stage_may_start"] is True
+    assert read_model["stage_progress"]["accepted"] is False
+    assert read_model["revert"]["required"] is True
+    assert read_model["revert"]["strategy"] == "ai_selected_route_back_with_negative_or_review_evidence"
     policy = read_model["bounded_review_repair_policy"]
     assert policy["status"] == "auto_advance_with_residual_user_review"
     assert policy["max_automated_repair_rounds"] == 3
@@ -613,12 +616,7 @@ def test_reviewer_refinement_loop_caps_non_hard_repair_after_three_rounds_with_r
     assert policy["residual_user_review_required"] is True
     assert policy["hard_blockers"] == []
     assert policy["auto_advance_allowed"] is True
-    assert read_model["repair_work_units"] == []
-    assert read_model["comment_to_action_matrix"] == []
-    assert read_model["repair_loop"]["next_action"] == {
-        "action": "advance_to_next_stage_with_residual_user_review",
-        "reason": "auto_advance_with_residual_user_review",
-    }
+    assert read_model["stage_progress"]["quality_debt_recorded"] is True
     residual = read_model["residual_user_review"]
     assert residual["language"] == "zh-CN"
     assert residual["required"] is True
@@ -653,7 +651,7 @@ def test_reviewer_refinement_loop_keeps_hard_reviewer_blocker_after_round_budget
     read_model = module.build_reviewer_refinement_loop_read_model(study_root=study_root)
 
     assert read_model["accept"]["accepted"] is False
-    assert read_model["accept"]["status"] == "blocked"
+    assert read_model["accept"]["status"] == "hard_blocked"
     assert read_model["revert"]["required"] is True
     assert read_model["repair_work_units"] == []
     assert read_model["repair_loop"]["status"] == "hard_blocked"
@@ -814,12 +812,13 @@ def test_reviewer_refinement_loop_auto_advances_when_no_actionable_reviewer_issu
 
     read_model = module.build_reviewer_refinement_loop_read_model(study_root=study_root)
 
-    assert read_model["mode"] == "accepted"
-    assert read_model["accept"]["accepted"] is True
-    assert read_model["accept"]["status"] == "accepted_no_clear_actionable_reviewer_issue"
+    assert read_model["mode"] == "repair_planning_only"
+    assert read_model["accept"]["accepted"] is False
+    assert read_model["accept"]["status"] == "not_accepted_quality_debt"
     assert read_model["accept"]["bounded_auto_advance"] is True
     assert read_model["repair_work_units"] == []
-    assert read_model["revert"]["required"] is False
+    assert read_model["revert"]["required"] is True
+    assert read_model["stage_progress"]["next_stage_may_start"] is True
     assert read_model["bounded_review_repair_policy"]["status"] == (
         "auto_advance_no_clear_actionable_reviewer_issue"
     )
@@ -847,17 +846,17 @@ def test_reviewer_refinement_loop_fails_closed_for_non_ai_reviewer_projection(
     read_model = module.build_reviewer_refinement_loop_read_model(study_root=study_root)
 
     assert read_model["accept"]["accepted"] is False
-    assert read_model["accept"]["bounded_auto_advance"] is False
+    assert read_model["accept"]["bounded_auto_advance"] is True
     assert "publication_eval_not_ai_reviewer_backed" in read_model["accept"]["blockers"]
     assert "publication_eval_still_requires_ai_reviewer" in read_model["accept"]["blockers"]
     assert "publication_eval_policy_not_ai_reviewer_critique" in read_model["accept"]["blockers"]
-    assert read_model["revert"]["strategy"] == "same_line_route_back"
+    assert read_model["revert"]["strategy"] == "ai_selected_route_back_with_negative_or_review_evidence"
     assert read_model["revert"]["direct_package_mutation_allowed"] is False
     assert read_model["revert"]["route_back"]["route_target"] == "review"
     assert read_model["revert"]["route_back"]["action_type"] == "route_back_same_line"
     assert read_model["repair_loop"]["status"] == "blocked"
     assert read_model["repair_work_units"] == []
-    assert read_model["bounded_review_repair_policy"]["status"] == "authority_blocked"
+    assert read_model["bounded_review_repair_policy"]["status"] == "auto_advance_with_reviewer_authority_or_calibration_debt"
 
 
 def test_reviewer_refinement_loop_requires_calibration_learning_refs(tmp_path: Path) -> None:
@@ -891,7 +890,8 @@ def test_reviewer_refinement_loop_requires_calibration_learning_refs(tmp_path: P
     ]
     assert "required_calibration_ref_missing:coverage_as_quality" in read_model["accept"]["blockers"]
     assert read_model["accept"]["accepted"] is False
-    assert read_model["bounded_review_repair_policy"]["status"] == "authority_blocked"
+    assert read_model["bounded_review_repair_policy"]["status"] == "auto_advance_with_reviewer_authority_or_calibration_debt"
+    assert read_model["stage_progress"]["next_stage_may_start"] is True
     assert read_model["contract"]["learning_can_authorize_quality"] is False
 
 
@@ -926,4 +926,5 @@ def test_reviewer_refinement_loop_rejects_noncurrent_latest_eval(
     assert blocker in read_model["accept"]["blockers"]
     assert read_model["accept"]["accepted"] is False
     assert read_model["revert"]["route_back"]["route_target"] == "review"
-    assert read_model["bounded_review_repair_policy"]["status"] == "authority_blocked"
+    assert read_model["bounded_review_repair_policy"]["status"] == "hard_blocked"
+    assert read_model["stage_progress"]["next_stage_may_start"] is False

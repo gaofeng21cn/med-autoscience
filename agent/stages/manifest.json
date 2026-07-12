@@ -247,7 +247,8 @@
           "descriptor_ref": "/product_entry_manifest/family_stage_control_plane_descriptor/hypothesis_portfolio_evidence_pack",
           "missing_ref_output_policy": {
             "with_consumable_candidate": "completed_with_quality_debt",
-            "without_consumable_candidate": "typed_blocker",
+            "without_consumable_candidate": "completed_with_quality_debt_and_ai_selected_route_back",
+            "zero_readable_artifact": "typed_blocker",
             "quality_debt_blocks_stage_transition": false,
             "quality_debt_blocks_promotion_or_ready_claims": true
           },
@@ -305,7 +306,8 @@
               "scientific_capability_registry"
             ],
             "next_owner": "MedAutoScience",
-            "owner_receipt_required": true
+            "owner_receipt_required_for_quality_or_ready_claim": true,
+            "readable_artifact_sufficient_for_progress": true
           },
           "progress_first_priority": "produce_reviewable_deliverable_delta_before_control_plane_explanation",
           "restricted_results": [
@@ -625,7 +627,8 @@
           "descriptor_ref": "/product_entry_manifest/family_stage_control_plane_descriptor/hypothesis_portfolio_evidence_pack",
           "missing_ref_output_policy": {
             "with_consumable_candidate": "completed_with_quality_debt",
-            "without_consumable_candidate": "typed_blocker",
+            "without_consumable_candidate": "completed_with_quality_debt_and_ai_selected_route_back",
+            "zero_readable_artifact": "typed_blocker",
             "quality_debt_blocks_stage_transition": false,
             "quality_debt_blocks_promotion_or_ready_claims": true
           },
@@ -682,7 +685,8 @@
               "scientific_capability_registry"
             ],
             "next_owner": "MedAutoScience",
-            "owner_receipt_required": true
+            "owner_receipt_required_for_quality_or_ready_claim": true,
+            "readable_artifact_sufficient_for_progress": true
           },
           "progress_first_priority": "produce_reviewable_deliverable_delta_before_control_plane_explanation",
           "restricted_results": [
@@ -1000,7 +1004,8 @@
           "descriptor_ref": "/product_entry_manifest/family_stage_control_plane_descriptor/hypothesis_portfolio_evidence_pack",
           "missing_ref_output_policy": {
             "with_consumable_candidate": "completed_with_quality_debt",
-            "without_consumable_candidate": "typed_blocker",
+            "without_consumable_candidate": "completed_with_quality_debt_and_ai_selected_route_back",
+            "zero_readable_artifact": "typed_blocker",
             "quality_debt_blocks_stage_transition": false,
             "quality_debt_blocks_promotion_or_ready_claims": true
           },
@@ -1056,7 +1061,8 @@
               "research_integrity_gate_input"
             ],
             "next_owner": "MedAutoScience",
-            "owner_receipt_required": true
+            "owner_receipt_required_for_quality_or_ready_claim": true,
+            "readable_artifact_sufficient_for_progress": true
           },
           "progress_first_priority": "produce_reviewable_deliverable_delta_before_control_plane_explanation",
           "restricted_results": [
@@ -1371,7 +1377,8 @@
           "descriptor_ref": "/product_entry_manifest/family_stage_control_plane_descriptor/hypothesis_portfolio_evidence_pack",
           "missing_ref_output_policy": {
             "with_consumable_candidate": "completed_with_quality_debt",
-            "without_consumable_candidate": "typed_blocker",
+            "without_consumable_candidate": "completed_with_quality_debt_and_ai_selected_route_back",
+            "zero_readable_artifact": "typed_blocker",
             "quality_debt_blocks_stage_transition": false,
             "quality_debt_blocks_promotion_or_ready_claims": true
           },
@@ -1427,7 +1434,8 @@
               "display_pack_render"
             ],
             "next_owner": "MedAutoScience",
-            "owner_receipt_required": true
+            "owner_receipt_required_for_quality_or_ready_claim": true,
+            "readable_artifact_sufficient_for_progress": true
           },
           "progress_first_priority": "produce_reviewable_deliverable_delta_before_control_plane_explanation",
           "restricted_results": [
@@ -1859,7 +1867,8 @@
           "descriptor_ref": "/product_entry_manifest/family_stage_control_plane_descriptor/hypothesis_portfolio_evidence_pack",
           "missing_ref_output_policy": {
             "with_consumable_candidate": "completed_with_quality_debt",
-            "without_consumable_candidate": "typed_blocker",
+            "without_consumable_candidate": "completed_with_quality_debt_and_ai_selected_route_back",
+            "zero_readable_artifact": "typed_blocker",
             "quality_debt_blocks_stage_transition": false,
             "quality_debt_blocks_promotion_or_ready_claims": true
           },
@@ -1916,7 +1925,8 @@
               "display_pack_preflight"
             ],
             "next_owner": "MedAutoScience",
-            "owner_receipt_required": true
+            "owner_receipt_required_for_quality_or_ready_claim": true,
+            "readable_artifact_sufficient_for_progress": true
           },
           "progress_first_priority": "produce_reviewable_deliverable_delta_before_control_plane_explanation",
           "restricted_results": [
@@ -2432,7 +2442,8 @@
           "descriptor_ref": "/product_entry_manifest/family_stage_control_plane_descriptor/hypothesis_portfolio_evidence_pack",
           "missing_ref_output_policy": {
             "with_consumable_candidate": "completed_with_quality_debt",
-            "without_consumable_candidate": "typed_blocker",
+            "without_consumable_candidate": "completed_with_quality_debt_and_ai_selected_route_back",
+            "zero_readable_artifact": "typed_blocker",
             "quality_debt_blocks_stage_transition": false,
             "quality_debt_blocks_promotion_or_ready_claims": true
           },
@@ -2490,7 +2501,8 @@
               "domain_handler_export"
             ],
             "next_owner": "MedAutoScience",
-            "owner_receipt_required": true
+            "owner_receipt_required_for_quality_or_ready_claim": true,
+            "readable_artifact_sufficient_for_progress": true
           },
           "progress_first_priority": "produce_reviewable_deliverable_delta_before_control_plane_explanation",
           "restricted_results": [

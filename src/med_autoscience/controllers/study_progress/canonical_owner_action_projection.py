@@ -126,7 +126,7 @@ def build_canonical_owner_action_projection(payload: Mapping[str, Any]) -> dict[
             "route_back": route_back,
             "verification": verification,
             "executable_owner_route": executable_owner_route,
-            "owner_receipt_required": True,
+            "owner_receipt_required_for_quality_or_ready_claim": True,
             "authority": CANONICAL_OWNER_ACTION_AUTHORITY,
             "authority_boundary": {
                 "projection_only": True,

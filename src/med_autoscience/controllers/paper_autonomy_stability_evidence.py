@@ -298,15 +298,16 @@ def _step_receipts(
             "action_count": len(_sequence(before_scan.get("action_queue"))),
         },
         {
-            "step": "require_opl_transition_readback",
-            "surface": "opl_domain_progress_transition_runtime",
-            "status": "readback_required",
+            "step": "record_stage_attempt_context",
+            "surface": "opl_stage_attempt_transport",
+            "status": "optional_non_authoritative_context",
             "request_task_count": 0,
             "execution_count": 0,
             "mas_local_materializer_call": False,
             "mas_local_dispatcher_call": False,
             "mas_can_create_opl_command_event_outbox_or_stagerun": False,
             "mas_can_authorize_provider_admission": False,
+            "missing_readback_blocks_stage_transition": False,
         },
     ]
 
