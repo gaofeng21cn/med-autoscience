@@ -59,7 +59,8 @@ jobs:
         run: uv export --quiet --frozen --no-emit-project --group dev --format requirements-txt > "${RUNNER_TEMP}/mas-requirements.txt"
 
       - name: Link OPL Framework
-        run: "$OPL_BIN" packages link-framework --agent-root "$GITHUB_WORKSPACE" --json
+        run: |
+          "$OPL_BIN" packages link-framework --agent-root "$GITHUB_WORKSPACE" --json
 
       - name: Run change-aware CI preflight
         run: scripts/verify.sh ci-preflight "${{ github.event_name == 'pull_request' && github.event.pull_request.base.sha || github.event.before }}"

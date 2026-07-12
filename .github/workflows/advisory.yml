@@ -118,7 +118,8 @@ jobs:
 
       - name: Link OPL Framework
         if: matrix.lane == 'family'
-        run: "$OPL_BIN" packages link-framework --agent-root "$GITHUB_WORKSPACE" --json
+        run: |
+          "$OPL_BIN" packages link-framework --agent-root "$GITHUB_WORKSPACE" --json
 
       - name: Run advisory lane
         run: scripts/verify.sh ${{ matrix.lane }}
