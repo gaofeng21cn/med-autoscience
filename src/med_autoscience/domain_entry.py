@@ -4,14 +4,12 @@ from collections.abc import Sequence
 import json
 from importlib import import_module
 from pathlib import Path
-from typing import Any, Callable, Mapping
+from typing import TYPE_CHECKING, Any, Callable, Mapping
 
-from med_autoscience.controllers.study_launch_projection import launch_study
-from med_autoscience.controllers.study_task_submission import submit_study_task
-from med_autoscience.controllers.study_progress.projection import read_study_progress
 from med_autoscience.domain_entry_contract import SERVICE_SAFE_DOMAIN_COMMANDS
-from med_autoscience.paper_mission_domain import build_paper_mission_readback
-from med_autoscience.profiles import WorkspaceProfile, load_profile
+
+if TYPE_CHECKING:
+    from med_autoscience.profiles import WorkspaceProfile
 
 
 DISPLAY_PACK_DOMAIN_COMMANDS = frozenset(
@@ -190,6 +188,36 @@ def _dispatch_profile_command(
         return handlers[command]()
     except KeyError as exc:
         raise ValueError(f"不支持的 profile domain entry command: {command}") from exc
+
+
+def load_profile(profile_ref: str | Path) -> WorkspaceProfile:
+    from med_autoscience.profiles import load_profile
+
+    return load_profile(profile_ref)
+
+
+def launch_study(**kwargs: Any) -> dict[str, Any]:
+    from med_autoscience.controllers.study_launch_projection import launch_study as _launch_study
+
+    return _launch_study(**kwargs)
+
+
+def read_study_progress(**kwargs: Any) -> dict[str, Any]:
+    from med_autoscience.controllers.study_progress.projection import read_study_progress as _read_study_progress
+
+    return _read_study_progress(**kwargs)
+
+
+def submit_study_task(**kwargs: Any) -> dict[str, Any]:
+    from med_autoscience.controllers.study_task_submission import submit_study_task as _submit_study_task
+
+    return _submit_study_task(**kwargs)
+
+
+def build_paper_mission_readback(**kwargs: Any) -> dict[str, Any]:
+    from med_autoscience.paper_mission_domain import build_paper_mission_readback as _build_paper_mission_readback
+
+    return _build_paper_mission_readback(**kwargs)
 
 
 def _require_command(request: Mapping[str, Any]) -> str:
