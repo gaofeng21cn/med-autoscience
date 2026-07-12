@@ -470,7 +470,7 @@ wheels = [
 
 [[package]]
 name = "med-autoscience"
-version = "0.1.0a4"
+version = "0.1.0a5"
 source = { editable = "." }
 dependencies = [
     { name = "matplotlib" },

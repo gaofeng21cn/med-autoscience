@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "med-autoscience"
-version = "0.1.0a4"
+version = "0.1.0a5"
 description = "Medical research domain agent with OPL stage-led framework integration surfaces."
 readme = "README.md"
 requires-python = ">=3.12"
