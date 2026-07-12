@@ -96,3 +96,11 @@ Profile pointer: contracts/opl-native-profile.json
 本块只声明 OPL Flow 工作流 profile 指针；repo-specific 规则、项目事实、contracts、source、tests 和 runtime 输出继续归本仓既有 owner。
 请只通过 OPL Flow repo_profile sync 更新本块；本块外内容由目标 repo 自己维护。
 <!-- OPL_FLOW_MANAGED_END -->
+
+<!-- CODEGRAPH_START -->
+## CodeGraph
+
+- 本仓库使用本地 `.codegraph/` 索引；该目录不得纳入 Git。
+- 定义、调用、影响范围和代码路径等结构检索优先使用 CodeGraph；字面文本检索使用 `rg`。
+- 索引缺失或过期时运行 `codegraph init .` 或 `codegraph sync .`。
+<!-- CODEGRAPH_END -->
