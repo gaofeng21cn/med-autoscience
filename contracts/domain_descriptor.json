@@ -88,10 +88,7 @@
         "study"
       ],
       "workstream_ids": [
-        "medical_research",
-        "study",
-        "paper",
-        "publication"
+        "medical_research"
       ],
       "intent_signals": [
         "medical research",
