@@ -748,6 +748,10 @@ def test_classify_changed_native_python_entrypoints_as_family_shared_surface() -
             "scripts/run-build-clean.sh",
             "Makefile",
             "scripts/verify.sh",
+            "scripts/opl-module-bootstrap.sh",
+            "scripts/opl-module-healthcheck.sh",
+            "src/med_autoscience/opl_module_carrier.py",
+            "tests/test_opl_module_runtime_carrier.py",
         ]
     )
 

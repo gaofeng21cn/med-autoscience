@@ -315,7 +315,8 @@ def test_family_verify_lane_is_exposed_from_makefile_and_verify_script() -> None
     assert "test-family:" in makefile
     assert (
         "@$(call run_isolated_python,-m pytest tests/test_foundry_agent_series_consumer_contract.py "
-        "tests/test_framework_python_carrier.py tests/test_dev_preflight_contract.py "
+        "tests/test_framework_python_carrier.py tests/test_opl_module_runtime_carrier.py "
+        "tests/test_dev_preflight_contract.py "
         "tests/test_dev_preflight.py -q)"
     ) in makefile
     assert "@$(call run_isolated_python,-m pytest tests/test_opl_agent_lab_longline_migration.py -q)" in makefile

@@ -7,7 +7,7 @@ Machine boundary: 本文解释 package/environment handoff。可执行真相归 
 
 ## 结论
 
-MAS 不再提供 repo-local workspace initializer、editable import bootstrap、Python/R environment builder 或 Codex plugin installer。
+MAS 不再提供 repo-local workspace initializer、editable import bootstrap、Python/R environment builder 或 Codex plugin installer。OPL package lifecycle 安装 MAS runtime source carrier 时，调用 MAS-owned narrow carrier scripts；环境 owner 仍是 OPL Base，依赖环境、uv cache 与 bytecode 全部位于 source checkout 外。
 
 当前 bootstrap 是两部分：
 
@@ -25,6 +25,16 @@ OPL 读取：
 - `agent/`
 
 canonical domain id 是 `mas`。`med-autoscience` 仅作为 repo/package/plugin locator。
+
+OPL runtime source carrier 使用以下 owner commands：
+
+```bash
+bash scripts/opl-module-bootstrap.sh
+bash scripts/opl-module-healthcheck.sh
+bash scripts/opl-module-healthcheck.sh --probe
+```
+
+bootstrap 默认把依赖环境放到 OPL/user state root，把 uv cache 放到 cache root；OPL 可通过 `OPL_MODULE_RUNTIME_ROOT` / `OPL_MODULE_CACHE_ROOT` 或 MAS-specific override 指定位置。healthcheck 与 probe 不安装依赖、不写 domain truth；probe 只通过 `med_autoscience.domain_entry:MedAutoScienceDomainEntry.dispatch` 执行只读 `mainline-status`。
 
 ## Python packaging
 

@@ -1,40 +1,45 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-repo_root="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+repo_root="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd -P)"
 cd "${repo_root}"
 
-python3 - <<'PY'
-import json
-from pathlib import Path
+case "${1:-}" in
+  "")
+    mode="--healthcheck"
+    ;;
+  --probe)
+    mode="--probe"
+    ;;
+  --help|-h)
+    cat <<'EOF'
+Usage: scripts/opl-module-healthcheck.sh [--probe|--help]
 
-root = Path.cwd()
-plugin = json.loads(
-    (root / "plugins/med-autoscience/.codex-plugin/plugin.json").read_text(encoding="utf-8")
-)
-descriptor = json.loads((root / "contracts/domain_descriptor.json").read_text(encoding="utf-8"))
-handoff = json.loads((root / "contracts/generated_surface_handoff.json").read_text(encoding="utf-8"))
+Without arguments, validate the OPL-managed MAS runtime source carrier.
+--probe validates the read-only MedAutoScienceDomainEntry.dispatch target only.
+EOF
+    exit 0
+    ;;
+  *)
+    echo "Usage: scripts/opl-module-healthcheck.sh [--probe|--help]" >&2
+    exit 2
+    ;;
+esac
 
-assert plugin["name"] == "med-autoscience"
-assert plugin["skills"] == "./skills/"
-assert "mcpServers" not in plugin
-assert descriptor["generated_surface_owner"] == "one-person-lab"
-assert descriptor["domain_repo_can_own_generated_surface"] is False
-assert handoff["generated_surface_owner"] == "one-person-lab"
-assert not (root / "plugins/med-autoscience/bin/medautosci-mcp").exists()
-assert not (root / "src/med_autoscience/cli/__init__.py").exists()
-assert not (root / "src/med_autoscience/mcp_server/__init__.py").exists()
+state_base="${OPL_MODULE_RUNTIME_ROOT:-${XDG_STATE_HOME:-${HOME}/.local/state}/one-person-lab/modules}"
+cache_base="${OPL_MODULE_CACHE_ROOT:-${XDG_CACHE_HOME:-${HOME}/.cache}/one-person-lab/modules}"
+runtime_root="${MAS_OPL_MODULE_RUNTIME_ROOT:-${state_base%/}/medautoscience}"
+cache_root="${MAS_OPL_MODULE_CACHE_ROOT:-${cache_base%/}/medautoscience}"
+venv_python="${runtime_root}/venv/bin/python"
 
-print(json.dumps({
-    "ok": True,
-    "module": "medautoscience",
-    "checks": {
-        "generated_surface_owner": "one-person-lab",
-        "domain_handler_target": "med_autoscience.domain_entry.MedAutoScienceDomainEntry.dispatch",
-        "repo_cli": "retired",
-        "repo_mcp_server": "retired",
-        "plugin_mcp_launcher": "retired",
-        "skill_carrier": "ready",
-    },
-}, ensure_ascii=False))
-PY
+if [[ ! -x "${venv_python}" ]]; then
+  echo "opl-module-healthcheck.sh: missing OPL-managed MAS dependency environment; run scripts/opl-module-bootstrap.sh" >&2
+  exit 1
+fi
+
+export PYTHONPATH="${repo_root}/src"
+export PYTHONDONTWRITEBYTECODE=1
+export PYTHONPYCACHEPREFIX="${runtime_root}/pycache"
+export MAS_OPL_MODULE_CACHE_ROOT="${cache_root}"
+
+exec "${venv_python}" -m med_autoscience.opl_module_carrier "${mode}" --repo-root "${repo_root}"
