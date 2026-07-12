@@ -30,15 +30,24 @@ def test_stage_run_kernel_profile_declares_minimal_stage_native_state_shell() ->
         "stage_folder",
         "stage_manifest",
         "role_artifacts",
-        "owner_receipt_or_typed_blocker",
+        "progress_receipt_or_owner_answer_or_hard_stop",
     ]
     assert profile["kernel_role"] == "minimal_state_shell_not_mas_controller_system"
     assert profile["stage_folder_manifest_role"] == "artifact_evidence_and_structure_contract"
-    assert profile["transition_authority"] == "mas_owner_receipt_or_typed_blocker_only"
+    assert profile["transition_authority"] == {
+        "terminal_transition_authority": (
+            "consumable_artifact_progress_or_owner_answer_or_hard_stop"
+        ),
+        "provider_completion_counts_as_transition": False,
+        "file_presence_counts_as_transition": False,
+        "quality_budget_exhaustion_blocks_transition": False,
+        "owner_receipt_required_for_quality_or_ready_claim": True,
+    }
 
     assert profile["required_object_models"] == [
         "StageRun",
         "ArtifactRef",
+        "ProgressDeltaReceipt",
         "OwnerReceipt",
         "TypedBlocker",
         "ReadModel",
@@ -72,7 +81,11 @@ def test_stage_folder_manifest_foundation_requires_role_artifacts_and_receipts()
     assert manifest["role_artifact_contract"]["file_name_is_interface"] is False
     assert manifest["role_artifact_contract"]["role_is_interface"] is True
     assert manifest["role_artifact_contract"]["artifact_ref_body_included"] is False
-    assert manifest["closeout_contract"]["requires_owner_receipt_or_typed_blocker"] is True
+    closeout = manifest["closeout_contract"]
+    assert closeout["requires_progress_receipt_or_owner_answer_or_hard_stop"] is True
+    assert closeout["owner_receipt_required_for_quality_or_ready_claim"] is True
+    assert closeout["owner_receipt_ref_role"] == "domain_quality_or_ready_claim_authority"
+    assert closeout["typed_blocker_ref_role"] == "legal_hard_stop_authority"
     assert manifest["closeout_contract"]["output_only_stage_folder_is_orphan"] is True
     assert manifest["projection_contract"]["projection_directory_is_authority"] is False
 
@@ -115,13 +128,16 @@ def test_stage_run_states_keep_provider_and_domain_closeout_separate() -> None:
         "Superseded",
     } <= set(states["exception_states"])
     assert states["terminal_transition_authority"]["DomainAccepted"] == (
-        "MAS consumes closeout and signs OwnerReceipt or TypedBlocker"
+        "MAS validates consumable artifact progress, consumes an owner answer, "
+        "or records a legal hard stop"
     )
     assert states["terminal_transition_authority"]["NextStageReady"] == (
-        "route emitted from accepted OwnerReceipt or stable TypedBlocker"
+        "route emitted from validated progress, an owner answer, or a legal hard stop"
     )
     assert states["provider_completion_counts_as_domain_accepted"] is False
     assert states["stage_folder_files_count_as_next_stage_ready"] is False
+    assert states["validated_consumable_artifact_progress_counts_as_transition"] is True
+    assert states["quality_debt_counts_as_quality_acceptance"] is False
 
 
 def test_ordinary_progress_handoff_accepts_t0_progress_delta_without_ready_claims() -> None:
@@ -262,7 +278,8 @@ def test_coscientist_strategy_refs_stay_within_stage_and_advisory() -> None:
     assert boundary["strategy_refs_can_close_quality_gate"] is False
     assert boundary["strategy_refs_can_promote_stage"] is False
     assert boundary["quality_gate_requires_independent_reviewer_or_auditor_receipt"] is True
-    assert boundary["promotion_requires_owner_receipt_or_stable_typed_blocker"] is True
+    assert boundary["promotion_requires_progress_receipt_owner_answer_or_hard_stop"] is True
+    assert boundary["owner_receipt_required_for_quality_or_ready_claim"] is True
     assert boundary["progress_jit_affordance_role"] == (
         "current_owner_native_jit_affordance_not_control_surface"
     )
