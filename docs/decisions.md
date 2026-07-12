@@ -73,6 +73,10 @@ Foundry 系列 canonical policy 只存在于 OPL Framework。MAS 不声明或安
 
 `mas-scholar-skills` 与 MAS 是产品级一对一硬依赖：MAS 是唯一获得运行兼容性承诺的 required consumer；其他智能体可以只读发现或评估其 refs，但不能据此获得通用 runtime dependency 承诺。代码仓保持独立，用户安装面统一为一次 `opl packages install mas`。OPL 按依赖闭包原子安装、锁定、更新、回滚并保护卸载；MAS 只声明 consumer ABI 和消费 OPL status，不拥有第二套安装器。
 
+## D-18 Stage prompt 自主性与专业依赖
+
+六个 Stage prompt 采用目标/好结果/关键依赖/边界/handoff 形态，不再复制工具目录、固定 `search -> inspect -> sync` 或 specialist checklist。工具顺序由 Codex 在专业依赖内决定；科研预声明、failed-path 留痕、独立 review、canonical-source mutation -> rebuild -> fresh proof、human submission 等因果或 authority 顺序继续由 Stage policy、Skill、quality gate 与 contract 固定。普通质量缺口允许 `completed_with_quality_debt`，ready claim 仍 fail closed。
+
 ## 机器入口
 
 - `contracts/domain_descriptor.json`

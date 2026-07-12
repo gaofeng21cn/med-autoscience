@@ -2,118 +2,51 @@
 
 Owner: MedAutoScience
 Stage id: manuscript_authoring
-Stage kind: creation
-Domain routes: write
 Next stage: review_and_quality_gate
-Machine boundary: prompt source for manuscript-facing work. Canonical paper
+Machine boundary: this prompt directs manuscript-facing work. Canonical paper
 sources, current package, publication eval, and artifact authority remain
 MAS-owned.
 
-## Stage Objective
+## Objective
 
-Convert current evidence into a reviewable manuscript-facing narrative that
-faithfully carries the active claim. The stage must produce canonical manuscript
-refs or route back when writing exposes source, evidence, claim, citation,
-display, or artifact gaps.
+Turn current evidence into a coherent, reviewable manuscript delta that carries
+the active claim faithfully and exposes any remaining evidence, citation,
+display, source, or artifact gap.
 
-## Inputs
+## Good Work
 
-- Evidence and claim-impact receipt from `bounded_analysis_campaign`.
-- Claim-evidence map, source grounding, citation/source, reporting-guideline,
-  table/figure/display, artifact rebuild, controller-decision, journal-fit, and
-  reviewer concern refs.
-- Current canonical manuscript/source refs and current package refs when present;
-  current package is materialized output, not edit authority.
+- Bind every substantive claim to current evidence, source/citation, display,
+  numeric trace, and limitation refs. Keep the title, abstract, methods, results,
+  discussion, tables, figures, and supplement mutually consistent.
+- Exercise medical writing judgment over argument, contribution, reader risk,
+  reporting fit, journal voice, and claim restraint. Route professional detail
+  through `medical_research_execution.md` rather than reproducing specialist
+  checklists in this prompt.
+- Writing may begin alongside analysis and may reveal a better structure or an
+  evidence gap. Route scientific boundary changes back; do not conceal them with
+  prose.
+- Mutate canonical source only through an authorized MAS path. When a mutation
+  affects materialized artifacts, rebuild from canonical source and bind fresh
+  proof before any quality or ready claim.
+- Keep runtime mechanics, blockers, and internal quality vocabulary out of the
+  manuscript body.
 
-## Specialist Skill Routes
+## Boundaries
 
-Use external MAS Scholar Skills for professional writing detail; keep their
-outputs as refs-only candidates until MAS owner gate accepts them:
+This executor cannot review its own work to close the quality gate. Current
+package is derived output, not an editing authority. Specialist drafts, file
+presence, successful renders, tests, and provider completion do not authorize
+publication quality, artifact mutation, or submission readiness.
 
-- `medical-manuscript-writing`: manuscript section drafting, revision, claim
-  restraint, limitations, journal voice, and response-text candidates.
-- `medical-research-lit`: citation support, literature coverage, reference
-  export, and claim-support candidates.
-- `medical-statistical-review`: statistical wording, numeric trace, uncertainty,
-  and method-reporting candidates.
-- `medical-table-design` and `medical-figure-design`: table/figure narrative,
-  display-to-claim, caption, and visual-evidence candidates.
-- `medical-data-governance`: data availability, source lineage, access, FAIR, and
-  source-readiness candidates.
-- `medical-submission-prep`: journal-specific prose or response-material
-  candidates only after journal target refs exist.
+## Handoff
 
-## External Specialist Skill Policy
+Produce the best consumable manuscript delta first. Before a quality or ready
+claim, return a `manuscript_packet` that binds canonical manuscript, evidence,
+source/citation, display, rebuild, unresolved-gap, and next-owner refs. The packet
+need not be the first action and does not itself grant authority.
 
-Default to the eight `mas-scholar-skills` professional Skills (`display`, `tables`,
-`stats`, `lit`, `write`, `review`, `submit`, `data`) for ordinary medical-paper
-work. Use `external-scientific-skills` / OPL Connect only for a named or
-policy-detected uncovered specialist gap: explicit user tool/database/runtime,
-core Skill route-back, stage policy finding core eight cannot cover current
-delta, or network/cloud/sensitive-data/credential approval. The only allowed
-sequence is single-skill `search -> inspect -> sync`; bulk-load is forbidden.
-External specialist outputs are refs-only candidates; K-Dense or any external library cannot become MAS authority.
-
-## MAS Stage Responsibilities
-
-- Bind every substantive manuscript claim to current evidence, citation/source,
-  display, and limitation refs.
-- Keep title, abstract, methods, results, discussion, tables, figures, and
-  supplement aligned with the active claim boundary.
-- Keep internal operating notes, runtime terms, route mechanics, and quality
-  jargon out of the manuscript body.
-- Before handoff, apply final prose polish: remove internal/unresolved-fact/package
-  language, collapse repeated boundary disclaimers, avoid defensive
-  self-explanation, and replace analytic/data-surface jargon with clinical
-  manuscript terms.
-- Route back instead of polishing unsupported prose when evidence, citation,
-  source, display, artifact, or claim-boundary refs are missing or stale.
-
-## Forbidden Shortcuts
-
-- Do not edit `current_package` as the authoritative fix when canonical source
-  is stale or unreconciled.
-- Do not infer manuscript quality from regex, checklist completion, script
-  success, package freshness, or specialist-skill output.
-- Do not expand claims beyond current evidence, reviewer refs, or study charter.
-- Do not write publication eval, controller decisions, owner receipts, typed
-  blockers, human gates, current package, runtime queues, or provider attempts
-  from this prompt.
-
-## Typed Packet And Admission Gate
-
-Return a `manuscript_packet` first. The packet must name consumed refs
-(bounded-analysis evidence, claim-evidence map, source/citation, display/table/
-figure, controller decision) and produced refs (canonical manuscript, claim
-trace, citation/source handoff, display handoff, route-back or owner-receipt
-candidate). MAS owner/gate decides admission after the packet; the executor does
-not convert specialist output, test pass, generated surface status, provider
-completion, or package freshness into `manuscript_draft_reviewable`.
-
-Fail closed to route-back, typed blocker, or human gate when required refs are
-missing/stale, canonical manuscript authority is unclear, artifact mutation or
-source readiness is unresolved, or PI/journal/external-source authority is
-needed.
-
-## Receipt And Route-Back
-
-Return canonical manuscript refs, claim-evidence refs, citation/source refs,
-display/table/figure refs, artifact rebuild refs, specialist candidate refs
-consumed or requested, route-back reasons, and owner receipt candidate. Valid
-outcomes are:
-
-- `manuscript_draft_reviewable` with current canonical source refs.
-- route-back to analysis, baseline/source, literature, figure/table, or decision
-  when claims are unsupported.
-- `artifact_mutation_blocker`, `source_readiness_blocker`, or citation blocker
-  with exact refs and next owner.
-- human gate for journal strategy, claim expansion, PI decision, or external
-  source authority.
-
-## Done Criteria
-
-- Draft refs are canonical-source-first and current relative to evidence and
-  controller decisions.
-- Claims, displays, citations, methods, and limitations are grounded in refs.
-- Next stage is `review_and_quality_gate`, or the receipt contains an exact
-  route-back/blocker/human gate.
+If the manuscript is reviewable but repair budget is exhausted, close as
+`completed_with_quality_debt` and block quality/publication/submission claims.
+Use route-back, typed blocker, or human gate only when no consumable manuscript
+delta exists, an authority/currentness boundary is invalid, or a real owner
+decision is required.

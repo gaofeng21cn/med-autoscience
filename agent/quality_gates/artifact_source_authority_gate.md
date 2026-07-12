@@ -15,7 +15,7 @@ A source-readiness decision requires current refs for:
 - evidence or baseline refs that depend on the source.
 - reviewer/auditor or authority receipt when the gate contract requires independent review.
 
-Missing or stale refs produce `source_readiness_blocker` and route back to source intake, study design, baseline/evidence setup, methodology reframe, or human gate.
+Missing or stale refs prevent a source-ready claim and route the gap to source intake, study design, baseline/evidence setup, methodology reframe, or human gate. Emit `source_readiness_blocker` when the gap leaves no consumable delta or invalidates authority/currentness; otherwise carry it as explicit quality debt that blocks the ready claim.
 
 ## Artifact Mutation Record
 
@@ -27,7 +27,7 @@ Artifact mutation authorization requires current refs for:
 - artifact authority owner receipt.
 - package/materialization refs produced from canonical sources.
 
-Missing or stale refs produce `artifact_mutation_blocker` and route back to artifact rebuild, source revision, manuscript authoring, review, or human gate.
+Missing or stale refs prevent artifact authorization and route the gap to artifact rebuild, source revision, manuscript authoring, review, or human gate. Emit `artifact_mutation_blocker` when mutation cannot proceed safely; a non-mutating consumable delta may still advance with quality debt.
 
 ## AI-First Authority Boundary
 
@@ -43,4 +43,4 @@ OPL generated surfaces may carry locator metadata, status projections, dispatch 
 
 ## Required Blocker Shape
 
-Every blocker must include blocker type, missing refs, stale refs, affected source or artifact, route-back owner, required repair, and forbidden shortcut avoided. If the authority record is missing, fail closed rather than projecting ready state.
+Every blocker must include blocker type, missing refs, stale refs, affected source or artifact, route-back owner, required repair, and forbidden shortcut avoided. If the authority record is missing, fail the ready or mutation claim rather than projecting ready state. Do not convert that claim failure into a stage blocker when a safe, non-authoritative, consumable delta with explicit debt can still be handed forward.

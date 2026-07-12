@@ -32,6 +32,9 @@ Every mutating or decision-bearing path must emit a durable owner receipt. The r
 - `route_back_request`: the current stage exposed a better owner or previous-stage repair.
 - `human_gate_request`: PI, external source, journal strategy, scope expansion, or submission action is required.
 - `no_op_with_currentness_proof`: all required refs were already current and no mutation was authorized.
+- `completed_with_quality_debt`: a consumable delta exists after the bounded
+  quality budget; debt blocks quality, publication, export, and submission-ready
+  claims but does not block the stage transition.
 
 ## Typed Blocker Requirements
 
@@ -54,6 +57,10 @@ A typed blocker must name the blocker semantics, route-back owner, missing refs,
 - Do not invoke progress-first advisory work by default. Next-delta tournament, bounded micro-candidate generation, critique-as-repair-hint, reusable lesson extraction, triggered meta-review, and opportunistic prefetch are JIT affordances only when the current owner action, owner route, route-back, typed blocker, reviewer/publication gate, human gate, or stop-loss decision explicitly asks for that ref family, briefing, repair question, or arbitration need.
 - Preserve JIT affordance outputs as route ordering and repair context only. They cannot block the declared next owner, extend the loop, create a default next action, or replace controller/owner/quality-gate authority. Secondary caps apply only after explicit invocation: at most three micro-candidates, one next-delta tournament, three reviewer repair hints, and one reusable refs-only lesson; meta-review remains limited to stop-loss, repeated failure, human gate, claim-boundary drift, or no-loop budget exhaustion.
 - Human gate blocks auto-advance only when the stage or authority boundary says external decision is required.
+- Do not convert an ordinary quality gap into a blocker when a consumable delta
+  and exact debt refs can be handed forward. Block only when no consumable delta
+  exists or a hard authority, safety, identity, credential, irreversible-action,
+  currentness, or human-decision gate applies.
 
 ## Program And Materializer Boundary
 

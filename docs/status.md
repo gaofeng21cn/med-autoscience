@@ -24,6 +24,7 @@ MAS 的 12 项过度设计结构目标已经落地：repo-local platform surface
 | Foundry series | OPL canonical policy + MAS refs-only consumer contract；MAS 无本地 Framework 依赖 |
 | Framework Python | OPL 托管 `src/opl_framework` carrier；MAS manifest / lock 不锁 OPL implementation |
 | Required capability package | `mas-scholar-skills`；MAS manifest 声明 hard dependency、ABI、11 Skill + 8 module exports；生命周期归统一 `opl packages` |
+| Stage prompt model | 六个精简目标型 prompt；专业/证据/authority 顺序由 Stage policy、domain Skill 与 quality gate 托底；普通质量债可前进但不能升级 ready claim |
 | Test collection | pytest 原生递归收集 |
 | Build isolation | `scripts/run-build-clean.sh`；旧 runtime/editable clean runner 已退役 |
 | Legacy control plane | retired/tombstone/provenance only |

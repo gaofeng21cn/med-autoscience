@@ -1,60 +1,99 @@
 from __future__ import annotations
 
-import re
+import json
 from pathlib import Path
 
 import pytest
 
 
+pytestmark = pytest.mark.meta
+
 REPO_ROOT = Path(__file__).resolve().parents[1]
-
-STAGE_ROUTES = {
-    "agent/prompts/bounded_analysis_campaign.md": {
-        "medical-statistical-review",
-        "medical-data-governance",
-        "medical-table-design",
-        "medical-figure-design",
-        "medical-research-lit",
-    },
-    "agent/prompts/manuscript_authoring.md": {
-        "medical-manuscript-writing",
-        "medical-research-lit",
-        "medical-statistical-review",
-        "medical-table-design",
-        "medical-figure-design",
-        "medical-data-governance",
-        "medical-submission-prep",
-    },
-    "agent/prompts/review_and_quality_gate.md": {
-        "medical-manuscript-review",
-        "medical-research-lit",
-        "medical-statistical-review",
-        "medical-table-design",
-        "medical-figure-design",
-        "medical-data-governance",
-        "medical-submission-prep",
-    },
-    "agent/prompts/finalize_and_publication_handoff.md": {
-        "medical-submission-prep",
-        "medical-manuscript-review",
-        "medical-manuscript-writing",
-        "medical-research-lit",
-        "medical-statistical-review",
-        "medical-table-design",
-        "medical-figure-design",
-        "medical-data-governance",
-    },
-}
+PROMPT_ROOT = REPO_ROOT / "agent" / "prompts"
+PROMPT_PATHS = tuple(sorted(PROMPT_ROOT.glob("*.md")))
 
 
-@pytest.mark.parametrize(("repo_path", "required_routes"), STAGE_ROUTES.items())
-def test_stage_prompt_surface_routes_to_required_specialists(
-    repo_path: str,
-    required_routes: set[str],
-) -> None:
-    text = (REPO_ROOT / repo_path).read_text(encoding="utf-8")
-    routed_skills = set(re.findall(r"`(medical-[a-z-]+)`", text))
+def _read(path: Path) -> str:
+    return path.read_text(encoding="utf-8")
 
-    assert "## Specialist Skill Routes" in text, repo_path
-    assert "owner gate" in text.lower(), repo_path
-    assert required_routes <= routed_skills, repo_path
+
+def _normalized(path: Path) -> str:
+    return " ".join(_read(path).split())
+
+
+def test_stage_prompts_delegate_professional_methods_without_cli_recipe() -> None:
+    assert len(PROMPT_PATHS) == 6
+
+    for path in PROMPT_PATHS:
+        text = _read(path)
+        assert "medical_research_execution.md" in text, path
+        assert "search -> inspect -> sync" not in text, path
+        assert "The only allowed sequence" not in text, path
+        assert "## External Specialist Skill Policy" not in text, path
+
+
+def test_stage_prompts_preserve_domain_dependencies_and_progress_semantics() -> None:
+    analysis = _read(PROMPT_ROOT / "bounded_analysis_campaign.md")
+    manuscript = _normalized(PROMPT_ROOT / "manuscript_authoring.md")
+    review = _normalized(PROMPT_ROOT / "review_and_quality_gate.md")
+    finalize = _normalized(PROMPT_ROOT / "finalize_and_publication_handoff.md")
+
+    assert "estimand or target quantity" in analysis
+    assert "Record weak, negative, failed" in analysis
+    assert "separate invocation" in review
+    assert "Quality and ready claims fail closed" in review
+    assert "Stage progression does not" in review
+    assert "Mutate canonical source only through an authorized MAS path" in manuscript
+    for dependency in (
+        "mutation authority",
+        "canonical source",
+        "rebuild",
+        "fresh proof",
+        "human gate",
+    ):
+        assert dependency in finalize
+
+    for text in (manuscript, review, finalize):
+        assert "completed_with_quality_debt" in text
+        assert "packet" in text.lower()
+        assert "ready claim" in text.lower()
+
+
+def test_external_skill_acquisition_policy_is_single_sourced_in_skill_layer() -> None:
+    execution_policy = _normalized(
+        REPO_ROOT / "agent" / "skills" / "medical_research_execution.md"
+    )
+    primary_skill = _normalized(REPO_ROOT / "agent" / "primary_skill" / "SKILL.md")
+
+    for text in (execution_policy, primary_skill):
+        assert "Acquire a new external Skill only" in text
+        assert "identity" in text
+        assert "provenance" in text
+        assert "permissions" in text
+        assert "before sync" in text.lower()
+        assert "search and comparison order" in text.lower()
+
+    plugin_skill = (
+        REPO_ROOT
+        / "plugins"
+        / "med-autoscience"
+        / "skills"
+        / "med-autoscience"
+        / "SKILL.md"
+    )
+    assert _read(plugin_skill) == _read(
+        REPO_ROOT / "agent" / "primary_skill" / "SKILL.md"
+    )
+
+
+def test_manifest_bounds_tool_autonomy_by_professional_dependencies() -> None:
+    manifest = json.loads(
+        _read(REPO_ROOT / "agent" / "stages" / "manifest.json")
+    )
+
+    for stage in manifest["stages"]:
+        autonomy = stage["tool_affordance_boundary"]["executor_autonomy"]
+        assert autonomy["executor_can_choose_order_and_parallelism"] is True
+        assert autonomy["executor_order_is_bounded_by_domain_dependencies"] is True
+        assert autonomy["professional_policy_can_require_ordered_dependencies"] is True
+        assert autonomy["tool_catalog_can_prescribe_tool_sequence"] is False

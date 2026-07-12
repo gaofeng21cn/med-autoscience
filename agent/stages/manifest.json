@@ -96,6 +96,8 @@
         ],
         "executor_autonomy": {
           "executor_can_choose_order_and_parallelism": true,
+          "executor_order_is_bounded_by_domain_dependencies": true,
+          "professional_policy_can_require_ordered_dependencies": true,
           "executor_can_choose_tools": true,
           "executor_can_request_missing_context_or_human_gate": true,
           "executor_can_skip_tools": true,
@@ -154,7 +156,7 @@
             "role": "permission_scope_boundary"
           }
         ],
-        "policy": "MAS tool refs declare available medical research affordances and safety boundaries only; they do not prescribe executor order, stage strategy, stage goal, or forbidden writes.",
+        "policy": "MAS tool refs declare affordances and safety boundaries, not a CLI recipe. Codex chooses tools and safe parallelism while preserving professional, evidence, permission, authority, and irreversible-action dependencies.",
         "side_effect_risk_refs": [
           {
             "ref": "external_database_or_llm_side_effect_requires_explicit_stage_permission",
@@ -403,7 +405,7 @@
       "stage_kind": "source_preparation",
       "title": "Baseline and evidence setup",
       "summary": "Establish source readiness, study baseline, and the evidence boundary.",
-      "goal": "Bind data, source, claim, and artifact refs before analysis begins.",
+      "goal": "Bind data, source, claim, and artifact refs before analysis is accepted as claim-bearing evidence.",
       "policy_ref": "agent/stages/baseline_and_evidence_setup.policy.md",
       "prompt_ref": "agent/prompts/baseline_and_evidence_setup.md",
       "knowledge_refs": [
@@ -474,6 +476,8 @@
         ],
         "executor_autonomy": {
           "executor_can_choose_order_and_parallelism": true,
+          "executor_order_is_bounded_by_domain_dependencies": true,
+          "professional_policy_can_require_ordered_dependencies": true,
           "executor_can_choose_tools": true,
           "executor_can_request_missing_context_or_human_gate": true,
           "executor_can_skip_tools": true,
@@ -532,7 +536,7 @@
             "role": "permission_scope_boundary"
           }
         ],
-        "policy": "MAS tool refs declare available medical research affordances and safety boundaries only; they do not prescribe executor order, stage strategy, stage goal, or forbidden writes.",
+        "policy": "MAS tool refs declare affordances and safety boundaries, not a CLI recipe. Codex chooses tools and safe parallelism while preserving professional, evidence, permission, authority, and irreversible-action dependencies.",
         "side_effect_risk_refs": [
           {
             "ref": "external_database_or_llm_side_effect_requires_explicit_stage_permission",
@@ -849,6 +853,8 @@
         ],
         "executor_autonomy": {
           "executor_can_choose_order_and_parallelism": true,
+          "executor_order_is_bounded_by_domain_dependencies": true,
+          "professional_policy_can_require_ordered_dependencies": true,
           "executor_can_choose_tools": true,
           "executor_can_request_missing_context_or_human_gate": true,
           "executor_can_skip_tools": true,
@@ -907,7 +913,7 @@
             "role": "permission_scope_boundary"
           }
         ],
-        "policy": "MAS tool refs declare available medical research affordances and safety boundaries only; they do not prescribe executor order, stage strategy, stage goal, or forbidden writes.",
+        "policy": "MAS tool refs declare affordances and safety boundaries, not a CLI recipe. Codex chooses tools and safe parallelism while preserving professional, evidence, permission, authority, and irreversible-action dependencies.",
         "side_effect_risk_refs": [
           {
             "ref": "external_database_or_llm_side_effect_requires_explicit_stage_permission",
@@ -1220,6 +1226,8 @@
         ],
         "executor_autonomy": {
           "executor_can_choose_order_and_parallelism": true,
+          "executor_order_is_bounded_by_domain_dependencies": true,
+          "professional_policy_can_require_ordered_dependencies": true,
           "executor_can_choose_tools": true,
           "executor_can_request_missing_context_or_human_gate": true,
           "executor_can_skip_tools": true,
@@ -1278,7 +1286,7 @@
             "role": "permission_scope_boundary"
           }
         ],
-        "policy": "MAS tool refs declare available medical research affordances and safety boundaries only; they do not prescribe executor order, stage strategy, stage goal, or forbidden writes.",
+        "policy": "MAS tool refs declare affordances and safety boundaries, not a CLI recipe. Codex chooses tools and safe parallelism while preserving professional, evidence, permission, authority, and irreversible-action dependencies.",
         "side_effect_risk_refs": [
           {
             "ref": "external_database_or_llm_side_effect_requires_explicit_stage_permission",
@@ -1708,6 +1716,8 @@
         ],
         "executor_autonomy": {
           "executor_can_choose_order_and_parallelism": true,
+          "executor_order_is_bounded_by_domain_dependencies": true,
+          "professional_policy_can_require_ordered_dependencies": true,
           "executor_can_choose_tools": true,
           "executor_can_request_missing_context_or_human_gate": true,
           "executor_can_skip_tools": true,
@@ -1766,7 +1776,7 @@
             "role": "permission_scope_boundary"
           }
         ],
-        "policy": "MAS tool refs declare available medical research affordances and safety boundaries only; they do not prescribe executor order, stage strategy, stage goal, or forbidden writes.",
+        "policy": "MAS tool refs declare affordances and safety boundaries, not a CLI recipe. Codex chooses tools and safe parallelism while preserving professional, evidence, permission, authority, and irreversible-action dependencies.",
         "side_effect_risk_refs": [
           {
             "ref": "external_database_or_llm_side_effect_requires_explicit_stage_permission",
@@ -2281,6 +2291,8 @@
         ],
         "executor_autonomy": {
           "executor_can_choose_order_and_parallelism": true,
+          "executor_order_is_bounded_by_domain_dependencies": true,
+          "professional_policy_can_require_ordered_dependencies": true,
           "executor_can_choose_tools": true,
           "executor_can_request_missing_context_or_human_gate": true,
           "executor_can_skip_tools": true,
@@ -2339,7 +2351,7 @@
             "role": "permission_scope_boundary"
           }
         ],
-        "policy": "MAS tool refs declare available medical research affordances and safety boundaries only; they do not prescribe executor order, stage strategy, stage goal, or forbidden writes.",
+        "policy": "MAS tool refs declare affordances and safety boundaries, not a CLI recipe. Codex chooses tools and safe parallelism while preserving professional, evidence, permission, authority, and irreversible-action dependencies.",
         "side_effect_risk_refs": [
           {
             "ref": "external_database_or_llm_side_effect_requires_explicit_stage_permission",

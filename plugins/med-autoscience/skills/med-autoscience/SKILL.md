@@ -53,6 +53,22 @@ opl env run --domain mas --profile analysis-display \
 A runtime-environment receipt is not medical, artifact, visual-quality,
 publication, submission, or owner authority.
 
+## Professional Work And External Skills
+
+The stage goal and MAS professional policy define what good medical work looks
+like. Codex may choose tools, order, iteration, and safe parallelism inside those
+boundaries. Preserve ordered dependencies that protect scientific validity,
+evidence currentness, authority, or irreversible actions; do not turn a tool
+catalog or CLI recipe into the research method.
+
+Use the installed `mas-scholar-skills` capability package for ordinary medical
+paper work. Acquire a new external Skill only for a named or demonstrated
+coverage gap. Before syncing any new external Skill, inspect its identity,
+provenance, permissions, data/credential scope, and compatibility. Search and
+comparison order is otherwise executor-chosen; an already installed, inspected,
+compatible Skill does not need to repeat acquisition. External outputs remain
+candidate refs until the MAS owner path accepts them.
+
 ## Authority
 
 MAS owns medical study truth, evidence interpretation, publication-quality
@@ -71,5 +87,8 @@ or generated descriptors never close an AI-first quality gate.
 
 Ordinary progression reads canonical `StageOutcome` and
 `NextActionEnvelope`; legacy next-action or diagnostic projections are not
-transition authority. Stop at a typed blocker, durable human gate, owner receipt,
-or explicit route-back when the required authority is unavailable.
+transition authority. A consumable delta may advance as
+`completed_with_quality_debt`; that debt blocks quality, publication, export,
+and submission-ready claims. Stop only for a real authority, safety, identity,
+credential, irreversible-action, or human-decision gate, or when no consumable
+delta can be produced.

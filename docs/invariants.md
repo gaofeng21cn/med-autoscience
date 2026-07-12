@@ -30,6 +30,13 @@ Machine boundary: 本文是人读约束；机器事实以 contracts、source、r
 - publication、submission、artifact mutation、memory accept/reject 与 source readiness 必须由对应 MAS owner surface裁决。
 - refs-only projection、schema、validator、test、workbench 可见性和 inventory presence 都不等于 authority verdict。
 
+## Stage prompt 与专业顺序
+
+- Stage 主提示词只承载本 Stage 的目标、好结果、关键专业依赖、authority 边界与 handoff 语义；专业方法细节归 `agent/skills/`、ScholarSkills 与 quality gate，工具能力归 affordance catalog。
+- Codex 可自主选择工具、迭代、替代和安全并行，但不得颠倒会破坏 claim/estimand、source 或 failed-path provenance、fresh review/artifact proof、owner/human authority 或不可逆动作安全性的依赖顺序。
+- 新外部 Skill 只用于明确或已证明的能力缺口；sync 前必须检查 identity、provenance、permissions、data/credential scope 与 compatibility。已安装且已检查的兼容 Skill 可直接复用，不要求重复固定搜索流程。
+- 可消费 delta 在质量预算耗尽时以 `completed_with_quality_debt` 前进；quality debt 阻断 quality/publication/export/submission-ready claim，不阻断普通 Stage transition。只有无可消费 delta 或真实 authority/safety/identity/currentness/credential/irreversible/human gate 才成为硬 blocker。
+
 ## 退役与兼容
 
 - 已被 OPL 或标准工具替代的 MAS-local wrapper、facade、installer、workspace initializer、runtime shell 和旧 next-action producer 直接退役；不新增 compatibility shim、alias 或聚合测试。
