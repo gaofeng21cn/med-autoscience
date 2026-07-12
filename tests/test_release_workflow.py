@@ -203,11 +203,20 @@ def test_ci_runs_medical_paper_ops_contract_guard_without_touching_live_workspac
 def test_ci_boundary_guards_mas_and_declared_scholarskills_pack_contract_regression() -> None:
     ci_workflow = CI_WORKFLOW_PATH.read_text(encoding="utf-8")
     quick_checks = _workflow_job(ci_workflow, "quick-checks")
+    advisory_workflow = ADVISORY_WORKFLOW_PATH.read_text(encoding="utf-8")
+    advisory_job = _workflow_job(advisory_workflow, "advisory")
 
     assert quick_checks.count("actions/checkout@v6") == 2
     assert quick_checks.count("repository:") == 1
     assert "repository: gaofeng21cn/mas-scholar-skills" in quick_checks
     assert "path: .ci/mas-scholar-skills" in quick_checks
+    for workflow_job in (quick_checks, advisory_job):
+        assert "git clone --depth=1 --filter=blob:none https://github.com/gaofeng21cn/one-person-lab.git ../one-person-lab" in workflow_job
+        assert "npm ci --prefix ../one-person-lab --ignore-scripts" in workflow_job
+        assert "npm run --prefix ../one-person-lab build" in workflow_job
+        assert 'echo "OPL_BIN=$GITHUB_WORKSPACE/../one-person-lab/bin/opl" >> "$GITHUB_ENV"' in workflow_job
+        assert 'packages link-framework --agent-root "$GITHUB_WORKSPACE" --json' in workflow_job
+        assert workflow_job.index("Checkout and build OPL Framework") < workflow_job.index("Link OPL Framework")
     assert "gaofeng21cn/med-deepscientist" not in ci_workflow
     assert ".ci/med-deepscientist" not in ci_workflow
 

@@ -42,6 +42,20 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v6
 
+      - name: Set up Node.js 24 for OPL Framework lane
+        if: matrix.lane == 'family'
+        uses: actions/setup-node@v6
+        with:
+          node-version: '24'
+
+      - name: Checkout and build OPL Framework
+        if: matrix.lane == 'family'
+        run: |
+          git clone --depth=1 --filter=blob:none https://github.com/gaofeng21cn/one-person-lab.git ../one-person-lab
+          npm ci --prefix ../one-person-lab --ignore-scripts
+          npm run --prefix ../one-person-lab build
+          echo "OPL_BIN=$GITHUB_WORKSPACE/../one-person-lab/bin/opl" >> "$GITHUB_ENV"
+
       - name: Set up Python 3.12
         uses: actions/setup-python@v6
         with:
@@ -101,6 +115,10 @@ jobs:
           print(json.dumps(result, ensure_ascii=False, indent=2))
           raise SystemExit(0 if result.get("ready") else 1)
           PY
+
+      - name: Link OPL Framework
+        if: matrix.lane == 'family'
+        run: "$OPL_BIN" packages link-framework --agent-root "$GITHUB_WORKSPACE" --json
 
       - name: Run advisory lane
         run: scripts/verify.sh ${{ matrix.lane }}
