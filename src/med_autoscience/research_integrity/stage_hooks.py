@@ -29,7 +29,6 @@ REQUIRED_GATE_INPUT_SURFACES = (
 )
 LOOKUP_PROVIDERS = (
     "crossref",
-    "pubmed",
     "openalex",
     "semantic_scholar",
     "publisher",
@@ -173,18 +172,20 @@ def completion_boundary() -> dict[str, Any]:
 
 def triggered_domain_provider_lookup_contract() -> dict[str, Any]:
     return {
-        "surface_kind": "mas_domain_provider_lookup_contract",
+        "surface_kind": "opl_connect_reference_verification_contract",
         "schema_version": SCHEMA_VERSION,
-        "owner": "MedAutoScience",
+        "owner": "OPL Connect",
         "triggered_by_hook_id": HOOK_ID,
         "triggered_action": TRIGGERED_ACTION,
         "lookup_providers": list(LOOKUP_PROVIDERS),
-        "provider_lookup_mode": "domain_owned_evidence_input_only",
+        "provider_lookup_mode": "opl_connect_receipt_input_only",
+        "mas_role": "consume_provider_receipts_and_apply_medical_gate_judgment",
         "provider_evidence_consumed_by": TRIGGERED_ACTION,
         "mandatory_gate_input_only": True,
         "live_owner_consumption_claimed": False,
         "can_write_provider_attempt": False,
         "can_write_runtime_queue": False,
+        "mas_can_call_external_provider": False,
     }
 
 

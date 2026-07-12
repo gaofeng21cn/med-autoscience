@@ -40,7 +40,7 @@
       "authority_ref_metadata",
       "archive_refs",
       "owner_route_receipts",
-      "dispatch_receipts",
+      "runtime_receipt_refs",
       "stage_artifact_delta_refs"
     ],
     "local_persistence": "absent",

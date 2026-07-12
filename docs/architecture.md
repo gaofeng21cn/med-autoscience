@@ -39,11 +39,13 @@ canonical id 固定为 `mas`。`med-autoscience` 仅是 repo/package/plugin loca
 
 Pack 只声明需求和能力，不实现通用 transport、installer、workspace bootstrap、runtime shell 或 workbench。
 
-`mas-scholar-skills` 是 MAS 的必需能力包，不是可选外挂。独立仓库只形成开发、版本和发布边界；`contracts/opl_agent_package_manifest.json` 声明版本范围、capability ABI、11 个必需 Skill 与 8 个必需 module。OPL `packages` 统一解析和安装依赖闭包，持有 digest lock、lifecycle receipt、卸载保护、闭包级更新与回滚，并在 workspace/quest 激活时把核心 Skill 物化到对应 `.codex/skills/`。MAS 不再维护私有安装入口和重复 provider catalog，但本地 Codex discovery 功能不退役。包或当前 scope 缺失/不兼容时 MAS `operational_ready=false`，只进入 doctor/同 scope 的 `opl packages repair`。
+`mas-scholar-skills` 是 MAS 的必需能力包，不是可选外挂。独立仓库只形成开发、版本和发布边界；`contracts/opl_agent_package_manifest.json` 声明版本范围、capability ABI、11 个必需 Skill 与 8 个必需 module。OPL `connect agent-packages` 统一解析和安装依赖闭包，持有 digest lock、lifecycle receipt、卸载保护、闭包级更新与回滚；Framework module workflow 维护 checkout 的 `src/opl_framework` link。MAS 不维护私有安装入口、Framework lock 或第二套 package lifecycle。包缺失/不兼容时只消费 OPL status/repair owner surface。
 
 Foundry 系列 policy 只由唯一 OPL Framework 持有。MAS 的 `contracts/foundry_agent_series.json` 是 refs-only consumer contract，只记录 canonical contract refs、policy fingerprint、MAS domain delta 与 false-authority envelope；MAS 不复制 OPL policy body，也不声明本地 Framework 依赖。
 
 Framework Python helper 同样由 OPL 持有。OPL module workflow 在 MAS checkout 维护 `src/opl_framework` carrier；MAS 通过该 namespace 消费，不在 `pyproject.toml` 或 `uv.lock` 声明、安装或锁定 OPL implementation。
+
+`contracts/domain_descriptor.json#/standard_agent_interface` 是 OPL generic consumer 的 MAS-owned machine input。它以 `opl_standard_agent_interface.v1` 声明默认 profile/workspace/project 身份、workspace locator fields、安全 argv command templates、runtime registration ref、progress aliases 与 routing hints；不承载 package lock、provider state、domain truth 或 artifact authority。
 
 ## OPL 平台职责
 
@@ -56,6 +58,8 @@ OPL 是 generated/default owner：
 - 不写 MAS study truth、quality verdict、publication authority、artifact body 或 memory body。
 
 MAS 的 runtime 边界是单向的：MAS 生成 typed domain-route request / handoff，OPL host 负责 attempt submission、Temporal admission、查询与进程生命周期；MAS 只消费 host 注入的 canonical runtime payload，并按 study、route identity 与 owner authority fail-closed 校验。MAS 不解析 OPL binary、不启动 CLI、不做 live probe，也不把缺失 host receipt 写成已提交或运行中。
+
+Reference provider transport 同样单向：MAS 通过 OPL Framework carrier 调用 `opl connect references verify`，消费 OPL Connect 的 read-only provider receipt；reference authenticity、claim support、publication gate 与 owner consumption 仍归 MAS。
 
 `Codex CLI` 是 stage 内第一公民 executor；其他 executor adapter 必须显式接入，且不承诺质量等价。Temporal 是 hosted durable runtime 的 substrate，属于 OPL 平台边界。
 

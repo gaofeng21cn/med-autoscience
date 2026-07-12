@@ -19,7 +19,7 @@ SOURCE_FAMILIES = (
     "authority_ref_metadata",
     "archive_refs",
     "owner_route_receipts",
-    "dispatch_receipts",
+    "runtime_receipt_refs",
     "stage_artifact_delta_refs",
 )
 

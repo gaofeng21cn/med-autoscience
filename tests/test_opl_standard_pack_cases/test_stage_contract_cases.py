@@ -17,6 +17,65 @@ def test_pack_compiler_input_declares_canonical_agent_identity() -> None:
     assert materialized["domain_id"] == "mas"
 
 
+def test_domain_descriptor_exposes_generic_standard_agent_interface() -> None:
+    descriptor = _read_contract("domain_descriptor")
+    interface = descriptor["standard_agent_interface"]
+
+    assert interface["version"] == "opl_standard_agent_interface.v1"
+    assert interface["workspace_binding"] == {
+        "default_profile_id": "portfolio",
+        "workspace_kind": "medical_research_workspace",
+        "project_kind": "study",
+        "project_collection_label": "studies",
+        "default_workspace_id": "research-workspace",
+        "default_project_id": "study-001",
+        "locator_surface_kind": "med_autoscience_workspace_profile",
+        "required_locator_fields": ["profile_ref"],
+        "optional_locator_fields": ["workspace_root"],
+        "entry_command_template": interface["workspace_binding"]["entry_command_template"],
+        "manifest_command_template": interface["workspace_binding"]["manifest_command_template"],
+    }
+    for command_field in ("entry_command_template", "manifest_command_template"):
+        command = interface["workspace_binding"][command_field]
+        assert command[:7] == [
+            "uv",
+            "run",
+            "--isolated",
+            "--frozen",
+            "--project",
+            "{workspace_root}",
+            "python",
+        ]
+        assert command[-1] == "{profile_ref}"
+    assert interface["runtime"] == {
+        "runtime_domain_id": "mas",
+        "dispatch_command": None,
+        "registration_ref": "contracts/domain_route_profile.json",
+    }
+    assert interface["progress"] == {
+        "deliverable_delta_aliases": ["paper_progress_delta", "paper_work_progress"],
+        "platform_delta_aliases": ["runtime_transport_delta", "provider_attempt_delta"],
+    }
+    assert interface["routing"]["ambiguity_policy"] == (
+        "require_explicit_domain_selection_when_multiple_standard_agents_match"
+    )
+
+
+def test_package_manifest_routes_interface_and_lifecycle_to_opl_connect() -> None:
+    manifest = _read_contract("opl_agent_package_manifest")
+
+    assert manifest["domain_descriptor_ref"] == "contracts/domain_descriptor.json"
+    dependency = manifest["capability_dependencies"][0]
+    assert all(
+        command.startswith("opl connect agent-packages status --package-id mas")
+        for command in dependency["status_command_templates"].values()
+    )
+    assert all(
+        command.startswith("opl connect agent-packages repair --package-id mas")
+        for command in dependency["repair_command_templates"].values()
+    )
+
+
 def test_pack_compiler_input_declares_python_helper_boundary_without_generic_runtime() -> None:
     materialized = _read_contract("pack_compiler_input")
     profile = materialized["implementation_profile"]

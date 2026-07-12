@@ -7,7 +7,7 @@ Machine boundary: 本文只保留 closeout 结论。逐项 current status归 [MA
 
 ## 结论
 
-2026-07-10 批准的 12 项过度设计结构目标已全部落地。MAS 当前形态是：
+2026-07-10 的 closeout 曾将 12 项结构目标全部记为 landed；2026-07-12 的 active-caller 复审发现 OE-03、OE-11 仍有真实残留，因此本文件只保留历史 closeout 参考，当前完成度以 [MAS 理想目标态差距与完善计划](./mas-ideal-state-gap-plan.md) 为准。目标形态仍是：
 
 > `Declarative Medical Research Pack + OPL generated/hosted surfaces + minimal authority functions`
 
@@ -19,7 +19,7 @@ Machine boundary: 本文只保留 closeout 结论。逐项 current status归 [MA
 | --- | --- | --- |
 | OE-01 | dead code / empty exports | deleted |
 | OE-02 | unconsumed generated/package assets | deleted |
-| OE-03 | MAS-local StateIndex pilot | OPL StateIndex + body-free refs |
+| OE-03 | MAS-local StateIndex pilot | persistence retired；ref normalize/hash 待 OPL public carrier |
 | OE-04 | import-time editable bootstrap | standard packaging |
 | OE-05 | pytest aggregate collection | native pytest collection |
 | OE-06 | local environment/installer | OPL env/plugin provisioning |
@@ -27,12 +27,12 @@ Machine boundary: 本文只保留 closeout 结论。逐项 current status归 [MA
 | OE-08 | repo-local workbench | OPL hosted workbench |
 | OE-09 | Tool Arsenal/capability runtime | OPL-generated action surface |
 | OE-10 | hand-written CLI/MCP glue | OPL-generated interfaces |
-| OE-11 | runtime health/lifecycle/storage | OPL observability/lifecycle/StateIndex |
+| OE-11 | runtime health/lifecycle/storage | provider/readiness store retired；current-control/workspace/display/DAG 尚待迁 |
 | OE-12 | legacy next-action family | `StageOutcome -> NextActionEnvelope` |
 
 Exact completion evidence与 Live evidence分账见 [Active truth plan](./mas-ideal-state-gap-plan.md)。
 
-结构 closeout 的 L1-L4 已完成；双仓本地 full verification、吸收、push/readback 与 worktree cleanup 仍按 L5 执行。`scripts/run-build-clean.sh` 是保留的正式 build-isolation runner；退役的是旧 runtime/editable clean runner。
+旧 L1-L5 是历史 tranche，不再作为当前 12/12 完成证明。`scripts/run-build-clean.sh` 是保留的正式 build-isolation runner；退役的是旧 runtime/editable clean runner。
 
 ## No resurrection
 

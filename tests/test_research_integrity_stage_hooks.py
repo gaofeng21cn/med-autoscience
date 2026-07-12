@@ -96,9 +96,10 @@ def test_review_publication_gate_stage_hook_builds_reference_verification_gate_i
     assert payload["target_stage_ids"] == obligation["target_stage_ids"]
     provider_lookup = payload["triggered_domain_provider_lookup_contract"]
     assert provider_lookup == obligation["triggered_domain_provider_lookup_contract"]
-    assert provider_lookup["surface_kind"] == "mas_domain_provider_lookup_contract"
-    assert provider_lookup["owner"] == "MedAutoScience"
-    assert provider_lookup["provider_lookup_mode"] == "domain_owned_evidence_input_only"
+    assert provider_lookup["surface_kind"] == "opl_connect_reference_verification_contract"
+    assert provider_lookup["owner"] == "OPL Connect"
+    assert provider_lookup["provider_lookup_mode"] == "opl_connect_receipt_input_only"
+    assert provider_lookup["mas_can_call_external_provider"] is False
     assert provider_lookup["provider_evidence_consumed_by"] == "research-integrity-reference-verification"
     assert provider_lookup["mandatory_gate_input_only"] is True
     assert provider_lookup["live_owner_consumption_claimed"] is False

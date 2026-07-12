@@ -2196,18 +2196,17 @@
               "live_owner_consumption_claimed": false,
               "lookup_providers": [
                 "crossref",
-                "pubmed",
                 "openalex",
                 "semantic_scholar",
                 "publisher",
                 "crossmark"
               ],
               "mandatory_gate_input_only": true,
-              "owner": "MedAutoScience",
-              "provider_lookup_mode": "domain_owned_evidence_input_only",
+              "owner": "OPL Connect",
+              "provider_lookup_mode": "opl_connect_receipt_input_only",
               "provider_evidence_consumed_by": "research-integrity-reference-verification",
               "schema_version": 1,
-              "surface_kind": "mas_domain_provider_lookup_contract",
+              "surface_kind": "opl_connect_reference_verification_contract",
               "triggered_action": "research-integrity-reference-verification",
               "triggered_by_hook_id": "research-integrity-review-publication-gate-stage-hook"
             }
@@ -2775,18 +2774,17 @@
               "live_owner_consumption_claimed": false,
               "lookup_providers": [
                 "crossref",
-                "pubmed",
                 "openalex",
                 "semantic_scholar",
                 "publisher",
                 "crossmark"
               ],
               "mandatory_gate_input_only": true,
-              "owner": "MedAutoScience",
-              "provider_lookup_mode": "domain_owned_evidence_input_only",
+              "owner": "OPL Connect",
+              "provider_lookup_mode": "opl_connect_receipt_input_only",
               "provider_evidence_consumed_by": "research-integrity-reference-verification",
               "schema_version": 1,
-              "surface_kind": "mas_domain_provider_lookup_contract",
+              "surface_kind": "opl_connect_reference_verification_contract",
               "triggered_action": "research-integrity-reference-verification",
               "triggered_by_hook_id": "research-integrity-review-publication-gate-stage-hook"
             }

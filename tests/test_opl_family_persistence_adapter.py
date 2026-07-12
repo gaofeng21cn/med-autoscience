@@ -54,7 +54,7 @@ def test_state_index_source_adapter_builds_opl_family_adoption_surface(tmp_path:
             "authority_ref_metadata",
             "archive_refs",
             "owner_route_receipts",
-            "dispatch_receipts",
+            "runtime_receipt_refs",
             "stage_artifact_delta_refs",
         ],
         "local_persistence": "absent",
@@ -83,7 +83,7 @@ def test_state_index_source_adapter_builds_opl_family_adoption_surface(tmp_path:
     assert surface["payload"]["persistence"]["body_included"] is False
     assert surface["payload"]["owner_route"]["source_family"] == "owner_route_receipts"
     assert surface["payload"]["lifecycle"]["source_families"] == [
-        "dispatch_receipts",
+        "runtime_receipt_refs",
         "archive_refs",
     ]
     assert "publication_eval/latest.json" not in json.dumps(surface["payload"], ensure_ascii=False)

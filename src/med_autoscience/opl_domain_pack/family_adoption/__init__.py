@@ -454,7 +454,7 @@ def _body_free_adoption_payload(
         },
         "lifecycle": {
             "maps_to_opl_contract": "opl_family_lifecycle_contract.v1",
-            "source_families": ["dispatch_receipts", "archive_refs"],
+            "source_families": ["runtime_receipt_refs", "archive_refs"],
         },
         "owner_route": {
             "maps_to_opl_contract": "opl_family_owner_route_contract.v1",

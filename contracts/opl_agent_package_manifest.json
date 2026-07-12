@@ -8,6 +8,7 @@
   "source": "first_party_repo_local",
   "carrier_source_role": "codex_plugin_default_carrier_not_package_truth",
   "schema_ref": "one-person-lab/contracts/opl-framework/agent-package-manifest.schema.json",
+  "domain_descriptor_ref": "contracts/domain_descriptor.json",
   "machine_boundary": "This repo-local sidecar declares the MAS package and its required capability dependency. OPL owns dependency resolution, lock, lifecycle receipt, atomic update, rollback, and repair; MAS retains domain truth and authority.",
   "distribution_payload": {
     "payload_kind": "ghcr_oci_agent_package",
@@ -102,12 +103,12 @@
       },
       "missing_or_incompatible_policy": "fail_closed_to_doctor_and_repair",
       "status_command_templates": {
-        "workspace": "opl packages status --package-id mas --scope workspace --target-workspace <workspace-root> --json",
-        "quest": "opl packages status --package-id mas --scope quest --target-quest <quest-root> --json"
+        "workspace": "opl connect agent-packages status --package-id mas --json",
+        "quest": "opl connect agent-packages status --package-id mas --json"
       },
       "repair_command_templates": {
-        "workspace": "opl packages repair --package-id mas --scope workspace --target-workspace <workspace-root> --json",
-        "quest": "opl packages repair --package-id mas --scope quest --target-quest <quest-root> --json"
+        "workspace": "opl connect agent-packages repair --package-id mas --agent-root <agent-root> --json",
+        "quest": "opl connect agent-packages repair --package-id mas --agent-root <agent-root> --json"
       },
       "authority_boundary": {
         "can_write_domain_truth": false,

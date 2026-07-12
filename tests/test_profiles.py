@@ -359,14 +359,13 @@ def test_profile_to_dict_exposes_scholarskills_required_package_contract(tmp_pat
     )
     assert requirement["repair_command_templates"]["workspace"] == [
         "opl",
-        "packages",
+        "connect",
+        "agent-packages",
         "repair",
         "--package-id",
         "mas",
-        "--scope",
-        "workspace",
-        "--target-workspace",
-        "<workspace-root>",
+        "--agent-root",
+        "<agent-root>",
         "--json",
     ]
     assert "workspace" not in requirement

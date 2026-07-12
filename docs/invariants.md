@@ -20,7 +20,7 @@ Machine boundary: 本文是人读约束；机器事实以 contracts、source、r
 - MAS domain entry 只实现 handler targets 与医学 authority result，不变成 platform facade。
 - Foundry 系列 policy 归唯一 OPL Framework；MAS 只保留 canonical refs、policy fingerprint、domain delta 与 false-authority envelope，不复制 policy body，也不安装 Framework policy carrier。
 - 环境依赖在 `contracts/runtime_environment_requirements.json` 声明；prepare/run 归 OPL。MAS 可保留 `mas_provisioning_allowed=false` 的只读环境检查/投影，但不在 import、workspace 或 installer 中安装、修复环境，也不授权 ready。
-- `mas-scholar-skills` 是 MAS 硬依赖。核心 package、ABI 或任一必需 export 缺失/不兼容时必须 `operational_ready=false`，不得静默降级；安装、修复、更新、锁定、回滚和依赖卸载保护统一归 `opl packages`。可选 named-specialty Skill 不进入该 readiness floor。
+- `mas-scholar-skills` 是 MAS 硬依赖。核心 package、ABI 或任一必需 export 缺失/不兼容时必须 `operational_ready=false`，不得静默降级；安装、修复、更新、锁定、回滚和依赖卸载保护统一归 `opl connect agent-packages`。可选 named-specialty Skill 不进入该 readiness floor。
 
 ## Authority
 

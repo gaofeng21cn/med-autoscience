@@ -180,63 +180,26 @@
       "publication_readiness_owner"
     ]
   },
-  "generic_substrate_adapter_projection": {
-    "descriptor_surface": "action_catalog:domain_handler_export/opl_substrate_adapter",
-    "surface_kind": "mas_opl_generic_substrate_adapter",
-    "mode": "opaque_index_only_refs",
-    "source_ref_families": [
-      "workspace_refs",
-      "source_refs",
-      "artifact_refs",
-      "memory_refs"
+  "domain_ref_projection": {
+    "descriptor_surface": "action_catalog:domain-handler-export/domain_ref_projection",
+    "surface_kind": "mas_domain_ref_projection",
+    "mode": "body_free_domain_refs_only",
+    "workspace_binding_ref": "contracts/domain_descriptor.json#/standard_agent_interface/workspace_binding",
+    "state_index_owner": "one-person-lab",
+    "source_ref_contract": "med_autoscience.opl_domain_pack.state_index_source_refs.source_adapter_contract",
+    "mas_owns": [
+      "study_truth",
+      "medical_quality_and_publication_verdict",
+      "artifact_and_memory_authority",
+      "owner_receipt_and_typed_blocker_signing"
     ],
-    "maps_to_opl_contracts": {
-      "workspace_locator": "opl_family_workspace_locator_contract.v1",
-      "source_index": "opl_family_source_index_contract.v1",
-      "artifact_locator": "opl_family_artifact_locator_contract.v1",
-      "memory_locator": "opl_family_memory_locator_contract.v1",
-      "lifecycle_projection": "opl_family_lifecycle_contract.v1"
-    },
-    "projection_policy": {
-      "body_included": false,
-      "refs_are_opaque_to_opl": true,
-      "opl_may_index": true,
-      "opl_may_resolve_locator": true,
-      "opl_may_manage_lifecycle": true,
-      "opl_may_project_status": true,
-      "opl_may_write_mas_truth": false,
-      "opl_may_write_memory_body": false,
-      "opl_may_write_evidence_ledger": false,
-      "opl_may_write_review_ledger": false,
-      "opl_may_write_publication_or_artifact_authority": false
-    },
-    "authority_boundary": {
-      "mas_owns": [
-        "study_truth",
-        "memory_body",
-        "evidence_ledger",
-        "review_ledger",
-        "publication_authority",
-        "artifact_authority"
-      ],
-      "opl_owns": [
-        "locator",
-        "index",
-        "lifecycle",
-        "projection"
-      ],
-      "forbidden_opl_authority_surfaces": [
-        "publication_eval/latest.json",
-        "controller_decisions/latest.json",
-        "paper/evidence/evidence_ledger.json",
-        "paper/review/review_ledger.json",
-        "paper/manuscript/current_package",
-        "manuscript/current_package",
-        "current_package.zip",
-        "publication_route_memory_body",
-        "publication_route_memory_acceptance_receipt_acceptance"
-      ]
-    }
+    "opl_owns": [
+      "workspace_locator_resolution",
+      "state_index_persistence",
+      "artifact_and_memory_locator_transport",
+      "lifecycle_and_status_projection"
+    ],
+    "body_included": false
   },
   "pack_compiler_adoption": {
     "surface_kind": "mas_opl_pack_compiler_adoption",
@@ -628,7 +591,7 @@
       "runtime/artifacts/opl_state_index_source_adapter/authority_refs_source.json",
       "study_macro_state/latest.json",
       "domain_route_owner_route",
-      "domain_route_dispatch_receipt",
+      "opl_runtime_domain_handler_receipt_ref",
       "domain_diagnostic_report/latest.json",
       "controller_decisions/latest.json"
     ],
@@ -636,7 +599,7 @@
       "authority_ref_metadata",
       "archive_refs",
       "owner_route_receipts",
-      "dispatch_receipts",
+      "runtime_receipt_refs",
       "stage_artifact_delta_refs"
     ],
     "maps_to_opl_contracts": {

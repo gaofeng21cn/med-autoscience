@@ -71,7 +71,15 @@ Foundry 系列 canonical policy 只存在于 OPL Framework。MAS 不声明或安
 
 ## D-17 ScholarSkills 硬依赖
 
-`mas-scholar-skills` 与 MAS 是产品级一对一硬依赖：MAS 是唯一获得运行兼容性承诺的 required consumer；其他智能体可以只读发现或评估其 refs，但不能据此获得通用 runtime dependency 承诺。代码仓保持独立，用户安装面统一为一次 `opl packages install mas`。OPL 按依赖闭包原子安装、锁定、更新、回滚并保护卸载；MAS 只声明 consumer ABI 和消费 OPL status，不拥有第二套安装器。
+`mas-scholar-skills` 与 MAS 是产品级一对一硬依赖：MAS 是唯一获得运行兼容性承诺的 required consumer；其他智能体可以只读发现或评估其 refs，但不能据此获得通用 runtime dependency 承诺。代码仓保持独立，package lifecycle 统一走 `opl connect agent-packages`。OPL 按依赖闭包原子安装、锁定、更新、回滚并保护卸载；MAS 只声明 consumer ABI 和消费 OPL status，不拥有第二套安装器。
+
+## D-18 Standard Agent interface descriptor
+
+默认 profile/workspace/project 身份、workspace binding、direct-entry command template、runtime registration ref、progress aliases 与 routing hints 由 MAS 在 `contracts/domain_descriptor.json#/standard_agent_interface` 按 `opl_standard_agent_interface.v1` 声明，由 OPL generic consumer 验证和消费。OPL 不再从静态 registry 推断 MAS domain body，MAS 也不生成第二套 hosted surface。
+
+## D-19 Provider 与 dispatch transport
+
+Reference provider invocation/retry/cache/receipt 归 OPL Connect；domain-handler transport receipt persistence 归 OPL Runway/Ledger。MAS 只保留医学 reference judgment、domain result、owner receipt/typed blocker signer 与 forbidden-write guard，不在 workspace 创建通用 dispatch receipt store。
 
 ## D-18 Stage prompt 自主性与专业依赖
 

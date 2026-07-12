@@ -4,7 +4,7 @@ Owner: `MedAutoScience`
 Purpose: `single_active_truth_plan`
 State: `active_plan`
 Machine boundary: 本文是人读完成度矩阵。机器事实归 contracts、source、tests、OPL generated/readback surfaces、workspace artifacts 与 owner receipts。
-Date: `2026-07-11`
+Date: `2026-07-12`
 
 ## 目标态
 
@@ -26,7 +26,7 @@ canonical id 是 `mas`。OPL 从 MAS pack、action catalog 与 schemas 生成或
 | --- | --- | --- | --- | --- |
 | OE-01 | 无调用代码与空导出 | 删除无生产 caller 的 ports/policy 与无效 export | `done` | source caller scan、retirement diff |
 | OE-02 | 未消费的打包/生成资产 | 删除未消费 block 与 repo-tracked generated display catalog；MAS whitepaper builder 已删除，OPL generic runner 消费 domain profile | `done` | package inventory、OPL runner、最终 whitepaper bytes/render fingerprint |
-| OE-03 | MAS-local StateIndex pilot | 上收到 OPL StateIndex；MAS 只从 `opl_domain_pack.state_index_source_refs` 提供 body-free source refs | `done` | `contracts/generated_surface_handoff.json`、runtime tombstones、OPL StateIndex readback |
+| OE-03 | MAS-local StateIndex pilot | 持久化已上收到 OPL；MAS 仍有 ref normalize/hash active caller，等待 OPL public normalizer | `partial` | `opl_domain_pack.state_index_source_refs`、OPL StateIndex readback |
 | OE-04 | import-time editable bootstrap | 已删除 `sitecustomize.py` 与旧 runtime/editable clean runner；回归标准 Python packaging、`uv` native isolated no-project execution 与 OPL workspace override。`scripts/run-build-clean.sh` 继续作为正式 build-isolation runner | `done` | `pyproject.toml`、native `uv` checkout-zero-cache proof、bootstrap absence guard |
 | OE-05 | pytest wildcard 聚合收集 | 恢复 pytest 原生递归收集，删除 re-export plumbing | `done` | pytest collection、test-lane manifest |
 | OE-06 | 本地环境/installer/plugin provisioning | MAS 只声明 requirement profile并保留不安装、不修复、不授权 ready 的只读环境检查；overlay installer 已删除，OPL `env prepare/run` 与 Connect 负责 Python/R/Bioconductor 和 skill sync | `done` | `contracts/runtime_environment_requirements.json`、OPL Connect receipt、no-provisioning guard |
@@ -34,10 +34,23 @@ canonical id 是 `mas`。OPL 从 MAS pack、action catalog 与 schemas 生成或
 | OE-08 | repo-local Workbench/cockpit | 删除本地 UI/render shell与 compatibility caller；OPL hosted workbench 只消费 body-free refs | `done` | `contracts/domain_descriptor.json`、generated surface handoff、caller scan |
 | OE-09 | Tool Arsenal/Capability Runtime | action metadata 成为单一输入，由 OPL 生成 tool/interface surface | `done` | `contracts/action_catalog.json`、pack compiler input |
 | OE-10 | 手写 CLI/MCP glue | OPL 生成 CLI/MCP/Skill/product-entry；MAS 只保留 handler targets，旧 stage-plane caller 已切换 | `done` | domain descriptor、22-action catalog、OPL generated stage plane |
-| OE-11 | MAS runtime health/lifecycle/storage | runtime lifecycle、local state、attempt submission、live probe 与 generic readback归 OPL StageRun/current-control/StateIndex；MAS 只输出 typed route handoff、消费 host 注入 payload，并保留医学 blocker、owner receipt 与 mutation gate | `done` | generated surface handoff、functional audit、OPL lifecycle/StateIndex readback、旧 submission/probe 路径 caller scan |
+| OE-11 | MAS runtime health/lifecycle/storage | provider/readiness builder 与 dispatch persistence 已退役；current-control 聚合、workspace/status materialization、Display transport、gate DAG 仍待迁 OPL public carrier | `partial` | standard interface descriptor、OPL carrier imports、active-caller scan |
 | OE-12 | 旧 next-action 控制面族 | 默认 authority 收敛到 `StageOutcome -> NextActionEnvelope`；旧 producer 物理退役或 tombstone-only | `done` | next-action contract、runtime completion audit、legacy tombstones |
 
-OE-01 至 OE-12 的 repo/source/control-plane 结构目标均为 `done`。L1-L5 已完成，双仓本地验证、提交、push 与 target-ref readback 已闭环。
+OE-01 至 OE-12 中 OE-03、OE-11 当前为 `partial`；此前 12/12 `done` 的结论已由 2026-07-12 active-caller 复审核正。已有历史 L1-L5 closeout 仍作为当时证据保留，但不能覆盖本轮发现的真实调用链残留。
+
+## 2026-07-12 标准智能体边界 tranche
+
+| ID | 迁移项 | 状态 | Fresh evidence |
+| --- | --- | --- | --- |
+| B1 | `standard_agent_interface` descriptor + package manifest ref | `done` | machine contract + focused consumer tests |
+| B2 | OPL Framework public contract builders | `done` | `opl_framework.family_entry_contracts` active imports |
+| B3 | domain-handler transport receipt persistence | `done` | private store deleted；result declares OPL transport owner |
+| B4 | provider/Temporal/readiness export bundle | `done` | 5 adapter modules deleted；export only emits runtime handoff refs/intent |
+| B5 | scientific provider transport | `done` | MAS HTTP adapters deleted；OPL Connect canonical receipt consumed |
+| B6 | current-control/StageAttempt readback | `partial` | OPL canonical Python readback/identity carrier prerequisite |
+| B7 | Workspace/Stage Folder/status + Display transport | `partial` | OPL Workspace/Stagecraft/Runway Python/generated carrier prerequisite |
+| B8 | gate-clearing DAG + StateIndex normalizer | `partial` | OPL Stagecraft/Ledger public interface prerequisite |
 
 上述结构状态只覆盖 repo/source/control-plane；不表示 runtime、paper line、publication、submission 或 production ready。
 
