@@ -314,7 +314,8 @@ def _ordinary_progress_handoff_proof(
         "audit_sidecar_can_generate_default_next_action": False,
         "readiness_inventory_can_generate_default_next_action": False,
         "provider_completion_is_success": False,
-        "success_path_requires_owner_receipt_or_stable_typed_blocker": True,
+        "success_path_requires_progress_receipt_owner_answer_or_hard_stop": True,
+        "owner_receipt_required_for_quality_or_ready_claim": True,
         "body_included": False,
     }
 

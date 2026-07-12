@@ -143,6 +143,10 @@ def terminalize_stage_closure(
         semantic_delta=delta,
         repair_budget=budget,
         repeated_without_delta=repeated_without_delta,
+        consumable_artifact_observed=_has_consumable_artifact(
+            semantic_delta=delta,
+            delivery=delivery,
+        ),
     )
     observability_gaps = _observability_gaps(closeout)
     decision = {
@@ -418,6 +422,7 @@ def _select_outcome(
     semantic_delta: Mapping[str, Any],
     repair_budget: Mapping[str, Any],
     repeated_without_delta: bool,
+    consumable_artifact_observed: bool,
 ) -> dict[str, Any]:
     gate_status = _text(gate.get("gate_replay_status")) or _text(gate.get("status"))
     mirror_blockers = list(classes.get("mirror_sync") or [])
@@ -436,22 +441,15 @@ def _select_outcome(
             resume_condition="resolve hard authority boundary before stage closure can proceed",
         )
     if route_back_checkpoint_blockers and budget_status == "exhausted":
-        return {
-            "kind": OUTCOME_NEXT_STAGE_TRANSITION,
-            "transition_kind": "degraded_handoff",
-            "next_owner": "human_review",
-            "next_action": "review_degraded_handoff_package",
-            "package_kind": "degraded_handoff_package",
-            "can_submit": False,
-            "requires_bundle_build_allowed": False,
-            "known_blockers": blockers,
-            "resume_condition": (
-                "route-back checkpoint consumed the repair budget; ship a "
-                "bounded low-quality handoff package or record a human/MAS decision"
-            ),
-            "authority_materialized": False,
-        }
-    if route_back_checkpoint_blockers and repeated_without_delta:
+        if consumable_artifact_observed:
+            return _quality_debt_transition(blockers=blockers)
+        return _typed_blocker_outcome(
+            blocker_type="zero_consumable_artifact",
+            blockers=route_back_checkpoint_blockers,
+            next_owner="MedAutoScience",
+            resume_condition="materialize at least one readable paper-facing artifact before advancing",
+        )
+    if route_back_checkpoint_blockers and repeated_without_delta and not consumable_artifact_observed:
         return _typed_blocker_outcome(
             blocker_type="route_back_checkpoint_without_semantic_delta",
             blockers=route_back_checkpoint_blockers,
@@ -478,6 +476,8 @@ def _select_outcome(
             "authority_materialized": False,
         }
     if unknown_blockers and not (quality_blockers or mirror_blockers or submission_authority_blockers):
+        if consumable_artifact_observed:
+            return _quality_debt_transition(blockers=blockers)
         return _typed_blocker_outcome(
             blocker_type="unclassified_stage_closure_blocker",
             blockers=unknown_blockers,
@@ -498,18 +498,16 @@ def _select_outcome(
             "authority_materialized": False,
         }
     if quality_blockers and budget_status == "exhausted":
-        return {
-            "kind": OUTCOME_NEXT_STAGE_TRANSITION,
-            "transition_kind": "degraded_handoff",
-            "next_owner": "human_review",
-            "next_action": "review_degraded_handoff_package",
-            "package_kind": "degraded_handoff_package",
-            "can_submit": False,
-            "requires_bundle_build_allowed": False,
-            "known_blockers": blockers,
-            "resume_condition": "human or MAS owner accepts carry-forward risk, narrows scope, or requests targeted repair",
-            "authority_materialized": False,
-        }
+        if consumable_artifact_observed:
+            return _quality_debt_transition(blockers=blockers)
+        return _typed_blocker_outcome(
+            blocker_type="zero_consumable_artifact",
+            blockers=quality_blockers,
+            next_owner="MedAutoScience",
+            resume_condition="materialize at least one readable paper-facing artifact before advancing",
+        )
+    if repeated_without_delta and consumable_artifact_observed:
+        return _quality_debt_transition(blockers=blockers)
     if repeated_without_delta:
         return _typed_blocker_outcome(
             blocker_type="same_signature_without_semantic_delta",
@@ -517,7 +515,7 @@ def _select_outcome(
             next_owner="MedAutoScience",
             resume_condition="produce a paper-facing delta, owner decision, human gate, or scoped carry-forward decision before retry",
         )
-    if quality_blockers:
+    if quality_blockers and budget_status == "remaining":
         return {
             "kind": OUTCOME_NEXT_STAGE_TRANSITION,
             "transition_kind": "bounded_quality_repair_iteration",
@@ -530,6 +528,15 @@ def _select_outcome(
             "resume_condition": "produce a new semantic repair delta or terminal owner answer",
             "authority_materialized": False,
         }
+    if quality_blockers and consumable_artifact_observed:
+        return _quality_debt_transition(blockers=blockers)
+    if quality_blockers:
+        return _typed_blocker_outcome(
+            blocker_type="zero_consumable_artifact",
+            blockers=quality_blockers,
+            next_owner="MedAutoScience",
+            resume_condition="materialize at least one readable paper-facing artifact before advancing",
+        )
     if submission_authority_blockers:
         return _human_gate_outcome(
             gate_type="submission_authority_required",
@@ -559,6 +566,40 @@ def _select_outcome(
         blockers=blockers,
         next_owner="MedAutoScience",
         resume_condition="stage closure reducer could not select a legal next transition",
+    )
+
+
+def _quality_debt_transition(*, blockers: Sequence[str]) -> dict[str, Any]:
+    return {
+        "kind": OUTCOME_NEXT_STAGE_TRANSITION,
+        "transition_kind": "completed_with_quality_debt",
+        "completion_status": "completed_with_quality_debt",
+        "next_owner": "next_stage_owner",
+        "next_action": "advance_next_stage_with_quality_debt",
+        "package_kind": "degraded_handoff_package",
+        "can_submit": False,
+        "requires_bundle_build_allowed": False,
+        "known_blockers": _unique_texts(blockers),
+        "quality_debt": {
+            "status": "open",
+            "blocks_stage_transition": False,
+            "blocks_quality_export_or_ready_claims": True,
+        },
+        "resume_condition": "repair debt later or obtain MAS owner acceptance before quality/export/readiness claims",
+        "authority_materialized": False,
+    }
+
+
+def _has_consumable_artifact(
+    *,
+    semantic_delta: Mapping[str, Any],
+    delivery: Mapping[str, Any],
+) -> bool:
+    return bool(
+        _semantic_delta_refs(semantic_delta)
+        or delivery.get("current_package_exists") is True
+        or _text(delivery.get("root"))
+        or _text(delivery.get("zip_path"))
     )
 
 

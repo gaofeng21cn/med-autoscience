@@ -430,9 +430,10 @@ stage_native_semantic_pack:
       - pairwise_debate_ref_advisory
       - evolution_ref_advisory
       - meta_review_summary_ref_advisory
-    fail_closed_reviewer_independence: &fail_closed_reviewer_independence
-      required: true
-      fail_closed_if_missing_or_same_invocation: true
+    quality_claim_reviewer_independence: &quality_claim_reviewer_independence
+      required_for_quality_or_ready_claim: true
+      missing_or_same_invocation_blocks_stage_transition: false
+      missing_or_same_invocation_records_quality_debt: true
       invalid_sources:
         - executor_self_review
         - provider_completion
@@ -513,7 +514,7 @@ stage_native_semantic_pack:
           - question_population_evidence_boundary
           - novelty_and_prior_art_boundary
           - source_readiness_floor
-        independence: *fail_closed_reviewer_independence
+        independence: *quality_claim_reviewer_independence
       stage_completion_policy:
         <<: *standard_stage_completion_policy
         policy_ref: stage-completion-policy:mas/scout
@@ -583,7 +584,7 @@ stage_native_semantic_pack:
           - data_fit
           - testability
           - stop_rule
-        independence: *fail_closed_reviewer_independence
+        independence: *quality_claim_reviewer_independence
       stage_completion_policy:
         <<: *standard_stage_completion_policy
         policy_ref: stage-completion-policy:mas/idea
@@ -655,7 +656,7 @@ stage_native_semantic_pack:
           - source_readiness
           - comparator_validity
           - failed_comparator_lessons
-        independence: *fail_closed_reviewer_independence
+        independence: *quality_claim_reviewer_independence
       stage_completion_policy:
         <<: *standard_stage_completion_policy
         policy_ref: stage-completion-policy:mas/baseline
@@ -727,7 +728,7 @@ stage_native_semantic_pack:
           - negative_result_preservation
           - deviation_refs
           - reproducible_lineage
-        independence: *fail_closed_reviewer_independence
+        independence: *quality_claim_reviewer_independence
       stage_completion_policy:
         <<: *standard_stage_completion_policy
         policy_ref: stage-completion-policy:mas/experiment
@@ -801,7 +802,7 @@ stage_native_semantic_pack:
           - claim_boundary
           - route_impact
           - failed_path_preservation
-        independence: *fail_closed_reviewer_independence
+        independence: *quality_claim_reviewer_independence
       stage_completion_policy:
         <<: *standard_stage_completion_policy
         policy_ref: stage-completion-policy:mas/analysis-campaign
@@ -876,7 +877,7 @@ stage_native_semantic_pack:
           - citation_support
           - reader_risk
           - display_to_claim_consistency
-        independence: *fail_closed_reviewer_independence
+        independence: *quality_claim_reviewer_independence
       stage_completion_policy:
         <<: *standard_stage_completion_policy
         policy_ref: stage-completion-policy:mas/write
@@ -950,7 +951,7 @@ stage_native_semantic_pack:
           - medical_quality_judgment
           - currentness
           - route_back_or_blocker_mapping
-        independence: *fail_closed_reviewer_independence
+        independence: *quality_claim_reviewer_independence
       stage_completion_policy:
         <<: *standard_stage_completion_policy
         policy_ref: stage-completion-policy:mas/review
@@ -1024,7 +1025,7 @@ stage_native_semantic_pack:
           - submission_readiness_boundary
           - source_and_package_currentness
           - human_gate_status
-        independence: *fail_closed_reviewer_independence
+        independence: *quality_claim_reviewer_independence
       stage_completion_policy:
         <<: *standard_stage_completion_policy
         policy_ref: stage-completion-policy:mas/finalize
@@ -1097,7 +1098,7 @@ stage_native_semantic_pack:
           - go_stop_reroute_human_gate_authority
           - no_platform_repair_as_progress
           - no_advisory_signal_as_authority
-        independence: *fail_closed_reviewer_independence
+        independence: *quality_claim_reviewer_independence
       stage_completion_policy:
         <<: *standard_stage_completion_policy
         policy_ref: stage-completion-policy:mas/decision
@@ -1171,7 +1172,7 @@ stage_native_semantic_pack:
           - export_profile_currentness
           - package_constraints_do_not_authorize_submission
           - human_gate_boundary
-        independence: *fail_closed_reviewer_independence
+        independence: *quality_claim_reviewer_independence
       stage_completion_policy:
         <<: *standard_stage_completion_policy
         policy_ref: stage-completion-policy:mas/journal-resolution

@@ -55,7 +55,10 @@ def test_completion_audit_preserves_domain_authority_and_opl_ownership() -> None
         inventory["authority_boundary"]["opl_owns"]
     )
     assert audit["authority_invariants"][
-        "stage_outcome_requires_owner_receipt_or_typed_blocker"
+        "stage_outcome_requires_progress_receipt_owner_answer_or_hard_stop"
+    ] is True
+    assert audit["authority_invariants"][
+        "owner_receipt_required_for_quality_publication_or_submission_claim"
     ] is True
     assert audit["authority_invariants"]["same_identity_runtime_readback_required"] is True
     assert audit["authority_invariants"]["request_only_projection_is_completion"] is False

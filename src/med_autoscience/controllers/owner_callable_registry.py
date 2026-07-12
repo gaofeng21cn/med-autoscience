@@ -208,7 +208,8 @@ def paper_work_unit_lifecycle_contract() -> dict[str, Any]:
                 ],
                 "required_output_refs": ["artifacts/publication_eval/latest.json"],
                 "completion_proof": {
-                    "requires_owner_receipt_or_typed_blocker": True,
+                    "requires_progress_receipt_owner_answer_or_hard_stop": True,
+                    "owner_receipt_required_for_quality_or_ready_claim": True,
                     "currentness_required": True,
                 },
                 "next_owner_rules": {

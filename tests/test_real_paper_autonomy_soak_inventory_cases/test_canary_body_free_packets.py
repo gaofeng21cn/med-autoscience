@@ -83,7 +83,8 @@ def _assert_ordinary_owner_chain_proof(
     assert proof["audit_sidecar_can_generate_default_next_action"] is False
     assert proof["readiness_inventory_can_generate_default_next_action"] is False
     assert proof["provider_completion_is_success"] is False
-    assert proof["success_path_requires_owner_receipt_or_stable_typed_blocker"] is True
+    assert proof["success_path_requires_progress_receipt_owner_answer_or_hard_stop"] is True
+    assert proof["owner_receipt_required_for_quality_or_ready_claim"] is True
     assert proof["body_included"] is False
     assert result["accepted_closeout_shape"] == accepted_shape
     assert result["ProgressDeltaReceipt_or_OwnerReceipt_or_TypedBlocker"] == accepted_shape
@@ -245,6 +246,7 @@ def test_dm002_effective_eval_sprint_canary_requires_progress_delta_before_quali
         "claims_artifact_mutation_authorized": False,
     }
     assert fixture_expectations["accepted_terminal_shapes"] == [
+        "progress_delta_receipt_with_quality_debt_and_routeback",
         "owner_receipt_with_required_ref_families",
         "stable_typed_blocker_with_required_routeback",
     ]

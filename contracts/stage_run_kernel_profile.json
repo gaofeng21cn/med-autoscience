@@ -4,7 +4,7 @@
   "domain_id": "med-autoscience",
   "owner": "MedAutoScience / OPL Framework",
   "state": "active_contract",
-  "purpose": "Machine-readable StageRun Kernel profile for Stage Native execution: stage folder, stage_manifest, role artifacts, and MAS owner receipt or typed blocker.",
+  "purpose": "Machine-readable StageRun Kernel profile for Stage Native execution: stage folder, stage_manifest, role artifacts, and validated progress receipt, owner answer, or legal hard stop.",
   "machine_boundary": "This profile defines a minimal StageRun state shell and authority boundary. It does not declare paper closure, publication readiness, domain readiness, quality readiness, artifact readiness, current_package freshness, or production readiness.",
   "source_design_ref": "human_doc:mas_opl_stage_native_state_machine",
   "stage_folder_contract_ref": "contracts/opl-framework/stage-artifact-runtime-contract.json",
@@ -27,14 +27,21 @@
     "stage_folder",
     "stage_manifest",
     "role_artifacts",
-    "owner_receipt_or_typed_blocker"
+    "progress_receipt_or_owner_answer_or_hard_stop"
   ],
   "kernel_role": "minimal_state_shell_not_mas_controller_system",
   "stage_folder_manifest_role": "artifact_evidence_and_structure_contract",
-  "transition_authority": "mas_owner_receipt_or_typed_blocker_only",
+  "transition_authority": {
+    "terminal_transition_authority": "consumable_artifact_progress_or_owner_answer_or_hard_stop",
+    "provider_completion_counts_as_transition": false,
+    "file_presence_counts_as_transition": false,
+    "quality_budget_exhaustion_blocks_transition": false,
+    "owner_receipt_required_for_quality_or_ready_claim": true
+  },
   "required_object_models": [
     "StageRun",
     "ArtifactRef",
+    "ProgressDeltaReceipt",
     "OwnerReceipt",
     "TypedBlocker",
     "ReadModel"
@@ -67,9 +74,10 @@
       "artifact_ref_must_include_lineage": true
     },
     "closeout_contract": {
-      "requires_owner_receipt_or_typed_blocker": true,
-      "owner_receipt_ref_role": "domain_success_or_route_handoff_authority",
-      "typed_blocker_ref_role": "domain_blocked_or_deferred_authority",
+      "requires_progress_receipt_or_owner_answer_or_hard_stop": true,
+      "owner_receipt_required_for_quality_or_ready_claim": true,
+      "owner_receipt_ref_role": "domain_quality_or_ready_claim_authority",
+      "typed_blocker_ref_role": "legal_hard_stop_authority",
       "output_only_stage_folder_is_orphan": true
     },
     "projection_contract": {
@@ -102,16 +110,18 @@
       "Admitted": "OPL accepted a WorkUnitRun and created task, lease, or attempt refs.",
       "Running": "Provider attempt has live proof.",
       "Terminalizing": "Provider wrote a closeout packet and OPL is ingesting terminal refs.",
-      "DomainAccepted": "MAS consumed closeout and signed OwnerReceipt or TypedBlocker.",
-      "NextStageReady": "Route emitted next StageRun spec, human gate, or owner action from accepted receipt/blocker."
+      "DomainAccepted": "MAS validated consumable artifact progress, consumed an owner answer, or recorded a legal hard stop.",
+      "NextStageReady": "Route emitted the next StageRun spec from validated progress, an owner answer, or a legal hard stop."
     },
     "terminal_transition_authority": {
-      "DomainAccepted": "MAS consumes closeout and signs OwnerReceipt or TypedBlocker",
-      "NextStageReady": "route emitted from accepted OwnerReceipt or stable TypedBlocker"
+      "DomainAccepted": "MAS validates consumable artifact progress, consumes an owner answer, or records a legal hard stop",
+      "NextStageReady": "route emitted from validated progress, an owner answer, or a legal hard stop"
     },
     "provider_completion_counts_as_domain_accepted": false,
     "stage_folder_files_count_as_next_stage_ready": false,
     "latest_json_counts_as_domain_accepted": false,
+    "validated_consumable_artifact_progress_counts_as_transition": true,
+    "quality_debt_counts_as_quality_acceptance": false,
     "active_run_id_counts_as_paper_progress": false
   },
   "launch_admission_policy": {
@@ -226,6 +236,7 @@
         "audit_sidecar_passive"
       ],
       "accepted_terminal_shapes": [
+        "ProgressDeltaReceipt",
         "OwnerReceipt",
         "TypedBlocker"
       ],
@@ -235,7 +246,8 @@
       "audit_sidecar_can_generate_default_next_action": false,
       "audit_sidecar_can_close_stage": false,
       "audit_sidecar_can_claim_domain_ready": false,
-      "success_path_requires_owner_receipt_or_stable_typed_blocker": true
+      "success_path_requires_progress_receipt_owner_answer_or_hard_stop": true,
+      "owner_receipt_required_for_quality_or_ready_claim": true
     }
   },
   "coscientist_stage_strategy_boundary": {
@@ -254,7 +266,8 @@
     "strategy_refs_can_close_quality_gate": false,
     "strategy_refs_can_promote_stage": false,
     "quality_gate_requires_independent_reviewer_or_auditor_receipt": true,
-    "promotion_requires_owner_receipt_or_stable_typed_blocker": true,
+    "promotion_requires_progress_receipt_owner_answer_or_hard_stop": true,
+    "owner_receipt_required_for_quality_or_ready_claim": true,
     "progress_jit_affordance_role": "current_owner_native_jit_affordance_not_control_surface",
     "progress_jit_affordance_mechanisms": [
       "next_delta_tournament",

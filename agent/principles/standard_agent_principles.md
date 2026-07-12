@@ -5,7 +5,7 @@ Purpose: legacy MAS-local pointer for standard-agent principle projection and do
 State: `active_agent_source`
 Machine boundary: human-readable compatibility pointer. Machine-readable adoption is in `contracts/standard-agent-principles-adoption.json`; canonical local projections are `agent/principles/opl-standard-agent-principles.md` and `agent/principles/domain-specialization.md`.
 
-MAS now adopts the OPL Standard Agent AI-first principle pack through the nine canonical principle ids:
+MAS now adopts the OPL Standard Agent AI-first principle pack through the ten canonical principle ids:
 
 - `ai_first_execution`
 - `contract_backed_boundary`
@@ -14,6 +14,7 @@ MAS now adopts the OPL Standard Agent AI-first principle pack through the nine c
 - `domain_intake_mapping`
 - `workspace_source_intake_shell`
 - `owner_delta_progress`
+- `quality_budget_progress_first`
 - `parallel_executor_autonomy`
 - `module_organization`
 

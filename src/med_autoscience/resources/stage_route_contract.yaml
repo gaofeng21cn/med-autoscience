@@ -125,6 +125,7 @@ ordinary_progress_handoff_policy:
     - readiness_jit_scope
     - audit_sidecar_passive
     accepted_terminal_shapes:
+    - ProgressDeltaReceipt
     - OwnerReceipt
     - TypedBlocker
     provider_completion_can_close: false
@@ -133,7 +134,8 @@ ordinary_progress_handoff_policy:
     audit_sidecar_can_generate_default_next_action: false
     audit_sidecar_can_close_stage: false
     audit_sidecar_can_claim_domain_ready: false
-    success_path_requires_owner_receipt_or_stable_typed_blocker: true
+    success_path_requires_progress_receipt_owner_answer_or_hard_stop: true
+    owner_receipt_required_for_quality_or_ready_claim: true
 anti_loop_policy:
   source_ref: agent/stages/stage_route_contract.yaml#/anti_loop_policy
   ordinary_path_root: NextActionEnvelope

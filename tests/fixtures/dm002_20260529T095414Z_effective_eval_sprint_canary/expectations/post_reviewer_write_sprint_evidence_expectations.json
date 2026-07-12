@@ -4,8 +4,9 @@
   "study_id": "002-dm-china-us-mortality-attribution",
   "effective_eval_id": "20260529T095414Z",
   "scope": "contract_expectation_only",
-  "description": "After a current positive AI-reviewer or write sprint path, DM002 must either expose the required research audit ref families or return a stable typed blocker that names the missing families and route-back owner.",
+  "description": "After a current positive AI-reviewer or write sprint path, DM002 advances a consumable artifact with a progress receipt and quality debt when audit ref families remain incomplete; owner receipts guard quality/readiness claims and stable typed blockers are reserved for legal hard stops.",
   "accepted_terminal_shapes": [
+    "progress_delta_receipt_with_quality_debt_and_routeback",
     "owner_receipt_with_required_ref_families",
     "stable_typed_blocker_with_required_routeback"
   ],

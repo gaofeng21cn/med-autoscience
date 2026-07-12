@@ -11,12 +11,18 @@ SURFACE_KIND = "bounded_reviewer_repair_residual_user_review"
 SCHEMA_VERSION = 1
 
 _BLOCKING_GAP_SEVERITIES = frozenset({"must_fix", "important"})
-_HARD_REVIEW_BLOCKER_SEVERITIES = frozenset({"critical", "fatal", "hard_blocker"})
-_HARD_REVIEW_BLOCKER_FLAGS = (
-    "blocks_auto_advance",
-    "hard_blocker",
-    "hard_gate",
-    "requires_human_gate",
+_LEGAL_HARD_REVIEW_GATE_KINDS = frozenset(
+    {
+        "zero_consumable_artifact",
+        "artifact_corrupt_or_unreadable",
+        "safety_or_compliance",
+        "permission_or_credential_boundary",
+        "human_or_expert_gate",
+        "artifact_mutation_authority_gate",
+        "authority_boundary_violation",
+        "forbidden_write_guard",
+        "stale_or_mismatched_stage_identity",
+    }
 )
 
 
@@ -277,21 +283,14 @@ def _is_actionable_residual(item: Mapping[str, Any]) -> bool:
 
 
 def _has_hard_gate_marker(item: Mapping[str, Any]) -> bool:
-    if _text(item.get("severity")) in _HARD_REVIEW_BLOCKER_SEVERITIES:
+    if item.get("requires_human_gate") is True:
         return True
-    if _text(item.get("blocker_type")) in _HARD_REVIEW_BLOCKER_SEVERITIES:
-        return True
-    for flag in _HARD_REVIEW_BLOCKER_FLAGS:
-        if item.get(flag) is True:
-            return True
-    gate_kind = _text(item.get("gate_kind")) or _text(item.get("gate"))
-    return gate_kind in {
-        "source_readiness_gate",
-        "publication_gate",
-        "artifact_mutation_authority_gate",
-        "human_or_expert_gate",
-        "forbidden_write_guard",
-    }
+    gate_kind = (
+        _text(item.get("gate_kind"))
+        or _text(item.get("gate"))
+        or _text(item.get("blocker_type"))
+    )
+    return gate_kind in _LEGAL_HARD_REVIEW_GATE_KINDS
 
 
 def _positive_int(value: object) -> int | None:

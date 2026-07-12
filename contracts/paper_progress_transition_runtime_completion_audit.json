@@ -44,7 +44,8 @@
       "observability",
       "workbench_shell"
     ],
-    "stage_outcome_requires_owner_receipt_or_typed_blocker": true,
+    "stage_outcome_requires_progress_receipt_owner_answer_or_hard_stop": true,
+    "owner_receipt_required_for_quality_publication_or_submission_claim": true,
     "same_identity_runtime_readback_required": true,
     "request_only_projection_is_completion": false,
     "source_adapter_manifest_is_live_state_index_readback": false

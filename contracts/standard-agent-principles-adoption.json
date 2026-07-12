@@ -15,6 +15,7 @@
     "domain_intake_mapping",
     "workspace_source_intake_shell",
     "owner_delta_progress",
+    "quality_budget_progress_first",
     "parallel_executor_autonomy",
     "module_organization"
   ],
@@ -39,7 +40,8 @@
       "stage_id": "direction_and_route_selection",
       "prompt_ref": "agent/principles/domain-specialization.md#mas-study-intake",
       "is_standalone_skill": false,
-      "owner_receipt_or_typed_blocker_required": true,
+      "owner_receipt_or_typed_blocker_required": false,
+      "consumable_artifact_progress_receipt_allowed": true,
       "accepted_outputs": [
         "study_truth_snapshot_ref",
         "source_readiness_assessment_ref",

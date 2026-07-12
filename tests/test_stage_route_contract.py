@@ -176,7 +176,10 @@ def test_stage_native_semantic_pack_covers_all_stage_obligation_fields() -> None
         assert stage_completion["provider_completion_is_domain_completion"] is False
         assert stage_completion["authority_boundary"]["opl_can_decide_domain_completion"] is False
         assert stage_payload["portfolio_input"]["advisory_signals"]
-        assert stage_payload["quality_gate"]["independence"]["fail_closed_if_missing_or_same_invocation"] is True
+        independence = stage_payload["quality_gate"]["independence"]
+        assert independence["required_for_quality_or_ready_claim"] is True
+        assert independence["missing_or_same_invocation_blocks_stage_transition"] is False
+        assert independence["missing_or_same_invocation_records_quality_debt"] is True
         assert stage_payload["opl_projection"]["forbidden"]
 
 

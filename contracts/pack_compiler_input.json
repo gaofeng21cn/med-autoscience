@@ -185,7 +185,9 @@
   "independent_executor_reviewer_agent_policy": {
     "codex_cli_may_serve_both_roles_only_as_separate_invocations": true,
     "executor_agent_role": "stage_work_executor",
-    "missing_independent_reviewer_record_policy": "fail_closed_or_route_back",
+    "missing_independent_reviewer_record_policy": "quality_debt_and_route_back_without_stage_block",
+    "missing_independent_reviewer_record_blocks_stage_transition": false,
+    "independent_reviewer_record_required_for_quality_or_ready_claim": true,
     "required": true,
     "reviewer_auditor_agent_role": "quality_gate_reviewer_or_auditor",
     "reviewer_receipt_executor_binding_field": "reviewed_executor_receipt_ref",

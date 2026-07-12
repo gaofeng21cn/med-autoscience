@@ -3,6 +3,21 @@
   "version": "opl-standard-agent-declarative-stage-manifest.v1",
   "target_domain_id": "mas",
   "owner": "mas",
+  "progress_first_policy": {
+    "consumable_artifact_advances_stage": true,
+    "retry_review_and_repair_limits_are_quality_budgets": true,
+    "quality_budget_exhaustion_status": "completed_with_quality_debt",
+    "quality_debt_blocks_stage_transition": false,
+    "quality_debt_blocks_quality_export_or_ready_claims": true,
+    "hard_stop_classes": [
+      "zero_consumable_artifact",
+      "artifact_corrupt_or_unreadable",
+      "permission_or_credential_boundary",
+      "explicit_human_decision",
+      "authority_boundary_violation",
+      "identity_or_currentness_mismatch"
+    ]
+  },
   "stages": [
     {
       "stage_id": "direction_and_route_selection",
@@ -230,10 +245,11 @@
           "candidate_promotion_requires_validator": true,
           "consumption_boundary": "refs_only_no_body_no_authority_transfer",
           "descriptor_ref": "/product_entry_manifest/family_stage_control_plane_descriptor/hypothesis_portfolio_evidence_pack",
-          "fail_closed_output_shape": {
-            "blocker_id": "missing_hypothesis_portfolio_ref_family",
-            "route_back_owner": "required",
-            "status": "typed_blocker"
+          "missing_ref_output_policy": {
+            "with_consumable_candidate": "completed_with_quality_debt",
+            "without_consumable_candidate": "typed_blocker",
+            "quality_debt_blocks_stage_transition": false,
+            "quality_debt_blocks_promotion_or_ready_claims": true
           },
           "knowledge_ref": "agent/knowledge/hypothesis_portfolio_evidence_pack.md",
           "progress_enhancement_ref_families": [
@@ -607,10 +623,11 @@
           "candidate_promotion_requires_validator": true,
           "consumption_boundary": "refs_only_no_body_no_authority_transfer",
           "descriptor_ref": "/product_entry_manifest/family_stage_control_plane_descriptor/hypothesis_portfolio_evidence_pack",
-          "fail_closed_output_shape": {
-            "blocker_id": "missing_hypothesis_portfolio_ref_family",
-            "route_back_owner": "required",
-            "status": "typed_blocker"
+          "missing_ref_output_policy": {
+            "with_consumable_candidate": "completed_with_quality_debt",
+            "without_consumable_candidate": "typed_blocker",
+            "quality_debt_blocks_stage_transition": false,
+            "quality_debt_blocks_promotion_or_ready_claims": true
           },
           "knowledge_ref": "agent/knowledge/hypothesis_portfolio_evidence_pack.md",
           "progress_enhancement_ref_families": [
@@ -981,10 +998,11 @@
           "candidate_promotion_requires_validator": true,
           "consumption_boundary": "refs_only_no_body_no_authority_transfer",
           "descriptor_ref": "/product_entry_manifest/family_stage_control_plane_descriptor/hypothesis_portfolio_evidence_pack",
-          "fail_closed_output_shape": {
-            "blocker_id": "missing_hypothesis_portfolio_ref_family",
-            "route_back_owner": "required",
-            "status": "typed_blocker"
+          "missing_ref_output_policy": {
+            "with_consumable_candidate": "completed_with_quality_debt",
+            "without_consumable_candidate": "typed_blocker",
+            "quality_debt_blocks_stage_transition": false,
+            "quality_debt_blocks_promotion_or_ready_claims": true
           },
           "knowledge_ref": "agent/knowledge/hypothesis_portfolio_evidence_pack.md",
           "progress_enhancement_ref_families": [
@@ -1351,10 +1369,11 @@
           "candidate_promotion_requires_validator": true,
           "consumption_boundary": "refs_only_no_body_no_authority_transfer",
           "descriptor_ref": "/product_entry_manifest/family_stage_control_plane_descriptor/hypothesis_portfolio_evidence_pack",
-          "fail_closed_output_shape": {
-            "blocker_id": "missing_hypothesis_portfolio_ref_family",
-            "route_back_owner": "required",
-            "status": "typed_blocker"
+          "missing_ref_output_policy": {
+            "with_consumable_candidate": "completed_with_quality_debt",
+            "without_consumable_candidate": "typed_blocker",
+            "quality_debt_blocks_stage_transition": false,
+            "quality_debt_blocks_promotion_or_ready_claims": true
           },
           "knowledge_ref": "agent/knowledge/hypothesis_portfolio_evidence_pack.md",
           "progress_enhancement_ref_families": [
@@ -1524,17 +1543,20 @@
         },
         "typed_cognitive_subpacket_gate": {
           "admission_gate": {
-            "candidate_packet_can_close_stage": false,
-            "fail_closed": true,
+            "candidate_packet_can_close_stage": true,
+            "fail_closed": false,
+            "quality_claim_fail_closed": true,
             "gate_decision_outputs": [
               "owner_receipt",
               "route_back",
               "typed_blocker",
-              "human_gate"
+              "human_gate",
+              "completed_with_quality_debt"
             ],
             "gate_id": "manuscript_packet_admission_gate",
             "gate_owner": "MedAutoScience",
-            "owner_receipt_or_typed_blocker_required": true,
+            "owner_receipt_or_typed_blocker_required": false,
+            "consumable_packet_progress_receipt_allowed": true,
             "package_freshness_can_claim_ready": false,
             "ready_claim_requires": [
               "MAS owner receipt accepting the packet",
@@ -1579,7 +1601,8 @@
           ],
           "launch_surface": "stage_contract.typed_cognitive_subpacket_gate",
           "packet_id": "manuscript_packet",
-          "packet_required_before_stage_completion": true,
+          "packet_required_before_stage_completion": false,
+          "packet_required_before_quality_or_ready_claim": true,
           "packet_role": "canonical_manuscript_handoff_candidate",
           "packet_surface_kind": "mas_manuscript_authoring_packet",
           "produced_ref_families": [
@@ -1834,10 +1857,11 @@
           "candidate_promotion_requires_validator": true,
           "consumption_boundary": "refs_only_no_body_no_authority_transfer",
           "descriptor_ref": "/product_entry_manifest/family_stage_control_plane_descriptor/hypothesis_portfolio_evidence_pack",
-          "fail_closed_output_shape": {
-            "blocker_id": "missing_hypothesis_portfolio_ref_family",
-            "route_back_owner": "required",
-            "status": "typed_blocker"
+          "missing_ref_output_policy": {
+            "with_consumable_candidate": "completed_with_quality_debt",
+            "without_consumable_candidate": "typed_blocker",
+            "quality_debt_blocks_stage_transition": false,
+            "quality_debt_blocks_promotion_or_ready_claims": true
           },
           "knowledge_ref": "agent/knowledge/hypothesis_portfolio_evidence_pack.md",
           "progress_enhancement_ref_families": [
@@ -2011,17 +2035,20 @@
         },
         "typed_cognitive_subpacket_gate": {
           "admission_gate": {
-            "candidate_packet_can_close_stage": false,
-            "fail_closed": true,
+            "candidate_packet_can_close_stage": true,
+            "fail_closed": false,
+            "quality_claim_fail_closed": true,
             "gate_decision_outputs": [
               "owner_receipt",
               "route_back",
               "typed_blocker",
-              "human_gate"
+              "human_gate",
+              "completed_with_quality_debt"
             ],
             "gate_id": "independent_review_packet_admission_gate",
             "gate_owner": "MedAutoScience",
-            "owner_receipt_or_typed_blocker_required": true,
+            "owner_receipt_or_typed_blocker_required": false,
+            "consumable_packet_progress_receipt_allowed": true,
             "package_freshness_can_claim_ready": false,
             "ready_claim_requires": [
               "MAS owner receipt accepting the packet",
@@ -2066,7 +2093,8 @@
           ],
           "launch_surface": "stage_contract.typed_cognitive_subpacket_gate",
           "packet_id": "independent_review_packet",
-          "packet_required_before_stage_completion": true,
+          "packet_required_before_stage_completion": false,
+          "packet_required_before_quality_or_ready_claim": true,
           "packet_role": "independent_reviewer_auditor_gate_input",
           "packet_surface_kind": "mas_independent_review_packet",
           "produced_ref_families": [
@@ -2402,10 +2430,11 @@
           "candidate_promotion_requires_validator": true,
           "consumption_boundary": "refs_only_no_body_no_authority_transfer",
           "descriptor_ref": "/product_entry_manifest/family_stage_control_plane_descriptor/hypothesis_portfolio_evidence_pack",
-          "fail_closed_output_shape": {
-            "blocker_id": "missing_hypothesis_portfolio_ref_family",
-            "route_back_owner": "required",
-            "status": "typed_blocker"
+          "missing_ref_output_policy": {
+            "with_consumable_candidate": "completed_with_quality_debt",
+            "without_consumable_candidate": "typed_blocker",
+            "quality_debt_blocks_stage_transition": false,
+            "quality_debt_blocks_promotion_or_ready_claims": true
           },
           "knowledge_ref": "agent/knowledge/hypothesis_portfolio_evidence_pack.md",
           "progress_enhancement_ref_families": [
@@ -2583,17 +2612,20 @@
         },
         "typed_cognitive_subpacket_gate": {
           "admission_gate": {
-            "candidate_packet_can_close_stage": false,
-            "fail_closed": true,
+            "candidate_packet_can_close_stage": true,
+            "fail_closed": false,
+            "quality_claim_fail_closed": true,
             "gate_decision_outputs": [
               "owner_receipt",
               "route_back",
               "typed_blocker",
-              "human_gate"
+              "human_gate",
+              "completed_with_quality_debt"
             ],
             "gate_id": "publication_handoff_admission_gate",
             "gate_owner": "MedAutoScience",
-            "owner_receipt_or_typed_blocker_required": true,
+            "owner_receipt_or_typed_blocker_required": false,
+            "consumable_packet_progress_receipt_allowed": true,
             "package_freshness_can_claim_ready": false,
             "ready_claim_requires": [
               "MAS owner receipt accepting the packet",
@@ -2638,7 +2670,8 @@
           ],
           "launch_surface": "stage_contract.typed_cognitive_subpacket_gate",
           "packet_id": "publication_handoff_admission_packet",
-          "packet_required_before_stage_completion": true,
+          "packet_required_before_stage_completion": false,
+          "packet_required_before_quality_or_ready_claim": true,
           "packet_role": "publication_handoff_candidate_before_external_delivery",
           "packet_surface_kind": "mas_publication_handoff_admission_packet",
           "produced_ref_families": [

@@ -100,7 +100,15 @@ def validate_hypothesis_portfolio_candidate_refs(
         if _present_ref(candidate.get(ref_family))
     ]
     forbidden_authority_claims = _forbidden_progress_enhancement_authority_claims(candidate)
-    status = "validated" if not missing_ref_families and not forbidden_authority_claims else "typed_blocker"
+    consumable_candidate = _present_ref(candidate.get("candidate_id")) or _present_ref(
+        candidate.get("hypothesis_candidate_ref")
+    )
+    if forbidden_authority_claims or (missing_ref_families and not consumable_candidate):
+        status = "typed_blocker"
+    elif missing_ref_families:
+        status = "completed_with_quality_debt"
+    else:
+        status = "validated"
     result: dict[str, object] = {
         "surface_kind": "mas_hypothesis_portfolio_candidate_validation",
         "validator_ref": HYPOTHESIS_PORTFOLIO_VALIDATOR_REF,
@@ -124,7 +132,15 @@ def validate_hypothesis_portfolio_candidate_refs(
         "progress_enhancement_authority_boundary": dict(PROGRESS_ENHANCEMENT_AUTHORITY_BOUNDARY),
         "forbidden_authority_claims": forbidden_authority_claims,
     }
-    if missing_ref_families:
+    if missing_ref_families and consumable_candidate and not forbidden_authority_claims:
+        result["quality_debt"] = {
+            "status": "open",
+            "debt_code": "missing_hypothesis_portfolio_ref_family",
+            "missing_ref_families": missing_ref_families,
+            "blocks_stage_transition": False,
+            "blocks_candidate_promotion_or_ready_claims": True,
+        }
+    elif missing_ref_families:
         typed_blocker = {
             "blocker_id": "missing_hypothesis_portfolio_ref_family",
             "blocker_family": "hypothesis_portfolio_missing_required_ref",
@@ -236,9 +252,12 @@ def build_hypothesis_portfolio_evidence_pack_contract() -> dict[str, object]:
         "progress_enhancement_refs_block_route": False,
         "candidate_validation_output_contract": {
             "success_status": "validated",
+            "consumable_candidate_missing_refs_status": "completed_with_quality_debt",
             "blocked_status": "typed_blocker",
             "can_promote_candidate_requires": "all_required_ref_families_present",
             "missing_required_ref_blocker_id": "missing_hypothesis_portfolio_ref_family",
+            "quality_debt_blocks_stage_transition": False,
+            "quality_debt_blocks_candidate_promotion_or_ready_claims": True,
             "route_back_owner_required_when_blocked": True,
         },
         "progress_enhancement_contract": {
@@ -261,9 +280,12 @@ def build_hypothesis_portfolio_evidence_pack_contract() -> dict[str, object]:
             "debate_winner",
             "candidate_evolution_order",
         ],
-        "fail_closed_missing_ref_policy": (
-            "emit_typed_blocker_naming_missing_hypothesis_portfolio_ref_family_and_route_back_owner"
-        ),
+        "missing_ref_policy": {
+            "consumable_candidate": "completed_with_quality_debt_and_continue",
+            "zero_consumable_candidate": "emit_typed_blocker_and_route_back_owner",
+            "quality_debt_blocks_stage_transition": False,
+            "quality_debt_blocks_candidate_promotion_or_ready_claims": True,
+        },
         "authority_boundary": authority,
     }
 
@@ -285,10 +307,18 @@ def stage_hypothesis_portfolio_evidence_pack_contract() -> dict[str, object]:
         "advisory_ref_families": list(descriptor["advisory_only_refs"]),
         "progress_enhancement_ref_families": list(descriptor["progress_enhancement_refs"]),
         "progress_enhancement_refs_block_route": False,
-        "fail_closed_output_shape": {
-            "status": "typed_blocker",
-            "blocker_id": "missing_hypothesis_portfolio_ref_family",
-            "route_back_owner": "required",
+        "candidate_output_shapes": {
+            "validated": {"status": "validated"},
+            "consumable_with_missing_refs": {
+                "status": "completed_with_quality_debt",
+                "blocks_stage_transition": False,
+                "blocks_candidate_promotion_or_ready_claims": True,
+            },
+            "zero_consumable_candidate": {
+                "status": "typed_blocker",
+                "blocker_id": "missing_hypothesis_portfolio_ref_family",
+                "route_back_owner": "required",
+            },
         },
     }
 

@@ -57,7 +57,8 @@ def test_stage_manifest_keeps_six_top_level_stages_with_typed_subpacket_gates() 
 
         assert gate["surface_kind"] == "mas_typed_cognitive_subpacket_gate"
         assert gate["packet_id"] == packet_id
-        assert gate["packet_required_before_stage_completion"] is True
+        assert gate["packet_required_before_stage_completion"] is False
+        assert gate["packet_required_before_quality_or_ready_claim"] is True
         assert gate["readback_surface"] == "stage_contract.typed_cognitive_subpacket_gate"
         assert gate["launch_surface"] == "stage_contract.typed_cognitive_subpacket_gate"
         assert gate["contract_source_ref"].startswith(
@@ -71,13 +72,15 @@ def test_stage_manifest_keeps_six_top_level_stages_with_typed_subpacket_gates() 
         assert set(gate["forbidden_ready_claims"]) == FORBIDDEN_READY_CLAIMS
 
         admission_gate = gate["admission_gate"]
-        assert admission_gate["fail_closed"] is True
-        assert admission_gate["owner_receipt_or_typed_blocker_required"] is True
-        assert admission_gate["candidate_packet_can_close_stage"] is False
+        assert admission_gate["fail_closed"] is False
+        assert admission_gate["quality_claim_fail_closed"] is True
+        assert admission_gate["owner_receipt_or_typed_blocker_required"] is False
+        assert admission_gate["consumable_packet_progress_receipt_allowed"] is True
+        assert admission_gate["candidate_packet_can_close_stage"] is True
         assert admission_gate["specialist_output_can_claim_ready"] is False
         assert admission_gate["test_pass_can_claim_ready"] is False
         assert admission_gate["package_freshness_can_claim_ready"] is False
-        assert {"owner_receipt", "route_back", "typed_blocker", "human_gate"} == set(
+        assert {"owner_receipt", "route_back", "typed_blocker", "human_gate", "completed_with_quality_debt"} == set(
             admission_gate["gate_decision_outputs"]
         )
 

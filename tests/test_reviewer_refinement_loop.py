@@ -666,6 +666,27 @@ def test_reviewer_refinement_loop_keeps_hard_reviewer_blocker_after_round_budget
     assert read_model["residual_user_review"]["required"] is False
 
 
+def test_reviewer_refinement_loop_treats_publication_quality_gate_as_debt_not_stage_stop(
+    tmp_path: Path,
+) -> None:
+    module = importlib.import_module(MODULE_NAME)
+    study_root = tmp_path / "workspace" / "studies" / "001-risk"
+    payload = _blocking_payload(study_root)
+    payload["gaps"][0]["severity"] = "must_fix"
+    payload["gaps"][0]["gate_kind"] = "publication_gate"
+    _write_json(study_root / "artifacts" / "publication_eval" / "latest.json", payload)
+    _write_review_repair_round(study_root, current_round=3)
+
+    read_model = module.build_reviewer_refinement_loop_read_model(study_root=study_root)
+    policy = read_model["bounded_review_repair_policy"]
+
+    assert policy["status"] == "auto_advance_with_residual_user_review"
+    assert policy["auto_advance_allowed"] is True
+    assert policy["budget_exhausted"] is True
+    assert policy["hard_blockers"] == []
+    assert read_model["residual_user_review"]["required"] is True
+
+
 def test_reviewer_refinement_loop_batches_multiple_gaps_per_callable_surface(
     tmp_path: Path,
 ) -> None:

@@ -53,7 +53,7 @@ def test_hypothesis_portfolio_candidate_can_promote_only_with_required_refs() ->
     }
 
 
-def test_hypothesis_portfolio_candidate_missing_required_refs_fails_closed() -> None:
+def test_hypothesis_portfolio_candidate_missing_required_refs_records_quality_debt() -> None:
     candidate = _complete_candidate()
     for ref in (
         "supporting_evidence_ref",
@@ -69,10 +69,8 @@ def test_hypothesis_portfolio_candidate_missing_required_refs_fails_closed() -> 
         route_back_owner="idea",
     )
 
-    assert result["status"] == "typed_blocker"
+    assert result["status"] == "completed_with_quality_debt"
     assert result["can_promote_candidate"] is False
-    assert result["blocker_id"] == "missing_hypothesis_portfolio_ref_family"
-    assert result["route_back_owner"] == "idea"
     assert result["missing_ref_families"] == [
         "supporting_evidence_ref",
         "contradicting_evidence_ref",
@@ -80,12 +78,12 @@ def test_hypothesis_portfolio_candidate_missing_required_refs_fails_closed() -> 
         "independent_reviewer_or_auditor_receipt_ref",
         "owner_receipt_or_typed_blocker_ref",
     ]
-    assert result["typed_blocker"] == {
-        "blocker_id": "missing_hypothesis_portfolio_ref_family",
-        "blocker_family": "hypothesis_portfolio_missing_required_ref",
-        "route_back_owner": "idea",
+    assert result["quality_debt"] == {
+        "status": "open",
+        "debt_code": "missing_hypothesis_portfolio_ref_family",
         "missing_ref_families": result["missing_ref_families"],
-        "required_action": "record_missing_refs_or_return_route_back_owner_typed_blocker",
+        "blocks_stage_transition": False,
+        "blocks_candidate_promotion_or_ready_claims": True,
     }
 
 
@@ -102,12 +100,20 @@ def test_advisory_refs_never_authorize_hypothesis_promotion() -> None:
         route_back_owner="decision",
     )
 
-    assert result["status"] == "typed_blocker"
+    assert result["status"] == "completed_with_quality_debt"
     assert result["can_promote_candidate"] is False
     assert result["advisory_refs_are_authority"] is False
     assert result["present_advisory_ref_families"] == HYPOTHESIS_PORTFOLIO_ADVISORY_REFS
-    assert result["blocker_id"] == "missing_hypothesis_portfolio_ref_family"
+    assert result["quality_debt"]["debt_code"] == "missing_hypothesis_portfolio_ref_family"
     assert set(result["missing_ref_families"]) == set(HYPOTHESIS_PORTFOLIO_REQUIRED_REFS)
+
+
+def test_zero_consumable_hypothesis_candidate_remains_typed_blocker() -> None:
+    result = _validate_candidate({}, route_back_owner="decision")
+
+    assert result["status"] == "typed_blocker"
+    assert result["can_promote_candidate"] is False
+    assert result["blocker_id"] == "missing_hypothesis_portfolio_ref_family"
 
 
 def test_missing_progress_enhancement_refs_do_not_block_complete_candidate() -> None:
@@ -163,7 +169,7 @@ def test_progress_enhancement_authority_leak_fails_closed() -> None:
     }
 
 
-def test_hypothesis_portfolio_contract_exposes_fail_closed_validator() -> None:
+def test_hypothesis_portfolio_contract_exposes_progress_first_validator() -> None:
     descriptor = build_hypothesis_portfolio_evidence_pack_descriptor()
     contract = build_hypothesis_portfolio_evidence_pack_contract()
     stage_contract = stage_hypothesis_portfolio_evidence_pack_contract()
@@ -176,9 +182,12 @@ def test_hypothesis_portfolio_contract_exposes_fail_closed_validator() -> None:
 
     assert contract["candidate_validation_output_contract"] == {
         "success_status": "validated",
+        "consumable_candidate_missing_refs_status": "completed_with_quality_debt",
         "blocked_status": "typed_blocker",
         "can_promote_candidate_requires": "all_required_ref_families_present",
         "missing_required_ref_blocker_id": "missing_hypothesis_portfolio_ref_family",
+        "quality_debt_blocks_stage_transition": False,
+        "quality_debt_blocks_candidate_promotion_or_ready_claims": True,
         "route_back_owner_required_when_blocked": True,
     }
     assert contract["progress_enhancement_contract"] == {
@@ -194,8 +203,16 @@ def test_hypothesis_portfolio_contract_exposes_fail_closed_validator() -> None:
         ],
         "opportunistic_prefetch_blocks_mainline": False,
     }
-    assert stage_contract["fail_closed_output_shape"] == {
-        "status": "typed_blocker",
-        "blocker_id": "missing_hypothesis_portfolio_ref_family",
-        "route_back_owner": "required",
+    assert stage_contract["candidate_output_shapes"] == {
+        "validated": {"status": "validated"},
+        "consumable_with_missing_refs": {
+            "status": "completed_with_quality_debt",
+            "blocks_stage_transition": False,
+            "blocks_candidate_promotion_or_ready_claims": True,
+        },
+        "zero_consumable_candidate": {
+            "status": "typed_blocker",
+            "blocker_id": "missing_hypothesis_portfolio_ref_family",
+            "route_back_owner": "required",
+        },
     }

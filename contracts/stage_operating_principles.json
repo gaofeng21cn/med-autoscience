@@ -17,7 +17,7 @@
       "input_refs",
       "current_owner",
       "accepted_answer_shape",
-      "owner_receipt_or_typed_blocker",
+      "progress_receipt_or_owner_answer_or_hard_stop",
       "handoff_packet",
       "current_pointer",
       "authority_boundary"
@@ -34,7 +34,12 @@
     "preflight_or_quality_review_can_loop_without_deliverable_delta": false,
     "quality_gaps_block_ordinary_progress_by_default": false,
     "safe_action_before_diagnostic_reconcile": true,
-    "next_delta_must_be_deliverable_receipt_blocker_or_handoff": true
+    "next_delta_must_be_deliverable_receipt_blocker_or_handoff": true,
+    "consumable_artifact_advances_stage": true,
+    "retry_review_and_repair_limits_are_quality_budgets": true,
+    "quality_budget_exhaustion_status": "completed_with_quality_debt",
+    "quality_debt_blocks_stage_transition": false,
+    "quality_debt_blocks_quality_export_or_ready_claims": true
   },
   "default_read_surface": {
     "root": "current_owner_delta",
@@ -53,16 +58,20 @@
     "cleanup_delete_gate"
   ],
   "hard_stop_gates": [
+    "zero_consumable_artifact",
+    "artifact_corrupt_or_unreadable",
     "safety_or_compliance",
     "permission_or_credential_boundary",
     "human_decision_required",
     "irreversible_write_or_delete",
     "authority_boundary_violation",
-    "missing_owner_answer_shape",
     "stale_or_mismatched_stage_identity"
   ],
   "accepted_next_delta_shapes": [
     "deliverable_delta_ref",
+    "consumable_artifact_ref",
+    "progress_delta_receipt_ref",
+    "quality_debt_ref",
     "owner_receipt_ref",
     "typed_blocker_ref",
     "human_gate_ref",

@@ -103,11 +103,15 @@ def test_quality_blockers_budget_exhausted_degrade_to_handoff_package() -> None:
             "repair_budget_max": 3,
             "repair_attempt_count": 3,
         },
+        semantic_delta={"paper_delta_refs": ["artifact:repaired-manuscript"]},
     )
 
     outcome = decision["outcome"]
     assert outcome["kind"] == "next_stage_transition"
-    assert outcome["transition_kind"] == "degraded_handoff"
+    assert outcome["transition_kind"] == "completed_with_quality_debt"
+    assert outcome["completion_status"] == "completed_with_quality_debt"
+    assert outcome["quality_debt"]["blocks_stage_transition"] is False
+    assert outcome["quality_debt"]["blocks_quality_export_or_ready_claims"] is True
     assert outcome["package_kind"] == "degraded_handoff_package"
     assert outcome["can_submit"] is False
     assert outcome["requires_bundle_build_allowed"] is False
@@ -117,6 +121,44 @@ def test_quality_blockers_budget_exhausted_degrade_to_handoff_package() -> None:
         "claim_evidence_consistency_failed",
         "submission_hardening_incomplete",
     }
+
+
+def test_unknown_quality_shape_with_artifact_advances_as_quality_debt() -> None:
+    decision = terminalize_stage_closure(
+        study_id="quality-debt-study",
+        stage_id="manuscript_authoring",
+        work_unit_id="draft-v1",
+        gate_replay={
+            "gate_replay_status": "blocked",
+            "gate_replay_blockers": ["unclassified_reviewer_shape_gap"],
+        },
+        semantic_delta={"paper_delta_refs": ["artifact:manuscript-v1"]},
+    )
+
+    outcome = decision["outcome"]
+    assert outcome["kind"] == "next_stage_transition"
+    assert outcome["transition_kind"] == "completed_with_quality_debt"
+    assert outcome["quality_debt"]["blocks_stage_transition"] is False
+    assert outcome["can_submit"] is False
+
+
+def test_runtime_retry_budget_exhaustion_with_artifact_advances_as_quality_debt() -> None:
+    decision = terminalize_stage_closure(
+        study_id="runtime-recovery-study",
+        stage_id="manuscript_authoring",
+        work_unit_id="draft-after-runtime-retries",
+        gate_replay={
+            "gate_replay_status": "blocked",
+            "gate_replay_blockers": ["runtime_recovery_retry_budget_exhausted"],
+        },
+        semantic_delta={"paper_delta_refs": ["artifact:manuscript-best-available"]},
+    )
+
+    outcome = decision["outcome"]
+    assert outcome["kind"] == "next_stage_transition"
+    assert outcome["transition_kind"] == "completed_with_quality_debt"
+    assert outcome["quality_debt"]["blocks_stage_transition"] is False
+    assert outcome["can_submit"] is False
 
 
 def test_quality_repair_batch_nested_budget_exhaustion_degrades_to_handoff() -> None:
@@ -142,6 +184,7 @@ def test_quality_repair_batch_nested_budget_exhaustion_degrades_to_handoff() -> 
                 "repair_budget_status": "remaining",
             },
         },
+        semantic_delta={"paper_delta_refs": ["artifact:quality-repair-v2"]},
     )
 
     assert decision["repair_budget"] == {
@@ -151,8 +194,8 @@ def test_quality_repair_batch_nested_budget_exhaustion_degrades_to_handoff() -> 
         "on_exhausted": "degraded_handoff",
     }
     assert decision["outcome"]["kind"] == "next_stage_transition"
-    assert decision["outcome"]["transition_kind"] == "degraded_handoff"
-    assert decision["outcome"]["next_action"] == "review_degraded_handoff_package"
+    assert decision["outcome"]["transition_kind"] == "completed_with_quality_debt"
+    assert decision["outcome"]["next_action"] == "advance_next_stage_with_quality_debt"
 
 
 def test_same_signature_without_semantic_delta_terminalizes_to_typed_blocker() -> None:
@@ -372,11 +415,12 @@ def test_route_back_checkpoint_budget_exhaustion_degrades_to_handoff() -> None:
             "gate_replay_blockers": ["accepted_submission_milestone_candidate"],
         },
         repair_budget={"repair_budget_max": 2, "repair_attempt_count": 2},
+        semantic_delta={"paper_delta_refs": ["artifact:route-back-candidate"]},
     )
 
     outcome = decision["outcome"]
     assert outcome["kind"] == "next_stage_transition"
-    assert outcome["transition_kind"] == "degraded_handoff"
+    assert outcome["transition_kind"] == "completed_with_quality_debt"
     assert outcome["package_kind"] == "degraded_handoff_package"
     assert decision["repair_budget"]["repair_budget_status"] == "exhausted"
 
