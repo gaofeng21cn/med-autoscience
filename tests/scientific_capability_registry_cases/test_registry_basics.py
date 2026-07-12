@@ -15,6 +15,9 @@ def test_scientific_capability_registry_resolves_current_delta_bound_candidates(
 
     assert registry["surface_kind"] == "mas_scientific_capability_registry"
     assert registry["default_policy"]["fail_open"] is True
+    assert registry["default_policy"]["required_capability_package_fail_closed"] is True
+    assert registry["scholarskills_required_package"]["required"] is True
+    assert registry["scholarskills_required_package"]["package_id"] == "mas-scholar-skills"
     assert registry["default_policy"]["always_on_scan"] is False
     assert registry["default_policy"]["wildcard_action_triggers_auto_select"] is False
     assert set(SCHOLARSKILLS_MODULE_IDS) <= set(capabilities)

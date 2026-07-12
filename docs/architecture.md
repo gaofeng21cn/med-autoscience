@@ -39,6 +39,8 @@ canonical id 固定为 `mas`。`med-autoscience` 仅是 repo/package/plugin loca
 
 Pack 只声明需求和能力，不实现通用 transport、installer、workspace bootstrap、runtime shell 或 workbench。
 
+`mas-scholar-skills` 是 MAS 的必需能力包，不是可选外挂。独立仓库只形成开发、版本和发布边界；`contracts/opl_agent_package_manifest.json` 声明版本范围、capability ABI、11 个必需 Skill 与 8 个必需 module。OPL `packages` 统一解析和安装依赖闭包，持有 digest lock、lifecycle receipt、卸载保护、闭包级更新与回滚，并在 workspace/quest 激活时把核心 Skill 物化到对应 `.codex/skills/`。MAS 不再维护私有安装入口和重复 provider catalog，但本地 Codex discovery 功能不退役。包或当前 scope 缺失/不兼容时 MAS `operational_ready=false`，只进入 doctor/同 scope 的 `opl packages repair`。
+
 Foundry 系列 policy 只由唯一 OPL Framework 持有。MAS 的 `contracts/foundry_agent_series.json` 是 refs-only consumer contract，只记录 canonical contract refs、policy fingerprint、MAS domain delta 与 false-authority envelope；MAS 不复制 OPL policy body，也不声明本地 Framework 依赖。
 
 Framework Python helper 同样由 OPL 持有。OPL module workflow 在 MAS checkout 维护 `src/opl_framework` carrier；MAS 通过该 namespace 消费，不在 `pyproject.toml` 或 `uv.lock` 声明、安装或锁定 OPL implementation。

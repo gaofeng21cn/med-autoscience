@@ -6,12 +6,14 @@ from typing import Any
 from med_autoscience.scholarskills_package_consumption import (
     build_scholarskills_materialized_package_input,
 )
-from med_autoscience.scholarskills_local_install import (
-    SCHOLARSKILLS_LOCAL_INSTALL_READBACK_REF,
-    SCHOLARSKILLS_MAS_PROGRAM_REPO_MIRROR_STATUS,
-    SCHOLARSKILLS_SOURCE_REPO_REF,
-    build_scholarskills_local_install_template,
+from med_autoscience.scholarskills_required_package import (
+    SCHOLARSKILLS_PROVIDER_MANIFEST_REF,
+    SCHOLARSKILLS_REQUIRED_PACKAGE_READBACK_REF,
+    build_scholarskills_required_package_template,
 )
+
+
+SCHOLARSKILLS_SOURCE_REPO_REF = "external:mas-scholar-skills"
 
 
 SCHOLAR_DISPLAY_MODULE_ID = "mas-scholar-skills.display"
@@ -564,7 +566,7 @@ def build_scholarskills_capabilities(
                 "contracts/opl-framework/scholar-skills-capability-modules.json",
                 f"contracts/opl-framework/scholar-skills-capability-modules.json#modules.{module_id}",
                 SCHOLARSKILLS_OPERATING_MODEL_REF,
-                SCHOLARSKILLS_LOCAL_INSTALL_READBACK_REF,
+                SCHOLARSKILLS_REQUIRED_PACKAGE_READBACK_REF,
                 *list(metadata.get("descriptor_refs") or []),
             ]
         )
@@ -725,15 +727,9 @@ def _capability_payload(
         "external_runtime_dependency": False,
         "authority_boundary": dict(authority_boundary),
         "module_id": module_id,
-        "local_install": {
-            "source_repo_ref": SCHOLARSKILLS_SOURCE_REPO_REF,
-            "install_owner": "one-person-lab",
-            "install_scopes": ["workspace", "quest"],
-            "workspace": build_scholarskills_local_install_template()["workspace"],
-            "quest": build_scholarskills_local_install_template()["quest"],
-            "mas_program_repo_mirror_status": SCHOLARSKILLS_MAS_PROGRAM_REPO_MIRROR_STATUS,
-            "mas_program_repo_mirror_must_exist": False,
-            "mas_program_repo_plugin_is_execution_source": False,
+        "required_package": {
+            **build_scholarskills_required_package_template(),
+            "provider_manifest_ref": SCHOLARSKILLS_PROVIDER_MANIFEST_REF,
             "owner_gated_refs_consumption": True,
         },
     }

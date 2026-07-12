@@ -1,20 +1,20 @@
 {
   "surface_kind": "opl_agent_package_manifest.v1",
-  "agent_id": "med-autoscience",
-  "package_id": "med-autoscience",
+  "agent_id": "mas",
+  "package_id": "mas",
   "display_name": "Med Auto Science",
   "publisher": "one-person-lab",
   "version": "0.1.0a4",
   "source": "first_party_repo_local",
   "carrier_source_role": "codex_plugin_default_carrier_not_package_truth",
   "schema_ref": "one-person-lab/contracts/opl-framework/agent-package-manifest.schema.json",
-  "machine_boundary": "This repo-local sidecar declares OPL Agent Package management semantics. The repo plugin directory is the Codex carrier source, not the package truth or domain truth owner.",
+  "machine_boundary": "This repo-local sidecar declares the MAS package and its required capability dependency. OPL owns dependency resolution, lock, lifecycle receipt, atomic update, rollback, and repair; MAS retains domain truth and authority.",
   "distribution_payload": {
     "payload_kind": "ghcr_oci_agent_package",
     "payload_ref": "ghcr.io/gaofeng21cn/opl-agent-med-autoscience:latest",
     "payload_digest_ref": "sha256:1111111111111111111111111111111111111111111111111111111111111111",
     "required_skill_pack_lock_refs": [
-      "opl://agent-package-lock/mas-scholar-skills/0.1.0a4/managed-ghcr-capability-package"
+      "opl://agent-package-lock/mas-scholar-skills/0.1.0/managed-ghcr-capability-package"
     ],
     "proof_status": "non_live_contract_fixture",
     "live_download_proof": false,
@@ -28,12 +28,10 @@
   },
   "codex_surface": {
     "plugin_id": "mas",
-    "standalone_distribution": "self_contained_fat_plugin",
     "required_skill_ids": [
-      "mas",
-      "mas-scholar-skills"
+      "mas"
     ],
-    "bundled_capability_package_ids": [
+    "required_capability_package_ids": [
       "mas-scholar-skills"
     ],
     "user_install_action_count": 1
@@ -43,8 +41,38 @@
       "module_id": "scholarskills",
       "package_id": "mas-scholar-skills",
       "kind": "framework_capability_package",
+      "required": true,
+      "dependency_kind": "hard_runtime_dependency",
+      "version_requirement": ">=0.1.0 <0.2.0",
+      "capability_abi": "mas-scholar-skills.v1",
+      "provider_manifest_ref": "mas-scholar-skills/contracts/opl_capability_package_manifest.json",
+      "required_export_ids": [
+        "mas-scholar-skills",
+        "medical-manuscript-writing",
+        "medical-manuscript-review",
+        "medical-figure-design",
+        "medical-figure-style",
+        "medical-figure-composer",
+        "medical-research-lit",
+        "medical-statistical-review",
+        "medical-table-design",
+        "medical-submission-prep",
+        "medical-data-governance"
+      ],
+      "required_module_ids": [
+        "mas-scholar-skills.display",
+        "mas-scholar-skills.tables",
+        "mas-scholar-skills.stats",
+        "mas-scholar-skills.lit",
+        "mas-scholar-skills.write",
+        "mas-scholar-skills.review",
+        "mas-scholar-skills.submit",
+        "mas-scholar-skills.data"
+      ],
       "required_for": [
-        "workspace_or_quest_codex_discovery"
+        "workspace_or_quest_codex_discovery",
+        "mas_operational_readiness",
+        "all_mas_medical_research_workflows"
       ],
       "codex_distribution": "bundled",
       "opl_distribution": "managed_dependency",
@@ -59,6 +87,28 @@
         "opl connect sync-skills --domain mas-scholar-skills --scope workspace --target-workspace <workspace-root> --json",
         "opl connect sync-skills --domain mas-scholar-skills --scope quest --target-quest <quest-root> --json"
       ],
+      "activation_materialization": {
+        "required": true,
+        "owner": "one-person-lab",
+        "trigger": "mas_workspace_or_quest_activation",
+        "scopes": [
+          "workspace",
+          "quest"
+        ],
+        "required_skill_ids_source": "provider_manifest_exports_core_skill_ids",
+        "target_path_template": "<scope-root>/.codex/skills/<skill-id>",
+        "receipt_required": true,
+        "readiness_policy": "all_core_skills_current_for_active_scope"
+      },
+      "missing_or_incompatible_policy": "fail_closed_to_doctor_and_repair",
+      "status_command_templates": {
+        "workspace": "opl packages status --package-id mas --scope workspace --target-workspace <workspace-root> --json",
+        "quest": "opl packages status --package-id mas --scope quest --target-quest <quest-root> --json"
+      },
+      "repair_command_templates": {
+        "workspace": "opl packages repair --package-id mas --scope workspace --target-workspace <workspace-root> --json",
+        "quest": "opl packages repair --package-id mas --scope quest --target-quest <quest-root> --json"
+      },
       "authority_boundary": {
         "can_write_domain_truth": false,
         "can_sign_owner_receipt": false,

@@ -69,6 +69,10 @@ repo/source/control-plane structural completion 与 live acceptance 分开。Liv
 
 Foundry 系列 canonical policy 只存在于 OPL Framework。MAS 不声明或安装 Framework policy carrier，只以 `contracts/foundry_agent_series.json` 保存 canonical refs、policy fingerprint、MAS domain delta 和完整 false-authority envelope。
 
+## D-17 ScholarSkills 硬依赖
+
+`mas-scholar-skills` 与 MAS 是产品级一对一硬依赖：MAS 是唯一获得运行兼容性承诺的 required consumer；其他智能体可以只读发现或评估其 refs，但不能据此获得通用 runtime dependency 承诺。代码仓保持独立，用户安装面统一为一次 `opl packages install mas`。OPL 按依赖闭包原子安装、锁定、更新、回滚并保护卸载；MAS 只声明 consumer ABI 和消费 OPL status，不拥有第二套安装器。
+
 ## 机器入口
 
 - `contracts/domain_descriptor.json`
@@ -77,4 +81,5 @@ Foundry 系列 canonical policy 只存在于 OPL Framework。MAS 不声明或安
 - `contracts/action_catalog.json`
 - `contracts/authority_kernel_inventory.json`
 - `contracts/runtime_environment_requirements.json`
+- `contracts/opl_agent_package_manifest.json`
 - `contracts/paper_progress_transition_runtime_completion_audit.json`

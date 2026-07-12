@@ -4,8 +4,8 @@ from collections.abc import Mapping
 from pathlib import Path
 from typing import Any
 
-from med_autoscience.scholarskills_local_install import (
-    build_scholarskills_local_install_template,
+from med_autoscience.scholarskills_required_package import (
+    build_scholarskills_required_package_template,
 )
 from med_autoscience.scholarskills_capability_modules import (
     SCHOLAR_DISPLAY_EXECUTION_RECEIPT_EXPECTATION,
@@ -68,8 +68,10 @@ def build_scientific_capability_registry() -> dict[str, Any]:
         "default_trigger": DEFAULT_CURRENT_DELTA_TRIGGER,
         "default_policy": {
             "fail_open": True,
+            "fail_open_scope": "individual_refs_only_capability_after_required_package_is_current",
             "mainline_waits_for_capability": False,
             "missing_capability_blocks_owner_action": False,
+            "required_capability_package_fail_closed": True,
             "external_runtime_dependency": False,
             "always_on_scan": False,
             "second_route_table": False,
@@ -78,7 +80,7 @@ def build_scientific_capability_registry() -> dict[str, Any]:
         },
         "capability_count": len(capabilities),
         "capabilities": capabilities,
-        "scholarskills_local_install": build_scholarskills_local_install_template(),
+        "scholarskills_required_package": build_scholarskills_required_package_template(),
         "owner_consumption_evidence_schema": {
             "surface_kind": OWNER_CONSUMPTION_EVIDENCE_SURFACE_KIND,
             "schema_version": SCHEMA_VERSION,

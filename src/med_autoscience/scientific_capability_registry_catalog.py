@@ -434,7 +434,7 @@ def _capabilities() -> list[dict[str, Any]]:
             callable_surface="descriptor_only:academicforge_claude_science_skill_first_pack",
             output_refs=[
                 "external_repo:mas-scholar-skills/skills/<skill_id>/SKILL.md",
-                "readback:mas_scholarskills_local_install",
+                "readback:opl_packages_status_mas#dependency_readiness/mas-scholar-skills",
             ],
             contract_refs=[
                 "contracts/academicforge_claude_science_learning_adoption.json",

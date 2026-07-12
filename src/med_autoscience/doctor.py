@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from collections.abc import Mapping
 from dataclasses import dataclass, field
 import json
 import platform
@@ -7,8 +8,9 @@ import platform
 from med_autoscience.ai_first_drift_audit import run_ai_first_drift_audit
 from med_autoscience.controllers.ai_first_observability import build_doctor_ai_first_observability_summary
 from med_autoscience.profiles import WorkspaceProfile
-from med_autoscience.scholarskills_local_install import (
-    build_scholarskills_local_install_readback_for_profile,
+from med_autoscience.scholarskills_required_package import (
+    build_scholarskills_required_package_template,
+    query_scholarskills_required_package_readback,
 )
 from med_autoscience.workspace_contracts import inspect_workspace_contracts, legacy_external_runtime_tombstone_contract
 
@@ -27,12 +29,16 @@ class DoctorReport:
     behavior_gate: dict[str, object] = field(default_factory=dict)
     external_runtime_contract: dict[str, object] = field(default_factory=dict)
     workspace_domain_route_contract: dict[str, object] = field(default_factory=dict)
-    scholarskills_local_install: dict[str, object] = field(default_factory=dict)
+    scholarskills_required_package: dict[str, object] = field(default_factory=dict)
     ai_first_drift_audit: dict[str, object] = field(default_factory=dict)
     ai_first_observability: dict[str, object] = field(default_factory=dict)
 
 
-def build_doctor_report(profile: WorkspaceProfile) -> DoctorReport:
+def build_doctor_report(
+    profile: WorkspaceProfile,
+    *,
+    scholarskills_required_package: Mapping[str, object] | None = None,
+) -> DoctorReport:
     workspace_contracts = inspect_workspace_contracts(profile)
     ai_first_drift_audit = dict(
         run_ai_first_drift_audit()
@@ -64,7 +70,13 @@ def build_doctor_report(profile: WorkspaceProfile) -> DoctorReport:
             "mas_runtime_supervision_read_model_removed": True,
             "workspace_root": str(profile.workspace_root),
         },
-        scholarskills_local_install=build_scholarskills_local_install_readback_for_profile(profile),
+        scholarskills_required_package=(
+            dict(scholarskills_required_package)
+            if scholarskills_required_package is not None
+            else query_scholarskills_required_package_readback(
+                workspace_root=profile.workspace_root
+            )
+        ),
         ai_first_drift_audit=ai_first_drift_audit,
         ai_first_observability=dict(
             build_doctor_ai_first_observability_summary(drift_audit=ai_first_drift_audit)
@@ -112,8 +124,8 @@ def render_doctor_report(report: DoctorReport) -> str:
             + json.dumps(report.workspace_domain_route_contract, ensure_ascii=False, sort_keys=True)
         ),
         (
-            "scholarskills_local_install: "
-            + json.dumps(report.scholarskills_local_install, ensure_ascii=False, sort_keys=True)
+            "scholarskills_required_package: "
+            + json.dumps(report.scholarskills_required_package, ensure_ascii=False, sort_keys=True)
         ),
         f"ai_first_drift_audit: {json.dumps(report.ai_first_drift_audit, ensure_ascii=False, sort_keys=True)}",
         f"ai_first_observability: {json.dumps(report.ai_first_observability, ensure_ascii=False, sort_keys=True)}",
@@ -147,12 +159,8 @@ def render_profile(profile: WorkspaceProfile) -> str:
         f"research_route_bias_policy: {profile.research_route_bias_policy}",
         f"preferred_study_archetypes: {', '.join(profile.preferred_study_archetypes)}",
         (
-            "scholarskills_local_install: "
-            + json.dumps(
-                build_scholarskills_local_install_readback_for_profile(profile),
-                ensure_ascii=False,
-                sort_keys=True,
-            )
+            "scholarskills_required_package: "
+            + json.dumps(build_scholarskills_required_package_template(), ensure_ascii=False, sort_keys=True)
         ),
     ]
     return "\n".join(lines) + "\n"

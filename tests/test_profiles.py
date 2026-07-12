@@ -321,7 +321,7 @@ def test_profile_to_dict_exposes_machine_readable_contract(tmp_path: Path) -> No
     assert archetype["preferred_study_archetypes"] == list(profile.preferred_study_archetypes)
 
 
-def test_profile_to_dict_exposes_scholarskills_local_install_readback(tmp_path: Path) -> None:
+def test_profile_to_dict_exposes_scholarskills_required_package_contract(tmp_path: Path) -> None:
     workspace_root = tmp_path / "DM-CVD-Mortality-Risk"
     profile_path = tmp_path / "dm-cvd.local.toml"
     profile_path.write_text(
@@ -342,98 +342,36 @@ def test_profile_to_dict_exposes_scholarskills_local_install_readback(tmp_path: 
     )
 
     profiles = importlib.import_module("med_autoscience.profiles")
-    install_readback = importlib.import_module("med_autoscience.scholarskills_local_install")
+    required_package = importlib.import_module("med_autoscience.scholarskills_required_package")
     profile = profiles.load_profile(profile_path)
     contract = profiles.profile_to_dict(profile)
-    quest_root = profile.runtime_root / "quest-001"
 
-    profile_readback = contract["scholarskills_local_install"]
-    assert profile_readback["synced_skill_ids"] == list(install_readback.SCHOLARSKILLS_DEFAULT_SKILL_IDS)
-    assert profile_readback["optional_skill_ids"] == list(install_readback.SCHOLARSKILLS_OPTIONAL_SKILL_IDS)
-    assert "research-pdf-evidence-explorer" in profile_readback["optional_skill_ids"]
-    assert "medical-advanced-biomed-router" in profile_readback["optional_skill_ids"]
-    assert "medical-methodology-planner" in profile_readback["optional_skill_ids"]
-    assert "medical-reference-integrity-auditor" in profile_readback["optional_skill_ids"]
-    assert "medical-display-regression-debugger" in profile_readback["optional_skill_ids"]
-    assert "medical-evidence-integrity-reviewer" in profile_readback["optional_skill_ids"]
-    assert "medical-owner-gate-handoff-reviewer" not in profile_readback["optional_skill_ids"]
-    assert profile_readback["retired_optional_skill_redirects"]["medical-owner-gate-handoff-reviewer"][
-        "covered_by"
-    ] == "medical-publication-routeback-reviewer"
-    assert "research-pdf-evidence-explorer" not in profile_readback["synced_skill_ids"]
-    assert "medical-reference-integrity-auditor" not in profile_readback["synced_skill_ids"]
-    assert "medical-display-regression-debugger" not in profile_readback["synced_skill_ids"]
-    helper_policy = profile_readback["skill_local_deterministic_helper_policy"]
-    assert helper_policy["helper_file_name"] == "kernel.py"
-    assert helper_policy["expected_helper_skill_ids"] == list(
-        install_readback.SCHOLARSKILLS_SKILL_LOCAL_HELPER_SKILL_IDS
+    requirement = contract["scholarskills_required_package"]
+    assert requirement["package_id"] == "mas-scholar-skills"
+    assert requirement["required"] is True
+    assert requirement["dependency_kind"] == "hard_runtime_dependency"
+    assert requirement["capability_abi"] == required_package.SCHOLARSKILLS_CAPABILITY_ABI
+    assert requirement["required_skill_ids"] == list(
+        required_package.SCHOLARSKILLS_REQUIRED_SKILL_IDS
     )
-    assert helper_policy["helper_body_included"] is False
-    assert helper_policy["helpers_can_write_authority"] is False
-    assert profile_readback["workspace"]["target_skill_path"] == str(
-        workspace_root / ".codex" / "skills" / "mas-scholar-skills"
+    assert requirement["required_module_ids"] == list(
+        required_package.SCHOLARSKILLS_REQUIRED_MODULE_IDS
     )
-    assert profile_readback["workspace"]["target_skill_paths"]["medical-manuscript-review"] == str(
-        workspace_root / ".codex" / "skills" / "medical-manuscript-review"
-    )
-    assert profile_readback["workspace"]["target_skill_paths"]["medical-figure-style"] == str(
-        workspace_root / ".codex" / "skills" / "medical-figure-style"
-    )
-    assert profile_readback["workspace"]["target_skill_paths"]["medical-figure-composer"] == str(
-        workspace_root / ".codex" / "skills" / "medical-figure-composer"
-    )
-    assert profile_readback["workspace"]["target_skill_paths"]["medical-data-governance"] == str(
-        workspace_root / ".codex" / "skills" / "medical-data-governance"
-    )
-    assert profile_readback["workspace"]["optional_target_skill_paths"]["medical-reference-integrity-auditor"] == str(
-        workspace_root / ".codex" / "skills" / "medical-reference-integrity-auditor"
-    )
-    assert profile_readback["workspace"]["optional_target_skill_paths"]["medical-display-regression-debugger"] == str(
-        workspace_root / ".codex" / "skills" / "medical-display-regression-debugger"
-    )
-    assert "medical-reference-integrity-auditor" not in profile_readback["workspace"]["target_skill_paths"]
-    assert profile_readback["workspace"]["sync_command"]["argv"] == [
+    assert requirement["repair_command_templates"]["workspace"] == [
         "opl",
-        "connect",
-        "sync-skills",
-        "--domain",
-        "mas-scholar-skills",
+        "packages",
+        "repair",
+        "--package-id",
+        "mas",
         "--scope",
         "workspace",
         "--target-workspace",
-        str(workspace_root),
+        "<workspace-root>",
         "--json",
     ]
-    assert profile_readback["quest"]["locator_status"] == "explicit_quest_root_required"
-    assert profile_readback["authority_boundary"]["writes_yang_authority"] is False
-    assert profile_readback["authority_boundary"]["writes_runtime_authority"] is False
-
-    quest_readback = install_readback.build_scholarskills_local_install_readback_for_profile(
-        profile,
-        quest_root=quest_root,
-    )
-    assert quest_readback["quest"]["target_quest_root"] == str(quest_root)
-    assert quest_readback["quest"]["target_skill_path"] == str(
-        quest_root / ".codex" / "skills" / "mas-scholar-skills"
-    )
-    assert quest_readback["quest"]["target_skill_paths"]["medical-manuscript-writing"] == str(
-        quest_root / ".codex" / "skills" / "medical-manuscript-writing"
-    )
-    assert quest_readback["quest"]["optional_target_skill_paths"]["medical-causal-inference-plan"] == str(
-        quest_root / ".codex" / "skills" / "medical-causal-inference-plan"
-    )
-    assert quest_readback["quest"]["sync_command"]["argv"] == [
-        "opl",
-        "connect",
-        "sync-skills",
-        "--domain",
-        "mas-scholar-skills",
-        "--scope",
-        "quest",
-        "--target-quest",
-        str(quest_root),
-        "--json",
-    ]
+    assert "workspace" not in requirement
+    assert "quest" not in requirement
+    assert "optional_skill_ids" not in requirement
 
 
 def test_render_profile_labels_backend_paths_as_diagnostics(tmp_path: Path) -> None:
