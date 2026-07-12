@@ -17,6 +17,31 @@ def test_pack_compiler_input_declares_canonical_agent_identity() -> None:
     assert materialized["domain_id"] == "mas"
 
 
+def test_pack_compiler_input_declares_python_helper_boundary_without_generic_runtime() -> None:
+    materialized = _read_contract("pack_compiler_input")
+    profile = materialized["implementation_profile"]
+
+    assert materialized["canonical_agent_id"] == "mas"
+    assert materialized["domain_id"] == "mas"
+    assert profile["profile_id"] == "opl.standard_domain_agent.v1"
+    assert profile["agent_identity"] == "declarative_standard_agent_pack"
+    assert profile["pack_formats"] == ["markdown", "json"]
+    assert profile["generated_surfaces_owner"] == "one-person-lab"
+    helpers = profile["helpers"]
+    assert helpers["optional"] is True
+    assert helpers["language_is_identity"] is False
+    assert helpers["rust_policy"] == "framework_hot_path_only"
+
+    helper_implementations = helpers["entries"]
+    assert {entry["language"] for entry in helper_implementations} == {"python"}
+    assert {entry["role"] for entry in helper_implementations} == {"domain_helper"}
+    for entry in helper_implementations:
+        assert entry["source_roots"]
+        for source_root in entry["source_roots"]:
+            assert source_root.endswith("/"), source_root
+            assert (REPO_ROOT / source_root).is_dir(), source_root
+
+
 def test_domain_owner_answer_projection_profile_is_domain_owned_and_refs_only() -> None:
     descriptor = _read_contract("domain_descriptor")
     profile = _read_contract("domain_owner_answer_projection_profile")

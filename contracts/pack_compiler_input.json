@@ -61,6 +61,29 @@
   ],
   "gate_validator_ref": "src/med_autoscience/controllers/ai_first_private_authority.py::validate_ai_first_private_authority_gate",
   "generated_surface_owner": "one-person-lab",
+  "implementation_profile": {
+    "profile_id": "opl.standard_domain_agent.v1",
+    "agent_identity": "declarative_standard_agent_pack",
+    "pack_formats": [
+      "markdown",
+      "json"
+    ],
+    "helpers": {
+      "optional": true,
+      "entries": [
+        {
+          "language": "python",
+          "role": "domain_helper",
+          "source_roots": [
+            "src/med_autoscience/"
+          ]
+        }
+      ],
+      "language_is_identity": false,
+      "rust_policy": "framework_hot_path_only"
+    },
+    "generated_surfaces_owner": "one-person-lab"
+  },
   "generated_surfaces_requested": [
     "cli",
     "mcp",

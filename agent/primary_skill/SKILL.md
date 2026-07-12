@@ -10,6 +10,12 @@ Plugin/package locator: `med-autoscience`
 Generated interface owner: `one-person-lab`
 Domain handler target: `med_autoscience.domain_entry:MedAutoScienceDomainEntry.dispatch`
 
+Implementation profile: `contracts/pack_compiler_input.json#/implementation_profile`.
+The declarative pack is Markdown/JSON; Python is only a domain-helper language
+under the source root declared there. Minimal authority functions remain
+declared by the pack authority contracts. Python does not authorize a generic
+runtime, CLI, product entry, status, MCP, or workbench.
+
 Use this skill for medical-research planning, study progression, evidence review,
 display work, manuscript work, publication handoff, or owner-route diagnosis.
 
