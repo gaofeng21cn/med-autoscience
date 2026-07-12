@@ -60,16 +60,30 @@ def _status_payload(
         if any(item.get("status") != "current" for item in dependencies)
         else "current"
     )
+    materialization_readiness = materialization or _current_materialization()
+    materialization_current = (
+        materialization_readiness.get("status") == "current"
+        and bool(materialization_readiness.get("lifecycle_receipt_ref"))
+    )
+    launch_allowed = dependency_status == "current" and materialization_current
     return {
         "opl_agent_package_status": {
             "package_id": "mas",
+            "launch_allowed": launch_allowed,
+            "launch_blocked_reason": (
+                None
+                if launch_allowed
+                else f"package_dependency_{dependency_status}"
+                if dependency_status != "current"
+                else "scope_materialization_incompatible"
+            ),
+            "allowed_when_blocked": ["status", "doctor", "repair"],
             "package_dependency_readiness": {
                 "status": dependency_status,
                 "operational_ready": dependency_status == "current",
                 "dependencies": dependencies,
             },
-            "materialization_readiness": materialization
-            or _current_materialization(),
+            "materialization_readiness": materialization_readiness,
         }
     }
 
@@ -108,6 +122,7 @@ def test_current_dependency_is_operationally_ready() -> None:
     assert readback["operational_ready"] is True
     assert readback["repair_required"] is False
     assert readback["missing_export_ids"] == []
+    assert readback["launch_allowed"] is True
 
 
 def test_missing_dependency_fails_closed_to_repair() -> None:
@@ -118,6 +133,8 @@ def test_missing_dependency_fails_closed_to_repair() -> None:
     assert readback["status"] == "missing"
     assert readback["operational_ready"] is False
     assert readback["repair_required"] is True
+    assert readback["launch_allowed"] is False
+    assert readback["allowed_when_blocked"] == ["status", "doctor", "repair"]
     assert readback["repair_command"] == [
         *MAS_PACKAGE_REPAIR_COMMAND,
         "--scope",

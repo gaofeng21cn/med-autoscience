@@ -148,6 +148,8 @@ def build_scholarskills_required_package_readback(
     )
     materialization_status = _text(materialization.get("status"))
     materialization_receipt_ref = _text(materialization.get("receipt_ref"))
+    launch_allowed = status_surface.get("launch_allowed") is True
+    launch_blocked_reason = _text(status_surface.get("launch_blocked_reason"))
 
     if not opl_package_status:
         status = "status_unavailable"
@@ -175,6 +177,8 @@ def build_scholarskills_required_package_readback(
         != _text(materialization.get("actual_digest"))
     ):
         status = "scope_materialization_missing_or_stale"
+    if status == "current" and not launch_allowed:
+        status = "launch_blocked"
 
     operational_ready = status == "current"
     return {
@@ -196,6 +200,11 @@ def build_scholarskills_required_package_readback(
         "observed_materialized_skill_ids": sorted(observed_materialized_skill_ids),
         "missing_materialized_skill_ids": missing_materialized_skill_ids,
         "materialization_receipt_ref": materialization_receipt_ref,
+        "launch_allowed": launch_allowed,
+        "launch_blocked_reason": launch_blocked_reason,
+        "allowed_when_blocked": _text_list(
+            status_surface.get("allowed_when_blocked")
+        ),
         "query_error": query_error,
         "repair_required": not operational_ready,
         "status_command": status_command,
@@ -310,6 +319,12 @@ def _text_set(value: object) -> set[str]:
     if not isinstance(value, Sequence) or isinstance(value, str | bytes):
         return set()
     return {text for item in value if (text := _text(item))}
+
+
+def _text_list(value: object) -> list[str]:
+    if not isinstance(value, Sequence) or isinstance(value, str | bytes):
+        return []
+    return [text for item in value if (text := _text(item))]
 
 
 def _is_sha256(value: str | None) -> bool:
