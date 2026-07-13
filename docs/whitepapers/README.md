@@ -15,4 +15,9 @@ MAS 白皮书采用 OPL-family 统一本地生成路径：
 
 当前源文档：
 
-- `mas-whitepaper.md`
+- [mas-whitepaper.md](./mas-whitepaper.md)
+
+公开 latest：
+
+- [在线阅读](https://gaofeng21cn.github.io/med-autoscience/latest/whitepapers/mas-whitepaper.html)
+- [PDF](https://gaofeng21cn.github.io/med-autoscience/latest/whitepapers/mas-whitepaper.pdf)

@@ -167,6 +167,8 @@ Medical papers do not finish in one generation. The system can keep multiple cla
 
 ## Further Reading
 
+- [MAS Whitepaper (HTML)](https://gaofeng21cn.github.io/med-autoscience/latest/whitepapers/mas-whitepaper.html)
+- [MAS Whitepaper (PDF)](https://gaofeng21cn.github.io/med-autoscience/latest/whitepapers/mas-whitepaper.pdf)
 - [Docs Guide](./docs/README.md)
 - [Project](./docs/project.md)
 - [Status](./docs/status.md)
