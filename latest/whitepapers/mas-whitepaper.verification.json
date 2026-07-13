@@ -1,0 +1,150 @@
+{
+  "schema_version": "opl_whitepaper_artifact_verification.v2",
+  "status": "whitepaper_artifact_verified",
+  "generated_at": "2026-07-13T00:49:18.247Z",
+  "publication_date": "2026-07-13",
+  "claim_boundary": {
+    "artifact_render_verified": true,
+    "published_verified": false,
+    "product_ready": false,
+    "runtime_ready": false,
+    "domain_ready": false
+  },
+  "source_git": {
+    "commit": "1118c1d6cc427a0d278b46c0ee7dd94541a0b1be",
+    "branch": "main",
+    "tracked_dirty": false
+  },
+  "source_profile": "contracts/whitepaper_profile.json",
+  "source_profile_sha256": "582deebfb54b8a96afae471f17633d6dca9438189c305f49a9bd0a6d55f218a2",
+  "source_profile_size": 545,
+  "source_markdown": "docs/whitepapers/mas-whitepaper.md",
+  "source_markdown_sha256": "e78146b124d3aac1f052ac14d0e35089d5fa5f1a1c2df10ef3c84d0ef79ba7ae",
+  "source_markdown_size": 18443,
+  "generated_markdown": "docs/site/latest/whitepapers/mas-whitepaper.md",
+  "generated_markdown_sha256": "e78146b124d3aac1f052ac14d0e35089d5fa5f1a1c2df10ef3c84d0ef79ba7ae",
+  "generated_markdown_size": 18443,
+  "generated_html": "docs/site/latest/whitepapers/mas-whitepaper.html",
+  "generated_html_sha256": "94d7150a90f0d243004a9046addd2ada1ceb8de9d339cccc5988d0f45b195fa3",
+  "generated_html_size": 23364,
+  "generated_pdf": "docs/site/latest/whitepapers/mas-whitepaper.pdf",
+  "generated_pdf_sha256": "af385a16e7d868bb1d30736fbff3669df70ae6904185c85867350e44982e6494",
+  "generated_pdf_size": 176141,
+  "temp_markdown": "tmp/pdfs/mas-whitepaper/mas-whitepaper.pandoc.md",
+  "rendered_dir": "tmp/pdfs/mas-whitepaper/rendered",
+  "rendered_pages": 8,
+  "rendered_page_hashes": [
+    {
+      "page": "page-1.png",
+      "sha256": "d7616a08d8de01d6dbb75a259f715e2fd4f4a69aaacaa8c014cee6bd5d576a79",
+      "size": 69217
+    },
+    {
+      "page": "page-2.png",
+      "sha256": "5738b2d46c2e3f801fa11f92410933590158e76506bd509fb717f67f412ed261",
+      "size": 92973
+    },
+    {
+      "page": "page-3.png",
+      "sha256": "8a65f85b387f4da98f6b536466485761e9894281e35096cad18ba114d7ea3bb9",
+      "size": 451284
+    },
+    {
+      "page": "page-4.png",
+      "sha256": "13be0b298b81fc049b3564c859f77b63d16003c5be81f178f0c469862a7ca41d",
+      "size": 297273
+    },
+    {
+      "page": "page-5.png",
+      "sha256": "f8d54f778f40052733dff185538ad4ca96cb07820df604c0fa29a2c1776311b3",
+      "size": 404264
+    },
+    {
+      "page": "page-6.png",
+      "sha256": "15ffe26f4063a74219f0158366257ded7f9240242efeefecdf9aa4011bbad70d",
+      "size": 421793
+    },
+    {
+      "page": "page-7.png",
+      "sha256": "c3d90955651e09a4f930d224bd1afe2783226f8f3b2d6a2add30a59e600f0ce6",
+      "size": 381273
+    },
+    {
+      "page": "page-8.png",
+      "sha256": "155cce17add84b1eac2a163ff7051feaca0d689004284120f00f2a2f7fd695b6",
+      "size": 63026
+    }
+  ],
+  "pdf_pages": 8,
+  "pdf_page_size_pts": {
+    "width": 612,
+    "height": 792
+  },
+  "page_policy": {
+    "min": 6,
+    "max": 9
+  },
+  "style_profile": "opl-whitepaper-pandoc-xelatex-v2",
+  "renderer": {
+    "repo_commit": "e9685cedb10ae26312e9f66baadfd14c9091e548",
+    "builder": {
+      "path": "scripts/opl-whitepaper-builder.ts",
+      "sha256": "7ea759911124beded349c0f7acc1cd659404a940de3a1bc2c098121949fa4be4",
+      "size": 16947
+    },
+    "style": {
+      "path": "scripts/whitepaper-style.css",
+      "sha256": "2019446149baf356d6a8ed2184c70d15275a85e8b4e8964a5360f1822ae32d9f",
+      "size": 1776
+    }
+  },
+  "public_urls": {
+    "html": "https://gaofeng21cn.github.io/med-autoscience/latest/whitepapers/mas-whitepaper.html",
+    "pdf": "https://gaofeng21cn.github.io/med-autoscience/latest/whitepapers/mas-whitepaper.pdf"
+  },
+  "additional_public_artifacts": [],
+  "tools": {
+    "pandoc": {
+      "path": "/usr/bin/pandoc",
+      "version": "pandoc 3.1.3"
+    },
+    "xelatex": {
+      "path": "/usr/bin/xelatex",
+      "version": "XeTeX 3.141592653-2.6-0.999995 (TeX Live 2023/Debian)"
+    },
+    "pdfinfo": {
+      "path": "/usr/bin/pdfinfo",
+      "version": "pdfinfo version 24.02.0"
+    },
+    "pdftoppm": {
+      "path": "/usr/bin/pdftoppm",
+      "version": "pdftoppm version 24.02.0"
+    },
+    "pdftotext": {
+      "path": "/usr/bin/pdftotext",
+      "version": "pdftotext version 24.02.0"
+    }
+  },
+  "references": [
+    {
+      "label": "Med Auto Science 公开入口",
+      "url": "https://github.com/gaofeng21cn/med-autoscience"
+    },
+    {
+      "label": "项目概览",
+      "url": "https://github.com/gaofeng21cn/med-autoscience/blob/main/docs/project.md"
+    },
+    {
+      "label": "架构概览",
+      "url": "https://github.com/gaofeng21cn/med-autoscience/blob/main/docs/architecture.md"
+    },
+    {
+      "label": "AI-first Quality Boundary Policy",
+      "url": "https://github.com/gaofeng21cn/med-autoscience/blob/main/docs/policies/quality/ai_first_quality_boundary.md"
+    },
+    {
+      "label": "Stage-Led Research Autonomy Policy",
+      "url": "https://github.com/gaofeng21cn/med-autoscience/blob/main/docs/policies/study-workflow/stage_led_research_autonomy.md"
+    }
+  ]
+}
