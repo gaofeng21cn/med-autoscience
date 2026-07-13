@@ -53,7 +53,9 @@
         "current_stage_id": "current_stage_id",
         "current_stage_status": "current_stage_status",
         "package_status": "package_status",
-        "lifecycle_ref": "lifecycle_ref"
+        "lifecycle_ref": "lifecycle_ref",
+        "next_action": "next_action",
+        "stage_index_ref": "stage_index_ref"
       }
     },
     "runtime": {
