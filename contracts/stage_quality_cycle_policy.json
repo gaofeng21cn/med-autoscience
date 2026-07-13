@@ -5,6 +5,7 @@
   "domain_id": "mas",
   "owner": "MedAutoScience",
   "shared_contract_ref": "external_repo:one-person-lab/contracts/opl-framework/stage-quality-cycle-contract.json",
+  "route_selection_contract_ref": "external_repo:one-person-lab/contracts/opl-framework/stage-quality-cycle-contract.json#/cross_stage_route_selection",
   "shared_surface_contracts": {
     "policy": {
       "surface_kind": "opl_stage_quality_cycle_policy",
@@ -93,30 +94,54 @@
       "reviewed_artifact_hash_mismatch",
       "reviewer_attempt_missing_or_not_independent"
     ],
-    "finding_repair_map": {
+    "initial_review_findings": {
       "required_fields": [
-        "finding_ref",
+        "finding_id",
         "severity",
-        "defect_owner_stage_id",
-        "reviewed_artifact_ref_and_hash",
+        "required",
+        "evidence_refs",
+        "repair_expectation",
         "acceptance_criteria",
-        "repair_scope",
+        "defect_owner_stage_id",
+        "reviewed_artifact_ref_and_hash"
+      ],
+      "reviewer_can_repair_inline": false,
+      "reviewer_can_create_repair_map": false,
+      "route_to_earliest_root_cause_owner": true
+    },
+    "repair_map": {
+      "required_fields": [
+        "finding_id",
+        "repair_status",
+        "changed_artifact_refs",
+        "repair_evidence_refs",
         "repairer_attempt_ref",
         "repaired_artifact_ref_and_hash"
       ],
-      "reviewer_can_repair_inline": false,
+      "one_entry_per_accepted_finding": true,
       "repairer_can_close_finding": false,
-      "route_to_earliest_root_cause_owner": true
+      "repairer_can_make_terminal_route_decision": false
     },
     "re_review_closure": {
       "fresh_re_reviewer_attempt_required": true,
       "reviewed_hash_must_equal_repaired_artifact_hash": true,
       "required_outputs": [
-        "re_review_receipt_ref",
-        "finding_closure_or_residual_finding_refs",
+        "finding_id_closure_status_refs",
         "verdict",
-        "quality_debt_refs_when_not_passed"
+        "evidence_refs",
+        "remaining_quality_debt_refs"
       ],
+      "closure_status_values": [
+        "closed",
+        "partially_closed",
+        "still_open"
+      ],
+      "next_repair_round_triggers": [
+        "required_finding_not_closed",
+        "repair_regression",
+        "critical_new_finding"
+      ],
+      "ordinary_new_suggestion_policy": "optional_observation_or_quality_debt_without_reopening_loop",
       "closure_outcomes": [
         "pass",
         "repair_required",
@@ -323,11 +348,11 @@
         "authoritative": false
       },
       "formal_review": {
-        "required": true,
+        "required": false,
         "risk_tier": "high",
         "review_depth": "full",
         "context_isolation_required": true,
-        "max_repair_rounds": 3
+        "max_repair_rounds": 0
       },
       "budget_exhaustion": "complete_with_quality_debt_if_consumable",
       "attempt_boundary": {
@@ -365,6 +390,8 @@
       "human_gate",
       "typed_blocker"
     ],
+    "terminal_route_output": "route_impact.stage_route_decision",
+    "terminal_route_owner": "producer",
     "inline_repair_allowed": false,
     "route_back_requires_defect_owner_stage_id": true,
     "route_back_selection": "earliest_canonical_stage_that_can_close_root_cause",
@@ -411,6 +438,7 @@
   },
   "authority_boundary": {
     "opl_owns_attempt_transport_and_session_identity": true,
+    "opl_only_validates_decisive_attempt_role_and_declared_stage_target": true,
     "mas_owns_quality_definitions_findings_route_back_and_quality_verdict": true,
     "provider_completion_can_close_review": false,
     "in_thread_refinement_can_close_review": false,

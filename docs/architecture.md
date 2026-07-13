@@ -91,10 +91,23 @@ producer conversation。
 每个 `stage_quality_cycle_policy_ref` 都解析到严格的 per-Stage policy：Stage
 prompt、四角色 prompt、quality rubric、risk/depth、预算和 Attempt boundary
 均显式声明，role overlay 只能收窄而不能改写 Stage goal、scope 或 authority。
-五个产出 Stage 要求 formal Review；`review_and_quality_gate` 本身已经是独立
-Meta Review StageRun，因此不递归再创建一层 formal Review。
+四个产生开放领域判断或 canonical artifact bytes 的 Stage 要求 formal Review。
+`review_and_quality_gate` 本身已经是独立 Meta Review StageRun，因此不递归
+再创建一层 formal Review；`finalize_and_publication_handoff` 只对已经完成
+Stage Review 与 Meta Review 的 exact bytes 做确定性 inspection packaging，也不
+冻结 canonical bytes 或签发 quality/export/publication/ready claim，因此只有
+primary Attempt。发现内容缺陷时必须 route-back 到最早 owner Stage，变化后的
+bytes 重新完成 fresh Stage Review 与 Meta Review 后才能回到 Handoff。
 
-默认质量预算是初稿之后最多三轮 `repairer + re_reviewer`。provider retry、
+跨 Stage 路由仍由 Codex 的领域判断产生，但终局 owner 随 StageRun 形态固定：
+primary-only StageRun 的 producer 作决定；启用 formal Review 时，只有终局
+reviewer 或 re-reviewer 作决定。producer、repairer 和仍返回
+`repair_required` 的 reviewer 只能给 recommendation。机器输出统一为
+`route_impact.stage_route_decision` / `stage_route_recommendation`；OPL 只校验
+Attempt 资格与目标是否为 manifest declared Stage，不解释或改写医学语义。
+
+启用 formal Review 的 Stage 默认质量预算是初稿之后最多三轮
+`repairer + re_reviewer`。provider retry、
 protocol closeout resume 和 owner-callable dispatch retry 不消耗该预算。预算
 耗尽但已有可消费产物时以 `completed_with_quality_debt` 推进；质量债继续
 阻止 publication、export、submission 或 ready 声明。

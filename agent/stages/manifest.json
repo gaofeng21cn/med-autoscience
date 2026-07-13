@@ -2241,10 +2241,16 @@
     {
       "stage_id": "finalize_and_publication_handoff",
       "stage_kind": "packaging",
+      "handoff_review_boundary": {
+        "artifact_effect": "mechanical_repackaging_of_reviewed_bytes",
+        "freezes_canonical_artifact_bytes": false,
+        "issues_quality_export_publication_or_ready_claim": false,
+        "downstream_owner_retains_acceptance": true
+      },
       "stage_quality_cycle_policy_ref": "contracts/stage_quality_cycle_policy.json#/stage_policies/finalize_and_publication_handoff",
       "title": "Finalize and publication handoff",
-      "summary": "Freeze the accepted package and return publication-facing authority refs.",
-      "goal": "Prepare the final inspection and publication handoff without bypassing human submission authority.",
+      "summary": "Mechanically package exact already-reviewed bytes for inspection and return publication-facing refs.",
+      "goal": "Prepare an inspectable publication handoff without changing canonical bytes or bypassing downstream acceptance and human submission authority.",
       "policy_ref": "agent/stages/finalize_and_publication_handoff.policy.md",
       "prompt_ref": "agent/prompts/finalize_and_publication_handoff.md",
       "knowledge_refs": [

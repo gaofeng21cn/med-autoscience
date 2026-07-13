@@ -73,15 +73,16 @@ MAS 在 OPL 中应按下面链路运行：
 ```text
 MAS artifact / evidence / authority refs
   -> Codex CLI reads current artifact, negative result and route-back context
-  -> Codex selects any declared stage
+  -> the decisive Codex Attempt selects any declared stage
   -> OPL StageRun transports the task and records the attempt
   -> MAS authority function handles only domain authority boundaries
   -> OPL receipt ledger + App/operator read model
 ```
 
-route 语义由 Codex CLI 负责：
+route 语义由 Codex CLI 的 decisive Attempt 负责：
 
-- Codex 读取 MAS `study_state_matrix`、stage artifact、阴性结果与 route-back hints，自主选择任意 declared stage。
+- primary-only StageRun 的 producer，或 formal Review StageRun 的终局 reviewer / re-reviewer，读取 MAS `study_state_matrix`、stage artifact、阴性结果与 route-back hints，自主选择任意 declared stage。
+- producer / repairer / repair-required reviewer 等非终局 Attempt 只能返回 `route_impact.stage_route_recommendation`；终局 Attempt 返回 `route_impact.stage_route_decision`。repairer 永远不能绕过 fresh re-review。
 - OPL 只在 queue / stage attempt ledger 中记录 transport state、provider receipt、closeout、dead-letter、retry 和 human gate，不执行 transition / guard / matrix runner。
 - MAS owner callable 返回医学 owner receipt、typed blocker、no-op currentness proof、route-back reason、human gate schema 或 artifact/memory/source refs。
 - OPL 只能存 refs 和调度下一 attempt；它不能写 MAS study truth、publication verdict、artifact body、memory body、`current_package` 或 submission readiness。
@@ -91,12 +92,12 @@ route 语义由 Codex CLI 负责：
 客户指定投稿杂志后，格式整理不是 MAS 私有的小 stage 串行脚本。正确运行链路是：
 
 1. MAS 在 `journal-resolution` / `finalize` route 中声明目标 journal、author guideline refs、format requirement refs、submission package boundary、artifact authority boundary 和 human gate 条件。
-2. OPL 创建或继续 `finalize_and_publication_handoff` stage attempt；如果需要内部拆分，拆为 OPL stage graph nodes，例如 `journal_requirements_resolution`、`format_delta_plan`、`artifact_mutation_authorization`、`independent_format_review`、`submission_package_handoff`。
-3. MAS authority function 只在需要医学/投稿权威判断时运行：确认目标 journal 要求、判断 manuscript/table/figure/package 变更是否符合医学语义和 publication gate、签 owner receipt 或 typed blocker。
-4. artifact/package mutation 必须由 MAS artifact authority 授权并产生 receipt；OPL 只调度 attempt、保存 refs、触发 reviewer/auditor、人类审批和 App/operator projection。
-5. 独立 reviewer/auditor record 不能由同一 executor 自审关闭；format ready / submission handoff 只能由 MAS owner receipt、independent review record、人类 gate receipt 或 stable typed blocker 关闭。
+2. 若 journal 要求会改变 manuscript、table、figure、analysis 或 current-package bytes，Codex route-back 到最早拥有该内容的 canonical Stage；变化后的 bytes 必须完成该 Stage 的 fresh Review，并重新进入 cross-Stage Meta Review。
+3. 只有 exact reviewed hashes 与 fresh Meta Review refs 回到 `finalize_and_publication_handoff` 后，OPL 才创建或继续该 Stage 的 primary Attempt；这个 Attempt 只生成确定性的 inspection archive、manifest、hashes 和 refs-only handoff candidate，不做 artifact mutation 或递归 Review。
+4. 下游 MAS authority function 可以基于 exact candidate refs 签 owner receipt 或 typed blocker；这属于 manifest 中 `downstream_owner_retains_acceptance=true` 的 owner acceptance，不是 Handoff primary Attempt 自己签 quality/publication/submission/ready claim。
+5. 外部 submission、credentials、portal action 与不可逆 delivery 仍由 human gate 控制；provider completion、package freshness 或 Handoff candidate 不能替代 MAS owner acceptance。
 
-这解释了“交付完里程碑投稿包后，客户指定投稿杂志，按指定杂志改格式”到底属于什么流程：它是 `finalize_and_publication_handoff` stage 下的 `journal-resolution` / `finalize` route transition，并由 OPL stage graph 调度子节点；MAS 保留目标 journal 解释、artifact mutation authority、publication gate 和 owner receipt。
+这解释了“交付完里程碑投稿包后，客户指定投稿杂志，按指定杂志改格式”到底属于什么流程：journal 解释可以从 `journal-resolution` / `finalize` route 发起，但实际 byte 变更必须 route-back 到内容 owner Stage；`finalize_and_publication_handoff` 只接回已经重新 Review 与 Meta Review 的 exact bytes。MAS 继续保留目标 journal 解释、artifact mutation authority、publication gate 和 downstream owner receipt，但这些 authority 不转移给 Handoff Attempt。
 
 ## Handoff Packet 规则
 

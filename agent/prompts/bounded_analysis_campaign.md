@@ -50,5 +50,7 @@ claim-impact, failed-path, specialist-candidate, and next-owner refs. A usable
 analysis delta may advance as `completed_with_quality_debt`; record the debt and
 block promotion or ready claims. Route back to baseline for source/provenance
 repair or to direction for claim or method changes. When no consumable delta is
-produced, preserve the failed/negative path as a diagnostic and let Codex choose
-the next stage; typed blockers and human gates are reserved for real hard boundaries.
+produced, preserve the failed/negative path as a diagnostic and return an
+evidence-backed route recommendation. Because this Stage uses formal Review,
+only the terminal reviewer or re-reviewer selects the next declared Stage; typed
+blockers and human gates are reserved for real hard boundaries.

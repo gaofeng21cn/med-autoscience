@@ -2,7 +2,7 @@
 
 Owner: MedAutoScience
 Stage id: review_and_quality_gate
-Next stage: finalize_and_publication_handoff
+Default forward stage: finalize_and_publication_handoff
 Machine boundary: this prompt gives a `producer` StageAttempt the semantics of an
 independent Meta Review StageRun. It must not resume or inherit any upstream
 producer/reviewer conversation. Only MAS owner surfaces can materialize the
@@ -51,9 +51,13 @@ irreversible-action, or human-decision gap remains a blocker.
 
 Before any quality or ready claim, return an `independent_review_packet` binding
 the independent task/session record, exact refs and hashes reviewed, Stage Review
-receipts, findings, verdict candidate, defect-owner matrix, route-back refs,
-currentness basis, and next owner. Valid results are an owner quality receipt, a
-scoped route-back, a typed quality/source/artifact blocker, a human gate, or
+receipts, findings, verdict candidate, defect-owner matrix, route evidence,
+currentness basis, and next owner. This primary-only Meta Review producer is the
+decisive route owner: it may advance to the default Handoff, jump directly to any
+declared defect-owner Stage, or complete when the graph is legitimately closed.
+Return that selection as `route_impact.stage_route_decision` with non-empty
+`evidence_refs` and a declared `target_stage_id` except for `complete`. Valid
+results also include a typed quality/source/artifact blocker, a human gate, or
 `completed_with_quality_debt`. The packet itself cannot self-authorize
 publication or submission readiness, and this Stage must not mutate upstream
 artifacts inline.

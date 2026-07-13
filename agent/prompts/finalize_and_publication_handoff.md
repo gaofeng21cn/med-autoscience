@@ -8,29 +8,35 @@ authority.
 
 ## Objective
 
-Prepare a current, inspectable publication handoff whose manuscript and package
-are traceable to canonical source, accepted evidence, independent review, and
-artifact authority. Keep internal handoff readiness distinct from external
-submission authorization.
+Mechanically package exact already-reviewed refs and hashes into a current,
+inspectable handoff. Preserve byte identity from accepted evidence, independent
+Stage Review, cross-Stage Meta Review, and artifact authority. Keep this
+inspection handoff distinct from quality, ready, acceptance, and external
+submission decisions.
 
 ## Quality Cycle
 
-Produce the best handoff artifact for this attempt role. Same-thread checking is
-`in_thread_refinement` only. Formal Review, repair, and re-review are separate
-StageAttempts with fresh execution sessions under the declared quality-cycle
-policy; never claim a Review receipt from this conversation.
+This Stage uses one primary Attempt. Same-thread deterministic checks are
+`in_thread_refinement` only; this Stage does not start reviewer, repairer, or
+re-reviewer Attempts and cannot emit a new Review receipt. Its inputs must
+already carry exact independent Stage Review and Meta Review refs for the same
+canonical bytes. The producer is therefore the decisive cross-Stage route owner
+for this StageRun; it may select any Stage declared by the manifest, while OPL
+only validates role eligibility and target identity.
 
 ## Good Work
 
 - Consume current independent review, source readiness, controller decision,
   journal requirement, canonical manuscript, artifact, and package refs.
-- Resolve specialist submission, writing, citation, statistical, data,
-  table/figure, and review detail through `medical_research_execution.md`.
-- Preserve this dependency order when changes are required: obtain MAS mutation
-  authority; mutate canonical source; rebuild derived artifacts/package; obtain
-  fresh proof and any risk-matched independent review for the rebuilt bytes; then
-  issue the internal handoff. Steps already satisfied by current refs need not be
-  repeated.
+- Use `medical_research_execution.md` only to interpret existing specialist,
+  review, and submission refs; never start writing, analysis, table/figure, or
+  citation repair inside this Handoff.
+- Produce only deterministic inspection packaging, manifests, hashes, and
+  refs-only handoff receipts over those exact already-reviewed bytes.
+- When content, figure, table, analysis, citation, source, or current-package
+  bytes need to change, route back to the earliest owning Stage. Any new bytes
+  must complete that Stage's fresh Review and re-enter cross-Stage Meta Review
+  before this Handoff can consume them.
 - Treat publication quality, package freshness, handoff readiness, submission
   readiness, and external submission as separate states.
 - Require a human gate before journal/PI strategy changes, credentials or portal
@@ -38,23 +44,29 @@ policy; never claim a Review receipt from this conversation.
 
 ## Boundaries
 
-Never edit `current_package` as the source of truth or inherit review from stale
-bytes. Generated bundles, upload readiness, specialist candidates, package
-freshness, provider completion, and tests cannot authorize publication or
-submission. An executor packet cannot write publication eval, controller
-decisions, owner receipts, blockers, human gates, or artifact authority.
+This Stage never mutates canonical source, manuscript, figure, table, analysis,
+or `current_package` bytes and never rebuilds a changed publication artifact.
+It cannot inherit review from stale bytes. Generated bundles, upload readiness,
+specialist candidates, package freshness, provider completion, and tests cannot
+authorize publication, acceptance, or submission. An executor packet cannot
+write publication eval, controller decisions, owner receipts, blockers, human
+gates, or artifact authority.
 
 ## Handoff
 
-Produce the best consumable handoff delta. Before a quality or ready claim,
-return a `publication_handoff_admission_packet` binding review, source,
-controller, canonical-source, rebuild/freshness, journal, package, and human-gate
-refs plus the proposed next owner. The packet need not be the first action and is
-only a gate input.
+Produce the best consumable inspection handoff delta. Return a
+`publication_handoff_admission_packet` binding exact reviewed artifact hashes,
+source, controller, canonical-source, freshness, journal, package, Meta Review,
+and human-gate refs plus the proposed next owner. The packet is only a gate
+input; downstream MAS/human owners retain acceptance and every quality,
+publication, submission, or ready claim.
 
 A usable internal handoff may close as `completed_with_quality_debt`; record the
 debt and block publication/submission-ready claims. When no consumable handoff
-exists, return a no-output diagnostic and scoped route-back recommendation while
-allowing Codex to continue. Typed blockers and human gates are reserved for real
-authority, identity/currentness, credential/safety, irreversible-action,
-unavailable-executor, or explicit human-decision boundaries.
+exists, return a no-output diagnostic and select the earliest owning declared
+Stage when work can continue. Return the terminal selection as
+`route_impact.stage_route_decision` with a declared `target_stage_id` and
+non-empty `evidence_refs`, or use `decision_kind=complete` without a target when
+the handoff legitimately closes the graph. Typed blockers and human gates are
+reserved for real authority, identity/currentness, credential/safety,
+irreversible-action, unavailable-executor, or explicit human-decision boundaries.

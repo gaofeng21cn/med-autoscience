@@ -45,13 +45,18 @@ def test_stage_prompts_preserve_domain_dependencies_and_progress_semantics() -> 
     assert "Stage progression does not" in review
     assert "Mutate canonical source only through an authorized MAS path" in manuscript
     for dependency in (
-        "mutation authority",
-        "canonical source",
-        "rebuild",
-        "fresh proof",
+        "exact already-reviewed refs and hashes",
+        "deterministic inspection packaging",
+        "earliest owning Stage",
+        "cross-Stage Meta Review",
         "human gate",
     ):
         assert dependency in finalize
+    assert "obtain MAS mutation authority" not in finalize
+    assert "mutate canonical source; rebuild" not in finalize
+    assert "This Stage never mutates canonical source" in finalize
+    assert "decisive cross-Stage route owner" in finalize
+    assert "route_impact.stage_route_decision" in finalize
 
     for text in (manuscript, review, finalize):
         assert "completed_with_quality_debt" in text

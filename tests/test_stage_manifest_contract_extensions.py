@@ -60,6 +60,12 @@ FORBIDDEN_FRAMEWORK_FIELDS = {
     "typed_blocker_lineage_policy",
     "runtime_event_refs",
 }
+HANDOFF_REVIEW_BOUNDARY = {
+    "artifact_effect": "mechanical_repackaging_of_reviewed_bytes",
+    "freezes_canonical_artifact_bytes": False,
+    "issues_quality_export_publication_or_ready_claim": False,
+    "downstream_owner_retains_acceptance": True,
+}
 
 
 def _stage_manifest() -> dict[str, object]:
@@ -95,6 +101,19 @@ def test_stage_manifest_declares_domain_extensions_for_opl_generated_plane() -> 
 
         expected_late_fields = LATE_STAGE_EXTENSION_FIELDS.get(stage["stage_id"], set())
         assert expected_late_fields <= set(extension)
+
+    handoff_stage = next(
+        stage
+        for stage in stages
+        if stage["stage_id"] == "finalize_and_publication_handoff"
+    )
+    assert handoff_stage["stage_kind"] == "packaging"
+    assert handoff_stage["handoff_review_boundary"] == HANDOFF_REVIEW_BOUNDARY
+    assert all(
+        "handoff_review_boundary" not in stage
+        for stage in stages
+        if stage["stage_id"] != "finalize_and_publication_handoff"
+    )
 
 
 def test_legacy_static_stage_control_plane_is_physically_retired() -> None:
