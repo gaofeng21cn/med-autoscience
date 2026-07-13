@@ -12,6 +12,14 @@ the same fields plus `reason`. Never return both or use
 `route_back_stage_ref`, `selected_next_stage_ref`, `next_stage_ref`, or
 `workflow_complete`.
 
+Reviewer and re-reviewer quality output also has one machine shape. Return
+`route_impact.stage_quality_cycle.outcome` as exactly one of `pass`,
+`repair_required`, `quality_debt`, `blocked`, or `human_gate`. An Attempt must
+not return receipt `verdict` or use `hard_stop` as an outcome. The OPL StageRun
+controller materializes `opl_stage_review_receipt.verdict`, mapping the first
+three values directly and mapping `blocked` or `human_gate` to receipt-only
+`hard_stop`.
+
 ## Producer
 
 Use the Stage goal, policy, sources, and quality definition to produce the best
@@ -25,14 +33,15 @@ the terminal decision to the reviewer or re-reviewer.
 
 Independently inspect the exact artifact hashes against the declared rubric and
 source refs. Do not inherit the producer conversation and do not mutate the
-artifact. Return a verdict and findings with stable `finding_id`, severity,
+artifact. Return `route_impact.stage_quality_cycle.outcome` and findings with
+stable `finding_id`, severity,
 required/optional status, evidence refs, repair expectations, acceptance
 criteria, and the narrowest canonical defect-owner Stage. Do not create a
 Review receipt or repair map. The OPL StageRun controller materializes the
 `opl_stage_review_receipt` from this Attempt's identity, session, exact reviewed
-hashes, rubric, and verdict.
+hashes, rubric, and outcome.
 
-If the verdict is `repair_required`, return only a route recommendation when the
+If the outcome is `repair_required`, return only a route recommendation when the
 defect belongs elsewhere; the controller continues the quality loop. When this
 reviewer terminalizes the StageRun with a consumable pass, quality-debt, or
 route-back result, it is the decisive Attempt and returns the route decision.
@@ -53,7 +62,8 @@ fresh re-reviewer to judge.
 In a fresh session, review the exact repaired artifact hashes against the prior
 findings, repair map, original source/rubric refs, and unresolved acceptance
 criteria. Return `closed`, `partially_closed`, or `still_open` for every stable
-`finding_id`, plus the verdict, evidence, and remaining quality debt. Only an
+`finding_id`, plus `route_impact.stage_quality_cycle.outcome`, evidence, and
+remaining quality debt. Only an
 unclosed required finding, repair regression, or critical new finding may
 trigger another repair round; ordinary new suggestions are optional observations
 or quality debt and cannot reopen the loop. Never inherit the repairer

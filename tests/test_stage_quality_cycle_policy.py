@@ -58,6 +58,31 @@ def test_profile_binds_shared_quality_cycle_abi_and_context_isolation() -> None:
         "repairer": "agent/quality_gates/stage_quality_cycle_roles.md#repairer",
         "re_reviewer": "agent/quality_gates/stage_quality_cycle_roles.md#re-reviewer",
     }
+    assert defaults["attempt_output_contract"] == {
+        "envelope_path": "route_impact.stage_quality_cycle",
+        "outcome_field": "outcome",
+        "outcome_required_for_roles": ["reviewer", "re_reviewer"],
+        "outcome_values": [
+            "pass",
+            "repair_required",
+            "quality_debt",
+            "blocked",
+            "human_gate",
+        ],
+        "attempts_must_not_emit_receipt_verdict": True,
+        "receipt_materializer_owner": "opl_stage_run_controller",
+        "review_receipt_verdict_mapping": {
+            "pass": "pass",
+            "repair_required": "repair_required",
+            "quality_debt": "quality_debt",
+            "blocked": "hard_stop",
+            "human_gate": "hard_stop",
+        },
+    }
+    assert defaults["initial_review_findings"]["required_outputs"] == [
+        "route_impact.stage_quality_cycle.outcome",
+        "route_impact.stage_quality_cycle.findings",
+    ]
     assert defaults["initial_review_findings"]["reviewer_can_repair_inline"] is False
     assert defaults["initial_review_findings"]["reviewer_can_create_repair_map"] is False
     assert "finding_id" in defaults["initial_review_findings"]["required_fields"]
@@ -68,6 +93,19 @@ def test_profile_binds_shared_quality_cycle_abi_and_context_isolation() -> None:
     assert defaults["re_review_closure"][
         "reviewed_hash_must_equal_repaired_artifact_hash"
     ] is True
+    assert defaults["re_review_closure"]["required_outputs"] == [
+        "finding_id_closure_status_refs",
+        "route_impact.stage_quality_cycle.outcome",
+        "evidence_refs",
+        "remaining_quality_debt_refs",
+    ]
+    assert defaults["re_review_closure"]["attempt_outcome_values"] == [
+        "pass",
+        "repair_required",
+        "quality_debt",
+        "blocked",
+        "human_gate",
+    ]
     assert defaults["re_review_closure"]["next_repair_round_triggers"] == [
         "required_finding_not_closed",
         "repair_regression",
@@ -99,6 +137,9 @@ def test_quality_roles_keep_receipt_and_repair_map_ownership_separate() -> None:
     assert "`closed`, `partially_closed`, or `still_open`" in role_prompt
     assert "ordinary new suggestions are optional observations" in role_prompt
     assert "create the controller-owned Review receipt" in role_prompt
+    assert "`route_impact.stage_quality_cycle.outcome`" in role_prompt
+    assert "An Attempt must not return receipt `verdict`" in role_prompt
+    assert "receipt-only `hard_stop`" in role_prompt
 
 
 def test_quality_roles_make_route_owner_and_output_shape_unambiguous() -> None:
@@ -108,7 +149,7 @@ def test_quality_roles_make_route_owner_and_output_shape_unambiguous() -> None:
     assert "`route_impact.stage_route_recommendation`" in role_prompt
     assert "producer is decisive only in a primary-only StageRun" in role_prompt
     assert "repairer never makes a terminal route decision" in role_prompt
-    assert "If the verdict is `repair_required`" in role_prompt
+    assert "If the outcome is `repair_required`" in role_prompt
     for legacy_field in (
         "route_back_stage_ref",
         "selected_next_stage_ref",

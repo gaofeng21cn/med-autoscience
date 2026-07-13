@@ -105,6 +105,13 @@ reviewer 或 re-reviewer 作决定。producer、repairer 和仍返回
 `repair_required` 的 reviewer 只能给 recommendation。机器输出统一为
 `route_impact.stage_route_decision` / `stage_route_recommendation`；OPL 只校验
 Attempt 资格与目标是否为 manifest declared Stage，不解释或改写医学语义。
+Reviewer 与 re-reviewer 的质量结果统一写入
+`route_impact.stage_quality_cycle.outcome`，取值仅为 `pass`、
+`repair_required`、`quality_debt`、`blocked` 或 `human_gate`。Attempt 不输出
+receipt `verdict`，也不把 `hard_stop` 当作 outcome；StageRun controller 根据
+Attempt identity、独立 session 与 exact reviewed hashes 生成正式
+`opl_stage_review_receipt`，其中前三个 outcome 直接映射，`blocked` 与
+`human_gate` 仅在 receipt 中映射为 `hard_stop`。
 
 启用 formal Review 的 Stage 默认质量预算是初稿之后最多三轮
 `repairer + re_reviewer`。provider retry、

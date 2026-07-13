@@ -75,6 +75,30 @@
         "undeclared_ephemeral_context"
       ]
     },
+    "attempt_output_contract": {
+      "envelope_path": "route_impact.stage_quality_cycle",
+      "outcome_field": "outcome",
+      "outcome_required_for_roles": [
+        "reviewer",
+        "re_reviewer"
+      ],
+      "outcome_values": [
+        "pass",
+        "repair_required",
+        "quality_debt",
+        "blocked",
+        "human_gate"
+      ],
+      "attempts_must_not_emit_receipt_verdict": true,
+      "receipt_materializer_owner": "opl_stage_run_controller",
+      "review_receipt_verdict_mapping": {
+        "pass": "pass",
+        "repair_required": "repair_required",
+        "quality_debt": "quality_debt",
+        "blocked": "hard_stop",
+        "human_gate": "hard_stop"
+      }
+    },
     "review_receipt_required_fields": [
       "stage_run_id",
       "producer_attempt_ref",
@@ -95,6 +119,10 @@
       "reviewer_attempt_missing_or_not_independent"
     ],
     "initial_review_findings": {
+      "required_outputs": [
+        "route_impact.stage_quality_cycle.outcome",
+        "route_impact.stage_quality_cycle.findings"
+      ],
       "required_fields": [
         "finding_id",
         "severity",
@@ -127,7 +155,7 @@
       "reviewed_hash_must_equal_repaired_artifact_hash": true,
       "required_outputs": [
         "finding_id_closure_status_refs",
-        "verdict",
+        "route_impact.stage_quality_cycle.outcome",
         "evidence_refs",
         "remaining_quality_debt_refs"
       ],
@@ -142,12 +170,12 @@
         "critical_new_finding"
       ],
       "ordinary_new_suggestion_policy": "optional_observation_or_quality_debt_without_reopening_loop",
-      "closure_outcomes": [
+      "attempt_outcome_values": [
         "pass",
         "repair_required",
-        "completed_with_quality_debt",
-        "human_gate",
-        "typed_blocker"
+        "quality_debt",
+        "blocked",
+        "human_gate"
       ]
     }
   },
