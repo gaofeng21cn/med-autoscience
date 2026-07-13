@@ -5,16 +5,17 @@
   "owner": "mas",
   "progress_first_policy": {
     "consumable_artifact_advances_stage": true,
+    "no_output_or_failure_diagnostic_advances_stage": true,
     "retry_review_and_repair_limits_are_quality_budgets": true,
     "quality_budget_exhaustion_status": "completed_with_quality_debt",
     "quality_debt_blocks_stage_transition": false,
     "quality_debt_blocks_quality_export_or_ready_claims": true,
     "hard_stop_classes": [
-      "zero_consumable_artifact",
-      "artifact_corrupt_or_unreadable",
+      "executor_unavailable",
       "permission_or_credential_boundary",
       "explicit_human_decision",
       "authority_boundary_violation",
+      "irreversible_action_requires_authorization",
       "identity_or_currentness_mismatch"
     ]
   },
@@ -96,6 +97,8 @@
         ],
         "executor_autonomy": {
           "executor_can_choose_order_and_parallelism": true,
+          "executor_order_is_bounded_by_domain_dependencies": true,
+          "professional_policy_can_require_ordered_dependencies": true,
           "executor_can_choose_tools": true,
           "executor_can_request_missing_context_or_human_gate": true,
           "executor_can_skip_tools": true,
@@ -154,7 +157,7 @@
             "role": "permission_scope_boundary"
           }
         ],
-        "policy": "MAS tool refs declare available medical research affordances and safety boundaries only; they do not prescribe executor order, stage strategy, stage goal, or forbidden writes.",
+        "policy": "MAS tool refs declare affordances and safety boundaries, not a CLI recipe. Codex chooses tools and safe parallelism while preserving professional, evidence, permission, authority, and irreversible-action dependencies.",
         "side_effect_risk_refs": [
           {
             "ref": "external_database_or_llm_side_effect_requires_explicit_stage_permission",
@@ -248,7 +251,7 @@
           "missing_ref_output_policy": {
             "with_consumable_candidate": "completed_with_quality_debt",
             "without_consumable_candidate": "completed_with_quality_debt_and_ai_selected_route_back",
-            "zero_readable_artifact": "typed_blocker",
+            "zero_readable_artifact": "no_output_diagnostic",
             "quality_debt_blocks_stage_transition": false,
             "quality_debt_blocks_promotion_or_ready_claims": true
           },
@@ -405,7 +408,7 @@
       "stage_kind": "source_preparation",
       "title": "Baseline and evidence setup",
       "summary": "Establish source readiness, study baseline, and the evidence boundary.",
-      "goal": "Bind data, source, claim, and artifact refs before analysis begins.",
+      "goal": "Bind data, source, claim, and artifact refs before analysis is accepted as claim-bearing evidence.",
       "policy_ref": "agent/stages/baseline_and_evidence_setup.policy.md",
       "prompt_ref": "agent/prompts/baseline_and_evidence_setup.md",
       "knowledge_refs": [
@@ -476,6 +479,8 @@
         ],
         "executor_autonomy": {
           "executor_can_choose_order_and_parallelism": true,
+          "executor_order_is_bounded_by_domain_dependencies": true,
+          "professional_policy_can_require_ordered_dependencies": true,
           "executor_can_choose_tools": true,
           "executor_can_request_missing_context_or_human_gate": true,
           "executor_can_skip_tools": true,
@@ -534,7 +539,7 @@
             "role": "permission_scope_boundary"
           }
         ],
-        "policy": "MAS tool refs declare available medical research affordances and safety boundaries only; they do not prescribe executor order, stage strategy, stage goal, or forbidden writes.",
+        "policy": "MAS tool refs declare affordances and safety boundaries, not a CLI recipe. Codex chooses tools and safe parallelism while preserving professional, evidence, permission, authority, and irreversible-action dependencies.",
         "side_effect_risk_refs": [
           {
             "ref": "external_database_or_llm_side_effect_requires_explicit_stage_permission",
@@ -628,7 +633,7 @@
           "missing_ref_output_policy": {
             "with_consumable_candidate": "completed_with_quality_debt",
             "without_consumable_candidate": "completed_with_quality_debt_and_ai_selected_route_back",
-            "zero_readable_artifact": "typed_blocker",
+            "zero_readable_artifact": "no_output_diagnostic",
             "quality_debt_blocks_stage_transition": false,
             "quality_debt_blocks_promotion_or_ready_claims": true
           },
@@ -853,6 +858,8 @@
         ],
         "executor_autonomy": {
           "executor_can_choose_order_and_parallelism": true,
+          "executor_order_is_bounded_by_domain_dependencies": true,
+          "professional_policy_can_require_ordered_dependencies": true,
           "executor_can_choose_tools": true,
           "executor_can_request_missing_context_or_human_gate": true,
           "executor_can_skip_tools": true,
@@ -911,7 +918,7 @@
             "role": "permission_scope_boundary"
           }
         ],
-        "policy": "MAS tool refs declare available medical research affordances and safety boundaries only; they do not prescribe executor order, stage strategy, stage goal, or forbidden writes.",
+        "policy": "MAS tool refs declare affordances and safety boundaries, not a CLI recipe. Codex chooses tools and safe parallelism while preserving professional, evidence, permission, authority, and irreversible-action dependencies.",
         "side_effect_risk_refs": [
           {
             "ref": "external_database_or_llm_side_effect_requires_explicit_stage_permission",
@@ -1005,7 +1012,7 @@
           "missing_ref_output_policy": {
             "with_consumable_candidate": "completed_with_quality_debt",
             "without_consumable_candidate": "completed_with_quality_debt_and_ai_selected_route_back",
-            "zero_readable_artifact": "typed_blocker",
+            "zero_readable_artifact": "no_output_diagnostic",
             "quality_debt_blocks_stage_transition": false,
             "quality_debt_blocks_promotion_or_ready_claims": true
           },
@@ -1226,6 +1233,8 @@
         ],
         "executor_autonomy": {
           "executor_can_choose_order_and_parallelism": true,
+          "executor_order_is_bounded_by_domain_dependencies": true,
+          "professional_policy_can_require_ordered_dependencies": true,
           "executor_can_choose_tools": true,
           "executor_can_request_missing_context_or_human_gate": true,
           "executor_can_skip_tools": true,
@@ -1284,7 +1293,7 @@
             "role": "permission_scope_boundary"
           }
         ],
-        "policy": "MAS tool refs declare available medical research affordances and safety boundaries only; they do not prescribe executor order, stage strategy, stage goal, or forbidden writes.",
+        "policy": "MAS tool refs declare affordances and safety boundaries, not a CLI recipe. Codex chooses tools and safe parallelism while preserving professional, evidence, permission, authority, and irreversible-action dependencies.",
         "side_effect_risk_refs": [
           {
             "ref": "external_database_or_llm_side_effect_requires_explicit_stage_permission",
@@ -1378,7 +1387,7 @@
           "missing_ref_output_policy": {
             "with_consumable_candidate": "completed_with_quality_debt",
             "without_consumable_candidate": "completed_with_quality_debt_and_ai_selected_route_back",
-            "zero_readable_artifact": "typed_blocker",
+            "zero_readable_artifact": "no_output_diagnostic",
             "quality_debt_blocks_stage_transition": false,
             "quality_debt_blocks_promotion_or_ready_claims": true
           },
@@ -1716,6 +1725,8 @@
         ],
         "executor_autonomy": {
           "executor_can_choose_order_and_parallelism": true,
+          "executor_order_is_bounded_by_domain_dependencies": true,
+          "professional_policy_can_require_ordered_dependencies": true,
           "executor_can_choose_tools": true,
           "executor_can_request_missing_context_or_human_gate": true,
           "executor_can_skip_tools": true,
@@ -1774,7 +1785,7 @@
             "role": "permission_scope_boundary"
           }
         ],
-        "policy": "MAS tool refs declare available medical research affordances and safety boundaries only; they do not prescribe executor order, stage strategy, stage goal, or forbidden writes.",
+        "policy": "MAS tool refs declare affordances and safety boundaries, not a CLI recipe. Codex chooses tools and safe parallelism while preserving professional, evidence, permission, authority, and irreversible-action dependencies.",
         "side_effect_risk_refs": [
           {
             "ref": "external_database_or_llm_side_effect_requires_explicit_stage_permission",
@@ -1868,7 +1879,7 @@
           "missing_ref_output_policy": {
             "with_consumable_candidate": "completed_with_quality_debt",
             "without_consumable_candidate": "completed_with_quality_debt_and_ai_selected_route_back",
-            "zero_readable_artifact": "typed_blocker",
+            "zero_readable_artifact": "no_output_diagnostic",
             "quality_debt_blocks_stage_transition": false,
             "quality_debt_blocks_promotion_or_ready_claims": true
           },
@@ -2196,18 +2207,17 @@
               "live_owner_consumption_claimed": false,
               "lookup_providers": [
                 "crossref",
-                "pubmed",
                 "openalex",
                 "semantic_scholar",
                 "publisher",
                 "crossmark"
               ],
               "mandatory_gate_input_only": true,
-              "owner": "MedAutoScience",
-              "provider_lookup_mode": "domain_owned_evidence_input_only",
+              "owner": "OPL Connect",
+              "provider_lookup_mode": "opl_connect_receipt_input_only",
               "provider_evidence_consumed_by": "research-integrity-reference-verification",
               "schema_version": 1,
-              "surface_kind": "mas_domain_provider_lookup_contract",
+              "surface_kind": "opl_connect_reference_verification_contract",
               "triggered_action": "research-integrity-reference-verification",
               "triggered_by_hook_id": "research-integrity-review-publication-gate-stage-hook"
             }
@@ -2291,6 +2301,8 @@
         ],
         "executor_autonomy": {
           "executor_can_choose_order_and_parallelism": true,
+          "executor_order_is_bounded_by_domain_dependencies": true,
+          "professional_policy_can_require_ordered_dependencies": true,
           "executor_can_choose_tools": true,
           "executor_can_request_missing_context_or_human_gate": true,
           "executor_can_skip_tools": true,
@@ -2349,7 +2361,7 @@
             "role": "permission_scope_boundary"
           }
         ],
-        "policy": "MAS tool refs declare available medical research affordances and safety boundaries only; they do not prescribe executor order, stage strategy, stage goal, or forbidden writes.",
+        "policy": "MAS tool refs declare affordances and safety boundaries, not a CLI recipe. Codex chooses tools and safe parallelism while preserving professional, evidence, permission, authority, and irreversible-action dependencies.",
         "side_effect_risk_refs": [
           {
             "ref": "external_database_or_llm_side_effect_requires_explicit_stage_permission",
@@ -2443,7 +2455,7 @@
           "missing_ref_output_policy": {
             "with_consumable_candidate": "completed_with_quality_debt",
             "without_consumable_candidate": "completed_with_quality_debt_and_ai_selected_route_back",
-            "zero_readable_artifact": "typed_blocker",
+            "zero_readable_artifact": "no_output_diagnostic",
             "quality_debt_blocks_stage_transition": false,
             "quality_debt_blocks_promotion_or_ready_claims": true
           },
@@ -2775,18 +2787,17 @@
               "live_owner_consumption_claimed": false,
               "lookup_providers": [
                 "crossref",
-                "pubmed",
                 "openalex",
                 "semantic_scholar",
                 "publisher",
                 "crossmark"
               ],
               "mandatory_gate_input_only": true,
-              "owner": "MedAutoScience",
-              "provider_lookup_mode": "domain_owned_evidence_input_only",
+              "owner": "OPL Connect",
+              "provider_lookup_mode": "opl_connect_receipt_input_only",
               "provider_evidence_consumed_by": "research-integrity-reference-verification",
               "schema_version": 1,
-              "surface_kind": "mas_domain_provider_lookup_contract",
+              "surface_kind": "opl_connect_reference_verification_contract",
               "triggered_action": "research-integrity-reference-verification",
               "triggered_by_hook_id": "research-integrity-review-publication-gate-stage-hook"
             }

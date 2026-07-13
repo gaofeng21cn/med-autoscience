@@ -93,7 +93,7 @@ def mission_executor_handoff(
             "writes_runtime": False,
             "writes_yang_authority": False,
             "writes_paper_body": False,
-            "can_authorize_provider_admission": False,
+            "can_authorize_provider_attempt": False,
             "can_claim_paper_progress": False,
             "can_claim_runtime_ready": False,
         },

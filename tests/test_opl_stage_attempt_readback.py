@@ -1,6 +1,6 @@
 from med_autoscience.controllers.opl_stage_attempt_readback import (
     has_opl_stage_attempt_readback,
-    provider_admission_stage_attempt_readback,
+    provider_attempt_stage_attempt_readback,
 )
 
 
@@ -12,7 +12,7 @@ def test_stage_attempt_transport_readback_never_requires_semantic_transaction() 
     }
 
     assert has_opl_stage_attempt_readback(payload) is True
-    assert provider_admission_stage_attempt_readback(payload) == payload
+    assert provider_attempt_stage_attempt_readback(payload) == payload
 
 
 def test_transition_runtime_payload_is_not_a_supported_readback() -> None:

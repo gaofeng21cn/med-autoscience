@@ -19,7 +19,7 @@ SOURCE_FAMILIES = (
     "authority_ref_metadata",
     "archive_refs",
     "owner_route_receipts",
-    "dispatch_receipts",
+    "runtime_receipt_refs",
     "stage_artifact_delta_refs",
 )
 
@@ -191,7 +191,7 @@ def _authority_boundary() -> dict[str, Any]:
         "can_create_opl_stage_run": False,
         "can_generate_next_action_authority": False,
         "can_authorize_currentness": False,
-        "can_authorize_provider_admission": False,
+        "can_authorize_provider_attempt": False,
         "can_authorize_quality_verdict": False,
         "can_authorize_publication_ready": False,
         "mas_state_index_authority": False,

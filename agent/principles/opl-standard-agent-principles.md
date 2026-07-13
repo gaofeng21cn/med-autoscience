@@ -17,7 +17,7 @@ This projection does not create a second truth source. OPL owns the shared princ
 | `workspace_source_intake_shell` | Workspace/source shell | OPL owns generic locator and refs-only source intake transport; MAS owns clinical/source semantics, readiness, provenance, and study task truth. |
 | `owner_delta_progress` | Owner-delta progress | Progress is measured by paper/study deltas, owner receipts, reviewer receipts, route-back refs, typed blockers, human gates, or handoff packets. |
 | `quality_budget_progress_first` | Quality-budget progress first | A readable paper/study artifact advances with `completed_with_quality_debt` when review/repair budget is exhausted; debt blocks quality/publication/submission claims, not stage transition. |
-| `parallel_executor_autonomy` | Bounded executor autonomy | Executors may choose order, tools, substitutions, and safe parallelism inside declared authority and permission boundaries. |
+| `parallel_executor_autonomy` | Bounded executor autonomy | Executors choose tools, substitutions, iteration, and safe parallelism while preserving professional, evidence, permission, authority, and irreversible-action dependencies. Tool catalogs do not prescribe generic CLI sequences. |
 | `module_organization` | Module organization | OPL brand modules hold framework primitives; MAS is a declarative domain pack plus minimal authority functions; ScholarSkills is a capability pack, not domain intake. |
 
 For MAS, these ids are adopted through the medical-research specialization in `agent/principles/domain-specialization.md` and the mapping contract in `contracts/standard-agent-principles-adoption.json`.

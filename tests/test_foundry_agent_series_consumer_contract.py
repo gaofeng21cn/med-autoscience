@@ -34,7 +34,7 @@ def test_foundry_agent_series_is_a_refs_only_domain_consumer_contract() -> None:
             "contracts/opl-framework/foundry-agent-series-policy-release.json"
         ),
         "policy_bundle_fingerprint": (
-            "sha256:7e50ce27f04c5fe801d4da0b385265def3c7e6df1d32b8f3b8ec29410ba5545c"
+            "sha256:2abdcbe6e7c238dfc0bcbff2251fb0eda505647927446a6fbf47ae8b28253415"
         ),
         "fingerprint_algorithm": "sha256:stable-json",
         "domain_contract_policy_release_pin_required": True,

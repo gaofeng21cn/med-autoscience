@@ -74,8 +74,8 @@ def execute(
         ),
         "request_path": str(request_path),
         "result_path": None,
-        "provider_admission_pending": False,
-        "provider_admission_requires_opl_runtime_result": False,
+        "provider_attempt_pending": False,
+        "provider_attempt_requires_opl_runtime_result": False,
     }
 
 

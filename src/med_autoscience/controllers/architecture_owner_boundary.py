@@ -52,7 +52,7 @@ OPL_PROGRESS_SPINE_SURFACES = frozenset(
         "tool_invocation_lifecycle",
         "human_gate_transport",
         "recovery_obligation_store",
-        "provider_admission",
+        "provider_attempt",
         "provider_attempt",
         "runtime_queue",
         "scheduler",
@@ -76,7 +76,7 @@ PRIVATE_PROGRESS_CAPABILITY_FLAGS = (
     "may_own_state_index",
     "may_generate_workbench_action",
     "may_select_tool_for_runtime",
-    "may_authorize_provider_admission",
+    "may_authorize_provider_attempt",
 )
 
 OWNER_LAYERS: tuple[dict[str, Any], ...] = (

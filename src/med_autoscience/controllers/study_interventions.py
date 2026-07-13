@@ -576,7 +576,7 @@ def _owner_gate_payload(
         "owner_gate_decision_ref": decision_ref,
         "human_gate_ref": f"human_gate:{decision_ref}",
         "accepted_answer_shapes": ["human_gate_ref"],
-        "provider_admission_allowed": decision_text == "admit_identity_bound_stage_packet",
+        "provider_attempt_allowed": decision_text == "admit_identity_bound_stage_packet",
         "do_not_redrive_same_work_unit": True,
         "paper_package_mutation_allowed": False,
         "runtime_artifact_mutation_allowed": False,

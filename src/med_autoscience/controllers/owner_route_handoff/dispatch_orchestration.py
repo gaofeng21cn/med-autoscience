@@ -38,7 +38,6 @@ from ..guarded_apply_owner_delta_contract import (
 )
 from ..real_paper_autonomy_soak_inventory import provider_guarded_apply
 from .authority_boundary import authority_boundary_payload
-from .dispatch_receipts import write_dispatch_receipt
 from .task_kinds import ALLOWED_TASK_KINDS, FORBIDDEN_PAYLOAD_FLAGS, RETIRED_DIAGNOSTIC_TASK_KINDS
 
 STABLE_PAPER_REPAIR_TYPED_BLOCKERS = frozenset(
@@ -86,18 +85,6 @@ def _read_json_object(path: Path) -> dict[str, Any] | None:
     except (FileNotFoundError, json.JSONDecodeError, OSError):
         return None
     return dict(payload) if isinstance(payload, dict) else None
-
-
-def _write_json(path: Path, payload: Mapping[str, Any]) -> None:
-    path.parent.mkdir(parents=True, exist_ok=True)
-    path.write_text(json.dumps(dict(payload), ensure_ascii=False) + "\n", encoding="utf-8")
-
-
-def _workspace_relative(path: Path, *, workspace_root: Path) -> str:
-    try:
-        return str(path.relative_to(workspace_root))
-    except ValueError:
-        return str(path)
 
 
 def _load_task(task_path: Path) -> dict[str, Any]:
@@ -395,6 +382,11 @@ def _base_dispatch_receipt(
             "execution_policy": "guarded_domain_control_receipt_only",
         },
         "authority_boundary": authority_boundary_payload(),
+        "transport": {
+            "persistence_owner": "one-person-lab",
+            "persistence_surface": "opl_runway_domain_handler_receipt",
+            "mas_persists_transport_receipt": False,
+        },
         "forbidden_write_guard_proof": opl_provider_ready_adapter.build_forbidden_write_guard_proof(
             result="accepted_no_forbidden_writes",
             task_id=task_id,
@@ -499,33 +491,6 @@ def _with_guarded_apply(
     return receipt
 
 
-def _write_dispatch_receipt(
-    *,
-    receipt: dict[str, Any],
-    profile: WorkspaceProfile | None,
-    task_id: str,
-    source_fingerprint: str | None = None,
-    owner_capability_fingerprint: str | None = None,
-) -> dict[str, Any]:
-    return write_dispatch_receipt(
-        receipt=receipt,
-        profile=profile,
-        task_id=task_id,
-        source_fingerprint=source_fingerprint,
-        owner_capability_fingerprint=owner_capability_fingerprint,
-        read_json_object=_read_json_object,
-        write_json=_write_json,
-        workspace_relative=lambda path: _workspace_relative(path, workspace_root=profile.workspace_root)
-        if profile is not None
-        else str(path),
-        text=_text,
-        mapping=_mapping,
-        now_iso=_now_iso,
-        authority_boundary_payload=authority_boundary_payload,
-        forbidden_write_guard_proof=opl_provider_ready_adapter.build_forbidden_write_guard_proof,
-    )
-
-
 def dispatch_family_domain_handler_task(*, task_path: Path) -> dict[str, Any]:
     generated_at = _now_iso()
     try:
@@ -597,13 +562,8 @@ def dispatch_family_domain_handler_task(*, task_path: Path) -> dict[str, Any]:
         study_id=study_id,
         task=task,
     )
-    return _write_dispatch_receipt(
-        receipt=receipt,
-        profile=profile,
-        task_id=task_id,
-        source_fingerprint=source_fingerprint,
-        owner_capability_fingerprint=owner_capability_fingerprint,
-    )
+    receipt["owner_capability_fingerprint"] = owner_capability_fingerprint
+    return receipt
 
 
 def _dispatch_error(

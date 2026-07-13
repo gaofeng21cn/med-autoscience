@@ -92,7 +92,7 @@ def terminal_owner_gate_next_decision(
             "summary": terminal_owner_gate.get("blocked_reason"),
             "typed_blocker_ref": terminal_owner_gate.get("typed_blocker_ref"),
             "can_execute": False,
-            "can_authorize_provider_admission": False,
+            "can_authorize_provider_attempt": False,
         }
     )
 
@@ -178,7 +178,7 @@ def terminal_owner_gate_authority_readback(
                 "authority_materialized": False,
                 "can_claim_paper_progress": False,
                 "can_claim_runtime_ready": False,
-                "can_authorize_provider_admission": False,
+                "can_authorize_provider_attempt": False,
                 "can_write_owner_receipt": False,
                 "can_write_typed_blocker": False,
                 "can_write_human_gate": False,
@@ -243,7 +243,7 @@ def stage_terminal_next_owner_or_human_decision(
             ),
             "typed_blocker_ref": typed_blocker_ref,
             "can_execute": False,
-            "can_authorize_provider_admission": False,
+            "can_authorize_provider_attempt": False,
         }
     )
 

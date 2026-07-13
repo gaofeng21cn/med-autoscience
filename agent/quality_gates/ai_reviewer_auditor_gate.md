@@ -60,9 +60,9 @@ Valid gate outputs are:
 
 Programs, validators, materializers, scaffold checks, and generated OPL surfaces may emit provenance/currentness receipts or typed blockers. They cannot emit pass/ready verdicts for publication quality, AI reviewer quality, memory acceptance, submission readiness, source readiness, or artifact mutation.
 
-## Fail-Closed Cases
+## Quality-Claim Fail-Closed Cases
 
-Fail closed or route back when:
+Do not issue a quality, publication, export, or submission-ready claim when:
 
 - the reviewer/auditor record is missing, stale, or from the same executor invocation.
 - required source, evidence, manuscript, review, memory, or artifact refs are stale or missing.
@@ -72,6 +72,15 @@ Fail closed or route back when:
 - only mechanical checks, test pass, provider completion, generated interface readiness, package presence, prose completeness, template completion, or pack presence support the ready claim.
 - next-delta tournament, micro-candidate generation, critique-as-repair-hint, reusable lesson extraction, triggered meta-review, or opportunistic prefetch is used to admit a route, close this gate, promote a stage, or authorize publication/submission readiness.
 
+This fail-closed rule protects the claim, not ordinary stage progression. When a
+current, consumable independent-review packet exists but bounded repair budget is
+exhausted, return `completed_with_quality_debt` with exact debt and next-owner
+refs. The debt blocks ready claims. When there is no consumable packet, emit a
+no-output/failure diagnostic and let Codex continue or route back. Use a typed
+blocker only when authority, safety, wrong-target identity/currentness,
+credential, irreversible-action, unavailable-executor, or explicit
+human-decision requirements prevent safe progress.
+
 ## Receipt Requirements
 
-A passing gate must cite the independent record, quality pack evidence refs, journal-family pack refs when in scope, review ledger refs, publication eval refs if updated, output refs reviewed, owner receipt, and any explicitly requested JIT affordance refs consumed as non-authoritative context. A blocking gate must cite the typed blocker, route-back owner, missing refs, stale refs, forbidden shortcut avoided, and required repair condition.
+A passing gate must cite the independent record, quality pack evidence refs, journal-family pack refs when in scope, review ledger refs, publication eval refs if updated, output refs reviewed, owner receipt, and any explicitly requested JIT affordance refs consumed as non-authoritative context. A debt result must cite the consumable packet, unresolved findings, blocked claim classes, and next owner. A blocking gate must cite the typed blocker, route-back owner, missing refs, stale refs, forbidden shortcut avoided, and required repair condition.

@@ -28,14 +28,17 @@
   "speed_policy": {
     "executor_autonomy_inside_stage": true,
     "executor_can_choose_order_and_parallelism": true,
+    "executor_order_is_bounded_by_domain_dependencies": true,
+    "professional_policy_can_require_ordered_dependencies": true,
     "strategy_refs_are_advisory_or_route_back": true,
     "strategy_refs_block_launch_by_default": false,
     "tool_catalog_can_prescribe_workflow_sequence": false,
     "preflight_or_quality_review_can_loop_without_deliverable_delta": false,
     "quality_gaps_block_ordinary_progress_by_default": false,
     "safe_action_before_diagnostic_reconcile": true,
-    "next_delta_must_be_deliverable_receipt_blocker_or_handoff": true,
+    "next_delta_may_be_deliverable_receipt_diagnostic_hard_blocker_or_handoff": true,
     "consumable_artifact_advances_stage": true,
+    "no_output_or_failure_diagnostic_advances_stage": true,
     "retry_review_and_repair_limits_are_quality_budgets": true,
     "quality_budget_exhaustion_status": "completed_with_quality_debt",
     "quality_debt_blocks_stage_transition": false,
@@ -49,6 +52,22 @@
     "ai_route_back_may_target_any_declared_stage": true,
     "negative_result_may_route_back_to_hypothesis_or_design": true,
     "framework_static_transition_table_can_reject_ai_route_back": false
+  },
+  "ordered_dependency_policy": {
+    "preserve_when_reversal_would": [
+      "invalidate_claim_or_estimand",
+      "lose_source_or_failed_path_provenance",
+      "reuse_stale_review_or_artifact_proof",
+      "bypass_owner_or_human_authority",
+      "perform_irreversible_action_without_authorization"
+    ],
+    "does_not_prescribe": [
+      "generic_cli_sequence",
+      "tool_search_order",
+      "tool_invocation_count",
+      "unnecessary_reexecution_of_current_prerequisites"
+    ],
+    "external_skill_acquisition_dependency": "inspect_identity_provenance_permissions_scope_and_compatibility_before_sync"
   },
   "default_read_surface": {
     "root": "current_owner_delta",
@@ -67,18 +86,21 @@
     "cleanup_delete_gate"
   ],
   "hard_stop_gates": [
-    "zero_consumable_artifact",
-    "artifact_corrupt_or_unreadable",
+    "executor_unavailable",
     "safety_or_compliance",
     "permission_or_credential_boundary",
     "human_decision_required",
     "irreversible_write_or_delete",
     "authority_boundary_violation",
+    "irreversible_action_requires_authorization",
     "stale_or_mismatched_stage_identity"
   ],
   "accepted_next_delta_shapes": [
     "deliverable_delta_ref",
     "consumable_artifact_ref",
+    "no_output_diagnostic_ref",
+    "failure_diagnostic_ref",
+    "negative_result_ref",
     "progress_delta_receipt_ref",
     "quality_debt_ref",
     "owner_receipt_ref",
@@ -87,7 +109,8 @@
     "quality_gate_receipt_ref",
     "no_regression_ref",
     "route_back_ref",
-    "handoff_packet_ref"
+    "handoff_packet_ref",
+    "no_output_or_failure_diagnostic_ref"
   ],
   "authority_boundary": {
     "policy_can_claim_domain_ready": false,

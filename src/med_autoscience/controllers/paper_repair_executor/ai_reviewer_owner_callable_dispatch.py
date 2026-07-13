@@ -72,7 +72,7 @@ def build(
         "medical_claim_authoring_allowed": False,
         "opl_execution_authorization_required": False,
         "opl_execution_authorization_present": has_opl_authorization,
-        "provider_admission_pending": False,
+        "provider_attempt_pending": False,
         "owner_callable_requires_opl_authorization": False,
         "mas_private_attempt_loop_forbidden": True,
         "source_action": {

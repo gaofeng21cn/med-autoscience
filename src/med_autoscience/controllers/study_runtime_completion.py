@@ -30,7 +30,7 @@ def _sync_study_completion(
         raise ValueError("study completion sync requires summary")
     return {
         "completion": {
-            **opl_runtime_contract.provider_admission_required_blocker(
+            **opl_runtime_contract.provider_attempt_required_blocker(
                 operation="artifact_complete_quest",
                 quest_id=quest_id,
             ),

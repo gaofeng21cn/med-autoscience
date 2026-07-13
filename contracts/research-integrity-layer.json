@@ -3,7 +3,7 @@
   "schema_version": 1,
   "state": "active_contract",
   "owner": "MedAutoScience",
-  "purpose": "Bind MAS domain-owned provider lookup, reference authenticity, claim-citation support, and manuscript consistency review into one non-authoritative publication quality input layer.",
+  "purpose": "Bind OPL Connect provider receipt transport, reference authenticity, claim-citation support, and manuscript consistency review into one non-authoritative publication quality input layer.",
   "paper_mission_subordination": {
     "surface_kind": "mas_paper_mission_subordination",
     "authority_owner": "MedAutoScience",
@@ -18,21 +18,20 @@
     "can_close_without_owner_gate_or_typed_blocker": false
   },
   "target_state": {
-    "summary": "Review and publication gate stage launch/readback surfaces require the RI hook as a mandatory pre-gate input; the hook requests MAS domain-owned provider lookup to pull provider evidence, then MAS Research Integrity Gate consumes that evidence and emits gate input.",
+    "summary": "Review and publication gate stage launch/readback surfaces require the RI hook as a mandatory pre-gate input; the hook requests OPL Connect provider receipt transport to pull provider evidence, then MAS Research Integrity Gate consumes that evidence and emits gate input.",
     "is_independent_professional_skill": false,
-    "provider_lookup_owner": "MedAutoScience",
-    "provider_lookup_mode": "domain_owned_evidence_input_only",
+    "provider_lookup_owner": "OPL Connect",
+    "provider_lookup_mode": "opl_connect_receipt_input_only",
     "receipt_first": true,
     "live_provider_authority_claimed": false,
     "authoritative_provider_truth_owner": "external provider source systems",
-    "mas_domain_provider_lookup": "read-only synchronous provider-evidence fetcher for research-integrity gate inputs; no independent skill route, durable provider runtime, runtime queue, provider attempt, authority receipt, or live provider truth claim",
+    "provider_receipt_transport": "OPL Connect performs provider invocation, normalization, retry, cache, and receipt transport; MAS consumes the receipts as medical gate input only.",
     "stage_hook_consumers": [
       "review gate",
       "publication gate"
     ],
     "lookup_providers": [
       "crossref",
-      "pubmed",
       "openalex",
       "semantic_scholar",
       "publisher",
@@ -40,9 +39,9 @@
     ]
   },
   "provider_lookup_boundary": {
-    "surface_kind": "mas_domain_provider_lookup_boundary",
+    "surface_kind": "mas_opl_connect_provider_receipt_boundary",
     "schema_version": 1,
-    "provider_lookup_mode": "domain_owned_evidence_input_only",
+    "provider_lookup_mode": "opl_connect_receipt_input_only",
     "receipt_first": true,
     "transition_only": false,
     "live_provider_authority_claimed": false,
@@ -59,7 +58,9 @@
       "publication_ready",
       "submission_ready"
     ],
-    "can_call_external_provider": true,
+    "provider_lookup_owner": "OPL Connect",
+    "mas_can_call_external_provider": false,
+    "can_call_external_provider": false,
     "can_claim_live_provider_truth": false,
     "can_be_used_as_authoritative_provider_truth_without_owner_consumption": false,
     "can_materialize_provider_receipt": false,
@@ -72,12 +73,12 @@
     "version": "research-integrity-trigger-chain.v1",
     "chain": [
       "Stage control plane launch packet for review_and_quality_gate or finalize_and_publication_handoff carries mandatory_pre_gate_checks for the RI hook",
-      "MAS domain provider lookup resolves external citation evidence for the hook request",
+      "OPL Connect reference verification resolves external citation evidence for the hook request",
       "MAS Research Integrity Gate consumes provider evidence with manuscript, claim, citation, and display refs",
       "AI reviewer or publication gate consumer reads the RI gate input as evidence before MAS owner surface consumption"
     ],
     "stage_hook_target": "review_and_quality_gate or finalize_and_publication_handoff stage hook",
-    "provider_lookup_owner": "MedAutoScience",
+    "provider_lookup_owner": "OPL Connect",
     "mas_gate_owner": "MedAutoScience",
     "consumer_owner": "MAS AI reviewer or publication gate owner surface",
     "forbidden_writes": [
@@ -132,20 +133,19 @@
     ],
     "triggered_action": "research-integrity-reference-verification",
     "triggered_domain_provider_lookup_contract": {
-      "surface_kind": "mas_domain_provider_lookup_contract",
+      "surface_kind": "opl_connect_reference_verification_contract",
       "schema_version": 1,
-      "owner": "MedAutoScience",
+      "owner": "OPL Connect",
       "triggered_by_hook_id": "research-integrity-review-publication-gate-stage-hook",
       "triggered_action": "research-integrity-reference-verification",
       "lookup_providers": [
         "crossref",
-        "pubmed",
         "openalex",
         "semantic_scholar",
         "publisher",
         "crossmark"
       ],
-      "provider_lookup_mode": "domain_owned_evidence_input_only",
+      "provider_lookup_mode": "opl_connect_receipt_input_only",
       "provider_evidence_consumed_by": "research-integrity-reference-verification",
       "mandatory_gate_input_only": true,
       "live_owner_consumption_claimed": false,
@@ -176,20 +176,19 @@
         "manuscript_consistency_meta_review"
       ],
       "triggered_domain_provider_lookup_contract": {
-        "surface_kind": "mas_domain_provider_lookup_contract",
+        "surface_kind": "opl_connect_reference_verification_contract",
         "schema_version": 1,
-        "owner": "MedAutoScience",
+        "owner": "OPL Connect",
         "triggered_by_hook_id": "research-integrity-review-publication-gate-stage-hook",
         "triggered_action": "research-integrity-reference-verification",
         "lookup_providers": [
           "crossref",
-          "pubmed",
           "openalex",
           "semantic_scholar",
           "publisher",
           "crossmark"
         ],
-        "provider_lookup_mode": "domain_owned_evidence_input_only",
+        "provider_lookup_mode": "opl_connect_receipt_input_only",
         "provider_evidence_consumed_by": "research-integrity-reference-verification",
         "mandatory_gate_input_only": true,
         "live_owner_consumption_claimed": false,
@@ -279,7 +278,7 @@
       "producer": "MAS research_integrity.reference_authenticity pure builder",
       "inputs": [
         "reference metadata supplied by manuscript or reference manager",
-        "provider evidence payloads supplied by MAS domain provider lookup or explicit generic connector input",
+        "provider evidence payloads supplied by OPL Connect reference verification or explicit generic connector input",
         "optional full-text or publisher provenance refs"
       ],
       "required_output_fields": [
@@ -379,7 +378,7 @@
       "callable_entry": "MedAutoScienceDomainEntry.dispatch command research-integrity-gate-input",
       "action_catalog_descriptor": "research_integrity_gate_input",
       "inputs": [
-        "reference_checks or reference/references with provider_evidence from MAS domain provider lookup",
+        "reference_checks or reference/references with provider_evidence from OPL Connect reference verification",
         "optional generic provider_receipts with provider_evidence at the receipt root, references[], or opl_connect_reference_verification",
         "claim_spans or claim/claims with citation and evidence refs",
         "citation_refs, evidence_refs, and reference_attestation_refs",
@@ -493,12 +492,11 @@
   },
   "owner_split": {
     "opl_owns": [
-      "optional generic Crossref/OpenAlex source-ref transport when explicitly selected by MAS",
+      "reference provider invocation, retry, cache, normalized metadata receipt, and source-ref transport",
       "generated or hosted workbench projection",
       "transport receipts and retry/dead-letter mechanics"
     ],
     "mas_owns": [
-      "domain-owned provider lookup and PubMed normalization",
       "medical reference interpretation",
       "claim support policy",
       "manuscript consistency policy",
@@ -509,14 +507,15 @@
   },
   "implementation_contract": {
     "provider_lookup_target": {
-      "owner": "MedAutoScience",
-      "provider_lookup_mode": "domain_owned_evidence_input_only",
+      "owner": "OPL Connect",
+      "mas_role": "consume_provider_receipts_and_apply_medical_gate_judgment",
+      "provider_lookup_mode": "opl_connect_receipt_input_only",
       "receipt_first": true,
       "transition_only": false,
       "live_provider_authority_claimed": false,
       "authoritative_provider_truth_owner": "external provider source systems",
-      "mas_domain_provider_lookup": "domain client may pull Crossref/PubMed/OpenAlex/Semantic Scholar evidence, Crossmark metadata signals, or explicit publisher fallback evidence and pass it as provider_evidence only; it is not authoritative live citation verification",
-      "provider_evidence_consumption": "research-integrity-reference-verification accepts optional generic provider receipts, normalizes provider_evidence from receipt root and references, preserves provider_receipt_refs and source_refs, and falls back to MAS domain provider lookup only when no evidence is present; neither input becomes authoritative without MAS owner consumption",
+      "provider_receipt_transport": "OPL Connect invokes configured reference providers and returns read-only receipt candidates; MAS does not own provider HTTP, credentials, retry, cache, or receipt persistence.",
+      "provider_evidence_consumption": "research-integrity-reference-verification accepts optional generic provider receipts, normalizes provider_evidence from receipt root and references, preserves provider_receipt_refs and source_refs, and falls back to OPL Connect reference verification only when no evidence is present; neither input becomes authoritative without MAS owner consumption",
       "stage_hook": "review/publication gate can call research-integrity-review-publication-gate-stage-hook, which triggers research-integrity-reference-verification before returning research-integrity-gate-input",
       "forbidden_side_effects": [
         "publication_eval/latest.json write",
@@ -589,20 +588,19 @@
       "manuscript_consistency_meta_review"
     ],
     "triggered_domain_provider_lookup_contract": {
-      "surface_kind": "mas_domain_provider_lookup_contract",
+      "surface_kind": "opl_connect_reference_verification_contract",
       "schema_version": 1,
-      "owner": "MedAutoScience",
+      "owner": "OPL Connect",
       "triggered_by_hook_id": "research-integrity-review-publication-gate-stage-hook",
       "triggered_action": "research-integrity-reference-verification",
       "lookup_providers": [
         "crossref",
-        "pubmed",
         "openalex",
         "semantic_scholar",
         "publisher",
         "crossmark"
       ],
-      "provider_lookup_mode": "domain_owned_evidence_input_only",
+      "provider_lookup_mode": "opl_connect_receipt_input_only",
       "provider_evidence_consumed_by": "research-integrity-reference-verification",
       "mandatory_gate_input_only": true,
       "live_owner_consumption_claimed": false,

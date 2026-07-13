@@ -67,7 +67,7 @@ def test_audit_reports_new_or_growing_files_over_preferred_boundary_as_advisory(
 
 def test_audit_detects_mechanical_split_residue_without_flagging_semantic_parts(tmp_path: Path) -> None:
     module = _boundary_fitness_module()
-    mechanical_path = Path("src/med_autoscience/controllers/provider_admission/chunk_01.py")
+    mechanical_path = Path("src/med_autoscience/controllers/provider_attempt/chunk_01.py")
     semantic_path = Path("src/med_autoscience/controllers/current_work_unit/workspace_projection.py")
     _write_python_lines(tmp_path / mechanical_path, 3)
     _write_python_lines(tmp_path / semantic_path, 3)

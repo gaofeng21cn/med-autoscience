@@ -22,7 +22,7 @@ AUTHORITY_FALSE_FIELDS = {
     "can_authorize_quality_verdict",
     "can_authorize_publication_readiness",
     "can_authorize_submission_readiness",
-    "can_authorize_provider_admission",
+    "can_authorize_provider_attempt",
     "can_close_stage",
 }
 

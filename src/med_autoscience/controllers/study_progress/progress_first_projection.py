@@ -165,7 +165,7 @@ def _current_owner_route(
         )
         if not route:
             pass
-        elif _stale_provider_admission_route(
+        elif _stale_provider_attempt_route(
             route,
             handoff=handoff,
             transition_route=transition_route,
@@ -183,7 +183,7 @@ def _current_owner_route(
         )
         if not route:
             pass
-        elif _stale_provider_admission_route(
+        elif _stale_provider_attempt_route(
             route,
             handoff=handoff,
             transition_route=transition_route,
@@ -201,7 +201,7 @@ def _current_owner_route(
             paper_progress_delta_counted=paper_progress_delta_counted,
             running_provider_attempt=evidence_handoff.get("running_provider_attempt") is True,
         )
-        if route and not _stale_provider_admission_route(
+        if route and not _stale_provider_attempt_route(
             route,
             handoff=evidence_handoff,
             transition_route=transition_route,
@@ -217,7 +217,7 @@ def _current_owner_route(
         )
         if not route:
             pass
-        elif _stale_provider_admission_route(
+        elif _stale_provider_attempt_route(
             route,
             handoff=evidence_handoff,
             transition_route=transition_route,
@@ -295,7 +295,7 @@ def _readiness_route_superseded_by_paper_delta(
     return READINESS_ACTION in candidates
 
 
-def _stale_provider_admission_route(
+def _stale_provider_attempt_route(
     route: Mapping[str, Any],
     *,
     handoff: Mapping[str, Any],
@@ -315,14 +315,14 @@ def _provider_transition_or_admission_handoff_action_queue(handoff: Mapping[str,
     if action is None:
         return False
     authority = _text(action.get("authority")) or _text(handoff.get("authority"))
-    if authority != "mas_provider_admission_identity":
+    if authority != "mas_provider_attempt_identity":
         return False
     status = _text(action.get("status")) or _text(handoff.get("quest_status"))
     return (
         _has_opl_stage_attempt_readback(handoff)
         or _has_opl_stage_attempt_readback(action)
-        or status in {"provider_admission_pending", "transition_request_pending"}
-        or handoff.get("provider_admission_pending_count") not in (None, 0)
+        or status in {"provider_attempt_pending", "transition_request_pending"}
+        or handoff.get("provider_attempt_pending_count") not in (None, 0)
         or handoff.get("transition_request_pending_count") not in (None, 0)
     )
 

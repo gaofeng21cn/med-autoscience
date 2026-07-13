@@ -131,15 +131,38 @@ def test_only_real_hard_authority_boundary_can_stop_stage_transition() -> None:
     assert decision["next_stage_may_start"] is False
 
 
-def test_zero_readable_output_is_the_only_non_authority_stop() -> None:
+def test_missing_source_data_routes_back_as_quality_debt() -> None:
+    decision = terminalize_stage_closure(
+        study_id="missing-data-study",
+        stage_id="analysis",
+        work_unit_id="analysis-without-source-data",
+        gate_replay={
+            "gate_replay_status": "blocked",
+            "gate_replay_blockers": ["source_data_missing"],
+        },
+    )
+
+    assert decision["outcome"]["kind"] == "next_stage_transition"
+    assert decision["outcome"]["transition_kind"] == "completed_with_quality_debt"
+    assert decision["outcome"]["next_owner"] == "codex_cli"
+    assert decision["next_stage_may_start"] is True
+
+
+def test_zero_readable_output_becomes_a_progress_diagnostic() -> None:
     decision = terminalize_stage_closure(
         study_id="empty-study",
         stage_id="analysis",
         work_unit_id="empty-attempt",
     )
 
-    assert decision["outcome"]["kind"] == "typed_blocker"
-    assert decision["outcome"]["blocker_type"] == "zero_readable_stage_output"
+    assert decision["outcome"]["kind"] == "next_stage_transition"
+    assert decision["outcome"]["transition_kind"] == "completed_with_quality_debt"
+    assert decision["outcome"]["progress_diagnostic"] == {
+        "diagnostic_kind": "no_output_or_failure_diagnostic",
+        "diagnostic_code": "zero_readable_stage_output",
+        "consumable_by_next_stage": True,
+    }
+    assert decision["next_stage_may_start"] is True
 
 
 def test_clean_attempt_advances_without_claiming_readiness() -> None:

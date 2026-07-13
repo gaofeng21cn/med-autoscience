@@ -48,8 +48,8 @@ def test_module_boundary_audit_validation_fails_closed_on_authority_and_control_
     by_group["maintainability"]["modifies_runtime_or_study_truth"] = True
     by_group["runtime_authority_refs"]["owned_progress_spine_surfaces"] = ["transactional_outbox", "fixed_point_reconciler"]
     by_group["product_entry_projection"]["may_generate_workbench_action"] = True
-    by_group["mas_core"]["writable_authority_surfaces"].append("provider_admission")
-    by_group["mas_core"]["may_authorize_provider_admission"] = True
+    by_group["mas_core"]["writable_authority_surfaces"].append("provider_attempt")
+    by_group["mas_core"]["may_authorize_provider_attempt"] = True
     report["target_architecture"]["high_aggregation_low_coupling_acceptance"][
         "projection_authority_claims_allowed"
     ] = True

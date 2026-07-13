@@ -371,7 +371,7 @@ def test_stage_route_contract_declares_machine_anti_loop_policy() -> None:
     assert policy["same_tick_max_passes"] == 3
     assert set(policy["same_tick_continue_reasons"]) == {
         "continue_same_tick_after_sync_owner_delta",
-        "continue_same_tick_after_provider_admission_delta",
+        "continue_same_tick_after_provider_attempt_delta",
     }
     assert policy["repeat_identity_fields"] == [
         "study_id",

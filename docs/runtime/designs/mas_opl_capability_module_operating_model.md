@@ -136,8 +136,8 @@ Gallery 应展示模块能稳定生成的代表性输出，并链接 descriptor 
 ScholarSkills 的执行可用性不来自 MAS 程序仓内的 repo-local mirror；该 mirror 已物理退役，并且必须保持缺席 / tombstone-only。用户只安装 MAS；OPL `packages` 在同一依赖闭包事务中解析并物化 `mas-scholar-skills`，记录 provider version、ABI、manifest/content digest、core exports 和 lifecycle receipt，并对依赖包实施卸载保护、闭包级更新和原子回滚：
 
 ```bash
-opl packages status --package-id mas --scope workspace --target-workspace <workspace_root> --json
-opl packages repair --package-id mas --scope workspace --target-workspace <workspace_root> --json
+opl packages status --package-id mas --json
+opl packages repair mas --agent-root <agent_root> --json
 ```
 
 默认必装的 Codex Skill 是 `mas-scholar-skills`、`medical-manuscript-writing`、`medical-manuscript-review`、`medical-figure-design`、`medical-figure-style`、`medical-figure-composer`、`medical-research-lit`、`medical-statistical-review`、`medical-table-design`、`medical-submission-prep` 和 `medical-data-governance`；8 个 required module 与顺序由 provider manifest 声明。optional router/reviewer 和 named-specialty Skill 不进入 MAS operational readiness floor，只在明确专科任务中按需安装。Provider 是 Skill/module catalog 的单源；MAS 只维护 consumer requirement，不再复制 optional catalog、target path template、helper inventory 或 `connect sync-skills` 命令。

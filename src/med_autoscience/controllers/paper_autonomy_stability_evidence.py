@@ -306,7 +306,7 @@ def _step_receipts(
             "mas_local_materializer_call": False,
             "mas_local_dispatcher_call": False,
             "mas_can_create_opl_command_event_outbox_or_stagerun": False,
-            "mas_can_authorize_provider_admission": False,
+            "mas_can_authorize_provider_attempt": False,
             "missing_readback_blocks_stage_transition": False,
         },
     ]

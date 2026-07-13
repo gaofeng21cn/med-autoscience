@@ -163,33 +163,6 @@ def test_human_gate_resume_receipt_consumption_includes_body_free_resume_ref(tmp
     )
 
 
-def test_provider_slo_long_soak_read_model_projects_body_free_provider_refs() -> None:
-    adapter = importlib.import_module("med_autoscience.controllers.opl_provider_ready_adapter")
-
-    read_model = adapter.build_provider_residency_read_model(
-        provider_available=True,
-        receipt_refs={
-            "temporal_production_residency": "opl://provider/temporal-residency.json",
-            "worker_restart_requery": "opl://provider/worker-restart.json",
-            "retry_dead_letter": "opl://provider/retry-dead-letter.json",
-            "long_soak_receipt": "opl://provider/long-soak.json",
-        },
-    )
-
-    packets = read_model["body_free_evidence_packets"]
-    assert {packet["role"] for packet in packets} == {
-        "provider_residency_ref",
-        "restart_requery_ref",
-        "retry_dead_letter_ref",
-        "provider_slo_long_soak_ref",
-    }
-    for packet in packets:
-        _assert_body_free_packet(packet, role=packet["role"], owner="one-person-lab")
-    assert read_model["authority_boundary"]["can_write_domain_truth"] is False
-    assert read_model["authority_boundary"]["can_write_current_package"] is False
-    assert read_model["authority_boundary"]["can_authorize_publication_quality"] is False
-
-
 def test_body_free_evidence_packet_rejects_forbidden_body_fields() -> None:
     module = importlib.import_module("med_autoscience.controllers.body_free_evidence_packets")
 

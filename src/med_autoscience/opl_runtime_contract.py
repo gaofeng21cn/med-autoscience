@@ -116,16 +116,16 @@ def opl_runtime_default_operation_contract(runtime_ref: str | None = None) -> di
     }
 
 
-def provider_admission_required_blocker(*, operation: str, quest_id: str | None = None) -> dict[str, object]:
+def provider_attempt_required_blocker(*, operation: str, quest_id: str | None = None) -> dict[str, object]:
     payload: dict[str, object] = {
         "ok": False,
-        "status": "provider_admission_required",
+        "status": "provider_attempt_required",
         "source": f"{OPL_HOSTED_STAGE_RUNTIME_ID}.{operation}",
         "runtime_owner": OPL_RUNTIME_OWNER,
         "domain_owner": MAS_DOMAIN_OWNER,
         "provider_completion_is_domain_completion": False,
         "typed_blocker": {
-            "blocker_type": "opl_provider_admission_required",
+            "blocker_type": "opl_provider_attempt_required",
             "owner": OPL_RUNTIME_OWNER,
             "domain_owner": MAS_DOMAIN_OWNER,
             "reason": "mas_private_runtime_backend_retired",
@@ -152,5 +152,5 @@ __all__ = [
     "explicit_opl_runtime_ref",
     "is_opl_hosted_research_execution",
     "opl_runtime_default_operation_contract",
-    "provider_admission_required_blocker",
+    "provider_attempt_required_blocker",
 ]

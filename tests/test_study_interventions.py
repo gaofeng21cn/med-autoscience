@@ -154,7 +154,7 @@ def test_owner_gate_decision_dry_run_returns_human_gate_ref_without_writing(tmp_
         "blocker_type": "stage_packet_not_current_selected_dispatch",
     }
     assert truth_payload["route_back_evidence_ref"].startswith("route_back:owner-gate-decision:")
-    assert truth_payload["provider_admission_allowed"] is False
+    assert truth_payload["provider_attempt_allowed"] is False
     assert truth_payload["do_not_redrive_same_work_unit"] is True
     assert not module.intervention_events_path(study_root=study_root).exists()
 
@@ -187,7 +187,7 @@ def test_publication_gate_governed_answer_can_preserve_existing_blocker_without_
     assert payload["decision"] == "preserve_existing_stable_blocker"
     assert payload["provider_redrive_allowed"] is False
     assert payload["do_not_redrive_same_work_unit"] is True
-    assert payload["provider_admission_allowed"] is False
+    assert payload["provider_attempt_allowed"] is False
     assert payload["preserve_or_explicitly_supersede"] == (
         "owner-gate-decision:d6d895635654560a85573c04"
     )
@@ -252,7 +252,7 @@ def test_owner_gate_decision_apply_requires_exact_stage_packet_identity(tmp_path
     assert event_payload["stage_packet_refs"] == ["stage-packet:current-dm002"]
     assert event_payload["route_identity_key"] == "route-identity:dm002-current"
     assert event_payload["attempt_idempotency_key"] == "attempt-idem:dm002-current"
-    assert event_payload["provider_admission_allowed"] is True
+    assert event_payload["provider_attempt_allowed"] is True
     assert "identity_bound_stage_packet_ref" in event_payload["accepted_answer_shapes"]
 
 
@@ -353,7 +353,7 @@ def test_submission_blocker_human_gate_decision_records_current_owner_identity(
     )
     assert payload["human_gate_ref"].startswith("human_gate:owner-gate-decision:")
     assert payload["submission_authority_closeout"]["writes_human_gate_authority"] is False
-    assert payload["provider_admission_allowed"] is False
+    assert payload["provider_attempt_allowed"] is False
     assert payload["do_not_redrive_same_work_unit"] is True
     snapshot = json.loads(
         (study_root / "artifacts" / "truth" / "latest.json").read_text(encoding="utf-8")

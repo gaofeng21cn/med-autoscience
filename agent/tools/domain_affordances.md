@@ -20,4 +20,7 @@ MAS stage attempts may use tools to read declared study material, literature ref
 
 - Tools do not declare study-ready, publication-ready, quality-ready, journal-ready, App release-ready, production-ready, or owner-accepted states.
 - Tools do not write medical research truth, clinical truth, publication memory body, manuscript body, figure body, owner receipt body, or typed blocker body unless the MAS authority surface for that stage explicitly authorizes it.
-- Tools do not prescribe executor order, candidate strategy, stage goal, or required parallelism.
+- Tools do not prescribe generic executor order, candidate strategy, stage goal,
+  or required parallelism. Professional policies may still require an ordered
+  dependency when reversing it would invalidate evidence, lose provenance,
+  bypass authority, reuse stale proof, or perform an irreversible action.

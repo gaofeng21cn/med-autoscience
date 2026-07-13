@@ -190,8 +190,8 @@ def build_writer_worker_handoff(
         "manual_study_patch_allowed": False,
         "medical_claim_authoring_allowed": True,
         "ai_route_context": ai_route_context,
-        "provider_admission_pending": False,
-        "provider_admission_requires_opl_runtime_result": False,
+        "provider_attempt_pending": False,
+        "provider_attempt_requires_opl_runtime_result": False,
     }
     return {
         "surface": "mas_ai_route_context_projection",
@@ -218,8 +218,8 @@ def build_writer_worker_handoff(
         "manual_study_patch_allowed": False,
         "medical_claim_authoring_allowed": True,
         "ai_route_context": ai_route_context,
-        "provider_admission_pending": False,
-        "provider_admission_requires_opl_runtime_result": False,
+        "provider_attempt_pending": False,
+        "provider_attempt_requires_opl_runtime_result": False,
         "source_action": {
             "surface": "quality_repair_batch",
             "blocked_reason": blocked_repair_reason,

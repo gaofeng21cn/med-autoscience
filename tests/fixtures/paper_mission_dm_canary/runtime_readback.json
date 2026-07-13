@@ -69,7 +69,7 @@
         "required_delta_kind": "paper_recovery_successor_owner_delta_or_typed_blocker",
         "acceptance_refs": [
           "supervisor-decision::materialize_recovery_action::paper-autonomy::002-dm-china-us-mortality-attribution",
-          "provider_admission_pending_count=0"
+          "provider_attempt_pending_count=0"
         ]
       },
       "running_provider_attempt": false
@@ -132,9 +132,9 @@
       "running_provider_attempt": false
     }
   ],
-  "provider_admission_current_control_state": {
-    "provider_admission_pending_count": 0,
-    "provider_admission_candidates": [],
+  "provider_attempt_current_control_state": {
+    "provider_attempt_pending_count": 0,
+    "provider_attempt_candidates": [],
     "transition_request_pending_count": 0,
     "transition_request_candidates": [],
     "action_queue": [],
@@ -160,7 +160,7 @@
       "candidate_count": 1,
       "pending_count": 0,
       "decision_counts": {
-        "provider_admission_terminal_consumed": 1
+        "provider_attempt_terminal_consumed": 1
       },
       "ordinary_planning_root": "current_owner_delta"
     }

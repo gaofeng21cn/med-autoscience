@@ -32,6 +32,9 @@ Every mutating or decision-bearing path must emit a durable owner receipt. The r
 - `route_back_request`: the current stage exposed a better owner or previous-stage repair.
 - `human_gate_request`: PI, external source, journal strategy, scope expansion, or submission action is required.
 - `no_op_with_currentness_proof`: all required refs were already current and no mutation was authorized.
+- `completed_with_quality_debt`: a consumable delta exists after the bounded
+  quality budget; debt blocks quality, publication, export, and submission-ready
+  claims but does not block the stage transition.
 
 ## Typed Blocker Requirements
 
@@ -46,14 +49,18 @@ A typed blocker must name the blocker semantics, route-back owner, missing refs,
 
 ## Route Control Rules
 
-- Follow `owner_route`, controller decisions, and stage handoff refs; do not route by local convenience.
+- Treat `owner_route`, controller decisions, and stage handoff refs as domain recommendations; Codex CLI remains the semantic route owner.
 - Route back when a stage exposes source, evidence, method, claim, writing, artifact, memory, or review currentness gaps.
-- Route forward only when the receipt contains current refs required by the next stage.
+- Route forward may start with missing refs recorded as quality debt; current refs are required only for the corresponding quality/publication/submission claim.
 - Route forward from manuscript, review, finalize, or journal-resolution work only when in-scope journal-family packs have output refs, typed blockers, or explicit out-of-scope reasoning in the receipt.
 - Preserve failed-path and stop-loss evidence as structured ledger refs so later stages do not repeat invalid routes; downstream route control may consume the ref but must not treat ledger body as route authority.
 - Do not invoke progress-first advisory work by default. Next-delta tournament, bounded micro-candidate generation, critique-as-repair-hint, reusable lesson extraction, triggered meta-review, and opportunistic prefetch are JIT affordances only when the current owner action, owner route, route-back, typed blocker, reviewer/publication gate, human gate, or stop-loss decision explicitly asks for that ref family, briefing, repair question, or arbitration need.
 - Preserve JIT affordance outputs as route ordering and repair context only. They cannot block the declared next owner, extend the loop, create a default next action, or replace controller/owner/quality-gate authority. Secondary caps apply only after explicit invocation: at most three micro-candidates, one next-delta tournament, three reviewer repair hints, and one reusable refs-only lesson; meta-review remains limited to stop-loss, repeated failure, human gate, claim-boundary drift, or no-loop budget exhaustion.
 - Human gate blocks auto-advance only when the stage or authority boundary says external decision is required.
+- Do not convert an ordinary quality gap or zero-output attempt into a blocker.
+  Materialize a progress diagnostic and exact debt refs. Block only for an
+  unavailable executor, wrong-target identity/currentness, authority, safety,
+  credential, irreversible-action, or explicit human-decision gate.
 
 ## Program And Materializer Boundary
 

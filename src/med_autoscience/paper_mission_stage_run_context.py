@@ -73,7 +73,7 @@ def paper_mission_stage_run_context(
                 "opl_can_run_semantic_transition_controller": False,
                 "provider_completion_is_domain_completion": False,
             },
-            "provider_admission_requires_opl_runtime_result": False,
+            "provider_attempt_requires_opl_runtime_result": False,
             "carrier_status": "context_available",
             "next_stage_may_start": True,
         }
@@ -95,7 +95,7 @@ def validate_paper_mission_stage_run_context(
         "attempt_idempotency_key",
     ):
         _required_text(payload, field)
-    if payload.get("provider_admission_requires_opl_runtime_result") is not False:
+    if payload.get("provider_attempt_requires_opl_runtime_result") is not False:
         raise ValueError("StageRun context cannot require a semantic runtime result")
     if payload.get("next_stage_may_start") is not True:
         raise ValueError("StageRun context must preserve progress-first advancement")

@@ -354,7 +354,7 @@ def retired_test_domain_owner_dispatch_enriches_repeat_suppressed_typed_blocker_
                 "artifacts/controller_decisions/latest.json",
             ],
         },
-        "progress_first_closeout_admission": {
+        "progress_first_closeout_observation": {
             "admission_status": "blocked",
             "blocked_reason": "closeout_required_before_new_owner_callable_adapter_task",
             "typed_blocker": {

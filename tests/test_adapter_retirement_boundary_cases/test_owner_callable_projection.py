@@ -74,8 +74,8 @@ def test_ai_route_context_is_canonical_and_non_authoritative() -> None:
     contexts = projection.ai_route_contexts(payload)
     assert len(contexts) == 1
     assert contexts[0]["surface"] == "mas_ai_route_context_projection"
-    assert contexts[0]["provider_admission_pending"] is False
-    assert contexts[0]["provider_admission_requires_opl_runtime_result"] is False
+    assert contexts[0]["provider_attempt_pending"] is False
+    assert contexts[0]["provider_attempt_requires_opl_runtime_result"] is False
     assert contexts[0]["mas_dispatch_authority"] is False
     assert contexts[0]["mas_creates_opl_event"] is False
     assert contexts[0]["mas_creates_opl_outbox"] is False

@@ -59,7 +59,7 @@ Replay 读取顺序固定为：
 
 | Case | 症状 | 裁决 | 下一安全动作 |
 | --- | --- | --- | --- |
-| `pending_without_identity_bound_provider_admission` | read-model 或 operator card 仍显示 pending/actionable，但没有 identity-bound provider admission candidate / count，且 domain diagnostic dry-run 是 `observe_only` | `admission_blocked` | run admission apply or report operator gate |
+| `pending_without_identity_bound_provider_attempt` | read-model 或 operator card 仍显示 pending/actionable，但没有 identity-bound provider admission candidate / count，且 domain diagnostic dry-run 是 `observe_only` | `admission_blocked` | run admission apply or report operator gate |
 | `terminal_closeout_not_consumed` | OPL/default executor terminal closeout 已存在，但 MAS 未 consume/reject | `terminal_closeout_ready` | consume or reject terminal closeout |
 | `same_work_unit_stop_loss` | stop-loss / anti-loop budget 后同一 work unit 继续 redrive | `domain_blocked` | create successor recovery obligation or open human gate |
 | `manual_foreground_unadopted` | 前台/人工 paper-local 输出存在，但没有 adoption refs | `manual_foreground_unadopted` | adopt through MAS owner receipt or keep non-authority |

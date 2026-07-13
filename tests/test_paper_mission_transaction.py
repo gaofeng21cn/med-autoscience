@@ -158,7 +158,7 @@ def test_transaction_maps_terminal_decision_to_ai_route_context(
     assert transaction.stage_terminal_decision["decision_kind"] == decision_kind
     assert transaction.ai_route_context["command_kind"] == expected_command
     assert carrier["route_context"]["command_kind"] == expected_command
-    assert carrier["provider_admission_requires_opl_runtime_result"] is False
+    assert carrier["provider_attempt_requires_opl_runtime_result"] is False
     assert carrier["next_stage_may_start"] is True
     assert carrier["route_selection_owner"] == "codex_cli"
     assert transaction.authority_boundary["writes_runtime_queue"] is False

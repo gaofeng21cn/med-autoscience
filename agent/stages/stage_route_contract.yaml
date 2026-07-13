@@ -128,6 +128,7 @@ ordinary_progress_handoff_policy:
       - audit_sidecar_passive
     accepted_terminal_shapes:
       - ProgressDeltaReceipt
+      - NoOutputOrFailureDiagnostic
       - OwnerReceipt
       - TypedBlocker
     provider_completion_can_close: false
@@ -144,7 +145,7 @@ anti_loop_policy:
   same_tick_max_passes: 3
   same_tick_continue_reasons:
     - continue_same_tick_after_sync_owner_delta
-    - continue_same_tick_after_provider_admission_delta
+    - continue_same_tick_after_provider_attempt_delta
   repeat_identity_fields:
     - study_id
     - stage_run_id

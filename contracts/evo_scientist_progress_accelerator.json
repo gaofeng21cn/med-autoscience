@@ -92,7 +92,7 @@
     "can_generate_owner_receipt": false,
     "can_generate_typed_blocker": false,
     "can_generate_paper_progress": false,
-    "can_authorize_provider_admission": false,
+    "can_authorize_provider_attempt": false,
     "can_write_domain_truth": false,
     "can_write_memory_body": false,
     "can_write_artifact_body": false,

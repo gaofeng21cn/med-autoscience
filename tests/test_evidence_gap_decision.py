@@ -12,8 +12,8 @@ def test_authority_gate_is_hard_and_materializes_typed_blocker() -> None:
     )
 
     decision = classify_evidence_gap(
-        surface_kind="opl_stage_run_currentness",
-        missing_ref_family="StageRun currentness provider authorization",
+        surface_kind="artifact_mutation_authority",
+        missing_ref_family="artifact mutation authorization forbidden write",
         identity={"study_id": "DM003", "quest_id": "quest-1", "active_run_id": "run-1"},
         evidence_refs=["runtime/status.json"],
         diagnostic_refs=["artifacts/diagnostics/currentness.json"],
@@ -21,7 +21,7 @@ def test_authority_gate_is_hard_and_materializes_typed_blocker() -> None:
     payload = decision.to_payload()
 
     assert payload["surface_kind"] == "mas_evidence_gap_decision"
-    assert payload["source_surface_kind"] == "opl_stage_run_currentness"
+    assert payload["source_surface_kind"] == "artifact_mutation_authority"
     assert payload["gap_class"] == "authority_gate"
     assert payload["severity"] == "hard_gate"
     assert payload["current_action_can_continue"] is False
@@ -39,6 +39,23 @@ def test_authority_gate_is_hard_and_materializes_typed_blocker() -> None:
     assert blocker["gap_class"] == "authority_gate"
     assert blocker["write_permitted"] is False
     assert blocker["required_owner_surface"] == "mas_authority_surface"
+
+
+def test_stage_run_and_provider_observation_gaps_never_become_authority_blockers() -> None:
+    from med_autoscience.evidence_gap_decision import (
+        classify_evidence_gap,
+        materialize_typed_blocker_if_required,
+    )
+
+    decision = classify_evidence_gap(
+        surface_kind="opl_stage_run_currentness",
+        missing_ref_family="StageRun provider attempt outbox receipt",
+        identity={"study_id": "DM003"},
+    )
+
+    assert decision.gap_class == "proceed_with_assumption"
+    assert decision.current_action_can_continue is True
+    assert materialize_typed_blocker_if_required(decision) is None
 
 
 def test_soft_quality_gap_can_continue_without_typed_blocker_but_cannot_claim_progress() -> None:
@@ -123,7 +140,7 @@ def test_workbench_gap_view_splits_hard_gates_soft_ledgers_and_assumptions() -> 
 
     view = build_workbench_gap_view(
         [
-            classify_missing_ref_family("StageRun owner route currentness").to_payload(),
+            classify_missing_ref_family("artifact mutation authorization forbidden write").to_payload(),
             classify_missing_ref_family("reviewer structure concern").to_payload(),
             classify_missing_ref_family("safe non-critical bibliography helper ref").to_payload(),
             classify_missing_ref_family("live-readiness tail").to_payload(),

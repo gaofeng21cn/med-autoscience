@@ -64,7 +64,7 @@
     "handoff_required",
     "no_live_session",
     "queue_empty",
-    "provider_admission_pending",
+    "provider_attempt_pending",
     "current_owner_identity_unavailable_for_guard",
     "typed_blocker_required",
     "active_run_id_null",

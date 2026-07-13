@@ -21,7 +21,7 @@
     "next_action_authority": "NextActionEnvelope",
     "stage_outcome_to_next_action_authority": "StageOutcome -> NextActionEnvelope",
     "diagnostic_role": "recovery_obligation_provenance_only",
-    "provider_admission_authority": false,
+    "provider_attempt_authority": false,
     "completion_authority": false,
     "current_work_unit_authority": "diagnostic_provenance_only",
     "current_owner_delta_authority": "diagnostic_provenance_only",
@@ -128,10 +128,10 @@
       ],
       "forbidden_phase_combinations": [
         {
-          "name": "pending_without_identity_bound_provider_admission",
+          "name": "pending_without_identity_bound_provider_attempt",
           "when_all": [
             "phase=admission_pending",
-            "identity_bound_provider_admission_candidate_absent",
+            "identity_bound_provider_attempt_candidate_absent",
             "domain diagnostic.action_class=observe_only"
           ],
           "effect": "admission_blocked",
@@ -141,7 +141,7 @@
           "name": "successor_owner_action_precedes_stale_admission_blocked_residue",
           "when_all": [
             "verified_successor_owner_action_present",
-            "provider_admission_residue_observe_only_or_retry_exhausted",
+            "provider_attempt_residue_observe_only_or_retry_exhausted",
             "successor_action_identity_complete"
           ],
           "effect": "owner_action_ready",
@@ -191,7 +191,7 @@
       "required_condition_types": [
         "CurrentObligationSelected",
         "ProjectionConsistent",
-        "ProviderAdmissionAllowed",
+        "ProviderAttemptAllowed",
         "TerminalCloseoutConsumedOrRejected",
         "AuthorityBoundaryPreserved"
       ],
@@ -220,7 +220,7 @@
         "reject_terminal_closeout_as_stale",
         "admit_provider_attempt",
         "admit_identity_bound_stage_packet",
-        "consume_opl_provider_admission_readback",
+        "consume_opl_provider_attempt_readback",
         "authorize_opl_transport_recovery_or_stable_typed_blocker",
         "honor_stable_typed_blocker",
         "materialize_successor_owner_action",
@@ -292,7 +292,7 @@
         "current_work_unit",
         "current_execution_envelope",
         "study_progress",
-        "domain_diagnostic_report.provider_admission_current_control",
+        "domain_diagnostic_report.provider_attempt_current_control",
         "domain_handler_export.pending_family_tasks",
         "operator_status_card",
         "OPL admission projection",
@@ -301,33 +301,33 @@
       "forbidden_derived_surface_behaviors": [
         "select_recovery_obligation",
         "override_phase_from_transport_status",
-        "derive_provider_admission_from_queue_or_dispatch_residue",
+        "derive_provider_attempt_from_queue_or_dispatch_residue",
         "derive_owner_receipt_from_provider_completion",
         "treat_read_model_refresh_as_domain_progress",
         "same_obligation_redrive_without_new_evidence"
       ],
       "additional_no_resurrection_forbidden_behaviors": [
         "derive_default_next_action_from_paper_recovery_state",
-        "derive_provider_admission_authority_from_current_work_unit",
+        "derive_provider_attempt_authority_from_current_work_unit",
         "derive_completion_from_current_owner_delta"
       ],
       "migration_sequence": [
         "introduce_pure_kernel_decision_fixture",
-        "route_current_work_unit_and_domain_diagnostic_provider_admission_through_kernel_output",
+        "route_current_work_unit_and_domain_diagnostic_provider_attempt_through_kernel_output",
         "route_domain_handler_export_through_kernel_admission_output",
         "retire_duplicate_projection_precedence_logic"
       ],
       "canonical_migration_target": [
-        "route_current_work_unit_and_domain_diagnostic_provider_admission_to_next_action_envelope_then_project_kernel_output_as_diagnostic",
+        "route_current_work_unit_and_domain_diagnostic_provider_attempt_to_next_action_envelope_then_project_kernel_output_as_diagnostic",
         "route_domain_handler_export_through_next_action_envelope_identity_and_use_kernel_output_as_no_resurrection_guard"
       ],
-      "same_write_set_boundary": "implementation_must_not_overlap_live_recovery_reducer_or_provider_admission_lanes_without_fresh_owner"
+      "same_write_set_boundary": "implementation_must_not_overlap_live_recovery_reducer_or_provider_attempt_lanes_without_fresh_owner"
     },
     "next_safe_action_authority_boundary": {
       "canonical_rule": {
         "meaning": "Default next action, provider-admission eligibility, and completion judgment must come from canonical StageOutcome -> NextActionEnvelope plus same-identity OPL receipt/MAS owner consumption. PaperRecovery, current_work_unit, and current_owner_delta can only explain diagnostics, provenance, and no-resurrection guards.",
         "paper_recovery_can_select_next_action": false,
-        "paper_recovery_can_authorize_provider_admission": false,
+        "paper_recovery_can_authorize_provider_attempt": false,
         "paper_recovery_can_claim_completion": false,
         "current_work_unit_can_select_next_action": false,
         "current_owner_delta_can_claim_completion": false
@@ -335,35 +335,35 @@
       "materialize_mas_transition_request_or_owner_callable": {
         "meaning": "MAS may emit non-authoritative AI route context or run a MAS owner callable; OPL owns StageRun transport only.",
         "mas_can_create_opl_outbox_record": false,
-        "mas_can_authorize_provider_admission": false,
-        "provider_admission_pending_requires_opl_transition_boundary": false
+        "mas_can_authorize_provider_attempt": false,
+        "provider_attempt_pending_requires_opl_transition_boundary": false
       },
       "record_optional_stage_attempt_context": {
         "meaning": "MAS has emitted or observed AI route context. Missing provider readback is transport diagnostic only: Codex may start any declared stage with the available artifact and preserved failed-path evidence.",
         "mas_can_create_opl_outbox_record": false,
-        "mas_can_authorize_provider_admission": false,
-        "provider_admission_pending_requires_opl_transition_boundary": false,
+        "mas_can_authorize_provider_attempt": false,
+        "provider_attempt_pending_requires_opl_transition_boundary": false,
         "missing_readback_blocks_stage_transition": false
       },
       "admit_provider_attempt": {
         "meaning": "Legacy action name retained only for historical contract compatibility and diagnostic replay; current MAS recovery state must use StageOutcome -> NextActionEnvelope and same-identity OPL readback before any provider-admission interpretation.",
         "mas_can_create_opl_outbox_record": false,
-        "mas_can_authorize_provider_admission": false,
+        "mas_can_authorize_provider_attempt": false,
         "provider_completion_is_domain_completion": false,
         "default_next_action_authority": false
       },
       "admit_identity_bound_stage_packet": {
         "meaning": "Legacy action name retained only for diagnostic replay; an identity-bound stage packet is not admitted from PaperRecovery/current_work_unit and requires canonical NextActionEnvelope plus OPL transition authority.",
         "mas_can_create_opl_outbox_record": false,
-        "mas_can_authorize_provider_admission": false,
+        "mas_can_authorize_provider_attempt": false,
         "provider_completion_is_domain_completion": false,
         "default_next_action_authority": false
       },
-      "consume_opl_provider_admission_readback": {
+      "consume_opl_provider_attempt_readback": {
         "meaning": "A complete same-transition OPL provider-admission runtime readback exists; MAS may consume the derived projection but cannot authorize or start provider attempts.",
         "mas_can_create_opl_outbox_record": false,
-        "mas_can_authorize_provider_admission": false,
-        "provider_admission_requires_opl_runtime_result": false,
+        "mas_can_authorize_provider_attempt": false,
+        "provider_attempt_requires_opl_runtime_result": false,
         "requires_claimable_live_readback_source": true,
         "provider_completion_is_domain_completion": false
       }
@@ -396,14 +396,14 @@
     "pending_obligation_requires_executable_intent": {
       "pending_requires_all": [
         "phase=admission_pending",
-        "next_safe_action=consume_opl_provider_admission_readback",
-        "provider_admission_requires_opl_runtime_result=true",
-        "mas_can_authorize_provider_admission=false",
-        "provider_admission_pending_count=1_or_provider_admission_candidates>=1"
+        "next_safe_action=consume_opl_provider_attempt_readback",
+        "provider_attempt_requires_opl_runtime_result=true",
+        "mas_can_authorize_provider_attempt=false",
+        "provider_attempt_pending_count=1_or_provider_attempt_candidates>=1"
       ],
       "forbidden_combinations": [
-        "phase=admission_pending + identity_bound_provider_admission_candidate_absent",
-        "phase=admission_pending + provider_admission_pending_count=0",
+        "phase=admission_pending + identity_bound_provider_attempt_candidate_absent",
+        "phase=admission_pending + provider_attempt_pending_count=0",
         "phase=admission_pending + current_work_unit.status=typed_blocker"
       ],
       "violation_effect": "admission_blocked_or_projection_inconsistent"
@@ -416,7 +416,7 @@
       ],
       "forbidden_effects": [
         "paper_progress_credit",
-        "provider_admission_redrive",
+        "provider_attempt_redrive",
         "publication_ready_claim"
       ]
     },
@@ -432,7 +432,7 @@
     },
     "projection_inconsistency_fail_closed": {
       "condition": "ProjectionConsistent=False",
-      "effect": "no_provider_admission_no_paper_progress_no_owner_receipt_claim",
+      "effect": "no_provider_attempt_no_paper_progress_no_owner_receipt_claim",
       "required_next_safe_action": "repair_projection_before_admission"
     },
     "derived_visible_surfaces_must_be_sanitized": {
@@ -460,7 +460,7 @@
         "explicit_resume_pending",
         "awaiting_explicit_wakeup",
         "user_resume_required_for_current_recovery",
-        "provider_admission_allowed_when_next_safe_action_forbids_it"
+        "provider_attempt_allowed_when_next_safe_action_forbids_it"
       ],
       "required_effect": "replace_stale_operator_or_parked_projection_with_paper_recovery_phase_and_next_safe_action"
     }
@@ -516,7 +516,7 @@
       "operator_card_can_be_source_of_truth": false
     },
     "additional_false_authority_flags": {
-      "current_work_unit_can_authorize_provider_admission": false,
+      "current_work_unit_can_authorize_provider_attempt": false,
       "current_owner_delta_can_claim_completion": false
     },
     "forbidden_authority_claims": [
@@ -572,7 +572,7 @@
     ],
     "replay_cases": [
       {
-        "case_id": "pending_without_identity_bound_provider_admission",
+        "case_id": "pending_without_identity_bound_provider_attempt",
         "symptom": "read-model shows pending or actionable owner card while no identity-bound provider admission candidate/count exists and domain diagnostic dry-run is observe_only",
         "required_outcome": "admission_blocked",
         "next_safe_action": "authorize_opl_transport_recovery_or_stable_typed_blocker"

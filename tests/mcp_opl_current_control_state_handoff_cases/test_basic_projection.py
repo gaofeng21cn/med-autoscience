@@ -45,7 +45,7 @@ def test_stage_attempt_context_projection_is_observability_only(tmp_path) -> Non
     assert projection["authority"] == "observability_only"
     assert projection["progress_first"]["next_stage_may_start"] is True
     assert projection["progress_first"]["missing_transport_readback_blocks_stage_transition"] is False
-    assert "provider_admission_candidates" not in projection
+    assert "provider_attempt_candidates" not in projection
 
 
 def test_missing_stage_attempt_context_does_not_materialize_a_blocker(tmp_path) -> None:

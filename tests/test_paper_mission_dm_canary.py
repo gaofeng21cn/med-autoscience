@@ -126,7 +126,7 @@ def test_runtime_readback_is_not_default_paper_progress_or_owner_truth() -> None
         assert "platform_diagnostics" not in readback
         assert "current_work_unit" not in readback
         assert "current_executable_owner_action" not in readback
-        assert "provider_admission_current_control" not in readback
+        assert "provider_attempt_current_control" not in readback
         assert "paper_recovery_state" not in readback
 
 

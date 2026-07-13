@@ -169,7 +169,7 @@ def test_artifact_first_mission_summary_prefers_materialized_paper_mission_run(
         "stop_with_typed_blocker"
     )
     assert payload["opl_stage_run_context"][
-        "provider_admission_requires_opl_runtime_result"
+        "provider_attempt_requires_opl_runtime_result"
     ] is False
     assert payload["opl_stage_run_context"]["next_stage_may_start"] is True
     assert payload["opl_stage_run_context"]["route_selection_owner"] == "codex_cli"
@@ -361,7 +361,7 @@ def test_materialized_mission_summary_does_not_let_opl_closeout_override_stage_o
         "human_decision_required": False,
         "summary": "accepted",
         "can_execute": False,
-        "can_authorize_provider_admission": False,
+        "can_authorize_provider_attempt": False,
     }
     assert "terminal_owner_gate" not in payload
     assert payload["next_owner_or_human_decision"] == (

@@ -38,7 +38,7 @@ def tombstone(contract: dict[str, object], surface_id: str) -> dict[str, object]
                 "can_write_domain_truth",
                 "can_authorize_publication_quality",
                 "can_authorize_artifact_mutation",
-                "can_authorize_provider_admission",
+                "can_authorize_provider_attempt",
                 "can_claim_paper_progress",
                 "can_claim_runtime_ready",
             ),
@@ -46,10 +46,10 @@ def tombstone(contract: dict[str, object], surface_id: str) -> dict[str, object]
         (
             "legacy_next_action_projection_and_selector_surfaces",
             "retired_next_action_diagnostics_provenance_only",
-            {"default_next_action_selector", "provider_admission_authority", "paper_progress", "runtime_ready"},
+            {"default_next_action_selector", "provider_attempt_authority", "paper_progress", "runtime_ready"},
             (
                 "can_select_default_next_action",
-                "can_authorize_provider_admission",
+                "can_authorize_provider_attempt",
                 "can_write_domain_truth",
                 "can_authorize_publication_quality",
                 "can_claim_paper_progress",

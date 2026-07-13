@@ -279,7 +279,7 @@ def plan_ai_reviewer_publication_eval_record_materialization(
             "runtime_queues/**",
             "provider_attempts/**",
             "provider_leases/**",
-            "provider_admission/**",
+            "provider_attempt/**",
         ],
         "authority_boundary": {
             "paper_package_mutation_allowed": False,

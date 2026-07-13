@@ -342,7 +342,7 @@ def _drive_direct_next_action_readback(
             "human_decision_required": False,
             "summary": "MAS domain transition selected a concrete OPL stage attempt.",
             "can_execute": False,
-            "can_authorize_provider_admission": False,
+            "can_authorize_provider_attempt": False,
         },
         "mutation_policy": {
             "writes_authority": False,

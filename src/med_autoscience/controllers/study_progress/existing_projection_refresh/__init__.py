@@ -113,8 +113,8 @@ def refresh_existing_projection_current_owner_surfaces(
         "current_execution_envelope",
         "current_executable_owner_action",
         "paper_recovery_state",
-        "provider_admission_candidates",
-        "provider_admission_pending_count",
+        "provider_attempt_candidates",
+        "provider_attempt_pending_count",
         "transition_request_candidates",
         "transition_request_pending_count",
     ):

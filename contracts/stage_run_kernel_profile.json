@@ -125,7 +125,7 @@
     "quality_debt_counts_as_quality_acceptance": false,
     "active_run_id_counts_as_paper_progress": false
   },
-  "launch_admission_policy": {
+  "stage_context_policy": {
     "hard_blockers": [
       "identity",
       "owner",

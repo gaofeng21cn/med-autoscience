@@ -2,80 +2,43 @@
 
 Owner: MedAutoScience
 Stage id: direction_and_route_selection
-Stage kind: planning
-Domain routes: scout, idea, decision
 Next stage: baseline_and_evidence_setup
-Machine boundary: prompt source for the MAS semantic pack. Runtime truth remains in stage packets, controller decisions, evidence ledgers, review ledgers, owner receipts, and durable artifact refs.
+Machine boundary: this prompt directs medical route selection. Durable study truth,
+source readiness, quality verdicts, and route authority remain MAS-owned.
 
-## Stage Objective
+## Objective
 
-Freeze a medically worthwhile study direction, evidence target, and immediate route recommendation inside the active study boundary. The stage must decide whether the best next move is to proceed, narrow, pivot, stop, or request a human decision, and it must preserve the reasoning behind rejected routes.
+Choose the most worthwhile next research route inside the active study boundary.
+Decide whether to proceed, narrow, pivot, stop, or request a human decision, and
+leave a consumable rationale for both the selected and rejected routes.
 
-## Codex Execution Posture
+## Good Work
 
-Codex acts as a stage work executor, not as a publication gate. Use open-ended medical research judgment over the structured refs: clinical importance, biological plausibility, cohort/data fit, novelty, likely evidence gain, journal route, and failure risk all matter. Structured route contracts and progress projections are traceability floors; they do not replace expert judgment.
+- Use current study, source, evidence, literature, controller, reviewer, and
+  publication-route-memory refs to judge clinical importance, plausibility,
+  feasibility, novelty, likely evidence gain, journal fit, and failure risk.
+- Make the candidate question, population, exposure or model target, outcome,
+  source boundary, intended contribution, and stop or pivot condition clear.
+- Preserve weak, negative, duplicate, or rejected routes as decision-trace and
+  failed-path refs. Do not silently relaunch a consumed failed path.
+- Allow data-feasibility exploration to refine the direction. A formal route must
+  still identify the study and claim boundary before claim-bearing work begins.
+- Use professional methods and tools through `medical_research_execution.md`.
+  Their choice, order, and safe parallelism are executor decisions unless a
+  professional, evidence, permission, or authority dependency requires order.
 
-Work from current MAS-owned refs. If the available refs do not establish the study boundary, source scope, or route authority, return a typed blocker or human gate recommendation instead of manufacturing a direction.
+## Boundaries
 
-## Inputs And Refs
+Do not widen the charter, endpoint, population, model target, or main claim
+without a decision receipt or human gate. Generated-interface status, provider
+completion, tests, memory, or specialist output are context, not route or quality
+authority. Any quality or readiness decision requiring review must come from a
+separate reviewer/auditor invocation.
 
-- Study charter, task intake, controller decision refs, and current `progress_projection`.
-- Source readiness refs, source provenance refs, and workspace source locators.
-- Evidence ledger refs, prior failed-path refs, review ledger refs, and publication-route memory refs.
-- Literature coverage refs and journal-neighbor context when present.
-- Product-entry/action catalog refs only as allowed dispatch and status surfaces.
+## Handoff
 
-## Allowed Tools And Native Helpers
-
-- Inspect MAS refs through the MAS direct skill or generated OPL-hosted surfaces that expose `product_entry_status`, `mainline_status`, and `study_progress`.
-- Use `medical_research_execution` to reason over study, source, evidence, review, and memory refs.
-- Use `owner_receipt_and_route_control` to form the owner route recommendation, route-back, typed blocker, or human gate request.
-- Use sidecar/export refs only as locator and dispatch metadata; MAS remains the truth owner.
-
-## External Specialist Skill Policy
-
-Default to the eight `mas-scholar-skills` professional Skills (`display`, `tables`,
-`stats`, `lit`, `write`, `review`, `submit`, `data`) for ordinary medical-paper
-work. Use `external-scientific-skills` / OPL Connect only for a named or
-policy-detected uncovered specialist gap: explicit user tool/database/runtime,
-core Skill route-back, stage policy finding core eight cannot cover current
-delta, or network/cloud/sensitive-data/credential approval. The only allowed
-sequence is single-skill `search -> inspect -> sync`; bulk-load is forbidden.
-External specialist outputs are refs-only candidates; K-Dense or any external library cannot become MAS authority.
-
-## Required Reasoning
-
-- State the candidate clinical question, population, exposure or model target, outcome, source boundary, and intended contribution.
-- Compare candidate routes by clinical relevance, data fit, novelty, evidence gain, journal fit, reviewer risk, and stop or pivot rule.
-- Treat publication-route memory as reusable experience. It may suggest question shapes, table/figure patterns, or failed-path warnings; it cannot authorize a claim, quality verdict, or final route by itself.
-- Preserve negative, weak, or rejected routes as failed-path / decision-trace ledger refs with explicit reasons. If a candidate route repeats a consumed failed-path ref, route around it or request a decision instead of relaunching the same invalid path.
-- Select `baseline_and_evidence_setup` only when source readiness and study boundary are specific enough for managed execution.
-
-## Forbidden Shortcuts
-
-- Do not widen the study charter, endpoint, population, model target, or main claim without a decision receipt or human gate.
-- Do not infer route readiness from descriptor readiness, test pass, generated interface status, progress projection, or provider completion.
-- Do not copy publication-route memory into current truth without an accept/reject record and router receipt.
-- Do not write MAS truth, publication eval, memory body, current package, or artifact authority from an OPL-generated surface.
-
-## Review And Audit Separation
-
-This stage produces execution reasoning and an owner route recommendation. It does not close a quality gate. Any quality, source-readiness, or memory accept/reject decision that affects publication authority requires a separate reviewer or auditor invocation with separate context, task record, and receipt.
-
-## AI-First Handoff And Receipt
-
-Return a stage execution receipt containing candidate routes, rejected alternatives, selected route, source refs, literature refs, publication-route memory refs used, decision-trace refs, failed-path refs, blockers, and next-owner recommendation. The receipt must make the owner route explicit:
-
-The receipt must state the minimum forward delta and the next forced target surface. If no domain delta was possible, it must cite the consumed currentness, duplicate, failed-path, or forbidden-surface refs and close as typed blocker, human gate, stop-loss, or route-back. Human gate requests must include the decision question, evidence refs, allowed choices or decision boundary, blocking reason, and the target surface that resumes after the human receipt.
-
-- `direction_route_selected` with refs and rationale.
-- `decision_trace_refs` / `failed_path_refs` for rejected routes, claim narrowing, methodology route-back, stop-loss pressure, or prior invalid route consumption.
-- typed blocker when the source, study boundary, or memory currentness is insufficient.
-- human gate request when scope expansion, claim shift, or PI decision is required.
-
-## Done Criteria
-
-- The selected route is tied to current study, source, evidence, literature, and memory refs.
-- Rejected routes and stop/pivot criteria are recorded.
-- No MAS truth body, memory body, publication verdict, or artifact authority was written by the executor.
-- Next stage is `baseline_and_evidence_setup`, or the receipt contains a typed blocker/human gate with exact missing refs.
+Return a `direction_route_selected` receipt with the selected route, current
+supporting refs, rejected alternatives, failed-path refs, rationale, minimum
+forward delta, and next owner. If no route is supportable, return an exact
+route-back, typed blocker, stop-loss, or human gate with the missing authority or
+refs and the surface that resumes the work.

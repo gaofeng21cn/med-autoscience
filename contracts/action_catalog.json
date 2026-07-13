@@ -6,8 +6,7 @@
         "authoritative_truth_refs": [
           "/progress_projection",
           "/owner_route/latest.json",
-          "/publication_eval/latest.json",
-          "/controller_decisions/latest.json"
+          "/publication_eval/latest.json"
         ],
         "descriptor_projection_owner": "one-person-lab",
         "domain_handler_target_owner": "MedAutoScience",
@@ -84,8 +83,7 @@
         "authoritative_truth_refs": [
           "/progress_projection",
           "/owner_route/latest.json",
-          "/publication_eval/latest.json",
-          "/controller_decisions/latest.json"
+          "/publication_eval/latest.json"
         ],
         "descriptor_projection_owner": "one-person-lab",
         "domain_handler_target_owner": "MedAutoScience",
@@ -156,8 +154,7 @@
         "authoritative_truth_refs": [
           "/progress_projection",
           "/owner_route/latest.json",
-          "/publication_eval/latest.json",
-          "/controller_decisions/latest.json"
+          "/publication_eval/latest.json"
         ],
         "descriptor_projection_owner": "one-person-lab",
         "domain_handler_target_owner": "MedAutoScience",
@@ -223,8 +220,7 @@
         "authoritative_truth_refs": [
           "/progress_projection",
           "/owner_route/latest.json",
-          "/publication_eval/latest.json",
-          "/controller_decisions/latest.json"
+          "/publication_eval/latest.json"
         ],
         "descriptor_projection_owner": "one-person-lab",
         "domain_handler_target_owner": "MedAutoScience",
@@ -241,7 +237,7 @@
         "command": "med_autoscience.domain_entry:MedAutoScienceDomainEntry.dispatch#paper_mission",
         "surface_kind": "paper_mission_readback"
       },
-      "summary": "Inspect or advance the canonical MAS paper mission through owner receipts, typed blockers, human gates, and OPL transition refs.",
+      "summary": "Inspect the canonical MAS paper mission and expose artifacts, negative results, owner receipts, hard blockers, human gates, and route context for Codex-selected progression.",
       "supported_surfaces": {
         "ai_sdk": {
           "tool_name": "paper_mission"
@@ -297,8 +293,7 @@
         "authoritative_truth_refs": [
           "/progress_projection",
           "/owner_route/latest.json",
-          "/publication_eval/latest.json",
-          "/controller_decisions/latest.json"
+          "/publication_eval/latest.json"
         ],
         "can_authorize_publication_quality": false,
         "can_authorize_submission_readiness": false,
@@ -306,12 +301,12 @@
         "can_write_domain_truth": false,
         "descriptor_projection_owner": "one-person-lab",
         "domain_handler_target_owner": "MedAutoScience",
-        "domain_transition_owner": "MedAutoScience",
+        "domain_route_context_owner": "MedAutoScience",
         "domain_truth_owner": "MedAutoScience",
         "helper_owner": "MedAutoScience",
         "helper_write_policy": "no_domain_truth_writes",
         "runner_owner": "OPL Framework",
-        "surface_authority": "domain_transition_read_model_materialization"
+        "surface_authority": "domain_route_context_read_model_materialization"
       },
       "effect": "read_only",
       "human_gate_ids": [],
@@ -370,8 +365,7 @@
         "authoritative_truth_refs": [
           "/progress_projection",
           "/owner_route/latest.json",
-          "/publication_eval/latest.json",
-          "/controller_decisions/latest.json"
+          "/publication_eval/latest.json"
         ],
         "can_authorize_publication_quality": false,
         "can_authorize_submission_readiness": false,
@@ -441,14 +435,12 @@
         "authoritative_truth_refs": [
           "/progress_projection",
           "/owner_route/latest.json",
-          "/publication_eval/latest.json",
-          "/controller_decisions/latest.json"
+          "/publication_eval/latest.json"
         ],
         "can_authorize_publication_quality": false,
         "can_authorize_submission_readiness": false,
         "can_dispatch_runtime_owner_task": false,
         "can_emit_owner_route_task_refs": true,
-        "can_write_controller_decisions": false,
         "can_write_current_package": false,
         "can_write_publication_eval": false,
         "domain_truth_owner": "MedAutoScience",
@@ -466,7 +458,7 @@
         "command": "med_autoscience.domain_entry:MedAutoScienceDomainEntry.dispatch#publication_aftercare_plan",
         "surface_kind": "mas_publication_aftercare_plan"
       },
-      "summary": "Read a refs-only publication aftercare control surface for resubmission, talk package, Overleaf sync, ARIS research-pipeline / auto-review-loop / experiment queue absorption, and reviewer refresh. It can only emit MAS owner-route task refs or typed blockers; it does not write publication_eval, controller_decisions, current_package, paper package, or submission authority.",
+      "summary": "Read a refs-only publication aftercare surface for resubmission, talk package, Overleaf sync, research-pipeline follow-up, and reviewer refresh. It can only emit advisory owner-route refs or hard-boundary blocker refs; it does not write publication authority, current_package, paper package, or submission authority.",
       "supported_surfaces": {
         "ai_sdk": {
           "tool_name": "publication_aftercare_plan"
@@ -511,8 +503,7 @@
       "action_id": "delivery_authority_backfill_apply",
       "authority_boundary": {
         "authoritative_truth_refs": [
-          "/publication_eval/latest.json",
-          "/controller_decisions/latest.json"
+          "/publication_eval/latest.json"
         ],
         "can_authorize_publication_quality": false,
         "can_mutate_current_package": false,
@@ -520,7 +511,7 @@
         "can_write_delivery_manifest": true,
         "domain_truth_owner": "MedAutoScience",
         "helper_owner": "MedAutoScience",
-        "helper_write_policy": "controller_gated_delivery_manifest_fields_only",
+        "helper_write_policy": "domain_owner_authorized_delivery_manifest_fields_only",
         "surface_authority": "delivery_manifest_authority_backfill"
       },
       "effect": "mutating",
@@ -534,7 +525,7 @@
         "command": "med_autoscience.domain_entry:MedAutoScienceDomainEntry.dispatch#delivery_authority_backfill_apply",
         "surface_kind": "delivery_authority_backfill_apply"
       },
-      "summary": "Apply a controller-authorized backfill only to delivery manifest lifecycle, source-signature, and publication-ref fields. It cannot mutate current_package or submission_minimal.",
+      "summary": "Apply a domain-owner-authorized backfill only to delivery manifest lifecycle, source-signature, and publication-ref fields. It cannot mutate current_package or submission_minimal.",
       "supported_surfaces": {
         "ai_sdk": {
           "tool_name": "delivery_authority_backfill_apply"
@@ -564,7 +555,7 @@
           "surface_kind": "delivery_authority_backfill_apply"
         }
       },
-      "title": "Apply controller-gated delivery manifest backfill",
+      "title": "Apply domain-owner-authorized delivery manifest backfill",
       "workspace_locator_fields": [
         "workspace_roots"
       ],
@@ -582,13 +573,11 @@
         "authoritative_truth_refs": [
           "/progress_projection",
           "/owner_route/latest.json",
-          "/publication_eval/latest.json",
-          "/controller_decisions/latest.json"
+          "/publication_eval/latest.json"
         ],
         "can_authorize_publication_quality": false,
         "can_authorize_submission_readiness": false,
         "can_block_current_owner_action": false,
-        "can_write_controller_decisions": false,
         "can_write_current_package": false,
         "can_write_publication_eval": false,
         "domain_truth_owner": "MedAutoScience",
@@ -646,8 +635,7 @@
         "authoritative_truth_refs": [
           "/progress_projection",
           "/owner_route/latest.json",
-          "/publication_eval/latest.json",
-          "/controller_decisions/latest.json"
+          "/publication_eval/latest.json"
         ],
         "can_authorize_publication_readiness": false,
         "can_emit_display_refs_and_receipts": true,
@@ -715,8 +703,7 @@
         "authoritative_truth_refs": [
           "/progress_projection",
           "/owner_route/latest.json",
-          "/publication_eval/latest.json",
-          "/controller_decisions/latest.json"
+          "/publication_eval/latest.json"
         ],
         "can_authorize_publication_readiness": false,
         "can_emit_display_refs_and_receipts": true,
@@ -788,8 +775,7 @@
         "authoritative_truth_refs": [
           "/progress_projection",
           "/owner_route/latest.json",
-          "/publication_eval/latest.json",
-          "/controller_decisions/latest.json"
+          "/publication_eval/latest.json"
         ],
         "can_authorize_publication_readiness": false,
         "can_emit_display_refs_and_receipts": true,
@@ -863,8 +849,7 @@
         "authoritative_truth_refs": [
           "/progress_projection",
           "/owner_route/latest.json",
-          "/publication_eval/latest.json",
-          "/controller_decisions/latest.json"
+          "/publication_eval/latest.json"
         ],
         "can_authorize_publication_readiness": false,
         "can_emit_display_refs_and_receipts": true,
@@ -933,15 +918,13 @@
         "authoritative_truth_refs": [
           "/progress_projection",
           "/owner_route/latest.json",
-          "/publication_eval/latest.json",
-          "/controller_decisions/latest.json"
+          "/publication_eval/latest.json"
         ],
         "can_authorize_publication_readiness": false,
         "can_emit_display_refs_and_receipts": true,
         "can_mutate_data_or_statistics": false,
         "can_replace_owner_receipt": false,
         "can_replace_visual_audit": false,
-        "can_write_controller_decisions": false,
         "can_write_current_package": false,
         "can_write_publication_eval": false,
         "domain_truth_owner": "MedAutoScience",
@@ -1008,15 +991,13 @@
         "authoritative_truth_refs": [
           "/progress_projection",
           "/owner_route/latest.json",
-          "/publication_eval/latest.json",
-          "/controller_decisions/latest.json"
+          "/publication_eval/latest.json"
         ],
         "can_authorize_publication_quality": false,
         "can_authorize_submission_readiness": false,
         "can_block_current_owner_action": false,
         "can_create_default_selector": false,
         "can_launch_external_runtime": false,
-        "can_write_controller_decisions": false,
         "can_write_current_package": false,
         "can_write_owner_receipt": false,
         "can_write_publication_eval": false,
@@ -1086,8 +1067,7 @@
         "authoritative_truth_refs": [
           "/progress_projection",
           "/owner_route/latest.json",
-          "/publication_eval/latest.json",
-          "/controller_decisions/latest.json"
+          "/publication_eval/latest.json"
         ],
         "can_authorize_publication_quality": false,
         "can_authorize_publication_readiness": false,
@@ -1096,7 +1076,6 @@
         "can_materialize_typed_blocker": false,
         "can_mutate_current_package": false,
         "can_sign_owner_receipt": false,
-        "can_write_controller_decisions": false,
         "can_write_current_package": false,
         "can_write_mas_study_truth": false,
         "can_write_owner_receipt": false,
@@ -1132,7 +1111,7 @@
         "command": "med_autoscience.domain_entry:MedAutoScienceDomainEntry.dispatch#research_integrity_gate_input",
         "surface_kind": "research_integrity_gate_input_bundle"
       },
-      "summary": "Build a structured Research Integrity gate input bundle from supplied reference, claim, manuscript, and provider-evidence payloads. It only produces evidence, gate input, and blocker candidates; it does not write publication authority, owner receipts, typed blockers, human gates, runtime queues, provider attempts, publication_eval, controller_decisions, or current_package. It remains subordinate to PaperMission -> submission authority -> owner gate / typed blocker.",
+      "summary": "Build a structured Research Integrity input bundle from supplied reference, claim, manuscript, and provider-evidence payloads. It only produces evidence, review input, and blocker candidates; it does not write publication authority, owner receipts, typed blockers, human gates, runtime queues, provider attempts, publication_eval, or current_package. It remains Codex route input for the review/publication claim boundary.",
       "supported_surfaces": {
         "ai_sdk": {
           "tool_name": "research_integrity_gate_input"
@@ -1193,8 +1172,7 @@
         "authoritative_truth_refs": [
           "/progress_projection",
           "/owner_route/latest.json",
-          "/publication_eval/latest.json",
-          "/controller_decisions/latest.json"
+          "/publication_eval/latest.json"
         ],
         "can_authorize_publication_quality": false,
         "can_authorize_publication_readiness": false,
@@ -1203,7 +1181,6 @@
         "can_materialize_typed_blocker": false,
         "can_mutate_current_package": false,
         "can_sign_owner_receipt": false,
-        "can_write_controller_decisions": false,
         "can_write_current_package": false,
         "can_write_mas_study_truth": false,
         "can_write_owner_receipt": false,
@@ -1239,7 +1216,7 @@
         "command": "med_autoscience.domain_entry:MedAutoScienceDomainEntry.dispatch#research_integrity_reference_verification",
         "surface_kind": "research_integrity_reference_verification_gate_input_bundle"
       },
-      "summary": "Trigger the complete-reference verification lane for supplied manuscript or reference manager refs. It only returns a Research Integrity gate input or evidence bundle; it does not write publication authority, owner receipts, typed blockers, human gates, runtime queues, provider attempts, publication_eval, controller_decisions, or current_package. It remains subordinate to PaperMission -> submission authority -> owner gate / typed blocker.",
+      "summary": "Trigger complete-reference verification for supplied manuscript or reference manager refs. It only returns a Research Integrity input or evidence bundle; it does not write publication authority, owner receipts, typed blockers, human gates, runtime queues, provider attempts, publication_eval, or current_package. Its findings are Codex route input and close only affected quality/publication claims.",
       "supported_surfaces": {
         "ai_sdk": {
           "tool_name": "research_integrity_reference_verification"
@@ -1289,8 +1266,7 @@
         "authoritative_truth_refs": [
           "/progress_projection",
           "/owner_route/latest.json",
-          "/publication_eval/latest.json",
-          "/controller_decisions/latest.json"
+          "/publication_eval/latest.json"
         ],
         "can_authorize_publication_quality": false,
         "can_authorize_publication_readiness": false,
@@ -1300,7 +1276,6 @@
         "can_mutate_current_package": false,
         "can_request_provider_lookup": true,
         "can_sign_owner_receipt": false,
-        "can_write_controller_decisions": false,
         "can_write_current_package": false,
         "can_write_mas_study_truth": false,
         "can_write_owner_receipt": false,
@@ -1341,7 +1316,7 @@
         "command": "med_autoscience.domain_entry:MedAutoScienceDomainEntry.dispatch#research_integrity_review_publication_gate_stage_hook",
         "surface_kind": "research_integrity_review_publication_gate_stage_hook"
       },
-      "summary": "Mandatory Review/Publication Gate stage-hook input: when a reference list, manuscript closeout, review gate, or publication gate is entered, trigger research-integrity-reference-verification and return the gate input bundle, including manuscript consistency / meta review. It cannot write publication authority, owner receipts, typed blockers, human gates, runtime queues, provider attempts, publication_eval, controller_decisions, or current_package. It remains subordinate to PaperMission -> submission authority -> owner gate / typed blocker.",
+      "summary": "Review/Publication claim-check input: when a reference list, manuscript closeout, review stage, or publication claim is evaluated, trigger research-integrity-reference-verification and return manuscript-consistency/meta-review findings. It cannot write publication authority, owner receipts, typed blockers, human gates, runtime queues, provider attempts, publication_eval, or current_package. Findings do not block ordinary stage progression when a consumable artifact exists.",
       "supported_surfaces": {
         "ai_sdk": {
           "tool_name": "research_integrity_review_publication_gate_stage_hook"
@@ -1408,8 +1383,7 @@
         "authoritative_truth_refs": [
           "/progress_projection",
           "/owner_route/latest.json",
-          "/publication_eval/latest.json",
-          "/controller_decisions/latest.json"
+          "/publication_eval/latest.json"
         ],
         "descriptor_projection_owner": "one-person-lab",
         "domain_handler_target_owner": "MedAutoScience",
@@ -1467,8 +1441,7 @@
         "authoritative_truth_refs": [
           "/progress_projection",
           "/owner_route/latest.json",
-          "/publication_eval/latest.json",
-          "/controller_decisions/latest.json"
+          "/publication_eval/latest.json"
         ],
         "descriptor_projection_owner": "one-person-lab",
         "domain_handler_target_owner": "MedAutoScience",
@@ -1528,8 +1501,7 @@
         "authoritative_truth_refs": [
           "/progress_projection",
           "/owner_route/latest.json",
-          "/publication_eval/latest.json",
-          "/controller_decisions/latest.json"
+          "/publication_eval/latest.json"
         ],
         "descriptor_projection_owner": "one-person-lab",
         "domain_handler_target_owner": "MedAutoScience",
@@ -1594,8 +1566,7 @@
         "authoritative_truth_refs": [
           "/progress_projection",
           "/owner_route/latest.json",
-          "/publication_eval/latest.json",
-          "/controller_decisions/latest.json"
+          "/publication_eval/latest.json"
         ],
         "descriptor_projection_owner": "one-person-lab",
         "domain_handler_target_owner": "MedAutoScience",
@@ -1709,7 +1680,7 @@
   ],
   "generated_surface_owner": "one-person-lab",
   "notes": [
-    "MAS owns domain action intents, handler targets, runtime/controller/publication/quality truth, and owner receipts.",
+    "MAS owns domain action intents, handler targets, medical/publication/quality truth, route context, and owner receipts.",
     "OPL owns generated CLI/MCP/Skill/product/status/workbench descriptor projections and does not write MAS durable study truth."
   ],
   "owner": "MedAutoScience",

@@ -50,7 +50,7 @@ def test_stale_compatibility_terms_do_not_reenter_active_surfaces() -> None:
         "paper_autonomy_" + "supervisor_apply",
         "paper_progress_" + "transition_kernel",
         "single_transition_" + "authority",
-        "kernel_authorized_" + "provider_admission",
+        "kernel_authorized_" + "provider_attempt",
         "mas_opl_paper_" + "autonomy_supervisor_apply",
     )
     violations: list[str] = []

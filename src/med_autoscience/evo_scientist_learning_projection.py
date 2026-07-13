@@ -50,7 +50,7 @@ def _false_authority() -> dict[str, bool]:
         "can_generate_owner_receipt": False,
         "can_generate_typed_blocker": False,
         "can_generate_paper_progress": False,
-        "can_authorize_provider_admission": False,
+        "can_authorize_provider_attempt": False,
         "can_write_domain_truth": False,
         "can_write_memory_body": False,
         "can_write_artifact_body": False,

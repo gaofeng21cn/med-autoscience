@@ -101,13 +101,13 @@ def test_legacy_next_action_cleanup_preserves_canonical_owner_action() -> None:
         {
             "current_work_unit": {"legacy": True},
             "current_executable_owner_action": canonical_action,
-            "provider_admission_candidates": [{"legacy": True}],
+            "provider_attempt_candidates": [{"legacy": True}],
         }
     )
 
     assert cleaned["current_executable_owner_action"] == canonical_action
     assert "current_work_unit" not in cleaned
-    assert "provider_admission_candidates" not in cleaned
+    assert "provider_attempt_candidates" not in cleaned
 
 
 def test_legacy_next_action_cleanup_removes_noncanonical_owner_action() -> None:

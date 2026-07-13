@@ -454,8 +454,8 @@ def build_ai_reviewer_record_worker_handoff(
         "manual_study_patch_allowed": False,
         "medical_claim_authoring_allowed": False,
         "ai_route_context": ai_route_context,
-        "provider_admission_pending": False,
-        "provider_admission_requires_opl_runtime_result": False,
+        "provider_attempt_pending": False,
+        "provider_attempt_requires_opl_runtime_result": False,
     }
     return {
         "surface": "mas_ai_route_context_projection",
@@ -484,8 +484,8 @@ def build_ai_reviewer_record_worker_handoff(
         "manual_study_patch_allowed": False,
         "medical_claim_authoring_allowed": False,
         "ai_route_context": ai_route_context,
-        "provider_admission_pending": False,
-        "provider_admission_requires_opl_runtime_result": False,
+        "provider_attempt_pending": False,
+        "provider_attempt_requires_opl_runtime_result": False,
         "ai_reviewer_record_production_request": dict(production_request),
         "source_action": {
             "surface": "ai_reviewer_record_production_request",

@@ -87,7 +87,7 @@ def refs_with_kinds(refs: list[str], kinds: set[str]) -> list[str]:
 
 
 def platform_count(domain_diagnostic: Mapping[str, Any], key: str) -> int:
-    provider_state = mapping(domain_diagnostic.get("provider_admission_current_control_state"))
+    provider_state = mapping(domain_diagnostic.get("provider_attempt_current_control_state"))
     return int_or_zero(provider_state.get(key))
 
 

@@ -31,17 +31,17 @@ def test_opl_runtime_contract_is_refs_only_without_provider_callables() -> None:
     ]
 
 
-def test_provider_admission_blocker_does_not_create_mas_provider_backend() -> None:
+def test_provider_attempt_blocker_does_not_create_mas_provider_backend() -> None:
     module = importlib.import_module("med_autoscience.opl_runtime_contract")
 
-    blocker = module.provider_admission_required_blocker(operation="create_quest", quest_id="quest-001")
+    blocker = module.provider_attempt_required_blocker(operation="create_quest", quest_id="quest-001")
 
     assert blocker["ok"] is False
-    assert blocker["status"] == "provider_admission_required"
+    assert blocker["status"] == "provider_attempt_required"
     assert blocker["runtime_owner"] == "one-person-lab"
     assert blocker["domain_owner"] == "med-autoscience"
     assert blocker["provider_completion_is_domain_completion"] is False
-    assert blocker["typed_blocker"]["blocker_type"] == "opl_provider_admission_required"
+    assert blocker["typed_blocker"]["blocker_type"] == "opl_provider_attempt_required"
     assert blocker["typed_blocker"]["reason"] == "mas_private_runtime_backend_retired"
 
 

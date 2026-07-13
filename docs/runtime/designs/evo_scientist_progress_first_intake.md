@@ -16,7 +16,7 @@ EvoScientist / EvoSkills 的可吸收点进入 MAS 时只作为 `ordinary progre
 
 Landing boundary: 本 intake 的完成状态按 `sidecar_or_worker_landed` target architecture 读取，并由 `contracts/evo_scientist_progress_accelerator.json` 与 `contracts/progress_first_safety_envelope.json#/external_learning_adoption_closure_policy` 约束。它说明 MAS 已有 nonblocking sidecar execution slot 和机器边界；具体 provider worker / scheduler / owner-consumed evidence 扩面仍必须在同一合同下单独验证，不能把 sidecar target architecture 写成 MAS runtime owner、quality authority、paper progress 或 publication readiness。
 
-2026-07-01 boundary hardening：`contracts/evo_scientist_progress_accelerator.json`、`build_evo_scientist_learning_projection()` 和 `evo_scientist_sidecar_refs` 的 runtime output 均显式带 `diagnostic_only=true`、`refs_only=true`、`can_select_next_action=false` 与 `authority_effect=diagnostic_only_no_owner_delta_no_paper_progress_no_provider_admission`。这些字段只防止 sidecar ref 被误读成 authority / next-action source；它们不声明 live runtime ready、owner acceptance、paper progress、provider admission、owner receipt 或 typed blocker authority。
+2026-07-01 boundary hardening：`contracts/evo_scientist_progress_accelerator.json`、`build_evo_scientist_learning_projection()` 和 `evo_scientist_sidecar_refs` 的 runtime output 均显式带 `diagnostic_only=true`、`refs_only=true`、`can_select_next_action=false` 与 `authority_effect=diagnostic_only_no_owner_delta_no_paper_progress_no_provider_attempt`。这些字段只防止 sidecar ref 被误读成 authority / next-action source；它们不声明 live runtime ready、owner acceptance、paper progress、provider admission、owner receipt 或 typed blocker authority。
 
 MAS 普通推进主干保持不变：
 

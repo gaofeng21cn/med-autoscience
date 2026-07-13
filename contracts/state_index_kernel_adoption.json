@@ -40,7 +40,7 @@
       "authority_ref_metadata",
       "archive_refs",
       "owner_route_receipts",
-      "dispatch_receipts",
+      "runtime_receipt_refs",
       "stage_artifact_delta_refs"
     ],
     "local_persistence": "absent",
@@ -53,7 +53,7 @@
     "can_drive_lifecycle": false,
     "can_select_next_action": false,
     "can_authorize_currentness": false,
-    "can_authorize_provider_admission": false,
+    "can_authorize_provider_attempt": false,
     "replacement_owner_surface": "one-person-lab StateIndexKernel",
     "opl_state_index_contract_active": true,
     "retired_pilot_tombstone": "runtime:mas-refs-only-state-index-pilot-retired"

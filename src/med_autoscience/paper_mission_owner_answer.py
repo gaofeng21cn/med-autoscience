@@ -161,7 +161,7 @@ def terminal_owner_gate_owner_answer_readback(
             "writes_runtime": False,
             "can_claim_paper_progress": False,
             "can_claim_runtime_ready": False,
-            "can_authorize_provider_admission": False,
+            "can_authorize_provider_attempt": False,
             "can_write_owner_receipt": False,
             "can_write_typed_blocker": False,
             "can_write_human_gate": False,
@@ -222,7 +222,7 @@ def terminal_owner_gate_owner_answer_next_decision(
             "carry_forward_risk_receipt_ref"
         ),
         "can_execute": False,
-        "can_authorize_provider_admission": False,
+        "can_authorize_provider_attempt": False,
     }
     if owner_answer.get("paper_facing_delta_ref") is not None:
         decision["paper_facing_delta_ref"] = owner_answer.get("paper_facing_delta_ref")

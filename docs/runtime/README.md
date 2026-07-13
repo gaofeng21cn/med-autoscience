@@ -33,7 +33,7 @@ Hypothesis portfolio / evidence pack 进入 runtime 读面时，只能表现为 
 - [Runtime boundary](./contracts/runtime_boundary.md)
 - [Agent runtime interface](./contracts/agent_runtime_interface.md)
 - [Runtime handle and durable surface contract](./contracts/runtime_handle_and_durable_surface_contract.md)
-- [Research Integrity Layer Contract](./contracts/research_integrity_layer.md)：固定 MAS domain provider lookup -> MAS RI Gate -> AI reviewer / publication gate consumer 的非权威输入链；合同、docs 和 meta 绿不能声明 live provider truth、owner receipt、publication-ready 或 current-package freshness。
+- [Research Integrity Layer Contract](./contracts/research_integrity_layer.md)：固定 OPL Connect provider receipt -> MAS RI Gate -> AI reviewer / publication gate consumer 的非权威输入链；合同、docs 和 meta 绿不能声明 live provider truth、owner receipt、publication-ready 或 current-package freshness。
 - [MAS Stage / Route / Handoff 标准](./stage_route_handoff_standard.md)：解释 stage、route、handoff、owner route 与 OPL stage graph 的关系；route 不是 MAS 私有小 stage，route 间调度归 OPL runtime manager / transition runner。
 - [MAS / OPL Agent OS 目标运行架构与重构计划](./designs/mas_opl_agent_os_target_operating_architecture.md)：把 OPL Agent OS、MAS Medical Research Pack、MAS Authority Kernel、Scientific Capability Registry 和可并行重构 lane 固定为当前目标运行架构；它是可执行 target plan，不是 live study truth。
 - [MAS executor-first 重构目标与迁移计划](../active/mas_executor_first_rearchitecture_program.md)：固定 artifact-first paper mission 默认叙事、`PaperMissionRun` contract shape、OPL-hosted workbench mission summary 投影，以及旧 domain diagnostic / owner-route / dispatch / PaperRecovery 默认主路径退役边界；它不声明 live DM002/DM003 mission consume 完成。

@@ -6,7 +6,7 @@ from typing import Any, Mapping
 from med_autoscience.controllers.gate_clearing_batch_work_units import PUBLICATION_GATE_REPLAY_WORK_UNIT_IDS
 
 
-def matching_provider_admission_identity(
+def matching_provider_attempt_identity(
     *,
     candidates: list[Mapping[str, Any]],
     action_type: str,
@@ -49,17 +49,17 @@ def _work_unit_ids_equivalent_for_action(
     )
 
 
-def current_provider_admission_supersedes_consumed_receipt(
+def current_provider_attempt_supersedes_consumed_receipt(
     *,
-    provider_admission_candidates: list[Mapping[str, Any]],
+    provider_attempt_candidates: list[Mapping[str, Any]],
     action_type: str,
     work_unit_id: str | None,
     dispatch_path: Path,
     stage_packet_path: Path,
     workspace_root: Path,
 ) -> bool:
-    identity = matching_provider_admission_identity(
-        candidates=provider_admission_candidates,
+    identity = matching_provider_attempt_identity(
+        candidates=provider_attempt_candidates,
         action_type=action_type,
         work_unit_id=work_unit_id,
         dispatch_path=dispatch_path,
@@ -68,17 +68,17 @@ def current_provider_admission_supersedes_consumed_receipt(
     )
     return (
         bool(identity)
-        and _text(identity.get("status")) == "provider_admission_pending"
+        and _text(identity.get("status")) == "provider_attempt_pending"
         and identity.get("provider_attempt_or_lease_required") is True
     )
 
 
-def provider_admission_payload_fields(
+def provider_attempt_payload_fields(
     *,
-    provider_admission_identity: Mapping[str, Any] | None,
+    provider_attempt_identity: Mapping[str, Any] | None,
     owner_route_basis: Mapping[str, Any],
 ) -> dict[str, Any]:
-    identity = _mapping(provider_admission_identity)
+    identity = _mapping(provider_attempt_identity)
     if not identity:
         return {}
     work_unit_id = _text(identity.get("work_unit_id"))
@@ -98,10 +98,10 @@ def provider_admission_payload_fields(
         if value is not None:
             currentness_basis[key] = value
     fields: dict[str, Any] = {
-        "provider_admission_identity": dict(identity),
-        "provider_admission_status": _text(identity.get("status")),
-        "provider_admission_source": _text(identity.get("source")),
-        "provider_admission_execution_ref": _text(identity.get("execution_ref")),
+        "provider_attempt_identity": dict(identity),
+        "provider_attempt_status": _text(identity.get("status")),
+        "provider_attempt_source": _text(identity.get("source")),
+        "provider_attempt_execution_ref": _text(identity.get("execution_ref")),
         "provider_attempt_or_lease_required": identity.get("provider_attempt_or_lease_required") is True,
         "owner_callable_surface": _text(identity.get("owner_callable_surface")),
     }
@@ -173,7 +173,7 @@ def _normalized_path_text(value: object) -> str | None:
 
 
 __all__ = [
-    "current_provider_admission_supersedes_consumed_receipt",
-    "matching_provider_admission_identity",
-    "provider_admission_payload_fields",
+    "current_provider_attempt_supersedes_consumed_receipt",
+    "matching_provider_attempt_identity",
+    "provider_attempt_payload_fields",
 ]

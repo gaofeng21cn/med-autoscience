@@ -137,10 +137,8 @@ def test_missing_dependency_fails_closed_to_repair() -> None:
     assert readback["allowed_when_blocked"] == ["status", "doctor", "repair"]
     assert readback["repair_command"] == [
         *MAS_PACKAGE_REPAIR_COMMAND,
-        "--scope",
-        "workspace",
-        "--target-workspace",
-        "<workspace-root>",
+        "--agent-root",
+        "<agent-root>",
         "--json",
     ]
 
@@ -215,7 +213,7 @@ def test_unavailable_opl_status_never_claims_readiness() -> None:
     assert readback["repair_required"] is True
 
 
-def test_doctor_query_uses_public_scoped_opl_packages_status(tmp_path: Path) -> None:
+def test_doctor_query_uses_public_opl_agent_package_status(tmp_path: Path) -> None:
     workspace_root = tmp_path / "paper-workspace"
     materialization = _current_materialization(
         target_root=str(workspace_root.resolve())
@@ -242,14 +240,11 @@ def test_doctor_query_uses_public_scoped_opl_packages_status(tmp_path: Path) -> 
 
     assert observed_command == [
         "opl",
-        "packages",
+        "connect",
+        "agent-packages",
         "status",
         "--package-id",
         "mas",
-        "--scope",
-        "workspace",
-        "--target-workspace",
-        str(workspace_root.resolve()),
         "--json",
     ]
     assert readback["operational_ready"] is True

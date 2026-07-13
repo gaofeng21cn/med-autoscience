@@ -46,7 +46,7 @@ AUTHORITY_BOUNDARY = {
     "state_index_ref_contract": "opl-generated:state-index/source-ref",
     "transport_owner": "one-person-lab",
     "mas_can_write_runtime_transport": False,
-    "mas_can_authorize_provider_admission": False,
+    "mas_can_authorize_provider_attempt": False,
 }
 RUNTIME_COMPLETION_GUARD = {
     "provider_completion_is_domain_completion": False,

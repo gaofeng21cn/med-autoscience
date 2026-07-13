@@ -268,7 +268,7 @@ def _refs_only_surface(*, surface_kind: str, surface_id: str) -> dict[str, Any]:
             "can_authorize_quality_verdict": False,
             "can_authorize_publication_readiness": False,
             "can_authorize_submission_readiness": False,
-            "can_authorize_provider_admission": False,
+            "can_authorize_provider_attempt": False,
             "can_close_stage": False,
         },
     }

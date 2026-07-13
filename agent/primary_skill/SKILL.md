@@ -53,6 +53,22 @@ opl env run --domain mas --profile analysis-display \
 A runtime-environment receipt is not medical, artifact, visual-quality,
 publication, submission, or owner authority.
 
+## Professional Work And External Skills
+
+The stage goal and MAS professional policy define what good medical work looks
+like. Codex may choose tools, order, iteration, and safe parallelism inside those
+boundaries. Preserve ordered dependencies that protect scientific validity,
+evidence currentness, authority, or irreversible actions; do not turn a tool
+catalog or CLI recipe into the research method.
+
+Use the installed `mas-scholar-skills` capability package for ordinary medical
+paper work. Acquire a new external Skill only for a named or demonstrated
+coverage gap. Before syncing any new external Skill, inspect its identity,
+provenance, permissions, data/credential scope, and compatibility. Search and
+comparison order is otherwise executor-chosen; an already installed, inspected,
+compatible Skill does not need to repeat acquisition. External outputs remain
+candidate refs until the MAS owner path accepts them.
+
 ## Authority
 
 MAS owns medical study truth, evidence interpretation, publication-quality
@@ -71,11 +87,13 @@ or generated descriptors never close an AI-first quality gate.
 
 Ordinary progression reads canonical `StageOutcome` and
 `NextActionEnvelope`; legacy next-action or diagnostic projections are not
-transition authority. Typed blockers and owner receipts scope authority or ready claims; they remain consumable inputs for the next stage or an AI-selected route-back. Only durable human/safety/permission/currentness hard gates stop execution.
-
-## Progress-first and route-back
-
-- Codex CLI is the single semantic control plane. Raw or partial research artifacts, negative results, failed analyses, reviewer findings, and route-back notes all advance the StageRun; schema, validator, calibration, receipt, or formatting gaps are quality debt.
-- Codex selects the next stage or any declared route-back target. Re-entering an earlier stage is valid progress, not an illegal transition.
-- A negative or non-supportive result must be preserved with lineage and failed-path refs. Codex may route back to `idea`, `baseline`, or another declared stage to revise the hypothesis, endpoint, cohort, design, or claim while carrying the negative evidence forward.
-- Only zero readable artifact, corrupt bytes/path, safety or permission boundaries, identity/currentness mismatch, explicit human authority, or irreversible mutation may hard stop progression.
+transition authority. A consumable delta may advance as
+`completed_with_quality_debt`; that debt blocks quality, publication, export,
+and submission-ready claims. A stage that produces no scientific or manuscript
+delta still emits a no-output or failure diagnostic and advances so Codex can
+select another declared stage. Negative or null results remain evidence: Codex
+may preserve their lineage and route back to hypothesis, cohort/data, endpoint,
+analysis design, writing, or another owning stage instead of chasing a positive
+result. Retry, review, and repair limits are quality budgets. Stop only for an
+unavailable executor, wrong-target identity/currentness, real authority, safety,
+credential, irreversible-action, or explicit human-decision gate.

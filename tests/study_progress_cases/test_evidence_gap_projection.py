@@ -50,9 +50,9 @@ def test_evidence_gap_projection_does_not_infer_from_runtime_pending_counts() ->
     payload = {
         "study_id": "DM003",
         "quest_id": "quest-dm003",
-        "provider_admission_pending_count": 1,
+        "provider_attempt_pending_count": 1,
         "transition_request_pending_count": 1,
-        "provider_admission_candidates": [
+        "provider_attempt_candidates": [
             {
                 "stage_packet_ref": "runtime/stage-packets/provider-admission.json",
                 "evidence_refs": ["runtime/outbox/provider-admission.json"],

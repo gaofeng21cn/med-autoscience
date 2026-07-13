@@ -213,7 +213,7 @@ def test_opl_current_control_state_handoff_preserves_running_attempt_identity(
     assert_default_next_action_legacy_surfaces_retired(result)
 
 
-def test_provider_admission_handoff_without_active_attempt_ids_is_not_running(
+def test_provider_attempt_handoff_without_active_attempt_ids_is_not_running(
     monkeypatch,
     tmp_path: Path,
 ) -> None:
@@ -269,13 +269,13 @@ def test_provider_admission_handoff_without_active_attempt_ids_is_not_running(
                 {
                     "study_id": study_id,
                     "quest_id": quest_id,
-                    "quest_status": "provider_admission_pending",
+                    "quest_status": "provider_attempt_pending",
                     "active_run_id": None,
                     "active_stage_attempt_id": None,
                     "active_workflow_id": None,
                     "running_provider_attempt": True,
                     "runtime_health": {
-                        "health_status": "provider_admission_pending",
+                        "health_status": "provider_attempt_pending",
                         "runtime_liveness_status": "not_running",
                     },
                     "action_queue": [
@@ -289,7 +289,7 @@ def test_provider_admission_handoff_without_active_attempt_ids_is_not_running(
                             "work_unit_fingerprint": fingerprint,
                             "action_fingerprint": fingerprint,
                             "provider_attempt_or_lease_required": True,
-                            "authority": "mas_provider_admission_identity",
+                            "authority": "mas_provider_attempt_identity",
                             "dispatch_path": str(dispatch_path),
                             "owner_route": {
                                 "next_owner": "gate_clearing_batch",
@@ -353,7 +353,7 @@ def test_provider_admission_handoff_without_active_attempt_ids_is_not_running(
                 },
                 "state": {
                     "state_kind": "executable_owner_action",
-                    "provider_admission_pending": False,
+                    "provider_attempt_pending": False,
                 },
             },
             "current_execution_envelope": {

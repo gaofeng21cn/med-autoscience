@@ -315,9 +315,9 @@ def without_legacy_next_action_authority(payload: Mapping[str, Any]) -> dict[str
         "current_work_unit",
         "current_executable_owner_action",
         "paper_recovery_state",
-        "provider_admission_candidates",
-        "provider_admission_pending_count",
-        "provider_admission_terminal_closeout_consumed",
+        "provider_attempt_candidates",
+        "provider_attempt_pending_count",
+        "provider_attempt_terminal_closeout_consumed",
         "transition_request_candidates",
         "transition_request_pending_count",
         "owner_action_admission",
@@ -556,7 +556,7 @@ def _next_owner_or_human_decision(*, next_forced_delta: Mapping[str, Any], user_
             user_visible.get("user_next"),
         ),
         "can_execute": False,
-        "can_authorize_provider_admission": False,
+        "can_authorize_provider_attempt": False,
     }
     return _compact(decision)
 

@@ -53,7 +53,7 @@ def _synthetic_route_policy() -> dict[str, object]:
             "controller_action_type": "legacy_exact_action",
             "control_surface": "legacy_route_projection",
             "must_not_select_default_next_action": True,
-            "must_not_authorize_provider_admission": True,
+            "must_not_authorize_provider_attempt": True,
             "expected_blocking_reason": "controller_route_work_unit_unsupported",
         },
     }
@@ -154,7 +154,7 @@ def test_synthetic_next_action_envelope_route_uses_action_family_not_exact_work_
     legacy_fallback = policy["legacy_fallback_negative_fixture"]
     assert legacy_fallback["fixture_role"] == "negative_no_resurrection_guard"
     assert legacy_fallback["must_not_select_default_next_action"] is True
-    assert legacy_fallback["must_not_authorize_provider_admission"] is True
+    assert legacy_fallback["must_not_authorize_provider_attempt"] is True
     synthetic_work_unit_id = canonical_next_action["work_unit_id"]
     base_context = {
         "authority_snapshot": _snapshot(

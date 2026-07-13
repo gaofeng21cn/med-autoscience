@@ -13,8 +13,7 @@ SCHEMA_VERSION = 1
 _BLOCKING_GAP_SEVERITIES = frozenset({"must_fix", "important"})
 _LEGAL_HARD_REVIEW_GATE_KINDS = frozenset(
     {
-        "zero_consumable_artifact",
-        "artifact_corrupt_or_unreadable",
+        "executor_unavailable",
         "safety_or_compliance",
         "permission_or_credential_boundary",
         "human_or_expert_gate",
@@ -22,6 +21,7 @@ _LEGAL_HARD_REVIEW_GATE_KINDS = frozenset(
         "authority_boundary_violation",
         "forbidden_write_guard",
         "stale_or_mismatched_stage_identity",
+        "irreversible_action_requires_authorization",
     }
 )
 
@@ -237,9 +237,11 @@ def hard_review_blockers(
     blockers.extend(
         blocker
         for blocker in authority_blockers
-        if "currentness_checks" in blocker
-        or "source_fingerprint" in blocker
-        or "stage_identity" in blocker
+        if "identity_mismatch" in blocker
+        or "wrong_target" in blocker
+        or "forbidden_write" in blocker
+        or "permission_or_credential" in blocker
+        or "authority_violation" in blocker
     )
     for gap in _list_of_mappings(publication_eval.get("gaps")):
         if _has_hard_gate_marker(gap):

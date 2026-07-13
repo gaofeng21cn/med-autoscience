@@ -35,7 +35,9 @@
       "submission_surface_qc_failure_present",
       "medical_publication_surface_blocked",
       "medical_journal_prose_quality_blocked",
-      "manuscript_story_surface_delta_missing"
+      "manuscript_story_surface_delta_missing",
+      "typed_closeout_packet_required",
+      "source_data_missing"
     ],
     "mirror_sync": [
       "stale_study_delivery_mirror",
@@ -53,7 +55,6 @@
       "paper_write_allowed_missing"
     ],
     "hard_authority": [
-      "source_data_missing",
       "privacy_ethics_permission_boundary",
       "credential_boundary",
       "forbidden_write_target",

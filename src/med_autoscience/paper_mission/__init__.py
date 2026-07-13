@@ -663,8 +663,8 @@ def _legacy_truth_import_pack(
     opl_refs = _dedupe(
         _text_items(
             (
-                "provider_admission_pending_count="
-                f"{_platform_count(domain_diagnostic, 'provider_admission_pending_count')}",
+                "provider_attempt_pending_count="
+                f"{_platform_count(domain_diagnostic, 'provider_attempt_pending_count')}",
                 "transition_request_pending_count="
                 f"{_platform_count(domain_diagnostic, 'transition_request_pending_count')}",
                 "opl_current_control_state.next_owner",
@@ -933,7 +933,7 @@ def _platform_diagnostics(
     action: Mapping[str, Any],
     domain_diagnostic: Mapping[str, Any],
 ) -> dict[str, Any]:
-    provider_state = _mapping(domain_diagnostic.get("provider_admission_current_control_state"))
+    provider_state = _mapping(domain_diagnostic.get("provider_attempt_current_control_state"))
     action_queue = _mapping_list(provider_state.get("action_queue"))
     envelopes = _mapping(provider_state.get("current_execution_envelopes"))
     return {
@@ -952,9 +952,9 @@ def _platform_diagnostics(
                 "blocking_reasons",
             ),
         ),
-        "provider_admission_current_control": {
-            "provider_admission_pending_count": _int_or_zero(
-                provider_state.get("provider_admission_pending_count")
+        "provider_attempt_current_control": {
+            "provider_attempt_pending_count": _int_or_zero(
+                provider_state.get("provider_attempt_pending_count")
             ),
             "transition_request_pending_count": _int_or_zero(
                 provider_state.get("transition_request_pending_count")
@@ -989,6 +989,6 @@ def _domain_diagnostic_current_execution_envelope(
     *,
     study_id: str,
 ) -> dict[str, Any]:
-    provider_state = _mapping(domain_diagnostic.get("provider_admission_current_control_state"))
+    provider_state = _mapping(domain_diagnostic.get("provider_attempt_current_control_state"))
     envelopes = _mapping(provider_state.get("current_execution_envelopes"))
     return _mapping(envelopes.get(study_id))

@@ -50,7 +50,7 @@ def test_scientific_capability_registry_resolves_current_delta_bound_candidates(
         assert candidate["refs_only"] is True
         assert candidate["can_block_current_owner_action"] is False
         assert candidate["authority_boundary"]["can_write_domain_truth"] is False
-        assert candidate["authority_boundary"]["can_authorize_provider_admission"] is False
+        assert candidate["authority_boundary"]["can_authorize_provider_attempt"] is False
 
 
 def test_scientific_capability_registry_wildcard_sidecars_require_explicit_capability_request() -> None:

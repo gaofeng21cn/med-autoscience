@@ -138,13 +138,12 @@
       "classification": "refs_only_domain_adapter",
       "code_paths": [
         "src/med_autoscience/opl_domain_pack/state_index_source_refs.py",
-        "src/med_autoscience/opl_domain_pack/__init__.py",
-        "src/med_autoscience/controllers/owner_route_handoff/substrate_adapter.py"
+        "src/med_autoscience/opl_domain_pack/__init__.py"
       ],
       "active_callers": [
         "owner-route handoff domain authority refs",
-        "paper work-unit and dispatch owner receipt refs",
-        "domain-handler domain authority ref projections"
+        "paper work-unit owner receipt refs",
+        "domain-handler body-free domain ref projection"
       ],
       "migration_action": "expose_refs_only_to_opl_generated_surfaces",
       "retention_reason": "MAS emits body-free owner receipt, typed blocker, and locator refs while OPL owns persistence and lifecycle indexing.",

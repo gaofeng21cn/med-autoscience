@@ -31,7 +31,7 @@ def legacy_next_action_authority_retirement() -> dict[str, Any]:
         "retired_surfaces": [
             "current_work_unit",
             "current_executable_owner_action",
-            "provider_admission",
+            "provider_attempt",
             "current_execution_envelope",
         ],
         "default_selector_policy": "fail_closed",

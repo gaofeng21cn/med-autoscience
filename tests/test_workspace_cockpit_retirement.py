@@ -106,13 +106,12 @@ def test_active_boundary_and_parity_read_models_omit_cockpit_alias() -> None:
     assert "workspace_cockpit" not in str(parity_matrix)
 
 
-def test_active_direction_prompt_uses_mainline_status_not_cockpit_alias() -> None:
+def test_active_direction_prompt_omits_cockpit_alias() -> None:
     prompt = (
         Path(__file__).resolve().parents[1] / "agent/prompts/direction_and_route_selection.md"
     ).read_text(encoding="utf-8")
 
     assert "workspace_cockpit" not in prompt
-    assert "`mainline_status`" in prompt
 
 
 def test_active_contracts_use_mainline_status_not_cockpit_alias() -> None:

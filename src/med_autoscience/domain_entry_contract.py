@@ -3,6 +3,14 @@ from __future__ import annotations
 from dataclasses import dataclass
 from typing import Any
 
+from opl_framework.family_entry_contracts import (
+    build_domain_entry_command_catalog as build_opl_domain_entry_command_catalog,
+    build_family_direct_opl_shared_handoff,
+    build_family_domain_entry_contract,
+    build_user_interaction_contract as build_opl_user_interaction_contract,
+    validate_user_interaction_contract as validate_opl_user_interaction_contract,
+)
+
 SERVICE_SAFE_ENTRY_ADAPTER = "MedAutoScienceDomainEntry"
 SERVICE_SAFE_ENTRY_TARGET = "med_autoscience.domain_entry:MedAutoScienceDomainEntry.dispatch"
 SERVICE_SAFE_ENTRY_SURFACE_KIND = "med_autoscience_service_safe_domain_entry"
@@ -214,27 +222,26 @@ def build_domain_entry_command_contracts() -> list[dict[str, Any]]:
 
 
 def build_domain_entry_command_catalog() -> dict[str, Any]:
-    command_contracts = [
+    return build_opl_domain_entry_command_catalog([
         {
             "command": command,
             "required_fields": list(spec.required_fields),
             "optional_fields": list(spec.optional_fields),
         }
         for command, spec in SERVICE_SAFE_DOMAIN_COMMANDS.items()
-    ]
-    return {
-        "supported_commands": [item["command"] for item in command_contracts],
-        "command_contracts": command_contracts,
-    }
+    ])
 
 
 def build_domain_entry_contract() -> dict[str, Any]:
-    contract = {
-        "entry_adapter": SERVICE_SAFE_ENTRY_ADAPTER,
-        "service_safe_surface_kind": SERVICE_SAFE_ENTRY_SURFACE_KIND,
-        "product_entry_builder_command": PRODUCT_ENTRY_BUILDER_COMMAND,
-        "supported_entry_modes": list(SUPPORTED_PRODUCT_ENTRY_MODES),
-        "domain_agent_entry_spec": {
+    catalog = build_domain_entry_command_catalog()
+    return build_family_domain_entry_contract(
+        entry_adapter=SERVICE_SAFE_ENTRY_ADAPTER,
+        service_safe_surface_kind=SERVICE_SAFE_ENTRY_SURFACE_KIND,
+        product_entry_builder_command=PRODUCT_ENTRY_BUILDER_COMMAND,
+        supported_commands=catalog["supported_commands"],
+        command_contracts=catalog["command_contracts"],
+        supported_entry_modes=list(SUPPORTED_PRODUCT_ENTRY_MODES),
+        domain_agent_entry_spec={
             "surface_kind": "domain_agent_entry_spec",
             "agent_id": "mas",
             "title": "MAS Domain Agent Entry (v1)",
@@ -254,60 +261,34 @@ def build_domain_entry_contract() -> dict[str, Any]:
             "entry_command": "study-progress",
             "manifest_command": "opl-generated-product-entry",
         },
-        **build_domain_entry_command_catalog(),
-    }
-    contract["surface_role"] = "domain_handler_target_for_opl_generated_interfaces"
-    contract["generated_descriptor_owner"] = "one-person-lab"
-    contract["domain_handler_target_owner"] = "MedAutoScience"
-    contract["domain_repo_can_own_generated_surface"] = False
-    contract["authority_boundary"] = {
-        "opl_owns_generated_cli_mcp_skill_product_status_workbench_descriptors": True,
-        "mas_executes_domain_handlers_and_signs_owner_receipts": True,
-        "opl_can_write_domain_truth": False,
-        "opl_can_authorize_quality_or_export": False,
-    }
-    return contract
+        extra_payload={
+            "surface_role": "domain_handler_target_for_opl_generated_interfaces",
+            "generated_descriptor_owner": "one-person-lab",
+            "domain_handler_target_owner": "MedAutoScience",
+            "domain_repo_can_own_generated_surface": False,
+            "authority_boundary": {
+                "opl_owns_generated_cli_mcp_skill_product_status_workbench_descriptors": True,
+                "mas_executes_domain_handlers_and_signs_owner_receipts": True,
+                "opl_can_write_domain_truth": False,
+                "opl_can_authorize_quality_or_export": False,
+            },
+        },
+    )
 
 
 def build_user_interaction_contract() -> dict[str, Any]:
-    return {
-        "surface_kind": "user_interaction_contract",
-        "entry_owner": "opl_product_entry_or_domain_gui",
-        "user_interaction_mode": "natural_language_entry",
-        "user_commands_required": False,
-        "command_surfaces_for_agent_consumption_only": True,
-        "shared_downstream_entry": SERVICE_SAFE_ENTRY_ADAPTER,
-        "shared_handoff_envelope": list(DEFAULT_USER_INTERACTION_SHARED_HANDOFF_ENVELOPE),
-    }
+    return build_opl_user_interaction_contract(
+        entry_owner="opl_product_entry_or_domain_gui",
+        user_interaction_mode="natural_language_entry",
+        user_commands_required=False,
+        command_surfaces_for_agent_consumption_only=True,
+        shared_downstream_entry=SERVICE_SAFE_ENTRY_ADAPTER,
+        shared_handoff_envelope=list(DEFAULT_USER_INTERACTION_SHARED_HANDOFF_ENVELOPE),
+    )
 
 
 def validate_user_interaction_contract(value: object, field: str) -> dict[str, Any]:
-    if not isinstance(value, dict):
-        raise ValueError(f"{field} 必须是 mapping。")
-    payload = dict(value)
-    required_string_fields = (
-        "surface_kind",
-        "entry_owner",
-        "user_interaction_mode",
-        "shared_downstream_entry",
-    )
-    for name in required_string_fields:
-        if not str(payload.get(name) or "").strip():
-            raise ValueError(f"{field}.{name} 必须是非空字符串。")
-    for name in ("user_commands_required", "command_surfaces_for_agent_consumption_only"):
-        if not isinstance(payload.get(name), bool):
-            raise ValueError(f"{field}.{name} 必须是 boolean。")
-    envelope = payload.get("shared_handoff_envelope")
-    if not isinstance(envelope, list) or not all(isinstance(item, str) and item for item in envelope):
-        raise ValueError(f"{field}.shared_handoff_envelope 必须是非空字符串列表。")
-    return {
-        **payload,
-        "surface_kind": str(payload["surface_kind"]),
-        "entry_owner": str(payload["entry_owner"]),
-        "user_interaction_mode": str(payload["user_interaction_mode"]),
-        "shared_downstream_entry": str(payload["shared_downstream_entry"]),
-        "shared_handoff_envelope": list(envelope),
-    }
+    return validate_opl_user_interaction_contract(value, field)
 
 
 def build_shared_handoff(
@@ -315,13 +296,7 @@ def build_shared_handoff(
     direct_entry_builder_command: str,
     opl_handoff_builder_command: str,
 ) -> dict[str, Any]:
-    return {
-        "direct_entry_builder": {
-            "command": direct_entry_builder_command,
-            "entry_mode": "direct",
-        },
-        "opl_handoff_builder": {
-            "command": opl_handoff_builder_command,
-            "entry_mode": "opl-handoff",
-        },
-    }
+    return build_family_direct_opl_shared_handoff(
+        direct_entry_builder_command=direct_entry_builder_command,
+        opl_handoff_builder_command=opl_handoff_builder_command,
+    )

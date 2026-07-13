@@ -764,7 +764,7 @@ def authority_boundary() -> dict[str, bool | str]:
         "can_write_owner_receipt": False,
         "can_write_typed_blocker": False,
         "can_authorize_owner_action": False,
-        "can_authorize_provider_admission": False,
+        "can_authorize_provider_attempt": False,
         "can_authorize_quality_verdict": False,
         "can_authorize_publication_readiness": False,
         "can_authorize_artifact_authority": False,

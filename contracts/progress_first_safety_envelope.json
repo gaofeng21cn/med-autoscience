@@ -468,7 +468,7 @@
       "stale_sources_must_be_diagnostic_only": [
         "current_work_unit",
         "current_executable_owner_action",
-        "provider_admission_projection",
+        "provider_attempt_projection",
         "running_provider_attempt_projection",
         "legacy_control_next_action_without_binding",
         "old_owner_route_handoff",

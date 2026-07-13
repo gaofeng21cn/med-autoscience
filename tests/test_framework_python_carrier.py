@@ -67,9 +67,9 @@ def test_runtime_bootstrap_modules_are_physically_retired() -> None:
         assert "sys.modules" not in source
 
 
-def test_agent_source_has_no_framework_runtime_dependency() -> None:
-    framework_imports = []
-    for path in (REPO_ROOT / "src").rglob("*.py"):
+def test_agent_source_consumes_only_public_framework_carrier_modules() -> None:
+    framework_imports: list[str] = []
+    for path in (REPO_ROOT / "src" / "med_autoscience").rglob("*.py"):
         for node in ast.walk(ast.parse(path.read_text(encoding="utf-8"))):
             if isinstance(node, ast.Import):
                 framework_imports.extend(
@@ -80,4 +80,7 @@ def test_agent_source_has_no_framework_runtime_dependency() -> None:
             ):
                 framework_imports.append(node.module)
 
-    assert framework_imports == []
+    assert sorted(framework_imports) == [
+        "opl_framework.executor_client",
+        "opl_framework.family_entry_contracts",
+    ]

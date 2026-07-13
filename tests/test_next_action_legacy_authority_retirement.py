@@ -8,7 +8,7 @@ RETIRED_CONTROLLER_PACKAGES = (
     "med_autoscience.controllers.current_work_unit",
     "med_autoscience.controllers.domain_action_request_materializer",
     "med_autoscience.controllers.paper_recovery_state",
-    "med_autoscience.controllers.provider_admission",
+    "med_autoscience.controllers.provider_attempt",
 )
 
 
@@ -36,7 +36,7 @@ def _legacy_payload() -> dict[str, object]:
         "paper_recovery_state": {
             "next_safe_action": {"successor_owner_action": legacy_action}
         },
-        "provider_admission": {"status": "ready"},
+        "provider_attempt": {"status": "ready"},
     }
 
 

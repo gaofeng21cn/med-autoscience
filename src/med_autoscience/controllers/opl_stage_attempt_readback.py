@@ -31,7 +31,7 @@ def has_opl_stage_attempt_readback(candidate: Mapping[str, Any]) -> bool:
     return bool(candidate_opl_stage_attempt_readback(candidate))
 
 
-def provider_admission_stage_attempt_readback(
+def provider_attempt_stage_attempt_readback(
     candidate: Mapping[str, Any],
     *,
     require_explicit_identity: bool = False,
@@ -84,5 +84,5 @@ def _text(value: object) -> str | None:
 __all__ = [
     "candidate_opl_stage_attempt_readback",
     "has_opl_stage_attempt_readback",
-    "provider_admission_stage_attempt_readback",
+    "provider_attempt_stage_attempt_readback",
 ]

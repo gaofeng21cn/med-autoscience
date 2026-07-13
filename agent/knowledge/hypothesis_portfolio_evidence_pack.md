@@ -35,7 +35,7 @@ Ranking, tournament, Elo-like, proximity, debate, and evolution signals are usef
 - human gate receipt when PI, safety, scope, or irreversible choice is involved.
 - MAS owner receipt or typed blocker.
 
-If a ranked candidate already exists but lacks supporting or contradicting evidence refs, provenance refs, failed-path refs, or reviewer refs, record `completed_with_quality_debt` and continue to the next stage while blocking promotion, quality, publication, and submission-ready claims. Emit a typed blocker only when no consumable candidate exists, an authority/currentness boundary is invalid, or an explicit human decision is required.
+If a ranked candidate already exists but lacks supporting or contradicting evidence refs, provenance refs, failed-path refs, or reviewer refs, record `completed_with_quality_debt` and continue to the next stage while blocking promotion, quality, publication, and submission-ready claims. When no consumable candidate exists, preserve a no-output diagnostic and let Codex choose another declared stage. Emit a typed blocker only for an unavailable executor, wrong-target identity/currentness, authority/safety, irreversible action, or explicit human decision.
 
 ## Progress-First JIT Affordance Strategy
 

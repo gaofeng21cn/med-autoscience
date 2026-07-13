@@ -22,6 +22,86 @@
   "generated_surface_owner": "one-person-lab",
   "package_role": "opl_standard_domain_agent",
   "schema_version": 1,
+  "standard_agent_interface": {
+    "version": "opl_standard_agent_interface.v1",
+    "workspace_binding": {
+      "default_profile_id": "portfolio",
+      "workspace_kind": "medical_research_workspace",
+      "project_kind": "study",
+      "project_collection_label": "studies",
+      "default_workspace_id": "research-workspace",
+      "default_project_id": "study-001",
+      "locator_surface_kind": "med_autoscience_workspace_profile",
+      "required_locator_fields": [
+        "profile_ref"
+      ],
+      "optional_locator_fields": [
+        "workspace_root"
+      ],
+      "entry_command_template": [
+        "uv",
+        "run",
+        "--isolated",
+        "--frozen",
+        "--project",
+        "{workspace_root}",
+        "python",
+        "-c",
+        "import json,sys; from med_autoscience.profiles import load_profile; from med_autoscience.controllers.product_entry import build_product_entry_status; profile_ref=sys.argv[1]; print(json.dumps(build_product_entry_status(profile=load_profile(profile_ref), profile_ref=profile_ref), ensure_ascii=False))",
+        "{profile_ref}"
+      ],
+      "manifest_command_template": [
+        "uv",
+        "run",
+        "--isolated",
+        "--frozen",
+        "--project",
+        "{workspace_root}",
+        "python",
+        "-c",
+        "import json,sys; from med_autoscience.profiles import load_profile; from med_autoscience.controllers.product_entry import build_product_entry_manifest; profile_ref=sys.argv[1]; print(json.dumps(build_product_entry_manifest(profile=load_profile(profile_ref), profile_ref=profile_ref), ensure_ascii=False))",
+        "{profile_ref}"
+      ]
+    },
+    "runtime": {
+      "runtime_domain_id": "mas",
+      "dispatch_command": null,
+      "registration_ref": "contracts/domain_route_profile.json"
+    },
+    "progress": {
+      "deliverable_delta_aliases": [
+        "paper_progress_delta",
+        "paper_work_progress"
+      ],
+      "platform_delta_aliases": [
+        "runtime_transport_delta",
+        "provider_attempt_delta"
+      ]
+    },
+    "routing": {
+      "explicit_aliases": [
+        "mas",
+        "medautoscience",
+        "med-autoscience",
+        "med_auto_science",
+        "study"
+      ],
+      "workstream_ids": [
+        "medical_research"
+      ],
+      "intent_signals": [
+        "medical research",
+        "clinical study",
+        "manuscript",
+        "publication",
+        "医学研究",
+        "临床研究",
+        "论文",
+        "投稿"
+      ],
+      "ambiguity_policy": "require_explicit_domain_selection_when_multiple_standard_agents_match"
+    }
+  },
   "standard_contract_refs": {
     "action_catalog": "contracts/action_catalog.json",
     "display_pack_opl_adapter": "contracts/display_pack_opl_adapter.json",

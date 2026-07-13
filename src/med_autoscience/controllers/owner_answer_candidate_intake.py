@@ -502,7 +502,7 @@ def _authority_boundary() -> dict[str, bool | str]:
         "can_create_owner_receipt": False,
         "can_create_typed_blocker": False,
         "can_create_human_gate": False,
-        "can_authorize_provider_admission": False,
+        "can_authorize_provider_attempt": False,
         "can_claim_paper_progress": False,
         "can_claim_publication_ready": False,
         "can_write_publication_eval": False,

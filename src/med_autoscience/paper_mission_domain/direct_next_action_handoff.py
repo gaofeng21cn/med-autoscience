@@ -125,7 +125,7 @@ def build_direct_next_action_handoff(
             "can_write_opl_outbox": False,
             "can_write_opl_event": False,
             "can_write_opl_stage_run": False,
-            "can_authorize_provider_admission": False,
+            "can_authorize_provider_attempt": False,
             "can_claim_paper_progress": False,
             "can_claim_runtime_ready": False,
         },

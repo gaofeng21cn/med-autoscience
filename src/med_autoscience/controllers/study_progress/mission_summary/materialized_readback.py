@@ -140,7 +140,7 @@ def _materialized_mission_summary(
             "typed_blocker_ref": _typed_blocker_ref(default_readback),
             "owner_receipt_ref": _owner_receipt_ref(default_readback),
             "can_execute": False,
-            "can_authorize_provider_admission": False,
+            "can_authorize_provider_attempt": False,
         }
     )
     current_objective = _compact(

@@ -926,5 +926,7 @@ def test_reviewer_refinement_loop_rejects_noncurrent_latest_eval(
     assert blocker in read_model["accept"]["blockers"]
     assert read_model["accept"]["accepted"] is False
     assert read_model["revert"]["route_back"]["route_target"] == "review"
-    assert read_model["bounded_review_repair_policy"]["status"] == "hard_blocked"
-    assert read_model["stage_progress"]["next_stage_may_start"] is False
+    assert read_model["bounded_review_repair_policy"]["status"] == (
+        "auto_advance_with_reviewer_authority_or_calibration_debt"
+    )
+    assert read_model["stage_progress"]["next_stage_may_start"] is True

@@ -38,7 +38,7 @@ def stage_outcome_opl_handoff_task_boundary() -> dict[str, Any]:
         "recommended_task_kind_role": "stage_outcome_opl_handoff",
         "default_paper_mission_entry": False,
         "can_select_next_paper_stage": False,
-        "can_authorize_provider_admission": False,
+        "can_authorize_provider_attempt": False,
         "counts_as_paper_progress": False,
     }
 

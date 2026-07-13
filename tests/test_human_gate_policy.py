@@ -44,7 +44,7 @@ def test_controller_human_gate_policy_allows_only_major_boundaries() -> None:
     assert stop_loss.transport_boundary["opl_can_approve_human_gate"] is False
     assert stop_loss.transport_boundary["opl_can_block_without_mas_owner_boundary"] is False
     assert stop_loss.transport_boundary["can_write_human_gate"] is False
-    assert stop_loss.transport_boundary["can_authorize_provider_admission"] is False
+    assert stop_loss.transport_boundary["can_authorize_provider_attempt"] is False
     assert stop_loss.to_dict()["accepted_owner_answer_shapes"] == [
         "human_gate_ref",
         "route_back_evidence_ref",

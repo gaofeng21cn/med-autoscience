@@ -122,7 +122,7 @@ def _provider_hosted_stage_attempt_authority(*, dispatch: Mapping[str, Any]) -> 
         **identity,
         "authorization_kind": "provider_hosted_exact_stage_packet_execution_authority",
         "authorization_scope": "exact_stage_packet_only",
-        "provider_admission_authority": False,
+        "provider_attempt_authority": False,
         "attempt_lifecycle_authority": False,
         "queue_authority": False,
         "provider_completion_is_domain_completion": False,

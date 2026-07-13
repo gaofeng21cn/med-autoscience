@@ -152,8 +152,8 @@ def _normalized_ai_route_context_record(value: Mapping[str, Any]) -> dict[str, A
     if request:
         record["ai_route_context"] = request
     record.setdefault("surface", "mas_ai_route_context_projection")
-    record.setdefault("provider_admission_pending", False)
-    record.setdefault("provider_admission_requires_opl_runtime_result", False)
+    record.setdefault("provider_attempt_pending", False)
+    record.setdefault("provider_attempt_requires_opl_runtime_result", False)
     record.setdefault("provider_completion_is_domain_completion", False)
     record.setdefault("mas_dispatch_authority", False)
     record.setdefault("mas_creates_owner_callable_carrier", False)

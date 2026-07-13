@@ -564,7 +564,7 @@ def _stage_log_workbench_authority_boundary() -> dict[str, bool]:
         "can_mark_domain_ready": False,
         "can_write_paper_truth": False,
         "can_authorize_quality_verdict": False,
-        "can_block_provider_admission": False,
+        "can_block_provider_attempt": False,
     }
 
 

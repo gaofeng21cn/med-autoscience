@@ -55,7 +55,7 @@
         "provider_completion",
         "paper_recovery_state_without_next_action_envelope",
         "current_work_unit_or_current_owner_delta_without_next_action_envelope",
-        "provider_admission_candidate_without_stage_outcome_identity",
+        "provider_attempt_candidate_without_stage_outcome_identity",
         "domain_diagnostic_observe_only",
         "operator_card_wording"
       ]
@@ -275,7 +275,7 @@
       "repo_source_retirement_complete",
       "contract_tests_green",
       "queue_empty",
-      "provider_admission_pending_count_zero",
+      "provider_attempt_pending_count_zero",
       "projection_clean",
       "domain_diagnostic_observe_only",
       "mas_runtime_evidence_redirect_as_live_readiness"

@@ -33,6 +33,7 @@ QUALITY_REPAIRABLE_BLOCKERS = frozenset(
         "medical_journal_prose_quality_blocked",
         "manuscript_story_surface_delta_missing",
         "typed_closeout_packet_required",
+        "source_data_missing",
     }
 )
 
@@ -62,7 +63,6 @@ SUBMISSION_AUTHORITY_BLOCKERS = frozenset(
 
 HARD_AUTHORITY_BLOCKERS = frozenset(
     {
-        "source_data_missing",
         "privacy_ethics_permission_boundary",
         "credential_boundary",
         "forbidden_write_target",
@@ -441,11 +441,13 @@ def _select_outcome(
             resume_condition="resolve hard authority boundary before stage closure can proceed",
         )
     if not attempt_evidence_observed:
-        return _typed_blocker_outcome(
-            blocker_type="zero_readable_stage_output",
-            blockers=blockers,
-            next_owner="codex_cli",
-            resume_condition="produce any readable artifact, partial draft, failed-attempt evidence, or diagnostic",
+        return _quality_debt_transition(
+            blockers=["zero_readable_stage_output", *blockers],
+            progress_diagnostic={
+                "diagnostic_kind": "no_output_or_failure_diagnostic",
+                "diagnostic_code": "zero_readable_stage_output",
+                "consumable_by_next_stage": True,
+            },
         )
     if blockers:
         return _quality_debt_transition(blockers=blockers)
@@ -461,7 +463,11 @@ def _select_outcome(
     }
 
 
-def _quality_debt_transition(*, blockers: Sequence[str]) -> dict[str, Any]:
+def _quality_debt_transition(
+    *,
+    blockers: Sequence[str],
+    progress_diagnostic: Mapping[str, Any] | None = None,
+) -> dict[str, Any]:
     return {
         "kind": OUTCOME_NEXT_STAGE_TRANSITION,
         "transition_kind": "completed_with_quality_debt",
@@ -478,6 +484,11 @@ def _quality_debt_transition(*, blockers: Sequence[str]) -> dict[str, Any]:
             "blocks_quality_export_or_ready_claims": True,
         },
         "resume_condition": "repair debt later or obtain MAS owner acceptance before quality/export/readiness claims",
+        **(
+            {"progress_diagnostic": _compact(_mapping(progress_diagnostic))}
+            if progress_diagnostic
+            else {}
+        ),
         "authority_materialized": False,
     }
 

@@ -201,6 +201,6 @@ def ref_kind(ref: str) -> str:
         return "owner_answer"
     if ref.startswith("supervisor-decision::"):
         return "supervisor_decision"
-    if ref.startswith("provider_admission_pending_count="):
-        return "provider_admission_readback"
+    if ref.startswith("provider_attempt_pending_count="):
+        return "provider_attempt_readback"
     return "artifact_ref"

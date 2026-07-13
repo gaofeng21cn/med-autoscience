@@ -84,7 +84,7 @@
     "can_authorize_quality_verdict": false,
     "can_authorize_publication_readiness": false,
     "can_authorize_submission_readiness": false,
-    "can_authorize_provider_admission": false,
+    "can_authorize_provider_attempt": false,
     "can_close_stage": false
   },
   "external_skill_library_policy": {

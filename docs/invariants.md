@@ -20,7 +20,7 @@ Machine boundary: 本文是人读约束；机器事实以 contracts、source、r
 - MAS domain entry 只实现 handler targets 与医学 authority result，不变成 platform facade。
 - Foundry 系列 policy 归唯一 OPL Framework；MAS 只保留 canonical refs、policy fingerprint、domain delta 与 false-authority envelope，不复制 policy body，也不安装 Framework policy carrier。
 - 环境依赖在 `contracts/runtime_environment_requirements.json` 声明；prepare/run 归 OPL。MAS 可保留 `mas_provisioning_allowed=false` 的只读环境检查/投影，但不在 import、workspace 或 installer 中安装、修复环境，也不授权 ready。
-- `mas-scholar-skills` 是 MAS 硬依赖。核心 package、ABI 或任一必需 export 缺失/不兼容时必须 `operational_ready=false`，不得静默降级；安装、修复、更新、锁定、回滚和依赖卸载保护统一归 `opl packages`。可选 named-specialty Skill 不进入该 readiness floor。
+- `mas-scholar-skills` 是 MAS 硬依赖。核心 package、ABI 或任一必需 export 缺失/不兼容时必须 `operational_ready=false`，不得静默降级；安装、激活、修复、更新、锁定、回滚和依赖卸载保护统一归 `opl packages`。可选 named-specialty Skill 不进入该 readiness floor。
 
 ## Authority
 
@@ -29,6 +29,13 @@ Machine boundary: 本文是人读约束；机器事实以 contracts、source、r
 - AI-first quality gate 必须消费独立 reviewer/auditor invocation 与 receipt；executor 不得自审并关闭质量门。
 - publication、submission、artifact mutation、memory accept/reject 与 source readiness 必须由对应 MAS owner surface裁决。
 - refs-only projection、schema、validator、test、workbench 可见性和 inventory presence 都不等于 authority verdict。
+
+## Stage prompt 与专业顺序
+
+- Stage 主提示词只承载本 Stage 的目标、好结果、关键专业依赖、authority 边界与 handoff 语义；专业方法细节归 `agent/skills/`、ScholarSkills 与 quality gate，工具能力归 affordance catalog。
+- Codex 可自主选择工具、迭代、替代和安全并行，但不得颠倒会破坏 claim/estimand、source 或 failed-path provenance、fresh review/artifact proof、owner/human authority 或不可逆动作安全性的依赖顺序。
+- 新外部 Skill 只用于明确或已证明的能力缺口；sync 前必须检查 identity、provenance、permissions、data/credential scope 与 compatibility。已安装且已检查的兼容 Skill 可直接复用，不要求重复固定搜索流程。
+- 可消费 delta 在质量预算耗尽时以 `completed_with_quality_debt` 前进；quality debt 阻断 quality/publication/export/submission-ready claim，不阻断普通 Stage transition。只有无可消费 delta 或真实 authority/safety/identity/currentness/credential/irreversible/human gate 才成为硬 blocker。
 
 ## 退役与兼容
 

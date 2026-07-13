@@ -477,9 +477,9 @@ def current_readiness_owner_action_record(
         **({"work_unit_fingerprint": provider_fingerprint} if provider_fingerprint is not None else {}),
         **(
             {
-                "provider_admission_identity_source": text(provider_handoff.get("source"))
+                "provider_attempt_identity_source": text(provider_handoff.get("source"))
                 or "owner_callable_adapter_receipt",
-                "provider_admission_execution_ref": text(provider_handoff.get("receipt_ref")),
+                "provider_attempt_execution_ref": text(provider_handoff.get("receipt_ref")),
             }
             if provider_handoff
             else {}

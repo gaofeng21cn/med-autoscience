@@ -13,7 +13,7 @@ RETIRED_AUTHORITY_BOUNDARY = {
     "diagnostic_only": True,
     "can_select_next_action": False,
     "can_authorize_dispatch": False,
-    "can_authorize_provider_admission": False,
+    "can_authorize_provider_attempt": False,
     "can_start_provider_attempt": False,
     "provider_completion_is_domain_completion": False,
     "can_claim_paper_progress": False,

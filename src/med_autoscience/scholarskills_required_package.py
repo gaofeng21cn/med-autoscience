@@ -46,14 +46,16 @@ SCHOLARSKILLS_REQUIRED_INTERFACE_IDS = (
 )
 MAS_PACKAGE_STATUS_COMMAND = (
     "opl",
-    "packages",
+    "connect",
+    "agent-packages",
     "status",
     "--package-id",
     "mas",
 )
 MAS_PACKAGE_REPAIR_COMMAND = (
     "opl",
-    "packages",
+    "connect",
+    "agent-packages",
     "repair",
     "--package-id",
     "mas",
@@ -75,15 +77,11 @@ def build_scholarskills_required_package_template() -> dict[str, Any]:
         "required_interface_ids": list(SCHOLARSKILLS_REQUIRED_INTERFACE_IDS),
         "provider_manifest_ref": SCHOLARSKILLS_PROVIDER_MANIFEST_REF,
         "install_owner": "one-person-lab",
-        "install_surface": "opl_packages",
+        "install_surface": "opl_connect_agent_packages",
         "user_install_action_count": 1,
         "missing_or_incompatible_policy": "fail_closed_to_doctor_and_repair",
-        "status_command_templates": _scope_command_templates(
-            MAS_PACKAGE_STATUS_COMMAND
-        ),
-        "repair_command_templates": _scope_command_templates(
-            MAS_PACKAGE_REPAIR_COMMAND
-        ),
+        "status_command_templates": _package_status_command_templates(),
+        "repair_command_templates": _package_repair_command_templates(),
         "optional_named_specialties_are_readiness_requirements": False,
         "activation_materialization": {
             "required": True,
@@ -127,16 +125,13 @@ def build_scholarskills_required_package_readback(
     observed_version = _text(dependency.get("installed_version"))
     dependency_status = _text(dependency.get("status"))
     resolved_target_root = str(Path(target_root).expanduser().resolve()) if target_root else None
-    status_command = _scoped_package_command(
-        MAS_PACKAGE_STATUS_COMMAND,
-        scope=required_scope,
-        target_root=resolved_target_root or f"<{required_scope}-root>",
-    )
-    repair_command = _scoped_package_command(
-        MAS_PACKAGE_REPAIR_COMMAND,
-        scope=required_scope,
-        target_root=resolved_target_root or f"<{required_scope}-root>",
-    )
+    status_command = [*MAS_PACKAGE_STATUS_COMMAND, "--json"]
+    repair_command = [
+        *MAS_PACKAGE_REPAIR_COMMAND,
+        "--agent-root",
+        "<agent-root>",
+        "--json",
+    ]
     materialization = _materialization_status(
         status_surface,
         required_scope=required_scope,
@@ -218,11 +213,7 @@ def query_scholarskills_required_package_readback(
     runner: Callable[..., subprocess.CompletedProcess[str]] = subprocess.run,
 ) -> dict[str, Any]:
     resolved_workspace_root = Path(workspace_root).expanduser().resolve()
-    status_command = _scoped_package_command(
-        MAS_PACKAGE_STATUS_COMMAND,
-        scope="workspace",
-        target_root=str(resolved_workspace_root),
-    )
+    status_command = [*MAS_PACKAGE_STATUS_COMMAND, "--json"]
     try:
         result = runner(
             status_command,
@@ -334,34 +325,21 @@ def _is_sha256(value: str | None) -> bool:
     return len(digest) == 64 and all(character in "0123456789abcdef" for character in digest)
 
 
-def _scope_command_templates(base: Sequence[str]) -> dict[str, list[str]]:
+def _package_status_command_templates() -> dict[str, list[str]]:
     return {
-        "workspace": _scoped_package_command(
-            base,
-            scope="workspace",
-            target_root="<workspace-root>",
-        ),
-        "quest": _scoped_package_command(
-            base,
-            scope="quest",
-            target_root="<quest-root>",
-        ),
+        "workspace": [*MAS_PACKAGE_STATUS_COMMAND, "--json"],
+        "quest": [*MAS_PACKAGE_STATUS_COMMAND, "--json"],
     }
 
 
-def _scoped_package_command(
-    base: Sequence[str],
-    *,
-    scope: str,
-    target_root: str,
-) -> list[str]:
-    if scope == "workspace":
-        target_flag = "--target-workspace"
-    elif scope == "quest":
-        target_flag = "--target-quest"
-    else:
-        raise ValueError(f"unsupported MAS ScholarSkills materialization scope: {scope}")
-    return [*base, "--scope", scope, target_flag, target_root, "--json"]
+def _package_repair_command_templates() -> dict[str, list[str]]:
+    command = [
+        *MAS_PACKAGE_REPAIR_COMMAND,
+        "--agent-root",
+        "<agent-root>",
+        "--json",
+    ]
+    return {"workspace": command, "quest": list(command)}
 
 
 __all__ = [

@@ -141,8 +141,8 @@ BEHAVIOR_EQUIVALENCE_SURFACES: tuple[dict[str, Any], ...] = (
             "live_session_api": False,
         },
         "behavior_difference": "MAS no longer projects worker/session truth; it consumes OPL current_control_state and exposes only domain receipts/blockers.",
-        "default_user_impact": "Live/no-live truth is fail-closed in OPL, while MAS progress remains tied to owner receipt, typed blocker, or domain verdict.",
-        "mas_contract": "OPL current_control_state determines live status; MAS body-free StateIndex source refs, owner receipts, typed blockers, and publication gate determine domain progress.",
+        "default_user_impact": "Live/no-live truth is fail-closed in OPL, while MAS progress accepts domain artifacts, raw or partial output, negative results, and no-output diagnostics.",
+        "mas_contract": "OPL current_control_state determines live status; MAS body-free StateIndex source refs, progress diagnostics, owner receipts, hard-boundary typed blockers, and publication gates determine claims without gating ordinary stage transition.",
         "recommended_operator_action": "use_opl_provider_stage_runtime",
     },
     {

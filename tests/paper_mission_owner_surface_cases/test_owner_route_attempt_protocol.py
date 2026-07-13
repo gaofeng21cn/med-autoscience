@@ -13,7 +13,7 @@ def test_owner_route_protocol_uses_one_opl_transport_ref_without_lifecycle_inter
     assert boundary["state_index_ref_contract"] == "opl-generated:state-index/source-ref"
     assert boundary["transport_owner"] == "one-person-lab"
     assert boundary["mas_can_write_runtime_transport"] is False
-    assert boundary["mas_can_authorize_provider_admission"] is False
+    assert boundary["mas_can_authorize_provider_attempt"] is False
     assert "opl_owns" not in boundary
 
 
@@ -463,7 +463,7 @@ def test_owner_callable_attempt_envelope_declares_domain_intent_and_authority_bo
         "state_index_ref_contract": "opl-generated:state-index/source-ref",
         "transport_owner": "one-person-lab",
         "mas_can_write_runtime_transport": False,
-        "mas_can_authorize_provider_admission": False,
+        "mas_can_authorize_provider_attempt": False,
     }
     assert envelope["runtime_completion_guard"] == {
         "provider_completion_is_domain_completion": False,

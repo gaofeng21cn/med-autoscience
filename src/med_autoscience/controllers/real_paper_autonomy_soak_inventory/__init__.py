@@ -445,7 +445,6 @@ def _closeout_evidence_refs(study: Mapping[str, Any]) -> list[dict[str, Any]]:
             )
     for payload_key, role in (
         ("domain_handler_task", "mas_domain_handler_task"),
-        ("dispatch_receipt", "mas_domain_handler_dispatch_receipt"),
         ("repair_execution_receipt", "mas_repair_execution_receipt"),
         ("repair_execution_evidence", "mas_repair_execution_evidence"),
     ):
@@ -631,10 +630,6 @@ def _study_soak_projection(study_root: Path) -> dict[str, Any]:
             study_root / "artifacts" / "runtime" / "opl_family_domain_handler",
             patterns=("exported_task.json", "*task*.json"),
         ),
-        "dispatch_receipt": _latest_json_from_candidates(
-            study_root / "artifacts" / "runtime" / "opl_family_domain_handler" / "dispatch_receipts",
-            patterns=("latest.json", "*.json"),
-        ),
         "repair_execution_receipt": _read_json_mapping(
             study_root / "artifacts" / "controller" / "repair_execution_receipts" / "latest.json"
         ),
@@ -690,8 +685,6 @@ def _final_projection(surfaces: Mapping[str, Mapping[str, Any]]) -> str:
             return "stable_blocker"
         return "route_decision"
     if _text(controller.get("runtime_decision")) == "blocked" or _text(controller.get("blocked_reason")):
-        return "stable_blocker"
-    if _mapping(surfaces.get("dispatch_receipt")).get("accepted") is False:
         return "stable_blocker"
     if _mapping(surfaces.get("domain_handler_task")):
         return "continuing_repair"

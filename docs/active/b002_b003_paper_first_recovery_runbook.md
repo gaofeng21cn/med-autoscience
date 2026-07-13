@@ -46,7 +46,7 @@ B002 / B003 的目标是推进论文，不是用论文测试 MAS / OPL。MAS / O
 
 一次性只读状态可在 L2 停；B002/B003 这类反复停滞、supervisor heartbeat、currentness drift、repair lane proposal、candidate absorption 和 mission closeout 至少要 L3。用户要求彻底、根因或不要停在表象时，必须到 L4 或明确写出仍缺哪条 prevention/writeback evidence。
 
-以下只是症状，不能单独写成根因或完成理由：`blocked`、`domain_blocked`、`waiting_human`、`not_actionable_without_owner`、`owner_consumption_saturation_wait`、`handoff_required`、`no_live_session`、`queue_empty`、`provider_admission_pending`、`current_owner_identity_unavailable_for_guard`、`typed_blocker_required`、`active_run_id_null`、`candidate_count_zero`。
+以下只是症状，不能单独写成根因或完成理由：`blocked`、`domain_blocked`、`waiting_human`、`not_actionable_without_owner`、`owner_consumption_saturation_wait`、`handoff_required`、`no_live_session`、`queue_empty`、`provider_attempt_pending`、`current_owner_identity_unavailable_for_guard`、`typed_blocker_required`、`active_run_id_null`、`candidate_count_zero`。
 
 特别注意两条当前高风险误读：
 

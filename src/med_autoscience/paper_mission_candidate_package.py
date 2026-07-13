@@ -670,7 +670,7 @@ def _authority_boundary() -> dict[str, bool]:
         "can_write_typed_blocker": False,
         "can_write_human_gate": False,
         "can_update_current_package": False,
-        "can_authorize_provider_admission": False,
+        "can_authorize_provider_attempt": False,
         "can_claim_paper_progress": False,
         "can_claim_runtime_ready": False,
     }

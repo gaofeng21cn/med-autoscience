@@ -383,7 +383,7 @@ def test_terminal_owner_gate_authority_readback_is_readback_only() -> None:
     }
     assert result["write_plan"]["written_files"] == []
     assert result["authority_boundary"]["can_claim_paper_progress"] is False
-    assert result["authority_boundary"]["can_authorize_provider_admission"] is False
+    assert result["authority_boundary"]["can_authorize_provider_attempt"] is False
 
 
 def _paper_audit_pack_refs() -> dict[str, list[dict[str, str]]]:

@@ -28,6 +28,29 @@ The executor must treat all medical research work as claim-boundary work. A coho
 - Use MAS native helpers only when their outputs remain refs, receipts, progress deltas, or typed blockers.
 - Use Co-Scientist-style affordances only when the current owner action, owner route, route-back, typed blocker, reviewer gate, publication gate, human gate, or stop-loss decision explicitly requests a ref family, briefing, repair question, or arbitration need.
 
+## Professional Dependencies And External Skills
+
+- Codex chooses tools, iteration, substitutions, and safe parallelism. A
+  professional policy may require order where reversing it would invalidate a
+  claim, lose provenance, bypass authority, reuse stale review, or perform an
+  irreversible action.
+- Claim-bearing analysis requires an accepted study/source boundary and a stated
+  question, estimand or target quantity, and stop condition. Feasibility
+  exploration may occur earlier and may route the study back for revision.
+- Record failed or negative paths before retrying. Drafting may proceed alongside
+  analysis, but substantive claims must remain bound to accepted evidence.
+- Work that changes canonical deliverables follows authority -> canonical-source
+  mutation -> rebuild -> fresh proof or risk-matched independent review ->
+  handoff. External submission remains human-authorized.
+- Use installed `mas-scholar-skills` routes for ordinary professional work.
+  Acquire a new external Skill only for a named or demonstrated coverage gap.
+  Inspect its identity, provenance, permissions, data/credential scope, and
+  compatibility before sync. Search and comparison order is not prescribed, and
+  an already inspected compatible installation may be reused directly.
+- External and specialist outputs are refs-only candidates until consumed by the
+  MAS owner path; they never become source, quality, artifact, or submission
+  authority by installation or execution alone.
+
 ## Medical Judgment Requirements
 
 - Keep claims tied to evidence, source, and citation refs.
@@ -69,6 +92,9 @@ Every execution must return one of these semantic outcomes:
 - route-back request with owner, work unit, reason, decision-trace refs, failed-path refs, and consumed failed-path refs when applicable.
 - human gate request with decision needed, scope impact, and refs.
 - no-op with currentness proof explaining why no mutation was needed.
+- `completed_with_quality_debt` with a consumable delta and explicit debt refs;
+  debt blocks quality, publication, export, and submission-ready claims, not the
+  stage transition.
 
 When journal-family packs are in scope, the output must name consumed pack refs,
 the ScholarSkills specialist route, produced candidate refs or route-back refs,
@@ -76,4 +102,8 @@ and the MAS owner receipt, reviewer record, typed blocker, or human gate that
 consumes them. The output should not restate the specialist checklist; it should
 link to the foldback route and preserve the authority boundary.
 
-Ambiguous completion is invalid because it lets runtime progress replace medical authority.
+When no consumable scientific delta exists, emit a no-output/failure diagnostic,
+preserve failed-path lineage, and let Codex select advance, repeat, reverse, or
+route-back. Use a typed blocker only for wrong-target identity/currentness,
+authority, safety, credential, irreversible-action, unavailable-executor, or
+explicit human-decision boundaries. Diagnostics never replace medical authority.

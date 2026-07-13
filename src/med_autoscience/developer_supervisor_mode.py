@@ -41,7 +41,7 @@ class DeveloperSupervisorMode:
                 "medical_conclusion_authoring_allowed": False,
                 "mas_can_define_developer_identity_policy": False,
                 "mas_can_define_repo_write_policy": False,
-                "mas_can_authorize_provider_admission": False,
+                "mas_can_authorize_provider_attempt": False,
             },
         }
 
