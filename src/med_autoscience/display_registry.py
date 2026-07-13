@@ -80,6 +80,11 @@ _TABLE_SHELL_ORDER = tuple(
 _SEMANTIC_REGISTRY_ID_ALIASES = {
     _full_id("local_architecture_overview_figure"): _full_id("risk_layering_monotonic_bars"),
     _full_id("binary_calibration_decision_curve_panel"): _full_id("calibration_curve_binary"),
+    # Computational-biomechanics reporting uses domain story IDs while the
+    # shared display pack provides the concrete renderer implementations.
+    _full_id("model_action_exposure_overview"): _full_id("heatmap_group_comparison"),
+    _full_id("cross_condition_transition_figure"): _full_id("alluvial_transition"),
+    _full_id("sensitivity_uncertainty_figure"): _full_id("distribution_violin_box"),
 }
 
 

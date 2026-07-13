@@ -169,6 +169,31 @@ Title: Mechanistic sidecar extension
 - knowledge-base or regulator inference support
 - independent contextual support for clinically defined groups
 
+## computational_biomechanics
+
+Title: 计算生物力学研究
+
+### When To Prefer
+
+- 主要证据来自可复现的肌骨、有限元或其他计算生物力学模型
+- 研究问题聚焦模型条件、动作或参数变化下的力学响应，而不是患者结局预测
+- 论文能够明确区分模型内相对结果、实验验证状态与临床外推边界
+
+### Expected Paper Package
+
+- 模型、软件、参数、坐标系、边界条件和动作代理的版本化清单
+- 条件与动作矩阵、力学终点定义、单位及聚合规则
+- 求解失败、缺失值、重复记录和数值质量控制审计
+- 模型验证状态、参数敏感性与不确定性分析
+- 模型内相对暴露、跨条件排序或切换结果
+- 禁止把相对暴露写成绝对安全阈值、临床禁忌、直接处方或患者结局预测
+
+### Public Data Roles
+
+- 解剖、材料或动作参数范围的外部依据
+- 独立实验或公开模型的验证与一致性核查
+- 临床问题背景与结果解释边界，不替代模型验证
+
 ## survey_trend_analysis
 
 Title: Survey trend / guideline correspondence

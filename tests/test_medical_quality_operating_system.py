@@ -464,6 +464,15 @@ def test_quality_os_includes_archetype_specific_analysis_discipline() -> None:
         "subtype_identifier",
         "clinical_interpretability",
     ]
+    assert analysis_contract["archetype_requirements"]["computational_biomechanics"] == [
+        "model_input_and_version_provenance",
+        "condition_action_matrix_completeness",
+        "endpoint_unit_and_aggregation_contract",
+        "numerical_quality_and_failure_audit",
+        "verification_validation_status",
+        "sensitivity_and_uncertainty_support",
+        "mechanistic_and_clinical_claim_restraint",
+    ]
 
 
 def test_quality_os_bounded_analysis_requires_candidate_board_and_stop_loss_memo() -> None:

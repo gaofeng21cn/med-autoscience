@@ -130,3 +130,37 @@ def test_resolve_medical_analysis_contract_for_clinical_subtype_reconstruction()
         "causal_treatment_recommendation",
         "figure_by_figure_results_narration",
     )
+
+
+def test_resolve_medical_analysis_contract_for_computational_biomechanics() -> None:
+    module = importlib.import_module("med_autoscience.policies.medical_analysis_contract")
+
+    contract = module.resolve_medical_analysis_contract(
+        study_archetype="computational_biomechanics",
+        endpoint_type="model_internal_relative_mechanical_exposure",
+        submission_target_family="general_medical_journal",
+    )
+
+    assert contract.required_analysis_packages == (
+        "model_provenance_and_version_audit",
+        "model_action_exposure_summary",
+        "cross_condition_exposure_comparison",
+        "threshold_and_quantile_audit",
+        "sensitivity_uncertainty_analysis",
+        "quality_control_and_reproducibility_checks",
+    )
+    assert contract.required_reporting_items == (
+        "paper_experiment_matrix",
+        "derived_analysis_manifest",
+        "model_parameterization_manifest",
+        "action_definition_and_mapping_manifest",
+        "endpoint_definition_and_unit_contract",
+        "claim_boundary_manifest",
+    )
+    assert contract.forbidden_default_routes == (
+        "absolute_safety_threshold_framing",
+        "clinical_contraindication_framing",
+        "direct_prescription_framing",
+        "patient_outcome_prediction_framing",
+        "figure_by_figure_results_narration",
+    )

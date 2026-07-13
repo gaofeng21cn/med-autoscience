@@ -640,6 +640,102 @@ Mechanistic sidecar evidence can support plausibility and interpretation. It can
 
 - human_doc | docs/policies/study-workflow/study_archetypes.md#mechanistic_sidecar_extension | first_generation_route_seed
 
+## publication_route_memory_seed__computational_biomechanics
+
+Status: active_seed
+Route family: computational_biomechanics
+Stage applicability: scout, idea, decision, baseline, experiment, analysis-campaign, write, review, finalize
+Title: 计算生物力学研究路线
+
+### Summary
+
+用于以肌骨、有限元或其他计算生物力学模型为主要证据的独立研究。路线以模型与输入溯源、条件-动作矩阵、力学终点、数值质量、验证状态、敏感性和不确定性为核心，并始终把模型内相对结果与患者层面的临床判断分开。
+
+### Best Fit
+
+- 主要问题是不同模型条件、动作、参数或结构下的力学响应差异。
+- 模型、软件、参数、动作代理和输出可以版本化并复现。
+- 研究能够报告模型内排序、相对暴露或跨条件切换，而不依赖患者结局。
+- 验证状态、敏感性和不确定性可以显式审计。
+
+### Poor Fit
+
+- 主要主张实际是患者预后、治疗效果或绝对安全性。
+- 模型和输入版本不明，或关键动作/条件组合缺失且无法解释。
+- 仅有单一参数运行，无法评估结论对建模假设的依赖。
+- 用静态或简化动作代理直接替代真实动态负荷。
+
+### Minimum Evidence Package
+
+- 模型、软件、参数、坐标系、边界条件和动作代理清单。
+- 完整条件-动作矩阵与失败、缺失、排除、重复记录审计。
+- 力学终点定义、单位、采样和聚合合同。
+- 数值验证、外部验证或模型内一致性状态说明。
+- 关键参数、边界条件、动作代理和阈值的敏感性或不确定性分析。
+- 模型内相对暴露与临床外推限制的明确声明。
+
+### Analysis Pattern
+
+- 先锁定模型版本、动作定义、终点和主比较矩阵，再计算汇总结果。
+- 审计每个模型-动作组合的支持量、缺失、重复和失败。
+- 把主要排序或分层与阈值、聚合规则和参数敏感性联动解释。
+- 跨条件比较使用同一终点和聚合口径，并显式标记排序或类别切换。
+
+### Table Figure Pattern
+
+- 模型-动作相对暴露矩阵或热图。
+- 跨条件排序与类别切换图。
+- 参数敏感性与不确定性图。
+- 模型、动作、终点和质量控制清单表。
+- 主张-证据-边界映射表。
+
+### Reviewer Risks
+
+- 审稿人质疑模型验证不足或参数假设缺少依据。
+- 审稿人质疑动作代理与真实康复动作不等价。
+- 审稿人质疑分位数或阈值选择驱动结论。
+- 审稿人把相对暴露误读为绝对失效风险或临床禁忌。
+
+### Pivot Or Stop Rules
+
+- 模型版本、矩阵完整性或终点语义无法锁定时停止主结果升级。
+- 关键结论对合理参数或阈值变化不稳定时降级为探索性结果。
+- 缺少独立验证时将主张限定为模型内相对机械暴露。
+- 研究问题转向患者结局或治疗效果时另建临床验证路线。
+
+### Example Signals
+
+- 不同修复、撕裂或解剖条件出现稳定的动作排序变化。
+- 多个模型条件下低暴露动作数量呈一致变化。
+- 敏感性分析保留主要排序，但改变个别边界组合。
+
+### Failure Modes
+
+- 混用不同版本、模型数量、终点或分层口径的结果。
+- 只报告峰值或均值而不交代采样、聚合和缺失。
+- 把静态代理解释为动态惯性负荷。
+- 把模型内相对低暴露写成绝对安全阈值、禁忌或处方。
+
+### Claim Boundary
+
+该路线可以支持当前模型、参数、动作代理和聚合口径下的相对机械暴露、排序与跨条件切换。它不能在缺少实验和临床验证时支持绝对安全阈值、临床禁忌、直接处方、再损伤预测或患者结局判断。
+
+### Codex Stage Guidance
+
+- scout: 核对模型、动作、终点、版本与验证证据是否足以形成独立计算研究。
+- idea: 选择可被完整矩阵和敏感性分析支持的相对机械问题。
+- decision: 锁定模型内主张与临床外推红线。
+- baseline: 固定模型、参数、动作代理、终点和质量控制基线。
+- experiment: 按锁定协议运行并记录失败、缺失和版本信息。
+- analysis-campaign: 完成矩阵、阈值、敏感性、不确定性和切换分析。
+- write: 先写可审计结果，再写临床背景和限制。
+- review: 对验证、参数、动作代理、阈值和外推风险做对抗审查。
+- finalize: 确认所有绝对安全、禁忌、处方和患者结局语言已删除或降级。
+
+### Source Refs
+
+- human_doc | docs/policies/study-workflow/study_archetypes.md#computational_biomechanics | first_generation_route_seed
+
 ## publication_route_memory_seed__survey_trend_analysis
 
 Status: active_seed

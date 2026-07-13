@@ -19,6 +19,41 @@ STATISTICAL_DISCIPLINE_OPERATION_FIELDS = (
     "sensitivity_plan",
 )
 
+COMPUTATIONAL_BIOMECHANICS_REVIEWER_EVIDENCE_REFS = {
+    "missingness_plan": (
+        "analysis/model_action_matrix_completeness",
+        "analysis/failed_missing_excluded_duplicate_record_audit",
+    ),
+    "sample_size_precision_plan": (
+        "analysis/model_condition_action_support_counts",
+        "analysis/aggregation_and_uncertainty_manifest",
+    ),
+    "external_validation_plan": (
+        "methods/model_verification_validation_status",
+        "methods/model_internal_claim_boundary_when_validation_is_limited",
+    ),
+    "subgroup_plan": (
+        "analysis/prespecified_condition_action_structure_comparisons",
+        "analysis/complete_comparison_matrix_support",
+    ),
+    "multiplicity_guardrail": (
+        "methods/primary_metric_and_contrast_family_manifest",
+        "analysis/exploratory_threshold_percentile_and_action_scan_boundary",
+    ),
+    "clinical_utility_plan": (
+        "methods/relative_exposure_not_absolute_safety_boundary",
+        "discussion/no_contraindication_prescription_or_outcome_prediction_boundary",
+    ),
+    "endpoint_time_window": (
+        "methods/motion_interval_coordinate_range_sampling_density",
+        "methods/endpoint_unit_projection_and_aggregation_contract",
+    ),
+    "sensitivity_plan": (
+        "sensitivity/model_parameter_boundary_condition_and_motion_proxy_checks",
+        "sensitivity/aggregation_threshold_and_uncertainty_checks",
+    ),
+}
+
 FAIL_CLOSED_STATISTICAL_DISCIPLINE_FIELDS = (
     "sample_size_precision_plan",
     "external_validation_plan",
@@ -118,6 +153,16 @@ REVIEWER_TEMPLATE_CONCERNS = {
         "endpoint_time_window": "Task input time, clinical decision point, reference label timing, and follow-up outcome window must be locked.",
         "sensitivity_plan": "Model version, prompt/context variation, annotation disagreement, site shift, subgroup performance, and abstention rules must be checked.",
     },
+    "computational_biomechanics": {
+        "missingness_plan": "Missing or failed simulations, unmatched model-action records, and excluded output rows require explicit accounting and impact assessment.",
+        "sample_size_precision_plan": "The model-condition-action matrix, repeated samples, aggregation level, and uncertainty support must match the target relative-exposure claim.",
+        "external_validation_plan": "Validation, calibration, or independent consistency evidence must be declared; without it, claims remain model-internal and version-bounded.",
+        "subgroup_plan": "Condition, tear-pattern, action, and modeled-structure contrasts must be prespecified and supported by a complete comparison matrix.",
+        "multiplicity_guardrail": "Repeated model, action, metric, percentile, and threshold comparisons require a declared primary family and exploratory boundary.",
+        "clinical_utility_plan": "Mechanical exposure ranks must be separated from absolute safety, contraindication, prescription, and patient-outcome claims.",
+        "endpoint_time_window": "Motion interval, coordinate range, sampling density, aggregation window, endpoint definition, and units must be locked.",
+        "sensitivity_plan": "Model parameters, boundary conditions, motion proxies, aggregation rules, and threshold choices require prespecified sensitivity and uncertainty checks.",
+    },
 }
 
 ARCHETYPE_DISCIPLINE: dict[str, dict[str, str]] = {
@@ -193,11 +238,24 @@ ARCHETYPE_DISCIPLINE: dict[str, dict[str, str]] = {
         "sensitivity_plan": "Check model version, prompt/context variation, annotation disagreement, site shift, subgroup performance, and abstention rules.",
         "failure_conditions": "Block promotion when locked evaluation, external validation, subgroup safety, clinical utility, or model-version traceability is missing.",
     },
+    "computational_biomechanics": {
+        "reporting_guideline": "Computational biomechanics domain contract for model provenance, verification, validation, sensitivity, uncertainty, and claim boundaries.",
+        "missingness_plan": "Audit failed simulations, missing model-action combinations, unmatched records, exclusions, duplicates, and the effect of each on summaries.",
+        "sample_size_precision_plan": "State the model-condition-action matrix, sample count, aggregation level, percentile or interval uncertainty, and minimum support for comparisons.",
+        "external_validation_plan": "Report verification, experimental validation, or independent model consistency evidence; otherwise lock all conclusions to model-internal relative exposure.",
+        "subgroup_plan": "Prespecify tear-pattern, repair-condition, action, and modeled-structure comparisons and require complete matrix support before interpretation.",
+        "multiplicity_guardrail": "Declare primary metrics and contrasts; label repeated percentile, threshold, action, and condition scans as sensitivity or exploratory analyses.",
+        "clinical_utility_plan": "Treat relative mechanical exposure as mechanistic evidence only and prohibit absolute safety thresholds, clinical contraindications, direct prescriptions, or patient-outcome prediction.",
+        "endpoint_time_window": "Define the modeled motion interval, coordinate range, sampling density, output variable, unit, tendon-axis projection, and aggregation window.",
+        "sensitivity_plan": "Test influential model parameters, boundary conditions, motion proxies, percentile aggregation, and category thresholds with uncertainty reported.",
+        "failure_conditions": "Block promotion when model provenance, matrix completeness, endpoint semantics, numerical quality, validation status, sensitivity support, or claim boundaries are unresolved.",
+    },
 }
 
 
 __all__ = [
     "ARCHETYPE_DISCIPLINE",
+    "COMPUTATIONAL_BIOMECHANICS_REVIEWER_EVIDENCE_REFS",
     "FAIL_CLOSED_STATISTICAL_DISCIPLINE_FIELDS",
     "METRIC_ONLY_PRIMARY_EVIDENCE_TERMS",
     "NOMINAL_P_VALUE_TERMS",

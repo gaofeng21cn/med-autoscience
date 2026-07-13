@@ -4,6 +4,10 @@ import json
 from pathlib import Path
 
 from med_autoscience.controllers import research_memory
+from med_autoscience.controllers.research_memory.publication_route_memory_cards import (
+    publication_route_cards_from_markdown,
+    publication_seed_blockers,
+)
 
 
 def test_research_memory_contract_keeps_domain_memory_and_opl_refs_separate() -> None:
@@ -21,6 +25,25 @@ def test_research_memory_contract_keeps_domain_memory_and_opl_refs_separate() ->
     assert boundary["opl_stage_state_owner"] == "one-person-lab"
     assert boundary["body_included_in_opl_refs"] is False
     assert boundary["local_generic_persistence"] == "absent"
+
+
+def test_computational_biomechanics_publication_route_seed_is_complete() -> None:
+    repo_root = Path(__file__).resolve().parents[1]
+    policy_root = repo_root / "docs" / "policies" / "study-workflow"
+    fixture = json.loads(
+        (policy_root / "publication_route_memory_seed_fixture.json").read_text(encoding="utf-8")
+    )
+    cards = publication_route_cards_from_markdown(
+        (policy_root / "publication_route_memory_library.md").read_text(encoding="utf-8")
+    )
+    card_by_id = {card["memory_id"]: card for card in cards}
+    memory_id = "publication_route_memory_seed__computational_biomechanics"
+    fixture_card = next(
+        item for item in fixture["seed_memory_refs"] if item["memory_id"] == memory_id
+    )
+
+    assert fixture_card["route_family"] == "computational_biomechanics"
+    assert publication_seed_blockers(fixture=fixture, seed_cards=[card_by_id[memory_id]]) == []
 
 
 def test_publication_route_memory_closeout_accepts_only_domain_memory_destination(tmp_path: Path) -> None:

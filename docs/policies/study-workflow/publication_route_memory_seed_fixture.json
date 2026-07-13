@@ -129,6 +129,24 @@
       "status": "active_seed"
     },
     {
+      "memory_id": "publication_route_memory_seed__computational_biomechanics",
+      "route_family": "computational_biomechanics",
+      "stage_applicability": [
+        "scout",
+        "idea",
+        "decision",
+        "baseline",
+        "experiment",
+        "analysis-campaign",
+        "write",
+        "review",
+        "finalize"
+      ],
+      "title": "计算生物力学研究路线",
+      "canonical_body_anchor": "docs/policies/study-workflow/publication_route_memory_library.md#publication_route_memory_seed__computational_biomechanics",
+      "status": "active_seed"
+    },
+    {
       "memory_id": "publication_route_memory_seed__external_validation_rescue",
       "route_family": "external_validation_or_model_update",
       "stage_applicability": [

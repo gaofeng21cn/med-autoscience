@@ -411,6 +411,7 @@ def _reporting_guideline_selection() -> list[dict[str, Any]]:
         _guideline_selection("systematic_review_or_meta_analysis", ["PRISMA"]),
         _guideline_selection("diagnostic_accuracy", ["STARD"]),
         _guideline_selection("case_report_or_case_series", ["CARE"]),
+        _guideline_selection("computational_biomechanics", ["COMPUTATIONAL_BIOMECHANICS"]),
         _guideline_selection(
             "ai_ml_medical_study",
             ["AI/ML extension"],

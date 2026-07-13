@@ -476,6 +476,15 @@ def _archetype_requirements() -> dict[str, list[str]]:
             "public_data_support",
             "mechanism_claim_restraint",
         ],
+        "computational_biomechanics": [
+            "model_input_and_version_provenance",
+            "condition_action_matrix_completeness",
+            "endpoint_unit_and_aggregation_contract",
+            "numerical_quality_and_failure_audit",
+            "verification_validation_status",
+            "sensitivity_and_uncertainty_support",
+            "mechanistic_and_clinical_claim_restraint",
+        ],
     }
 
 

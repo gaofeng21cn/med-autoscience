@@ -494,6 +494,9 @@ def _materialize_structured_reporting_contract(study_payload: dict[str, Any]) ->
         "baseline_balance_reporting",
         "competing_risk_reporting_required",
         "competing_risk_reporting",
+        "computational_model_reporting_required",
+        "computational_model_reporting",
+        "mechanistic_claim_boundaries",
     ):
         if key not in structured_defaults:
             continue

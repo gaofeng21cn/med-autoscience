@@ -119,6 +119,23 @@ _GUIDELINE_EXPECTATIONS: dict[str, dict[str, Any]] = {
             "privacy_governance_and_reuse_limitations",
         ],
     },
+    "COMPUTATIONAL_BIOMECHANICS": {
+        "registry": "MAS_DOMAIN_CONTRACT",
+        "guideline_family": "COMPUTATIONAL_BIOMECHANICS",
+        "base_guideline_family": "COMPUTATIONAL_BIOMECHANICS",
+        "overlay_guideline": False,
+        "applies_to": "computational_musculoskeletal_or_biomechanical_simulation_study",
+        "checklist_surface_required": True,
+        "quality_gate_timing": "before_first_full_draft_and_before_submission_gate",
+        "required_domains": [
+            "model_provenance_parameterization_and_software",
+            "coordinate_system_motion_and_loading_protocol",
+            "solver_execution_failures_and_quality_control",
+            "endpoint_aggregation_and_relative_exposure_definition",
+            "verification_validation_sensitivity_and_uncertainty",
+            "model_internal_claim_boundary_and_clinical_translation_limits",
+        ],
+    },
 }
 
 SUPPORTED_REPORTING_GUIDELINE_EXPECTATION_FAMILIES = (
@@ -129,6 +146,7 @@ SUPPORTED_REPORTING_GUIDELINE_EXPECTATION_FAMILIES = (
     "CONSORT-AI",
     "PRISMA",
     "RECORD",
+    "COMPUTATIONAL_BIOMECHANICS",
 )
 
 
@@ -167,6 +185,12 @@ _BEFORE_REVIEW_ITEMS: dict[str, tuple[str, ...]] = {
         "record_data_source_linkage_and_cleaning",
         "record_code_lists_algorithms_and_validation",
         "record_denominator_reproducibility_privacy_and_limitations",
+    ),
+    "COMPUTATIONAL_BIOMECHANICS": (
+        "computational_model_provenance_and_parameterization",
+        "computational_protocol_solver_and_quality_control",
+        "computational_verification_validation_sensitivity_and_uncertainty",
+        "computational_relative_exposure_and_clinical_claim_boundary",
     ),
 }
 

@@ -88,6 +88,24 @@ def test_build_statistical_discipline_contract_for_each_supported_archetype(stud
     assert validation == {"status": "present", "reason_code": ""}
 
 
+def test_computational_biomechanics_statistical_contract_uses_model_specific_discipline() -> None:
+    contract = build_statistical_discipline_contract(study_archetype="computational_biomechanics")
+
+    assert contract["status"] == "resolved"
+    assert contract["reporting_guideline"].startswith("Computational biomechanics")
+    assert "model-internal" in contract["external_validation_plan"]
+    assert "absolute safety" in contract["clinical_utility_plan"]
+    assert "parameter" in contract["sensitivity_plan"]
+
+    library = build_statistical_reviewer_discipline_library()
+    archetype = library["archetypes"]["computational_biomechanics"]
+    assert archetype["template_family"] == "computational_biomechanics"
+    assert archetype["guideline_pack"]["guideline_families"] == [
+        "COMPUTATIONAL_BIOMECHANICS",
+        "domain_specific_model_verification_validation_and_uncertainty",
+    ]
+
+
 def test_statistical_discipline_contract_blocks_when_external_validation_plan_missing() -> None:
     contract = build_statistical_discipline_contract(study_archetype="prediction_model")
     del contract["external_validation_plan"]
@@ -302,6 +320,10 @@ def test_statistical_reviewer_discipline_library_exposes_guideline_linked_eviden
         "subtype_reconstruction": ["STROBE", "subtype_triage_specific_reviewer_concerns"],
         "gray_zone_triage": ["TRIPOD", "subtype_triage_specific_reviewer_concerns"],
         "ai_clinical_task": ["TRIPOD-AI", "CONSORT-AI"],
+        "computational_biomechanics": [
+            "COMPUTATIONAL_BIOMECHANICS",
+            "domain_specific_model_verification_validation_and_uncertainty",
+        ],
     }
 
     for study_archetype, guideline_families in expected_guidelines.items():

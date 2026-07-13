@@ -47,13 +47,20 @@ SUPPORTED_MANUSCRIPT_FAMILY_GUIDELINES: dict[str, str] = {
     "clinical_observation": "STROBE",
     "primary_care_gap": "STROBE",
     "randomized_trial": "CONSORT",
+    "rehabilitation_biomechanics": "COMPUTATIONAL_BIOMECHANICS",
 }
 SUPPORTED_STUDY_ARCHETYPES = (
     "clinical_classifier",
     "clinical_subtype_reconstruction",
+    "computational_biomechanics",
     "survey_trend_analysis",
 )
-SUPPORTED_ENDPOINT_TYPES = ("binary", "time_to_event", "descriptive")
+SUPPORTED_ENDPOINT_TYPES = (
+    "binary",
+    "time_to_event",
+    "descriptive",
+    "model_internal_relative_mechanical_exposure",
+)
 SUPPORTED_SUBMISSION_TARGET_FAMILIES = ("general_medical_journal",)
 _STUDY_SETUP_REQUIREMENT_KEYS = frozenset(
     {
@@ -76,6 +83,11 @@ _DISPLAY_INSTANCE_MAP: dict[str, tuple[str, str, str]] = {
     "risk_layering_monotonic_bars": ("km_risk_stratification", "figure", "F3"),
     "time_to_event_decision_curve": ("decision_curve", "figure", "F4"),
     "generalizability_subgroup_composite_panel": ("multicenter_generalizability", "figure", "F5"),
+    "model_action_exposure_overview": ("model_action_exposure", "figure", "F1"),
+    "cross_condition_transition_figure": ("cross_condition_transition", "figure", "F2"),
+    "sensitivity_uncertainty_figure": ("sensitivity_uncertainty", "figure", "F3"),
+    "table1_model_action_exposure_matrix": ("model_action_exposure_matrix", "table", "T1"),
+    "table2_cross_condition_transition_summary": ("cross_condition_transition_summary", "table", "T2"),
 }
 _ILLUSTRATION_REQUIREMENT_KEYS = frozenset(
     {
@@ -144,6 +156,18 @@ def resolve_medical_reporting_contract(
         raise ValueError(
             f"Unsupported endpoint_type {endpoint_type}. Supported: {supported}"
         )
+    if (
+        study_archetype == "computational_biomechanics"
+        and (
+            manuscript_family != "rehabilitation_biomechanics"
+            or endpoint_type != "model_internal_relative_mechanical_exposure"
+        )
+    ):
+        raise ValueError(
+            "Unsupported medical reporting contract combination "
+            f"study_archetype={study_archetype}, manuscript_family={manuscript_family}, "
+            f"endpoint_type={endpoint_type}"
+        )
     try:
         guideline = SUPPORTED_MANUSCRIPT_FAMILY_GUIDELINES[manuscript_family]
     except KeyError as exc:
@@ -152,12 +176,56 @@ def resolve_medical_reporting_contract(
             f"Unsupported manuscript_family {manuscript_family}. Supported: {supported}"
         ) from exc
 
+    cohort_flow_required = True
+    baseline_characteristics_required = True
     table_shell_requirements = ("table1_baseline_characteristics",)
     figure_shell_requirements = ("cohort_flow_figure",)
     display_ambition = "baseline"
     minimum_main_text_figures = 1
     recommended_main_text_figures: tuple[DisplayBlueprintItem, ...] = ()
     if (
+        study_archetype == "computational_biomechanics"
+        and manuscript_family == "rehabilitation_biomechanics"
+        and endpoint_type == "model_internal_relative_mechanical_exposure"
+        and submission_target_family == "general_medical_journal"
+    ):
+        cohort_flow_required = False
+        baseline_characteristics_required = False
+        table_shell_requirements = (
+            "table1_model_action_exposure_matrix",
+            "table2_cross_condition_transition_summary",
+        )
+        figure_shell_requirements = (
+            "model_action_exposure_overview",
+            "cross_condition_transition_figure",
+            "sensitivity_uncertainty_figure",
+        )
+        display_ambition = "strong"
+        minimum_main_text_figures = 3
+        recommended_main_text_figures = (
+            DisplayBlueprintItem(
+                catalog_id="F1",
+                display_kind="figure",
+                story_role="result_primary",
+                narrative_purpose="model_action_relative_exposure_structure",
+                tier="core",
+            ),
+            DisplayBlueprintItem(
+                catalog_id="F2",
+                display_kind="figure",
+                story_role="result_comparison",
+                narrative_purpose="cross_condition_rank_and_category_transitions",
+                tier="core",
+            ),
+            DisplayBlueprintItem(
+                catalog_id="F3",
+                display_kind="figure",
+                story_role="result_validation",
+                narrative_purpose="sensitivity_uncertainty_and_model_scope",
+                tier="core",
+            ),
+        )
+    elif (
         study_archetype == "clinical_subtype_reconstruction"
         and manuscript_family in {"clinical_observation", "primary_care_gap"}
         and endpoint_type == "descriptive"
@@ -259,8 +327,8 @@ def resolve_medical_reporting_contract(
 
     return MedicalReportingContract(
         reporting_guideline_family=guideline,
-        cohort_flow_required=True,
-        baseline_characteristics_required=True,
+        cohort_flow_required=cohort_flow_required,
+        baseline_characteristics_required=baseline_characteristics_required,
         table_shell_requirements=table_shell_requirements,
         figure_shell_requirements=figure_shell_requirements,
         required_illustration_shells=tuple(

@@ -8,6 +8,7 @@ from med_autoscience.controllers.statistical_discipline_runtime.field_projection
 )
 from med_autoscience.controllers.statistical_discipline_runtime.reference_data import (
     ARCHETYPE_DISCIPLINE as _ARCHETYPE_DISCIPLINE,
+    COMPUTATIONAL_BIOMECHANICS_REVIEWER_EVIDENCE_REFS,
     FAIL_CLOSED_STATISTICAL_DISCIPLINE_FIELDS,
     METRIC_ONLY_PRIMARY_EVIDENCE_TERMS as _METRIC_ONLY_PRIMARY_EVIDENCE_TERMS,
     NOMINAL_P_VALUE_TERMS as _NOMINAL_P_VALUE_TERMS,
@@ -32,6 +33,7 @@ SUPPORTED_STUDY_ARCHETYPES = (
     "subtype_reconstruction",
     "gray_zone_triage",
     "ai_clinical_task",
+    "computational_biomechanics",
 )
 
 REQUIRED_STATISTICAL_DISCIPLINE_FIELDS = (
@@ -138,6 +140,7 @@ _REVIEWER_TEMPLATE_FAMILIES = {
     "subtype_reconstruction": "subtype_triage",
     "gray_zone_triage": "subtype_triage",
     "ai_clinical_task": "ai_clinical_task",
+    "computational_biomechanics": "computational_biomechanics",
 }
 
 _REVIEWER_FAMILY_LABELS = {
@@ -145,6 +148,7 @@ _REVIEWER_FAMILY_LABELS = {
     "prediction_external_validation": "Prediction / external-validation statistical reviewer",
     "subtype_triage": "Subtype / triage statistical reviewer",
     "ai_clinical_task": "AI clinical-task statistical reviewer",
+    "computational_biomechanics": "Computational biomechanics statistical reviewer",
 }
 
 _GUIDELINE_FAMILIES = {
@@ -172,6 +176,10 @@ _GUIDELINE_FAMILIES = {
     "ai_clinical_task": (
         "TRIPOD-AI",
         "CONSORT-AI",
+    ),
+    "computational_biomechanics": (
+        "COMPUTATIONAL_BIOMECHANICS",
+        "domain_specific_model_verification_validation_and_uncertainty",
     ),
 }
 
@@ -321,6 +329,7 @@ _REVIEWER_TEMPLATE_EVIDENCE_REFS = {
             "sensitivity/site_shift_subgroup_performance_abstention_checks",
         ),
     },
+    "computational_biomechanics": COMPUTATIONAL_BIOMECHANICS_REVIEWER_EVIDENCE_REFS,
 }
 
 

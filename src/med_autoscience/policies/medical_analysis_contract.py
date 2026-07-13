@@ -15,9 +15,15 @@ class MedicalAnalysisContract:
 SUPPORTED_STUDY_ARCHETYPES = (
     "clinical_classifier",
     "clinical_subtype_reconstruction",
+    "computational_biomechanics",
     "survey_trend_analysis",
 )
-SUPPORTED_ENDPOINT_TYPES = ("binary", "time_to_event", "descriptive")
+SUPPORTED_ENDPOINT_TYPES = (
+    "binary",
+    "time_to_event",
+    "descriptive",
+    "model_internal_relative_mechanical_exposure",
+)
 SUPPORTED_SUBMISSION_TARGET_FAMILIES = ("general_medical_journal",)
 
 ANALYSIS_PACKAGES: dict[tuple[str, str], tuple[str, ...]] = {
@@ -51,6 +57,14 @@ ANALYSIS_PACKAGES: dict[tuple[str, str], tuple[str, ...]] = {
         "guideline_correspondence_matrix",
         "subgroup_heterogeneity",
     ),
+    ("computational_biomechanics", "model_internal_relative_mechanical_exposure"): (
+        "model_provenance_and_version_audit",
+        "model_action_exposure_summary",
+        "cross_condition_exposure_comparison",
+        "threshold_and_quantile_audit",
+        "sensitivity_uncertainty_analysis",
+        "quality_control_and_reproducibility_checks",
+    ),
 }
 REQUIRED_REPORTING_ITEMS: dict[tuple[str, str], tuple[str, ...]] = {
     ("clinical_classifier", "binary"): (
@@ -74,6 +88,14 @@ REQUIRED_REPORTING_ITEMS: dict[tuple[str, str], tuple[str, ...]] = {
         "derived_analysis_manifest",
         "harmonization_crosswalk",
     ),
+    ("computational_biomechanics", "model_internal_relative_mechanical_exposure"): (
+        "paper_experiment_matrix",
+        "derived_analysis_manifest",
+        "model_parameterization_manifest",
+        "action_definition_and_mapping_manifest",
+        "endpoint_definition_and_unit_contract",
+        "claim_boundary_manifest",
+    ),
 }
 FORBIDDEN_DEFAULT_ROUTES: dict[tuple[str, str], tuple[str, ...]] = {
     ("clinical_classifier", "binary"): ("figure_by_figure_results_narration",),
@@ -85,6 +107,13 @@ FORBIDDEN_DEFAULT_ROUTES: dict[tuple[str, str], tuple[str, ...]] = {
     ),
     ("survey_trend_analysis", "descriptive"): (
         "predictive_model_framing",
+        "figure_by_figure_results_narration",
+    ),
+    ("computational_biomechanics", "model_internal_relative_mechanical_exposure"): (
+        "absolute_safety_threshold_framing",
+        "clinical_contraindication_framing",
+        "direct_prescription_framing",
+        "patient_outcome_prediction_framing",
         "figure_by_figure_results_narration",
     ),
 }

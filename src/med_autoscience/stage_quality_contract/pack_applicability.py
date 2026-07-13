@@ -9,6 +9,7 @@ DEFAULT_STUDY_ARCHETYPES: tuple[str, ...] = (
     "llm_agent_clinical_task",
     "mechanistic_sidecar_extension",
     "survey_trend_analysis",
+    "computational_biomechanics",
 )
 
 REPORTING_STUDY_ARCHETYPES: tuple[str, ...] = (
@@ -19,6 +20,7 @@ REPORTING_STUDY_ARCHETYPES: tuple[str, ...] = (
     "diagnostic_accuracy",
     "case_report_or_case_series",
     "ai_ml_medical_study",
+    "computational_biomechanics",
 )
 
 _PACK_STAGE_MAP: dict[str, tuple[str, ...]] = {
@@ -63,6 +65,7 @@ _PACK_STUDY_ARCHETYPE_MAP: dict[str, tuple[str, ...]] = {
         "randomized_or_intervention",
         "diagnostic_accuracy",
         "survey_trend_analysis",
+        "computational_biomechanics",
     ),
     "reporting_guideline_pack": REPORTING_STUDY_ARCHETYPES,
     "manuscript_argument_pack": ("all_clinical_manuscripts",),
@@ -74,6 +77,7 @@ _PACK_STUDY_ARCHETYPE_MAP: dict[str, tuple[str, ...]] = {
         "diagnostic_accuracy",
         "ai_ml_medical_study",
         "survey_trend_analysis",
+        "computational_biomechanics",
     ),
     "display_to_claim_pack": (
         "clinical_classifier",
@@ -81,6 +85,7 @@ _PACK_STUDY_ARCHETYPE_MAP: dict[str, tuple[str, ...]] = {
         "external_validation_model_update",
         "diagnostic_accuracy",
         "ai_ml_medical_study",
+        "computational_biomechanics",
     ),
     "journal_response_pack": ("all_revision_or_response_candidates",),
     "data_availability_fair_pack": ("all_submission_or_delivery_candidates",),

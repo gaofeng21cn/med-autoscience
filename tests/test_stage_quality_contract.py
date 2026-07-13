@@ -36,3 +36,24 @@ def test_stage_quality_packs_are_non_authority_and_require_strong_evidence() -> 
                 and item["evidence_kind"] in strong_kinds
                 for item in promotion["evidence"]
             )
+
+
+def test_computational_biomechanics_receives_domain_quality_packs() -> None:
+    contract = build_stage_quality_pack_contract()
+    packs = {pack["pack_id"]: pack for pack in contract["packs"]}
+
+    for pack_id in (
+        "statistical_analysis_pack",
+        "statistical_reporting_pack",
+        "reporting_guideline_pack",
+        "display_to_claim_pack",
+        "route_memory_pack",
+        "stop_loss_pack",
+    ):
+        assert "computational_biomechanics" in packs[pack_id]["applies_to"]["study_archetypes"]
+
+    selection = packs["reporting_guideline_pack"]["guideline_selection"]
+    computational = next(
+        item for item in selection if item["study_archetype"] == "computational_biomechanics"
+    )
+    assert computational["guideline_families"] == ["COMPUTATIONAL_BIOMECHANICS"]

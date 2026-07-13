@@ -41,6 +41,7 @@ def test_default_and_survey_archetypes_keep_structural_contract() -> None:
         "gray_zone_triage",
         "llm_agent_clinical_task",
         "mechanistic_sidecar_extension",
+        "computational_biomechanics",
     )
 
     survey = module.get_archetype("survey_trend_analysis")
@@ -53,3 +54,7 @@ def test_default_and_survey_archetypes_keep_structural_contract() -> None:
             survey.public_data_roles,
         )
     )
+
+    computational = module.get_archetype("computational_biomechanics")
+    assert computational.archetype_id == "computational_biomechanics"
+    assert "模型" in " ".join(computational.expected_paper_package)

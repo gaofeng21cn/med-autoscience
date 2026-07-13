@@ -297,6 +297,34 @@ def test_analysis_contract_for_study_supports_clinical_subtype_reconstruction(tm
     ]
 
 
+def test_startup_contracts_support_computational_biomechanics(tmp_path: Path) -> None:
+    study_payload = {
+        "study_id": "001-computational-biomechanics",
+        "study_archetype": "computational_biomechanics",
+        "endpoint_type": "model_internal_relative_mechanical_exposure",
+        "manuscript_family": "rehabilitation_biomechanics",
+    }
+
+    analysis = _resolve_analysis_contract(
+        tmp_path,
+        "001-computational-biomechanics-analysis",
+        study_payload,
+    )
+    reporting = _resolve_reporting_contract(
+        tmp_path,
+        "001-computational-biomechanics-reporting",
+        study_payload,
+    )
+
+    assert analysis["status"] == "resolved"
+    assert analysis["study_archetype"] == "computational_biomechanics"
+    assert analysis["endpoint_type"] == "model_internal_relative_mechanical_exposure"
+    assert reporting["status"] == "resolved"
+    assert reporting["reporting_guideline_family"] == "COMPUTATIONAL_BIOMECHANICS"
+    assert reporting["cohort_flow_required"] is False
+    assert reporting["baseline_characteristics_required"] is False
+
+
 def test_reporting_contract_summary_contains_recommended_explicit_fields(tmp_path: Path) -> None:
     result = _resolve_reporting_contract(
         tmp_path,

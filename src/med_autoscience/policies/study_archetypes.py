@@ -11,6 +11,7 @@ DEFAULT_STUDY_ARCHETYPE_IDS = (
     "gray_zone_triage",
     "llm_agent_clinical_task",
     "mechanistic_sidecar_extension",
+    "computational_biomechanics",
 )
 STUDY_ARCHETYPES_MARKDOWN_PATH = (
     Path(__file__).resolve().parents[3] / "docs" / "policies" / "study-workflow" / "study_archetypes.md"

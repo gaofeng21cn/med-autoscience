@@ -78,6 +78,7 @@ def test_reporting_guideline_expectation_registry_covers_equator_families() -> N
         "CONSORT-AI",
         "PRISMA",
         "RECORD",
+        "COMPUTATIONAL_BIOMECHANICS",
     )
     expectation = module.build_reporting_guideline_expectation("PRISMA")
 
@@ -86,6 +87,10 @@ def test_reporting_guideline_expectation_registry_covers_equator_families() -> N
     assert expectation["checklist_surface"] == "reporting_guideline_checklist.json"
     assert expectation["gates"]["before_first_full_draft"]["required_status"] == "closed"
     assert "prisma_search_selection_flow" in expectation["gates"]["before_review_handoff"]["required_items"]
+
+    computational = module.build_reporting_guideline_expectation("COMPUTATIONAL_BIOMECHANICS")
+    assert computational["authority"] == "MAS_DOMAIN_CONTRACT"
+    assert computational["applies_to"] == "computational_musculoskeletal_or_biomechanical_simulation_study"
 
 
 def test_reporting_guideline_expectation_registry_covers_ai_and_record_extensions() -> None:
@@ -203,6 +208,39 @@ def test_resolve_medical_reporting_contract_for_randomized_trial_publication() -
     assert contract.reporting_guideline_family == "CONSORT"
     assert contract.table_shell_requirements == ("table1_baseline_characteristics",)
     assert contract.figure_shell_requirements == ("cohort_flow_figure",)
+
+
+def test_resolve_medical_reporting_contract_for_computational_biomechanics() -> None:
+    module = importlib.import_module("med_autoscience.policies.medical_reporting_contract")
+
+    contract = module.resolve_medical_reporting_contract(
+        study_archetype="computational_biomechanics",
+        manuscript_family="rehabilitation_biomechanics",
+        endpoint_type="model_internal_relative_mechanical_exposure",
+        submission_target_family="general_medical_journal",
+    )
+
+    assert contract.reporting_guideline_family == "COMPUTATIONAL_BIOMECHANICS"
+    assert contract.cohort_flow_required is False
+    assert contract.baseline_characteristics_required is False
+    assert contract.table_shell_requirements == (
+        "table1_model_action_exposure_matrix",
+        "table2_cross_condition_transition_summary",
+    )
+    assert contract.figure_shell_requirements == (
+        "model_action_exposure_overview",
+        "cross_condition_transition_figure",
+        "sensitivity_uncertainty_figure",
+    )
+    assert contract.required_illustration_shells == ()
+    assert contract.minimum_main_text_figures == 3
+    assert contract.structured_reporting_contract["computational_model_reporting_required"] is True
+    assert "model_provenance_and_version" in contract.structured_reporting_contract[
+        "computational_model_reporting"
+    ]
+    assert "relative_exposure_not_absolute_safety" in contract.structured_reporting_contract[
+        "mechanistic_claim_boundaries"
+    ]
 
 
 def test_resolve_medical_reporting_contract_rejects_unknown_manuscript_family() -> None:

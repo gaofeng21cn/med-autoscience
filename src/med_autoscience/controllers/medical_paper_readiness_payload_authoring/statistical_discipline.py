@@ -67,6 +67,7 @@ def _statistical_discipline_archetype(contract: Mapping[str, Any]) -> str | None
         "clinical_subtype_reconstruction": "subtype_reconstruction",
         "survey_trend_analysis": "observational_real_world",
         "llm_agent_clinical_task": "ai_clinical_task",
+        "computational_biomechanics": "computational_biomechanics",
     }
     return aliases.get(study_archetype)
 

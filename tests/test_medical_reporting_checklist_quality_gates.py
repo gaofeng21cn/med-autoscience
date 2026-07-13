@@ -3,6 +3,37 @@ from __future__ import annotations
 import importlib
 
 
+def test_computational_biomechanics_checklist_enforces_model_and_claim_boundaries() -> None:
+    policy = importlib.import_module("med_autoscience.policies.medical_reporting_checklist")
+    contract = policy.build_default_structured_reporting_contract(
+        study_archetype="computational_biomechanics",
+        manuscript_family="rehabilitation_biomechanics",
+        endpoint_type="model_internal_relative_mechanical_exposure",
+    )
+
+    blocked = policy.build_structured_reporting_checklist(contract)
+
+    assert "computational_model_reporting_incomplete" in blocked["blockers"]
+    assert "mechanistic_claim_boundaries_incomplete" in blocked["blockers"]
+
+    for section_key in (
+        "methods_completeness",
+        "statistical_reporting",
+        "computational_model_reporting",
+        "mechanistic_claim_boundaries",
+    ):
+        contract[section_key] = {key: "complete" for key in contract[section_key]}
+    contract["table_figure_claim_map"] = [
+        {"claim_id": "relative-exposure", "table_figure_refs": ["Figure1", "Table1"]}
+    ]
+
+    clear = policy.build_structured_reporting_checklist(contract)
+
+    assert clear["status"] == "clear"
+    assert clear["computational_model_reporting"]["status"] == "clear"
+    assert clear["mechanistic_claim_boundaries"]["status"] == "clear"
+
+
 def test_structured_reporting_checklist_accepts_charter_nested_contract() -> None:
     policy = importlib.import_module("med_autoscience.policies.medical_reporting_checklist")
 

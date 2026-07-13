@@ -154,6 +154,24 @@ DATA_QUALITY_REPORTING_ITEMS = (
     "cohort_attrition_denominators",
     "claim_impact_or_downgrade",
 )
+COMPUTATIONAL_MODEL_REPORTING_ITEMS = (
+    "model_provenance_and_version",
+    "software_and_solver_environment",
+    "parameterization_and_material_assumptions",
+    "coordinate_system_and_motion_definition",
+    "loading_and_boundary_conditions",
+    "execution_failure_and_quality_control_audit",
+    "endpoint_definition_units_and_aggregation",
+    "verification_and_validation_status",
+    "sensitivity_and_uncertainty_analysis",
+)
+MECHANISTIC_CLAIM_BOUNDARY_ITEMS = (
+    "relative_exposure_not_absolute_safety",
+    "no_clinical_contraindication_or_direct_prescription",
+    "no_patient_outcome_or_retear_prediction",
+    "motion_proxy_limitations",
+    "model_version_scope_and_transportability",
+)
 PHENOTYPE_ARCHETYPE_TOKENS = (
     "phenotype",
     "subtype",
@@ -188,6 +206,8 @@ REPORTING_CHECKLIST_BLOCKER_KEYS = frozenset(
         "phenotype_derivation_reporting_incomplete",
         "baseline_characteristics_reporting_incomplete",
         "data_quality_reporting_incomplete",
+        "computational_model_reporting_incomplete",
+        "mechanistic_claim_boundaries_incomplete",
     }
 )
 
@@ -212,6 +232,8 @@ STRUCTURED_REPORTING_SECTION_ITEMS: dict[str, tuple[str, ...]] = {
     "phenotype_derivation_reporting": PHENOTYPE_DERIVATION_REPORTING_ITEMS,
     "baseline_characteristics_reporting": BASELINE_CHARACTERISTICS_REPORTING_ITEMS,
     "data_quality_reporting": DATA_QUALITY_REPORTING_ITEMS,
+    "computational_model_reporting": COMPUTATIONAL_MODEL_REPORTING_ITEMS,
+    "mechanistic_claim_boundaries": MECHANISTIC_CLAIM_BOUNDARY_ITEMS,
 }
 
 _CLOSED_REPORTING_STATUSES = frozenset(
@@ -226,6 +248,39 @@ _CLOSED_REPORTING_STATUSES = frozenset(
 )
 
 _REPORTING_GUIDELINE_DOMAIN_SECTION_ITEMS: dict[str, dict[str, tuple[str, ...] | None]] = {
+    "model_provenance_parameterization_and_software": {
+        "computational_model_reporting": (
+            "model_provenance_and_version",
+            "software_and_solver_environment",
+            "parameterization_and_material_assumptions",
+        ),
+    },
+    "coordinate_system_motion_and_loading_protocol": {
+        "computational_model_reporting": (
+            "coordinate_system_and_motion_definition",
+            "loading_and_boundary_conditions",
+        ),
+    },
+    "solver_execution_failures_and_quality_control": {
+        "computational_model_reporting": (
+            "software_and_solver_environment",
+            "execution_failure_and_quality_control_audit",
+        ),
+    },
+    "endpoint_aggregation_and_relative_exposure_definition": {
+        "computational_model_reporting": (
+            "endpoint_definition_units_and_aggregation",
+        ),
+    },
+    "verification_validation_sensitivity_and_uncertainty": {
+        "computational_model_reporting": (
+            "verification_and_validation_status",
+            "sensitivity_and_uncertainty_analysis",
+        ),
+    },
+    "model_internal_claim_boundary_and_clinical_translation_limits": {
+        "mechanistic_claim_boundaries": None,
+    },
     "source_of_data_and_participants": {
         "methods_completeness": ("study_design", "cohort"),
         "prediction_methods": ("data_source_years", "inclusion_exclusion"),
@@ -374,6 +429,18 @@ def build_default_structured_reporting_contract(
                     BASELINE_CHARACTERISTICS_REPORTING_ITEMS
                 ),
                 "data_quality_reporting": _required_status_map(DATA_QUALITY_REPORTING_ITEMS),
+            }
+        )
+    if _computational_model_reporting_required(contract):
+        contract.update(
+            {
+                "computational_model_reporting_required": True,
+                "computational_model_reporting": _required_status_map(
+                    COMPUTATIONAL_MODEL_REPORTING_ITEMS
+                ),
+                "mechanistic_claim_boundaries": _required_status_map(
+                    MECHANISTIC_CLAIM_BOUNDARY_ITEMS
+                ),
             }
         )
     return contract
@@ -564,6 +631,20 @@ def _survey_design_reporting_required(contract: dict[str, Any]) -> bool:
     return "nhanes" in text or "survey" in text or "complex sample" in text
 
 
+def _computational_model_reporting_required(contract: dict[str, Any]) -> bool:
+    explicit = contract.get("computational_model_reporting_required")
+    if explicit is not None:
+        return explicit is True or str(explicit).strip().lower() in {"true", "yes", "required"}
+    surfaces = (
+        contract.get("study_archetype"),
+        contract.get("manuscript_family"),
+        contract.get("endpoint_type"),
+        contract.get("reporting_guideline_family"),
+    )
+    text = " ".join(str(item or "").strip().lower() for item in surfaces)
+    return "computational_biomechanics" in text or "rehabilitation_biomechanics" in text
+
+
 def _manuscript_voice_required(contract: dict[str, Any]) -> bool:
     explicit = contract.get("manuscript_voice_reporting_required")
     if explicit is not None:
@@ -625,6 +706,7 @@ def build_structured_reporting_checklist(
     competing_risk_required = _competing_risk_reporting_required(contract)
     survey_design_required = _survey_design_reporting_required(contract)
     manuscript_voice_required = _manuscript_voice_required(contract)
+    computational_model_required = _computational_model_reporting_required(contract)
     explicit_structured_contract = any(
         key in contract
         for key in (
@@ -649,6 +731,8 @@ def build_structured_reporting_checklist(
             "phenotype_derivation_reporting",
             "baseline_characteristics_reporting",
             "data_quality_reporting",
+            "computational_model_reporting",
+            "mechanistic_claim_boundaries",
         )
     )
     if not actionability_required and not prediction_required and not explicit_structured_contract:
@@ -688,6 +772,12 @@ def build_structured_reporting_checklist(
                 BASELINE_CHARACTERISTICS_REPORTING_ITEMS
             ),
             "data_quality_reporting": _not_required_section(DATA_QUALITY_REPORTING_ITEMS),
+            "computational_model_reporting": _not_required_section(
+                COMPUTATIONAL_MODEL_REPORTING_ITEMS
+            ),
+            "mechanistic_claim_boundaries": _not_required_section(
+                MECHANISTIC_CLAIM_BOUNDARY_ITEMS
+            ),
         }
     methods = _section_status(contract.get("methods_completeness"), METHODS_COMPLETENESS_ITEMS)
     statistics = _section_status(contract.get("statistical_reporting"), STATISTICAL_REPORTING_ITEMS)
@@ -799,6 +889,22 @@ def build_structured_reporting_checklist(
         if actionability_required
         else _not_required_section(DATA_QUALITY_REPORTING_ITEMS)
     )
+    computational_model_reporting = (
+        _section_status(
+            contract.get("computational_model_reporting"),
+            COMPUTATIONAL_MODEL_REPORTING_ITEMS,
+        )
+        if computational_model_required
+        else _not_required_section(COMPUTATIONAL_MODEL_REPORTING_ITEMS)
+    )
+    mechanistic_claim_boundaries = (
+        _section_status(
+            contract.get("mechanistic_claim_boundaries"),
+            MECHANISTIC_CLAIM_BOUNDARY_ITEMS,
+        )
+        if computational_model_required
+        else _not_required_section(MECHANISTIC_CLAIM_BOUNDARY_ITEMS)
+    )
     blockers: list[str] = []
     if methods["status"] == "blocked":
         blockers.append("methods_completeness_incomplete")
@@ -842,6 +948,10 @@ def build_structured_reporting_checklist(
         blockers.append("baseline_characteristics_reporting_incomplete")
     if data_quality_reporting["status"] == "blocked":
         blockers.append("data_quality_reporting_incomplete")
+    if computational_model_reporting["status"] == "blocked":
+        blockers.append("computational_model_reporting_incomplete")
+    if mechanistic_claim_boundaries["status"] == "blocked":
+        blockers.append("mechanistic_claim_boundaries_incomplete")
     return {
         "status": "blocked" if blockers else "clear",
         "blockers": blockers,
@@ -868,6 +978,8 @@ def build_structured_reporting_checklist(
         "phenotype_derivation_reporting": phenotype_derivation_reporting,
         "baseline_characteristics_reporting": baseline_characteristics_reporting,
         "data_quality_reporting": data_quality_reporting,
+        "computational_model_reporting": computational_model_reporting,
+        "mechanistic_claim_boundaries": mechanistic_claim_boundaries,
     }
 
 
