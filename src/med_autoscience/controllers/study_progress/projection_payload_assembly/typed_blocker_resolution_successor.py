@@ -148,6 +148,13 @@ def _source_ref_time(payload: Mapping[str, Any]) -> datetime | None:
     return datetime.fromtimestamp(mtime, tz=timezone.utc)
 
 
+def _path_mtime(path: str | Path) -> float | None:
+    try:
+        return Path(path).expanduser().resolve().stat().st_mtime
+    except OSError:
+        return None
+
+
 def _timestamp(text: str | None) -> datetime | None:
     if text is None:
         return None

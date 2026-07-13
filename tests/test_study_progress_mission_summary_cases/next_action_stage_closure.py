@@ -223,6 +223,54 @@ def test_new_reviewer_revision_intake_retire_stale_typed_blocker_resolution(
     assert "typed_blocker_resolution_readback" not in payload
 
 
+def test_reviewer_revision_uses_resolution_source_mtime_when_timestamp_is_missing(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path,
+) -> None:
+    module = importlib.import_module(
+        "med_autoscience.controllers.study_progress.projection_payload_assembly.typed_blocker_resolution_successor"
+    )
+    study_id = "002-dm-china-us-mortality-attribution"
+    workspace_root = tmp_path / "workspace"
+    task_root = workspace_root / "studies" / study_id / "artifacts" / "controller" / "task_intake"
+    task_root.mkdir(parents=True)
+    (task_root / "latest.json").write_text(
+        json.dumps(
+            {
+                "study_id": study_id,
+                "task_intake_kind": "reviewer_revision",
+                "emitted_at": "2099-01-01T00:00:00+00:00",
+                "task_intent": "Continue manuscript revision.",
+            }
+        ),
+        encoding="utf-8",
+    )
+    resolution_ref = tmp_path / "typed-blocker-resolution.json"
+    resolution_ref.write_text("{}", encoding="utf-8")
+    monkeypatch.setattr(
+        module,
+        "latest_typed_blocker_resolution_readback",
+        lambda **_: {
+            "source_ref": str(resolution_ref),
+            "next_owner_action": {
+                "study_id": study_id,
+                "next_owner": "mas_authority_kernel",
+                "action_type": "await_human_or_mas_authority_decision_for_submission_blocker",
+                "work_unit_id": "submission_blocker_human_gate",
+            },
+        },
+    )
+
+    payload = module.attach_typed_blocker_resolution_successor_projection(
+        payload={"study_id": study_id, "next_action": {"owner": "write"}},
+        profile=type("Profile", (), {"workspace_root": str(workspace_root)})(),
+        study_id=study_id,
+    )
+
+    assert payload["next_action"] == {"owner": "write"}
+    assert "typed_blocker_resolution_readback" not in payload
+
+
 def test_top_level_next_legal_action_prefers_receipt_consumption_over_stage_replay() -> None:
     module = importlib.import_module(
         "med_autoscience.controllers.study_progress.mission_summary"
