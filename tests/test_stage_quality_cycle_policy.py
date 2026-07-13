@@ -149,7 +149,7 @@ def test_quality_roles_make_route_owner_and_output_shape_unambiguous() -> None:
     assert "`route_impact.stage_route_recommendation`" in role_prompt
     assert "producer is decisive only in a primary-only StageRun" in role_prompt
     assert "repairer never makes a terminal route decision" in role_prompt
-    assert "If the outcome is `repair_required`" in role_prompt
+    assert "While repair budget remains" in role_prompt
     for legacy_field in (
         "route_back_stage_ref",
         "selected_next_stage_ref",
@@ -158,16 +158,56 @@ def test_quality_roles_make_route_owner_and_output_shape_unambiguous() -> None:
     ):
         assert legacy_field in role_prompt
 
-    meta_prompt = (ROOT / "agent/prompts/review_and_quality_gate.md").read_text(
-        encoding="utf-8"
+    meta_prompt = " ".join(
+        (ROOT / "agent/prompts/review_and_quality_gate.md")
+        .read_text(encoding="utf-8")
+        .split()
     )
-    handoff_prompt = (
-        ROOT / "agent/prompts/finalize_and_publication_handoff.md"
-    ).read_text(encoding="utf-8")
+    handoff_prompt = " ".join(
+        (ROOT / "agent/prompts/finalize_and_publication_handoff.md")
+        .read_text(encoding="utf-8")
+        .split()
+    )
     assert "decisive route owner" in meta_prompt
     assert "decisive cross-Stage route owner" in handoff_prompt
     assert "stage_route_decision" in meta_prompt
     assert "stage_route_decision" in handoff_prompt
+    for prompt in (meta_prompt, handoff_prompt):
+        assert "returns no route output" in prompt or "return no route output" in prompt
+
+
+def test_quality_role_prompt_terminalizes_final_budget_without_routing_hard_boundaries() -> None:
+    roles = " ".join(ROLE_PROMPT_PATH.read_text(encoding="utf-8").split())
+
+    assert "`repair_budget_remaining`" in roles
+    assert "another repair round remains" in roles
+    assert "returns outcome" in roles
+    assert "`repair_required`" in roles
+    assert "controller creates the next fresh repairer Attempt" in roles
+    assert "This branch is non-terminal" in roles
+
+    assert "`final_budget_consumable`" in roles
+    assert "no repair round remains" in roles
+    assert "keep outcome `repair_required`" in roles
+    assert "do not relabel them `quality_debt`" in roles
+    assert "exactly one `route_impact.stage_route_decision`" in roles
+    assert "remaining required finding refs and quality-debt refs" in roles
+    assert "classifies this branch as `terminal_quality_debt`" in roles
+    assert "`completed_with_quality_debt`" in roles
+    assert "Use outcome" in roles
+    assert "`quality_debt` only when no required finding remains" in roles
+
+    assert "`hard_boundary_or_zero_artifact`" in roles
+    assert "literal zero consumable exact artifact is not a Stage-routing judgment" in roles
+    assert "returns neither" in roles
+    assert "`route_impact.stage_route_decision` nor" in roles
+    assert "`route_impact.stage_route_recommendation`" in roles
+    assert "Literal zero consumable artifact" in roles
+    assert "uses `blocked`" in roles
+    assert "terminalizes the StageRun as blocked" in roles
+    assert "A hard-boundary reviewer returns no route output" in roles
+    assert "A hard-boundary re-reviewer returns no route output" in roles
+    assert "A repairer never makes a terminal route decision" in roles
 
 
 def test_all_canonical_stages_bind_quality_policy_and_meta_review_is_explicit() -> None:

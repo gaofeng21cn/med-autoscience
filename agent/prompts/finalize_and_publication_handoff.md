@@ -21,8 +21,10 @@ This Stage uses one primary Attempt. Same-thread deterministic checks are
 re-reviewer Attempts and cannot emit a new Review receipt. Its inputs must
 already carry exact independent Stage Review and Meta Review refs for the same
 canonical bytes. The producer is therefore the decisive cross-Stage route owner
-for this StageRun; it may select any Stage declared by the manifest, while OPL
-only validates role eligibility and target identity.
+for a progress-terminal result in this StageRun; it may select any Stage declared
+by the manifest, while OPL only validates role eligibility and target identity.
+Under a hard boundary or literal zero consumable handoff artifact, return no
+route output.
 
 ## Good Work
 
@@ -63,10 +65,13 @@ publication, submission, or ready claim.
 
 A usable internal handoff may close as `completed_with_quality_debt`; record the
 debt and block publication/submission-ready claims. When no consumable handoff
-exists, return a no-output diagnostic and select the earliest owning declared
-Stage when work can continue. Return the terminal selection as
+exists, materialize an exact-ref-and-hash no-output diagnostic and select the
+earliest owning declared Stage only when that diagnostic is itself consumable and
+work can continue. Literal zero handoff and diagnostic artifact returns a typed
+blocker and no route output. Return a progress-terminal selection as
 `route_impact.stage_route_decision` with a declared `target_stage_id` and
 non-empty `evidence_refs`, or use `decision_kind=complete` without a target when
 the handoff legitimately closes the graph. Typed blockers and human gates are
 reserved for real authority, identity/currentness, credential/safety,
-irreversible-action, unavailable-executor, or explicit human-decision boundaries.
+irreversible-action, unavailable-executor, explicit human-decision, or literal
+zero-consumable-artifact boundaries; they return no route output.

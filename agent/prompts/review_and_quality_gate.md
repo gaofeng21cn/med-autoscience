@@ -47,6 +47,12 @@ consumable independent-review packet may close as
 and submission-ready claims. A hard safety, authority, identity, credential,
 irreversible-action, or human-decision gap remains a blocker.
 
+A materialized no-output diagnostic with its own exact ref and hash is a
+consumable diagnostic artifact. Literal zero consumable review artifact is a
+controller hard stop: return the typed blocker or human gate evidence and neither
+`route_impact.stage_route_decision` nor
+`route_impact.stage_route_recommendation`.
+
 ## Handoff
 
 Before any quality or ready claim, return an `independent_review_packet` binding
@@ -61,3 +67,6 @@ results also include a typed quality/source/artifact blocker, a human gate, or
 `completed_with_quality_debt`. The packet itself cannot self-authorize
 publication or submission readiness, and this Stage must not mutate upstream
 artifacts inline.
+
+The route decision is only for a progress-terminal result. A typed blocker or
+human gate returns no route output and is terminalized by the controller.
