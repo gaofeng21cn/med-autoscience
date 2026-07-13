@@ -403,7 +403,7 @@ def _workspace_study_entry(*, profile: WorkspaceProfile, study: Mapping[str, Any
     study_root = Path(str(study["study_root"]))
     runtime_root = Path(str(study["runtime_quest_root"]))
     current_stage = study["stage_index"].get("current_stage") or {}
-    return {
+    entry = {
         "study_id": study["study_id"],
         "status": study["status"],
         "canonical_study_root": _relative_path(path=study_root, root=workspace_root),
@@ -420,6 +420,9 @@ def _workspace_study_entry(*, profile: WorkspaceProfile, study: Mapping[str, Any
         "runtime_root_is_current_paper_truth": False,
         "archive_roots_are_current_truth": False,
     }
+    if study.get("study_title"):
+        entry["display_name"] = study["study_title"]
+    return entry
 
 
 def _workspace_status_counts(studies: list[Mapping[str, Any]]) -> dict[str, int]:

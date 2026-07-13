@@ -246,6 +246,9 @@ def test_study_workspace_status_apply_materializes_workspace_index_and_migration
     assert workspace_index["studies"][0]["publication_package_status_ref"] == "submission/STATUS.json"
     assert workspace_index["schema_version"] == "mas.workspace_index.v1"
     assert workspace_index["studies"][0]["canonical_study_root"] == f"studies/{study_id}"
+    assert workspace_index["studies"][0]["display_name"] == "Diabetes mortality risk paper"
+    assert workspace_index["studies"][0]["study_status_ref"] == "STUDY_STATUS.md"
+    assert workspace_index["studies"][0]["stage_index_ref"] == "control/stage_index.json"
     assert workspace_index["studies"][0]["runtime_root_is_current_paper_truth"] is False
     assert (profile.workspace_root / "WORKSPACE_STATUS.md").is_file()
     assert (profile.workspace_root / "workspace.yaml").is_file()

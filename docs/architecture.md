@@ -45,7 +45,19 @@ Foundry 系列 policy 只由唯一 OPL Framework 持有。MAS 的 `contracts/fou
 
 Framework Python helper 同样由 OPL 持有。OPL module workflow 在 MAS checkout 维护 `src/opl_framework` carrier；MAS 通过该 namespace 消费，不在 `pyproject.toml` 或 `uv.lock` 声明、安装或锁定 OPL implementation。
 
-`contracts/domain_descriptor.json#/standard_agent_interface` 是 OPL generic consumer 的 MAS-owned machine input。它以 `opl_standard_agent_interface.v1` 声明默认 profile/workspace/project 身份、workspace locator fields、安全 argv command templates、runtime registration ref、progress aliases 与 routing hints；不承载 package lock、provider state、domain truth 或 artifact authority。
+`contracts/domain_descriptor.json#/standard_agent_interface` 是 OPL generic consumer 的 MAS-owned machine input。它以 `opl_standard_agent_interface.v1` 声明默认 profile/workspace/project 身份、workspace locator fields、可选 work-item inventory projection、安全 argv command templates、runtime registration ref、progress aliases 与 routing hints；不承载 package lock、provider state、domain truth 或 artifact authority。
+
+### Work-item inventory 边界
+
+MAS 通过 `standard_agent_interface.inventory_projection` 声明病种 workspace 根目录下的 `workspace_index.json#/studies`。该声明只是只读字段映射：`study_id`、canonical study root、MAS 业务状态、当前 Stage 摘要、投稿包状态和 lifecycle/control refs 继续由 MAS workspace truth 生成；OPL 可以读取并与自己的运行账本关联，但不能回写或根据 Temporal attempt 改写这些字段。
+
+Inventory、execution 与 telemetry 是三个独立事实面：
+
+- `workspace_index.json` 回答“这个项目有哪些论文、MAS 当前如何描述它们”；
+- OPL execution ledger 回答“当前或历史上有哪些 Stage/Attempt 在运行”；
+- OPL usage/telemetry ledger 回答“哪些执行用量已经被观测并可靠归属”。
+
+缺少 execution 或 telemetry 不会让论文从 inventory 消失，也不能把 MAS 业务状态改成运行失败。`inventory_projection` 使用 workspace-relative JSON source，OPL 无需调用或恢复 MAS 已退役的私有 runtime wrapper；`STUDY_STATUS.md` 只作为 lifecycle 人读 ref 传递，机器字段必须直接读取 JSON，不得解析 Markdown 文案。
 
 ## OPL 平台职责
 

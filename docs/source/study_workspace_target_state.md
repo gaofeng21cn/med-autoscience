@@ -67,11 +67,14 @@ MAS/OPL 的理想论文 workspace 必须同时表达两层结构：
 病种级 `workspace_index.json` 至少应能回答：
 
 - 当前有哪些 study。
+- 每个 study 的结构化显示名；缺失时消费者可以人类化 `study_id`，不得从 Markdown 猜标题。
 - 每个 study 的 canonical root 在哪里。
 - 每个 study 当前 stage 是什么。
 - runtime/provenance root 在哪里。
 - 用户检查入口在哪里。
 - 哪些 archive 只作 provenance，不能作为 current truth。
+
+`contracts/domain_descriptor.json#/standard_agent_interface/inventory_projection` 是 OPL 读取这份 inventory 的 refs-only 映射。v1 必需映射直接来自 `workspace_index.json#/studies`；index 还可提供结构化 `display_name` 与 `stage_index_ref`，旧 index 缺少显示名时消费者人类化 `study_id`。OPL/Temporal 的 execution、attempt、heartbeat 与 Token telemetry 必须在平台账本中独立维护，不得写回 `workspace_index.json`，也不得在缺少 runtime 记录时删除或改名任何 study。
 
 ## Study Workspace
 

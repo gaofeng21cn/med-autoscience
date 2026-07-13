@@ -37,6 +37,20 @@ def test_domain_descriptor_exposes_generic_standard_agent_interface() -> None:
     }
     assert interface["workspace_binding"]["entry_command_template"] is None
     assert interface["workspace_binding"]["manifest_command_template"] is None
+    assert interface["inventory_projection"] == {
+        "source_kind": "workspace_relative_json",
+        "relative_path": "workspace_index.json",
+        "items_pointer": "/studies",
+        "field_map": {
+            "work_item_id": "study_id",
+            "work_item_root": "canonical_study_root",
+            "business_status": "status",
+            "current_stage_id": "current_stage_id",
+            "current_stage_status": "current_stage_status",
+            "package_status": "package_status",
+            "lifecycle_ref": "study_status_ref",
+        },
+    }
     assert interface["runtime"] == {
         "runtime_domain_id": "mas",
         "dispatch_command": None,
