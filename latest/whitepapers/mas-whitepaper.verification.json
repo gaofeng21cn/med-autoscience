@@ -1,7 +1,7 @@
 {
   "schema_version": "opl_whitepaper_artifact_verification.v2",
   "status": "whitepaper_artifact_verified",
-  "generated_at": "2026-07-13T00:49:18.247Z",
+  "generated_at": "2026-07-13T01:06:30.756Z",
   "publication_date": "2026-07-13",
   "claim_boundary": {
     "artifact_render_verified": true,
@@ -25,11 +25,11 @@
   "generated_markdown_sha256": "e78146b124d3aac1f052ac14d0e35089d5fa5f1a1c2df10ef3c84d0ef79ba7ae",
   "generated_markdown_size": 18443,
   "generated_html": "docs/site/latest/whitepapers/mas-whitepaper.html",
-  "generated_html_sha256": "94d7150a90f0d243004a9046addd2ada1ceb8de9d339cccc5988d0f45b195fa3",
-  "generated_html_size": 23364,
+  "generated_html_sha256": "1cdf036a9e0be8486e5172c0fb81bd9d57630acfb7a8bd635bbd00f2f8ce7242",
+  "generated_html_size": 23275,
   "generated_pdf": "docs/site/latest/whitepapers/mas-whitepaper.pdf",
-  "generated_pdf_sha256": "af385a16e7d868bb1d30736fbff3669df70ae6904185c85867350e44982e6494",
-  "generated_pdf_size": 176141,
+  "generated_pdf_sha256": "0cf8e671f45cdce7e9d879eb61dfc46e67b5a3f8e01cd7527bc885f56d81b936",
+  "generated_pdf_size": 176143,
   "temp_markdown": "tmp/pdfs/mas-whitepaper/mas-whitepaper.pandoc.md",
   "rendered_dir": "tmp/pdfs/mas-whitepaper/rendered",
   "rendered_pages": 8,
@@ -86,11 +86,11 @@
   },
   "style_profile": "opl-whitepaper-pandoc-xelatex-v2",
   "renderer": {
-    "repo_commit": "e9685cedb10ae26312e9f66baadfd14c9091e548",
+    "repo_commit": "5a03f35221af23be15cf0f56fa90d21b4bdc3631",
     "builder": {
       "path": "scripts/opl-whitepaper-builder.ts",
-      "sha256": "7ea759911124beded349c0f7acc1cd659404a940de3a1bc2c098121949fa4be4",
-      "size": 16947
+      "sha256": "d66d778d68af41130cdf0e4433fd05f6fb92e9cc613d430702e28223ff51c4e9",
+      "size": 16951
     },
     "style": {
       "path": "scripts/whitepaper-style.css",
