@@ -27,7 +27,7 @@ MAS 保留 study/source truth、AI reviewer/publication quality、artifact/memor
 
 ## D-06 Next-action authority
 
-默认 next action 只有 `StageOutcome -> NextActionEnvelope`。旧 provider admission、current work unit、PaperRecovery 与 domain-action request producers 退役为 tombstone/provenance，不再作为 current control plane。
+默认 next action 只有 `Codex CLI selected stage -> nonbinding route context`。旧 provider admission、current work unit、PaperRecovery 与 domain-action request producers 退役为 tombstone/provenance，不再作为 current control plane。
 
 ## D-07 Framework Python carrier
 

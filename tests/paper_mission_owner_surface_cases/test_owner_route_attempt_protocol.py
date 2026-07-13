@@ -17,7 +17,7 @@ def test_owner_route_protocol_uses_one_opl_transport_ref_without_lifecycle_inter
     assert "opl_owns" not in boundary
 
 
-def test_owner_route_protocol_attaches_registered_reason_and_priority_lattice() -> None:
+def test_owner_route_protocol_projects_nonbinding_codex_route_context() -> None:
     owner_route_module = importlib.import_module("med_autoscience.controllers.stage_outcome_authority.owner_route_policy")
 
     status = {
@@ -51,17 +51,11 @@ def test_owner_route_protocol_attaches_registered_reason_and_priority_lattice() 
     assert route["owner_route_attempt_protocol"]["version"] == "mas-owner-route-attempt-protocol.v1"
     assert route["owner_reason_contract"]["reason"] == "ai_reviewer_request_pending"
     assert route["owner_reason_contract"]["owner"] == "ai_reviewer"
-    assert route["owner_reason_contract"]["allowed_actions"] == ["return_to_ai_reviewer_workflow"]
-    assert route["owner_reason_contract"]["required_output"] == "artifacts/publication_eval/latest.json"
-    assert route["owner_reason_contract"]["priority_class"] == "ai_reviewer_currentness"
-    assert route["priority_lattice"] == [
-        "hard_methodology_or_source_blocker",
-        "pending_ai_reviewer_request",
-        "ai_reviewer_currentness",
-        "write_route_back",
-        "package_freshness",
-        "delivery_or_human_handoff",
-    ]
+    assert route["owner_reason_contract"]["binding"] is False
+    assert route["owner_reason_contract"]["route_selection_owner"] == "codex_cli"
+    assert route["owner_reason_contract"]["codex_selected_action"] == "return_to_ai_reviewer_workflow"
+    assert route["owner_reason_contract"]["can_reject_codex_route"] is False
+    assert "priority_lattice" not in route
     assert route["currentness_contract"]["status"] == "currentness_basis_required"
     assert "owner_route_currentness_basis" in route["source_refs"]
 
@@ -99,12 +93,9 @@ def test_owner_route_registers_dm002_clean_migration_publication_gate_replay() -
 
     decorated = protocol.decorate_owner_route(owner_route)
 
-    assert decorated["owner_reason_contract"]["registered"] is True
+    assert decorated["owner_reason_contract"]["binding"] is False
     assert decorated["owner_reason_contract"]["owner"] == "gate_clearing_batch"
-    assert decorated["owner_reason_contract"]["allowed_actions"] == ["run_gate_clearing_batch"]
-    assert decorated["owner_reason_contract"]["required_output"] == (
-        "artifacts/controller/gate_clearing_batch/latest.json"
-    )
+    assert decorated["owner_reason_contract"]["codex_selected_action"] == "run_gate_clearing_batch"
     assert decorated["owner_route_attempt_protocol"]["dispatchable"] is True
     assert decorated["owner_route_attempt_protocol"]["route_to_attempt_contract"] == {
         "surface_kind": "mas_route_to_attempt_contract",
@@ -150,9 +141,9 @@ def test_owner_route_registers_dm002_ai_reviewer_record_gate_consumption() -> No
         }
     )
 
-    assert decorated["owner_reason_contract"]["registered"] is True
+    assert decorated["owner_reason_contract"]["binding"] is False
     assert decorated["owner_reason_contract"]["owner"] == "gate_clearing_batch"
-    assert decorated["owner_reason_contract"]["allowed_actions"] == ["run_gate_clearing_batch"]
+    assert decorated["owner_reason_contract"]["codex_selected_action"] == "run_gate_clearing_batch"
     assert decorated["owner_route_attempt_protocol"]["dispatchable"] is True
 
 
@@ -182,12 +173,9 @@ def test_owner_route_registers_paper_clean_room_rebuild_action() -> None:
         }
     )
 
-    assert decorated["owner_reason_contract"]["registered"] is True
+    assert decorated["owner_reason_contract"]["binding"] is False
     assert decorated["owner_reason_contract"]["owner"] == "MedAutoScience"
-    assert decorated["owner_reason_contract"]["allowed_actions"] == ["paper_clean_room_rebuild_required"]
-    assert decorated["owner_reason_contract"]["required_output"] == (
-        "artifacts/supervision/paper_clean_room_rebuild/latest.json"
-    )
+    assert decorated["owner_reason_contract"]["codex_selected_action"] == "paper_clean_room_rebuild_required"
     assert decorated["owner_route_attempt_protocol"]["dispatchable"] is True
 
 
@@ -402,7 +390,8 @@ def test_owner_route_protocol_treats_unregistered_reason_as_diagnostic_when_rout
         active_run_id=None,
     )
 
-    assert route["owner_reason_contract"]["registered"] is False
+    assert route["owner_reason_contract"]["binding"] is False
+    assert route["owner_reason_contract"]["can_reject_codex_route"] is False
     assert route["owner_route_attempt_protocol"]["dispatchable"] is True
     assert route["allowed_actions"] == ["run_quality_repair_batch"]
 

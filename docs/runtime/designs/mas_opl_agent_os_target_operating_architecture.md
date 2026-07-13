@@ -16,11 +16,11 @@ Date: `2026-06-16`
 
 - `OPL` 是 Agent OS / runtime substrate。
 - `MAS` 是 Medical Research Pack + Medical Authority Kernel。
-- `contracts/foundry-agent-os-domain-kernel-manifest.json` 是 W4 `domain-kernel-manifest` 的机器合同入口，固定 retained authority kernel、OPL upcollect surfaces、`current_owner_delta` owner projection / audit drilldown 和 false-authority flags；默认 next-action authority 仍是 `StageOutcome -> NextActionEnvelope`。
+- `contracts/foundry-agent-os-domain-kernel-manifest.json` 是 W4 `domain-kernel-manifest` 的机器合同入口，固定 retained authority kernel、OPL upcollect surfaces、`current_owner_delta` owner projection / audit drilldown 和 false-authority flags；唯一 stage-route authority 是 `Codex CLI selected declared stage`，route context 只作可选输入。
 - 外部 Co-Scientist / Light / EvoScientist / PaperSpine / ARIS / ARK 等只进入 Scientific Capability Registry 或 refs-only advisory worker；它们不是 MAS runtime owner，也不是 publication / artifact / memory authority。
 - OPL family 计划已经把 Scientific Capability Registry 抽象为 `Atlas + Pack + Stagecraft` 的 family-level ABI / use-policy；Agent Tool Arsenal / Capability Invocation OS 的品牌 owner 归 OPL Pack，Atlas / Stagecraft / Runway / Console / Connect 协同消费。MAS 不新增独立 external-learning selector、第二 active backlog、always-on advisory pipeline 或第 11 个 OPL 品牌模块；MAS 后续只声明 domain refs consumption、forbidden authority、owner receipt / typed blocker / reviewer receipt 晋级门。
 - `Agent Tool Arsenal` 是 OPL generated surfaces 与 MAS authority kernel 之间的 agent-facing invocation ABI；工具给 autonomous agent 用，不给人类用户学习和手动拼装。
-- 默认 operator / executor next-action authority 固定为 `StageOutcome -> NextActionEnvelope`；`current_owner_delta` 只是同一 envelope 的 owner projection / workbench summary。audit、lineage、sidecar、observability、raw worklist 只做 drilldown。
+- 默认 operator / executor next-action authority 固定为 `Codex CLI selected stage -> nonbinding route context`；`current_owner_delta` 只是同一 envelope 的 owner projection / workbench summary。audit、lineage、sidecar、observability、raw worklist 只做 drilldown。
 
 ## 目标结论
 
@@ -103,10 +103,10 @@ OPL 是跨 domain 的通用运行基座。它的目标能力包括：
 - `Pack Compiler`：读取 `agent/` 与 `contracts/`，生成 CLI / MCP / Skill / product-entry / workbench / action catalog descriptors。
 - `StageRun Kernel`：管理 stage attempt、attempt identity、current pointer、retry/dead-letter、resume、human gate transport、lease、provider query。
 - `State Index Kernel`：从文件 truth、receipt、blocker、locator 和 artifact refs 重建 read model；SQLite / index 只存 refs、fingerprint、cursor、checksum、bounded preview hash。
-- `Route Reconciler`：把 MAS canonical `NextActionEnvelope`、owner projection 和 OPL provider currentness 对齐；只生成 next safe transport action，不生成医学 truth。
+- `Route Reconciler`：把 MAS nonbinding Codex route context、owner projection 和 OPL provider currentness 对齐；只生成 next safe transport action，不生成医学 truth。
 - `Lifecycle Plane`：generic artifact / memory locator、restore、retention、cold-store、cleanup plan 和 workbench drilldown。
 - `Observability Plane`：trace / metrics / logs / failure class / SLO drift / repair diagnostics。
-- `Workbench Shell`：默认显示 canonical `NextActionEnvelope` 投影出的 owner summary 和用户可执行动作；audit detail 进入 drilldown。
+- `Workbench Shell`：默认显示 nonbinding Codex route context 投影出的 owner summary 和用户可执行动作；audit detail 进入 drilldown。
 
 OPL 不能持有：
 
@@ -193,13 +193,13 @@ MAS 的所有 CLI、MCP、skill、domain-handler、owner callable、sidecar、na
 | `AgentExecutionIndex` | OPL generated, MAS declares domain intent | Agent 热路径的短索引，只暴露 tool id、适用语义、required refs、risk 和 next step hint；不要求 Agent 读取原始合同。 |
 | `ToolUseCard` / `OperationalToolCard` | OPL generated, MAS authority bounded | 单个工具的完整 card 与可执行操作子集：when to use、when not to use、default invocation、required/optional refs、preflight checks、success signals、failure classes、next safe actions、allowed writes、forbidden authority 和 output schema。 |
 | `CapabilityResolverReceipt` | OPL resolves, MAS bounds | soft discovery 保候选、scored fit 给解释、hard invocation gate 给 missing refs / blocker candidate；resolver 不执行工具、不签 authority。 |
-| `CapabilityInvocationPlan` | OPL resolves, MAS bounds | 从 `NextActionEnvelope` 生成一个 primary operational card、少量 diagnostic alternatives、调用顺序、hard gate 条件、human approval requirement 和 no-new-default-next-action 约束。 |
+| `CapabilityInvocationPlan` | Codex selects, MAS bounds | Codex 基于当前 stage prompt、任一 prior artifact/diagnostic 与可用 capability refs 选择调用；计划只是本次执行上下文，不生成 successor authority、action whitelist 或 stage gate。 |
 | `ToolResultEnvelope` | Tool returns, OPL stores refs, MAS consumes authority refs | 所有工具结果统一返回 status、output refs、diagnostic refs、receipt refs、typed blocker candidate、error class、`recovery`、retryability、idempotency key 和 no-forbidden-authority proof。 |
 | `ToolAuditTrail` | OPL observability / lineage | 记录 agent 为什么选择该工具、输入 refs、输出 refs、model/tool/handoff id、duration、failure class 和 follow-up owner delta；不能签 MAS authority。 |
 
 设计原则：
 
-1. `NextActionEnvelope` 是唯一 ordinary planning root。Agent 先读当前 owner / action family / identity / hard gate，再解析工具；`current_owner_delta` 只能作为 receipt/owner-consumption 后的 projection 或 audit drilldown，不能从全局工具清单、历史 worklist 或 current-owner 投影反推下一步。
+1. `Codex CLI` 是唯一 ordinary planning root。Agent读取任一 prior-stage artifact/diagnostic、当前 owner context、identity和 hard boundary后选择 declared stage与工具；legacy `NextActionEnvelope`和`current_owner_delta`只作非绑定 route context / audit drilldown，不能反推或否决下一步。
 2. 工具发现和调用分三层。找工具阶段 soft match / high recall，不因缺 `required_refs` 丢候选；选工具阶段 scored / explainable，返回 fit reasons、missing refs 和 next safe actions；真正调用阶段 hard contract / fail closed，required refs、allowed writes、forbidden authority、human gate 和 owner receipt / typed blocker requirement 必须满足。
 3. 工具描述必须面向模型。每个 card 写清任务语义、适用条件、反例、输入 ref contract、输出 ref family、常见失败、最小 examples 和验证方式；短命令名、CLI 习惯或人类 runbook 不算 agent affordance。
 4. 风险注解必须机器可读。至少包括 `read_only`、`mutating`、`destructive_candidate`、`idempotent`、`open_world`、`requires_human_gate`、`requires_opl_stage_attempt_or_lease`、`can_write_domain_truth=false/true`、`can_sign_owner_receipt=false/true`。
@@ -210,7 +210,7 @@ MAS 的所有 CLI、MCP、skill、domain-handler、owner callable、sidecar、na
 
 理想调用链：
 
-1. Agent 读取 `NextActionEnvelope`。
+1. Agent 读取当前 stage prompt、任一 prior-stage artifact/diagnostic 与可选 nonbinding route context。
 2. OPL `AgentExecutionIndex` 根据 stage、owner action、required refs、failure class 和 available context 返回短候选；需要细节时延迟加载对应 `OperationalToolCard`。
 3. Agent 或 OPL resolver 选择最小工具集，形成带 `primary_operational_card` 的 `CapabilityInvocationPlan`。
 4. Tool 执行并返回 `ToolResultEnvelope`。
@@ -225,7 +225,7 @@ MAS 的所有 CLI、MCP、skill、domain-handler、owner callable、sidecar、na
 | --- | --- | --- |
 | `DomainAgentPack` | MAS declares, OPL compiles | 声明 stage、skill、knowledge、quality gate、action、receipt refs、forbidden authority |
 | `StageRun` | OPL lifecycle, MAS semantic refs | 表达 stage attempt、manifest、input/output refs、current pointer、owner closeout |
-| `CurrentOwnerDelta` | MAS owner projection, OPL projection | 从 canonical `NextActionEnvelope` 派生的 owner summary / audit drilldown；说明当前 owner、action、target surface、required delta、hard gate，但不选择默认 next action |
+| `CurrentOwnerDelta` | MAS owner projection, OPL projection | 从 nonbinding Codex route context 派生的 owner summary / audit drilldown；说明当前 owner、action、target surface、required delta、hard gate，但不选择默认 next action |
 | `ProgressDeltaReceipt` | MAS / executor output | 记录非终局 concrete delta，接力下一 owner；不替代 full owner receipt |
 | `OwnerReceipt` | MAS authority | 关闭 owner action 或 stage transition 的 domain receipt |
 | `TypedBlocker` | MAS / gate owner | 命名 blocker、route-back owner、repair condition、avoided forbidden shortcut |
@@ -297,13 +297,13 @@ MAS 的所有 CLI、MCP、skill、domain-handler、owner callable、sidecar、na
 - OPL provider completion 只能作为 transport evidence，不能关闭 MAS domain verdict。
 - 缺 OPL execution authorization 时 MAS apply fail closed 到 typed blocker。
 
-### Lane 3：NextActionEnvelope 默认读面与 CurrentOwnerDelta 投影
+### Lane 3：Codex-selected stage 默认读面与 legacy projection 收薄
 
-目标：operator / executor 默认 next-action authority 只看 canonical `StageOutcome -> NextActionEnvelope`；`current_owner_delta` 只投影当前 owner、当前 action、target surface、required delta、hard gate 和 audit drilldown。
+目标：operator / executor 默认只看 Codex-selected declared stage、artifact/diagnostic 与 legal hard-stop evidence；`current_owner_delta` 只投影 owner hint、target surface、required delta、hard gate 和 audit drilldown。
 
 实施步骤：
 
-1. 把 study progress、domain-handler export、product-entry、workbench 默认字段统一到 `NextActionEnvelope`，`current_owner_delta` 只保留为 owner projection / audit drilldown。
+1. 把 study progress、domain-handler export、product-entry、workbench 默认字段统一到 Codex-selected stage、artifact/diagnostic 与 owner/hard-stop evidence；legacy `NextActionEnvelope` / `current_owner_delta` 只保留为 nonbinding projection / audit drilldown。
 2. worklist、receipt replay、raw provider trace、sidecar output、private residue 进入 audit plane。
 3. currentness reducer 只承认 matching work-unit id、fingerprint、allowed action 和 idempotency key。
 4. stale read-model / duplicate receipt / old route-back 只能作为 lineage 或 ignored diagnostic。
@@ -478,7 +478,7 @@ OPL primitive 的目标 ABI 必须统一满足以下字段族：
 | PaperProgressPolicyAdapter | `evaluate_current_owner_delta` / `accept_transition_readback` / `emit_policy_result` | OPL 只消费 policy result / transition request；不能从 MAS read-model 文案推导 domain action |
 | PaperAuthorityResultShapes | owner receipt / typed blocker / quality gate receipt / human gate / route-back / no-forbidden-write envelope | OPL 只验证 shape 与 identity，不能生成或修改语义 |
 | Authority functions | `runtime/authority_functions/*` / `src/...` | OPL dispatch 回 MAS owner surface |
-| Owner route | `NextActionEnvelope` + derived `current_owner_delta` | OPL 默认 next-action 读取 envelope；`current_owner_delta` 只作 owner projection / stage admission summary |
+| Owner route | Codex-selected route context + derived `current_owner_delta` | OPL只运输显式 selection；legacy envelope与`current_owner_delta`只作 owner projection / currentness summary |
 | Receipt / blocker | `OwnerReceipt` / `TypedBlocker` | OPL closeout / workbench / retry decision |
 | Source/data binding | source readiness / data asset contract refs | OPL 只索引 locator，不裁决医学可用性 |
 | Quality OS | reviewer/auditor record refs | OPL 展示和 route-back，不签 verdict |
@@ -492,7 +492,7 @@ OPL primitive 的目标 ABI 必须统一满足以下字段族：
 - 新 runtime-like 功能必须归 OPL primitive；MAS 只留 authority function 或 refs-only projection。
 - 新 agent-facing 工具必须有 ToolUseCard、risk annotations、output schema、ToolResultEnvelope 和 current-delta applicability。
 - 新 external-learning 功能必须进入 OPL Capability Registry；MAS 不能新增私有 selector、第二 active backlog、always-on sidecar 或默认 preflight。
-- 新 workbench / status surface 默认显示 canonical `NextActionEnvelope` 派生 owner summary；`current_owner_delta` 只作 projection，audit detail 不能抢默认入口。
+- 新 workbench / status surface 显示 Codex-selected route context与 owner summary；legacy envelope和`current_owner_delta`只作 projection，audit detail不能成为 route authority。
 - 新 lifecycle / artifact / memory 功能必须证明 body / refs / index / authority 分离。
 
 ### Evidence gate
@@ -528,7 +528,7 @@ OPL primitive 的目标 ABI 必须统一满足以下字段族：
 1. **Lane 0 docs landing**：本文和核心入口落地，作为目标态 source of truth。
 2. **Lane 1 contract inventory**：列出 `DomainAgentPack` 所需 machine contract 和现有来源差距。
 3. **Lane 1 generated interface**：22-action catalog、schemas、primary skill、stage route 与 OPL generated surface handoff 已对齐；旧 Tool Arsenal contract、MCP runtime、`display_pack_agent` 聚合入口和 `hosted_ordinary_path_consumption` 已退役。`scientific_capability_registry` 与独立 `display_pack_*` actions 提供最小公开 ABI；剩余只是真实 owner evidence、generated caller negative samples 和 live-soak evidence。
-4. **Lane 3 default read-surface audit**：检查所有默认 status/export/workbench 是否只以 canonical `NextActionEnvelope` 为 next-action authority，并把 `current_owner_delta` 限定为 owner projection / drilldown。
+4. **Lane 3 default read-surface audit**：检查所有默认 status/export/workbench 是否明确 Codex CLI 是唯一 next-stage authority，并把 legacy `NextActionEnvelope` / `current_owner_delta` 限定为非绑定 route context / drilldown。
 5. **Lane 4 authority function inventory**：`contracts/authority_kernel_inventory.json` 已给 retained MAS functions 补 owner / allowed write / forbidden authority / output ref 分类；下一步按该 inventory 做物理收薄、旧 residue 删除门、OPL upcollect consumption 和真实 evidence 验证。
 6. **Lane 7 capability registry runtime ABI**：existing external-learning sidecar、Light advisory、Evo sidecar、Co-Scientist affordance 和 Display Pack capability 已折回 `scientific_capability_registry`，MAS 提供 current-delta-bound `index / resolve / invoke` ABI、allowed writes、forbidden authority、owner receipt / typed blocker 晋级边界、owner-consumption / live-soak evidence shape、standard-agent feedback-loop tail schema 和 hosted OPL consumption evidence；剩余是真实 owner evidence、direct/hosted parity、OPL production caller negative samples 和 long-soak negative conformance。
 7. **Lane 9 real canary selection**：选择真实 paper-line evidence target，不用 repo tests 代替 production evidence。

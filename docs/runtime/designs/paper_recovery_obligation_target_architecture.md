@@ -5,7 +5,7 @@ Purpose: `paper_recovery_obligation_target_architecture`
 State: `superseded_diagnostic_design`
 Machine boundary: 本文是人读目标架构与迁移说明。机器真相归 `contracts/paper_recovery_kernel_contract.json`、源码、测试、fresh `study_progress`、Codex CLI route judgment、owner receipt、typed blocker、human gate、route-back evidence 和 canonical changed surface refs；OPL current-control / attempt ledger 只提供 transport evidence。
 
-2026-06-30 supersession note：本文描述的是 `StageOutcome -> NextActionEnvelope` 收敛前的 PaperRecovery obligation 目标架构。当前默认 next action 不再由 `paper_recovery_state`、`current_work_unit`、provider admission 或 domain-handler export 选择；这些面只能作为 diagnostic / provenance / readback support，不能生成默认 next action、provider admission、paper progress、publication-ready 或 submission-ready 结论。
+2026-06-30 supersession note：本文描述的是 `Codex CLI selected stage -> nonbinding route context` 收敛前的 PaperRecovery obligation 目标架构。当前默认 next action 不再由 `paper_recovery_state`、`current_work_unit`、provider admission 或 domain-handler export 选择；这些面只能作为 diagnostic / provenance / readback support，不能生成默认 next action、provider admission、paper progress、publication-ready 或 submission-ready 结论。
 
 Reader rule：本文不是 active implementation plan。下文的接口、迁移顺序和验证命令只保留为 historical target/provenance，说明旧 split-control-plane 如何被理解；当前新工作不得从本文恢复 PaperRecovery default selector、provider-admission path、exact-id authority 或 legacy progress fallback。
 
@@ -13,9 +13,9 @@ Reader rule：本文不是 active implementation plan。下文的接口、迁移
 
 DM002 / DM003 暴露的反复卡点不是单个 reducer 分支漏判，而是多个 projection / selector / export 面各自重新解释 currentness。当前目标态已经收敛为：
 
-`StageOutcome -> NextActionEnvelope -> OPL StageAttemptReceipt -> MAS owner consumption`
+`Codex CLI selected stage -> nonbinding route context -> OPL StageAttemptReceipt -> MAS owner consumption`
 
-PaperRecovery 只保留为诊断/恢复解释层：可以解释 owner receipt、typed blocker、human gate、route-back evidence、transport receipt 和历史 projection 为什么不能推进，但不能替代 `NextActionEnvelope` 生成默认下一步。
+PaperRecovery 只保留为诊断/恢复解释层：可以解释 owner receipt、legal typed blocker、human gate、route-back evidence、transport receipt 和历史 projection，但不能生成、批准、拒绝或替代 Codex-selected declared stage。
 
 ## Historical diagnostic call graph
 
@@ -28,8 +28,8 @@ flowchart TD
   K --> S["paper_recovery_state<br/>diagnostic recovery explanation"]
   S --> P["study_progress diagnostic drilldown"]
   S --> O["operator / workbench diagnostic projections"]
-  SO["StageOutcome"] --> NA["NextActionEnvelope"]
-  NA --> TR["OPL StageAttemptReceipt"]
+  SO["StageOutcome"] --> RC["optional nonbinding route context"]
+  RC --> TR["Codex-selected StageRun / OPL StageAttemptReceipt"]
   TR --> MC["MAS owner consumption"]
 ```
 
@@ -45,7 +45,7 @@ flowchart TD
 - `manual_or_human_gate_refs`：manual foreground adoption refs、human/operator decision refs。
 - `read_model_projection_status`：projection consistency、stale/lag evidence、diagnostic refs。
 
-Historical diagnostic 输出曾固定为 `paper_recovery_state`，phase 只能是合同允许的互斥枚举：`owner_action_ready`、`admission_pending`、`admission_blocked`、`attempt_running`、`terminal_closeout_ready`、`owner_answer_consumed`、`domain_blocked`、`human_gate`、`projection_inconsistent`、`manual_foreground_unadopted`。当前这些枚举不能越过 canonical `NextActionEnvelope` 或 MAS owner-consumption 结果。
+Historical diagnostic 输出曾固定为 `paper_recovery_state`，phase 只能是合同允许的互斥枚举：`owner_action_ready`、`admission_pending`、`admission_blocked`、`attempt_running`、`terminal_closeout_ready`、`owner_answer_consumed`、`domain_blocked`、`human_gate`、`projection_inconsistent`、`manual_foreground_unadopted`。当前这些枚举不能越过 nonbinding Codex route context 或 MAS owner-consumption 结果。
 
 ## Superseded derived-surface rules
 
@@ -77,7 +77,7 @@ MAS 不继续在私有 runtime 中裁判 StageRun currentness、queue residue、
 
 ## Historical migration notes
 
-旧迁移方向曾包括 decision fixture、current-work-unit/domain-diagnostic 共用 kernel、domain-handler export consume-only、operator/workbench phase projection 和 selector 退役。2026-06-29 之后，这些不再作为 active backlog 逐项执行；当前 cleanup 只保留 no-resurrection guard，并把仍有价值的行为迁到 `StageOutcome -> NextActionEnvelope`、OPL StageAttemptReceipt readback 或 MAS owner-consumption surface。
+旧迁移方向曾包括 decision fixture、current-work-unit/domain-diagnostic 共用 kernel、domain-handler export consume-only、operator/workbench phase projection 和 selector 退役。2026-06-29 之后，这些不再作为 active backlog 逐项执行；当前 cleanup 只保留 no-resurrection guard，并把仍有价值的行为迁到 `Codex CLI selected stage -> nonbinding route context`、OPL StageAttemptReceipt readback 或 MAS owner-consumption surface。
 
 ## Historical verification
 

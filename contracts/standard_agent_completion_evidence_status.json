@@ -32,7 +32,7 @@
       "gate_id": "single_default_recovery_and_progress_root",
       "status": "satisfied_with_repo_evidence",
       "required_evidence_refs": [
-        "canonical StageOutcome -> NextActionEnvelope",
+        "Codex CLI selected stage plus any prior stage result",
         "contracts/paper_recovery_kernel_contract.json",
         "contracts/stage_operating_principles.json",
         "tests/test_next_action_legacy_authority_retirement.py",
@@ -40,10 +40,10 @@
       ],
       "observed_refs": [
         "contracts/paper_recovery_kernel_contract.json#/metadata/default_next_action_authority=false",
-        "contracts/paper_recovery_kernel_contract.json#/metadata/stage_outcome_to_next_action_authority=StageOutcome->NextActionEnvelope",
+        "contracts/paper_recovery_kernel_contract.json#/metadata/next_action_authority=codex_cli",
         "contracts/paper_recovery_kernel_contract.json#/authority_boundaries/forbidden_authority_claims",
         "contracts/stage_operating_principles.json#/speed_policy",
-        "tests/test_next_action_legacy_authority_retirement.py::legacy projections require canonical NextActionEnvelope",
+        "tests/test_next_action_legacy_authority_retirement.py::legacy projections cannot select a stage",
         "tests/test_ai_route_context.py::test_ai_route_context_is_non_authoritative_and_progress_first",
         "workspace:Yang/DM-CVD-Mortality-Risk#domain diagnostic-apply-2026-06-15T15:08:10Z/exactly_one_obligation_actuator_outcomes",
         "workspace:Yang/DM-CVD-Mortality-Risk#study-progress-2026-06-15T15:09:08Z/DM002-DM003-post-apply-readback"

@@ -23,8 +23,6 @@ from ..domain_handler_export.paper_mission_task_shaping import (
     paper_mission_route_handoff_task as _paper_mission_route_handoff_task,
     paper_mission_start_or_resume_task as _paper_mission_start_or_resume_task,
 )
-from .. import opl_domain_progress_transition_contract
-from ..study_domain_transition_table import family_transition_spec
 from .authority_boundary import authority_boundary_payload
 from .export_study_projection import (
     build_study_projection,
@@ -114,9 +112,6 @@ def export_family_domain_handler(
         "evo_scientist_learning_projection": build_evo_scientist_learning_projection(),
         "external_learning_adoption_closure": build_external_learning_adoption_closure(),
         "display_pack_agent_capability": display_pack_capability_discover(repo_root=_repo_root()),
-        "family_transition_spec_descriptor": (
-            family_transition_spec.build_family_transition_spec_descriptor()
-        ),
         "paper_mission_default_tasks": paper_mission_default_tasks,
         "pending_family_tasks_policy": _pending_family_tasks_policy(),
         "pending_family_tasks": pending_tasks,
@@ -185,11 +180,7 @@ def _pending_family_tasks(
                     study_id=study_id,
                 )
             )
-        current_owner_action = _export_current_owner_action(
-            study=study,
-            current_progress=current_progress,
-        )
-        if current_owner_action or _stage_outcome_blocks_legacy_tasks(current_progress):
+        if _stage_outcome_has_legal_hard_stop(current_progress):
             continue
         tasks.extend(
             _paper_autonomy_tasks(
@@ -213,15 +204,16 @@ def _pending_family_tasks(
     )
 
 
-def _stage_outcome_blocks_legacy_tasks(current_progress: Mapping[str, Any]) -> bool:
+def _stage_outcome_has_legal_hard_stop(current_progress: Mapping[str, Any]) -> bool:
     stage_closure = mapping(current_progress.get("stage_closure"))
     outcome = mapping(stage_closure.get("outcome"))
-    return text(outcome.get("kind")) in {
-        "typed_blocker",
-        "human_gate",
-        "owner_receipt",
-        "terminal",
-    }
+    kind = text(outcome.get("kind"))
+    if kind == "human_gate":
+        return True
+    if kind != "typed_blocker":
+        return False
+    blocker = mapping(outcome.get("typed_blocker")) or outcome
+    return blocker.get("blocks_stage_transition") is True
 
 
 def _fresh_study_progress(
@@ -252,18 +244,6 @@ def _fresh_study_progress(
         )
     except (FileNotFoundError, OSError, ValueError, TypeError, RuntimeError):
         return {}
-
-
-def _export_current_owner_action(
-    *,
-    study: Mapping[str, Any],
-    current_progress: Mapping[str, Any],
-) -> Mapping[str, Any]:
-    del study
-    next_action = mapping(current_progress.get("next_action"))
-    if not opl_domain_progress_transition_contract.next_action_identity_complete(next_action):
-        return {}
-    return next_action
 
 
 def _paper_autonomy_tasks(

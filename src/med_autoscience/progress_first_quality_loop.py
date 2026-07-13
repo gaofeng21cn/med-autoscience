@@ -20,14 +20,15 @@ SEVERITY_LEVELS = frozenset(
 
 FATAL_DEFAULT_REASONS = frozenset(
     {
-        "claim_loses_direct_evidence_support",
-        "unsupported_claim",
         "evidence_fabrication_risk",
-        "source_evidence_invalid",
         "forbidden_write",
         "human_gate_required",
         "publication_or_submission_authorization_required",
         "ethical_or_compliance_blocker",
+        "executor_unavailable",
+        "wrong_target_identity_or_currentness",
+        "permission_credential_or_safety_boundary",
+        "irreversible_action_requires_authorization",
     }
 )
 
@@ -38,6 +39,13 @@ NONFATAL_DEFAULT_REASONS = frozenset(
         "publication_gate_replay_blocked",
         "ai_reviewer_request_missing",
         "medical_prose_review_request_rehydrate_required",
+        "claim_loses_direct_evidence_support",
+        "unsupported_claim",
+        "source_evidence_invalid",
+        "negative_or_null_result",
+        "scientific_non_significance",
+        "zero_readable_stage_output",
+        "missing_format_or_receipt",
         "visual_polish_remaining",
         "optional_style_repair_remaining",
     }
@@ -50,7 +58,7 @@ def severity_for_blocker_reason(reason: object) -> str:
         return FATAL_BLOCKER
     if text in NONFATAL_DEFAULT_REASONS:
         return CARRY_FORWARD_ADVISORY
-    return MUST_FIX_BEFORE_CURRENT_GATE
+    return CARRY_FORWARD_ADVISORY
 
 
 def budget_exhausted_decision(

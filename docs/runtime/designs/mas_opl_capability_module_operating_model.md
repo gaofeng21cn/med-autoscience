@@ -210,7 +210,7 @@ OpenScience master `2200ad2` (`2200ad2ec4e2ac7c7ff59c5dcdfaeb0b9a5fda66`) 对 MA
 | plain-language data-flow disclosure | Console / Connect / Pack | Source / Quality 读取 provider data-flow、workspace-local data、secret scope 和 network-call disclosure | 披露是 operator trust / policy 面，不是 source readiness verdict、privacy approval receipt 或 data access authority。 |
 | curated connector provisioning | Connect / Pack / Runway | Stage / Source / ScholarSkills 消费 vetted connector descriptor、upstream source、managed env receipt、secret scope 和 network policy refs | connector installed、MCP health 或 external API reachability 只能是候选 evidence，不是 MAS runtime、tool authority 或 source truth。 |
 
-Progress-first 读法固定为：OpenScience advisory、worker、projection、native viewer、connector provisioning、rerun receipt 或 data-flow disclosure 缺失 / 失败，不阻断 ordinary MAS owner action。只有当前 delta 的 route-required ref 涉及 source / data / evidence，或 candidate 指向 forbidden write、independent reviewer、publication gate、human gate，才允许形成 typed blocker candidate；正式 typed blocker 仍由 MAS owner surface、OPL Stage Transition Authority、independent reviewer / auditor、human gate 或 typed blocker materializer 签出。
+Progress-first 读法固定为：OpenScience advisory、worker、projection、native viewer、connector provisioning、rerun receipt 或 data-flow disclosure 缺失 / 失败，不阻断 ordinary MAS owner action。只有当前 delta 的 route-required ref 涉及 source / data / evidence，或 candidate 指向 forbidden write、independent reviewer、publication gate、human gate，才允许形成 typed blocker candidate；正式 typed blocker 仍由 MAS owner surface、Codex CLI semantic route selection、independent reviewer / auditor、human gate 或 typed blocker materializer 签出。
 
 ### ScholarSkills acceptance matrix
 

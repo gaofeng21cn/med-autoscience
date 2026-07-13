@@ -4,7 +4,6 @@ from pathlib import Path
 from typing import Any, Mapping
 
 from ..owner_callable_action_policy import (
-    SUPPORTED_ACTION_TYPES,
     request_output_surface_for_action_type,
     request_owner_for_action_type,
 )
@@ -67,7 +66,6 @@ def repair_progress_followup_owner_action_record(
         "owner_reason": currentness_basis["owner_reason"],
         "active_run_id": None,
         "allowed_actions": [action_type],
-        "blocked_actions": sorted(item for item in SUPPORTED_ACTION_TYPES if item != action_type),
         "source_refs": {
             "work_unit_id": work_unit_id,
             "work_unit_fingerprint": action_fingerprint,

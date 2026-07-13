@@ -147,18 +147,3 @@ def _stage_closure_suppresses_domain_transition_next_action(
         or action_stage is None
         or decision_stage == action_stage
     )
-
-
-def _domain_transition_next_action_requests_stage_attempt(
-    next_action: Mapping[str, Any] | None,
-) -> bool:
-    action = _mapping(next_action)
-    if _optional_text(action.get("surface_kind")) != "mas_next_action_envelope":
-        return False
-    if _optional_text(action.get("action_type")) == "request_opl_stage_attempt":
-        return True
-    return (
-        _optional_text(action.get("action_family")) is not None
-        and _optional_text(action.get("owner")) is not None
-        and _optional_text(action.get("work_unit_id")) is not None
-    )

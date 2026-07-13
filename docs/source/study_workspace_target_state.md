@@ -145,7 +145,7 @@ studies/<study_id>/
 | `study.yaml` | study identity、scope、profile binding | study identity truth |
 | `paper.yaml` | paper-facing metadata、journal route、current package refs | paper metadata truth |
 | `control/` | 当前 stage、下一动作、owner、blocker、用户检查入口 | control/read-model projection |
-| `artifacts/stage_outputs/` | Stage Native stage-owned artifacts、receipts、blockers、lineage | stage evidence / transition authority |
+| `artifacts/stage_outputs/` | Stage Native stage-owned artifacts、receipts、blockers、lineage | progress / claim evidence carrier; no transition authority |
 | `paper/` | 当前可读论文正文、表图目录、review ledger | canonical product surface |
 | `analysis/` | 分析计划、脚本、结果、验证 | analysis product surface |
 | `evidence/` | source/evidence/reviewer/gate refs | evidence product surface |
@@ -190,16 +190,16 @@ artifacts/stage_outputs/06-manuscript_writing/
 
 - `outputs/` 说明 stage 做出了哪些 evidence。
 - `role_artifacts/` 说明 executor、reviewer、auditor 或 human gate 分别留下了什么。
-- `receipts/owner_receipt.json` 是推进到下一 stage 的成功凭证。
-- `receipts/typed_blocker.json` 是不能推进时的稳定阻断凭证。
+- `receipts/owner_receipt.json` 是 owner/quality/ready claim 的强证据，不是推进到下一 stage 的前置凭证。
+- `receipts/typed_blocker.json` 只记录 executor unavailable、权限/安全/authority、wrong-target identity/currentness、不可逆动作或显式 human decision 的稳定阻断凭证。
 - `projection/current_owner_delta.json` 只给 CLI/App/用户读，不拥有 truth。
-- 没有 receipt 或 blocker，stage folder 再完整也不能被判定为关闭。
+- 没有 receipt 时 stage folder 不能升级 owner/quality/ready claim，但 raw/partial/negative output 或 no-output diagnostic 仍以质量债完成本轮并供下一 stage 消费。
 
 ## Product Views vs Stage Outputs
 
 Stage folder 和产品视图不能混成一套目录。
 
-Stage folder 是过程证据和 transition authority：
+Stage folder 是过程证据和 claim-evidence carrier；Codex CLI 仍是唯一 transition authority：
 
 ```text
 artifacts/stage_outputs/06-manuscript_writing/outputs/draft_delta.md

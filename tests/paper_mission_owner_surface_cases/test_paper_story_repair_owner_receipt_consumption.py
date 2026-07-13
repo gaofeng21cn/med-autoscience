@@ -4,7 +4,6 @@ import json
 from pathlib import Path
 
 from med_autoscience.controllers.study_stage_attempt_receipt_consumption import (
-    owner_callable_receipt_nonconsumable_closeout,
     owner_callable_receipt_consumption,
     mas_owner_apply_receipt_consumption,
 )
@@ -115,14 +114,6 @@ def test_owner_callable_adapter_consumes_accepted_paper_story_repair_owner_recei
     assert receipt["quality_authorized"] is False
     assert receipt["submission_authorized"] is False
     assert receipt["current_package_write_authorized"] is False
-    assert (
-        owner_callable_receipt_nonconsumable_closeout(
-            study_root=study_root,
-            owner_route=owner_route,
-            actions=[{"action_type": "run_quality_repair_batch"}],
-        )
-        == {}
-    )
 
 
 def test_consumes_live_paper_story_repair_owner_receipt_from_controller_surface(

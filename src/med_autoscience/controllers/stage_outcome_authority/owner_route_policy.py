@@ -12,27 +12,6 @@ from med_autoscience.controllers.owner_callable_action_policy import (
 from med_autoscience.controllers.stage_outcome_authority import owner_route_attempt_policy
 
 
-ROUTED_ACTION_TYPES = (
-    "publication_gate_specificity_required",
-    "publication_handoff_owner_gate",
-    "current_package_freshness_required",
-    "artifact_display_surface_materialization_required",
-    "return_to_ai_reviewer_workflow",
-    "canonical_paper_inputs_rehydrate_required",
-    "run_quality_repair_batch",
-    "run_gate_clearing_batch",
-    "complete_medical_paper_readiness_surface",
-    "paper_clean_room_rebuild_required",
-)
-ALLOWED_ACTION_TYPES = (
-    *ROUTED_ACTION_TYPES,
-    "unit_harmonized_external_validation_rerun",
-    "recover_transport_model_provenance",
-    "methodology_reframe_route_decision",
-    "provenance_limited_harmonization_audit",
-)
-
-
 def build_owner_route(
     *,
     study_id: str,
@@ -46,15 +25,14 @@ def build_owner_route(
 ) -> dict[str, Any]:
     normalized_actions = [dict(action) for action in actions]
     owner = next_owner or _owner_from_actions(normalized_actions)
-    allowed_actions = [
-        action_type
-        for action_type in ALLOWED_ACTION_TYPES
-        if any(
-            _text(action.get("action_type")) == action_type
-            and _action_matches_route_owner(action=action, route_owner=owner)
+    allowed_actions = list(
+        dict.fromkeys(
+            action_type
             for action in normalized_actions
+            if (action_type := _text(action.get("action_type"))) is not None
+            and _action_matches_route_owner(action=action, route_owner=owner)
         )
-    ]
+    )
     owner_reason = blocked_reason or _reason_from_actions(normalized_actions)
     truth = _mapping(status.get("study_truth_snapshot")) or _mapping(progress.get("study_truth_snapshot"))
     route_epoch = _text(truth.get("truth_epoch")) or _text(truth.get("authority_epoch")) or _fallback_epoch(
@@ -110,7 +88,6 @@ def build_owner_route(
         "owner_reason": owner_reason,
         "active_run_id": active_run_id,
         "allowed_actions": allowed_actions,
-        "blocked_actions": [action for action in ROUTED_ACTION_TYPES if action not in set(allowed_actions)],
         "idempotency_scope": "study_quest_owner_route",
         "source_refs": {
             "study_truth_epoch": _text(truth.get("truth_epoch")),
@@ -800,7 +777,6 @@ def _text(value: object) -> str | None:
 
 
 __all__ = [
-    "ROUTED_ACTION_TYPES",
     "build_owner_route",
     "decorate_actions",
     "ensure_owner_route_v2",

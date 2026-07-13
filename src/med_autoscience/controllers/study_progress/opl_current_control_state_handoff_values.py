@@ -81,7 +81,7 @@ LEGACY_CURRENT_PROJECTION_BOUNDARY = {
     "status": "diagnostic_only",
     "authority": False,
     "diagnostic_only": True,
-    "replacement_authority": "StageOutcome -> NextActionEnvelope -> OPL StageAttemptReceipt",
+    "replacement_authority": "Codex CLI selected stage -> refs-only route context -> OPL StageAttemptReceipt",
     "default_selector_policy": "fail_closed",
     "can_select_next_action": False,
     "can_authorize_dispatch": False,

@@ -20,6 +20,7 @@ FAMILY_BLOCKED_TYPED = "blocked.typed"
 FAMILY_RUNTIME_WAIT_RECEIPT = "runtime.wait_receipt"
 FAMILY_RUNTIME_OPL_ROUTE = "runtime.opl_route"
 FAMILY_MISSION_COMPLETE = "mission.complete"
+FAMILY_CODEX_ROUTE_CONTEXT = "codex.route_context"
 
 ACTION_FAMILIES = frozenset(
     {
@@ -34,6 +35,7 @@ ACTION_FAMILIES = frozenset(
         FAMILY_RUNTIME_WAIT_RECEIPT,
         FAMILY_RUNTIME_OPL_ROUTE,
         FAMILY_MISSION_COMPLETE,
+        FAMILY_CODEX_ROUTE_CONTEXT,
     }
 )
 
@@ -49,6 +51,7 @@ FAMILY_OWNER = {
     FAMILY_RUNTIME_WAIT_RECEIPT: "one-person-lab",
     FAMILY_RUNTIME_OPL_ROUTE: "one-person-lab",
     FAMILY_MISSION_COMPLETE: "MedAutoScience",
+    FAMILY_CODEX_ROUTE_CONTEXT: "codex_cli",
 }
 
 FAMILY_KIND = {
@@ -63,6 +66,7 @@ FAMILY_KIND = {
     FAMILY_RUNTIME_WAIT_RECEIPT: "wait_for_runtime_receipt",
     FAMILY_RUNTIME_OPL_ROUTE: "submit_to_opl_runtime",
     FAMILY_MISSION_COMPLETE: "complete_mission",
+    FAMILY_CODEX_ROUTE_CONTEXT: "codex_selected_route_context",
 }
 
 FAMILY_EXECUTOR_TARGET = {
@@ -77,40 +81,8 @@ FAMILY_EXECUTOR_TARGET = {
     FAMILY_RUNTIME_WAIT_RECEIPT: "opl_runtime_readback",
     FAMILY_RUNTIME_OPL_ROUTE: "codex_cli_ai_selected_stage_route",
     FAMILY_MISSION_COMPLETE: "mas_terminal",
+    FAMILY_CODEX_ROUTE_CONTEXT: "codex_cli",
 }
-
-PROSE_REPAIR_HINTS = frozenset(
-    {
-        "paper_write",
-        "write",
-        "prose",
-        "story",
-        "story_surface",
-        "medical_prose",
-        "quality_repair",
-        "claim_evidence",
-        "terminology",
-        "surface_qc",
-        "publication_surface_repair",
-        "manuscript_story_surface_delta_missing",
-    }
-)
-AI_REVIEWER_HINTS = frozenset({"ai_reviewer", "reviewer", "publication_eval"})
-GATE_REPLAY_HINTS = frozenset({"gate_replay", "gate-clearing", "gate_clearing", "publishability_gate"})
-SUBMISSION_PACKAGE_HINTS = frozenset(
-    {
-        "submission_minimal",
-        "submission_milestone",
-        "submission_materialize",
-        "package-candidate",
-        "submission_ready_package",
-        "submission_authority",
-        "degraded_handoff",
-    }
-)
-DELIVERY_SYNC_HINTS = frozenset({"delivery_sync", "mirror_sync", "current_package_mirror_sync"})
-RUNTIME_HINTS = frozenset({"opl", "runtime", "stage_attempt", "provider", "live_readback"})
-
 
 def compile_next_action_envelope(
     *,
@@ -123,10 +95,11 @@ def compile_next_action_envelope(
     authority_boundary: Mapping[str, Any] | None = None,
     diagnostic_refs: Sequence[Mapping[str, Any] | str] | None = None,
 ) -> dict[str, Any]:
-    """Compile MAS stage outcome evidence into one authoritative next-action envelope.
+    """Carry a Codex-selected route as a refs-only transport envelope.
 
-    The compiler is side-effect free. It does not authorize domain truth writes,
-    OPL queues, provider attempts, owner receipts, typed blockers, or human gates.
+    The compiler is side-effect free and has no semantic route authority. Missing
+    or ambiguous route fields remain quality-debt context for Codex; they never
+    default to a typed blocker or prevent another declared stage from starting.
     """
 
     outcome = _mapping(stage_outcome)
@@ -146,7 +119,7 @@ def compile_next_action_envelope(
         (outcome, route, owner),
         ("work_unit_fingerprint", "action_fingerprint", "source_fingerprint"),
     )
-    family = resolve_action_family(
+    family = resolve_explicit_action_family_or_context(
         stage_outcome=outcome,
         route_command=route,
         owner_route=owner,
@@ -218,7 +191,10 @@ def compile_next_action_envelope(
         "idempotency_key": idempotency_key,
         "supersedes_refs": _text_items(outcome.get("supersedes_refs")),
         "diagnostic_refs": _diagnostic_refs(diagnostic_refs, outcome, route, owner),
-        "authority_source": "mas_next_action_compiler",
+        "authority_source": "codex_selected_route_context",
+        "route_selection_owner": "codex_cli",
+        "binding": False,
+        "next_stage_may_start": True,
         "legacy_fields_are_diagnostic": True,
         "legacy_field_diagnostic_roles": {
             "work_unit_id": "diagnostic_currentness_id",
@@ -226,7 +202,7 @@ def compile_next_action_envelope(
             "current_work_unit": "diagnostic_readback_only",
             "current_executable_owner_action": "diagnostic_readback_only",
         },
-        "completion_authority": "stage_outcome_only",
+        "completion_authority": "none_transport_context_only",
         "runtime_receipt_authority": "opl_stage_attempt_transport_receipt_only",
     }
     for field in (
@@ -242,7 +218,7 @@ def compile_next_action_envelope(
     return _compact(envelope)
 
 
-def resolve_action_family(
+def resolve_explicit_action_family_or_context(
     *,
     stage_outcome: Mapping[str, Any] | None = None,
     route_command: Mapping[str, Any] | None = None,
@@ -259,7 +235,7 @@ def resolve_action_family(
         or _text(outcome.get("decision_kind"))
     )
     command_kind = _text(route.get("command_kind"))
-    explicit_family = _first_text((outcome, route, owner), ("action_family", "next_action_family"))
+    explicit_family = _first_text((route, owner, outcome), ("action_family", "next_action_family"))
     if explicit_family in ACTION_FAMILIES:
         return explicit_family
     if outcome_kind == "human_gate" or command_kind == "wait_for_human":
@@ -273,32 +249,9 @@ def resolve_action_family(
         return FAMILY_MISSION_COMPLETE
     if outcome_kind == "mission_complete" or command_kind == "complete_mission":
         return FAMILY_MISSION_COMPLETE
-    if command_kind in {"resume_stage", "start_next_stage", "route_back"} and _has_hint(
-        [route, owner, outcome],
-        RUNTIME_HINTS,
-    ):
+    if command_kind in {"resume_stage", "start_next_stage", "route_back"}:
         return FAMILY_RUNTIME_OPL_ROUTE
-
-    tokens = _tokens(
-        work_unit_id,
-        _first_text((outcome, route, owner), ("action_type", "controller_action_type", "controller_action")),
-        _first_text((outcome, route, owner), ("transition_kind", "next_action", "route_target")),
-        *_text_items(owner.get("allowed_actions")),
-        *_text_items(route.get("allowed_actions")),
-    )
-    if _contains_any(tokens, SUBMISSION_PACKAGE_HINTS):
-        return FAMILY_PAPER_PACKAGE_SUBMISSION_MINIMAL
-    if _contains_any(tokens, DELIVERY_SYNC_HINTS):
-        return FAMILY_PAPER_DELIVERY_SYNC
-    if _contains_any(tokens, GATE_REPLAY_HINTS):
-        return FAMILY_PAPER_GATE_PUBLISHABILITY_REPLAY
-    if _contains_any(tokens, PROSE_REPAIR_HINTS):
-        return FAMILY_PAPER_WRITE_PROSE_REPAIR
-    if _contains_any(tokens, AI_REVIEWER_HINTS):
-        return FAMILY_PAPER_REVIEW_AI_REVIEWER
-    if _contains_any(tokens, RUNTIME_HINTS):
-        return FAMILY_RUNTIME_WAIT_RECEIPT
-    return FAMILY_BLOCKED_TYPED
+    return FAMILY_CODEX_ROUTE_CONTEXT
 
 
 def _owner_receipt_is_authorized_terminal(
@@ -386,6 +339,16 @@ def expected_output_contract_for_family(action_family: str) -> dict[str, Any]:
         return {"output_kind": "human_gate_receipt", "accepted_refs": ["human_gate_ref"]}
     if action_family == FAMILY_BLOCKED_TYPED:
         return {"output_kind": "typed_blocker", "accepted_refs": ["typed_blocker_ref"]}
+    if action_family == FAMILY_CODEX_ROUTE_CONTEXT:
+        return {
+            "output_kind": "codex_selected_stage_or_progress_diagnostic",
+            "accepted_refs": [
+                "raw_stage_artifact_ref",
+                "partial_stage_artifact_ref",
+                "negative_result_ref",
+                "no_output_diagnostic_ref",
+            ],
+        }
     return {"output_kind": "mission_terminal_receipt", "accepted_refs": ["mission_package_ref"]}
 
 
@@ -400,10 +363,12 @@ def _authority_boundary(action_family: str, authority_boundary: Mapping[str, Any
     boundary.setdefault("can_write_runtime_queue", False)
     boundary.setdefault("can_write_provider_attempt", False)
     boundary.setdefault("can_write_runtime_queue_or_provider_attempt", False)
-    boundary["next_action_authority"] = True
-    boundary["authority_owner"] = "MedAutoScience"
+    boundary["next_action_authority"] = False
+    boundary["route_selection_owner"] = "codex_cli"
+    boundary["binding"] = False
+    boundary["authority_owner"] = "codex_cli"
     boundary["runtime_owner"] = "one-person-lab"
-    boundary["action_family_authority"] = True
+    boundary["action_family_authority"] = False
     boundary["exact_work_unit_id_authority"] = False
     boundary["can_submit_to_opl_runtime"] = action_family == FAMILY_RUNTIME_OPL_ROUTE
     return boundary
@@ -467,18 +432,6 @@ def _dedupe_texts(values: Sequence[str]) -> list[str]:
     return result
 
 
-def _has_hint(payloads: Sequence[Mapping[str, Any]], hints: frozenset[str]) -> bool:
-    return _contains_any(_tokens(*(json.dumps(payload, sort_keys=True) for payload in payloads)), hints)
-
-
-def _contains_any(tokens: Sequence[str], hints: frozenset[str]) -> bool:
-    return any(hint in token for token in tokens for hint in hints)
-
-
-def _tokens(*values: object) -> list[str]:
-    return [text.lower().replace("-", "_") for value in values if (text := _text(value)) is not None]
-
-
 def _work_unit_id(*values: object) -> str | None:
     for value in values:
         if isinstance(value, Mapping):
@@ -536,6 +489,7 @@ def _compact(value: dict[str, Any]) -> dict[str, Any]:
 __all__ = [
     "ACTION_FAMILIES",
     "FAMILY_BLOCKED_TYPED",
+    "FAMILY_CODEX_ROUTE_CONTEXT",
     "FAMILY_HUMAN_APPROVAL",
     "FAMILY_MISSION_COMPLETE",
     "FAMILY_PAPER_DELIVERY_SYNC",
@@ -549,5 +503,5 @@ __all__ = [
     "SURFACE_KIND",
     "compile_next_action_envelope",
     "expected_output_contract_for_family",
-    "resolve_action_family",
+    "resolve_explicit_action_family_or_context",
 ]

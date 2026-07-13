@@ -33,22 +33,23 @@ def test_tombstoned_runtime_actions_are_not_mas_owner_callables_or_dispatch_acti
     router = importlib.import_module("med_autoscience.controllers.stage_outcome_authority.action_router")
     retired_action = _legacy_runtime_repair_marker()
 
-    assert retired_action not in owner_route.ALLOWED_ACTION_TYPES
-    assert retired_action not in owner_route.ROUTED_ACTION_TYPES
+    assert not hasattr(owner_route, "ALLOWED_ACTION_TYPES")
+    assert not hasattr(owner_route, "ROUTED_ACTION_TYPES")
     for reason in (
         "abnormal_stopped_runtime_resume_required",
         "failed_quest_runtime_relaunch_required",
     ):
         contract = attempt_protocol.owner_reason_contract(reason=reason, owner="one-person-lab")
-        assert contract["registered"] is True
+        assert contract["binding"] is False
+        assert contract["route_selection_owner"] == "codex_cli"
         assert contract["owner"] == "one-person-lab"
-        assert contract["allowed_actions"] == []
+        assert contract["can_reject_codex_route"] is False
     retired_action_contract = attempt_protocol.owner_reason_contract(
         reason=retired_action,
         owner="one-person-lab",
     )
-    assert retired_action_contract["registered"] is False
-    assert retired_action_contract["allowed_actions"] == []
+    assert retired_action_contract["binding"] is False
+    assert retired_action_contract["can_reject_codex_route"] is False
     assert registry.owner_callable_for_action(retired_action) is None
     assert not hasattr(dispatcher, "SUPPORTED_ACTION_TYPES")
     unsupported_execution = router.execute_owner_dispatch_action(

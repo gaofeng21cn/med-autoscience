@@ -455,10 +455,10 @@
     {
       "risk_id": "stale_read_model",
       "failure_shape": "Old projections, stage artifact residue, stale action queues, stale current-control, or legacy next_action reenter the default path.",
-      "primary_guard": "stage_outcome_next_action_envelope",
-      "canonical_current_source": "StageOutcome -> NextActionEnvelope",
+      "primary_guard": "codex_cli_selected_route_context",
+      "canonical_current_source": "Codex CLI selected stage plus any prior stage result",
       "valid_current_statuses": [
-        "next_action_envelope_present",
+        "codex_route_context_present_or_diagnostic",
         "owner_receipt_ref",
         "typed_blocker_ref",
         "human_gate_ref",
@@ -479,12 +479,12 @@
       ],
       "prevention_layers": [
         "stage_outcome_authority",
-        "next_action_envelope_currentness",
+        "codex_route_context_currentness",
         "owner_consumption_evidence_gate",
         "progress_first_operator_surface"
       ],
-      "fail_policy": "fail_closed_to_currentness_or_owner_route_typed_blocker",
-      "ordinary_progress_policy": "read_models_rebuild_from_stage_outcome_next_action_envelope_and_owner_consumed_evidence_without_creating_next_action"
+      "fail_policy": "missing_context_becomes_quality_debt_conflicting_identity_becomes_currentness_typed_blocker",
+      "ordinary_progress_policy": "read_models_project_codex_selected_route_raw_typed_or_diagnostic_inputs_without_creating_or_rejecting_next_stage"
     },
     {
       "risk_id": "duplicate_receipt",
@@ -549,7 +549,7 @@
     "surface_kind": "mas_light_coscientist_progress_first_hybrid_policy",
     "role": "current_owner_native_jit_affordance",
     "default_posture": "affordance_available_no_standing_sidecar_no_default_scan_current_delta_declares_or_implies_affordance_need",
-    "ordinary_path_root": "NextActionEnvelope",
+    "ordinary_path_root": "codex_cli",
     "default_design": "ordinary_progress_has_no_extra_advisory_stage",
     "standing_sidecar_enabled": false,
     "standing_advisory_scan_each_attempt": false,

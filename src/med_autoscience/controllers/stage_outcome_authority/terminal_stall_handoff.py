@@ -78,7 +78,7 @@ def owner_handoff_allowed(
             return False
         if _text(owner_route.get("failure_signature")) == "manuscript_story_surface_delta_missing":
             return True
-        if _registered_write_route_back_handoff(
+        if _codex_selected_write_route_handoff(
             action_type=action_type,
             owner_route=owner_route,
         ):
@@ -96,7 +96,7 @@ def owner_handoff_allowed(
     if action_type == "run_gate_clearing_batch":
         current_owner_route = _mapping(current_route) or _mapping(_mapping(current_study).get("owner_route"))
         owner_route = current_owner_route or _dispatch_owner_route(dispatch)
-        return _registered_gate_clearing_handoff(
+        return _codex_selected_gate_clearing_handoff(
             action_type=action_type,
             dispatch=dispatch,
             owner_route=owner_route,
@@ -150,23 +150,14 @@ def _work_unit_id(value: object) -> str | None:
     return _text(value)
 
 
-def _registered_write_route_back_handoff(
+def _codex_selected_write_route_handoff(
     *,
     action_type: str,
     owner_route: Mapping[str, Any],
 ) -> bool:
-    reason_contract = owner_route_attempt_policy.owner_reason_contract(
-        reason=_text(owner_route.get("owner_reason")) or _text(owner_route.get("failure_signature")),
-        owner=_text(owner_route.get("next_owner")),
-        action_type=action_type,
-    )
-    if reason_contract.get("registered") is not True:
+    if _text(owner_route.get("next_owner")) != "write":
         return False
-    if _text(reason_contract.get("owner")) != "write":
-        return False
-    if _text(reason_contract.get("priority_class")) != "write_route_back":
-        return False
-    if action_type not in {_text(action) for action in reason_contract.get("allowed_actions") or []}:
+    if action_type not in {_text(action) for action in owner_route.get("allowed_actions") or []}:
         return False
 
     protocol = _mapping(owner_route.get("owner_route_attempt_protocol"))
@@ -176,9 +167,6 @@ def _registered_write_route_back_handoff(
         )
     if protocol.get("dispatchable") is not True:
         return False
-    if _text(protocol.get("priority_class")) != "write_route_back":
-        return False
-
     if _currentness_missing_required_fields(owner_route):
         return False
     if _text(owner_route.get("source_fingerprint")) is None:
@@ -187,30 +175,19 @@ def _registered_write_route_back_handoff(
     return _text(currentness_basis.get("work_unit_id")) is not None
 
 
-def _registered_gate_clearing_handoff(
+def _codex_selected_gate_clearing_handoff(
     *,
     action_type: str,
     dispatch: Mapping[str, Any],
     owner_route: Mapping[str, Any],
 ) -> bool:
-    reason_contract = owner_route_attempt_policy.owner_reason_contract(
-        reason=_text(owner_route.get("owner_reason")) or _text(owner_route.get("failure_signature")),
-        owner=_text(owner_route.get("next_owner")),
-        action_type=action_type,
-    )
-    if _registered_publication_owner_materialization_bridge_handoff(
+    if _codex_selected_publication_owner_materialization_bridge_handoff(
         action_type=action_type,
         dispatch=dispatch,
         owner_route=owner_route,
     ):
         return True
-    if reason_contract.get("registered") is not True:
-        return False
-    if _text(reason_contract.get("owner")) != "gate_clearing_batch":
-        return False
-    if _text(reason_contract.get("priority_class")) != "package_freshness":
-        return False
-    if action_type not in {_text(action) for action in reason_contract.get("allowed_actions") or []}:
+    if _text(owner_route.get("next_owner")) != "gate_clearing_batch":
         return False
     if not owner_route_part.route_allows_action(action=dispatch, owner_route=owner_route):
         return False
@@ -222,8 +199,6 @@ def _registered_gate_clearing_handoff(
         )
     if protocol.get("dispatchable") is not True:
         return False
-    if _text(protocol.get("priority_class")) != "package_freshness":
-        return False
     if _currentness_missing_required_fields(owner_route):
         return False
     if _text(owner_route.get("source_fingerprint")) is None:
@@ -232,7 +207,7 @@ def _registered_gate_clearing_handoff(
     return _text(currentness_basis.get("work_unit_id")) is not None
 
 
-def _registered_publication_owner_materialization_bridge_handoff(
+def _codex_selected_publication_owner_materialization_bridge_handoff(
     *,
     action_type: str,
     dispatch: Mapping[str, Any],
@@ -241,9 +216,6 @@ def _registered_publication_owner_materialization_bridge_handoff(
     if action_type != "run_gate_clearing_batch":
         return False
     if _text(owner_route.get("next_owner")) != "gate_clearing_batch":
-        return False
-    route_reason = _text(owner_route.get("owner_reason")) or _text(owner_route.get("failure_signature"))
-    if route_reason not in publication_owner_materialization_currentness.MATERIALIZED_OWNER_REASONS:
         return False
     if not owner_route_part.route_allows_action(action=dispatch, owner_route=owner_route):
         return False
@@ -254,17 +226,9 @@ def _registered_publication_owner_materialization_bridge_handoff(
     if _text(source_refs.get("bridged_from_idempotency_key")) is None:
         return False
     source_action_type = _text(source_refs.get("materialized_from_action_type"))
-    if source_action_type not in publication_owner_materialization_currentness.SOURCE_ACTION_TYPES:
+    if source_action_type is None:
         return False
-    if (
-        _text(source_refs.get("materialized_work_unit_id"))
-        not in publication_owner_materialization_currentness.MATERIALIZED_WORK_UNIT_IDS
-    ):
-        return False
-    if not _registered_bridge_source_route(
-        reason=_text(source_refs.get("bridged_from_owner_reason")),
-        action_type=source_action_type,
-    ):
+    if _text(source_refs.get("materialized_work_unit_id")) is None:
         return False
 
     protocol = _mapping(owner_route.get("owner_route_attempt_protocol"))
@@ -274,40 +238,12 @@ def _registered_publication_owner_materialization_bridge_handoff(
         )
     if protocol.get("dispatchable") is not True:
         return False
-    if _text(protocol.get("priority_class")) != "package_freshness":
-        return False
     if _currentness_missing_required_fields(owner_route):
         return False
     if _text(owner_route.get("source_fingerprint")) is None:
         return False
     currentness_basis = _owner_route_currentness_basis(owner_route)
     return _text(currentness_basis.get("work_unit_id")) is not None
-
-
-def _registered_bridge_source_route(*, reason: str | None, action_type: str | None) -> bool:
-    if reason is None or action_type is None:
-        return False
-    for owner in _bridge_source_owner_candidates(action_type):
-        reason_contract = owner_route_attempt_policy.owner_reason_contract(
-            reason=reason,
-            owner=owner,
-            action_type=action_type,
-        )
-        if reason_contract.get("registered") is not True:
-            continue
-        if _text(reason_contract.get("owner")) != owner:
-            continue
-        if action_type in {_text(action) for action in reason_contract.get("allowed_actions") or []}:
-            return True
-    return False
-
-
-def _bridge_source_owner_candidates(action_type: str) -> tuple[str, ...]:
-    if action_type == "run_quality_repair_batch":
-        return ("write",)
-    if action_type == "return_to_ai_reviewer_workflow":
-        return ("ai_reviewer", "write/ai_reviewer")
-    return ()
 
 
 def _currentness_missing_required_fields(owner_route: Mapping[str, Any]) -> list[str]:

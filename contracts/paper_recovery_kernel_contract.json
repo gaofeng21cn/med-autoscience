@@ -3,8 +3,8 @@
   "version": "paper-recovery-kernel.v1",
   "owner": "MedAutoScience",
   "state": "active_contract",
-  "purpose": "Machine-readable contract for the MAS PaperRecovery diagnostic recovery kernel, paper_recovery_state projection, recovery obligation identity, accident replay, and OPL substrate boundary after canonical StageOutcome -> NextActionEnvelope selection.",
-  "machine_boundary": "This contract defines PaperRecovery diagnostic/provenance projection invariants and replay acceptance only. It is not default next-action authority, cannot generate or replace a NextActionEnvelope or StageOutcome, cannot authorize provider admission or completion, and does not declare publication readiness, submission readiness, current package freshness, quality verdicts, artifact mutation authority, production readiness, or live study truth.",
+  "purpose": "Machine-readable contract for the MAS PaperRecovery diagnostic recovery kernel, paper_recovery_state projection, recovery obligation identity, accident replay, and OPL substrate boundary after Codex CLI selects a declared stage.",
+  "machine_boundary": "This contract defines PaperRecovery diagnostic/provenance projection invariants and replay acceptance only. It is not stage-route authority, cannot generate, replace, approve, or reject a Codex-selected stage or nonbinding route context, cannot authorize provider admission or completion, and does not declare publication readiness, submission readiness, current package freshness, quality verdicts, artifact mutation authority, production readiness, or live study truth.",
   "source_design_ref": "docs/runtime/control/paper_recovery_replay.md",
   "related_contract_refs": [
     "contracts/stage_run_kernel_profile.json",
@@ -18,8 +18,8 @@
     "canonical_id_field": "recovery_obligation_id",
     "canonical_state_owner": "MedAutoScience",
     "default_next_action_authority": false,
-    "next_action_authority": "NextActionEnvelope",
-    "stage_outcome_to_next_action_authority": "StageOutcome -> NextActionEnvelope",
+    "next_action_authority": "codex_cli",
+    "stage_outcome_to_next_action_authority": "retired_no_programmatic_next_action_authority",
     "diagnostic_role": "recovery_obligation_provenance_only",
     "provider_attempt_authority": false,
     "completion_authority": false,
@@ -325,7 +325,7 @@
     },
     "next_safe_action_authority_boundary": {
       "canonical_rule": {
-        "meaning": "Default next action, provider-admission eligibility, and completion judgment must come from canonical StageOutcome -> NextActionEnvelope plus same-identity OPL receipt/MAS owner consumption. PaperRecovery, current_work_unit, and current_owner_delta can only explain diagnostics, provenance, and no-resurrection guards.",
+        "meaning": "Codex CLI selects the declared stage. Same-identity OPL receipt/MAS owner consumption only proves currentness and strong claims; PaperRecovery, current_work_unit, current_owner_delta, and the legacy next-action envelope can only explain diagnostics, provenance, and no-resurrection guards.",
         "paper_recovery_can_select_next_action": false,
         "paper_recovery_can_authorize_provider_attempt": false,
         "paper_recovery_can_claim_completion": false,
@@ -346,14 +346,14 @@
         "missing_readback_blocks_stage_transition": false
       },
       "admit_provider_attempt": {
-        "meaning": "Legacy action name retained only for historical contract compatibility and diagnostic replay; current MAS recovery state must use StageOutcome -> NextActionEnvelope and same-identity OPL readback before any provider-admission interpretation.",
+        "meaning": "Legacy action name retained only for historical contract compatibility and diagnostic replay; current MAS recovery state consumes Codex-selected route context and same-identity OPL readback without selecting a semantic successor.",
         "mas_can_create_opl_outbox_record": false,
         "mas_can_authorize_provider_attempt": false,
         "provider_completion_is_domain_completion": false,
         "default_next_action_authority": false
       },
       "admit_identity_bound_stage_packet": {
-        "meaning": "Legacy action name retained only for diagnostic replay; an identity-bound stage packet is not admitted from PaperRecovery/current_work_unit and requires canonical NextActionEnvelope plus OPL transition authority.",
+        "meaning": "Legacy action name retained only for diagnostic replay; PaperRecovery/current_work_unit cannot select a stage. Codex CLI may start any declared stage, while conflicting identity/currentness still requires repair.",
         "mas_can_create_opl_outbox_record": false,
         "mas_can_authorize_provider_attempt": false,
         "provider_completion_is_domain_completion": false,
@@ -467,7 +467,7 @@
   },
   "authority_boundaries": {
     "mas_authority": [
-      "StageOutcome -> NextActionEnvelope default next-action authority",
+      "Codex CLI as the only semantic stage-route authority",
       "PaperRecovery recovery obligation and paper_recovery_state diagnostic truth",
       "PaperRecovery recovery obligation and paper_recovery_state diagnostic/provenance projection only",
       "recovery_obligation_id selection",
@@ -526,7 +526,7 @@
       "paper_recovery_state can generate or replace NextActionEnvelope",
       "current_work_unit or current_owner_delta selects the default next action",
       "study_progress derives paper recovery independently from PaperRecovery",
-      "study_progress derives paper recovery independently from StageOutcome -> NextActionEnvelope",
+      "study_progress or the legacy next-action envelope selects a semantic successor",
       "domain diagnostic observe_only alone creates pending recovery execution",
       "operator card status is recovery truth",
       "provider terminal completion is MAS acceptance",

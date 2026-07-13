@@ -77,9 +77,9 @@
       "retired_tombstone",
       "transport_observation",
       "no_resurrection_guard",
-      "superseded_by_next_action_envelope"
+      "superseded_by_codex_selected_route_context"
     ],
-    "replacement_route": "StageOutcome -> NextActionEnvelope -> OPL StageAttemptReceipt / MAS owner consumption",
+    "replacement_route": "Codex CLI selected stage -> refs-only route context -> OPL StageAttemptReceipt / MAS owner consumption",
     "forbidden_claims": [
       "default owner/action",
       "default next action selector",
@@ -199,8 +199,8 @@
       "default_provider_attempt_authority_allowed": false,
       "tombstone_ref": "docs/decisions.md#全局读法2026-06-29-之前的-next-action-旧词已被-nextactionenvelope-取代",
       "replacement_ref": "docs/runtime/control/next_action_control_plane.md",
-      "replacement_projection_ref": "study_progress.next_action_envelope",
-      "retained_context": "legacy next-action projections, current-work-unit reducers, provider-admission candidates, domain transition residue, PaperRecovery, OPL queue state, OPL attempt state, and Stage Native control/next_action.json may be used only as history, provenance, migration diagnostics, readback diagnostics, or fail-closed no-resurrection evidence. They must not select the default next action or provider admission when a canonical NextActionEnvelope is missing.",
+      "replacement_projection_ref": "study_progress.ai_route_context",
+      "retained_context": "legacy next-action projections, current-work-unit reducers, provider-admission candidates, domain transition residue, PaperRecovery, OPL queue state, OPL attempt state, and Stage Native control/next_action.json may be used only as history, provenance, migration diagnostics, readback diagnostics, or no-resurrection evidence. They must never select, reject, or block a Codex-chosen declared stage; a missing route context is not a stage-transition blocker.",
       "legacy_surfaces": [
         "domain_next_action_projection",
         "current_executable_owner_action",
@@ -218,10 +218,10 @@
       ],
       "replacement_contract": {
         "contract_ref": "docs/runtime/control/next_action_control_plane.md",
-        "machine_contract": "StageOutcome -> NextActionEnvelope",
+        "machine_contract": "Codex CLI selected stage with nonbinding route context",
         "transport_receipt_contract": "OPL StageAttemptReceipt is receipt-only evidence and MAS owner-consumption input",
-        "canonical_projection_ref": "study_progress.next_action_envelope",
-        "canonical_owner": "mas_next_action_compiler"
+        "canonical_projection_ref": "study_progress.ai_route_context",
+        "canonical_owner": "codex_cli"
       },
       "authority_boundary": {
         "read_only": true,

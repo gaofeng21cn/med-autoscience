@@ -19,7 +19,6 @@ from med_autoscience.controllers.paper_mission_owner_surface import provider_rea
 from med_autoscience.controllers.paper_mission_owner_surface import publication_gate_actions, queue_slo
 from med_autoscience.controllers.paper_mission_owner_surface import request_packets
 from med_autoscience.controllers.paper_mission_owner_surface import runtime_facts, scan_output, status_projection
-from med_autoscience.controllers.paper_mission_owner_surface import stale_redrive_resolution
 from med_autoscience.controllers.paper_mission_owner_surface import story_surface_delta_actions, study_identity
 from med_autoscience.controllers.paper_mission_owner_surface import workspace_daemon
 from med_autoscience.controllers.paper_mission_owner_surface import supervision_surfaces
@@ -533,7 +532,6 @@ def _study_projection(
         next_owner = block_state_next_owner
         if next_owner is None and blocked_reason:
             next_owner = block_state_part.next_owner_for_blocked_reason(blocked_reason)
-    pre_receipt_actions = [dict(action) for action in actions]
     owner_route, actions, owner_callable_receipt_consumption = (
         owner_callable_receipts.route_and_consume_current_execution_receipt(
             study_id=study_id,
@@ -558,29 +556,12 @@ def _study_projection(
     if owner_callable_receipt_consumption:
         receipt_blocked_reason = _text(owner_callable_receipt_consumption.get("blocked_reason"))
         if _text(owner_callable_receipt_consumption.get("execution_status")) == "blocked" and receipt_blocked_reason:
-            restored = stale_redrive_resolution.restore_after_superseded_blocker(
-                study_id=study_id,
-                quest_id=resolved_quest_id,
-                status=status_payload,
-                progress=progress_payload,
-                actions=pre_receipt_actions,
-                receipt=owner_callable_receipt_consumption,
-                block_state=block_state,
-                why_not_applied=why_not_applied,
-                block_state_next_owner=block_state_next_owner,
-                active_run_id=_active_run_id(status_payload, progress_payload),
+            receipt_typed_blocker = _mapping(owner_callable_receipt_consumption.get("typed_blocker"))
+            why_not_applied = receipt_blocked_reason
+            blocked_reason = receipt_blocked_reason
+            next_owner = _text(receipt_typed_blocker.get("next_owner")) or block_state_part.next_owner_for_blocked_reason(
+                receipt_blocked_reason
             )
-            if restored is not None:
-                owner_callable_receipt_consumption = restored["receipt"]
-                owner_route, actions = restored["owner_route"], restored["actions"]
-                blocked_reason, next_owner = restored["blocked_reason"], restored["next_owner"]
-            else:
-                receipt_typed_blocker = _mapping(owner_callable_receipt_consumption.get("typed_blocker"))
-                why_not_applied = receipt_blocked_reason
-                blocked_reason = receipt_blocked_reason
-                next_owner = _text(receipt_typed_blocker.get("next_owner")) or block_state_part.next_owner_for_blocked_reason(
-                    receipt_blocked_reason
-                )
         else:
             why_not_applied = None
             blocked_reason = None
@@ -693,16 +674,6 @@ def _study_projection(
         live_attempt=live_provider_attempt,
         actions=actions,
     )
-    live_attempt_overlay = stale_redrive_resolution.live_attempt_overlay(
-        live_attempt=live_provider_attempt,
-        actions=actions,
-        receipt=owner_callable_receipt_consumption,
-    )
-    if live_attempt_overlay:
-        owner_callable_receipt_consumption = _mapping(live_attempt_overlay.get("receipt"))
-        blocked_reason = why_not_applied = None
-        next_owner = "supervisor_only/live_provider_attempt"
-        lifecycle = {}
     if developer_mode.safe_actions_enabled:
         request_packets.materialize_request_packets(
             study_root=study_root,

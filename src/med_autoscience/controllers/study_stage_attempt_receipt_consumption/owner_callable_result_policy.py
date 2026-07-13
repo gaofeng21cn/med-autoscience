@@ -21,7 +21,7 @@ def owner_callable_adapter_owner_result_consumable(
     owner_result: Mapping[str, Any],
     repair_evidence: Mapping[str, Any],
 ) -> bool:
-    if owner_callable_dispatch_zero_execution_blocker(owner_result):
+    if owner_callable_dispatch_zero_execution_diagnostic(owner_result):
         return False
     if _current_manuscript_digest_mismatch(owner_result=owner_result, repair_evidence=repair_evidence):
         return False
@@ -56,7 +56,7 @@ def publication_gate_specificity_owner_result_satisfies_route_output(*, owner_re
     return _is_publication_eval_latest_path(_text(publication_eval.get("artifact_path")))
 
 
-def owner_callable_dispatch_zero_execution_blocker(owner_result: Mapping[str, Any]) -> bool:
+def owner_callable_dispatch_zero_execution_diagnostic(owner_result: Mapping[str, Any]) -> bool:
     dispatcher_result = _mapping(owner_result.get("dispatcher_result"))
     if not dispatcher_result:
         return False

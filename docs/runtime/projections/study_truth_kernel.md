@@ -21,7 +21,7 @@ Machine boundary: 本文解释 reducer/read-model 语义。机器真相归 MAS s
 
 Study truth snapshot 是 MAS domain projection。默认 next action 仍只来自：
 
-`StageOutcome -> NextActionEnvelope`
+`Codex CLI selected stage -> nonbinding route context`
 
 Reducer 不从 delivery mirror、queue/attempt、provider、旧 current work unit、PaperRecovery 或 diagnostic projection补全 owner/action。
 

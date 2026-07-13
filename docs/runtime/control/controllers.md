@@ -15,7 +15,7 @@ MAS controller 只处理医学 policy/authority，不拥有 scheduler、queue、
 - 验证 request identity、authority boundary 与 forbidden writes；
 - 生成医学 policy result、owner receipt、typed blocker 或 human gate；
 - 物化 MAS-owned publication/quality/artifact decision；
-- 把 `StageOutcome` 解释为 canonical `NextActionEnvelope`。
+- 把 `StageOutcome` 解释为 nonbinding Codex route context。
 
 禁止的职责：
 
@@ -31,7 +31,7 @@ MAS controller 只处理医学 policy/authority，不拥有 scheduler、queue、
 OPL StageRun output
   -> MAS domain policy/authority evaluation
   -> StageOutcome
-  -> NextActionEnvelope
+  -> nonbinding Codex route context
   -> OPL transport/readback
   -> same-identity MAS owner consumption
 ```
@@ -45,7 +45,7 @@ OPL StageRun output
 - artifact/evidence delta refs；
 - independent reviewer/auditor receipt。
 
-缺 canonical outcome/envelope 时 fail closed，不从 legacy current work unit、provider admission、PaperRecovery 或旧 domain-action request 补推 owner/action。
+缺 route context 时保留 StageOutcome、artifact 或 no-output/failure diagnostic，Codex 仍可启动任一 declared stage；不从 legacy current work unit、provider admission、PaperRecovery 或旧 domain-action request 补推 owner/action。只有真实 authority/safety/permission/identity/currentness、不可逆动作或显式 human decision 才 fail closed。
 
 ## Quality independence
 

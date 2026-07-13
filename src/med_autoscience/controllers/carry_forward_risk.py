@@ -102,7 +102,6 @@ def carry_forward_successor_action(payload: Mapping[str, Any] | None) -> dict[st
             "owner_reason": "progress_first_carry_forward_risk",
             "failure_signature": "progress_first_carry_forward_risk",
             "allowed_actions": [CARRY_FORWARD_ACTION_TYPE],
-            "blocked_actions": [],
             "idempotency_key": f"owner-route::{study_id}::carry-forward-risk::{successor_fingerprint}",
             "source_refs": {
                 "source": CARRY_FORWARD_SOURCE,

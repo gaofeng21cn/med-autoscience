@@ -17,11 +17,6 @@ from med_autoscience.paper_mission_domain.common import (
     _mapping,
     _optional_text,
 )
-from med_autoscience.paper_mission_domain.domain_transition_runtime_readback import (
-    _domain_transition_direct_next_action_runtime_readback,
-    _override_next_action_from_direct_terminal_closeout as _shared_override_next_action_from_direct_terminal_closeout,
-    _typed_blocker_resolution_should_own_next_action,
-)
 from med_autoscience.paper_mission_domain.materialized_readback_context import (
     consume_candidate_status as _consume_candidate_status,
     materialized_ai_route_context as _materialized_ai_route_context,
@@ -71,11 +66,18 @@ from med_autoscience.controllers.stage_closure_terminalizer import (
 )
 
 
-def _override_next_action_from_direct_terminal_closeout(**kwargs: Any) -> tuple[Mapping[str, Any], Mapping[str, Any] | None, str | None]:
-    return _shared_override_next_action_from_direct_terminal_closeout(
-        **kwargs,
-        terminalize_stage_closure_from_readback=_terminalize_stage_closure_from_readback,
-        next_action_for_stage_closure_decision=_next_action_for_stage_closure_decision,
+def _typed_blocker_resolution_should_own_next_action(
+    *,
+    stage_closure_decision: Mapping[str, Any],
+    typed_blocker_resolution_readback: Mapping[str, Any] | None,
+    domain_transition_next_action: Mapping[str, Any] | None = None,
+) -> bool:
+    del domain_transition_next_action
+    if not typed_blocker_resolution_readback:
+        return False
+    outcome = _mapping(stage_closure_decision.get("outcome"))
+    return outcome.get("kind") == "typed_blocker" and bool(
+        _mapping(typed_blocker_resolution_readback.get("next_owner_action"))
     )
 
 
@@ -260,109 +262,6 @@ def build_materialized_mission_readback_if_available(
             **transaction_readback,
             "next_action": next_action_override,
         }
-        direct_next_action_runtime = (
-            _domain_transition_direct_next_action_runtime_readback(
-                profile=profile,
-                study_id=resolved_study_id,
-                study_root=resolved_study_root,
-                inspect_readback={
-                    **mission,
-                    **transaction_output_fields,
-                },
-                next_action=next_action_override,
-                canonical_next_action_source=canonical_next_action_source,
-                opl_runtime_payload=opl_runtime_payload,
-            )
-        )
-        if direct_next_action_runtime:
-            transaction_output_fields["domain_transition_direct_stage_attempt"] = (
-                direct_next_action_runtime
-            )
-            transaction_output_fields["current_opl_stage_run_context"] = (
-                direct_next_action_runtime["opl_stage_run_context"]
-            )
-            transaction_output_fields["current_opl_stage_attempt_readback"] = (
-                direct_next_action_runtime["opl_stage_attempt_readback"]
-            )
-            transaction_output_fields["current_opl_stage_attempt_readback_status"] = (
-                direct_next_action_runtime["opl_stage_attempt_readback_status"]
-            )
-            (
-                stage_closure_decision,
-                next_action_override,
-                canonical_next_action_source,
-            ) = _override_next_action_from_direct_terminal_closeout(
-                direct_next_action_runtime=direct_next_action_runtime,
-                stage_closure_decision=stage_closure_decision,
-                transaction_readback=transaction_readback,
-                typed_blocker_resolution_readback=typed_blocker_resolution_readback,
-                next_action_override=next_action_override,
-                canonical_next_action_source=canonical_next_action_source,
-            )
-            if next_action_override is not None:
-                transaction_output_fields["next_action"] = next_action_override
-                if canonical_next_action_source is not None:
-                    transaction_output_fields["canonical_next_action_source"] = (
-                        canonical_next_action_source
-                    )
-                transaction_output_fields["paper_mission_transaction_readback"] = {
-                    **transaction_readback,
-                    "next_action": next_action_override,
-                }
-    if (
-        "domain_transition_direct_stage_attempt" not in transaction_output_fields
-        and stage_closure_suppresses_domain_transition
-        and domain_transition_next_action
-    ):
-        direct_next_action_runtime = (
-            _domain_transition_direct_next_action_runtime_readback(
-                profile=profile,
-                study_id=resolved_study_id,
-                study_root=resolved_study_root,
-                inspect_readback={
-                    **mission,
-                    **transaction_output_fields,
-                },
-                next_action=domain_transition_next_action,
-                canonical_next_action_source="domain_transition.next_action",
-                opl_runtime_payload=opl_runtime_payload,
-            )
-        )
-        if direct_next_action_runtime:
-            transaction_output_fields["domain_transition_direct_stage_attempt"] = (
-                direct_next_action_runtime
-            )
-            transaction_output_fields["current_opl_stage_run_context"] = (
-                direct_next_action_runtime["opl_stage_run_context"]
-            )
-            transaction_output_fields["current_opl_stage_attempt_readback"] = (
-                direct_next_action_runtime["opl_stage_attempt_readback"]
-            )
-            transaction_output_fields["current_opl_stage_attempt_readback_status"] = (
-                direct_next_action_runtime["opl_stage_attempt_readback_status"]
-            )
-            (
-                stage_closure_decision,
-                next_action_override,
-                canonical_next_action_source,
-            ) = _override_next_action_from_direct_terminal_closeout(
-                direct_next_action_runtime=direct_next_action_runtime,
-                stage_closure_decision=stage_closure_decision,
-                transaction_readback=transaction_readback,
-                typed_blocker_resolution_readback=typed_blocker_resolution_readback,
-                next_action_override=next_action_override,
-                canonical_next_action_source=canonical_next_action_source,
-            )
-            if next_action_override is not None:
-                transaction_output_fields["next_action"] = next_action_override
-                if canonical_next_action_source is not None:
-                    transaction_output_fields["canonical_next_action_source"] = (
-                        canonical_next_action_source
-                    )
-                transaction_output_fields["paper_mission_transaction_readback"] = {
-                    **transaction_readback,
-                    "next_action": next_action_override,
-                }
     transaction_output_fields = _merge_stage_closure_typed_blocker_gate_fields(
         transaction_output_fields=transaction_output_fields,
         stage_closure_decision=stage_closure_decision,

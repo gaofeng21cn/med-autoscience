@@ -9,7 +9,6 @@ from med_autoscience.controllers.stage_outcome_authority import owner_route_atte
 
 from . import consumed_transition_owner_routes
 from . import current_writer_handoff
-from . import fresh_progress_owner_actions
 from . import opl_execution_preflight
 from . import persisted_dispatches
 from . import stage_native_dispatch_selection
@@ -64,11 +63,10 @@ def execution_owner_route(
     if (
         stage_native_route is not None
         and owner_route_block_reason(dispatch=dispatch, current_route=stage_native_route) is None
-        and stage_native_dispatch_selection.dispatch_has_canonical_next_action_envelope(dispatch)
     ):
         if stage_native_dispatch_selection.dispatch_has_opl_execution_proof(dispatch):
-            return stage_native_route, "canonical_next_action_envelope"
-        return stage_native_route, "canonical_next_action_envelope_blocker_projection"
+            return stage_native_route, "codex_selected_stage_current_execution_proof"
+        return stage_native_route, "codex_selected_stage_currentness_diagnostic"
     provider_hosted_route = _provider_hosted_stage_attempt_dispatch_route(dispatch)
     if provider_hosted_route is not None:
         return provider_hosted_route, "provider_hosted_stage_attempt_dispatch"
@@ -103,13 +101,6 @@ def execution_owner_route(
         and owner_route_block_reason(dispatch=dispatch, current_route=publication_bridge_route) is None
     ):
         return publication_bridge_route, "bridged_publication_owner_materialization"
-    if not _consumed_transition_owner_route(scan_payload=scan_payload, study_id=study_id) and (
-        fresh_progress_route := _fresh_progress_current_owner_action_route(
-            fresh_progress=fresh_progress,
-            dispatch=dispatch,
-        )
-    ) is not None:
-        return fresh_progress_route, "fresh_progress_current_owner_action"
     if not dispatch_uses_bridge_authority(dispatch):
         scan_route, scan_route_basis = _current_owner_route(
             profile,
@@ -244,20 +235,6 @@ def _diagnostic_owner_route(
         study_id=study_id,
         dispatch=dispatch,
     )
-
-
-def _fresh_progress_current_owner_action_route(
-    *,
-    fresh_progress: Mapping[str, Any],
-    dispatch: Mapping[str, Any],
-) -> dict[str, Any] | None:
-    route = fresh_progress_owner_actions.fresh_progress_current_owner_action_route(
-        progress=fresh_progress,
-        dispatch=dispatch,
-    )
-    if route is None or owner_route_block_reason(dispatch=dispatch, current_route=route) is not None:
-        return None
-    return route
 
 
 def _scan_study(scan_payload: Mapping[str, Any] | None, study_id: str) -> dict[str, Any]:

@@ -28,7 +28,7 @@ Machine boundary: 本文只保留 closeout 结论。逐项 current status归 [MA
 | OE-09 | Tool Arsenal/capability runtime | OPL-generated action surface |
 | OE-10 | hand-written CLI/MCP glue | OPL-generated interfaces |
 | OE-11 | runtime health/lifecycle/storage | provider/readiness store retired；current-control/workspace/display/DAG 尚待迁 |
-| OE-12 | legacy next-action family | `StageOutcome -> NextActionEnvelope` |
+| OE-12 | legacy next-action family | `Codex CLI selected stage -> nonbinding route context` |
 
 Exact completion evidence与 Live evidence分账见 [Active truth plan](./mas-ideal-state-gap-plan.md)。
 

@@ -3,27 +3,18 @@ from __future__ import annotations
 from collections.abc import Mapping
 from typing import Any
 
-def blocking_progress_allows_current_dispatch_selection(
+def legal_hard_stop_blocks_dispatch_selection(
     progress: Mapping[str, Any],
 ) -> bool:
-    return _canonical_next_action(progress) is not None
-
-
-def fresh_progress_envelope_blocks_dispatch_selection(
-    progress: Mapping[str, Any],
-) -> bool:
-    if _canonical_next_action(progress) is not None:
-        return False
     stage_closure = _mapping(progress.get("stage_closure"))
     outcome = _mapping(stage_closure.get("outcome"))
-    return _text(outcome.get("kind")) in {"typed_blocker", "human_gate", "terminal"}
-
-
-def _canonical_next_action(progress: Mapping[str, Any]) -> dict[str, Any] | None:
-    action = _mapping(progress.get("next_action"))
-    if _text(action.get("surface_kind")) != "mas_next_action_envelope":
-        return None
-    return action
+    kind = _text(outcome.get("kind"))
+    if kind == "human_gate":
+        return True
+    if kind != "typed_blocker":
+        return False
+    blocker = _mapping(outcome.get("typed_blocker")) or outcome
+    return blocker.get("blocks_stage_transition") is True
 
 
 def _mapping(value: object) -> dict[str, Any]:
@@ -36,6 +27,5 @@ def _text(value: object) -> str | None:
 
 
 __all__ = [
-    "blocking_progress_allows_current_dispatch_selection",
-    "fresh_progress_envelope_blocks_dispatch_selection",
+    "legal_hard_stop_blocks_dispatch_selection",
 ]

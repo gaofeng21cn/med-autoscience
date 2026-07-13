@@ -47,12 +47,13 @@ progress_first_jit_affordance_policy:
     - repeated affordance disagreement must route to the declared next owner, typed blocker, human gate, or stop-loss instead of starting another advisory loop
 ordinary_progress_handoff_policy:
   source_ref: contracts/stage_run_kernel_profile.json#/ordinary_progress_handoff
-  default_progress_root: NextActionEnvelope
-  stage_goal_source: stage_run_next_action_envelope
-  executor_output_requirement: concrete_delta
+  default_progress_root: codex_cli_selected_stage
+  stage_goal_source: codex_cli_stage_prompt_plus_any_prior_stage_result
+  executor_output_requirement: artifact_or_progress_diagnostic
   accepted_closeout_shapes:
     - ProgressDeltaReceipt
     - RawReadableArtifact
+    - NoOutputOrFailureDiagnostic
     - OwnerReceipt
     - TypedBlocker
     - human_gate_ref
@@ -87,8 +88,12 @@ ordinary_progress_handoff_policy:
       - physical_delete
   # Progress-first quality-loop foldback:
   # Review/repair budget exhaustion is not a default safe stop-loss. It must
-  # trigger severity-based decision: fatal_blocker -> TypedBlocker/human_gate/
-  # route or owner redesign; nonfatal -> CarryForwardRiskReceipt + next owner.
+  # trigger a Codex route decision. `fatal_blocker` is reserved for unavailable
+  # executors, wrong-target identity/currentness, authority/safety/permission,
+  # irreversible actions, or explicit human decisions. Negative/null results,
+  # zero output, quality failure, missing format/receipt, and budget exhaustion
+  # are never fatal; preserve their lineage and advance, repeat, reverse, skip,
+  # or route back with a diagnostic or CarryForwardRiskReceipt.
   # CarryForwardRiskReceipt fields and MAS/OPL authority boundary are specified
   # in docs/runtime/control/progress_first_quality_loop.md. This comment is
   # intentionally non-payload to avoid changing packaged contract mirrors while
@@ -106,7 +111,7 @@ ordinary_progress_handoff_policy:
       - T3_production_evidence
   readiness_jit_policy:
     default_mode: just_in_time_for_current_delta
-    check_scope_source: stage_run_next_action_envelope.next_required_delta
+    check_scope_source: codex_selected_stage.next_required_delta
     full_readiness_inventory_role: audit_or_terminal_gate_only
     ordinary_progress_blocking_policy: block_only_when_current_delta_needs_the_missing_readiness_or_when_safety_authority_irreversible_mutation_publication_or_submission_claim_is_at_risk
     cannot_require_all_surfaces_before_writing_analysis_or_review_delta: true
@@ -121,7 +126,7 @@ ordinary_progress_handoff_policy:
     per_paper_line_required_fields:
       - ordinary_progress_handoff_proof
       - accepted_closeout_shape
-      - ProgressDeltaReceipt_or_OwnerReceipt_or_TypedBlocker
+      - ProgressDeltaReceipt_or_Diagnostic_or_OwnerReceipt_or_LegalHardStop
       - next_owner
       - next_required_delta
       - readiness_jit_scope
@@ -137,11 +142,11 @@ ordinary_progress_handoff_policy:
     audit_sidecar_can_generate_default_next_action: false
     audit_sidecar_can_close_stage: false
     audit_sidecar_can_claim_domain_ready: false
-    success_path_requires_progress_receipt_owner_answer_or_hard_stop: true
+    success_path_requires_progress_receipt_owner_answer_or_hard_stop: false
     owner_receipt_required_for_quality_or_ready_claim: true
 anti_loop_policy:
   source_ref: agent/stages/stage_route_contract.yaml#/anti_loop_policy
-  ordinary_path_root: NextActionEnvelope
+  ordinary_path_root: codex_cli
   same_tick_max_passes: 3
   same_tick_continue_reasons:
     - continue_same_tick_after_sync_owner_delta
@@ -672,14 +677,15 @@ evidence_review_contract:
     - "`PASS`, `FAIL`, and `NEEDS_REVIEW` are the only stable route QA verdicts; a `FAIL` may retry only within an explicit retry budget"
     - exhausted retry budget must write `controller_decisions/latest.json` or `runtime_escalation_record.json` before any human gate or route redesign is requested
     - findings must first classify severity as `fatal_blocker`, `must_fix_before_current_gate`, `carry_forward_advisory`, or `optional_polish`
+    - "`fatal_blocker` is strictly limited to unavailable executor, wrong-target identity/currentness, authority/safety/permission/credential, irreversible-action, or explicit human-decision boundaries; negative/null results, zero output, scientific non-significance, missing format/receipt, quality failure, and retry-budget exhaustion are never fatal blockers"
     - exhausted retry budget with no fatal blocker must emit `CarryForwardRiskReceipt` and advance ordinary progress without claiming publication, submission, or readiness
-    - exhausted retry budget with a fatal blocker must emit a stable typed blocker, human gate, route redesign, or stop-loss before another same-identity retry
+    - exhausted retry budget at a true fatal boundary must emit a stable typed blocker or human gate; otherwise Codex preserves the best artifact or diagnostic and chooses advance, skip, repeat, reverse, or route-back
   default_needs_review_gate:
     - manuscript, bundle, or submission readiness defaults to `NEEDS_REVIEW` until durable evidence refs, review refs, and AI reviewer-backed `publication_eval/latest.json` close the active criteria
     - zero-issue, ready, production-ready, or done claims are invalid without linked evidence/review refs and an owner decision surface
   phase_gate_handoff:
     - every route or phase gate handoff must carry preconditions, input refs, output refs, evidence refs, acceptance criteria, gate result, decision owner, carry-forward risks, and next route
-    - no phase, route, write, finalize, or submission-facing advance may proceed when the gate result is missing, stale, or claim-only
+    - a missing, stale, or claim-only gate result closes quality/publication/submission/readiness claims and emits quality debt or a no-output diagnostic; it never blocks Codex from starting another declared stage
   analysis_campaign_statistical_discipline:
     - analysis-campaign planning must state the active hypothesis, endpoint, cohort/data quality constraints, statistical method, subgroup or multiplicity guardrails, and acceptance/failure criteria before running new analysis
     - sample-size, power, precision, or feasibility rationale must be explicit when the study design or dataset makes formal power calculation impossible

@@ -23,8 +23,8 @@ def progress_first_tick_accounting(monitoring_summaries: list[dict[str, Any]]) -
         "running_provider_attempt_count": sum(item["running_provider_attempt"] is True for item in study_items),
         "typed_blocker_count": sum(item["monitoring_status"] == "blocked_typed_owner" for item in study_items),
         "human_gate_count": sum(item["monitoring_status"] == "human_gate" for item in study_items),
-        "owner_route_contract_blocker_count": sum(
-            item["monitoring_status"] == "blocked_owner_route_contract" for item in study_items
+        "owner_route_contract_quality_debt_count": sum(
+            item["owner_route_contract_quality_debt"] is not None for item in study_items
         ),
         "unconsumed_owner_action_count": sum(
             item["monitoring_status"] == "stalled_unconsumed_action" for item in study_items
@@ -47,30 +47,6 @@ def progress_first_tick_accounting(monitoring_summaries: list[dict[str, Any]]) -
     }
 
 
-def redrive_budget_blocker_superseded_by_terminal_delta(summary: Mapping[str, Any]) -> bool:
-    typed_blocker = _dict(summary.get("typed_blocker"))
-    if not _is_redrive_budget_blocker(typed_blocker):
-        return False
-    latest_terminal_stage = _dict(summary.get("latest_terminal_stage"))
-    if not latest_terminal_stage:
-        return False
-    if not _terminal_stage_has_deliverable_delta(latest_terminal_stage):
-        return False
-    return (
-        _text(summary.get("next_owner")) is not None
-        or _text(summary.get("controller_action")) is not None
-        or _work_unit_id(summary.get("next_work_unit")) is not None
-    )
-
-
-def current_blockers_without_redrive_budget(summary: Mapping[str, Any]) -> list[str]:
-    return [
-        blocker
-        for blocker in _string_list(summary.get("current_blockers"))
-        if blocker != "progress_first_owner_redrive_budget_exhausted"
-    ]
-
-
 def _progress_first_tick_study_item(summary: Mapping[str, Any]) -> dict[str, Any]:
     current_work_unit = _dict(summary.get("current_work_unit"))
     effective_summary = _summary_with_current_work_unit(summary, current_work_unit=current_work_unit)
@@ -89,7 +65,7 @@ def _progress_first_tick_study_item(summary: Mapping[str, Any]) -> dict[str, Any
     }
     telemetry_status = _text(telemetry.get("status")) if telemetry else None
     missing_stage_telemetry = bool(latest_terminal_stage) and telemetry_status not in {None, "complete"}
-    owner_route_contract_blocker = _owner_route_contract_blocker(
+    owner_route_contract_quality_debt = _owner_route_contract_quality_debt(
         latest_terminal_stage=latest_terminal_stage,
         missing_closeout_semantics=missing_closeout_semantics,
         next_forced_delta=next_forced_delta,
@@ -98,7 +74,6 @@ def _progress_first_tick_study_item(summary: Mapping[str, Any]) -> dict[str, Any
     monitoring_status = _progress_first_monitoring_status(
         summary=effective_summary,
         dispatch_consumption=dispatch_consumption,
-        owner_route_contract_blocker=owner_route_contract_blocker,
     )
     owner_pickup_overdue = False if running_provider_attempt else _owner_pickup_overdue(dispatch_consumption)
     return {
@@ -116,7 +91,7 @@ def _progress_first_tick_study_item(summary: Mapping[str, Any]) -> dict[str, Any
         "owner_pickup_overdue": owner_pickup_overdue,
         "target_surface_specificity": target_surface_specificity,
         "missing_explicit_target_surface": next_forced_delta.get("missing_explicit_target_surface") is True,
-        "owner_route_contract_blocker": owner_route_contract_blocker,
+        "owner_route_contract_quality_debt": owner_route_contract_quality_debt,
         "missing_closeout_semantics": missing_closeout_semantics,
         "missing_closeout_semantic_fields": _string_list(semantic.get("missing_fields")),
         "telemetry_completeness": telemetry_status,
@@ -190,8 +165,6 @@ def _throughput_priority_key(item: Mapping[str, Any]) -> tuple[int, str]:
     status = _text(item.get("monitoring_status"))
     if item.get("owner_pickup_overdue") is True:
         rank = 10
-    elif status == "blocked_owner_route_contract":
-        rank = 15
     elif status == "stalled_unconsumed_action":
         rank = 20
     elif status == "ready_for_dispatch":
@@ -223,12 +196,6 @@ def _throughput_bottleneck(
 ) -> str:
     if owner_pickup_overdue:
         return "owner_pickup_overdue"
-    if monitoring_status == "blocked_owner_route_contract":
-        if target_surface_specificity == "generic_route_obligation_fallback":
-            return "generic_target_surface"
-        if missing_closeout_semantics:
-            return "missing_closeout_semantics"
-        return "owner_route_contract_blocker"
     if monitoring_status == "stalled_unconsumed_action":
         return "ready_owner_action_unconsumed"
     if monitoring_status == "ready_for_dispatch":
@@ -252,7 +219,6 @@ def _progress_first_monitoring_status(
     *,
     summary: Mapping[str, Any],
     dispatch_consumption: Mapping[str, Any],
-    owner_route_contract_blocker: str | None,
 ) -> str:
     if summary.get("running_provider_attempt") is True:
         return "running"
@@ -266,8 +232,6 @@ def _progress_first_monitoring_status(
         owner_action_current is None
         and (_text(summary.get("next_owner")) is not None or _text(summary.get("controller_action")) is not None)
     ):
-        if owner_route_contract_blocker is not None:
-            return "blocked_owner_route_contract"
         if consumption_status in {"unconsumed", "stale", "overdue"} or _owner_pickup_overdue(dispatch_consumption):
             return "stalled_unconsumed_action"
         return "ready_for_dispatch"
@@ -278,44 +242,7 @@ def _progress_first_monitoring_status(
     return "observability_only"
 
 
-def _terminal_stage_has_deliverable_delta(latest_terminal_stage: Mapping[str, Any]) -> bool:
-    terminal_semantic = _dict(latest_terminal_stage.get("terminal_closeout_semantic_completeness"))
-    progress_delta = _text(latest_terminal_stage.get("progress_delta_classification")) or _text(
-        terminal_semantic.get("progress_delta_classification")
-    )
-    if progress_delta != "deliverable_progress":
-        return False
-    if not (
-        _string_list(latest_terminal_stage.get("changed_stage_surfaces"))
-        or _string_list(latest_terminal_stage.get("changed_paper_surfaces"))
-    ):
-        return False
-    semantic = _dict(latest_terminal_stage.get("semantic_completeness"))
-    semantic_status = _text(semantic.get("status"))
-    terminal_semantic_status = _text(terminal_semantic.get("status"))
-    if semantic_status not in {None, "complete"} and terminal_semantic_status != "complete":
-        return False
-    return _text(latest_terminal_stage.get("status")) in {
-        "executed",
-        "completed",
-        "handoff_ready",
-        "completed_for_write_owner_idempotent",
-    } or _text(latest_terminal_stage.get("outcome")) in {
-        "executed",
-        "completed",
-        "handoff_ready",
-        "completed_for_write_owner_idempotent",
-    }
-
-
-def _is_redrive_budget_blocker(typed_blocker: Mapping[str, Any]) -> bool:
-    return any(
-        _text(typed_blocker.get(field)) == "progress_first_owner_redrive_budget_exhausted"
-        for field in ("blocker_type", "blocker_family", "reason", "blocker_id")
-    )
-
-
-def _owner_route_contract_blocker(
+def _owner_route_contract_quality_debt(
     *,
     latest_terminal_stage: Mapping[str, Any],
     missing_closeout_semantics: bool,
@@ -327,7 +254,7 @@ def _owner_route_contract_blocker(
     if next_forced_delta.get("missing_explicit_target_surface") is True:
         return "owner_route_target_surface_required"
     if missing_closeout_semantics and latest_terminal_stage:
-        return "typed_closeout_semantics_required"
+        return "typed_closeout_semantics_missing_quality_debt"
     return None
 
 
@@ -387,7 +314,5 @@ def _text(value: object) -> str | None:
 
 
 __all__ = [
-    "current_blockers_without_redrive_budget",
     "progress_first_tick_accounting",
-    "redrive_budget_blocker_superseded_by_terminal_delta",
 ]

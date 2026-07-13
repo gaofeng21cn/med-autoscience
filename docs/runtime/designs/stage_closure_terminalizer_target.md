@@ -147,7 +147,7 @@ StageWorkResult
    - human gate for irreversible submission/package authorization;
    - typed blocker naming the exact missing authority surface.
 4. If OPL closeout is terminal but domain gate remains pending, terminalizer consumes it as input only. It cannot let OPL terminal status become MAS stage completion.
-5. If no semantic delta is present after a configured budget, terminalizer must fail closed to a typed blocker or human gate. It may not output another runnable `continue_same_stage`.
+5. If no semantic delta is present after a configured budget, terminalizer materializes a no-output/failure diagnostic and `completed_with_quality_debt`; Codex may advance, skip, repeat, reverse, or route back. A typed blocker or human gate is reserved for a real hard boundary.
 6. If gate replay remains blocked by quality-repairable blockers after budget exhaustion, terminalizer emits `degraded_handoff_package` plus `next_stage_transition` to human review / pre-package handoff, not another repair loop.
 7. If delivery inspection reports `current_package` stale or missing, terminalizer must request or perform mirror sync independently of `bundle_build_allowed`. A stale/missing mirror is not a submission authority blocker.
 8. Delivery projection is terminalizer input, not next-action authority. Even
@@ -156,7 +156,7 @@ StageWorkResult
    passed / cleared, `generated_from_current_source=true`, existing package root
    and zip, and `known_blockers=[]`, it can only support MAS owner consumption
    of the same identity. `mission.complete` appears only after that owner
-   consumption materializes a `StageOutcome -> NextActionEnvelope`. Missing,
+   consumption materializes a `Codex CLI selected stage -> nonbinding route context`. Missing,
    stale, mirror-only or blocked package evidence must stay fail-closed as
    observation. Delivery mirror readback alone must not project owner receipt,
    choose next action, write owner receipt authority, typed blocker, human gate,
@@ -313,8 +313,7 @@ OPL runtime receipt 的角色是 transport receipt，只能说明同一 route co
 | `degraded_or_pre_submission_handoff` | repair budget exhausted 或 terminalizer 选择 degraded handoff；package / handoff ref 携带 known blockers、next owner、resume condition 和 `can_submit=false`；stage 不再继续同义 repair loop。 | durable final、journal submission package、quality gate passed、human approval complete。 |
 | `submission_ready` | publication gate passed 或 MAS authority 明确授权 final build；`bundle_build_allowed=true` / 等价 authority snapshot fresh；final package manifest 可追踪到 owner / gate evidence。 | 任何缺 authority snapshot、只靠 checkpoint、current mirror、candidate package、queue state 或 focused tests 的 ready claim。 |
 
-`submission_ready` 的 readback terminalization 还必须让 canonical
-NextActionEnvelope 停止同义 gate replay / route-back redrive：精确成功态
+`submission_ready` 的 readback terminalization 只关闭 submission-ready / mission-complete claim；不得生成 successor authority或阻止Codex选择其他declared stage。精确成功态
 `owner_receipt + submission_ready_package + can_submit=true + gate clear + current/fresh/synced delivery projection + existing package root/zip + no blockers`
 映射为 `mission.complete`；裸 `owner_receipt`、missing/stale `current_package`
 mirror、blocked gate 或带 known blockers 的包不得映射为 `mission.complete`。

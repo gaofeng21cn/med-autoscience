@@ -77,9 +77,9 @@ Retained surface 的机器 inventory 是 `contracts/authority_kernel_inventory.j
 
 ## Progress control
 
-默认 next-action authority 只有：
+默认且唯一的 stage-route authority 只有：
 
-`StageOutcome -> NextActionEnvelope`
+`Codex CLI selected declared stage`
 
 OPL 可以承载 command/event/outbox/StageRun 和 projection；MAS owner consumption 解释医学结果。旧 provider admission、current work unit、PaperRecovery、domain-action request 和 repo-local controller shell 只能是 tombstone/provenance 或受限 diagnostic，不得重新成为 authority。
 

@@ -157,12 +157,13 @@
   "ordinary_progress_handoff": {
     "surface_kind": "mas_ordinary_progress_handoff_policy",
     "version": "ordinary-progress-handoff.v1",
-    "default_progress_root": "NextActionEnvelope",
-    "stage_goal_source": "stage_run_next_action_envelope",
-    "executor_output_requirement": "concrete_delta",
+    "default_progress_root": "codex_cli_selected_stage",
+    "stage_goal_source": "codex_cli_stage_prompt_plus_any_prior_stage_result",
+    "executor_output_requirement": "artifact_or_progress_diagnostic",
     "accepted_closeout_shapes": [
       "ProgressDeltaReceipt",
       "RawReadableArtifact",
+      "NoOutputOrFailureDiagnostic",
       "OwnerReceipt",
       "TypedBlocker",
       "human_gate_ref",
@@ -215,7 +216,7 @@
     },
     "readiness_jit_policy": {
       "default_mode": "just_in_time_for_current_delta",
-      "check_scope_source": "stage_run_next_action_envelope.next_required_delta",
+      "check_scope_source": "codex_selected_stage.next_required_delta",
       "full_readiness_inventory_role": "audit_or_terminal_gate_only",
       "ordinary_progress_blocking_policy": "block_only_when_current_delta_needs_the_missing_readiness_or_when_safety_authority_irreversible_mutation_publication_or_submission_claim_is_at_risk",
       "cannot_require_all_surfaces_before_writing_analysis_or_review_delta": true
@@ -232,7 +233,7 @@
       "per_paper_line_required_fields": [
         "ordinary_progress_handoff_proof",
         "accepted_closeout_shape",
-        "ProgressDeltaReceipt_or_OwnerReceipt_or_TypedBlocker",
+        "ProgressDeltaReceipt_or_Diagnostic_or_OwnerReceipt_or_LegalHardStop",
         "next_owner",
         "next_required_delta",
         "readiness_jit_scope",
@@ -240,6 +241,7 @@
       ],
       "accepted_terminal_shapes": [
         "ProgressDeltaReceipt",
+        "NoOutputOrFailureDiagnostic",
         "OwnerReceipt",
         "TypedBlocker"
       ],
@@ -249,7 +251,7 @@
       "audit_sidecar_can_generate_default_next_action": false,
       "audit_sidecar_can_close_stage": false,
       "audit_sidecar_can_claim_domain_ready": false,
-      "success_path_requires_progress_receipt_owner_answer_or_hard_stop": true,
+      "success_path_requires_progress_receipt_owner_answer_or_hard_stop": false,
       "owner_receipt_required_for_quality_or_ready_claim": true
     }
   },

@@ -18,7 +18,7 @@ Hypothesis portfolio / evidence pack 进入 runtime 读面时，只能表现为 
 
 当前 progress / workbench 默认读面是 `artifact_first_mission_summary.paper_mission_run`，对齐 `contracts/paper_mission_run_contract.json` / `paper-mission-run.v1`。domain diagnostic、currentness、storage、owner-route、dispatch、PaperRecovery 和旧 current-owner producer 只进入 platform diagnostics / migration / provenance；它们不能作为 runtime docs 中的 product/default domain-handler mainline、paper progress、runtime-ready、publication-ready 或 DM002/DM003 completion claim。
 
-当前 next action 默认控制面是 [Next Action Control Plane](./control/next_action_control_plane.md) 定义的 `StageOutcome -> NextActionEnvelope`。旧 `current_work_unit`、`current_executable_owner_action`、provider admission、delivery mirror、queue、attempt、PaperRecovery、`legacy_next_action_authority` 或 domain-transition 字段在 runtime docs 中只能作为 superseded diagnostic、history provenance、transport observation 或 no-resurrection guard；不能作为 current owner/action 默认入口、default dispatch selector、provider admission authority、delivery/submission completion、paper progress 或 readiness evidence。需要解释 OPL transport 时，按 `OPL StageAttemptReceipt -> MAS owner consumption` 读取 receipt，不把 provider admission / StageAttempt / queue attempt 本身写成 MAS next action 或默认完成判断。
+当前唯一 stage 语义控制面是 [Next Action Control Plane](./control/next_action_control_plane.md) 定义的 `Codex CLI selected declared stage`；nonbinding route context 只是可选输入。旧 `NextActionEnvelope`、`current_work_unit`、`current_executable_owner_action`、provider admission、delivery mirror、queue、attempt、PaperRecovery、`legacy_next_action_authority` 或 domain-transition 字段只能作为 superseded diagnostic、history provenance、transport observation 或 no-resurrection guard；不能作为 current owner/action 默认入口、default dispatch selector、provider admission authority、delivery/submission completion、paper progress 或 readiness evidence。需要解释 OPL transport 时，按 `OPL StageAttemptReceipt -> MAS owner consumption` 读取 receipt，不把 provider admission / StageAttempt / queue attempt 本身写成 MAS next action 或默认完成判断。
 
 | 目录 | 角色 |
 | --- | --- |
@@ -55,7 +55,7 @@ Hypothesis portfolio / evidence pack 进入 runtime 读面时，只能表现为 
 - [PaperRecovery Obligation 目标架构](./designs/paper_recovery_obligation_target_architecture.md)
 - [Paper Autonomy Supervisor 目标设计](./designs/paper_autonomy_supervisor_target.md)
 
-这些文档中的 `current_work_unit`、`current_executable_owner_action`、PaperRecovery、provider admission、action queue、StageAttempt、current-control transition 或 exact-id 语言只能作为 superseded diagnostic / history provenance / no-resurrection context。当前 operator 判断必须回到 [Next Action Control Plane](./control/next_action_control_plane.md) 的 `StageOutcome -> NextActionEnvelope`，再看同 identity 的 OPL StageAttemptReceipt 是否被 MAS owner surface 消费。
+这些文档中的 `current_work_unit`、`current_executable_owner_action`、PaperRecovery、provider admission、action queue、StageAttempt、current-control transition 或 exact-id 语言只能作为 superseded diagnostic / history provenance / no-resurrection context。当前 operator 判断必须回到 [Next Action Control Plane](./control/next_action_control_plane.md) 的 `Codex CLI selected stage -> nonbinding route context`，再看同 identity 的 OPL StageAttemptReceipt 是否被 MAS owner surface 消费。
 
 ## 历史
 

@@ -88,9 +88,10 @@ def test_legacy_tombstones_point_to_the_current_replacements(
     assert diagnostic["replacement_ref"] == "contracts/paper_mission_run_contract.json"
     assert diagnostic["replacement_contract"]["validator"] == "med_autoscience.paper_mission_run.PaperMissionRun"
     assert diagnostic["replacement_parity_proof"]["replacement_action_intent"] == "domain_route/start-or-resume"
-    assert next_action["replacement_projection_ref"] == "study_progress.next_action_envelope"
-    assert next_action["replacement_contract"]["machine_contract"] == "StageOutcome -> NextActionEnvelope"
-    assert next_action["replacement_contract"]["canonical_owner"] == "mas_next_action_compiler"
+    assert next_action["replacement_projection_ref"] == "study_progress.ai_route_context"
+    assert next_action["replacement_contract"]["machine_contract"] == "Codex CLI selected stage with nonbinding route context"
+    assert next_action["replacement_contract"]["canonical_projection_ref"] == "study_progress.ai_route_context"
+    assert next_action["replacement_contract"]["canonical_owner"] == "codex_cli"
 
 
 def test_no_active_default_caller_proof_keeps_legacy_references_non_authoritative(

@@ -35,7 +35,7 @@ canonical id 是 `mas`。OPL 从 MAS pack、action catalog 与 schemas 生成或
 | OE-09 | Tool Arsenal/Capability Runtime | action metadata 成为单一输入，由 OPL 生成 tool/interface surface | `done` | `contracts/action_catalog.json`、pack compiler input |
 | OE-10 | 手写 CLI/MCP glue | OPL 生成 CLI/MCP/Skill/product-entry；MAS 只保留 handler targets，旧 stage-plane caller 已切换 | `done` | domain descriptor、22-action catalog、OPL generated stage plane |
 | OE-11 | MAS runtime health/lifecycle/storage | provider/readiness builder 与 dispatch persistence 已退役；current-control 聚合、workspace/status materialization、Display transport、gate DAG 仍待迁 OPL public carrier | `partial` | standard interface descriptor、OPL carrier imports、active-caller scan |
-| OE-12 | 旧 next-action 控制面族 | 默认 authority 收敛到 `StageOutcome -> NextActionEnvelope`；旧 producer 物理退役或 tombstone-only | `done` | next-action contract、runtime completion audit、legacy tombstones |
+| OE-12 | 旧 next-action 控制面族 | 默认 authority 收敛到 `Codex CLI selected stage -> nonbinding route context`；旧 producer 物理退役或 tombstone-only | `done` | next-action contract、runtime completion audit、legacy tombstones |
 
 OE-01 至 OE-12 中 OE-03、OE-11 当前为 `partial`；此前 12/12 `done` 的结论已由 2026-07-12 active-caller 复审核正。已有历史 L1-L5 closeout 仍作为当时证据保留，但不能覆盖本轮发现的真实调用链残留。
 

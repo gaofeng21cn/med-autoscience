@@ -157,7 +157,7 @@ manuscript、bundle 或 submission readiness 默认是 `NEEDS_REVIEW`，直到 d
 - carry-forward risks
 - next route
 
-gate result 缺失、过期或只是 claim-only 时，不能推进到 write、finalize、submission-facing package 或下一条 route。
+gate result 缺失、过期或只是 claim-only 时，关闭 quality/publication/submission/ready claim，并记录 quality debt、route-back input 或 no-output diagnostic；它不阻止 Codex 启动 write、finalize 或任一 declared stage。只有不可逆 submission action 仍需显式 authority/human gate。
 
 ### Analysis-campaign Statistical Discipline
 

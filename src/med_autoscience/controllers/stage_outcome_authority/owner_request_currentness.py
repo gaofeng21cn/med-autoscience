@@ -3,6 +3,7 @@ from __future__ import annotations
 from collections.abc import Mapping
 from typing import Any
 
+from med_autoscience.controllers.ai_route_context import is_nonbinding_codex_route_context
 from med_autoscience.controllers.stage_outcome_authority import owner_route_attempt_policy
 
 
@@ -53,9 +54,9 @@ def route_basis_matches_current_study(
     consumed_transition_route: Mapping[str, Any],
 ) -> bool:
     del consumed_transition_route
-    current_values = _canonical_next_action_values(current_study)
+    current_values = _codex_route_context_values(current_study)
     if not current_values:
-        return False
+        return True
     return _request_route_matches_current_values(
         request_route=request_route,
         current_values=current_values,
@@ -77,9 +78,11 @@ def _request_route_matches_current_values(
     return True
 
 
-def _canonical_next_action_values(current_study: Mapping[str, Any]) -> dict[str, str]:
-    payload = _mapping(current_study.get("next_action"))
-    if _text(payload.get("surface_kind")) != "mas_next_action_envelope":
+def _codex_route_context_values(current_study: Mapping[str, Any]) -> dict[str, str]:
+    payload = _mapping(current_study.get("ai_route_context")) or _mapping(
+        current_study.get("next_action")
+    )
+    if not is_nonbinding_codex_route_context(payload):
         return {}
     basis = _mapping(payload.get("currentness_basis"))
     values = owner_route_attempt_policy.normalize_currentness_sources(payload, basis)

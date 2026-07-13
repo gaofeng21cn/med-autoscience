@@ -3,16 +3,18 @@ from __future__ import annotations
 from collections.abc import Mapping
 from typing import Any
 
-from med_autoscience.controllers.next_action_envelope import SURFACE_KIND
+from med_autoscience.controllers.ai_route_context import is_nonbinding_codex_route_context
 from med_autoscience.paper_mission_stage_run_readback.receipt_events import (
     matches_opl_stage_attempt_receipt,
 )
 
 
 def build_progress_first_monitoring_summary(payload: Mapping[str, Any]) -> dict[str, Any]:
-    next_action = _mapping(payload.get("next_action"))
-    if _text(next_action.get("surface_kind")) != SURFACE_KIND:
-        next_action = {}
+    route_context = _mapping(payload.get("ai_route_context")) or _mapping(
+        payload.get("next_action")
+    )
+    if not is_nonbinding_codex_route_context(route_context):
+        route_context = {}
     receipt = _stage_attempt_receipt(payload)
     typed_blocker = _mapping(payload.get("typed_blocker"))
     owner_receipt = _mapping(payload.get("owner_receipt")) or _mapping(
@@ -25,8 +27,8 @@ def build_progress_first_monitoring_summary(payload: Mapping[str, Any]) -> dict[
         if owner_receipt
         else "runtime_receipt_recorded"
         if receipt
-        else "next_action_ready"
-        if next_action
+        else "route_context_available"
+        if route_context
         else "awaiting_stage_outcome"
     )
     return {
@@ -34,15 +36,16 @@ def build_progress_first_monitoring_summary(payload: Mapping[str, Any]) -> dict[
         "schema_version": 2,
         "status": status,
         "study_id": _text(payload.get("study_id")),
-        "stage_id": _text(next_action.get("stage_id")),
-        "next_action": next_action or None,
-        "next_owner": _text(next_action.get("owner")),
-        "action_family": _text(next_action.get("action_family")),
+        "stage_id": _text(route_context.get("stage_id")),
+        "codex_route_context": route_context or None,
+        "next_owner_hint": _text(route_context.get("owner")),
+        "action_family_hint": _text(route_context.get("action_family")),
         "opl_stage_attempt_receipt": receipt or None,
         "typed_blocker": typed_blocker or None,
         "owner_receipt": owner_receipt or None,
         "authority_boundary": {
-            "next_action_authority": "StageOutcome -> NextActionEnvelope",
+            "next_action_authority": "codex_cli",
+            "route_context_role": "nonbinding_context_only",
             "runtime_receipt_authority": "one-person-lab",
             "domain_outcome_authority": "MedAutoScience",
             "projection_can_select_next_action": False,

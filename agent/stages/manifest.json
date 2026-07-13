@@ -4,6 +4,11 @@
   "target_domain_id": "mas",
   "owner": "mas",
   "progress_first_policy": {
+    "route_selection_owner": "codex_cli",
+    "codex_may_advance_skip_repeat_reverse_or_route_back": true,
+    "any_declared_stage_may_start_from_any_prior_stage_result": true,
+    "declared_requires_are_quality_context_not_launch_gates": true,
+    "next_stage_refs_are_recommendations_not_constraints": true,
     "consumable_artifact_advances_stage": true,
     "no_output_or_failure_diagnostic_advances_stage": true,
     "retry_review_and_repair_limits_are_quality_budgets": true,

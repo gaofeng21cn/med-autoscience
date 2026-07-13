@@ -16,9 +16,9 @@ from med_autoscience.paper_mission_stage_run_readback import (
     paper_mission_next_action_envelope,
 )
 from med_autoscience.controllers.stage_closure_terminalizer import stage_closure_decision_projection
-from ..canonical_next_action_gate import (
-    has_canonical_next_action,
-    legacy_next_action_authority_retirement,
+from ..codex_route_context_gate import (
+    has_nonbinding_codex_route_context,
+    legacy_programmatic_next_action_retirement,
 )
 from .receipt_projection import (
     _opl_stage_attempt_receipt,
@@ -227,28 +227,21 @@ def attach_artifact_first_mission_summary(
 ) -> dict[str, Any]:
     updated = dict(payload)
     existing_next_action = (
-        _mapping(payload.get("next_action")) if has_canonical_next_action(payload) else {}
-    )
-    existing_next_action_source = _non_empty_text(
-        payload.get("canonical_next_action_source")
+        _mapping(payload.get("next_action"))
+        if has_nonbinding_codex_route_context(payload)
+        else {}
     )
     summary = build_artifact_first_mission_summary(updated)
     summary_next_action = _mapping(summary.get("next_action"))
     summary_next_action_promotable = _summary_next_action_is_promotable(summary)
-    summary_overrides_existing = False
-    summary_selected_as_next_action = summary_next_action_promotable and (
-        summary_overrides_existing or not existing_next_action
-    )
     next_action = (
-        summary_next_action
-        if summary_next_action_promotable and summary_overrides_existing
-        else existing_next_action
+        existing_next_action
         or (summary_next_action if summary_next_action_promotable else {})
     )
     if next_action:
         summary = {key: value for key, value in summary.items() if key != "next_action"}
-        summary["next_action_ref"] = next_action["action_id"]
-        summary["next_action_projection"] = "top_level_canonical_next_action"
+        summary["route_context_ref"] = next_action.get("action_id")
+        summary["next_action_projection"] = "nonbinding_codex_route_context"
     elif summary_next_action:
         summary = {key: value for key, value in summary.items() if key != "next_action"}
         summary["next_action_projection"] = (
@@ -275,12 +268,8 @@ def attach_artifact_first_mission_summary(
         updated["opl_stage_attempt_readback_status"] = summary["opl_stage_attempt_readback_status"]
     if next_action:
         updated["next_action"] = next_action
-        updated["canonical_next_action_source"] = _summary_selected_next_action_source(
-            summary_selected_as_next_action=summary_selected_as_next_action,
-            summary_next_action=summary_next_action,
-            existing_next_action=existing_next_action,
-            existing_next_action_source=existing_next_action_source,
-        )
+        updated.pop("canonical_next_action_source", None)
+        updated["next_action_projection_role"] = "nonbinding_codex_route_context"
         updated = without_legacy_next_action_authority(updated)
     elif summary_next_action:
         updated.pop("next_action", None)
@@ -328,7 +317,9 @@ def without_legacy_next_action_authority(payload: Mapping[str, Any]) -> dict[str
         updated.pop(key, None)
     if _current_executable_owner_action_is_retained_authority(current_action):
         updated["current_executable_owner_action"] = current_action
-    updated["legacy_next_action_authority_retired"] = legacy_next_action_authority_retirement()
+    updated["legacy_next_action_authority_retired"] = (
+        legacy_programmatic_next_action_retirement()
+    )
     return updated
 
 
@@ -386,26 +377,6 @@ def _current_executable_owner_action_from_paper_facing_action(value: object) -> 
 
 def _summary_next_action_is_promotable(summary: Mapping[str, Any]) -> bool:
     return bool(_mapping(summary.get("next_action")))
-
-
-def _summary_selected_next_action_source(
-    *,
-    summary_selected_as_next_action: bool,
-    summary_next_action: Mapping[str, Any],
-    existing_next_action: Mapping[str, Any],
-    existing_next_action_source: str | None,
-) -> str:
-    if summary_selected_as_next_action:
-        if _non_empty_text(summary_next_action.get("action_family")) == (
-            "paper.stage_closure.owner_consumption"
-        ):
-            return "stage_closure.next_action"
-        return "artifact_first_mission_summary.next_action"
-    return existing_next_action_source or (
-        "precomputed_canonical_next_action"
-        if existing_next_action
-        else "artifact_first_mission_summary.next_action"
-    )
 
 
 def _study_progress_opl_runtime_readback(

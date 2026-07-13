@@ -22,7 +22,7 @@ OPL StageRun
   -> executor produces stage artifacts/evidence
   -> independent reviewer/auditor when required
   -> MAS owner validates domain authority result
-  -> StageOutcome -> NextActionEnvelope
+  -> Codex CLI selected stage -> nonbinding route context
   -> OPL transports the next attempt or gate
 ```
 

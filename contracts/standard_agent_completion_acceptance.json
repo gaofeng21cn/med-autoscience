@@ -49,15 +49,15 @@
       "gate_id": "single_default_recovery_and_progress_root",
       "required_status": "satisfied",
       "source_of_truth": [
-        "canonical StageOutcome -> NextActionEnvelope",
+        "Codex CLI selected stage plus any prior stage result",
         "contracts/paper_recovery_kernel_contract.json",
         "fresh study_progress and domain diagnostic dry-run for live studies"
       ],
       "requires": [
-        "ordinary progress and recovery default authority is canonical StageOutcome -> NextActionEnvelope",
-        "current_owner_delta, current_work_unit, and paper_recovery_state are diagnostic/provenance projections only and cannot select the default next action",
-        "study_progress, domain diagnostic provider-admission drilldown, operator card, intervention lane, operator verdict, recovery/autonomy contract, and user-visible projection must derive from the canonical envelope or show diagnostic/no-resurrection context",
-        "queue, active_run_id, transport status, operator card, parked runtime, docs-only claim, stale dispatch, PaperRecovery residue, and current_work_unit residue are audit-only unless consumed by MAS owner evidence on the same envelope identity"
+        "ordinary progress and recovery semantic route authority is Codex CLI",
+        "StageOutcome, the legacy next-action envelope, current_owner_delta, current_work_unit, and paper_recovery_state are route context or diagnostic/provenance projections only",
+        "study_progress, provider-admission drilldown, operator surfaces, and recovery projections must expose Codex-selected route context or progress diagnostics without creating a semantic successor",
+        "queue, active_run_id, transport status, stale dispatch, PaperRecovery residue, and current_work_unit residue are audit-only; missing context cannot block another declared stage"
       ],
       "cannot_be_satisfied_by": [
         "old action queue empty",
@@ -65,7 +65,7 @@
         "provider completion",
         "PaperRecovery paper_recovery_state alone",
         "current_work_unit or current_owner_delta alone",
-        "provider admission candidate not bound to StageOutcome -> NextActionEnvelope",
+        "provider admission candidate without current identity proof cannot claim runtime currentness",
         "domain diagnostic observe_only report",
         "operator card wording"
       ]

@@ -10,11 +10,11 @@ from med_autoscience.controllers.study_stage_attempt_receipt_consumption.owner_c
 )
 from med_autoscience.controllers.study_stage_attempt_receipt_consumption import (
     missing_refs_typed_closeout,
-    nonconsumable_redrive_budget,
+    progress_diagnostic,
 )
 from med_autoscience.controllers.study_stage_attempt_receipt_consumption.owner_callable_result_policy import (
     owner_callable_adapter_consumed_blocked_reason,
-    owner_callable_dispatch_zero_execution_blocker,
+    owner_callable_dispatch_zero_execution_diagnostic,
     owner_callable_adapter_owner_result_consumable,
     gate_replay_blocker_fields,
 )
@@ -59,7 +59,6 @@ def owner_callable_receipt_consumption(
     current_action_types = _current_owner_route_action_types(owner_route=owner_route, actions=actions)
     if not current_action_types:
         return {}
-    nonconsumable_matches: list[dict[str, Any]] = []
     outcomes: list[dict[str, Any]] = []
     for index, (execution, receipt_ref) in enumerate(
         owner_callable_receipt_candidates(
@@ -95,28 +94,30 @@ def owner_callable_receipt_consumption(
             continue
         if not execution_matches_owner_route(execution=execution, owner_route=owner_route):
             continue
-        dispatch_zero_execution_blocker = owner_callable_dispatch_zero_execution_blocker(owner_result)
-        if dispatch_zero_execution_blocker:
-            match = nonconsumable_redrive_budget.match(
+        dispatch_zero_execution_diagnostic = owner_callable_dispatch_zero_execution_diagnostic(owner_result)
+        if dispatch_zero_execution_diagnostic:
+            diagnostic = progress_diagnostic.match(
                 execution=execution,
                 receipt_ref=receipt_ref,
                 action_type=action_type,
                 owner_result=owner_result,
                 repair_evidence=repair_evidence,
-                reason=nonconsumable_redrive_budget.reason(
+                reason=progress_diagnostic.reason(
                     action_type=action_type,
                     owner_result=owner_result,
                     repair_evidence=repair_evidence,
-                    dispatch_zero_execution_blocker=dispatch_zero_execution_blocker,
+                    dispatch_zero_execution_diagnostic=dispatch_zero_execution_diagnostic,
                 ),
             )
-            nonconsumable_matches.append(match)
             outcomes.append(
                 _owner_callable_adapter_receipt_outcome(
-                    kind="nonconsumable",
+                    kind="consumed",
                     receipt_ref=receipt_ref,
                     sequence_index=index,
-                    payload=match,
+                    payload=progress_diagnostic.consumption(
+                        diagnostic=diagnostic,
+                        owner_route=owner_route,
+                    ),
                     study_root=study_root,
                 )
             )
@@ -184,26 +185,28 @@ def owner_callable_receipt_consumption(
             owner_result=owner_result,
             repair_evidence=repair_evidence,
         ):
-            match = nonconsumable_redrive_budget.match(
+            diagnostic = progress_diagnostic.match(
                 execution=execution,
                 receipt_ref=receipt_ref,
                 action_type=action_type,
                 owner_result=owner_result,
                 repair_evidence=repair_evidence,
-                reason=nonconsumable_redrive_budget.reason(
+                reason=progress_diagnostic.reason(
                     action_type=action_type,
                     owner_result=owner_result,
                     repair_evidence=repair_evidence,
-                    dispatch_zero_execution_blocker=dispatch_zero_execution_blocker,
+                    dispatch_zero_execution_diagnostic=dispatch_zero_execution_diagnostic,
                 ),
             )
-            nonconsumable_matches.append(match)
             outcomes.append(
                 _owner_callable_adapter_receipt_outcome(
-                    kind="nonconsumable",
+                    kind="consumed",
                     receipt_ref=receipt_ref,
                     sequence_index=index,
-                    payload=match,
+                    payload=progress_diagnostic.consumption(
+                        diagnostic=diagnostic,
+                        owner_route=owner_route,
+                    ),
                     study_root=study_root,
                 )
             )
@@ -260,14 +263,6 @@ def owner_callable_receipt_consumption(
     latest_outcome = _latest_owner_callable_adapter_receipt_outcome(outcomes)
     if latest_outcome is None:
         return {}
-    if latest_outcome.get("kind") == "nonconsumable":
-        if not nonconsumable_redrive_budget.budget_exhausted(nonconsumable_matches):
-            return {}
-        return nonconsumable_redrive_budget.consumption(
-            latest=_mapping(latest_outcome.get("payload")),
-            owner_route=owner_route,
-            repeat_count=len(nonconsumable_matches),
-        )
     return dict(_mapping(latest_outcome.get("payload")))
 
 
@@ -348,82 +343,6 @@ def _typed_blocker_reason(execution: Mapping[str, Any]) -> str:
     if _text(paper_stage_log.get("progress_delta_classification")) == "typed_blocker":
         return _text(paper_stage_log.get("outcome")) or "typed_blocker"
     return ""
-
-
-def owner_callable_receipt_nonconsumable_closeout(
-    *,
-    study_root: Path,
-    owner_route: Mapping[str, Any],
-    actions: Iterable[Mapping[str, Any]],
-) -> dict[str, Any]:
-    current_action_types = _current_owner_route_action_types(owner_route=owner_route, actions=actions)
-    if not current_action_types:
-        return {}
-    for execution, receipt_ref in owner_callable_receipt_candidates(
-        study_root=study_root,
-    ):
-        action_type = _text(execution.get("action_type"))
-        if action_type not in current_action_types:
-            continue
-        blocked_typed_closeout = missing_refs_typed_closeout.is_blocked_typed_closeout(
-            execution=execution,
-            receipt_ref=receipt_ref,
-        )
-        missing_refs_typed_closeout_packet = missing_refs_typed_closeout.is_missing_refs_typed_closeout(
-            execution=execution,
-            receipt_ref=receipt_ref,
-        )
-        if (
-            _text(execution.get("execution_status")) not in _OWNER_CALLABLE_EXECUTED_STATUSES
-            and not blocked_typed_closeout
-            and not missing_refs_typed_closeout_packet
-        ):
-            continue
-        if not execution_matches_owner_route(execution=execution, owner_route=owner_route):
-            continue
-        owner_result = _mapping(execution.get("owner_result"))
-        repair_evidence = _mapping(owner_result.get("repair_execution_evidence"))
-        recovered_stage_packet_currentness = (
-            _text(execution.get("owner_route_currentness_source")) == "stage_packet_ref_recovered"
-            and not (
-                _recovered_stage_packet_currentness_consumable(
-                    action_type=action_type,
-                    owner_result=owner_result,
-                    repair_evidence=repair_evidence,
-                )
-            )
-        )
-        dispatch_zero_execution_blocker = owner_callable_dispatch_zero_execution_blocker(owner_result)
-        if missing_refs_typed_closeout_packet or _blocked_typed_closeout_consumes_without_redrive(execution):
-            continue
-        if not recovered_stage_packet_currentness and owner_callable_adapter_owner_result_consumable(
-            action_type=action_type,
-            owner_result=owner_result,
-            repair_evidence=repair_evidence,
-        ):
-            continue
-        return {
-            "status": "non_consumable_closeout",
-            "receipt_kind": "owner_callable_adapter_receipt",
-            "receipt_ref": str(receipt_ref),
-            "execution_id": _text(execution.get("execution_id")),
-            "action_type": action_type,
-            "execution_status": _text(execution.get("execution_status")),
-            "owner_result_status": _text(owner_result.get("status")),
-            "repair_execution_evidence_status": _text(repair_evidence.get("status")),
-            "reason": nonconsumable_redrive_budget.reason(
-                action_type=action_type,
-                owner_result=owner_result,
-                repair_evidence=repair_evidence,
-                dispatch_zero_execution_blocker=dispatch_zero_execution_blocker,
-            ),
-            "changed_artifact_ref_count": len(_mapping_list(repair_evidence.get("changed_artifact_refs"))),
-            "quality_authorized": False,
-            "submission_authorized": False,
-            "current_package_write_authorized": False,
-            "next_action": "redrive_owner_route_with_closeout_context",
-        }
-    return {}
 
 
 def _owner_callable_adapter_receipt_outcome(
@@ -676,7 +595,6 @@ def _text(value: object) -> str:
 
 __all__ = [
     "ai_reviewer_publication_eval_receipt_consumption",
-    "owner_callable_receipt_nonconsumable_closeout",
     "owner_callable_receipt_followthrough_consumption",
     "owner_callable_receipt_consumption",
     "execution_receipt_consumption",

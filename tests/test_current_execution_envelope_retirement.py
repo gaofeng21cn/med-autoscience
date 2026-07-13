@@ -30,7 +30,7 @@ def test_current_execution_envelope_retirement_boundary_is_explicit() -> None:
     boundary = module.retired_authority_boundary()
 
     assert boundary["status"] == "retired"
-    assert boundary["replacement_authority"] == "StageOutcome -> NextActionEnvelope -> OPL StageAttemptReceipt"
+    assert boundary["replacement_authority"] == "Codex CLI selected stage -> refs-only route context -> OPL StageAttemptReceipt"
     assert boundary["can_select_next_action"] is False
     assert boundary["can_authorize_dispatch"] is False
     assert boundary["can_authorize_provider_attempt"] is False

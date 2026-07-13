@@ -389,9 +389,9 @@ def test_safety_envelope_covers_all_false_completion_and_drift_risk_classes() ->
     )
 
     stale = risks["stale_read_model"]
-    assert stale["canonical_current_source"] == "StageOutcome -> NextActionEnvelope"
+    assert stale["canonical_current_source"] == "Codex CLI selected stage plus any prior stage result"
     assert stale["valid_current_statuses"] == [
-        "next_action_envelope_present",
+            "codex_route_context_present_or_diagnostic",
         "owner_receipt_ref",
         "typed_blocker_ref",
         "human_gate_ref",
@@ -403,13 +403,13 @@ def test_safety_envelope_covers_all_false_completion_and_drift_risk_classes() ->
     ]
     assert stale["prevention_layers"] == [
         "stage_outcome_authority",
-        "next_action_envelope_currentness",
+            "codex_route_context_currentness",
         "owner_consumption_evidence_gate",
         "progress_first_operator_surface",
     ]
     assert stale["ordinary_progress_policy"] == (
-        "read_models_rebuild_from_stage_outcome_next_action_envelope_and_"
-        "owner_consumed_evidence_without_creating_next_action"
+        "read_models_project_codex_selected_route_raw_typed_or_diagnostic_inputs_"
+        "without_creating_or_rejecting_next_stage"
     )
 
     duplicate = risks["duplicate_receipt"]
@@ -451,7 +451,7 @@ def test_hybrid_policy_is_owner_native_jit_affordance_not_budgeted_sidecar() -> 
 
     assert policy["surface_kind"] == "mas_light_coscientist_progress_first_hybrid_policy"
     assert policy["role"] == "current_owner_native_jit_affordance"
-    assert policy["ordinary_path_root"] == "NextActionEnvelope"
+    assert policy["ordinary_path_root"] == "codex_cli"
     assert (
         policy["default_posture"]
         == "affordance_available_no_standing_sidecar_no_default_scan_current_delta_declares_or_implies_affordance_need"
@@ -578,7 +578,7 @@ def test_safety_envelope_matches_existing_stage_and_learning_sidecar_boundaries(
     evo = _evo_contract()
 
     handoff = profile["ordinary_progress_handoff"]
-    assert handoff["default_progress_root"] == "NextActionEnvelope"
+    assert handoff["default_progress_root"] == "codex_cli_selected_stage"
     assert handoff["audit_sidecar_policy"]["can_generate_default_next_action"] is False
     assert handoff["audit_sidecar_policy"]["can_close_stage"] is False
     assert handoff["audit_sidecar_policy"]["can_claim_domain_ready"] is False

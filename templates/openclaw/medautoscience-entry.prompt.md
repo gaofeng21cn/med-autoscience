@@ -175,10 +175,10 @@ Runtime modes: lightweight, managed
 
 ## Ordinary Progress Handoff Policy
 - source_ref: contracts/stage_run_kernel_profile.json#/ordinary_progress_handoff
-- default_progress_root: NextActionEnvelope
-- stage_goal_source: stage_run_next_action_envelope
-- executor_output_requirement: concrete_delta
-- accepted_closeout_shapes: ProgressDeltaReceipt | RawReadableArtifact | OwnerReceipt | TypedBlocker | human_gate_ref | route_back_ref
+- default_progress_root: codex_cli_selected_stage
+- stage_goal_source: codex_cli_stage_prompt_plus_any_prior_stage_result
+- executor_output_requirement: artifact_or_progress_diagnostic
+- accepted_closeout_shapes: ProgressDeltaReceipt | RawReadableArtifact | NoOutputOrFailureDiagnostic | OwnerReceipt | TypedBlocker | human_gate_ref | route_back_ref
 - progress_delta_receipt_kind: ProgressDeltaReceipt
 - progress_delta_receipt_artifact_tier: T0_progress_delta
 - progress_delta_receipt_role: ordinary_step_handoff_not_stage_completion
@@ -189,7 +189,7 @@ Runtime modes: lightweight, managed
 - ordinary_delta_requires_full_stage_artifact_manifest: False
 - delivery_or_publication_claim_requires_tier: T2_delivery_artifact | T3_production_evidence
 - readiness_default_mode: just_in_time_for_current_delta
-- readiness_check_scope_source: stage_run_next_action_envelope.next_required_delta
+- readiness_check_scope_source: codex_selected_stage.next_required_delta
 - readiness_full_inventory_role: audit_or_terminal_gate_only
 - readiness_ordinary_blocking_policy: block_only_when_current_delta_needs_the_missing_readiness_or_when_safety_authority_irreversible_mutation_publication_or_submission_claim_is_at_risk
 - readiness_cannot_require_all_surfaces_before_writing_analysis_or_review_delta: True
@@ -224,9 +224,9 @@ Runtime modes: lightweight, managed
 - no claim-only ready: generic persona library approval, non-medical QA gate output, NEXUS role approval, chat/memory summaries, terminal prose, and screenshot-style QA must not be promoted to MAS owner authority or medical paper quality authority
 
 ## Medical Route Quality Loop
-- bounded medical repair loop: every reviewer, QA, gate-repair, or route-back loop must record `attempt_count`, `verdict`, `finding_refs`, `fix_refs`, `acceptance_criteria`, `next_route`, and `escalation_ref` | `PASS`, `FAIL`, and `NEEDS_REVIEW` are the only stable route QA verdicts; a `FAIL` may retry only within an explicit retry budget | exhausted retry budget must write `controller_decisions/latest.json` or `runtime_escalation_record.json` before any human gate or route redesign is requested | findings must first classify severity as `fatal_blocker`, `must_fix_before_current_gate`, `carry_forward_advisory`, or `optional_polish` | exhausted retry budget with no fatal blocker must emit `CarryForwardRiskReceipt` and advance ordinary progress without claiming publication, submission, or readiness | exhausted retry budget with a fatal blocker must emit a stable typed blocker, human gate, route redesign, or stop-loss before another same-identity retry
+- bounded medical repair loop: every reviewer, QA, gate-repair, or route-back loop must record `attempt_count`, `verdict`, `finding_refs`, `fix_refs`, `acceptance_criteria`, `next_route`, and `escalation_ref` | `PASS`, `FAIL`, and `NEEDS_REVIEW` are the only stable route QA verdicts; a `FAIL` may retry only within an explicit retry budget | exhausted retry budget must write `controller_decisions/latest.json` or `runtime_escalation_record.json` before any human gate or route redesign is requested | findings must first classify severity as `fatal_blocker`, `must_fix_before_current_gate`, `carry_forward_advisory`, or `optional_polish` | `fatal_blocker` is strictly limited to unavailable executor, wrong-target identity/currentness, authority/safety/permission/credential, irreversible-action, or explicit human-decision boundaries; negative/null results, zero output, scientific non-significance, missing format/receipt, quality failure, and retry-budget exhaustion are never fatal blockers | exhausted retry budget with no fatal blocker must emit `CarryForwardRiskReceipt` and advance ordinary progress without claiming publication, submission, or readiness | exhausted retry budget at a true fatal boundary must emit a stable typed blocker or human gate; otherwise Codex preserves the best artifact or diagnostic and chooses advance, skip, repeat, reverse, or route-back
 - default needs review gate: manuscript, bundle, or submission readiness defaults to `NEEDS_REVIEW` until durable evidence refs, review refs, and AI reviewer-backed `publication_eval/latest.json` close the active criteria | zero-issue, ready, production-ready, or done claims are invalid without linked evidence/review refs and an owner decision surface
-- phase gate handoff: every route or phase gate handoff must carry preconditions, input refs, output refs, evidence refs, acceptance criteria, gate result, decision owner, carry-forward risks, and next route | no phase, route, write, finalize, or submission-facing advance may proceed when the gate result is missing, stale, or claim-only
+- phase gate handoff: every route or phase gate handoff must carry preconditions, input refs, output refs, evidence refs, acceptance criteria, gate result, decision owner, carry-forward risks, and next route | a missing, stale, or claim-only gate result closes quality/publication/submission/readiness claims and emits quality debt or a no-output diagnostic; it never blocks Codex from starting another declared stage
 - analysis-campaign statistical discipline: analysis-campaign planning must state the active hypothesis, endpoint, cohort/data quality constraints, statistical method, subgroup or multiplicity guardrails, and acceptance/failure criteria before running new analysis | sample-size, power, precision, or feasibility rationale must be explicit when the study design or dataset makes formal power calculation impossible | product A/B testing vocabulary, growth metrics, or generic experiment success labels must not become medical evidence authority
 - incident postmortem feedback loop: repeated runtime recovery, publication gate, stale package, or evidence-review failures must produce an incident-style record with timeline, impact, root cause, prevention action, owner, and follow-up status | incident learning can update runbooks, telemetry, taxonomy, or controller specificity; it must not relax evidence gates, publication gates, or AI reviewer requirements
 

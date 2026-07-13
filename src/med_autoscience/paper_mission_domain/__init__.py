@@ -5,10 +5,6 @@ from pathlib import Path
 from typing import Any, Callable
 
 from med_autoscience.paper_mission_authority import consume_paper_mission_candidate
-from med_autoscience.paper_mission_terminal_owner_gate import (
-    terminal_owner_gate_authority_readback as _terminal_owner_gate_authority_readback,
-    terminal_owner_gate_from_carrier_readback as _terminal_owner_gate_from_carrier_readback,
-)
 from .candidate_package_readback import (
     build_materialized_candidate_package_readback as _build_materialized_candidate_package_readback,
     consume_candidate_missing_readback as _consume_candidate_missing_readback,
@@ -33,7 +29,6 @@ from .drive_readback import (
 )
 from .materialized_mission_readback import (
     build_materialized_mission_readback_if_available as _build_materialized_mission_readback_if_available,
-    _domain_transition_direct_next_action_runtime_readback as _build_domain_transition_direct_next_action_runtime_readback,
 )
 from .materialized_readback_context import (
     dispatch_execution_policy as _dispatch_execution_policy,
@@ -88,7 +83,6 @@ _stage_closure_matches_current_transaction_with_terminal_closeout = (
 _terminal_closeout_uses_stage_attempt_packet = _stage_closure_terminalizer_readback._terminal_closeout_uses_stage_attempt_packet
 _terminal_closeout_newer = _stage_closure_terminalizer_readback._terminal_closeout_newer
 _terminal_closeout_mtime = _stage_closure_terminalizer_readback._terminal_closeout_mtime
-_domain_transition_direct_terminal_source_readback = _stage_closure_terminalizer_readback._domain_transition_direct_terminal_source_readback
 _materialized_run_terminal_source_readback = _stage_closure_terminalizer_readback._materialized_run_terminal_source_readback
 _build_terminalizer_source_readback_from_stage_packet = (
     _stage_closure_terminalizer_readback._build_terminalizer_source_readback_from_stage_packet
@@ -104,16 +98,26 @@ _stage_packet_route_back_semantic_priority = _stage_closure_terminalizer_readbac
 _first_non_empty_text = _stage_closure_terminalizer_readback._first_non_empty_text
 _stage_packet_opl_stage_attempt_readback = _stage_closure_terminalizer_readback._stage_packet_opl_stage_attempt_readback
 _load_json_object = _stage_closure_terminalizer_readback._load_json_object
-_typed_blocker_resolution_should_own_next_action = _stage_closure_terminalizer_readback._typed_blocker_resolution_should_own_next_action
 _stage_closure_next_action_should_own_next_action = _stage_closure_terminalizer_readback._stage_closure_next_action_should_own_next_action
-_domain_transition_next_action_requests_stage_attempt = _stage_closure_terminalizer_readback._domain_transition_next_action_requests_stage_attempt
+
+
+def _typed_blocker_resolution_should_own_next_action(
+    *,
+    stage_closure_decision: Mapping[str, Any],
+    typed_blocker_resolution_readback: Mapping[str, Any] | None,
+    domain_transition_next_action: Mapping[str, Any] | None = None,
+) -> bool:
+    del domain_transition_next_action
+    if not typed_blocker_resolution_readback:
+        return False
+    outcome = _mapping(stage_closure_decision.get("outcome"))
+    return outcome.get("kind") == "typed_blocker" and bool(
+        _mapping(typed_blocker_resolution_readback.get("next_owner_action"))
+    )
 
 def _sync_stage_closure_terminalizer_readback_deps() -> None:
     _stage_closure_terminalizer_readback._build_materialized_mission_readback_if_available = (
         _build_materialized_mission_readback_if_available
-    )
-    _stage_closure_terminalizer_readback._domain_transition_direct_terminal_source_readback = (
-        _domain_transition_direct_terminal_source_readback
     )
     _stage_closure_terminalizer_readback._next_action_for_stage_closure_decision = (
         _next_action_for_stage_closure_decision
@@ -140,13 +144,6 @@ def _latest_stage_attempt_route_back_source_readback(
 ) -> dict[str, Any] | None:
     _sync_stage_closure_terminalizer_readback_deps()
     return _stage_closure_terminalizer_readback._latest_stage_attempt_route_back_source_readback(
-        **kwargs
-    )
-
-
-def _override_next_action_from_direct_terminal_closeout(**kwargs: Any) -> tuple[Any, Any, Any]:
-    _sync_stage_closure_terminalizer_readback_deps()
-    return _stage_closure_terminalizer_readback._override_next_action_from_direct_terminal_closeout(
         **kwargs
     )
 
@@ -428,65 +425,6 @@ def build_paper_mission_readback(
             **transaction_readback,
             "next_action": next_action_override,
         }
-        direct_next_action_runtime = (
-            _build_domain_transition_direct_next_action_runtime_readback(
-                profile=profile,
-                study_id=study_id,
-                study_root=study_root,
-                inspect_readback={
-                    **mission_candidate,
-                    **transaction_output_fields,
-                },
-                next_action=next_action_override,
-                canonical_next_action_source=canonical_next_action_source,
-                opl_runtime_payload=opl_runtime_payload,
-            )
-        )
-        if direct_next_action_runtime:
-            transaction_output_fields["domain_transition_direct_stage_attempt"] = (
-                direct_next_action_runtime
-            )
-            transaction_output_fields["current_opl_stage_run_context"] = (
-                direct_next_action_runtime["opl_stage_run_context"]
-            )
-            transaction_output_fields["current_opl_stage_attempt_readback"] = (
-                direct_next_action_runtime["opl_stage_attempt_readback"]
-            )
-            transaction_output_fields["current_opl_stage_attempt_readback_status"] = (
-                direct_next_action_runtime["opl_stage_attempt_readback_status"]
-            )
-            direct_terminal_owner_gate = _terminal_owner_gate_from_carrier_readback(
-                direct_next_action_runtime["opl_stage_attempt_readback"]
-            )
-            if direct_terminal_owner_gate:
-                transaction_output_fields["terminal_owner_gate"] = (
-                    direct_terminal_owner_gate
-                )
-                transaction_output_fields["terminal_owner_gate_authority_readback"] = (
-                    _terminal_owner_gate_authority_readback(direct_terminal_owner_gate)
-                )
-            (
-                stage_closure_decision,
-                next_action_override,
-                canonical_next_action_source,
-            ) = _override_next_action_from_direct_terminal_closeout(
-                direct_next_action_runtime=direct_next_action_runtime,
-                stage_closure_decision=stage_closure_decision,
-                transaction_readback=transaction_readback,
-                typed_blocker_resolution_readback=typed_blocker_resolution_readback,
-                next_action_override=next_action_override,
-                canonical_next_action_source=canonical_next_action_source,
-            )
-            if next_action_override is not None:
-                transaction_output_fields["next_action"] = next_action_override
-                if canonical_next_action_source is not None:
-                    transaction_output_fields["canonical_next_action_source"] = (
-                        canonical_next_action_source
-                    )
-                transaction_output_fields["paper_mission_transaction_readback"] = {
-                    **transaction_readback,
-                    "next_action": next_action_override,
-                }
     transaction_output_fields = _merge_stage_closure_typed_blocker_gate_fields(
         transaction_output_fields=transaction_output_fields,
         stage_closure_decision=stage_closure_decision,

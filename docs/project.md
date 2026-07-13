@@ -34,7 +34,7 @@ MAS 描述医学研究阶段、知识、质量门、action metadata 与环境需
 
 默认控制链是：
 
-`StageOutcome -> NextActionEnvelope -> OPL transport/readback -> MAS owner consumption`
+`Codex CLI selected stage -> nonbinding route context -> OPL transport/readback -> MAS owner consumption`
 
 旧 `provider_attempt`、`current_work_unit`、`paper_recovery_state` 和 domain-action request producers 不再是默认 next-action authority。需要追溯时只读 tombstone/provenance；不得从旧 projection、queue、attempt、provider 或 UI 状态推断 paper progress。
 

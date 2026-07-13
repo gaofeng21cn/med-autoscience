@@ -453,12 +453,6 @@ def _ai_reviewer_owner_route(
             "owner_reason": action_type,
             "active_run_id": None,
             "allowed_actions": [action_type],
-            "blocked_actions": [
-                "publication_gate_specificity_required",
-                "current_package_freshness_required",
-                "artifact_display_surface_materialization_required",
-                "canonical_paper_inputs_rehydrate_required",
-            ],
             "idempotency_key": f"paper-repair::{study_id}::{action_type}::{fingerprint}",
             "source_refs": {
                 "paper_repair_work_unit": _work_unit_id(work_unit),

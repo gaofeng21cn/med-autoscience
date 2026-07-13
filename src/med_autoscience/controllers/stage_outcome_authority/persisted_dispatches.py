@@ -103,16 +103,6 @@ def explicit_action_dispatches(
                 payload
             )
         )
-        if (
-            not provider_hosted_stage_run_current
-            and stage_native_dispatch_selection.dispatch_uses_stage_native_next_action(payload)
-            and not stage_native_dispatch_selection.next_action_matches_dispatch(
-                profile=profile,
-                study_id=study_id,
-                dispatch=payload,
-            )
-        ):
-            continue
         scan_payload = scan_latest_payload(profile)
         current_study = scan_route_currentness.scan_study(scan_payload, study_id)
         consumer_dispatch_current = _consumer_latest_matches_dispatch(
@@ -124,12 +114,7 @@ def explicit_action_dispatches(
             consumer_dispatch_current
             and _dispatch_currentness_score(payload, current_study) > (0, 0)
         )
-        stage_native_next_action_current = stage_native_dispatch_selection.next_action_has_opl_execution_proof(
-            profile=profile,
-            study_id=study_id,
-            dispatch=payload,
-        )
-        stage_native_matches_next_action = stage_native_dispatch_selection.next_action_matches_dispatch(
+        stage_native_execution_current = stage_native_dispatch_selection.dispatch_has_current_execution_proof(
             profile=profile,
             study_id=study_id,
             dispatch=payload,
@@ -137,8 +122,7 @@ def explicit_action_dispatches(
         stage_native_missing_authority_blocker_projection = (
             allow_missing_authority_blocker_projection
             and stage_native_dispatch_selection.dispatch_uses_stage_native_next_action(payload)
-            and stage_native_matches_next_action
-            and not stage_native_next_action_current
+            and not stage_native_execution_current
         )
         if current_writer_handoff.fresh_progress_ticket_supersedes_action(
             profile=profile,
@@ -157,7 +141,7 @@ def explicit_action_dispatches(
             scan_payload=scan_payload,
             scan_route_current=scan_route_current,
             provider_hosted_stage_run_current=provider_hosted_stage_run_current,
-            stage_native_next_action_current=stage_native_next_action_current,
+            stage_native_execution_current=stage_native_execution_current,
         )
         if (
             require_current_authority
@@ -188,9 +172,8 @@ def _explicit_dispatch_current_authority(
     scan_payload: Mapping[str, Any] | None,
     scan_route_current: bool,
     provider_hosted_stage_run_current: bool,
-    stage_native_next_action_current: bool,
+    stage_native_execution_current: bool,
 ) -> bool:
-    progress_for_selectors = _mapping(fresh_progress)
     return (
         owner_request_matches_dispatch(
             profile=profile,
@@ -200,18 +183,13 @@ def _explicit_dispatch_current_authority(
             fresh_progress=fresh_progress,
         )
         or scan_route_current
-        or _fresh_progress_owner_action_selectable(
-            current_study=current_study,
-            progress=progress_for_selectors,
-            dispatch=dispatch,
-        )
         or live_provider_attempt_owner_route_from_scan_payload(
             scan_payload=scan_payload,
             study_id=study_id,
             dispatch=dispatch,
         )
         or provider_hosted_stage_run_current
-        or stage_native_next_action_current
+        or stage_native_execution_current
         or current_writer_handoff.current_quality_repair_writer_handoff_dispatch(
             profile=profile,
             study_id=study_id,
@@ -279,24 +257,18 @@ def selected_dispatches(
         if isinstance(fresh_progress, Mapping)
         else stage_native_dispatch_selection.read_fresh_study_progress(profile=profile, study_id=study_id)
     )
-    progress_envelope_blocks_dispatch_selection = (
-        progress_blocking_selection.fresh_progress_envelope_blocks_dispatch_selection(
+    legal_hard_stop_blocks_dispatch_selection = (
+        progress_blocking_selection.legal_hard_stop_blocks_dispatch_selection(
             fresh_progress
         )
     )
     terminal_closeout_owner_answer = _terminal_closeout_owner_answer_required(fresh_progress)
     current_study = scan_route_currentness.scan_study(scan_payload, study_id)
     current_study = _with_consumed_transition_owner_route(current_study)
-    stage_native_next_action = None
     consumer_dispatches = consumer_dispatch_readback.current_consumer_dispatches(
         study_id=study_id,
         consumer_payload=consumer_payload,
         consumer_latest_path=consumer_latest_path,
-    )
-    consumer_dispatches = _without_unauthorized_stage_native_dispatches(
-        profile=profile,
-        study_id=study_id,
-        dispatches=consumer_dispatches,
     )
     consumer_dispatches = consumed_writer_handoff_filter.without_consumed_quality_repair_writer_handoffs(
         profile=profile,
@@ -369,11 +341,6 @@ def selected_dispatches(
                     dispatch=payload,
                     fresh_progress=fresh_progress,
                 )
-                and not _fresh_progress_owner_action_selectable(
-                    current_study=current_study,
-                    progress=fresh_progress,
-                    dispatch=payload,
-                )
                 and not opl_execution_preflight.provider_hosted_exact_stage_run_current_execution_authority(
                     payload
                 )
@@ -420,7 +387,7 @@ def selected_dispatches(
             dispatches=selected,
             current_study=current_study,
         )
-        if progress_envelope_blocks_dispatch_selection:
+        if legal_hard_stop_blocks_dispatch_selection:
             runtime_current_selected = _dispatches_selectable_despite_blocking_progress(
                 profile=profile,
                 study_id=study_id,
@@ -441,7 +408,7 @@ def selected_dispatches(
             return current_selected
         if scan_route_currentness.consumed_transition_owner_route(current_study):
             return []
-        if progress_envelope_blocks_dispatch_selection:
+        if legal_hard_stop_blocks_dispatch_selection:
             return []
         if _current_control_authority_present(current_study):
             return []
@@ -528,7 +495,7 @@ def selected_dispatches(
         dispatches=selected,
         current_study=current_study,
     )
-    if progress_envelope_blocks_dispatch_selection:
+    if legal_hard_stop_blocks_dispatch_selection:
         runtime_current_selected = _dispatches_selectable_despite_blocking_progress(
             profile=profile,
             study_id=study_id,
@@ -584,7 +551,7 @@ def selected_dispatches(
         return diagnostic_selected
     if stage_native_missing_proof_selected and action_types:
         return stage_native_missing_proof_selected
-    if progress_envelope_blocks_dispatch_selection:
+    if legal_hard_stop_blocks_dispatch_selection:
         return []
     if _current_control_authority_present(current_study):
         return []
@@ -604,15 +571,9 @@ _dispatches_selectable_despite_blocking_progress = (
 _dispatch_selectable_despite_blocking_progress = (
     persisted_dispatch_selection.dispatch_selectable_despite_blocking_progress
 )
-_without_unauthorized_stage_native_dispatches = (
-    stage_native_dispatch_selection.without_unauthorized_dispatches
-)
 _runtime_current_dispatches_only = persisted_dispatch_selection.runtime_current_dispatches_only
 _with_consumed_transition_owner_route = (
     persisted_dispatch_selection.with_consumed_transition_owner_route
-)
-_fresh_progress_owner_action_selectable = (
-    persisted_dispatch_selection.fresh_progress_owner_action_selectable
 )
 _current_control_authority_present = (
     persisted_dispatch_selection.current_control_authority_present

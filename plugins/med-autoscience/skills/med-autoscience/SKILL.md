@@ -85,8 +85,9 @@ Executor and reviewer/auditor must be separate invocations with separate task
 records and receipts. Provider completion, file presence, tests, read models,
 or generated descriptors never close an AI-first quality gate.
 
-Ordinary progression reads canonical `StageOutcome` and
-`NextActionEnvelope`; legacy next-action or diagnostic projections are not
+Ordinary progression lets Codex read any prior `StageOutcome`, raw/partial
+artifact, negative result, failed attempt, or no-output diagnostic as route
+context. No envelope, projection, receipt, or transition table is semantic
 transition authority. A consumable delta may advance as
 `completed_with_quality_debt`; that debt blocks quality, publication, export,
 and submission-ready claims. A stage that produces no scientific or manuscript

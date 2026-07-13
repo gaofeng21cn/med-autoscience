@@ -40,13 +40,6 @@ NON_BLOCKING_STAGE_CLOSURE_STATUSES = frozenset(
     {
         "accepted",
         "accepted_candidate",
-        "not_applicable_domain_transition_direct",
-        "domain_transition_direct_stage_attempt",
-        "domain_transition_next_action_ready",
-        (
-            "MAS domain transition selected a concrete OPL stage attempt for "
-            "the current paper repair work unit."
-        ),
     }
 )
 

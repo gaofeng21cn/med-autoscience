@@ -28,7 +28,7 @@ def test_budget_exhausted_decision_carries_forward_nonfatal_review_findings() ->
     assert receipt["authority_boundary"]["can_claim_submission_ready"] is False
 
 
-def test_budget_exhausted_decision_blocks_fatal_evidence_or_authority_risk() -> None:
+def test_budget_exhausted_scientific_evidence_gap_routes_back_without_blocking_progress() -> None:
     module = importlib.import_module("med_autoscience.progress_first_quality_loop")
 
     decision = module.budget_exhausted_decision(
@@ -41,25 +41,38 @@ def test_budget_exhausted_decision_blocks_fatal_evidence_or_authority_risk() -> 
         max_automatic_failures=3,
     )
 
+    assert decision["decision"] == "advance_with_carry_forward_risk"
+    assert decision["severity"] == "carry_forward_advisory"
+    assert decision["fatal"] is False
+    assert decision["ordinary_progress_may_advance"] is True
+    assert decision["carry_forward_risk_receipt"] is not None
+
+
+def test_budget_exhausted_real_authority_boundary_remains_a_hard_stop() -> None:
+    module = importlib.import_module("med_autoscience.progress_first_quality_loop")
+
+    decision = module.budget_exhausted_decision(
+        study_id="002-dm-china-us-mortality-attribution",
+        action_type="submission_apply",
+        work_unit_id="irreversible_submission",
+        work_unit_fingerprint="fingerprint-authority",
+        blocker_reason="irreversible_action_requires_authorization",
+        failure_count=1,
+        max_automatic_failures=1,
+    )
+
     assert decision["decision"] == "block_for_fatal_risk"
-    assert decision["severity"] == "fatal_blocker"
     assert decision["fatal"] is True
     assert decision["ordinary_progress_may_advance"] is False
-    assert decision["carry_forward_risk_receipt"] is None
-    assert decision["next_allowed_outcomes"] == [
-        "single_typed_blocker",
-        "human_or_operator_gate",
-        "route_redesign",
-    ]
 
 
-def test_nonconsumable_redrive_budget_exhaustion_is_quality_debt_not_a_blocker() -> None:
+def test_nonconsumable_output_is_immediately_a_quality_debt_diagnostic() -> None:
     module = importlib.import_module(
-        "med_autoscience.controllers.study_stage_attempt_receipt_consumption.nonconsumable_redrive_budget"
+        "med_autoscience.controllers.study_stage_attempt_receipt_consumption.progress_diagnostic"
     )
 
     receipt = module.consumption(
-        latest={
+        diagnostic={
             "receipt_ref": "attempt.closeout.json",
             "execution_id": "attempt-1",
             "action_type": "run_quality_repair_batch",
@@ -70,11 +83,11 @@ def test_nonconsumable_redrive_budget_exhaustion_is_quality_debt_not_a_blocker()
             "route_epoch": "1",
             "source_fingerprint": "sha256:test",
         },
-        repeat_count=3,
     )
 
     assert receipt["execution_status"] == "completed_with_quality_debt"
     assert receipt["next_stage_may_start"] is True
+    assert receipt["progress_diagnostic"]["consumable_by_next_stage"] is True
     assert receipt["quality_debt"]["blocks_stage_transition"] is False
     assert "typed_blocker" not in receipt
     assert "blocked_reason" not in receipt

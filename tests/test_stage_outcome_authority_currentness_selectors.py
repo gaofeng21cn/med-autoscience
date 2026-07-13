@@ -21,7 +21,7 @@ WORK_UNIT_ID = "medical_prose_write_repair"
 WORK_UNIT_FINGERPRINT = "publication-blockers::0915410f804b3697"
 
 
-def test_owner_request_route_requires_every_canonical_currentness_field() -> None:
+def test_owner_request_route_requires_every_explicit_route_context_currentness_field() -> None:
     identity = {
         "work_unit_id": WORK_UNIT_ID,
         "work_unit_fingerprint": WORK_UNIT_FINGERPRINT,
@@ -32,8 +32,9 @@ def test_owner_request_route_requires_every_canonical_currentness_field() -> Non
         "route_epoch": "route::current",
     }
     current_study = {
-        "next_action": {
-            "surface_kind": "mas_next_action_envelope",
+        "ai_route_context": {
+            "surface_kind": "mas_ai_route_context",
+            "route_selection_owner": "codex_cli",
             "currentness_basis": identity,
         }
     }
@@ -275,15 +276,8 @@ def test_stage_native_workspace_next_action_file_is_not_default_dispatch_authori
         ]
     }
 
-    assert stage_native_dispatch_selection.next_action(
-        profile=profile,
-        study_id=STUDY_ID,
-    ) is None
-    assert stage_native_dispatch_selection.next_action_matches_dispatch(
-        profile=profile,
-        study_id=STUDY_ID,
-        dispatch=dispatch,
-    ) is False
+    assert not hasattr(stage_native_dispatch_selection, "next_action")
+    assert not hasattr(stage_native_dispatch_selection, "next_action_matches_dispatch")
     assert persisted_dispatches.selected_dispatches(
         profile=profile,
         study_id=STUDY_ID,
@@ -337,28 +331,14 @@ def test_ai_route_context_is_not_materialized_as_a_blocker_dispatch(tmp_path) ->
     assert selected == []
 
 
-def test_canonical_next_action_envelope_drives_stage_native_dispatch_authority() -> None:
+def test_current_execution_proof_drives_stage_native_dispatch_without_envelope() -> None:
     route = _owner_route()
     dispatch = _stage_native_dispatch(
         route=route,
-        next_action={
-            "surface_kind": "mas_next_action_envelope",
-            "action_id": "next-action::dm003::repair",
-            "idempotency_key": "request::dm003::repair",
-            "action_family": "runtime.opl_route",
-            "expected_output_contract": {
-                "output_kind": "opl_stage_attempt_transport_receipt"
-            },
-        },
         opl_proof=opl_execution_authorization(study_id=STUDY_ID, action_type=ACTION_TYPE),
     )
 
-    assert stage_native_dispatch_selection.next_action_matches_dispatch(
-        profile=object(),
-        study_id=STUDY_ID,
-        dispatch=dispatch,
-    ) is True
-    assert stage_native_dispatch_selection.next_action_has_opl_execution_proof(
+    assert stage_native_dispatch_selection.dispatch_has_current_execution_proof(
         profile=object(),
         study_id=STUDY_ID,
         dispatch=dispatch,
@@ -378,7 +358,7 @@ def test_canonical_next_action_envelope_drives_stage_native_dispatch_authority()
     assert selected_route["allowed_actions"] == [ACTION_TYPE]
     assert selected_route["source_refs"]["work_unit_id"] == WORK_UNIT_ID
     assert selected_route["source_refs"]["work_unit_fingerprint"] == WORK_UNIT_FINGERPRINT
-    assert basis == "canonical_next_action_envelope"
+    assert basis == "codex_selected_stage_current_execution_proof"
 
 
 def _running_attempt_dispatch() -> dict[str, object]:

@@ -4,8 +4,7 @@ from collections.abc import Mapping
 from typing import Any
 
 
-REDRIVE_BUDGET = 1
-REDRIVE_BUDGET_EXHAUSTED_REASON = "progress_first_owner_redrive_budget_exhausted"
+PROGRESS_DIAGNOSTIC_REASON = "owner_callable_output_not_consumable"
 
 
 def match(
@@ -34,10 +33,10 @@ def reason(
     action_type: str | None,
     owner_result: Mapping[str, Any],
     repair_evidence: Mapping[str, Any],
-    dispatch_zero_execution_blocker: bool,
+    dispatch_zero_execution_diagnostic: bool,
 ) -> str:
     if action_type == "run_quality_repair_batch":
-        if dispatch_zero_execution_blocker:
+        if dispatch_zero_execution_diagnostic:
             return "stage_outcome_authority_execution_count_zero"
         hygiene = _mapping(repair_evidence.get("manuscript_surface_hygiene"))
         if (
@@ -48,54 +47,54 @@ def reason(
         if blocked_reason := _text(owner_result.get("blocked_reason")):
             return blocked_reason
         if _text(repair_evidence.get("status")) == "progress_delta_candidate":
-            return "required_story_surface_delta_or_typed_blocker_missing"
+            return "required_story_surface_delta_missing"
     return (
         _text(owner_result.get("blocked_reason"))
         or _text(repair_evidence.get("blocked_reason"))
         or _text(owner_result.get("status"))
         or _text(repair_evidence.get("status"))
-        or "owner_callable_adapter_closeout_not_consumable"
+        or PROGRESS_DIAGNOSTIC_REASON
     )
-
-
-def budget_exhausted(matches: list[Mapping[str, Any]]) -> bool:
-    return len(matches) > REDRIVE_BUDGET
 
 
 def consumption(
     *,
-    latest: Mapping[str, Any],
+    diagnostic: Mapping[str, Any],
     owner_route: Mapping[str, Any],
-    repeat_count: int,
 ) -> dict[str, Any]:
-    reason = _text(latest.get("reason")) or "owner_callable_adapter_closeout_not_consumable"
+    detail_reason = _text(diagnostic.get("reason")) or PROGRESS_DIAGNOSTIC_REASON
+    diagnostic_ref = f"mas-progress-diagnostic:{detail_reason}"
     return {
         "status": "consumed",
         "receipt_kind": "owner_callable_adapter_receipt",
-        "receipt_ref": _text(latest.get("receipt_ref")),
-        "execution_id": _text(latest.get("execution_id")),
-        "action_type": _text(latest.get("action_type")),
+        "receipt_ref": _text(diagnostic.get("receipt_ref")),
+        "execution_id": _text(diagnostic.get("execution_id")),
+        "action_type": _text(diagnostic.get("action_type")),
         "execution_status": "completed_with_quality_debt",
         "owner_result_status": "completed_with_quality_debt",
-        "repair_execution_evidence_status": "quality_budget_exhausted",
+        "repair_execution_evidence_status": "progress_diagnostic",
+        "progress_diagnostic": {
+            "surface_kind": "mas_no_output_or_failure_diagnostic",
+            "schema_version": 1,
+            "diagnostic_ref": diagnostic_ref,
+            "reason": PROGRESS_DIAGNOSTIC_REASON,
+            "detail_reason": detail_reason,
+            "consumable_by_next_stage": True,
+            "route_selection_owner": "codex_cli",
+        },
         "quality_debt": {
             "surface_kind": "mas_progress_first_quality_debt",
             "schema_version": 1,
-            "reason": REDRIVE_BUDGET_EXHAUSTED_REASON,
-            "detail_reason": reason,
-            "repeat_count": repeat_count,
-            "nonconsumable_closeout_redrive_budget": REDRIVE_BUDGET,
+            "reason": PROGRESS_DIAGNOSTIC_REASON,
+            "detail_reason": detail_reason,
             "blocks_stage_transition": False,
             "blocks_quality_or_ready_claims": True,
             "route_selection_owner": "codex_cli",
         },
-        "nonconsumable_closeout_reason": reason,
-        "nonconsumable_closeout_repeat_count": repeat_count,
-        "nonconsumable_closeout_redrive_budget": REDRIVE_BUDGET,
+        "changed_artifact_ref_count": int(diagnostic.get("changed_artifact_ref_count") or 0),
         "consumed_owner_route_idempotency_key": _text(owner_route.get("idempotency_key")),
         "consumed_owner_route_epoch": _text(owner_route.get("route_epoch")),
         "consumed_owner_route_source_fingerprint": _text(owner_route.get("source_fingerprint")),
-        "changed_artifact_ref_count": int(latest.get("changed_artifact_ref_count") or 0),
         "quality_authorized": False,
         "submission_authorized": False,
         "current_package_write_authorized": False,
@@ -118,11 +117,4 @@ def _text(value: object) -> str:
     return str(value or "").strip()
 
 
-__all__ = [
-    "REDRIVE_BUDGET",
-    "REDRIVE_BUDGET_EXHAUSTED_REASON",
-    "budget_exhausted",
-    "consumption",
-    "match",
-    "reason",
-]
+__all__ = ["PROGRESS_DIAGNOSTIC_REASON", "consumption", "match", "reason"]

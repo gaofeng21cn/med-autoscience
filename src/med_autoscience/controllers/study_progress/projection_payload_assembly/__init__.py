@@ -289,7 +289,7 @@ def assemble_study_progress_payload(
     )
     payload["pi_action_projection"] = pi_action_projection.build_pi_action_projection(payload)
     payload["user_visible_projection"] = build_user_visible_projection(payload)
-    payload = _attach_single_next_action_projection(payload)
+    payload = _attach_nonbinding_codex_route_context(payload)
     payload = apply_current_owner_handoff_user_visible_status(payload)
     payload = _apply_runtime_medical_publication_surface_user_visible_status(payload)
     payload = _apply_terminal_delivery_user_visible_status(payload)
@@ -306,7 +306,7 @@ def assemble_study_progress_payload(
     )
     payload = _sync_supervision_from_user_visible_projection(payload)
     payload = attach_artifact_first_mission_summary(payload)
-    payload = _attach_single_next_action_projection(payload)
+    payload = _attach_nonbinding_codex_route_context(payload)
     payload = _attach_typed_blocker_resolution_successor_projection(
         payload=payload,
         profile=profile,
@@ -332,16 +332,14 @@ def _attach_submission_authority_owner_gate_readback(payload: Mapping[str, Any])
     return updated
 
 
-def _attach_single_next_action_projection(payload: Mapping[str, Any]) -> dict[str, Any]:
+def _attach_nonbinding_codex_route_context(payload: Mapping[str, Any]) -> dict[str, Any]:
     updated = dict(payload)
     existing = _mapping_copy(updated.get("next_action"))
     if existing:
         updated["next_action"] = existing
-        updated["canonical_next_action_source"] = (
-            _non_empty_text(updated.get("canonical_next_action_source"))
-            or "precomputed_canonical_next_action"
-        )
-        return _sync_user_visible_next_action_owner(updated)
+        updated.pop("canonical_next_action_source", None)
+        updated["next_action_projection_role"] = "nonbinding_codex_route_context"
+        return updated
     handoff = _mapping_copy(updated.get("opl_current_control_state_handoff"))
     transaction = _mapping_copy(updated.get("paper_mission_transaction"))
     summary = _mapping_copy(updated.get("artifact_first_mission_summary"))
@@ -371,36 +369,9 @@ def _attach_single_next_action_projection(payload: Mapping[str, Any]) -> dict[st
     )
     if envelope is not None:
         updated["next_action"] = envelope
-        updated["canonical_next_action_source"] = "paper_mission_next_action_envelope"
-    return _sync_user_visible_next_action_owner(updated)
-
-
-def _sync_user_visible_next_action_owner(payload: Mapping[str, Any]) -> dict[str, Any]:
-    user_visible = _mapping_copy(payload.get("user_visible_projection"))
-    next_action = _mapping_copy(payload.get("next_action"))
-    owner = _non_empty_text(next_action.get("next_owner")) or _non_empty_text(next_action.get("owner"))
-    if not user_visible or owner is None:
-        return dict(payload)
-    updated = dict(payload)
-    user_visible["next_owner"] = owner
-    user_visible["conditions"] = [
-        _synced_next_owner_condition(condition, owner=owner)
-        for condition in user_visible.get("conditions") or []
-        if isinstance(condition, Mapping)
-    ]
-    updated["user_visible_projection"] = user_visible
+        updated.pop("canonical_next_action_source", None)
+        updated["next_action_projection_role"] = "nonbinding_codex_route_context"
     return updated
-
-
-def _synced_next_owner_condition(condition: Mapping[str, Any], *, owner: str) -> dict[str, Any]:
-    if _non_empty_text(condition.get("type")) != "next_owner":
-        return dict(condition)
-    return {
-        **dict(condition),
-        "status": "true",
-        "reason": "next_owner_present",
-        "message": owner,
-    }
 
 
 def _apply_post_user_visible_status_overrides(payload: dict[str, Any]) -> dict[str, Any]:
@@ -416,7 +387,7 @@ def _attach_ai_route_context(payload: Mapping[str, Any]) -> dict[str, Any]:
     updated.pop("domain_transition", None)
     updated["ai_route_context"] = {
         "surface_kind": "mas_ai_route_context",
-        "semantic_route_owner": "codex_cli",
+        "route_selection_owner": "codex_cli",
         "may_start_any_declared_stage": True,
         "may_advance_repeat_skip_or_route_back": True,
         "readable_partial_negative_or_failed_artifact_is_progress": True,

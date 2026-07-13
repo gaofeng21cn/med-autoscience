@@ -45,16 +45,18 @@ def assert_default_next_action_legacy_surfaces_retired(payload: dict[str, object
         assert key not in payload
     assert payload["legacy_next_action_authority_retired"] == {
         "status": "retired",
-        "authority": "NextActionEnvelope",
-        "reason": "legacy_next_action_authority_retired_use_next_action_envelope",
+        "authority": "codex_cli",
+        "retired_authority": "NextActionEnvelope",
+        "reason": "programmatic_next_action_authority_retired_use_codex_selected_stage",
         "retired_surfaces": [
             "current_work_unit",
             "current_executable_owner_action",
             "provider_attempt",
             "current_execution_envelope",
         ],
-        "default_selector_policy": "fail_closed",
+        "default_selector_policy": "codex_selected_declared_stage",
         "diagnostic_only": True,
+        "missing_route_context_blocks_stage_transition": False,
     }
 
 

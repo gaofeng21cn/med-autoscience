@@ -7,7 +7,6 @@ from med_autoscience.controllers.gate_clearing_batch_work_units import PUBLICATI
 from med_autoscience.controllers.stage_outcome_authority import owner_route_policy as owner_route_part
 
 from . import consumed_transition_currentness
-from . import owner_request_paths
 from . import publication_handoff_currentness
 
 
@@ -79,7 +78,6 @@ def consumed_transition_owner_route(current_study: Mapping[str, Any]) -> dict[st
         "owner_reason": owner_reason,
         "active_run_id": _text(current_study.get("active_run_id")),
         "allowed_actions": [action_type],
-        "blocked_actions": [item for item in owner_request_paths.OWNER_REQUEST_RELATIVE_PATHS if item != action_type],
         "idempotency_key": f"owner-route::{study_id}::{route_epoch}::{owner}::{owner_reason}",
         "source_refs": {
             "source_eval_id": _text(completion.get("eval_id"))

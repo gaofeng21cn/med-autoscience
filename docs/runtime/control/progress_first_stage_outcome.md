@@ -3,7 +3,7 @@
 Owner: `MedAutoScience`
 Purpose: `stage_outcome_runbook`
 State: `active_current_truth`
-Machine boundary: 本文是 owner/runbook 说明。机器真相归 stage contracts、NextActionEnvelope、OPL StageRun readback 与 MAS owner receipts。
+Machine boundary: 本文是 owner/runbook 说明。机器真相归 stage contracts、Codex-selected stage、nonbinding route context、OPL StageRun readback 与 MAS owner receipts。
 
 ## 核心规则
 
@@ -16,7 +16,7 @@ Machine boundary: 本文是 owner/runbook 说明。机器真相归 stage contrac
 - route-back；
 - independent reviewer/auditor receipt。
 
-默认下一步只从 `StageOutcome -> NextActionEnvelope` 产生。OPL 负责 transport/readback，MAS owner 负责医学解释与 authority。
+默认下一步只从 `Codex CLI selected stage -> nonbinding route context` 产生。OPL 负责 transport/readback，MAS owner 负责医学解释与 authority。
 
 ## 最小 outcome shape
 
@@ -30,7 +30,7 @@ Outcome 至少绑定：
 - receipt、blocker 或 human-gate ref；
 - forbidden-write/authority boundary。
 
-缺 identity、owner result 或 evidence ref 时 fail closed。不得从旧 provider/current-work-unit projection 推断或拼接下一步。
+缺 identity、owner result 或 evidence ref 时记录质量债或 no-output/failure diagnostic，关闭对应 quality/ready claim但继续推进。不得从旧 provider/current-work-unit projection 推断或拼接下一步；wrong-target identity/currentness 才是硬停。
 
 ## Progress 与 platform repair
 
@@ -60,7 +60,7 @@ OPL 不决定医学 quality、publication、artifact 或 memory authority。
 - 评估医学 policy/authority；
 - 签 owner receipt或 typed blocker；
 - 物化 publication/artifact/memory decision；
-- 输出 NextActionEnvelope。
+- 输出 StageOutcome、artifact/diagnostic 与可选的 nonbinding Codex route context；不得输出 programmatic successor authority。
 
 MAS 不维护 runtime transport、queue、StateIndex、health/storage 或 workbench shell。
 

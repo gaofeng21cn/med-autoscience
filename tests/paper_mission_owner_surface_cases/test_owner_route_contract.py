@@ -65,9 +65,11 @@ def test_owner_route_registers_domain_transition_publication_gate_blocker() -> N
     decorated = protocol.decorate_owner_route(owner_route)
 
     assert decorated["allowed_actions"] == ["run_gate_clearing_batch"]
-    assert decorated["owner_reason_contract"]["registered"] is True
+    assert decorated["owner_reason_contract"]["binding"] is False
+    assert decorated["owner_reason_contract"]["route_selection_owner"] == "codex_cli"
     assert decorated["owner_reason_contract"]["owner"] == "gate_clearing_batch"
-    assert decorated["owner_reason_contract"]["allowed_actions"] == ["run_gate_clearing_batch"]
+    assert decorated["owner_reason_contract"]["codex_selected_action"] == "run_gate_clearing_batch"
+    assert decorated["owner_reason_contract"]["can_reject_codex_route"] is False
     assert decorated["owner_route_attempt_protocol"]["dispatchable"] is True
 
 
@@ -292,9 +294,10 @@ def test_registered_owner_route_decorator_keeps_missing_allowed_action_non_dispa
     decorated = protocol.decorate_owner_route(route)
 
     assert decorated["allowed_actions"] == []
-    assert "return_to_ai_reviewer_workflow" in decorated["blocked_actions"]
-    assert decorated["owner_reason_contract"]["registered"] is True
-    assert decorated["owner_reason_contract"]["allowed_actions"] == ["return_to_ai_reviewer_workflow"]
+    assert "blocked_actions" not in decorated
+    assert decorated["owner_reason_contract"]["binding"] is False
+    assert decorated["owner_reason_contract"]["codex_selected_action"] is None
+    assert decorated["owner_reason_contract"]["can_reject_codex_route"] is False
     assert decorated["owner_route_attempt_protocol"]["dispatchable"] is False
 
 

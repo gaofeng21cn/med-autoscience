@@ -643,7 +643,9 @@ def test_current_owner_action_supersedes_operator_explicit_resume_lane(
     assert result["operator_verdict"]["decision_mode"] == "auto_runtime_parked"
     assert result["recovery_contract"]["action_mode"] == "auto_runtime_parked"
     assert result["autonomy_contract"]["autonomy_state"] == "auto_runtime_parked"
-    assert result["legacy_next_action_authority_retired"]["authority"] == "NextActionEnvelope"
+    retirement = result["legacy_next_action_authority_retired"]
+    assert retirement["authority"] == "codex_cli"
+    assert retirement["retired_authority"] == "NextActionEnvelope"
 
 
 

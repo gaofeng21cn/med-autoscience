@@ -52,32 +52,13 @@ def test_missing_next_action_does_not_resurrect_legacy_owner_inputs() -> None:
     assert projection.build_canonical_owner_action_projection(_legacy_payload()) is None
 
 
-def test_domain_handler_exports_only_identity_complete_next_action() -> None:
+def test_domain_handler_does_not_export_programmatic_next_action_authority() -> None:
     module = importlib.import_module(
         "med_autoscience.controllers.owner_route_handoff.domain_handler_export"
     )
-    next_action = {
-        "surface_kind": "mas_next_action_envelope",
-        "action_id": "next-action-owner-route",
-        "idempotency_key": "next-action-owner-route::idempotency",
-        "action_family": "paper.write.prose_repair",
-        "action_type": "run_quality_repair_batch",
-        "owner": "write",
-        "work_unit_id": "canonical-write-repair",
-        "work_unit_fingerprint": "canonical-write-repair::fingerprint",
-        "expected_output_contract": {
-            "output_kind": "opl_stage_attempt_transport_receipt"
-        },
-    }
 
-    assert module._export_current_owner_action(
-        study={"current_owner_action": _legacy_payload()["current_executable_owner_action"]},
-        current_progress={**_legacy_payload(), "next_action": next_action},
-    ) == next_action
-    assert module._export_current_owner_action(
-        study={"current_owner_action": _legacy_payload()["current_executable_owner_action"]},
-        current_progress=_legacy_payload(),
-    ) == {}
+    assert not hasattr(module, "_export_current_owner_action")
+    assert not hasattr(module, "family_transition_spec")
 
 
 def test_next_action_cleanup_does_not_back_project_legacy_owner_surfaces() -> None:
@@ -102,9 +83,10 @@ def test_next_action_cleanup_does_not_back_project_legacy_owner_surfaces() -> No
     assert cleaned["next_action"]["surface_kind"] == "mas_next_action_envelope"
     assert "current_executable_owner_action" not in cleaned
     assert "current_work_unit" not in cleaned
-    assert cleaned["legacy_next_action_authority_retired"]["authority"] == (
-        "NextActionEnvelope"
-    )
+    retirement = cleaned["legacy_next_action_authority_retired"]
+    assert retirement["authority"] == "codex_cli"
+    assert retirement["retired_authority"] == "NextActionEnvelope"
+    assert retirement["missing_route_context_blocks_stage_transition"] is False
 
 
 def test_retired_successor_diagnostic_producers_stay_absent() -> None:

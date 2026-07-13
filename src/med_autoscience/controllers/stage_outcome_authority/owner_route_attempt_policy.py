@@ -7,13 +7,15 @@ from med_autoscience.controllers.owner_callable_closeout_contract import (
     owner_callable_typed_closeout_contract,
 )
 from med_autoscience.controllers.owner_callable_action_policy import owner_callable_search_discipline
-from med_autoscience.controllers.stage_outcome_authority.owner_route_attempt_reasons import (
-    DEFAULT_FORBIDDEN_SURFACES,
-    _REASON_REGISTRY,
-)
-
-
 PROTOCOL_VERSION = "mas-owner-route-attempt-protocol.v1"
+DEFAULT_FORBIDDEN_SURFACES = [
+    "manuscript/**",
+    "current_package/**",
+    "paper/current_package/**",
+    "manuscript/current_package/**",
+    "artifacts/publication_eval/latest.json",
+    "artifacts/controller_decisions/latest.json",
+]
 ROUTE_TO_ATTEMPT_CONTRACT = {
     "surface_kind": "mas_route_to_attempt_contract",
     "version": "mas-route-to-attempt-contract.v1",
@@ -31,15 +33,6 @@ ROUTE_TO_ATTEMPT_CONTRACT = {
     ],
     "human_gate_exception_requires_typed_blocker": True,
 }
-PRIORITY_LATTICE = [
-    "hard_methodology_or_source_blocker",
-    "pending_ai_reviewer_request",
-    "ai_reviewer_currentness",
-    "write_route_back",
-    "package_freshness",
-    "delivery_or_human_handoff",
-]
-
 AUTHORITY_BOUNDARY = {
     "runtime_transport_ref": "opl-generated:family-runtime/current-control",
     "stage_run_ref_contract": "opl-generated:family-runtime/stage-run",
@@ -103,31 +96,15 @@ def owner_reason_contract(
     action_type: str | None = None,
 ) -> dict[str, Any]:
     reason_text = _text(reason)
-    entry = _REASON_REGISTRY.get(reason_text or "")
-    if entry is None:
-        return {
-            "registered": False,
-            "reason": reason_text,
-            "owner": owner,
-            "allowed_actions": [],
-            "required_output": None,
-            "forbidden_surfaces": list(DEFAULT_FORBIDDEN_SURFACES),
-            "priority_class": None,
-            "regression_refs": [],
-        }
-    resolved_owner = _resolve_owner(entry.get("owner"), owner=owner)
-    allowed_actions = list(entry.get("allowed_actions") or [])
-    if action_type and action_type not in allowed_actions and entry.get("allow_route_action") is True:
-        allowed_actions.append(action_type)
     return {
-        "registered": True,
+        "surface_kind": "mas_codex_route_context_projection",
+        "binding": False,
+        "route_selection_owner": "codex_cli",
         "reason": reason_text,
-        "owner": resolved_owner,
-        "allowed_actions": allowed_actions,
-        "required_output": entry.get("required_output"),
-        "forbidden_surfaces": list(entry.get("forbidden_surfaces") or DEFAULT_FORBIDDEN_SURFACES),
-        "priority_class": entry.get("priority_class"),
-        "regression_refs": list(entry.get("regression_refs") or []),
+        "owner": owner,
+        "codex_selected_action": action_type,
+        "forbidden_surfaces": list(DEFAULT_FORBIDDEN_SURFACES),
+        "can_reject_codex_route": False,
     }
 
 
@@ -201,6 +178,7 @@ def decorate_owner_route(owner_route: Mapping[str, Any]) -> dict[str, Any]:
     route = dict(owner_route)
     if not route:
         return {}
+    route.pop("blocked_actions", None)
     reason = _text(route.get("owner_reason")) or _text(route.get("failure_signature"))
     owner = _text(route.get("next_owner"))
     allowed_actions = [_text(action) for action in route.get("allowed_actions") or []]
@@ -213,12 +191,10 @@ def decorate_owner_route(owner_route: Mapping[str, Any]) -> dict[str, Any]:
         source_refs["owner_route_currentness_basis"] = basis
     route["source_refs"] = source_refs
     route["owner_reason_contract"] = reason_contract
-    route["priority_lattice"] = list(PRIORITY_LATTICE)
     route["currentness_contract"] = currentness_contract(route)
     route["owner_route_attempt_protocol"] = {
         "version": PROTOCOL_VERSION,
         "dispatchable": bool(allowed_actions and not route["currentness_contract"]["missing_required_fields"]),
-        "priority_class": reason_contract["priority_class"],
         "currentness_contract": route["currentness_contract"]["status"],
         "route_to_attempt_contract": _route_to_attempt_contract(),
         "authority_boundary": _authority_boundary(),
@@ -307,7 +283,6 @@ def owner_callable_attempt_envelope(
         "version": PROTOCOL_VERSION,
         **core_fields,
         "owner_reason_contract": reason_contract,
-        "priority_lattice": list(PRIORITY_LATTICE),
         "dispatchable": dispatchable,
     }
 
@@ -363,20 +338,6 @@ def route_protocol_dispatchable(owner_route: Mapping[str, Any], *, action_type: 
     if action_type is None:
         return True
     return action_type in {_text(action) for action in route.get("allowed_actions") or []}
-
-
-_ROUTED_ACTION_TYPES = (
-    "publication_gate_specificity_required",
-    "publication_handoff_owner_gate",
-    "current_package_freshness_required",
-    "artifact_display_surface_materialization_required",
-    "return_to_ai_reviewer_workflow",
-    "canonical_paper_inputs_rehydrate_required",
-    "run_quality_repair_batch",
-    "run_gate_clearing_batch",
-    "complete_medical_paper_readiness_surface",
-    "paper_clean_room_rebuild_required",
-)
 
 
 def _required_closeout_packet(
@@ -536,12 +497,6 @@ def _list_field(
     return list(value) if isinstance(value, list) else []
 
 
-def _resolve_owner(registry_owner: object, *, owner: str | None) -> str | None:
-    if registry_owner == "owner_route_next_owner":
-        return owner
-    return _text(registry_owner) or owner
-
-
 def _compact_mapping(payload: Mapping[str, Any]) -> dict[str, Any]:
     return {key: value for key, value in payload.items() if _text(value) is not None}
 
@@ -575,7 +530,6 @@ def _text(value: object) -> str | None:
 __all__ = [
     "AUTHORITY_BOUNDARY",
     "CURRENTNESS_BASIS_FIELDS",
-    "PRIORITY_LATTICE",
     "PROTOCOL_VERSION",
     "ROUTE_TO_ATTEMPT_CONTRACT",
     "RUNTIME_COMPLETION_GUARD",

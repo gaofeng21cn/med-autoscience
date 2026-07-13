@@ -34,19 +34,20 @@ def action_queue(
     control_allowed_write_surfaces: list[str],
     forbidden_actions: list[str],
 ) -> list[dict[str, Any]]:
-    canonical_next_action = _mapping(progress.get("next_action"))
-    if _text(canonical_next_action.get("surface_kind")) != "mas_next_action_envelope":
-        return []
-    return [
-        decorate_action(
-            study_id=study_id,
-            quest_id=quest_id,
-            action=canonical_next_action,
-            request_allowed_write_surfaces=request_allowed_write_surfaces,
-            control_allowed_write_surfaces=control_allowed_write_surfaces,
-            forbidden_actions=forbidden_actions,
-        )
-    ]
+    del (
+        status,
+        progress,
+        study_root,
+        study_id,
+        quest_id,
+        publication_eval_payload,
+        gate_specificity,
+        ai_reviewer_assessment,
+        request_allowed_write_surfaces,
+        control_allowed_write_surfaces,
+        forbidden_actions,
+    )
+    return []
 
 
 def decorate_action(

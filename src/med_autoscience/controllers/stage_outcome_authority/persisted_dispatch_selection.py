@@ -58,13 +58,6 @@ def selected_dispatches_only(
         ):
             selected.append(dispatch)
             continue
-        if fresh_progress_owner_action_selectable(
-            current_study=current_study,
-            progress=fresh_progress,
-            dispatch=dispatch,
-        ):
-            selected.append(dispatch)
-            continue
         if opl_execution_preflight.provider_hosted_exact_stage_run_current_execution_authority(
             dispatch
         ):
@@ -201,17 +194,6 @@ def dispatch_selectable_despite_blocking_progress(
     current_study: Mapping[str, Any],
     fresh_progress: Mapping[str, Any],
 ) -> bool:
-    if opl_execution_preflight.provider_hosted_exact_stage_run_current_execution_authority(
-        dispatch
-    ):
-        return True
-    if not progress_blocking_selection.blocking_progress_allows_current_dispatch_selection(
-        fresh_progress
-    ):
-        return False
-    action_type = _text(dispatch.get("action_type")) or ""
-    if dispatch_currentness_score(dispatch, current_study) > (0, 0):
-        return True
     if terminal_closeout_owner_answer_required(
         fresh_progress
     ) and dispatch_matches_terminal_closeout_owner_answer(
@@ -219,34 +201,7 @@ def dispatch_selectable_despite_blocking_progress(
         dispatch=dispatch,
     ):
         return True
-    if owner_request_selection.owner_request_matches_dispatch(
-        profile=profile,
-        study_id=study_id,
-        action_type=action_type,
-        dispatch=dispatch,
-        fresh_progress=fresh_progress,
-    ):
-        return True
-    if scan_route_currentness.live_provider_attempt_owner_route_from_scan_payload(
-        scan_payload={"studies": [dict(current_study)]},
-        study_id=study_id,
-        dispatch=dispatch,
-    ):
-        return True
-    if fresh_progress_owner_action_selectable(
-        current_study=current_study,
-        progress=fresh_progress,
-        dispatch=dispatch,
-    ):
-        return True
-    if current_writer_handoff.current_quality_repair_writer_handoff_dispatch(
-        profile=profile,
-        study_id=study_id,
-        action_type=action_type,
-        dispatch=dispatch,
-        fresh_progress=fresh_progress,
-    ):
-        return True
+    del profile, study_id, current_study
     return False
 
 
@@ -267,19 +222,6 @@ def runtime_current_dispatches_only(
 
 def with_consumed_transition_owner_route(current_study: Mapping[str, Any]) -> dict[str, Any]:
     return scan_route_currentness.with_consumed_transition_owner_route(current_study)
-
-
-def fresh_progress_owner_action_selectable(
-    *,
-    current_study: Mapping[str, Any],
-    progress: Mapping[str, Any],
-    dispatch: Mapping[str, Any],
-) -> bool:
-    return fresh_progress_owner_actions.fresh_progress_owner_action_selectable(
-        current_study=current_study,
-        progress=progress,
-        dispatch=dispatch,
-    )
 
 
 def current_control_authority_present(current_study: Mapping[str, Any]) -> bool:

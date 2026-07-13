@@ -19,7 +19,7 @@ MAS 提供 22-action catalog、schemas、domain-handler targets、body-free refs
 
 `paper_mission` 是 action catalog 中的标准 action。默认控制链是：
 
-`StageOutcome -> NextActionEnvelope -> OPL readback -> MAS owner consumption`
+`Codex CLI selected stage -> nonbinding route context -> OPL readback -> MAS owner consumption`
 
 Product/workbench 不得从 queue、attempt、provider、旧 current work unit、PaperRecovery 或 UI 文案推断 current owner、paper progress 或 readiness。
 

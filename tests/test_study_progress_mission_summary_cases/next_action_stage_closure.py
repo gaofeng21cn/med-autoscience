@@ -50,7 +50,7 @@ def test_single_next_action_projection_does_not_accept_program_domain_transition
         "med_autoscience.controllers.study_progress.projection_payload_assembly"
     )
 
-    payload = module._attach_single_next_action_projection(
+    payload = module._attach_nonbinding_codex_route_context(
         {
             "study_id": "obesity_multicenter_phenotype_atlas",
             "next_action": {
@@ -93,7 +93,8 @@ def test_single_next_action_projection_does_not_accept_program_domain_transition
         }
     )
 
-    assert payload["canonical_next_action_source"] == "paper_mission_next_action_envelope"
+    assert "canonical_next_action_source" not in payload
+    assert payload["next_action_projection_role"] == "nonbinding_codex_route_context"
     assert payload["next_action"]["action_family"] == "runtime.opl_route"
     assert payload["next_action"]["owner"] == "one-person-lab"
     assert payload["next_action"]["work_unit_id"] == "submission_milestone_candidate"

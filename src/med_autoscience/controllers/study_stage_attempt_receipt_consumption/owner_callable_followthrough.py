@@ -61,7 +61,7 @@ def owner_callable_receipt_followthrough_consumption(
             action_type=action_type,
         ):
             continue
-        if _owner_callable_dispatch_zero_execution_blocker(owner_result):
+        if _owner_callable_dispatch_zero_execution_diagnostic(owner_result):
             continue
         if action_type == "publication_gate_specificity_required" and not _publication_gate_specificity_owner_result_satisfies_route_output(
             owner_result=owner_result
@@ -152,7 +152,7 @@ def _direct_execution_consumes_current_owner_route(
         return False
     if not execution_matches_owner_route(execution=execution, owner_route=owner_route):
         return False
-    if _owner_callable_dispatch_zero_execution_blocker(owner_result):
+    if _owner_callable_dispatch_zero_execution_diagnostic(owner_result):
         return False
     return _owner_callable_adapter_owner_result_consumable(
         owner_result=owner_result,
@@ -244,7 +244,7 @@ def _owner_callable_adapter_owner_result_consumable(
     return bool(_mapping_list(repair_evidence.get("changed_artifact_refs")))
 
 
-def _owner_callable_dispatch_zero_execution_blocker(owner_result: Mapping[str, Any]) -> bool:
+def _owner_callable_dispatch_zero_execution_diagnostic(owner_result: Mapping[str, Any]) -> bool:
     dispatcher_result = _mapping(owner_result.get("dispatcher_result"))
     if not dispatcher_result:
         return False

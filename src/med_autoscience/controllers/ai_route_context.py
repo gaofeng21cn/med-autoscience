@@ -68,19 +68,19 @@ def _clean(payload: Mapping[str, Any]) -> dict[str, Any]:
     return {key: value for key, value in payload.items() if value not in (None, "", [], {})}
 
 
-__all__ = ["build_ai_route_context"]
-
-
-def next_action_identity_complete(next_action: Mapping[str, Any]) -> bool:
-    expected = next_action.get("expected_output_contract")
-    expected_mapping = expected if isinstance(expected, Mapping) else {}
+def is_nonbinding_codex_route_context(value: Mapping[str, Any]) -> bool:
+    surface_kind = value.get("surface_kind")
+    if surface_kind == "mas_ai_route_context":
+        return value.get("route_selection_owner") == "codex_cli"
+    if surface_kind != "mas_next_action_envelope":
+        return False
+    boundary = value.get("authority_boundary")
+    boundary = boundary if isinstance(boundary, Mapping) else {}
     return (
-        next_action.get("surface_kind") == "mas_next_action_envelope"
-        and bool(next_action.get("action_id"))
-        and bool(next_action.get("idempotency_key"))
-        and bool(next_action.get("action_family"))
-        and bool(expected_mapping.get("output_kind"))
+        boundary.get("next_action_authority") is False
+        and boundary.get("route_selection_owner") == "codex_cli"
+        and boundary.get("action_family_authority") is False
     )
 
 
-__all__.append("next_action_identity_complete")
+__all__ = ["build_ai_route_context", "is_nonbinding_codex_route_context"]

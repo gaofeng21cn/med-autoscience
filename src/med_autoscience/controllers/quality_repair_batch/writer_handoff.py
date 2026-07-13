@@ -312,7 +312,6 @@ def _writer_handoff_owner_route(
         "owner_reason": blocked_repair_reason,
         "active_run_id": None,
         "allowed_actions": [StudyDecisionActionType.RUN_QUALITY_REPAIR_BATCH.value],
-        "blocked_actions": [],
         "idempotency_key": f"quality-repair-writer-handoff::{study_id}::{fingerprint}",
         "source_refs": {
             "source_eval_id": source_eval_id,

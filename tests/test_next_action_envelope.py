@@ -8,6 +8,7 @@ import pytest
 from med_autoscience.controllers.next_action_envelope import (
     ACTION_FAMILIES,
     FAMILY_BLOCKED_TYPED,
+    FAMILY_CODEX_ROUTE_CONTEXT,
     FAMILY_HUMAN_APPROVAL,
     FAMILY_MISSION_COMPLETE,
     FAMILY_PAPER_GATE_PUBLISHABILITY_REPLAY,
@@ -17,7 +18,7 @@ from med_autoscience.controllers.next_action_envelope import (
     FAMILY_PAPER_WRITE_PROSE_REPAIR,
     FAMILY_RUNTIME_OPL_ROUTE,
     compile_next_action_envelope,
-    resolve_action_family,
+    resolve_explicit_action_family_or_context,
 )
 from med_autoscience.paper_mission_stage_run_readback import paper_mission_next_action_envelope
 
@@ -89,34 +90,24 @@ def test_contract_matches_runtime_action_families_and_forbids_exact_id_authority
     )
 
     assert set(contract["allowed_action_families"]) == ACTION_FAMILIES
-    assert contract["authority_boundary_required"]["action_family_authority"] is True
+    assert contract["authority_boundary_required"]["next_action_authority"] is False
+    assert contract["authority_boundary_required"]["route_selection_owner"] == "codex_cli"
+    assert contract["authority_boundary_required"]["action_family_authority"] is False
     assert contract["authority_boundary_required"]["exact_work_unit_id_authority"] is False
     assert "exact_work_unit_id_selects_authority_route" in contract["forbidden_authorities"]
 
 
-@pytest.mark.parametrize(
-    ("work_unit_id", "expected_family"),
-    [
-        ("dm002_medical_prose_write_repair_after_quality_batch", FAMILY_PAPER_WRITE_PROSE_REPAIR),
-        ("dm002_after_story_repair_medical_prose_hardening", FAMILY_PAPER_WRITE_PROSE_REPAIR),
-        (
-            "dm003_bounded_prose_repair_after_post_sync_reviewer_record",
-            FAMILY_PAPER_WRITE_PROSE_REPAIR,
-        ),
-        ("dm003_medical_prose_authority_revise", FAMILY_PAPER_WRITE_PROSE_REPAIR),
-        ("produce_ai_reviewer_publication_eval_record_against_current_inputs", FAMILY_PAPER_REVIEW_AI_REVIEWER),
-        ("dm003_publication_gate_replay_after_current_ai_reviewer_record", FAMILY_PAPER_GATE_PUBLISHABILITY_REPLAY),
-        ("submission_minimal_refresh", FAMILY_PAPER_PACKAGE_SUBMISSION_MINIMAL),
-    ],
-)
-def test_exact_work_unit_ids_resolve_to_semantic_action_family(
-    work_unit_id: str,
-    expected_family: str,
-) -> None:
-    assert resolve_action_family(work_unit_id=work_unit_id) == expected_family
+@pytest.mark.parametrize("work_unit_id", [
+    "dm002_medical_prose_write_repair_after_quality_batch",
+    "produce_ai_reviewer_publication_eval_record_against_current_inputs",
+    "dm003_publication_gate_replay_after_current_ai_reviewer_record",
+    "submission_minimal_refresh",
+])
+def test_exact_work_unit_ids_never_select_a_semantic_action_family(work_unit_id: str) -> None:
+    assert resolve_explicit_action_family_or_context(work_unit_id=work_unit_id) == FAMILY_CODEX_ROUTE_CONTEXT
 
 
-def test_compile_envelope_from_stage_outcome_uses_family_as_authority() -> None:
+def test_compile_envelope_from_stage_outcome_preserves_codex_route_context_without_authority() -> None:
     envelope = compile_next_action_envelope(
         stage_outcome={
             "study_id": "002-dm-china-us-mortality-attribution",
@@ -135,14 +126,18 @@ def test_compile_envelope_from_stage_outcome_uses_family_as_authority() -> None:
     )
 
     assert envelope["surface_kind"] == "mas_next_action_envelope"
-    assert envelope["action_family"] == FAMILY_PAPER_WRITE_PROSE_REPAIR
-    assert envelope["action_kind"] == "paper_write"
+    assert envelope["action_family"] == FAMILY_CODEX_ROUTE_CONTEXT
+    assert envelope["action_kind"] == "codex_selected_route_context"
     assert envelope["owner"] == "analysis-campaign"
-    assert envelope["executor_target"] == "mas_owner_callable"
-    assert envelope["authority_boundary"]["action_family_authority"] is True
+    assert envelope["executor_target"] == "codex_cli"
+    assert envelope["authority_boundary"]["next_action_authority"] is False
+    assert envelope["authority_boundary"]["route_selection_owner"] == "codex_cli"
+    assert envelope["authority_boundary"]["action_family_authority"] is False
     assert envelope["authority_boundary"]["exact_work_unit_id_authority"] is False
     assert envelope["authority_boundary"]["can_claim_stage_complete"] is False
-    assert envelope["authority_source"] == "mas_next_action_compiler"
+    assert envelope["authority_source"] == "codex_selected_route_context"
+    assert envelope["binding"] is False
+    assert envelope["next_stage_may_start"] is True
     assert envelope["legacy_fields_are_diagnostic"] is True
     assert envelope["legacy_field_diagnostic_roles"]["work_unit_id"] == (
         "diagnostic_currentness_id"
@@ -177,7 +172,7 @@ def test_new_study_exact_work_unit_id_is_diagnostic_when_family_is_canonical() -
     assert envelope["owner"] == "ai_reviewer"
     assert envelope["executor_target"] == "mas_owner_callable"
     assert envelope["work_unit_id"] == work_unit_id
-    assert envelope["authority_boundary"]["action_family_authority"] is True
+    assert envelope["authority_boundary"]["action_family_authority"] is False
     assert envelope["authority_boundary"]["exact_work_unit_id_authority"] is False
     assert envelope["legacy_field_diagnostic_roles"]["work_unit_id"] == (
         "diagnostic_currentness_id"
@@ -188,7 +183,7 @@ def test_new_study_exact_work_unit_id_is_diagnostic_when_family_is_canonical() -
     }
 
 
-def test_unknown_action_family_fails_closed_to_typed_blocker() -> None:
+def test_unknown_action_family_remains_nonblocking_codex_route_context() -> None:
     work_unit_id = "dm004_unknown_followup_without_family"
     envelope = compile_next_action_envelope(
         stage_outcome={
@@ -203,11 +198,11 @@ def test_unknown_action_family_fails_closed_to_typed_blocker() -> None:
         },
     )
 
-    assert resolve_action_family(work_unit_id=work_unit_id) == FAMILY_BLOCKED_TYPED
-    assert envelope["action_family"] == FAMILY_BLOCKED_TYPED
-    assert envelope["action_kind"] == "stop_with_typed_blocker"
-    assert envelope["owner"] == "mas_authority_kernel"
-    assert envelope["executor_target"] == "mas_authority_kernel"
+    assert resolve_explicit_action_family_or_context(work_unit_id=work_unit_id) == FAMILY_CODEX_ROUTE_CONTEXT
+    assert envelope["action_family"] == FAMILY_CODEX_ROUTE_CONTEXT
+    assert envelope["action_kind"] == "codex_selected_route_context"
+    assert envelope["owner"] == "write"
+    assert envelope["executor_target"] == "codex_cli"
     assert envelope["work_unit_id"] == work_unit_id
     assert envelope["authority_boundary"]["can_submit_to_opl_runtime"] is False
 
@@ -238,7 +233,7 @@ def test_runtime_route_envelope_keeps_opl_as_receipt_owner_not_stage_authority()
     assert envelope["runtime_receipt_authority"] == (
         "opl_stage_attempt_transport_receipt_only"
     )
-    assert envelope["completion_authority"] == "stage_outcome_only"
+    assert envelope["completion_authority"] == "none_transport_context_only"
     assert envelope["authority_boundary"]["can_submit_to_opl_runtime"] is True
     assert envelope["authority_boundary"]["can_write_runtime_queue"] is False
     assert envelope["authority_boundary"]["can_write_provider_attempt"] is False

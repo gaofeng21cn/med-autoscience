@@ -31,7 +31,7 @@ Machine boundary: 本文是人读导航。机器真相归 `agent/`、`contracts/
 - [Product surfaces](./product/README.md)：OPL generated/hosted interface 与 MAS authority boundary。
 - [Runtime boundary](./runtime/contracts/runtime_boundary.md)：OPL runtime 与 MAS domain owner split。
 - [Controllers](./runtime/control/controllers.md)：MAS controller 只处理医学 policy/authority。
-- [Stage outcome](./runtime/control/progress_first_stage_outcome.md)：`StageOutcome -> NextActionEnvelope`。
+- [Stage outcome](./runtime/control/progress_first_stage_outcome.md)：`Codex CLI selected stage -> nonbinding route context`。
 - [Study Truth Kernel](./runtime/projections/study_truth_kernel.md)：domain reducer/read-model 边界。
 - [Medical Display](./delivery/medical-display/README.md)：display action、OPL pack/runtime 与 MAS quality authority。
 - [External runtime gate](./policies/runtime-governance/external_runtime_dependency_gate.md)：非默认 executor/backend/provenance 边界。

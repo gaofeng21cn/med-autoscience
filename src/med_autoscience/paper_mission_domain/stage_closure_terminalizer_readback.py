@@ -18,12 +18,7 @@ from med_autoscience.paper_mission_domain.common import (
     _mapping,
     _optional_text,
 )
-from med_autoscience.paper_mission_domain.domain_transition_runtime_readback import (
-    _override_next_action_from_direct_terminal_closeout as _shared_override_next_action_from_direct_terminal_closeout,
-    _typed_blocker_resolution_should_own_next_action,
-)
 from med_autoscience.paper_mission_domain.readback_next_action_precedence import (
-    _domain_transition_next_action_requests_stage_attempt,
     _stage_closure_next_action_should_own_next_action as _shared_stage_closure_next_action_should_own_next_action,
 )
 from med_autoscience.paper_mission_domain.stage_packet_route_back_readback import (
@@ -223,31 +218,6 @@ def _build_terminalizer_source_readback(
             workspace_root=Path(profile.workspace_root),
         ):
             return source_readback
-        direct_stage_attempt = _domain_transition_direct_terminal_source_readback(
-            materialized_readback=source_readback,
-            study_root=Path(profile.studies_root) / study_id,
-            profile=profile,
-            study_id=study_id,
-        )
-        if direct_stage_attempt is not None:
-            if allow_stage_packet_autodiscovery:
-                stage_attempt_source = _latest_stage_attempt_route_back_source_readback(
-                    profile=profile,
-                    profile_ref=profile_ref,
-                    study_id=study_id,
-                    source_readback=direct_stage_attempt,
-                    source=source,
-                )
-                if (
-                    stage_attempt_source is not None
-                    and _terminal_source_readback_newer(
-                        candidate=stage_attempt_source,
-                        current=direct_stage_attempt,
-                        workspace_root=Path(profile.workspace_root),
-                    )
-                ):
-                    return stage_attempt_source
-            return direct_stage_attempt
     generic_source_readback = None
     if source_readback is None:
         generic_source_readback = _build_paper_mission_readback(
@@ -263,31 +233,6 @@ def _build_terminalizer_source_readback(
             workspace_root=Path(profile.workspace_root),
         ):
             return generic_source_readback
-        direct_stage_attempt = _domain_transition_direct_terminal_source_readback(
-            materialized_readback=generic_source_readback,
-            study_root=Path(profile.studies_root) / study_id,
-            profile=profile,
-            study_id=study_id,
-        )
-        if direct_stage_attempt is not None:
-            if allow_stage_packet_autodiscovery:
-                stage_attempt_source = _latest_stage_attempt_route_back_source_readback(
-                    profile=profile,
-                    profile_ref=profile_ref,
-                    study_id=study_id,
-                    source_readback=direct_stage_attempt,
-                    source=source,
-                )
-                if (
-                    stage_attempt_source is not None
-                    and _terminal_source_readback_newer(
-                        candidate=stage_attempt_source,
-                        current=direct_stage_attempt,
-                        workspace_root=Path(profile.workspace_root),
-                    )
-                ):
-                    return stage_attempt_source
-            return direct_stage_attempt
     if allow_stage_packet_autodiscovery:
         stage_attempt_source = _latest_stage_attempt_route_back_source_readback(
             profile=profile,
@@ -332,43 +277,6 @@ def _source_readback_has_owner_repair_receipt(readback: Mapping[str, Any]) -> bo
         _optional_text(decision.get("source")) == "study_controller_owner_repair_receipt"
         and _optional_text(outcome.get("kind")) == "owner_receipt"
     )
-
-
-def _domain_transition_direct_terminal_source_readback(
-    *,
-    materialized_readback: Mapping[str, Any] | None,
-    study_root: Path,
-    profile: Any | None = None,
-    study_id: str | None = None,
-) -> dict[str, Any] | None:
-    readback = _mapping(materialized_readback)
-    direct = _mapping(readback.get("domain_transition_direct_stage_attempt"))
-    if not direct:
-        return None
-    direct = attach_opl_stage_attempt_readback(
-        readback=direct,
-        study_root=study_root,
-    )
-    if _optional_text(direct.get("opl_stage_attempt_readback_status")) != (
-        "opl_runtime_terminal_readback_observed"
-    ):
-        return None
-    return {
-        **direct,
-        "paper_mission_command": "terminalize-stage",
-        "source": "paper_mission_domain_transition_direct_stage_attempt",
-        "study_id": _optional_text(direct.get("study_id"))
-        or _optional_text(readback.get("study_id")),
-        "mission_id": _optional_text(direct.get("mission_id"))
-        or _optional_text(readback.get("mission_id")),
-        "objective": _optional_text(readback.get("objective")),
-        "current_package": _mapping(readback.get("current_package")),
-        "domain_transition": _mapping(readback.get("domain_transition")),
-        "source_ref": _optional_text(
-            _mapping(direct.get("next_action")).get("outcome_ref")
-        )
-        or _optional_text(_mapping(direct.get("next_action")).get("action_id")),
-    }
 
 
 def _materialized_run_terminal_source_readback(
@@ -686,12 +594,4 @@ def _stage_closure_next_action_should_own_next_action(
         next_action=next_action,
         domain_transition_next_action=domain_transition_next_action,
         include_delivery_sync_actions=False,
-    )
-
-
-def _override_next_action_from_direct_terminal_closeout(**kwargs: Any) -> tuple[Mapping[str, Any], Mapping[str, Any] | None, str | None]:
-    return _shared_override_next_action_from_direct_terminal_closeout(
-        **kwargs,
-        terminalize_stage_closure_from_readback=_terminalize_stage_closure_from_readback,
-        next_action_for_stage_closure_decision=_next_action_for_stage_closure_decision,
     )

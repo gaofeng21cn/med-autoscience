@@ -140,6 +140,13 @@ def test_zero_readable_stage_output_is_a_progress_diagnostic() -> None:
     stage_manifest = json.loads(
         (REPO_ROOT / "agent/stages/manifest.json").read_text(encoding="utf-8")
     )
+    progress_policy = stage_manifest["progress_first_policy"]
+    assert progress_policy["route_selection_owner"] == "codex_cli"
+    assert progress_policy["codex_may_advance_skip_repeat_reverse_or_route_back"] is True
+    assert progress_policy["any_declared_stage_may_start_from_any_prior_stage_result"] is True
+    assert progress_policy["declared_requires_are_quality_context_not_launch_gates"] is True
+    assert progress_policy["next_stage_refs_are_recommendations_not_constraints"] is True
+    assert progress_policy["no_output_or_failure_diagnostic_advances_stage"] is True
 
     policies = [
         stage["stage_contract_extension"]["hypothesis_portfolio_evidence_pack"]["missing_ref_output_policy"]

@@ -214,7 +214,7 @@ CAPABILITIES: tuple[dict[str, Any], ...] = (
         "publication_ready_authority_allowed": False,
         "parity_status": "oracle_fixture_defined",
         "provenance_ref": PROVENANCE_REF,
-        "rollback_surface": "MAS controller stage contracts retain prompt transition authority",
+        "rollback_surface": "Codex CLI retains semantic stage-route authority; MAS contracts supply domain context",
         "old_mds_authority_surface_status": "marked_oracle",
     },
     {
@@ -256,7 +256,7 @@ REMAINING_SURFACES: tuple[dict[str, Any], ...] = (
             "proof_kind": "retired_runtime_surface_parity",
             "mas_contract": "runtime_transport/mas_runtime_core* is physically retired; OPL provider stage runtime plus MAS DomainIntent adapter form the active boundary.",
             "mds_oracle": "MDS daemon schedule_turn plus _normalize_status_after_turn behavior is retained as regression semantics.",
-            "acceptance": "Provider completion alone cannot advance domain truth; typed closeout or MAS owner receipt/blocker is required.",
+            "acceptance": "Provider completion alone is not MAS domain truth. Raw, partial, negative, or diagnostic output may advance stage progress; only domain-truth and ready claims require MAS-owned evidence or receipts.",
         },
     },
     {

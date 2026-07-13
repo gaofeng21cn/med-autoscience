@@ -38,7 +38,7 @@ MAS 不返回或维护通用 queue mutation、attempt lease、retry policy、Sta
 
 默认控制链：
 
-`StageOutcome -> NextActionEnvelope -> OPL transport/readback -> MAS owner consumption`
+`Codex CLI selected stage -> nonbinding route context -> OPL transport/readback -> MAS owner consumption`
 
 OPL receipt 证明 transport，不替代 MAS owner answer。旧 provider admission、current work unit、PaperRecovery、domain action request和 repo-local next-action materializer 已退役或 tombstone-only。
 
