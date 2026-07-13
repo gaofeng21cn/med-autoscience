@@ -59,8 +59,18 @@ def test_handler_registry_and_source_closure_contract_are_explicit() -> None:
     assert "paper_mission_authority_evaluate" in compiler_input[
         "minimal_authority_functions"
     ]
-    assert source_closure == {
-        "surface_kind": "standard_agent_source_closure_audit",
-        "version": "standard-agent-source-closure-audit.v1",
-        "entries": [],
+    assert source_closure["surface_kind"] == "standard_agent_source_closure_audit"
+    assert source_closure["version"] == "standard-agent-source-closure-audit.v1"
+    entries = source_closure["entries"]
+    assert {entry["file"] for entry in entries} == {"scripts/repo_hygiene_audit.py"}
+    assert {entry["role"] for entry in entries} == {"developer_tool"}
+    assert {
+        entry["symbol"]: (entry["allowed_effects"], entry["allowed_targets"])
+        for entry in entries
+    } == {
+        "_default_repo_root": (["process_spawn"], ["git"]),
+        "audit_tracked_paths": (["process_spawn"], ["git"]),
+        "audit_active_surface_residue": (["process_spawn"], ["git"]),
+        "_is_git_ignored": (["process_spawn"], ["git"]),
+        "_remove_path": (["filesystem_write"], []),
     }
