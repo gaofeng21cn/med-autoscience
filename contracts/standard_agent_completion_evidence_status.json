@@ -77,6 +77,10 @@
         "contracts/authority_kernel_inventory.json",
         "contracts/functional_privatization_audit.json",
         "contracts/functional_privatization_audit.json#/bridge_exit_gate",
+        "contracts/action_catalog.json#family-action-catalog.v2",
+        "contracts/domain_handler_registry.json#/handlers/0",
+        "contracts/paper_mission_authority_handler_parity.json#/fresh_opl_readback/source_closure",
+        "opl:agents-source-closure@64fbe809f8ea958410bce0f7c0a9de305ef5c5e5/mas@bb8c5ed97cd8e7f2a9c82d7dc087e6b471af7d05#status=blocked/closure_digest=sha256:00ced80c376f9c95335fdac2adc208f43c0673ff95169739237a83294336ef41/private_generic_effect_count=534/unreachable_sensitive_residue_count=534",
         "contracts/runtime/mas-runtime-surface-retirement-inventory.json",
         "runtime:domain-diagnostic-obligation-actuator-retired",
         "tests/test_authority_kernel_inventory.py::test_authority_kernel_inventory_does_not_list_generic_runtime_owner_as_retained_authority",
@@ -84,6 +88,8 @@
         "tests/test_standard_agent_completion_acceptance_contract.py::test_standard_agent_completion_evidence_ledger_records_physical_retirement_contract_readback_without_completion_claim"
       ],
       "missing_evidence_tails": [
+        "legacy_internal_caller_migration_and_physical_delete_authorization_ref",
+        "repo_legacy_generic_effect_retirement_and_source_closure_verified_zero_ref",
         "direct_or_hosted_generated_surface_production_consumption_ref"
       ],
       "false_completion_boundary": [
@@ -95,10 +101,13 @@
     },
     {
       "gate_id": "active_caller_migration_and_no_resurrection",
-      "status": "satisfied_with_repo_evidence",
+      "status": "evidence_required",
       "required_evidence_refs": [
         "contracts/runtime/legacy-active-path-tombstones.json",
         "contracts/functional_privatization_audit.json#/bridge_exit_gate",
+        "contracts/action_catalog.json",
+        "contracts/domain_handler_registry.json",
+        "contracts/source_closure_audit.json",
         "tests/test_adapter_retirement_boundary.py",
         "tests/test_domain_entry.py",
         "src/med_autoscience/domain_entry.py"
@@ -107,11 +116,17 @@
         "contracts/runtime/legacy-active-path-tombstones.json",
         "tests/test_adapter_retirement_boundary.py",
         "tests/test_domain_entry.py",
-        "src/med_autoscience/domain_entry.py#MedAutoScienceDomainEntry",
+        "contracts/action_catalog.json#six_hosted_stage_actions_plus_one_internal_authority_handler",
+        "contracts/domain_handler_registry.json#/handlers/0",
+        "contracts/paper_mission_authority_handler_parity.json#/fresh_opl_readback/default_callers",
+        "opl:agents-default-callers@64fbe809f8ea958410bce0f7c0a9de305ef5c5e5/mas@bb8c5ed97cd8e7f2a9c82d7dc087e6b471af7d05#generated_surfaces=8/ready=8/retirement_gates=8/closed=8/physical_delete_authorized=false",
+        "src/med_autoscience/domain_entry.py#legacy_internal_callers_remain_not_default_public_surface",
         "workspace:Yang/DM-CVD-Mortality-Risk#owner-callable-adapter-residue-cleanup-apply-2026-06-15T15:57:03Z/archived_mutable_slots=23/immutable_preserved=396",
         "workspace:Yang/DM-CVD-Mortality-Risk#owner-callable-adapter-residue-cleanup-dry-run-2026-06-15T16:09:23Z/status=clean/mutable_slots=0/candidates=0"
       ],
       "missing_evidence_tails": [
+        "legacy_internal_domain_entry_mainline_read_model_caller_migration_ref",
+        "repo_legacy_generic_effect_retirement_and_source_closure_verified_zero_ref",
         "production_generated_surface_consumption_ref"
       ],
       "false_completion_boundary": [
@@ -221,7 +236,7 @@
         "external_repo:one-person-lab@e56b9a7583b64d26f275062f3d2c5561bcf4dc20#contracts/opl-framework/standard-agent-landing-acceptance-contract.json",
         "external_repo:one-person-lab@e56b9a7583b64d26f275062f3d2c5561bcf4dc20#contracts/opl-framework/standard-agent-negative-conformance-samples.json",
         "external_repo:one-person-lab@e56b9a7583b64d26f275062f3d2c5561bcf4dc20#tests/src/cli/cases/work-order-execution.test.ts::omaTargetAgentGuardMissingCases",
-        "contracts/action_catalog.json#/actions/12",
+        "contracts/capability_map.json#/capabilities/mas-tool-connector-catalog",
         "src/med_autoscience/scientific_capability_registry.py::build_capability_owner_consumption_evidence/standard_agent_feedback_loop_tail",
         "tests/test_scientific_capability_registry.py::test_scientific_capability_registry_builds_nonblocking_consumption_evidence_without_owner_refs",
         "tests/test_scientific_capability_registry.py::test_scientific_capability_registry_consumption_evidence_with_owner_refs_stays_non_authorizing"

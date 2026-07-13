@@ -15,10 +15,10 @@ Machine boundary: 本文是人读 runtime contract support。可执行 runtime t
 
 | layer | 当前 owner | 当前职责 |
 | --- | --- | --- |
-| Domain entry / authority | `MedAutoScience` | study truth、stage semantics、publication route、source readiness、quality gate、artifact/package authority、publication-route memory decision、owner receipt、typed blocker、safe action refs。 |
+| Declarative pack / authority | `MedAutoScience` | stage semantics、study truth、publication route、source readiness、quality gate、artifact/package authority、publication-route memory decision、owner receipt、typed blocker、safe action refs。 |
 | Generic runtime substrate | `OPL provider-backed stage runtime` / Temporal | stage attempt、queue、wakeup、retry/dead-letter、resume、human-gate transport、provider query、worker residency、generic transition runner、operator projection。 |
-| Generated / hosted surfaces | OPL generated shell + MAS domain handler target | CLI/MCP/Skill/product-entry/status/workbench descriptor、allowlisted task dispatch、refs-only projection。 |
-| Product projection | `study_progress` / OPL App workbench / hosted generated workbench | 只读展示 runtime status、owner route、blocker、freshness 和 drilldown refs；不裁决 publication readiness。 |
+| Generated / hosted surfaces | OPL generated shell + MAS Stage manifest/closed authority registry | CLI/MCP/Skill/product-entry/status/workbench descriptor、StageRun dispatch、refs-only projection。 |
+| Product projection | OPL StageRun/current-control/App workbench | 只读展示 runtime status、owner route、blocker、freshness 和 drilldown refs；不裁决 publication readiness。 |
 
 `Codex CLI` 是当前第一公民 executor。其他 executor adapter 只能通过 OPL 显式接入，且只保证接入、生命周期、回执与审计边界，不承诺行为效果等价。
 
@@ -30,8 +30,8 @@ MDS / DeepScientist 当前只作为 source provenance、historical fixture、exp
 
 | entry | 当前读法 |
 | --- | --- |
-| MAS primary skill | direct semantic entry；通过 generated action surface 调用 MAS handler。 |
-| OPL generated CLI/MCP/Skill | OPL-owned interface；从 catalog/schema 生成，不在 MAS repo 维护 parser/transport。 |
+| MAS primary skill | direct semantic entry；通过 generated V2 Stage action surface 启动 OPL-hosted StageRun。 |
+| OPL generated CLI/MCP/Skill | OPL-owned interface；从 V2 catalog/schema/Stage manifest 生成，不在 MAS repo 维护 parser/transport。 |
 | `controller` / authority function | MAS internal implementation target，不是独立 public transport。 |
 | product-entry/status/workbench | OPL generated/hosted companion surface，只暴露 guardrail、entry、projection 和 handoff refs。 |
 
@@ -82,17 +82,16 @@ Canonical durable surfaces 包括：
 
 | task | action id |
 | --- | --- |
-| repo 主线阶段 / 缺口 | `mainline_status` / `mainline_phase` |
-| durable study task intake | `submit_study_task` |
-| 正式启动或续跑 | `launch_study` |
-| 人话进度投影 | `study_progress` |
-| workspace study matrix | `study_state_matrix` |
-| PaperMission / StageOutcome readback | `paper_mission` |
-| OPL handoff | `domain_handler_export` / `domain_handler_dispatch` |
+| direction / route | `direction_and_route_selection` |
+| baseline / evidence | `baseline_and_evidence_setup` |
+| analysis | `bounded_analysis_campaign` |
+| manuscript | `manuscript_authoring` |
+| independent review / quality | `review_and_quality_gate` |
+| publication handoff | `finalize_and_publication_handoff` |
 
-具体 CLI/MCP/tool spelling 由 OPL 从 `contracts/action_catalog.json` 和 schemas 生成。MAS repo 不提供 workspace-local wrapper、手写 parser 或 MCP transport。
+具体 CLI/MCP/tool spelling 由 OPL 从 `contracts/action_catalog.json`、V2 schemas 与 Stage manifest 生成。MAS repo 不提供 workspace-local wrapper、手写 parser 或 MCP transport。`paper_mission_authority_evaluate` 只通过 closed handler registry 供 host 调用，没有用户 surface。
 
-`runtime domain-diagnostic-report`、`domain-health-diagnostic`、`paper-mission-owner-surface` 和 `owner-route-reconcile` 只保留为 explicit legacy provenance / tombstone 语境；默认监督、automation、论文推进或 stage completion 判断不得把它们作为入口。
+`mainline_status`、`mainline_phase`、`submit_study_task`、`launch_study`、`study_progress`、`study_state_matrix`、`paper_mission`、`domain_handler_export`、`domain_handler_dispatch`、`runtime domain-diagnostic-report`、`domain-health-diagnostic`、`paper-mission-owner-surface` 和 `owner-route-reconcile` 只保留为 internal residue / explicit legacy provenance / tombstone 语境；默认监督、automation、论文推进或 stage completion 判断不得把它们作为入口。
 
 OPL `current_control_state` / provider attempt ledger 持有 scheduler lifecycle、provider liveness、attempt、retry/dead-letter 和 operator runtime projection。MAS 不再提供 `runtime-supervision-*` compatibility CLI，不再把 workspace-local LaunchAgent / systemd / cron / docker service 写成 active runtime option。
 
@@ -104,7 +103,7 @@ Agent 调用接口时遵守以下顺序：
 2. 优先使用平台稳定入口，不直接改底层状态文件。
 3. 不直接调用 external Hermes daemon / repo / workspace surface 发起研究流程，除非当前 profile 显式进入 hosted target 诊断。
 4. 不直接调用 `MedDeepScientist` daemon HTTP API，不把 `MedDeepScientist` UI / CLI 当成研究入口。
-5. 所有正式研究推进经 MAS controller / domain handler 产生 DomainIntent、owner route、owner receipt 或 typed blocker，再由 OPL hydrate stage attempt。
+5. 所有正式研究推进经 V2 Stage action，由 OPL hydrate StageRun/attempt；MAS Stage/authority functions 只产生 domain refs、owner route、owner receipt、typed blocker 或 human gate。
 6. 变更数据资产时使用对应 owner policy/function；未进入 action catalog 的 internal function 不得包装成临时 CLI，也不把自由文本状态塞进 registry或绕过 release contract。
 
 低层数据资产、OPL workspace lifecycle 和 profile binding 不在本文重复维护。当前入口读：
@@ -136,10 +135,10 @@ Agent 调用接口时遵守以下顺序：
 
 ## Frontend / Product Projection Contract
 
-OPL generated product-entry/status/workbench 只能消费 MAS refs-only projection 做 projection / drilldown / handoff：
+OPL generated product-entry/status/workbench 只能消费 StageRun/current-control 与 MAS refs-only owner output 做 projection / drilldown / handoff：
 
-- `study_progress` 负责用户可读阶段摘要、当前任务摘要、progress freshness、当前阻塞、下一步、`intervention_lane`、safe action refs 和 `recovery_contract`。
-- OPL generated status/workbench 与 `launch_study` 消费同一 `study_progress` refs，不得各自再猜恢复路径。
+- OPL hosted projection 负责用户可读阶段摘要、当前任务摘要、progress freshness、当前阻塞、下一步、`intervention_lane`、safe action refs 和 `recovery_contract`。
+- generated status/workbench 必须消费同一 StageRun/current-control identity 与 MAS owner refs，不得各自再猜恢复路径。
 - 质量硬阻塞、human decision gate、runtime recovery、workspace supervision gap 和 study progress gap 必须结构化投影，不能压平成泛化 `study_blocked`。
 - Product projection 不能写 `publication_eval/latest.json`、`controller_decisions/latest.json`、`current_package`、paper body、memory body、artifact body 或 MAS owner receipt authority。
 

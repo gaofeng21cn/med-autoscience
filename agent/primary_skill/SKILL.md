@@ -8,7 +8,7 @@ description: Use when Codex should operate the MAS medical-research domain pack 
 Canonical OPL agent id: `mas`
 Plugin/package locator: `med-autoscience`
 Generated interface owner: `one-person-lab`
-Domain handler target: `med_autoscience.domain_entry:MedAutoScienceDomainEntry.dispatch`
+Authority handler registry: `contracts/domain_handler_registry.json`
 
 Implementation profile: `contracts/pack_compiler_input.json#/implementation_profile`.
 The declarative pack is Markdown/JSON; Python is only a domain-helper language
@@ -19,6 +19,22 @@ runtime, CLI, product entry, status, MCP, or workbench.
 Use this skill for medical-research planning, study progression, evidence review,
 display work, manuscript work, publication handoff, or owner-route diagnosis.
 
+## Package Lifecycle
+
+Use the OPL Packages lifecycle for user-managed installation, update, and
+removal:
+
+```bash
+opl packages install mas
+opl packages update mas
+opl packages uninstall mas
+```
+
+Installing MAS resolves the required `mas-scholar-skills` dependency closure in
+the same OPL transaction. Dependency activation, status reconciliation, repair,
+locking, and rollback remain OPL-owned internal lifecycle semantics; they are
+not a second MAS installer or a separate user setup flow.
+
 ## Entry
 
 Read generated interfaces from OPL:
@@ -26,16 +42,26 @@ Read generated interfaces from OPL:
 ```bash
 opl agents interfaces --domain mas --json
 opl actions export --domain mas --format cli --json
-opl actions inspect --domain mas --action study_progress --json
+opl actions inspect --domain mas --action direction_and_route_selection --json
+opl agents run --domain mas --action direction_and_route_selection \
+  --workspace <absolute_workspace_root> --json
 ```
 
 The MAS repository does not provide a private CLI, MCP server, plugin launcher,
 tool runtime, product shell, or environment provisioner. OPL-generated surfaces
-route structured action payloads to `MedAutoScienceDomainEntry.dispatch`.
+host these six public Stage actions:
 
-The domain handler accepts the action ids declared by
-`contracts/action_catalog.json`. Use `domain_handler_export` for refs-only
-owner-route readback and `domain_handler_dispatch` for an OPL task ref.
+- `direction_and_route_selection`
+- `baseline_and_evidence_setup`
+- `bounded_analysis_campaign`
+- `manuscript_authoring`
+- `review_and_quality_gate`
+- `finalize_and_publication_handoff`
+
+`paper_mission_authority_evaluate` is an internal registry-bound MAS authority
+callable. It has no CLI, MCP, Skill, product-entry, OpenAI, or AI SDK user
+surface. OPL injects validated refs and persists the exact returned authority
+result without originating or rewriting MAS medical judgment.
 
 ## Environment
 

@@ -1,1690 +1,509 @@
 {
+  "surface_kind": "family_action_catalog",
+  "version": "family-action-catalog.v2",
+  "catalog_id": "mas_stage_actions",
+  "target_domain_id": "mas",
+  "owner": "MedAutoScience",
+  "authority_boundary": {
+    "domain_truth_owner": "MedAutoScience",
+    "quality_verdict_owner": "MedAutoScience",
+    "artifact_authority_owner": "MedAutoScience",
+    "opl_role": "projection_consumer_only",
+    "write_policy": "no_domain_truth_writes",
+    "opl_can_write_domain_truth": false,
+    "opl_can_sign_owner_receipt": false,
+    "opl_can_create_typed_blocker": false,
+    "provider_completion_is_domain_completion": false
+  },
   "actions": [
     {
-      "action_id": "submit_study_task",
-      "authority_boundary": {
-        "authoritative_truth_refs": [
-          "/progress_projection",
-          "/owner_route/latest.json",
-          "/publication_eval/latest.json"
-        ],
-        "descriptor_projection_owner": "one-person-lab",
-        "domain_handler_target_owner": "MedAutoScience",
-        "domain_truth_owner": "MedAutoScience",
-        "helper_owner": "one-person-lab",
-        "helper_write_policy": "no_domain_truth_writes"
-      },
+      "action_id": "direction_and_route_selection",
+      "title": "Direction and route selection",
+      "summary": "Run the MAS stage that selects a medically defensible research direction and route.",
+      "owner": "MedAutoScience",
       "effect": "mutating",
+      "execution_binding": {
+        "kind": "stage_binding",
+        "stage_manifest_ref": "agent/stages/manifest.json"
+      },
+      "input_schema_ref": "contracts/schemas/v2/mas-stage-action.input.schema.json",
+      "output_schema_ref": "contracts/schemas/v2/mas-stage-action.output.schema.json",
+      "required_fields": [
+        "workspace_root",
+        "study_id"
+      ],
+      "optional_fields": [
+        "user_intent",
+        "input_refs",
+        "route_context_refs",
+        "human_gate_refs"
+      ],
+      "workspace_locator_fields": [
+        "workspace_root"
+      ],
       "human_gate_ids": [
         "study_user_decision_gate"
       ],
-      "input_schema_ref": "contracts/schemas/v1/mas-action.input.schema.json#/$defs/submit_study_task",
-      "output_schema_ref": "contracts/schemas/v1/mas-action.output.schema.json",
-      "owner": "med-autoscience",
-      "source_command": {
-        "command": "med_autoscience.domain_entry:MedAutoScienceDomainEntry.dispatch#submit_study_task",
-        "surface_kind": "study_task_intake"
+      "stage_route": {
+        "entry_stage_ref": "direction_and_route_selection",
+        "required_stage_refs": [
+          "direction_and_route_selection"
+        ],
+        "optional_stage_refs": [],
+        "terminal_stage_refs": [
+          "direction_and_route_selection"
+        ],
+        "route_policy": "ai_selected_progress_route"
       },
-      "summary": "先把用户任务写成 durable study task intake，再启动研究执行。",
       "supported_surfaces": {
-        "ai_sdk": {
-          "tool_name": "submit_study_task"
-        },
         "cli": {
-          "command": "med_autoscience.domain_entry:MedAutoScienceDomainEntry.dispatch#submit_study_task",
-          "surface_kind": "study_task_intake"
+          "surface_kind": "opl_hosted_stage_action"
         },
         "mcp": {
-          "command": "med_autoscience.domain_entry:MedAutoScienceDomainEntry.dispatch#submit_study_task",
-          "descriptor_only": true,
-          "public_runtime": false,
-          "surface_kind": "study_task_intake",
-          "tool_name": "submit_study_task"
-        },
-        "openai": {
-          "tool_name": "submit_study_task"
-        },
-        "product_entry": {
-          "action_key": "submit_study_task",
-          "command": "med_autoscience.domain_entry:MedAutoScienceDomainEntry.dispatch#submit_study_task",
-          "surface_kind": "study_task_intake"
+          "surface_kind": "opl_hosted_stage_action_tool",
+          "tool_name": "mas_direction_and_route_selection",
+          "descriptor_only": false,
+          "public_runtime": true
         },
         "skill": {
-          "command": "med_autoscience.domain_entry:MedAutoScienceDomainEntry.dispatch#submit_study_task",
-          "command_contract_id": "submit_study_task",
-          "surface_kind": "study_task_intake"
+          "surface_kind": "opl_hosted_stage_action_contract",
+          "command_contract_id": "mas.direction_and_route_selection"
+        },
+        "product_entry": {
+          "surface_kind": "opl_hosted_stage_action",
+          "action_key": "direction_and_route_selection"
+        },
+        "openai": {
+          "tool_name": "mas_direction_and_route_selection"
+        },
+        "ai_sdk": {
+          "tool_name": "mas_direction_and_route_selection"
         }
       },
-      "title": "Submit durable MAS study task",
-      "workspace_locator_fields": [
-        "profile_ref",
-        "study_id",
-        "task_intent"
-      ],
-      "required_fields": [
-        "profile_ref",
-        "study_id",
-        "task_intent"
-      ],
-      "optional_fields": [
-        "task_intake_kind",
-        "entry_mode",
-        "journal_target",
-        "constraints",
-        "evidence_boundary",
-        "trusted_inputs",
-        "reference_papers",
-        "first_cycle_outputs"
-      ]
+      "authority_boundary": {
+        "domain_truth_owner": "MedAutoScience",
+        "stage_authority_owner": "MedAutoScience",
+        "opl_can_write_domain_truth": false,
+        "opl_can_sign_owner_receipt": false,
+        "opl_can_create_typed_blocker": false,
+        "provider_completion_is_domain_completion": false
+      }
     },
     {
-      "action_id": "launch_study",
-      "authority_boundary": {
-        "authoritative_truth_refs": [
-          "/progress_projection",
-          "/owner_route/latest.json",
-          "/publication_eval/latest.json"
-        ],
-        "descriptor_projection_owner": "one-person-lab",
-        "domain_handler_target_owner": "MedAutoScience",
-        "domain_truth_owner": "MedAutoScience",
-        "helper_owner": "one-person-lab",
-        "helper_write_policy": "no_domain_truth_writes"
-      },
+      "action_id": "baseline_and_evidence_setup",
+      "title": "Baseline and evidence setup",
+      "summary": "Run the MAS stage that binds source, evidence, claim, and artifact baselines.",
+      "owner": "MedAutoScience",
       "effect": "mutating",
+      "execution_binding": {
+        "kind": "stage_binding",
+        "stage_manifest_ref": "agent/stages/manifest.json"
+      },
+      "input_schema_ref": "contracts/schemas/v2/mas-stage-action.input.schema.json",
+      "output_schema_ref": "contracts/schemas/v2/mas-stage-action.output.schema.json",
+      "required_fields": [
+        "workspace_root",
+        "study_id"
+      ],
+      "optional_fields": [
+        "user_intent",
+        "input_refs",
+        "route_context_refs",
+        "human_gate_refs"
+      ],
+      "workspace_locator_fields": [
+        "workspace_root"
+      ],
+      "human_gate_ids": [],
+      "stage_route": {
+        "entry_stage_ref": "baseline_and_evidence_setup",
+        "required_stage_refs": [
+          "baseline_and_evidence_setup"
+        ],
+        "optional_stage_refs": [],
+        "terminal_stage_refs": [
+          "baseline_and_evidence_setup"
+        ],
+        "route_policy": "ai_selected_progress_route"
+      },
+      "supported_surfaces": {
+        "cli": {
+          "surface_kind": "opl_hosted_stage_action"
+        },
+        "mcp": {
+          "surface_kind": "opl_hosted_stage_action_tool",
+          "tool_name": "mas_baseline_and_evidence_setup",
+          "descriptor_only": false,
+          "public_runtime": true
+        },
+        "skill": {
+          "surface_kind": "opl_hosted_stage_action_contract",
+          "command_contract_id": "mas.baseline_and_evidence_setup"
+        },
+        "product_entry": {
+          "surface_kind": "opl_hosted_stage_action",
+          "action_key": "baseline_and_evidence_setup"
+        },
+        "openai": {
+          "tool_name": "mas_baseline_and_evidence_setup"
+        },
+        "ai_sdk": {
+          "tool_name": "mas_baseline_and_evidence_setup"
+        }
+      },
+      "authority_boundary": {
+        "domain_truth_owner": "MedAutoScience",
+        "stage_authority_owner": "MedAutoScience",
+        "opl_can_write_domain_truth": false,
+        "opl_can_sign_owner_receipt": false,
+        "opl_can_create_typed_blocker": false,
+        "provider_completion_is_domain_completion": false
+      }
+    },
+    {
+      "action_id": "bounded_analysis_campaign",
+      "title": "Bounded analysis campaign",
+      "summary": "Run the MAS stage that produces reviewable analyses inside the accepted medical claim boundary.",
+      "owner": "MedAutoScience",
+      "effect": "mutating",
+      "execution_binding": {
+        "kind": "stage_binding",
+        "stage_manifest_ref": "agent/stages/manifest.json"
+      },
+      "input_schema_ref": "contracts/schemas/v2/mas-stage-action.input.schema.json",
+      "output_schema_ref": "contracts/schemas/v2/mas-stage-action.output.schema.json",
+      "required_fields": [
+        "workspace_root",
+        "study_id"
+      ],
+      "optional_fields": [
+        "user_intent",
+        "input_refs",
+        "route_context_refs",
+        "human_gate_refs"
+      ],
+      "workspace_locator_fields": [
+        "workspace_root"
+      ],
+      "human_gate_ids": [],
+      "stage_route": {
+        "entry_stage_ref": "bounded_analysis_campaign",
+        "required_stage_refs": [
+          "bounded_analysis_campaign"
+        ],
+        "optional_stage_refs": [],
+        "terminal_stage_refs": [
+          "bounded_analysis_campaign"
+        ],
+        "route_policy": "ai_selected_progress_route"
+      },
+      "supported_surfaces": {
+        "cli": {
+          "surface_kind": "opl_hosted_stage_action"
+        },
+        "mcp": {
+          "surface_kind": "opl_hosted_stage_action_tool",
+          "tool_name": "mas_bounded_analysis_campaign",
+          "descriptor_only": false,
+          "public_runtime": true
+        },
+        "skill": {
+          "surface_kind": "opl_hosted_stage_action_contract",
+          "command_contract_id": "mas.bounded_analysis_campaign"
+        },
+        "product_entry": {
+          "surface_kind": "opl_hosted_stage_action",
+          "action_key": "bounded_analysis_campaign"
+        },
+        "openai": {
+          "tool_name": "mas_bounded_analysis_campaign"
+        },
+        "ai_sdk": {
+          "tool_name": "mas_bounded_analysis_campaign"
+        }
+      },
+      "authority_boundary": {
+        "domain_truth_owner": "MedAutoScience",
+        "stage_authority_owner": "MedAutoScience",
+        "opl_can_write_domain_truth": false,
+        "opl_can_sign_owner_receipt": false,
+        "opl_can_create_typed_blocker": false,
+        "provider_completion_is_domain_completion": false
+      }
+    },
+    {
+      "action_id": "manuscript_authoring",
+      "title": "Manuscript authoring",
+      "summary": "Run the MAS stage that materializes a medically grounded manuscript candidate for independent review.",
+      "owner": "MedAutoScience",
+      "effect": "mutating",
+      "execution_binding": {
+        "kind": "stage_binding",
+        "stage_manifest_ref": "agent/stages/manifest.json"
+      },
+      "input_schema_ref": "contracts/schemas/v2/mas-stage-action.input.schema.json",
+      "output_schema_ref": "contracts/schemas/v2/mas-stage-action.output.schema.json",
+      "required_fields": [
+        "workspace_root",
+        "study_id"
+      ],
+      "optional_fields": [
+        "user_intent",
+        "input_refs",
+        "route_context_refs",
+        "human_gate_refs"
+      ],
+      "workspace_locator_fields": [
+        "workspace_root"
+      ],
+      "human_gate_ids": [],
+      "stage_route": {
+        "entry_stage_ref": "manuscript_authoring",
+        "required_stage_refs": [
+          "manuscript_authoring"
+        ],
+        "optional_stage_refs": [],
+        "terminal_stage_refs": [
+          "manuscript_authoring"
+        ],
+        "route_policy": "ai_selected_progress_route"
+      },
+      "supported_surfaces": {
+        "cli": {
+          "surface_kind": "opl_hosted_stage_action"
+        },
+        "mcp": {
+          "surface_kind": "opl_hosted_stage_action_tool",
+          "tool_name": "mas_manuscript_authoring",
+          "descriptor_only": false,
+          "public_runtime": true
+        },
+        "skill": {
+          "surface_kind": "opl_hosted_stage_action_contract",
+          "command_contract_id": "mas.manuscript_authoring"
+        },
+        "product_entry": {
+          "surface_kind": "opl_hosted_stage_action",
+          "action_key": "manuscript_authoring"
+        },
+        "openai": {
+          "tool_name": "mas_manuscript_authoring"
+        },
+        "ai_sdk": {
+          "tool_name": "mas_manuscript_authoring"
+        }
+      },
+      "authority_boundary": {
+        "domain_truth_owner": "MedAutoScience",
+        "stage_authority_owner": "MedAutoScience",
+        "opl_can_write_domain_truth": false,
+        "opl_can_sign_owner_receipt": false,
+        "opl_can_create_typed_blocker": false,
+        "provider_completion_is_domain_completion": false
+      }
+    },
+    {
+      "action_id": "review_and_quality_gate",
+      "title": "Review and quality gate",
+      "summary": "Run the independent MAS cross-stage review and return an owner result, route-back, quality debt, blocker, or human gate.",
+      "owner": "MedAutoScience",
+      "effect": "mutating",
+      "execution_binding": {
+        "kind": "stage_binding",
+        "stage_manifest_ref": "agent/stages/manifest.json"
+      },
+      "input_schema_ref": "contracts/schemas/v2/mas-stage-action.input.schema.json",
+      "output_schema_ref": "contracts/schemas/v2/mas-stage-action.output.schema.json",
+      "required_fields": [
+        "workspace_root",
+        "study_id"
+      ],
+      "optional_fields": [
+        "user_intent",
+        "input_refs",
+        "route_context_refs",
+        "human_gate_refs"
+      ],
+      "workspace_locator_fields": [
+        "workspace_root"
+      ],
+      "human_gate_ids": [],
+      "stage_route": {
+        "entry_stage_ref": "review_and_quality_gate",
+        "required_stage_refs": [
+          "review_and_quality_gate"
+        ],
+        "optional_stage_refs": [],
+        "terminal_stage_refs": [
+          "review_and_quality_gate"
+        ],
+        "route_policy": "ai_selected_progress_route"
+      },
+      "supported_surfaces": {
+        "cli": {
+          "surface_kind": "opl_hosted_stage_action"
+        },
+        "mcp": {
+          "surface_kind": "opl_hosted_stage_action_tool",
+          "tool_name": "mas_review_and_quality_gate",
+          "descriptor_only": false,
+          "public_runtime": true
+        },
+        "skill": {
+          "surface_kind": "opl_hosted_stage_action_contract",
+          "command_contract_id": "mas.review_and_quality_gate"
+        },
+        "product_entry": {
+          "surface_kind": "opl_hosted_stage_action",
+          "action_key": "review_and_quality_gate"
+        },
+        "openai": {
+          "tool_name": "mas_review_and_quality_gate"
+        },
+        "ai_sdk": {
+          "tool_name": "mas_review_and_quality_gate"
+        }
+      },
+      "authority_boundary": {
+        "domain_truth_owner": "MedAutoScience",
+        "quality_verdict_owner": "MedAutoScience",
+        "stage_authority_owner": "MedAutoScience",
+        "opl_can_write_domain_truth": false,
+        "opl_can_sign_owner_receipt": false,
+        "opl_can_create_typed_blocker": false,
+        "provider_completion_is_domain_completion": false
+      }
+    },
+    {
+      "action_id": "finalize_and_publication_handoff",
+      "title": "Finalize and publication handoff",
+      "summary": "Run the MAS stage that prepares a publication handoff without bypassing human submission authority.",
+      "owner": "MedAutoScience",
+      "effect": "mutating",
+      "execution_binding": {
+        "kind": "stage_binding",
+        "stage_manifest_ref": "agent/stages/manifest.json"
+      },
+      "input_schema_ref": "contracts/schemas/v2/mas-stage-action.input.schema.json",
+      "output_schema_ref": "contracts/schemas/v2/mas-stage-action.output.schema.json",
+      "required_fields": [
+        "workspace_root",
+        "study_id"
+      ],
+      "optional_fields": [
+        "user_intent",
+        "input_refs",
+        "route_context_refs",
+        "human_gate_refs"
+      ],
+      "workspace_locator_fields": [
+        "workspace_root"
+      ],
       "human_gate_ids": [
-        "study_user_decision_gate"
+        "human_submission_authority_gate"
       ],
-      "input_schema_ref": "contracts/schemas/v1/mas-action.input.schema.json#/$defs/launch_study",
-      "output_schema_ref": "contracts/schemas/v1/mas-action.output.schema.json",
-      "owner": "med-autoscience",
-      "source_command": {
-        "command": "med_autoscience.domain_entry:MedAutoScienceDomainEntry.dispatch#launch_study",
-        "surface_kind": "launch_study"
-      },
-      "summary": "写入 MAS domain handoff，由 OPL 唯一控制面 hydrate 成 stage attempt。",
-      "supported_surfaces": {
-        "ai_sdk": {
-          "tool_name": "launch_study"
-        },
-        "cli": {
-          "command": "med_autoscience.domain_entry:MedAutoScienceDomainEntry.dispatch#launch_study",
-          "surface_kind": "launch_study"
-        },
-        "mcp": {
-          "command": "med_autoscience.domain_entry:MedAutoScienceDomainEntry.dispatch#launch_study",
-          "descriptor_only": true,
-          "public_runtime": false,
-          "surface_kind": "launch_study",
-          "tool_name": "launch_study"
-        },
-        "openai": {
-          "tool_name": "launch_study"
-        },
-        "product_entry": {
-          "action_key": "launch_study",
-          "command": "med_autoscience.domain_entry:MedAutoScienceDomainEntry.dispatch#launch_study",
-          "surface_kind": "launch_study"
-        },
-        "skill": {
-          "command": "med_autoscience.domain_entry:MedAutoScienceDomainEntry.dispatch#launch_study",
-          "command_contract_id": "launch_study",
-          "surface_kind": "launch_study"
-        }
-      },
-      "title": "Submit MAS study launch handoff",
-      "workspace_locator_fields": [
-        "profile_ref",
-        "study_id"
-      ],
-      "required_fields": [
-        "profile_ref",
-        "study_id"
-      ],
-      "optional_fields": [
-        "entry_mode",
-        "allow_stopped_relaunch",
-        "explicit_user_wakeup",
-        "force"
-      ]
-    },
-    {
-      "action_id": "study_progress",
-      "authority_boundary": {
-        "authoritative_truth_refs": [
-          "/progress_projection",
-          "/owner_route/latest.json",
-          "/publication_eval/latest.json"
+      "stage_route": {
+        "entry_stage_ref": "finalize_and_publication_handoff",
+        "required_stage_refs": [
+          "finalize_and_publication_handoff"
         ],
-        "descriptor_projection_owner": "one-person-lab",
-        "domain_handler_target_owner": "MedAutoScience",
-        "domain_truth_owner": "MedAutoScience",
-        "helper_owner": "one-person-lab",
-        "helper_write_policy": "no_domain_truth_writes"
+        "optional_stage_refs": [],
+        "terminal_stage_refs": [
+          "finalize_and_publication_handoff"
+        ],
+        "route_policy": "ai_selected_progress_route"
       },
-      "effect": "read_only",
-      "human_gate_ids": [],
-      "input_schema_ref": "contracts/schemas/v1/mas-action.input.schema.json#/$defs/study_progress",
-      "output_schema_ref": "contracts/schemas/v1/mas-action.output.schema.json",
-      "owner": "med-autoscience",
-      "source_command": {
-        "command": "med_autoscience.domain_entry:MedAutoScienceDomainEntry.dispatch#study_progress",
-        "surface_kind": "study_progress"
-      },
-      "summary": "持续读取当前 study 的阶段摘要、阻塞、监督 freshness 与下一步。",
       "supported_surfaces": {
-        "ai_sdk": {
-          "tool_name": "study_progress"
-        },
         "cli": {
-          "command": "med_autoscience.domain_entry:MedAutoScienceDomainEntry.dispatch#study_progress",
-          "surface_kind": "study_progress"
+          "surface_kind": "opl_hosted_stage_action"
         },
         "mcp": {
-          "command": "med_autoscience.domain_entry:MedAutoScienceDomainEntry.dispatch#study_progress",
+          "surface_kind": "opl_hosted_stage_action_tool",
+          "tool_name": "mas_finalize_and_publication_handoff",
           "descriptor_only": false,
-          "public_runtime": true,
-          "surface_kind": "study_progress",
-          "tool_name": "study_progress"
-        },
-        "openai": {
-          "tool_name": "study_progress"
-        },
-        "product_entry": {
-          "action_key": "study_progress",
-          "command": "med_autoscience.domain_entry:MedAutoScienceDomainEntry.dispatch#study_progress",
-          "surface_kind": "study_progress"
+          "public_runtime": true
         },
         "skill": {
-          "command": "med_autoscience.domain_entry:MedAutoScienceDomainEntry.dispatch#study_progress",
-          "command_contract_id": "study_progress",
-          "surface_kind": "study_progress"
-        }
-      },
-      "title": "Inspect MAS study progress",
-      "workspace_locator_fields": [
-        "profile_ref",
-        "study_id"
-      ],
-      "required_fields": [
-        "profile_ref",
-        "study_id"
-      ],
-      "optional_fields": [
-        "entry_mode"
-      ]
-    },
-    {
-      "action_id": "paper_mission",
-      "authority_boundary": {
-        "authoritative_truth_refs": [
-          "/progress_projection",
-          "/owner_route/latest.json",
-          "/publication_eval/latest.json"
-        ],
-        "descriptor_projection_owner": "one-person-lab",
-        "domain_handler_target_owner": "MedAutoScience",
-        "domain_truth_owner": "MedAutoScience",
-        "helper_owner": "MedAutoScience",
-        "helper_write_policy": "owner_receipt_typed_blocker_or_domain_refs_only"
-      },
-      "effect": "mutating",
-      "human_gate_ids": [],
-      "input_schema_ref": "contracts/schemas/v1/mas-action.input.schema.json#/$defs/paper_mission",
-      "output_schema_ref": "contracts/schemas/v1/mas-action.output.schema.json",
-      "owner": "med-autoscience",
-      "source_command": {
-        "command": "med_autoscience.domain_entry:MedAutoScienceDomainEntry.dispatch#paper_mission",
-        "surface_kind": "paper_mission_readback"
-      },
-      "summary": "Inspect the canonical MAS paper mission and expose artifacts, negative results, owner receipts, hard blockers, human gates, and route context for Codex-selected progression.",
-      "supported_surfaces": {
+          "surface_kind": "opl_hosted_stage_action_contract",
+          "command_contract_id": "mas.finalize_and_publication_handoff"
+        },
+        "product_entry": {
+          "surface_kind": "opl_hosted_stage_action",
+          "action_key": "finalize_and_publication_handoff"
+        },
+        "openai": {
+          "tool_name": "mas_finalize_and_publication_handoff"
+        },
         "ai_sdk": {
-          "tool_name": "paper_mission"
-        },
-        "cli": {
-          "command": "med_autoscience.domain_entry:MedAutoScienceDomainEntry.dispatch#paper_mission",
-          "surface_kind": "paper_mission_readback"
-        },
-        "mcp": {
-          "command": "med_autoscience.domain_entry:MedAutoScienceDomainEntry.dispatch#paper_mission",
-          "descriptor_only": true,
-          "public_runtime": false,
-          "surface_kind": "paper_mission_readback",
-          "tool_name": "paper_mission"
-        },
-        "openai": {
-          "tool_name": "paper_mission"
-        },
-        "product_entry": {
-          "action_key": "paper_mission",
-          "command": "med_autoscience.domain_entry:MedAutoScienceDomainEntry.dispatch#paper_mission",
-          "surface_kind": "paper_mission_readback"
-        },
-        "skill": {
-          "command": "med_autoscience.domain_entry:MedAutoScienceDomainEntry.dispatch#paper_mission",
-          "command_contract_id": "paper_mission",
-          "surface_kind": "paper_mission_readback"
+          "tool_name": "mas_finalize_and_publication_handoff"
         }
       },
-      "title": "Inspect or advance MAS paper mission",
-      "workspace_locator_fields": [
-        "profile_ref",
-        "study_id"
-      ],
-      "required_fields": [
-        "profile_ref",
-        "study_id"
-      ],
-      "optional_fields": [
-        "paper_mission_command",
-        "objective",
-        "mission_id",
-        "candidate",
-        "run_id",
-        "output_root",
-        "opl_runtime_payload",
-        "dry_run"
-      ]
+      "authority_boundary": {
+        "domain_truth_owner": "MedAutoScience",
+        "quality_verdict_owner": "MedAutoScience",
+        "artifact_authority_owner": "MedAutoScience",
+        "stage_authority_owner": "MedAutoScience",
+        "human_submission_authority_required": true,
+        "opl_can_write_domain_truth": false,
+        "opl_can_sign_owner_receipt": false,
+        "opl_can_create_typed_blocker": false,
+        "provider_completion_is_domain_completion": false
+      }
     },
     {
-      "action_id": "study_state_matrix",
-      "authority_boundary": {
-        "authoritative_truth_refs": [
-          "/progress_projection",
-          "/owner_route/latest.json",
-          "/publication_eval/latest.json"
-        ],
-        "can_authorize_publication_quality": false,
-        "can_authorize_submission_readiness": false,
-        "can_execute_domain_action": false,
-        "can_write_domain_truth": false,
-        "descriptor_projection_owner": "one-person-lab",
-        "domain_handler_target_owner": "MedAutoScience",
-        "domain_route_context_owner": "MedAutoScience",
-        "domain_truth_owner": "MedAutoScience",
-        "helper_owner": "MedAutoScience",
-        "helper_write_policy": "no_domain_truth_writes",
-        "runner_owner": "OPL Framework",
-        "surface_authority": "domain_route_context_read_model_materialization"
-      },
+      "action_id": "paper_mission_authority_evaluate",
+      "title": "Paper mission authority evaluation",
+      "summary": "Evaluate host-injected paper-mission refs and return a deterministic MAS authority result without transport or persistence.",
+      "owner": "MedAutoScience",
       "effect": "read_only",
-      "human_gate_ids": [],
-      "input_schema_ref": "contracts/schemas/v1/mas-action.input.schema.json#/$defs/study_state_matrix",
-      "output_schema_ref": "contracts/schemas/v1/mas-action.output.schema.json",
-      "owner": "med-autoscience",
-      "source_command": {
-        "command": "med_autoscience.domain_entry:MedAutoScienceDomainEntry.dispatch#study_state_matrix",
-        "surface_kind": "study_state_matrix"
+      "execution_binding": {
+        "kind": "handler_ref",
+        "handler_ref": "handler:mas.paper-mission-authority-evaluate"
       },
-      "summary": "只读物化 MAS-owned study_state_matrix 与非权威 route context，供 Codex CLI 判断前进、重复、跳过或 route-back；不写 study truth、不执行状态机、不阻止 stage transition。",
-      "supported_surfaces": {
-        "ai_sdk": {
-          "tool_name": "study_state_matrix"
-        },
-        "cli": {
-          "command": "med_autoscience.domain_entry:MedAutoScienceDomainEntry.dispatch#study_state_matrix",
-          "surface_kind": "study_state_matrix"
-        },
-        "mcp": {
-          "command": "med_autoscience.domain_entry:MedAutoScienceDomainEntry.dispatch#study_state_matrix",
-          "descriptor_only": true,
-          "public_runtime": false,
-          "surface_kind": "study_state_matrix",
-          "tool_name": "study_state_matrix"
-        },
-        "openai": {
-          "tool_name": "study_state_matrix"
-        },
-        "product_entry": {
-          "action_key": "study_state_matrix",
-          "command": "med_autoscience.domain_entry:MedAutoScienceDomainEntry.dispatch#study_state_matrix",
-          "surface_kind": "study_state_matrix"
-        },
-        "skill": {
-          "command": "med_autoscience.domain_entry:MedAutoScienceDomainEntry.dispatch#study_state_matrix",
-          "command_contract_id": "study_state_matrix",
-          "surface_kind": "study_state_matrix"
-        }
-      },
-      "title": "Materialize MAS study state matrix",
-      "workspace_locator_fields": [
-        "profile_ref"
-      ],
+      "input_schema_ref": "contracts/schemas/v2/mas-paper-mission-authority.input.schema.json",
+      "output_schema_ref": "contracts/schemas/v2/mas-paper-mission-authority.output.schema.json",
       "required_fields": [
-        "profile_ref"
+        "surface_kind",
+        "schema_version",
+        "host_context",
+        "mission",
+        "medical_evidence",
+        "independent_review",
+        "repair_state",
+        "hard_gate"
       ],
-      "optional_fields": [
-        "study_ids",
-        "entry_mode"
-      ]
-    },
-    {
-      "action_id": "export_inspection_package",
-      "authority_boundary": {
-        "authoritative_truth_refs": [
-          "/progress_projection",
-          "/owner_route/latest.json",
-          "/publication_eval/latest.json"
-        ],
-        "can_authorize_publication_quality": false,
-        "can_authorize_submission_readiness": false,
-        "can_write_current_package": false,
-        "can_write_submission_minimal": false,
-        "domain_truth_owner": "MedAutoScience",
-        "helper_owner": "one-person-lab",
-        "helper_write_policy": "no_domain_truth_writes",
-        "surface_authority": "human_inspection_only"
-      },
-      "effect": "read_only",
-      "human_gate_ids": [],
-      "input_schema_ref": "contracts/schemas/v1/mas-action.input.schema.json#/$defs/export_inspection_package",
-      "output_schema_ref": "contracts/schemas/v1/mas-action.output.schema.json",
-      "owner": "med-autoscience",
-      "source_command": {
-        "command": "med_autoscience.domain_entry:MedAutoScienceDomainEntry.dispatch#export_inspection_package",
-        "surface_kind": "publication_inspection_package_export"
-      },
-      "summary": "Export a human inspection only paper snapshot for writing-style review. It is not current_package, not submission_minimal authority, and cannot authorize publication quality or submission readiness.",
-      "supported_surfaces": {
-        "ai_sdk": {
-          "tool_name": "export_inspection_package"
-        },
-        "cli": {
-          "command": "med_autoscience.domain_entry:MedAutoScienceDomainEntry.dispatch#export_inspection_package",
-          "surface_kind": "publication_inspection_package_export"
-        },
-        "mcp": {
-          "command": "med_autoscience.domain_entry:MedAutoScienceDomainEntry.dispatch#export_inspection_package",
-          "descriptor_only": true,
-          "public_runtime": false,
-          "surface_kind": "publication_inspection_package_export",
-          "tool_name": "export_inspection_package"
-        },
-        "openai": {
-          "tool_name": "export_inspection_package"
-        },
-        "product_entry": {
-          "action_key": "export_inspection_package",
-          "command": "med_autoscience.domain_entry:MedAutoScienceDomainEntry.dispatch#export_inspection_package",
-          "surface_kind": "publication_inspection_package_export"
-        },
-        "skill": {
-          "command": "med_autoscience.domain_entry:MedAutoScienceDomainEntry.dispatch#export_inspection_package",
-          "command_contract_id": "export_inspection_package",
-          "surface_kind": "publication_inspection_package_export"
-        }
-      },
-      "title": "Export human inspection package",
-      "workspace_locator_fields": [
-        "profile_ref",
-        "study_id"
-      ],
-      "required_fields": [
-        "profile_ref",
-        "study_id"
-      ],
-      "optional_fields": [
-        "publication_profile",
-        "force_materialize"
-      ]
-    },
-    {
-      "action_id": "publication_aftercare_plan",
-      "authority_boundary": {
-        "authoritative_truth_refs": [
-          "/progress_projection",
-          "/owner_route/latest.json",
-          "/publication_eval/latest.json"
-        ],
-        "can_authorize_publication_quality": false,
-        "can_authorize_submission_readiness": false,
-        "can_dispatch_runtime_owner_task": false,
-        "can_emit_owner_route_task_refs": true,
-        "can_write_current_package": false,
-        "can_write_publication_eval": false,
-        "domain_truth_owner": "MedAutoScience",
-        "helper_owner": "MedAutoScience",
-        "helper_write_policy": "no_domain_truth_writes",
-        "runtime_owner_task_dispatch_policy": "forbidden_mas_emits_refs_or_typed_blockers_only",
-        "surface_authority": "publication_aftercare_refs_only_owner_route_control"
-      },
-      "effect": "read_only",
-      "human_gate_ids": [],
-      "input_schema_ref": "contracts/schemas/v1/mas-action.input.schema.json#/$defs/publication_aftercare_plan",
-      "output_schema_ref": "contracts/schemas/v1/mas-action.output.schema.json",
-      "owner": "med-autoscience",
-      "source_command": {
-        "command": "med_autoscience.domain_entry:MedAutoScienceDomainEntry.dispatch#publication_aftercare_plan",
-        "surface_kind": "mas_publication_aftercare_plan"
-      },
-      "summary": "Read a refs-only publication aftercare surface for resubmission, talk package, Overleaf sync, research-pipeline follow-up, and reviewer refresh. It can only emit advisory owner-route refs or hard-boundary blocker refs; it does not write publication authority, current_package, paper package, or submission authority.",
-      "supported_surfaces": {
-        "ai_sdk": {
-          "tool_name": "publication_aftercare_plan"
-        },
-        "cli": {
-          "command": "med_autoscience.domain_entry:MedAutoScienceDomainEntry.dispatch#publication_aftercare_plan",
-          "surface_kind": "mas_publication_aftercare_plan"
-        },
-        "mcp": {
-          "command": "med_autoscience.domain_entry:MedAutoScienceDomainEntry.dispatch#publication_aftercare_plan",
-          "descriptor_only": true,
-          "public_runtime": false,
-          "surface_kind": "mas_publication_aftercare_plan",
-          "tool_name": "publication_aftercare_plan"
-        },
-        "openai": {
-          "tool_name": "publication_aftercare_plan"
-        },
-        "product_entry": {
-          "action_key": "publication_aftercare_plan",
-          "command": "med_autoscience.domain_entry:MedAutoScienceDomainEntry.dispatch#publication_aftercare_plan",
-          "surface_kind": "mas_publication_aftercare_plan"
-        },
-        "skill": {
-          "command": "med_autoscience.domain_entry:MedAutoScienceDomainEntry.dispatch#publication_aftercare_plan",
-          "command_contract_id": "publication_aftercare_plan",
-          "surface_kind": "mas_publication_aftercare_plan"
-        }
-      },
-      "title": "Plan publication aftercare progression",
-      "workspace_locator_fields": [
-        "study_root"
-      ],
-      "required_fields": [
-        "study_root"
-      ],
-      "optional_fields": [
-        "quest_root"
-      ]
-    },
-    {
-      "action_id": "delivery_authority_backfill_apply",
-      "authority_boundary": {
-        "authoritative_truth_refs": [
-          "/publication_eval/latest.json"
-        ],
-        "can_authorize_publication_quality": false,
-        "can_mutate_current_package": false,
-        "can_mutate_submission_minimal": false,
-        "can_write_delivery_manifest": true,
-        "domain_truth_owner": "MedAutoScience",
-        "helper_owner": "MedAutoScience",
-        "helper_write_policy": "domain_owner_authorized_delivery_manifest_fields_only",
-        "surface_authority": "delivery_manifest_authority_backfill"
-      },
-      "effect": "mutating",
-      "human_gate_ids": [
-        "delivery_sync_authority_gate"
-      ],
-      "input_schema_ref": "contracts/schemas/v1/mas-action.input.schema.json#/$defs/delivery_authority_backfill_apply",
-      "output_schema_ref": "contracts/schemas/v1/mas-action.output.schema.json",
-      "owner": "med-autoscience",
-      "source_command": {
-        "command": "med_autoscience.domain_entry:MedAutoScienceDomainEntry.dispatch#delivery_authority_backfill_apply",
-        "surface_kind": "delivery_authority_backfill_apply"
-      },
-      "summary": "Apply a domain-owner-authorized backfill only to delivery manifest lifecycle, source-signature, and publication-ref fields. It cannot mutate current_package or submission_minimal.",
-      "supported_surfaces": {
-        "ai_sdk": {
-          "tool_name": "delivery_authority_backfill_apply"
-        },
-        "cli": {
-          "command": "med_autoscience.domain_entry:MedAutoScienceDomainEntry.dispatch#delivery_authority_backfill_apply",
-          "surface_kind": "delivery_authority_backfill_apply"
-        },
-        "mcp": {
-          "command": "med_autoscience.domain_entry:MedAutoScienceDomainEntry.dispatch#delivery_authority_backfill_apply",
-          "descriptor_only": true,
-          "public_runtime": false,
-          "surface_kind": "delivery_authority_backfill_apply",
-          "tool_name": "delivery_authority_backfill_apply"
-        },
-        "openai": {
-          "tool_name": "delivery_authority_backfill_apply"
-        },
-        "product_entry": {
-          "action_key": "delivery_authority_backfill_apply",
-          "command": "med_autoscience.domain_entry:MedAutoScienceDomainEntry.dispatch#delivery_authority_backfill_apply",
-          "surface_kind": "delivery_authority_backfill_apply"
-        },
-        "skill": {
-          "command": "med_autoscience.domain_entry:MedAutoScienceDomainEntry.dispatch#delivery_authority_backfill_apply",
-          "command_contract_id": "delivery_authority_backfill_apply",
-          "surface_kind": "delivery_authority_backfill_apply"
-        }
-      },
-      "title": "Apply domain-owner-authorized delivery manifest backfill",
-      "workspace_locator_fields": [
-        "workspace_roots"
-      ],
-      "required_fields": [
-        "workspace_roots"
-      ],
-      "optional_fields": [
-        "apply",
-        "authority_snapshot"
-      ]
-    },
-    {
-      "action_id": "external_learning_adoption_closure",
-      "authority_boundary": {
-        "authoritative_truth_refs": [
-          "/progress_projection",
-          "/owner_route/latest.json",
-          "/publication_eval/latest.json"
-        ],
-        "can_authorize_publication_quality": false,
-        "can_authorize_submission_readiness": false,
-        "can_block_current_owner_action": false,
-        "can_write_current_package": false,
-        "can_write_publication_eval": false,
-        "domain_truth_owner": "MedAutoScience",
-        "helper_owner": "MedAutoScience",
-        "helper_write_policy": "no_domain_truth_writes",
-        "surface_authority": "external_learning_adoption_closure_read_model"
-      },
-      "effect": "read_only",
-      "human_gate_ids": [],
-      "input_schema_ref": "contracts/schemas/v1/mas-action.input.schema.json#/$defs/external_learning_adoption_closure",
-      "output_schema_ref": "contracts/schemas/v1/mas-action.output.schema.json",
-      "owner": "med-autoscience",
-      "source_command": {
-        "command": "med_autoscience.domain_entry:MedAutoScienceDomainEntry.dispatch#external_learning_adoption_closure",
-        "surface_kind": "mas_external_learning_adoption_closure"
-      },
-      "summary": "Read the MAS-owned closure surface for Co-Scientist, Nature-skills, ARS, AutoSci, EvoScientist/EvoSkills, ARK, ARIS, PaperSpine, and Open Auto Research learning. It distinguishes owner-surface landed work from contract-only or not-landed gaps, and declares the nonblocking external-learning sidecar execution slot.",
-      "supported_surfaces": {
-        "ai_sdk": {
-          "tool_name": "external_learning_adoption_closure"
-        },
-        "cli": {
-          "command": "med_autoscience.domain_entry:MedAutoScienceDomainEntry.dispatch#external_learning_adoption_closure",
-          "surface_kind": "mas_external_learning_adoption_closure"
-        },
-        "mcp": {
-          "command": "med_autoscience.domain_entry:MedAutoScienceDomainEntry.dispatch#external_learning_adoption_closure",
-          "descriptor_only": true,
-          "public_runtime": false,
-          "surface_kind": "mas_external_learning_adoption_closure",
-          "tool_name": "external_learning_adoption_closure"
-        },
-        "openai": {
-          "tool_name": "external_learning_adoption_closure"
-        },
-        "product_entry": {
-          "action_key": "external_learning_adoption_closure",
-          "command": "med_autoscience.domain_entry:MedAutoScienceDomainEntry.dispatch#external_learning_adoption_closure",
-          "surface_kind": "mas_external_learning_adoption_closure"
-        },
-        "skill": {
-          "command": "med_autoscience.domain_entry:MedAutoScienceDomainEntry.dispatch#external_learning_adoption_closure",
-          "command_contract_id": "external_learning_adoption_closure",
-          "surface_kind": "mas_external_learning_adoption_closure"
-        }
-      },
-      "title": "Inspect external learning adoption closure",
+      "optional_fields": [],
       "workspace_locator_fields": [],
-      "required_fields": [],
-      "optional_fields": []
-    },
-    {
-      "action_id": "display_pack_capability_discover",
-      "authority_boundary": {
-        "authoritative_truth_refs": [
-          "/progress_projection",
-          "/owner_route/latest.json",
-          "/publication_eval/latest.json"
-        ],
-        "can_authorize_publication_readiness": false,
-        "can_emit_display_refs_and_receipts": true,
-        "can_mutate_data_or_statistics": false,
-        "can_replace_owner_receipt": false,
-        "can_replace_visual_audit": false,
-        "domain_truth_owner": "MedAutoScience",
-        "helper_owner": "MedAutoScience",
-        "helper_write_policy": "no_domain_truth_writes",
-        "surface_authority": "display_pack_agent_capability_discovery"
-      },
-      "effect": "read_only",
       "human_gate_ids": [],
-      "input_schema_ref": "contracts/schemas/v1/mas-action.input.schema.json#/$defs/display_pack_capability_discover",
-      "output_schema_ref": "contracts/schemas/v1/mas-action.output.schema.json",
-      "owner": "med-autoscience",
-      "source_command": {
-        "command": "med_autoscience.domain_entry:MedAutoScienceDomainEntry.dispatch#display_pack_capability_discover",
-        "surface_kind": "display_pack_agent_capability"
-      },
-      "summary": "Return the agent-facing Display Pack inventory, callable actions, expected receipt refs, and forbidden authority boundary. This is the low-friction discovery entry for MAS agents; humans manage assets, agents consume this structured capability surface.",
       "supported_surfaces": {
-        "ai_sdk": {
-          "tool_name": "display_pack_capability_discover"
-        },
-        "cli": {
-          "command": "med_autoscience.domain_entry:MedAutoScienceDomainEntry.dispatch#display_pack_capability_discover",
-          "surface_kind": "display_pack_agent_capability"
-        },
-        "mcp": {
-          "command": "med_autoscience.domain_entry:MedAutoScienceDomainEntry.dispatch#display_pack_capability_discover",
-          "descriptor_only": false,
-          "mode": "discover",
-          "public_runtime": true,
-          "surface_kind": "display_pack_agent_capability",
-          "tool_name": "display_pack_agent"
-        },
-        "openai": {
-          "tool_name": "display_pack_capability_discover"
-        },
-        "product_entry": {
-          "action_key": "display_pack_capability_discover",
-          "command": "med_autoscience.domain_entry:MedAutoScienceDomainEntry.dispatch#display_pack_capability_discover",
-          "surface_kind": "display_pack_agent_capability"
-        },
-        "skill": {
-          "command": "med_autoscience.domain_entry:MedAutoScienceDomainEntry.dispatch#display_pack_capability_discover",
-          "command_contract_id": "display_pack_capability_discover",
-          "surface_kind": "display_pack_agent_capability"
-        }
+        "cli": null,
+        "mcp": null,
+        "skill": null,
+        "product_entry": null,
+        "openai": null,
+        "ai_sdk": null
       },
-      "title": "Discover MAS Display Pack capability",
-      "workspace_locator_fields": [],
-      "required_fields": [],
-      "optional_fields": [
-        "repo_root",
-        "paper_root",
-        "include_templates",
-        "opl_descriptor_output_dir"
-      ]
-    },
-    {
-      "action_id": "display_pack_figure_plan",
       "authority_boundary": {
-        "authoritative_truth_refs": [
-          "/progress_projection",
-          "/owner_route/latest.json",
-          "/publication_eval/latest.json"
-        ],
-        "can_authorize_publication_readiness": false,
-        "can_emit_display_refs_and_receipts": true,
-        "can_mutate_data_or_statistics": false,
-        "can_replace_owner_receipt": false,
-        "can_replace_visual_audit": false,
         "domain_truth_owner": "MedAutoScience",
-        "helper_owner": "MedAutoScience",
-        "helper_write_policy": "no_domain_truth_writes",
-        "surface_authority": "display_pack_template_selection_advisory"
-      },
-      "effect": "read_only",
-      "human_gate_ids": [],
-      "input_schema_ref": "contracts/schemas/v1/mas-action.input.schema.json#/$defs/display_pack_figure_plan",
-      "output_schema_ref": "contracts/schemas/v1/mas-action.output.schema.json",
-      "owner": "med-autoscience",
-      "source_command": {
-        "command": "med_autoscience.domain_entry:MedAutoScienceDomainEntry.dispatch#display_pack_figure_plan",
-        "surface_kind": "display_pack_agent_figure_plan"
-      },
-      "summary": "Given a structured figure_request, rank Display Pack templates as quality-floor baselines and choose the next preflight target. Exact matches use the template contract directly; close matches stay usable through adaptation hints and explicit forbidden-authority boundaries. It prefers R/ggplot2 where the pack declares that renderer, and emits typed blockers instead of asking an agent to manually browse templates.",
-      "supported_surfaces": {
-        "ai_sdk": {
-          "tool_name": "display_pack_figure_plan"
-        },
-        "cli": {
-          "command": "med_autoscience.domain_entry:MedAutoScienceDomainEntry.dispatch#display_pack_figure_plan",
-          "surface_kind": "display_pack_agent_figure_plan"
-        },
-        "mcp": {
-          "command": "med_autoscience.domain_entry:MedAutoScienceDomainEntry.dispatch#display_pack_figure_plan",
-          "descriptor_only": false,
-          "mode": "plan",
-          "public_runtime": true,
-          "surface_kind": "display_pack_agent_figure_plan",
-          "tool_name": "display_pack_agent"
-        },
-        "openai": {
-          "tool_name": "display_pack_figure_plan"
-        },
-        "product_entry": {
-          "action_key": "display_pack_figure_plan",
-          "command": "med_autoscience.domain_entry:MedAutoScienceDomainEntry.dispatch#display_pack_figure_plan",
-          "surface_kind": "display_pack_agent_figure_plan"
-        },
-        "skill": {
-          "command": "med_autoscience.domain_entry:MedAutoScienceDomainEntry.dispatch#display_pack_figure_plan",
-          "command_contract_id": "display_pack_figure_plan",
-          "surface_kind": "display_pack_agent_figure_plan"
-        }
-      },
-      "title": "Plan a Display Pack figure",
-      "workspace_locator_fields": [
-        "figure_request"
-      ],
-      "required_fields": [
-        "figure_request"
-      ],
-      "optional_fields": [
-        "repo_root",
-        "paper_root",
-        "max_recommendations"
-      ]
-    },
-    {
-      "action_id": "display_pack_orchestrate",
-      "authority_boundary": {
-        "agent_manual_template_selection_required": false,
-        "authoritative_truth_refs": [
-          "/progress_projection",
-          "/owner_route/latest.json",
-          "/publication_eval/latest.json"
-        ],
-        "can_authorize_publication_readiness": false,
-        "can_emit_display_refs_and_receipts": true,
-        "can_mutate_data_or_statistics": false,
-        "can_replace_owner_receipt": false,
-        "can_replace_visual_audit": false,
-        "domain_truth_owner": "MedAutoScience",
-        "helper_owner": "MedAutoScience",
-        "helper_write_policy": "no_domain_truth_writes",
-        "surface_authority": "display_pack_agent_orchestration"
-      },
-      "effect": "read_only",
-      "human_gate_ids": [],
-      "input_schema_ref": "contracts/schemas/v1/mas-action.input.schema.json#/$defs/display_pack_orchestrate",
-      "output_schema_ref": "contracts/schemas/v1/mas-action.output.schema.json",
-      "owner": "med-autoscience",
-      "source_command": {
-        "command": "med_autoscience.domain_entry:MedAutoScienceDomainEntry.dispatch#display_pack_orchestrate",
-        "surface_kind": "display_pack_agent_orchestration"
-      },
-      "summary": "Compile current_owner_delta, claim/data refs, paper target, natural-language intent, or a partial figure_request into a figure_intent; then rank templates, run preflight, emit quality-floor status, adaptable-template hints, typed repair routes, and the next callable. This is the ordinary low-friction path for autonomous MAS agents and does not require manual template selection.",
-      "supported_surfaces": {
-        "ai_sdk": {
-          "tool_name": "display_pack_orchestrate"
-        },
-        "cli": {
-          "command": "med_autoscience.domain_entry:MedAutoScienceDomainEntry.dispatch#display_pack_orchestrate",
-          "surface_kind": "display_pack_agent_orchestration"
-        },
-        "mcp": {
-          "command": "med_autoscience.domain_entry:MedAutoScienceDomainEntry.dispatch#display_pack_orchestrate",
-          "descriptor_only": false,
-          "mode": "orchestrate",
-          "public_runtime": true,
-          "surface_kind": "display_pack_agent_orchestration",
-          "tool_name": "display_pack_agent"
-        },
-        "openai": {
-          "tool_name": "display_pack_orchestrate"
-        },
-        "product_entry": {
-          "action_key": "display_pack_orchestrate",
-          "command": "med_autoscience.domain_entry:MedAutoScienceDomainEntry.dispatch#display_pack_orchestrate",
-          "surface_kind": "display_pack_agent_orchestration"
-        },
-        "skill": {
-          "command": "med_autoscience.domain_entry:MedAutoScienceDomainEntry.dispatch#display_pack_orchestrate",
-          "command_contract_id": "display_pack_orchestrate",
-          "surface_kind": "display_pack_agent_orchestration"
-        }
-      },
-      "title": "Orchestrate a Display Pack figure",
-      "workspace_locator_fields": [],
-      "required_fields": [],
-      "optional_fields": [
-        "repo_root",
-        "paper_root",
-        "current_owner_delta",
-        "claim_ref",
-        "data_ref",
-        "paper_target",
-        "intent",
-        "figure_request",
-        "max_recommendations",
-        "check_runtime_dependencies"
-      ]
-    },
-    {
-      "action_id": "display_pack_preflight",
-      "authority_boundary": {
-        "authoritative_truth_refs": [
-          "/progress_projection",
-          "/owner_route/latest.json",
-          "/publication_eval/latest.json"
-        ],
-        "can_authorize_publication_readiness": false,
-        "can_emit_display_refs_and_receipts": true,
-        "can_mutate_data_or_statistics": false,
-        "can_replace_owner_receipt": false,
-        "can_replace_visual_audit": false,
-        "domain_truth_owner": "MedAutoScience",
-        "helper_owner": "MedAutoScience",
-        "helper_write_policy": "no_domain_truth_writes",
-        "surface_authority": "display_pack_pre_render_readiness_check"
-      },
-      "effect": "read_only",
-      "human_gate_ids": [],
-      "input_schema_ref": "contracts/schemas/v1/mas-action.input.schema.json#/$defs/display_pack_preflight",
-      "output_schema_ref": "contracts/schemas/v1/mas-action.output.schema.json",
-      "owner": "med-autoscience",
-      "source_command": {
-        "command": "med_autoscience.domain_entry:MedAutoScienceDomainEntry.dispatch#display_pack_preflight",
-        "surface_kind": "display_pack_agent_preflight"
-      },
-      "summary": "Check selected template assets, QC profile, R runtime dependencies, style profile lock, and golden coverage before render. Findings route to style/profile/runtime/template repair without mutating data, statistics, evidence marks, or publication verdicts.",
-      "supported_surfaces": {
-        "ai_sdk": {
-          "tool_name": "display_pack_preflight"
-        },
-        "cli": {
-          "command": "med_autoscience.domain_entry:MedAutoScienceDomainEntry.dispatch#display_pack_preflight",
-          "surface_kind": "display_pack_agent_preflight"
-        },
-        "mcp": {
-          "command": "med_autoscience.domain_entry:MedAutoScienceDomainEntry.dispatch#display_pack_preflight",
-          "descriptor_only": false,
-          "mode": "preflight",
-          "public_runtime": true,
-          "surface_kind": "display_pack_agent_preflight",
-          "tool_name": "display_pack_agent"
-        },
-        "openai": {
-          "tool_name": "display_pack_preflight"
-        },
-        "product_entry": {
-          "action_key": "display_pack_preflight",
-          "command": "med_autoscience.domain_entry:MedAutoScienceDomainEntry.dispatch#display_pack_preflight",
-          "surface_kind": "display_pack_agent_preflight"
-        },
-        "skill": {
-          "command": "med_autoscience.domain_entry:MedAutoScienceDomainEntry.dispatch#display_pack_preflight",
-          "command_contract_id": "display_pack_preflight",
-          "surface_kind": "display_pack_agent_preflight"
-        }
-      },
-      "title": "Preflight a Display Pack figure",
-      "workspace_locator_fields": [],
-      "required_fields": [],
-      "optional_fields": [
-        "repo_root",
-        "paper_root",
-        "template_id",
-        "figure_request",
-        "check_runtime_dependencies"
-      ]
-    },
-    {
-      "action_id": "display_pack_render",
-      "authority_boundary": {
-        "authoritative_truth_refs": [
-          "/progress_projection",
-          "/owner_route/latest.json",
-          "/publication_eval/latest.json"
-        ],
-        "can_authorize_publication_readiness": false,
-        "can_emit_display_refs_and_receipts": true,
-        "can_mutate_data_or_statistics": false,
-        "can_replace_owner_receipt": false,
-        "can_replace_visual_audit": false,
-        "can_write_current_package": false,
-        "can_write_publication_eval": false,
-        "domain_truth_owner": "MedAutoScience",
-        "helper_owner": "MedAutoScience",
-        "helper_write_policy": "display_artifacts_and_refs_only",
-        "surface_authority": "display_pack_render_receipt"
-      },
-      "effect": "mutating",
-      "human_gate_ids": [],
-      "input_schema_ref": "contracts/schemas/v1/mas-action.input.schema.json#/$defs/display_pack_render",
-      "output_schema_ref": "contracts/schemas/v1/mas-action.output.schema.json",
-      "owner": "med-autoscience",
-      "source_command": {
-        "command": "med_autoscience.domain_entry:MedAutoScienceDomainEntry.dispatch#display_pack_render",
-        "surface_kind": "display_pack_agent_render_receipt"
-      },
-      "summary": "Materialize Display Pack figure artifacts and paper-level display refs from a prepared paper_root or frozen data payload. This writes display artifacts, visual-audit receipt, polish lifecycle, display_pack_lock, and publication manifest refs only; it cannot sign publication readiness or owner receipt.",
-      "supported_surfaces": {
-        "ai_sdk": {
-          "tool_name": "display_pack_render"
-        },
-        "cli": {
-          "command": "med_autoscience.domain_entry:MedAutoScienceDomainEntry.dispatch#display_pack_render",
-          "surface_kind": "display_pack_agent_render_receipt"
-        },
-        "mcp": {
-          "command": "med_autoscience.domain_entry:MedAutoScienceDomainEntry.dispatch#display_pack_render",
-          "descriptor_only": false,
-          "mode": "render",
-          "public_runtime": true,
-          "surface_kind": "display_pack_agent_render_receipt",
-          "tool_name": "display_pack_agent"
-        },
-        "openai": {
-          "tool_name": "display_pack_render"
-        },
-        "product_entry": {
-          "action_key": "display_pack_render",
-          "command": "med_autoscience.domain_entry:MedAutoScienceDomainEntry.dispatch#display_pack_render",
-          "surface_kind": "display_pack_agent_render_receipt"
-        },
-        "skill": {
-          "command": "med_autoscience.domain_entry:MedAutoScienceDomainEntry.dispatch#display_pack_render",
-          "command_contract_id": "display_pack_render",
-          "surface_kind": "display_pack_agent_render_receipt"
-        }
-      },
-      "title": "Render a Display Pack figure receipt",
-      "workspace_locator_fields": [
-        "paper_root"
-      ],
-      "required_fields": [
-        "paper_root"
-      ],
-      "optional_fields": [
-        "repo_root",
-        "figure_request",
-        "visual_audit_review"
-      ]
-    },
-    {
-      "action_id": "scientific_capability_registry",
-      "authority_boundary": {
-        "authoritative_truth_refs": [
-          "/progress_projection",
-          "/owner_route/latest.json",
-          "/publication_eval/latest.json"
-        ],
-        "can_authorize_publication_quality": false,
-        "can_authorize_submission_readiness": false,
-        "can_block_current_owner_action": false,
-        "can_create_default_selector": false,
-        "can_launch_external_runtime": false,
-        "can_write_current_package": false,
-        "can_write_owner_receipt": false,
-        "can_write_publication_eval": false,
-        "can_write_typed_blocker": false,
-        "domain_truth_owner": "MedAutoScience",
-        "helper_owner": "one-person-lab",
-        "helper_write_policy": "refs_only_capability_invocation",
-        "surface_authority": "current_delta_bound_capability_resolver"
-      },
-      "effect": "read_only",
-      "human_gate_ids": [],
-      "input_schema_ref": "contracts/schemas/v1/mas-action.input.schema.json#/$defs/scientific_capability_registry",
-      "output_schema_ref": "contracts/schemas/v1/mas-action.output.schema.json",
-      "owner": "med-autoscience",
-      "source_command": {
-        "command": "med_autoscience.domain_entry:MedAutoScienceDomainEntry.dispatch#scientific_capability_registry",
-        "surface_kind": "mas_scientific_capability_registry"
-      },
-      "summary": "Expose the MAS scientific capability registry as a current-owner-delta-bound resolver. It can list capabilities, resolve refs-only advisory candidates for the current owner delta, or invoke already-landed refs-only capability surfaces without adding a default external runtime, selector, backlog, or admission gate.",
-      "supported_surfaces": {
-        "ai_sdk": {
-          "tool_name": "scientific_capability_registry"
-        },
-        "cli": {
-          "command": "med_autoscience.domain_entry:MedAutoScienceDomainEntry.dispatch#scientific_capability_registry",
-          "surface_kind": "mas_scientific_capability_registry"
-        },
-        "mcp": {
-          "command": "med_autoscience.domain_entry:MedAutoScienceDomainEntry.dispatch#scientific_capability_registry",
-          "descriptor_only": false,
-          "public_runtime": true,
-          "surface_kind": "mas_scientific_capability_registry",
-          "tool_name": "scientific_capability_registry"
-        },
-        "openai": {
-          "tool_name": "scientific_capability_registry"
-        },
-        "product_entry": {
-          "action_key": "scientific_capability_registry",
-          "command": "med_autoscience.domain_entry:MedAutoScienceDomainEntry.dispatch#scientific_capability_registry",
-          "surface_kind": "mas_scientific_capability_registry"
-        },
-        "skill": {
-          "command": "med_autoscience.domain_entry:MedAutoScienceDomainEntry.dispatch#scientific_capability_registry",
-          "command_contract_id": "scientific_capability_registry",
-          "surface_kind": "mas_scientific_capability_registry"
-        }
-      },
-      "title": "Resolve or invoke scientific capabilities",
-      "workspace_locator_fields": [
-        "mode"
-      ],
-      "required_fields": [
-        "mode"
-      ],
-      "optional_fields": [
-        "capability_id",
-        "current_owner_delta",
-        "study_root",
-        "apply",
-        "payload"
-      ]
-    },
-    {
-      "action_id": "research_integrity_gate_input",
-      "authority_boundary": {
-        "authoritative_truth_refs": [
-          "/progress_projection",
-          "/owner_route/latest.json",
-          "/publication_eval/latest.json"
-        ],
-        "can_authorize_publication_quality": false,
-        "can_authorize_publication_readiness": false,
-        "can_authorize_submission_readiness": false,
-        "can_materialize_human_gate": false,
-        "can_materialize_typed_blocker": false,
-        "can_mutate_current_package": false,
-        "can_sign_owner_receipt": false,
-        "can_write_current_package": false,
-        "can_write_mas_study_truth": false,
-        "can_write_owner_receipt": false,
-        "can_write_publication_eval": false,
-        "can_write_publication_eval_latest": false,
-        "can_write_runtime_queue_or_provider_attempt": false,
-        "can_write_typed_blocker": false,
-        "domain_truth_owner": "MedAutoScience",
-        "helper_owner": "MedAutoScience",
-        "helper_write_policy": "no_domain_truth_writes",
-        "outputs_are_gate_inputs": true,
-        "paper_mission_subordination": {
-          "authority_owner": "MedAutoScience",
-          "can_bypass_submission_authority": false,
-          "can_close_without_owner_gate_or_typed_blocker": false,
-          "can_start_parallel_mainline": false,
-          "control_plane_role": "subordinate_input_or_advisory_only",
-          "mainline_route": [
-            "PaperMission",
-            "submission_authority",
-            "submission_authority_owner_gate_or_typed_blocker"
-          ],
-          "surface_kind": "mas_paper_mission_subordination"
-        },
-        "surface_authority": "research_integrity_gate_input_only"
-      },
-      "effect": "read_only",
-      "human_gate_ids": [],
-      "input_schema_ref": "contracts/schemas/v1/mas-action.input.schema.json#/$defs/research_integrity_gate_input",
-      "output_schema_ref": "contracts/schemas/v1/mas-action.output.schema.json",
-      "owner": "med-autoscience",
-      "source_command": {
-        "command": "med_autoscience.domain_entry:MedAutoScienceDomainEntry.dispatch#research_integrity_gate_input",
-        "surface_kind": "research_integrity_gate_input_bundle"
-      },
-      "summary": "Build a structured Research Integrity input bundle from supplied reference, claim, manuscript, and provider-evidence payloads. It only produces evidence, review input, and blocker candidates; it does not write publication authority, owner receipts, typed blockers, human gates, runtime queues, provider attempts, publication_eval, or current_package. It remains Codex route input for the review/publication claim boundary.",
-      "supported_surfaces": {
-        "ai_sdk": {
-          "tool_name": "research_integrity_gate_input"
-        },
-        "cli": {
-          "command": "med_autoscience.domain_entry:MedAutoScienceDomainEntry.dispatch#research_integrity_gate_input",
-          "surface_kind": "research_integrity_gate_input_bundle"
-        },
-        "mcp": {
-          "command": "med_autoscience.domain_entry:MedAutoScienceDomainEntry.dispatch#research_integrity_gate_input",
-          "descriptor_only": true,
-          "public_runtime": false,
-          "surface_kind": "research_integrity_gate_input_bundle",
-          "tool_name": "research_integrity_gate_input"
-        },
-        "openai": {
-          "tool_name": "research_integrity_gate_input"
-        },
-        "product_entry": {
-          "action_key": "research_integrity_gate_input",
-          "command": "med_autoscience.domain_entry:MedAutoScienceDomainEntry.dispatch#research_integrity_gate_input",
-          "surface_kind": "research_integrity_gate_input_bundle"
-        },
-        "skill": {
-          "command": "med_autoscience.domain_entry:MedAutoScienceDomainEntry.dispatch#research_integrity_gate_input",
-          "command_contract_id": "research_integrity_gate_input",
-          "surface_kind": "research_integrity_gate_input_bundle"
-        }
-      },
-      "title": "Build Research Integrity gate input",
-      "workspace_locator_fields": [],
-      "required_fields": [],
-      "optional_fields": [
-        "payload",
-        "reference_checks",
-        "reference",
-        "references",
-        "claim_spans",
-        "claim",
-        "claims",
-        "citation_refs",
-        "evidence_refs",
-        "reference_attestation_refs",
-        "manuscript_sections",
-        "manuscript",
-        "numeric_facts",
-        "display_facts",
-        "provider_evidence",
-        "reference_attestations",
-        "display_to_claim_map",
-        "reporting_guideline_expectations",
-        "reporting_checklist_expectations"
-      ]
-    },
-    {
-      "action_id": "research_integrity_reference_verification",
-      "authority_boundary": {
-        "authoritative_truth_refs": [
-          "/progress_projection",
-          "/owner_route/latest.json",
-          "/publication_eval/latest.json"
-        ],
-        "can_authorize_publication_quality": false,
-        "can_authorize_publication_readiness": false,
-        "can_authorize_submission_readiness": false,
-        "can_materialize_human_gate": false,
-        "can_materialize_typed_blocker": false,
-        "can_mutate_current_package": false,
-        "can_sign_owner_receipt": false,
-        "can_write_current_package": false,
-        "can_write_mas_study_truth": false,
-        "can_write_owner_receipt": false,
-        "can_write_publication_eval": false,
-        "can_write_publication_eval_latest": false,
-        "can_write_runtime_queue_or_provider_attempt": false,
-        "can_write_typed_blocker": false,
-        "domain_truth_owner": "MedAutoScience",
-        "helper_owner": "MedAutoScience",
-        "helper_write_policy": "no_domain_truth_writes",
-        "outputs_are_gate_inputs": true,
-        "paper_mission_subordination": {
-          "authority_owner": "MedAutoScience",
-          "can_bypass_submission_authority": false,
-          "can_close_without_owner_gate_or_typed_blocker": false,
-          "can_start_parallel_mainline": false,
-          "control_plane_role": "subordinate_input_or_advisory_only",
-          "mainline_route": [
-            "PaperMission",
-            "submission_authority",
-            "submission_authority_owner_gate_or_typed_blocker"
-          ],
-          "surface_kind": "mas_paper_mission_subordination"
-        },
-        "surface_authority": "research_integrity_reference_verification_gate_input_only"
-      },
-      "effect": "read_only",
-      "human_gate_ids": [],
-      "input_schema_ref": "contracts/schemas/v1/mas-action.input.schema.json#/$defs/research_integrity_reference_verification",
-      "output_schema_ref": "contracts/schemas/v1/mas-action.output.schema.json",
-      "owner": "med-autoscience",
-      "source_command": {
-        "command": "med_autoscience.domain_entry:MedAutoScienceDomainEntry.dispatch#research_integrity_reference_verification",
-        "surface_kind": "research_integrity_reference_verification_gate_input_bundle"
-      },
-      "summary": "Trigger complete-reference verification for supplied manuscript or reference manager refs. It only returns a Research Integrity input or evidence bundle; it does not write publication authority, owner receipts, typed blockers, human gates, runtime queues, provider attempts, publication_eval, or current_package. Its findings are Codex route input and close only affected quality/publication claims.",
-      "supported_surfaces": {
-        "ai_sdk": {
-          "tool_name": "research_integrity_reference_verification"
-        },
-        "cli": {
-          "command": "med_autoscience.domain_entry:MedAutoScienceDomainEntry.dispatch#research_integrity_reference_verification",
-          "surface_kind": "research_integrity_reference_verification_gate_input_bundle"
-        },
-        "mcp": {
-          "command": "med_autoscience.domain_entry:MedAutoScienceDomainEntry.dispatch#research_integrity_reference_verification",
-          "descriptor_only": true,
-          "public_runtime": false,
-          "surface_kind": "research_integrity_reference_verification_gate_input_bundle",
-          "tool_name": "research_integrity_reference_verification"
-        },
-        "openai": {
-          "tool_name": "research_integrity_reference_verification"
-        },
-        "product_entry": {
-          "action_key": "research_integrity_reference_verification",
-          "command": "med_autoscience.domain_entry:MedAutoScienceDomainEntry.dispatch#research_integrity_reference_verification",
-          "surface_kind": "research_integrity_reference_verification_gate_input_bundle"
-        },
-        "skill": {
-          "command": "med_autoscience.domain_entry:MedAutoScienceDomainEntry.dispatch#research_integrity_reference_verification",
-          "command_contract_id": "research_integrity_reference_verification",
-          "surface_kind": "research_integrity_reference_verification_gate_input_bundle"
-        }
-      },
-      "title": "Build Research Integrity reference verification payload",
-      "workspace_locator_fields": [],
-      "required_fields": [],
-      "optional_fields": [
-        "payload",
-        "reference",
-        "references",
-        "provider_evidence",
-        "provider_receipts",
-        "source_refs",
-        "reference_manager_ref",
-        "manuscript_ref"
-      ]
-    },
-    {
-      "action_id": "research_integrity_review_publication_gate_stage_hook",
-      "authority_boundary": {
-        "authoritative_truth_refs": [
-          "/progress_projection",
-          "/owner_route/latest.json",
-          "/publication_eval/latest.json"
-        ],
-        "can_authorize_publication_quality": false,
-        "can_authorize_publication_readiness": false,
-        "can_authorize_submission_readiness": false,
-        "can_materialize_human_gate": false,
-        "can_materialize_typed_blocker": false,
-        "can_mutate_current_package": false,
-        "can_request_provider_lookup": true,
-        "can_sign_owner_receipt": false,
-        "can_write_current_package": false,
-        "can_write_mas_study_truth": false,
-        "can_write_owner_receipt": false,
-        "can_write_publication_eval": false,
-        "can_write_publication_eval_latest": false,
-        "can_write_runtime_queue_or_provider_attempt": false,
-        "can_write_typed_blocker": false,
-        "domain_truth_owner": "MedAutoScience",
-        "helper_owner": "MedAutoScience",
-        "helper_write_policy": "no_domain_truth_writes",
-        "outputs_are_gate_inputs": true,
-        "paper_mission_subordination": {
-          "authority_owner": "MedAutoScience",
-          "can_bypass_submission_authority": false,
-          "can_close_without_owner_gate_or_typed_blocker": false,
-          "can_start_parallel_mainline": false,
-          "control_plane_role": "subordinate_input_or_advisory_only",
-          "mainline_route": [
-            "PaperMission",
-            "submission_authority",
-            "submission_authority_owner_gate_or_typed_blocker"
-          ],
-          "surface_kind": "mas_paper_mission_subordination"
-        },
-        "stage_hook_consumers": [
-          "review_gate",
-          "publication_gate"
-        ],
-        "surface_authority": "mandatory_stage_hook_gate_input_only",
-        "triggered_action": "research-integrity-reference-verification"
-      },
-      "effect": "read_only",
-      "human_gate_ids": [],
-      "input_schema_ref": "contracts/schemas/v1/mas-action.input.schema.json#/$defs/research_integrity_review_publication_gate_stage_hook",
-      "output_schema_ref": "contracts/schemas/v1/mas-action.output.schema.json",
-      "owner": "med-autoscience",
-      "source_command": {
-        "command": "med_autoscience.domain_entry:MedAutoScienceDomainEntry.dispatch#research_integrity_review_publication_gate_stage_hook",
-        "surface_kind": "research_integrity_review_publication_gate_stage_hook"
-      },
-      "summary": "Review/Publication claim-check input: when a reference list, manuscript closeout, review stage, or publication claim is evaluated, trigger research-integrity-reference-verification and return manuscript-consistency/meta-review findings. It cannot write publication authority, owner receipts, typed blockers, human gates, runtime queues, provider attempts, publication_eval, or current_package. Findings do not block ordinary stage progression when a consumable artifact exists.",
-      "supported_surfaces": {
-        "ai_sdk": {
-          "tool_name": "research_integrity_review_publication_gate_stage_hook"
-        },
-        "cli": {
-          "command": "med_autoscience.domain_entry:MedAutoScienceDomainEntry.dispatch#research_integrity_review_publication_gate_stage_hook",
-          "surface_kind": "research_integrity_review_publication_gate_stage_hook"
-        },
-        "mcp": {
-          "command": "med_autoscience.domain_entry:MedAutoScienceDomainEntry.dispatch#research_integrity_review_publication_gate_stage_hook",
-          "descriptor_only": true,
-          "public_runtime": false,
-          "surface_kind": "research_integrity_review_publication_gate_stage_hook",
-          "tool_name": "research_integrity_review_publication_gate_stage_hook"
-        },
-        "openai": {
-          "tool_name": "research_integrity_review_publication_gate_stage_hook"
-        },
-        "product_entry": {
-          "action_key": "research_integrity_review_publication_gate_stage_hook",
-          "command": "med_autoscience.domain_entry:MedAutoScienceDomainEntry.dispatch#research_integrity_review_publication_gate_stage_hook",
-          "surface_kind": "research_integrity_review_publication_gate_stage_hook"
-        },
-        "skill": {
-          "command": "med_autoscience.domain_entry:MedAutoScienceDomainEntry.dispatch#research_integrity_review_publication_gate_stage_hook",
-          "command_contract_id": "research_integrity_review_publication_gate_stage_hook",
-          "surface_kind": "research_integrity_review_publication_gate_stage_hook"
-        }
-      },
-      "title": "Trigger Research Integrity review/publication gate hook",
-      "workspace_locator_fields": [],
-      "required_fields": [],
-      "optional_fields": [
-        "payload",
-        "stage_id",
-        "stage_event",
-        "stage_hook_ref",
-        "reference",
-        "references",
-        "provider_evidence",
-        "provider_receipts",
-        "source_refs",
-        "reference_manager_ref",
-        "manuscript_ref",
-        "claim_spans",
-        "claim",
-        "claims",
-        "citation_refs",
-        "evidence_refs",
-        "reference_attestation_refs",
-        "manuscript_sections",
-        "manuscript",
-        "numeric_facts",
-        "display_facts",
-        "reference_attestations",
-        "display_to_claim_map",
-        "reporting_guideline_expectations",
-        "reporting_checklist_expectations"
-      ]
-    },
-    {
-      "action_id": "mainline_status",
-      "authority_boundary": {
-        "authoritative_truth_refs": [
-          "/progress_projection",
-          "/owner_route/latest.json",
-          "/publication_eval/latest.json"
-        ],
-        "descriptor_projection_owner": "one-person-lab",
-        "domain_handler_target_owner": "MedAutoScience",
-        "domain_truth_owner": "MedAutoScience",
-        "helper_owner": "one-person-lab",
-        "helper_write_policy": "no_domain_truth_writes"
-      },
-      "effect": "read_only",
-      "human_gate_ids": [],
-      "input_schema_ref": "contracts/schemas/v1/mas-action.input.schema.json#/$defs/mainline_status",
-      "output_schema_ref": "contracts/schemas/v1/mas-action.output.schema.json",
-      "owner": "med-autoscience",
-      "source_command": {
-        "command": "med_autoscience.domain_entry:MedAutoScienceDomainEntry.dispatch#mainline_status",
-        "surface_kind": "mainline_status"
-      },
-      "summary": "查看 repo 理想形态、当前阶段、剩余缺口与下一步焦点。",
-      "supported_surfaces": {
-        "ai_sdk": {
-          "tool_name": "mainline_status"
-        },
-        "cli": {
-          "command": "med_autoscience.domain_entry:MedAutoScienceDomainEntry.dispatch#mainline_status",
-          "surface_kind": "mainline_status"
-        },
-        "mcp": {
-          "command": "med_autoscience.domain_entry:MedAutoScienceDomainEntry.dispatch#mainline_status",
-          "descriptor_only": true,
-          "public_runtime": false,
-          "surface_kind": "mainline_status",
-          "tool_name": "mainline_status"
-        },
-        "openai": {
-          "tool_name": "mainline_status"
-        },
-        "product_entry": {
-          "action_key": "mainline_status",
-          "command": "med_autoscience.domain_entry:MedAutoScienceDomainEntry.dispatch#mainline_status",
-          "surface_kind": "mainline_status"
-        },
-        "skill": {
-          "command": "med_autoscience.domain_entry:MedAutoScienceDomainEntry.dispatch#mainline_status",
-          "command_contract_id": "mainline_status",
-          "surface_kind": "mainline_status"
-        }
-      },
-      "title": "Inspect MAS mainline status",
-      "workspace_locator_fields": [],
-      "required_fields": [],
-      "optional_fields": []
-    },
-    {
-      "action_id": "mainline_phase",
-      "authority_boundary": {
-        "authoritative_truth_refs": [
-          "/progress_projection",
-          "/owner_route/latest.json",
-          "/publication_eval/latest.json"
-        ],
-        "descriptor_projection_owner": "one-person-lab",
-        "domain_handler_target_owner": "MedAutoScience",
-        "domain_truth_owner": "MedAutoScience",
-        "helper_owner": "one-person-lab",
-        "helper_write_policy": "no_domain_truth_writes"
-      },
-      "effect": "read_only",
-      "human_gate_ids": [],
-      "input_schema_ref": "contracts/schemas/v1/mas-action.input.schema.json#/$defs/mainline_phase",
-      "output_schema_ref": "contracts/schemas/v1/mas-action.output.schema.json",
-      "owner": "med-autoscience",
-      "source_command": {
-        "command": "med_autoscience.domain_entry:MedAutoScienceDomainEntry.dispatch#mainline_phase",
-        "surface_kind": "mainline_phase"
-      },
-      "summary": "查看某一阶段当前可用入口、退出条件与关键文档。",
-      "supported_surfaces": {
-        "ai_sdk": {
-          "tool_name": "mainline_phase"
-        },
-        "cli": {
-          "command": "med_autoscience.domain_entry:MedAutoScienceDomainEntry.dispatch#mainline_phase",
-          "surface_kind": "mainline_phase"
-        },
-        "mcp": {
-          "command": "med_autoscience.domain_entry:MedAutoScienceDomainEntry.dispatch#mainline_phase",
-          "descriptor_only": true,
-          "public_runtime": false,
-          "surface_kind": "mainline_phase",
-          "tool_name": "mainline_phase"
-        },
-        "openai": {
-          "tool_name": "mainline_phase"
-        },
-        "product_entry": {
-          "action_key": "mainline_phase",
-          "command": "med_autoscience.domain_entry:MedAutoScienceDomainEntry.dispatch#mainline_phase",
-          "surface_kind": "mainline_phase"
-        },
-        "skill": {
-          "command": "med_autoscience.domain_entry:MedAutoScienceDomainEntry.dispatch#mainline_phase",
-          "command_contract_id": "mainline_phase",
-          "surface_kind": "mainline_phase"
-        }
-      },
-      "title": "Inspect MAS mainline phase",
-      "workspace_locator_fields": [],
-      "required_fields": [],
-      "optional_fields": [
-        "selector"
-      ]
-    },
-    {
-      "action_id": "domain_handler_export",
-      "authority_boundary": {
-        "authoritative_truth_refs": [
-          "/progress_projection",
-          "/owner_route/latest.json",
-          "/publication_eval/latest.json"
-        ],
-        "descriptor_projection_owner": "one-person-lab",
-        "domain_handler_target_owner": "MedAutoScience",
-        "domain_truth_owner": "MedAutoScience",
-        "helper_owner": "one-person-lab",
-        "helper_write_policy": "no_domain_truth_writes"
-      },
-      "effect": "read_only",
-      "human_gate_ids": [],
-      "input_schema_ref": "contracts/schemas/v1/mas-action.input.schema.json#/$defs/domain_handler_export",
-      "output_schema_ref": "contracts/schemas/v1/mas-action.output.schema.json",
-      "owner": "med-autoscience",
-      "source_command": {
-        "command": "med_autoscience.domain_entry:MedAutoScienceDomainEntry.dispatch#domain_handler_export",
-        "surface_kind": "mas_family_domain_handler_export"
-      },
-      "summary": "Export MAS-owned read-only projection, pending OPL family tasks, source refs, owner receipt contract and substrate refs for OPL generated/hosted surfaces. It does not authorize study truth, publication quality, artifact gate or current package writes.",
-      "supported_surfaces": {
-        "ai_sdk": {
-          "tool_name": "domain_handler_export"
-        },
-        "cli": {
-          "command": "med_autoscience.domain_entry:MedAutoScienceDomainEntry.dispatch#domain_handler_export",
-          "surface_kind": "mas_family_domain_handler_export"
-        },
-        "mcp": {
-          "command": "med_autoscience.domain_entry:MedAutoScienceDomainEntry.dispatch#domain_handler_export",
-          "descriptor_only": true,
-          "public_runtime": false,
-          "surface_kind": "mas_family_domain_handler_export",
-          "tool_name": "domain_handler_export"
-        },
-        "openai": {
-          "tool_name": "domain_handler_export"
-        },
-        "product_entry": {
-          "action_key": "domain_handler_export",
-          "command": "med_autoscience.domain_entry:MedAutoScienceDomainEntry.dispatch#domain_handler_export",
-          "surface_kind": "mas_family_domain_handler_export"
-        },
-        "skill": {
-          "command": "med_autoscience.domain_entry:MedAutoScienceDomainEntry.dispatch#domain_handler_export",
-          "command_contract_id": "domain_handler_export",
-          "surface_kind": "mas_family_domain_handler_export"
-        }
-      },
-      "title": "Export MAS domain-handler projection",
-      "workspace_locator_fields": [
-        "profile_ref"
-      ],
-      "required_fields": [
-        "profile_ref"
-      ],
-      "optional_fields": [
-        "study_ids",
-        "opl_production_proof_ref"
-      ]
-    },
-    {
-      "action_id": "domain_handler_dispatch",
-      "authority_boundary": {
-        "authoritative_truth_refs": [
-          "/progress_projection",
-          "/owner_route/latest.json",
-          "/publication_eval/latest.json"
-        ],
-        "descriptor_projection_owner": "one-person-lab",
-        "domain_handler_target_owner": "MedAutoScience",
-        "domain_truth_owner": "MedAutoScience",
-        "helper_owner": "MedAutoScience",
-        "helper_write_policy": "no_domain_truth_writes"
-      },
-      "effect": "mutating",
-      "human_gate_ids": [],
-      "input_schema_ref": "contracts/schemas/v1/mas-action.input.schema.json#/$defs/domain_handler_dispatch",
-      "output_schema_ref": "contracts/schemas/v1/mas-action.output.schema.json",
-      "owner": "med-autoscience",
-      "source_command": {
-        "command": "med_autoscience.domain_entry:MedAutoScienceDomainEntry.dispatch#domain_handler_dispatch",
-        "surface_kind": "mas_family_domain_handler_dispatch_receipt"
-      },
-      "summary": "Boundary for OPL typed task consumption. Ordinary paper execution uses domain_route/start-or-resume and may materialize non-authority submission milestone candidate packages plus consumption ledgers; legacy owner-callable dispatch is tombstoned and can only return diagnostic/fail-closed readback. This action does not create owner receipts, typed blockers, domain truth, publication quality, artifact gate, current package writes, runtime queue rows, or provider attempts.",
-      "supported_surfaces": {
-        "ai_sdk": {
-          "tool_name": "domain_handler_dispatch"
-        },
-        "cli": {
-          "command": "med_autoscience.domain_entry:MedAutoScienceDomainEntry.dispatch#domain_handler_dispatch",
-          "surface_kind": "mas_family_domain_handler_dispatch_receipt"
-        },
-        "mcp": {
-          "command": "med_autoscience.domain_entry:MedAutoScienceDomainEntry.dispatch#domain_handler_dispatch",
-          "descriptor_only": true,
-          "public_runtime": false,
-          "surface_kind": "mas_family_domain_handler_dispatch_receipt",
-          "tool_name": "domain_handler_dispatch"
-        },
-        "openai": {
-          "tool_name": "domain_handler_dispatch"
-        },
-        "product_entry": {
-          "action_key": "domain_handler_dispatch",
-          "command": "med_autoscience.domain_entry:MedAutoScienceDomainEntry.dispatch#domain_handler_dispatch",
-          "surface_kind": "mas_family_domain_handler_dispatch_receipt"
-        },
-        "skill": {
-          "command": "med_autoscience.domain_entry:MedAutoScienceDomainEntry.dispatch#domain_handler_dispatch",
-          "command_contract_id": "domain_handler_dispatch",
-          "surface_kind": "mas_family_domain_handler_dispatch_receipt"
-        }
-      },
-      "title": "Dispatch MAS domain-handler task",
-      "workspace_locator_fields": [
-        "task_ref"
-      ],
-      "required_fields": [
-        "task_ref"
-      ],
-      "optional_fields": []
+        "quality_verdict_owner": "MedAutoScience",
+        "handler_role": "pure_domain_authority_result",
+        "program_originates_medical_quality_verdict": false,
+        "performs_filesystem_io": false,
+        "performs_network_io": false,
+        "spawns_process_or_executor": false,
+        "owns_queue_session_dag_or_attempt_lifecycle": false,
+        "owns_runtime_ledger": false,
+        "persists_artifact_or_receipt": false,
+        "opl_can_write_domain_truth": false,
+        "opl_can_sign_owner_receipt": false,
+        "opl_can_create_typed_blocker": false,
+        "provider_completion_is_domain_completion": false
+      }
     }
   ],
-  "authority_boundary": {
-    "descriptor_projection_owner": "one-person-lab",
-    "domain_handler_target_owner": "MedAutoScience",
-    "domain_truth_owner": "MedAutoScience",
-    "opl_role": "projection_consumer_only",
-    "write_policy": "no_domain_truth_writes"
-  },
-  "catalog_id": "med_autoscience_action_catalog",
-  "catalog_role": "domain_action_intent_and_handler_target_input_for_opl_generated_descriptors",
-  "descriptor_projection_owner": "one-person-lab",
-  "domain_handler_target_owner": "MedAutoScience",
-  "domain_repo_can_own_generated_surface": false,
-  "domain_repo_runtime_role": "domain_handler_target_and_authority_functions",
-  "evidence_gap_consumption_abi": {
-    "can_authorize_publication_quality": false,
-    "can_authorize_submission_readiness": false,
-    "can_write_domain_truth": false,
-    "component_refs": [
-      "EvidenceCondition",
-      "EvidenceBudget",
-      "HardGateRegistry",
-      "SoftGapLedger",
-      "AssumptionLedger",
-      "WorkbenchGapView"
-    ],
-    "contract_ref": "contracts/evidence-gap-consumption-abi.json",
-    "decision_policy_ref": "contracts/evidence-gap-decision-policy.json",
-    "decision_schema_ref": "contracts/schemas/evidence-gap-decision.schema.json",
-    "missing_evidence_policy": "classify_with_evidence_gap_decision_then_progress_first",
-    "projection_only": true,
-    "surface_kind": "mas_evidence_gap_consumption_abi",
-    "version": "evidence-gap-consumption-abi.v1"
-  },
-  "forbidden_generic_owner_roles": [
-    "generic_scheduler_owner",
-    "generic_daemon_owner",
-    "generic_lifecycle_owner",
-    "generic_queue_owner",
-    "generic_attempt_ledger_owner",
-    "generic_state_machine_runner_owner",
-    "generic_cli_mcp_product_wrapper_owner",
-    "generic_sidecar_owner",
-    "generic_session_store_owner",
-    "generic_status_workbench_owner",
-    "generic_workspace_source_intake_owner",
-    "generic_memory_transport_owner",
-    "generic_artifact_gallery_owner",
-    "generic_operator_workbench_owner",
-    "generic_observability_slo_owner",
-    "generic_persistence_engine_owner",
-    "generic_sqlite_lifecycle_owner",
-    "generic_native_helper_envelope_owner",
-    "generic_review_repair_transport_owner",
-    "generated_surface_owner_in_domain_repo"
-  ],
-  "generated_surface_owner": "one-person-lab",
   "notes": [
-    "MAS owns domain action intents, handler targets, medical/publication/quality truth, route context, and owner receipts.",
-    "OPL owns generated CLI/MCP/Skill/product/status/workbench descriptor projections and does not write MAS durable study truth."
-  ],
-  "owner": "MedAutoScience",
-  "surface_kind": "family_action_catalog",
-  "target_domain_id": "mas",
-  "version": "family-action-catalog.v1"
+    "The six public actions are canonical MAS stage actions hosted by OPL.",
+    "The paper-mission authority action is an internal read-only handler binding and is not exported as a user-facing generated surface.",
+    "Legacy source_command metadata and repo-local CLI, MCP, product, status, workbench, queue, session, and lifecycle commands are not part of this catalog."
+  ]
 }

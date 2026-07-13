@@ -7,32 +7,31 @@ Machine boundary: 本文总结 current boundary。机器事实归 action catalog
 
 ## 结论
 
-Display Pack v2 的 repo/source/control-plane 结构已经落地，并收敛到 MAS domain actions + OPL pack/runtime substrate。它不是 repo-local CLI/runtime，也不表示模板市场、真实 paper display或 publication readiness已完成。
+Display Pack v2 的 domain semantics、artifact/quality contract 与 Stage Tool Affordance Boundary 已落地；公开执行收敛到 OPL-hosted Stage actions + OPL package/runtime substrate。旧 MAS direct display actions/handlers 尚有内部 caller，属于待迁 residue，不能写成已物理退役。该结构不表示真实 paper display 或 publication readiness 已完成。
 
 ## Current surfaces
 
 | Surface | Owner | 状态 |
 | --- | --- | --- |
 | Figure intent / claim-data refs / quality policy | MAS | `landed` |
-| Display actions与 schemas | MAS declarative pack | `landed` |
+| Stage Tool Affordance Boundary | OPL + MAS declarative pack | `landed public/default path` |
 | Pack install/registry/cache/lock | OPL / ScholarSkills | `landed substrate` |
 | Environment prepare/run | OPL | `landed handoff` |
 | Render transport / StageRun / hosted workbench | OPL | `landed substrate` |
 | Layout/visual/claim QC refs | MAS + OPL transport | `landed` |
 | Publication/artifact authority | MAS owner | `retained authority` |
+| Legacy `display_pack_*` direct actions/handlers | MAS migration residue | `not public; physical retirement pending caller migration` |
 | 真实 paper/publication evidence | live owner surfaces | `partial_deferred` |
 
-## Standard actions
+## Public/default execution
 
-OPL generated interfaces消费 action catalog中的：
+Display 在 V2 中由以下 Stage 承载：
 
-- `display_pack_capability_discover`
-- `display_pack_figure_plan`
-- `display_pack_orchestrate`
-- `display_pack_preflight`
-- `display_pack_render`
+- `manuscript_authoring`：形成 figure intent/spec，并通过 affordance 调用模板、renderer 与 composition；
+- `review_and_quality_gate`：消费 deterministic QC、visual audit 与 claim-display consistency refs；
+- `finalize_and_publication_handoff`：绑定 final display、package 与 owner authority refs。
 
-普通调用不再依赖 MAS 手写 argparse/MCP glue。新增 display mode时更新 catalog/schema/handler target，不新增 repo-local wrapper。
+普通调用不再依赖 MAS 手写 argparse/MCP glue，也不直接调用 `display_pack_*`。新增 display mode时更新 ScholarSkills capability descriptor、Stage Tool Affordance Boundary 与 MAS domain quality/authority contract；只有出现独立开放判断、owner 或 quality gate 时才新增 Stage。
 
 ## Render boundary
 

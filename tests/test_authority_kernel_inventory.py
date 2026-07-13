@@ -89,13 +89,16 @@ def test_authority_kernel_inventory_covers_required_categories_and_fields() -> N
     for item in items:
         assert required_fields <= set(item), item["item_id"]
         for field in required_fields:
-            if item["category"] in {
-                "retired_diagnostic_provenance",
-                "paper_mission_authority_handler",
-            } and field in {
+            if item["category"] == "retired_diagnostic_provenance" and field in {
                 "active_caller_refs",
                 "allowed_writes",
             }:
+                assert item[field] == [], (item["item_id"], field)
+                continue
+            if (
+                item["category"] == "paper_mission_authority_handler"
+                and field == "allowed_writes"
+            ):
                 assert item[field] == [], (item["item_id"], field)
                 continue
             assert item[field], (item["item_id"], field)
@@ -157,7 +160,11 @@ def test_authority_kernel_inventory_references_existing_representative_surfaces(
     ]
     assert "refs-only advisory candidates" in items["refs_only_helper"]["output_refs"]
     pure_handler = items["paper_mission_authority_handler"]
-    assert pure_handler["active_caller_refs"] == []
+    assert pure_handler["active_caller_refs"] == [
+        "contracts/action_catalog.json#/actions/6/execution_binding/handler_ref",
+        "contracts/domain_handler_registry.json#/handlers/0",
+        "opl-generated:domain_handler#paper_mission_authority_evaluate",
+    ]
     assert pure_handler["allowed_writes"] == []
     assert "mas_paper_mission_owner_receipt" in pure_handler["output_refs"]
     retired = items["retired_diagnostic_provenance"]

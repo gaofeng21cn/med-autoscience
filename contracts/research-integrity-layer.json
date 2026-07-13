@@ -118,7 +118,10 @@
     "surface_kind": "research_integrity_stage_hook_obligation",
     "schema_version": 1,
     "hook_id": "research-integrity-review-publication-gate-stage-hook",
-    "command": "research-integrity-review-publication-gate-stage-hook",
+    "stage_action_refs": [
+      "review_and_quality_gate",
+      "finalize_and_publication_handoff"
+    ],
     "obligation_level": "mandatory",
     "hook_role": "mandatory_review_publication_gate_input",
     "target_stage_ids": [
@@ -131,13 +134,13 @@
       "review_gate_entered",
       "publication_gate_entered"
     ],
-    "triggered_action": "research-integrity-reference-verification",
+    "provider_resolution_action": "opl_connect_reference_verification",
     "triggered_domain_provider_lookup_contract": {
       "surface_kind": "opl_connect_reference_verification_contract",
       "schema_version": 1,
       "owner": "OPL Connect",
       "triggered_by_hook_id": "research-integrity-review-publication-gate-stage-hook",
-      "triggered_action": "research-integrity-reference-verification",
+      "provider_action_id": "opl_connect_reference_verification",
       "lookup_providers": [
         "crossref",
         "openalex",
@@ -146,7 +149,7 @@
         "crossmark"
       ],
       "provider_lookup_mode": "opl_connect_receipt_input_only",
-      "provider_evidence_consumed_by": "research-integrity-reference-verification",
+      "provider_evidence_consumed_by": "med_autoscience.research_integrity.reference_verification",
       "mandatory_gate_input_only": true,
       "live_owner_consumption_claimed": false,
       "can_write_provider_attempt": false,
@@ -156,14 +159,17 @@
       "surface_kind": "research_integrity_stage_launch_required_input",
       "schema_version": 1,
       "hook_id": "research-integrity-review-publication-gate-stage-hook",
-      "command": "research-integrity-review-publication-gate-stage-hook",
+      "stage_action_refs": [
+        "review_and_quality_gate",
+        "finalize_and_publication_handoff"
+      ],
       "target_stage_ids": [
         "review_and_quality_gate",
         "finalize_and_publication_handoff"
       ],
       "launch_surface": "stage_contract.mandatory_pre_gate_checks",
       "readback_surface": "stage_contract.mandatory_pre_gate_checks",
-      "triggered_action": "research-integrity-reference-verification",
+      "provider_resolution_action": "opl_connect_reference_verification",
       "trigger_points": [
         "reference_list_entered",
         "manuscript_closeout_entered",
@@ -180,7 +186,7 @@
         "schema_version": 1,
         "owner": "OPL Connect",
         "triggered_by_hook_id": "research-integrity-review-publication-gate-stage-hook",
-        "triggered_action": "research-integrity-reference-verification",
+        "provider_action_id": "opl_connect_reference_verification",
         "lookup_providers": [
           "crossref",
           "openalex",
@@ -189,7 +195,7 @@
           "crossmark"
         ],
         "provider_lookup_mode": "opl_connect_receipt_input_only",
-        "provider_evidence_consumed_by": "research-integrity-reference-verification",
+        "provider_evidence_consumed_by": "med_autoscience.research_integrity.reference_verification",
         "mandatory_gate_input_only": true,
         "live_owner_consumption_claimed": false,
         "can_write_provider_attempt": false,
@@ -375,8 +381,7 @@
     {
       "surface_kind": "research_integrity_gate_input_bundle",
       "producer": "MAS research_integrity.gate_bundle pure builder",
-      "callable_entry": "MedAutoScienceDomainEntry.dispatch command research-integrity-gate-input",
-      "action_catalog_descriptor": "research_integrity_gate_input",
+      "builder_ref": "med_autoscience.research_integrity.gate_bundle:build_research_integrity_gate_input_bundle",
       "inputs": [
         "reference_checks or reference/references with provider_evidence from OPL Connect reference verification",
         "optional generic provider_receipts with provider_evidence at the receipt root, references[], or opl_connect_reference_verification",
@@ -516,7 +521,7 @@
       "authoritative_provider_truth_owner": "external provider source systems",
       "provider_receipt_transport": "OPL Connect invokes configured reference providers and returns read-only receipt candidates; MAS does not own provider HTTP, credentials, retry, cache, or receipt persistence.",
       "provider_evidence_consumption": "research-integrity-reference-verification accepts optional generic provider receipts, normalizes provider_evidence from receipt root and references, preserves provider_receipt_refs and source_refs, and falls back to OPL Connect reference verification only when no evidence is present; neither input becomes authoritative without MAS owner consumption",
-      "stage_hook": "review/publication gate can call research-integrity-review-publication-gate-stage-hook, which triggers research-integrity-reference-verification before returning research-integrity-gate-input",
+      "stage_hook": "review_and_quality_gate and finalize_and_publication_handoff consume the declarative Research Integrity obligation; OPL Connect resolves provider evidence and MAS pure builders return gate input",
       "forbidden_side_effects": [
         "publication_eval/latest.json write",
         "controller_decisions/latest.json write",
@@ -536,16 +541,13 @@
       "src/med_autoscience/research_integrity/provider_lookup.py",
       "src/med_autoscience/research_integrity/stage_hooks.py"
     ],
-    "callable_surfaces": [
-      "src/med_autoscience/domain_entry.py::research-integrity-gate-input",
-      "src/med_autoscience/domain_entry.py::research-integrity-reference-verification",
-      "src/med_autoscience/domain_entry.py::research-integrity-review-publication-gate-stage-hook",
-      "contracts/action_catalog.json#research_integrity_gate_input",
-      "contracts/action_catalog.json#research_integrity_reference_verification",
-      "contracts/action_catalog.json#research_integrity_review_publication_gate_stage_hook",
-      "src/med_autoscience/domain_entry_contract.py::research-integrity-gate-input",
-      "src/med_autoscience/domain_entry_contract.py::research-integrity-reference-verification",
-      "src/med_autoscience/domain_entry_contract.py::research-integrity-review-publication-gate-stage-hook"
+    "pure_builder_surfaces": [
+      "med_autoscience.research_integrity.reference_authenticity",
+      "med_autoscience.research_integrity.claim_citation_support_v2",
+      "med_autoscience.research_integrity.manuscript_consistency",
+      "med_autoscience.research_integrity.gate_bundle",
+      "med_autoscience.research_integrity.provider_lookup",
+      "med_autoscience.research_integrity.stage_hooks"
     ],
     "expected_tests": [
       "tests/test_research_integrity_gate_bundle.py",
@@ -555,8 +557,7 @@
       "tests/test_research_integrity_manuscript_consistency.py",
       "tests/test_research_integrity_provider_lookup.py",
       "tests/test_research_integrity_reference_verification.py",
-      "tests/test_research_integrity_stage_hooks.py",
-      "tests/test_domain_entry_contract.py"
+      "tests/test_research_integrity_stage_hooks.py"
     ],
     "standard_verification": [
       "rtk make test-paths -- tests/test_research_integrity_gate_bundle.py tests/test_research_integrity_domain_entry.py tests/test_research_integrity_reference_authenticity.py tests/test_research_integrity_claim_citation_support_v2.py tests/test_research_integrity_manuscript_consistency.py tests/test_citation_integrity_projection.py tests/test_paper_mainline_claim_support.py tests/test_ai_reviewer_publication_eval_workflow.py tests/medical_publication_surface_cases",
@@ -568,14 +569,17 @@
     "surface_kind": "research_integrity_stage_launch_required_input",
     "schema_version": 1,
     "hook_id": "research-integrity-review-publication-gate-stage-hook",
-    "command": "research-integrity-review-publication-gate-stage-hook",
+    "stage_action_refs": [
+      "review_and_quality_gate",
+      "finalize_and_publication_handoff"
+    ],
     "target_stage_ids": [
       "review_and_quality_gate",
       "finalize_and_publication_handoff"
     ],
     "launch_surface": "stage_contract.mandatory_pre_gate_checks",
     "readback_surface": "stage_contract.mandatory_pre_gate_checks",
-    "triggered_action": "research-integrity-reference-verification",
+    "provider_resolution_action": "opl_connect_reference_verification",
     "trigger_points": [
       "reference_list_entered",
       "manuscript_closeout_entered",
@@ -592,7 +596,7 @@
       "schema_version": 1,
       "owner": "OPL Connect",
       "triggered_by_hook_id": "research-integrity-review-publication-gate-stage-hook",
-      "triggered_action": "research-integrity-reference-verification",
+      "provider_action_id": "opl_connect_reference_verification",
       "lookup_providers": [
         "crossref",
         "openalex",
@@ -601,7 +605,7 @@
         "crossmark"
       ],
       "provider_lookup_mode": "opl_connect_receipt_input_only",
-      "provider_evidence_consumed_by": "research-integrity-reference-verification",
+      "provider_evidence_consumed_by": "med_autoscience.research_integrity.reference_verification",
       "mandatory_gate_input_only": true,
       "live_owner_consumption_claimed": false,
       "can_write_provider_attempt": false,

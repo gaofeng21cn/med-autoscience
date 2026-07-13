@@ -39,7 +39,7 @@ OPL 托管 stage attempt 时也必须保持 executor/reviewer 分离：执行 ag
 
 ## Product Operator Projection
 
-`MAS` 通过 `study_progress`、`study_state_matrix`、`paper_mission` 与 `domain_handler_export` action refs 映射 `opl_family_product_operator_projection.v1`。OPL generated product/status/workbench surface 必须保留 source refs、freshness、owner split、next surface ref、human gate reason、autonomy_slo、ai_doctor_state、repair_recommendation，以及 `control_loop_summary`、`usage_projection`、`resource_pressure` 和 `observability_export` 字段。
+`MAS` 通过 Stage output、owner refs 与迁移期 internal projection 映射 `opl_family_product_operator_projection.v1`。OPL generated product/status/workbench surface 必须以 StageRun/current-control identity 为根，并保留 source refs、freshness、owner split、next surface ref、human gate reason、autonomy_slo、ai_doctor_state、repair_recommendation，以及 `control_loop_summary`、`usage_projection`、`resource_pressure` 和 `observability_export` 字段。旧 `study_progress`、`study_state_matrix`、`paper_mission` 与 `domain_handler_export` 不再是 public action refs。
 
 `opl runtime observability-export` 是 OPL-owned read-only export surface，MAS 只消费 source refs、freshness、owner split、domain-owned projection refs、owner receipt refs 和 typed blocker refs。它不能被 MAS 解释成 domain action authorization、executor switch authorization、auto-degrade authorization、domain truth write、memory body write、publication quality verdict 或 paper/artifact closure。
 

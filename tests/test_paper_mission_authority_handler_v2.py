@@ -336,21 +336,16 @@ def test_registry_schemas_parity_and_authority_inventory_are_consistent() -> Non
     output_schema = json.loads(OUTPUT_SCHEMA_PATH.read_text(encoding="utf-8"))
     inventory = json.loads(AUTHORITY_INVENTORY_PATH.read_text(encoding="utf-8"))
 
-    assert registry["state"] == "candidate_pending_opl_v2_host_binding"
-    assert registry["active_runtime_binding"] is False
+    assert set(registry) == {"surface_kind", "version", "handlers"}
+    assert registry["surface_kind"] == "domain_handler_registry"
+    assert registry["version"] == "domain-handler-registry.v1"
     handler = registry["handlers"][0]
+    assert set(handler) == {"handler_id", "binding"}
+    assert handler["handler_id"] == "mas.paper-mission-authority-evaluate"
     assert handler["binding"] == {
         "kind": "python_callable",
         "module": "med_autoscience.authority_handlers.paper_mission",
         "callable": "evaluate_paper_mission_authority",
-    }
-    assert set(handler["forbidden_effects"]) >= {
-        "profile_or_path_discovery",
-        "filesystem_read_or_write",
-        "process_spawn",
-        "opl_or_codex_invoke",
-        "queue_or_session_mutation",
-        "runtime_ledger_read_or_write",
     }
     assert input_schema["additionalProperties"] is False
     assert "profile_ref" not in input_schema["properties"]
@@ -363,12 +358,12 @@ def test_registry_schemas_parity_and_authority_inventory_are_consistent() -> Non
     assert hard_gate_condition["else"]["properties"]["evidence_refs"] == {
         "minItems": 1
     }
-    assert set(output_schema["properties"]["status"]["enum"]) == set(handler["returns"])
+    result_statuses = set(output_schema["properties"]["status"]["enum"])
     terminal_contracts = {
         item["if"]["properties"]["status"]["const"]: item["then"]["properties"]
         for item in output_schema["allOf"]
     }
-    assert set(terminal_contracts) == set(handler["returns"])
+    assert set(terminal_contracts) == result_statuses
     assert terminal_contracts["owner_receipt"]["owner_receipt"] == {
         "$ref": "#/$defs/owner_receipt"
     }
@@ -392,6 +387,61 @@ def test_registry_schemas_parity_and_authority_inventory_are_consistent() -> Non
     assert all(item["legacy_retained_until_cutover"] for item in parity["active_behavior_inventory"])
     assert parity["retirement_authorized"] is False
     assert all(gate["status"] != "done" for gate in parity["cutover_gates"])
+    cutover_gates = {gate["gate_id"]: gate for gate in parity["cutover_gates"]}
+    assert cutover_gates["host_callable_security_boundary"]["status"] == (
+        "passed_pure_callable_closure_readback"
+    )
+    assert cutover_gates["source_closure_zero_private_generic_effect"]["status"] == (
+        "blocked_by_unreachable_legacy_generic_effect_residue"
+    )
+    readback = parity["fresh_opl_readback"]
+    assert readback["interfaces"] == {
+        "status": "ready",
+        "public_stage_action_count": 6,
+        "internal_authority_action_count": 1,
+        "schema_roundtrip_status": "aligned",
+    }
+    source_closure = readback["source_closure"]
+    closure_digest = source_closure["closure_digest"]
+    assert closure_digest.startswith("sha256:")
+    assert len(closure_digest) == len("sha256:") + 64
+    assert {key: value for key, value in source_closure.items() if key != "closure_digest"} == {
+        "status": "blocked",
+        "scan_complete": True,
+        "entrypoint_count": 8,
+        "reachable_symbol_count": 33,
+        "unresolved_edge_count": 27,
+        "observed_effect_count": 534,
+        "reachable_effect_count": 0,
+        "private_generic_effect_count": 534,
+        "unreachable_sensitive_residue_count": 534,
+        "audit_mismatch_count": 534,
+        "interpretation": (
+            "The registered authority callable closure is pure. Repo source closure "
+            "remains blocked because all 534 generic effects are unreachable legacy "
+            "source residue and are not physically retired or approved as retained "
+            "authority."
+        ),
+    }
+    assert readback["default_callers"]["ready_generated_default_surface_count"] == 8
+    assert readback["default_callers"]["closed_surface_retirement_gate_count"] == 8
+    assert readback["default_callers"]["physical_delete_authorized"] is False
+    assert readback["residue_decisions"]["decision_item_count"] == 0
+    assert readback["residue_decisions"]["residue_verification_status"] == (
+        "not_verified_zero"
+    )
+    mainline_residue = next(
+        item
+        for item in parity["active_behavior_inventory"]
+        if item["behavior_id"] == "mainline.private_product_status_shell"
+    )
+    assert "src/med_autoscience/opl_module_carrier.py" in mainline_residue[
+        "current_source_refs"
+    ]
+    assert (
+        "src/med_autoscience/opl_module_carrier.py::build_domain_handler_probe#"
+        "mainline-status-active-module-healthcheck-caller"
+    ) in mainline_residue["active_caller_refs"]
 
     authority_item = next(
         item
@@ -400,4 +450,11 @@ def test_registry_schemas_parity_and_authority_inventory_are_consistent() -> Non
     )
     assert authority_item["allowed_writes"] == []
     assert authority_item["disposition"] == "retained_minimal_authority_function"
-    assert authority_item["no_active_caller"] == "not_yet_active_pending_opl_v2_host_binding"
+    assert authority_item["active_caller_refs"] == [
+        "contracts/action_catalog.json#/actions/6/execution_binding/handler_ref",
+        "contracts/domain_handler_registry.json#/handlers/0",
+        "opl-generated:domain_handler#paper_mission_authority_evaluate",
+    ]
+    assert authority_item["no_active_caller"] == (
+        "not_applicable_registry_bound_generated_caller"
+    )

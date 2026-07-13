@@ -80,14 +80,14 @@ Machine boundary: Human-readable runtime-governance policy only; runtime truth r
 - workspace/profile/environment
   - 由 OPL owner surface 定义 workspace binding、runtime profile、environment preparation 和 operator context
 - generated-entry matrix
-  - OPL 从 MAS action catalog/schema 生成 CLI、MCP、Skill、product-entry、status 与 workbench
-  - MAS 只保留 `MedAutoScienceDomainEntry.dispatch#<action_id>` 与最小 authority function
+  - OPL 从 MAS V2 action catalog/schema/Stage manifest 生成 CLI、MCP、Skill、product-entry、status 与 workbench
+  - 六个公开 action 绑定 Stage manifest；host-only authority action 绑定 closed handler registry；MAS 只保留最小 pure authority function
 - stage pack
   - 把医学前验、stage packet、质量约束和 route-back 规则放在 MAS `agent/` pack
 - portfolio / studies / runtime artifacts
   - 作为人类审核面和长期审计面
 
-Generated interface 与 generic runtime 属于 OPL；MAS action semantics、domain handler、quality/artifact/publication authority 属于 MedAutoScience。两边不复制 parser、transport、runtime 或 truth。
+Generated interface 与 generic runtime 属于 OPL；MAS Stage semantics、pure authority function、quality/artifact/publication authority 属于 MedAutoScience。旧 `MedAutoScienceDomainEntry.dispatch` 只是待迁 internal residue。两边不复制 parser、transport、runtime 或 truth。
 当前 repo-tracked 产品主线按 `Auto-only` 理解；未来若要做 `Human-in-the-loop` 产品，应作为兼容 sibling 或 upper-layer product 复用同一 substrate，而不是把当前仓改成同仓双模。
 
 对 workspace 的状态 mutation，默认遵循以下原则：

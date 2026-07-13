@@ -216,8 +216,8 @@ def _capability_item() -> AuthorityKernelItem:
         owner=OWNER,
         surface_ref="src/med_autoscience/scientific_capability_registry.py::build_scientific_capability_registry",
         active_caller_refs=(
-            "contracts/action_catalog.json#/actions/12",
-            "med_autoscience.domain_entry:MedAutoScienceDomainEntry.dispatch#scientific_capability_registry",
+            "contracts/capability_map.json#/capabilities/mas-tool-connector-catalog",
+            "src/med_autoscience/domain_entry.py::MedAutoScienceDomainEntry.dispatch#scientific-capability-registry-legacy-internal-non-default-caller",
         ),
         allowed_writes=(
             "artifacts/advisory/external_learning_sidecar/latest.json",
@@ -249,7 +249,11 @@ def _paper_mission_authority_handler_item() -> AuthorityKernelItem:
             "src/med_autoscience/authority_handlers/paper_mission.py::"
             "evaluate_paper_mission_authority"
         ),
-        active_caller_refs=(),
+        active_caller_refs=(
+            "contracts/action_catalog.json#/actions/6/execution_binding/handler_ref",
+            "contracts/domain_handler_registry.json#/handlers/0",
+            "opl-generated:domain_handler#paper_mission_authority_evaluate",
+        ),
         allowed_writes=(),
         forbidden_authority=tuple(FORBIDDEN_DOMAIN_AUTHORITY),
         forbidden_writes=(

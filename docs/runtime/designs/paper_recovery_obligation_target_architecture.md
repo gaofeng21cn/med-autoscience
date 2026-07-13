@@ -3,7 +3,7 @@
 Owner: `MedAutoScience / OPL Framework`
 Purpose: `paper_recovery_obligation_target_architecture`
 State: `superseded_diagnostic_design`
-Machine boundary: 本文是人读目标架构与迁移说明。机器真相归 `contracts/paper_recovery_kernel_contract.json`、源码、测试、fresh `study_progress`、Codex CLI route judgment、owner receipt、typed blocker、human gate、route-back evidence 和 canonical changed surface refs；OPL current-control / attempt ledger 只提供 transport evidence。
+Machine boundary: 本文是人读 historical target 与迁移说明。机器真相归 `contracts/paper_recovery_kernel_contract.json`、源码、测试、OPL StageRun/current-control、Codex CLI route judgment、owner receipt、typed blocker、human gate、route-back evidence 和 canonical changed surface refs；legacy `study_progress` 只作 internal diagnostic。
 
 2026-06-30 supersession note：本文描述的是 `Codex CLI selected stage -> nonbinding route context` 收敛前的 PaperRecovery obligation 目标架构。当前默认 next action 不再由 `paper_recovery_state`、`current_work_unit`、provider admission 或 domain-handler export 选择；这些面只能作为 diagnostic / provenance / readback support，不能生成默认 next action、provider admission、paper progress、publication-ready 或 submission-ready 结论。
 
@@ -94,4 +94,4 @@ MAS 不继续在私有 runtime 中裁判 StageRun currentness、queue residue、
 - terminal closeout 未被 MAS consume/reject 时，只进入 `terminal_closeout_ready`，不产生 paper progress。
 - stop-loss 同一 obligation 无 successor / human gate 时保持 fail closed。
 
-当前验证应改查 [Next Action Control Plane](../control/next_action_control_plane.md)、legacy active path tombstones、fresh `study_progress` / `paper-mission inspect`、OPL StageAttemptReceipt readback、MAS owner receipt、typed blocker、human gate、route-back evidence 或 artifact delta。
+当前验证应改查 V2 action catalog/Stage manifest、legacy active path tombstones、OPL StageRun/current-control readback、MAS owner receipt、typed blocker、human gate、route-back evidence 或 artifact delta。旧 `study_progress` / `paper-mission inspect` 仅可辅助 historical replay。

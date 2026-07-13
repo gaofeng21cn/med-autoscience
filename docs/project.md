@@ -9,13 +9,13 @@ Machine boundary: 本文是人读概览。机器真相归 `agent/`、`contracts/
 
 > `Declarative Medical Research Pack + OPL generated/hosted surfaces + minimal authority functions`
 
-MAS 描述医学研究阶段、知识、质量门、action metadata 与环境需求，并保留无法声明化的医学 authority。OPL 根据这些声明生成或托管 CLI、MCP、Skill、product-entry、status、workbench、runtime lifecycle、StateIndex 和环境准备等通用平台面。
+MAS 描述医学研究阶段、知识、质量门、六个公开 Stage action、内部 authority handler binding 与环境需求，并保留无法声明化的医学 authority。OPL 根据这些声明生成或托管 CLI、MCP、Skill、product-entry、status、workbench、runtime lifecycle、StateIndex 和环境准备等通用平台面。
 
 ## 当前可交付形态
 
 - `agent/` 是 MAS declarative pack：primary skill、stages、knowledge、prompts 与 quality gates。
-- `contracts/action_catalog.json` 是 22 个 action 的机器目录；OPL 从 action metadata 生成通用调用面。
-- `MedAutoScienceDomainEntry.dispatch` 是 MAS domain-handler target，不是 repo-local CLI/MCP 平台。
+- `contracts/action_catalog.json` 是 closed V2 catalog：六个公开 action 与六个 canonical Stage 一一对应；`paper_mission_authority_evaluate` 仅作为无用户 surface 的内部 authority action。
+- `contracts/domain_handler_registry.json` 只绑定纯 `evaluate_paper_mission_authority` callable；旧 `MedAutoScienceDomainEntry.dispatch` 不再是 V2 generated/default target，遗留内部 caller 仍待迁移和物理退役。
 - MAS minimal authority functions 只处理医学 study truth、source readiness、AI reviewer/publication quality、artifact/memory 决策、owner receipt、typed blocker、human gate 与必要的 domain-native helper。
 - `contracts/runtime_environment_requirements.json` 只声明 MAS 的运行环境需求；环境解析、安装和运行归 OPL `env prepare/run`。
 - OPL 持有通用 runtime、queue、attempt ledger、retry/dead-letter、StateIndex、lifecycle/storage、observability 和 hosted workbench。
@@ -24,7 +24,7 @@ MAS 描述医学研究阶段、知识、质量门、action metadata 与环境需
 
 | Surface | Owner | MAS 输出 |
 | --- | --- | --- |
-| CLI / MCP / Skill / product-entry | OPL generated surfaces | action metadata、schema、handler target |
+| CLI / MCP / Skill / product-entry | OPL generated surfaces | Stage action metadata、schema、stage binding |
 | Status / workbench / drilldown | OPL hosted surfaces | body-free refs、receipts、blockers、authority refs |
 | Runtime lifecycle / StateIndex / storage / health | OPL Framework | domain policy result、owner answer、forbidden-write boundary |
 | Medical study truth / quality / publication | MAS | owner verdict、receipt、typed blocker、human gate |
@@ -40,7 +40,7 @@ MAS 描述医学研究阶段、知识、质量门、action metadata 与环境需
 
 ## 当前验收边界
 
-OE-01 至 OE-12 的 repo/source/control-plane 结构目标已经落地，见 [MAS 理想目标态差距与完善计划](./active/mas-ideal-state-gap-plan.md)。这不等于 live runtime、真实 paper line、publication 或 production ready。
+V2 public/default command cutover 已落地；旧 `domain_entry/mainline/read-model/queue` 内部源码仍有 caller，因此完整 repo/source/control-plane 结构收口仍是 `partial`，见 [MAS 理想目标态差距与完善计划](./active/mas-ideal-state-gap-plan.md)。这也不等于 live runtime、真实 paper line、publication 或 production ready。
 
 Live evidence 单独后置。只有 fresh OPL StageRun/readback、MAS owner receipt、stable typed blocker、human gate、independent reviewer/auditor receipt 或真实 paper/artifact semantic delta，才能支持对应 live claim。
 

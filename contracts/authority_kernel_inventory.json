@@ -315,8 +315,8 @@
     },
     {
       "active_caller_refs": [
-        "contracts/action_catalog.json#/actions/12",
-        "med_autoscience.domain_entry:MedAutoScienceDomainEntry.dispatch#scientific_capability_registry"
+        "contracts/capability_map.json#/capabilities/mas-tool-connector-catalog",
+        "src/med_autoscience/domain_entry.py::MedAutoScienceDomainEntry.dispatch#scientific-capability-registry-legacy-internal-non-default-caller"
       ],
       "allowed_writes": [
         "artifacts/advisory/external_learning_sidecar/latest.json",
@@ -351,7 +351,11 @@
       "upcollect_target": "OPL Capability Registry / Tool Arsenal runtime consumption"
     },
     {
-      "active_caller_refs": [],
+      "active_caller_refs": [
+        "contracts/action_catalog.json#/actions/6/execution_binding/handler_ref",
+        "contracts/domain_handler_registry.json#/handlers/0",
+        "opl-generated:domain_handler#paper_mission_authority_evaluate"
+      ],
       "allowed_writes": [],
       "cannot_lift_to_opl_reason": "The callable validates MAS source-readiness and AI-first reviewer records and returns the exact MAS owner receipt, route-back, quality-debt, typed-blocker, or human-gate result. OPL may host the callable and persist its exact bytes but cannot originate or rewrite that medical authority result.",
       "category": "paper_mission_authority_handler",
@@ -373,7 +377,7 @@
         "artifact_or_receipt_persistence"
       ],
       "item_id": "paper_mission_authority_handler.evaluate_hosted_result",
-      "no_active_caller": "not_yet_active_pending_opl_v2_host_binding",
+      "no_active_caller": "not_applicable_registry_bound_generated_caller",
       "no_forbidden_write_proof": "focused_ast_and_behavior_tests_require_zero_profile_path_discovery_generic_io_spawn_opl_codex_queue_session_dag_or_runtime_ledger_effect",
       "output_refs": [
         "mas_paper_mission_owner_receipt",
