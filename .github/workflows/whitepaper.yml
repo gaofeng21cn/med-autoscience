@@ -1,0 +1,33 @@
+name: MAS Whitepaper
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - docs/whitepapers/**
+      - contracts/whitepaper_profile.json
+      - docs/project.md
+      - docs/architecture.md
+      - docs/invariants.md
+      - docs/decisions.md
+      - docs/status.md
+      - .github/workflows/whitepaper.yml
+  workflow_dispatch:
+    inputs:
+      publish:
+        description: Publish the approved build to GitHub Pages
+        required: true
+        default: false
+        type: boolean
+
+permissions:
+  contents: write
+
+jobs:
+  whitepaper:
+    uses: gaofeng21cn/one-person-lab/.github/workflows/reusable-whitepaper.yml@main
+    with:
+      profile: contracts/whitepaper_profile.json
+      output_name: mas-whitepaper
+      publish: ${{ github.event_name == 'workflow_dispatch' && inputs.publish }}
+    secrets: inherit

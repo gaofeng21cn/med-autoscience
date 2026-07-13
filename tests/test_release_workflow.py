@@ -18,6 +18,7 @@ CI_WORKFLOW_PATH = WORKFLOW_DIR / "ci.yml"
 ADVISORY_WORKFLOW_PATH = WORKFLOW_DIR / "advisory.yml"
 SENTRUX_ADVISORY_WORKFLOW_PATH = WORKFLOW_DIR / "sentrux-advisory.yml"
 RELEASE_WORKFLOW_PATH = WORKFLOW_DIR / "release.yml"
+WHITEPAPER_WORKFLOW_PATH = WORKFLOW_DIR / "whitepaper.yml"
 PYPROJECT_PATH = REPO_ROOT / "pyproject.toml"
 
 
@@ -39,11 +40,27 @@ def _workflow_step(workflow_job: str, step_name: str) -> str:
 
 def test_domain_repo_does_not_publish_github_releases() -> None:
     workflow_text = "\n".join(_workflow_texts())
+    non_whitepaper_workflow_text = "\n".join(
+        path.read_text(encoding="utf-8")
+        for path in sorted(WORKFLOW_DIR.glob("*.yml"))
+        if path != WHITEPAPER_WORKFLOW_PATH
+    )
 
     assert not RELEASE_WORKFLOW_PATH.exists()
     assert "softprops/action-gh-release" not in workflow_text
-    assert "contents: write" not in workflow_text
+    assert "contents: write" not in non_whitepaper_workflow_text
     assert "releases/download" not in workflow_text
+
+
+def test_whitepaper_workflow_limits_write_permission_to_manual_pages_publish() -> None:
+    workflow = WHITEPAPER_WORKFLOW_PATH.read_text(encoding="utf-8")
+
+    assert "contents: write" in workflow
+    assert "uses: gaofeng21cn/one-person-lab/.github/workflows/reusable-whitepaper.yml@main" in workflow
+    assert "profile: contracts/whitepaper_profile.json" in workflow
+    assert "output_name: mas-whitepaper" in workflow
+    assert "publish: ${{ github.event_name == 'workflow_dispatch' && inputs.publish }}" in workflow
+    assert "softprops/action-gh-release" not in workflow
 
 
 def test_ci_and_advisory_workflows_use_node24_ready_action_versions() -> None:
