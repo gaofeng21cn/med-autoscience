@@ -58,6 +58,25 @@ def test_stage_run_and_provider_observation_gaps_never_become_authority_blockers
     assert materialize_typed_blocker_if_required(decision) is None
 
 
+def test_stage_run_provider_authorization_gap_is_a_hard_currentness_gate() -> None:
+    from med_autoscience.evidence_gap_decision import (
+        classify_evidence_gap,
+        materialize_typed_blocker_if_required,
+    )
+
+    decision = classify_evidence_gap(
+        surface_kind="opl_stage_run_currentness",
+        missing_ref_family="StageRun currentness provider authorization",
+        identity={"study_id": "DM003", "stage_run_id": "stage-run-1"},
+    )
+
+    assert decision.gap_class == "authority_gate"
+    assert decision.current_action_can_continue is False
+    blocker = materialize_typed_blocker_if_required(decision)
+    assert blocker is not None
+    assert blocker["blocker_type"] == "evidence_gap_authority_gate_required"
+
+
 def test_soft_quality_gap_can_continue_without_typed_blocker_but_cannot_claim_progress() -> None:
     from med_autoscience.evidence_gap_decision import (
         can_continue_current_action,

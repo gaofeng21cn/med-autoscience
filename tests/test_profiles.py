@@ -357,13 +357,9 @@ def test_profile_to_dict_exposes_scholarskills_required_package_contract(tmp_pat
     assert requirement["required_module_ids"] == list(
         required_package.SCHOLARSKILLS_REQUIRED_MODULE_IDS
     )
+    assert requirement["version_requirement"] == ">=0.2.0 <0.3.0"
     assert requirement["repair_command_templates"]["workspace"] == [
-        "opl",
-        "connect",
-        "agent-packages",
-        "repair",
-        "--package-id",
-        "mas",
+        *required_package.MAS_PACKAGE_REPAIR_COMMAND,
         "--agent-root",
         "<agent-root>",
         "--json",

@@ -46,6 +46,10 @@ def _synthetic_route_policy() -> dict[str, object]:
             "action_family": "paper.write.prose_repair",
             "work_unit_id": "synthetic_new_study_prose_repair",
             "action_kind": "paper_write",
+            "authority_boundary": {
+                "action_family_authority": False,
+                "exact_work_unit_id_authority": False,
+            },
         },
         "legacy_fallback_negative_fixture": {
             "fixture_role": "negative_no_resurrection_guard",
@@ -147,7 +151,7 @@ def test_synthetic_new_study_route_uses_action_family_not_exact_work_unit_mappin
     )
 
 
-def test_synthetic_next_action_envelope_route_uses_action_family_not_exact_work_unit_mapping() -> None:
+def test_synthetic_next_action_envelope_is_nonbinding_context_for_open_authority_snapshot() -> None:
     module = importlib.import_module("med_autoscience.controllers.authority_route_gate")
     policy = _synthetic_route_policy()
     canonical_next_action = policy["canonical_next_action_fixture"]
@@ -184,13 +188,15 @@ def test_synthetic_next_action_envelope_route_uses_action_family_not_exact_work_
             },
         },
     )
-    family_gate = module.authorize_authority_route(
+    open_snapshot = {"authority_snapshot": _snapshot()}
+    context_gate = module.authorize_authority_route(
         "paper_write",
         {
-            "authority_snapshot": _snapshot(),
+            **open_snapshot,
             "next_action": canonical_next_action,
         },
     )
+    snapshot_only_gate = module.authorize_authority_route("paper_write", open_snapshot)
     queue_attempt_fallback_gate = module.authorize_authority_route(
         "paper_write",
         {
@@ -219,8 +225,10 @@ def test_synthetic_next_action_envelope_route_uses_action_family_not_exact_work_
     assert queue_attempt_fallback_gate["authorized"] is False
     assert "controller_route_gate" not in queue_attempt_fallback_gate
     assert "paper_write_allowed_false" in queue_attempt_fallback_gate["blocking_reasons"]
-    assert family_gate["authorized"] is True
-    assert family_gate["blocking_reasons"] == []
+    assert context_gate == snapshot_only_gate
+    assert context_gate["authorized"] is True
+    assert context_gate["blocking_reasons"] == []
+    assert "controller_route_gate" not in context_gate
 
 
 @pytest.mark.parametrize(
@@ -232,7 +240,7 @@ def test_synthetic_next_action_envelope_route_uses_action_family_not_exact_work_
         "submission_notice_materialize",
     ],
 )
-def test_synthetic_submission_family_envelope_routes_without_exact_work_unit_mapping(
+def test_synthetic_submission_next_action_cannot_override_authority_snapshot(
     route_action: str,
 ) -> None:
     module = importlib.import_module("med_autoscience.controllers.authority_route_gate")
@@ -248,7 +256,7 @@ def test_synthetic_submission_family_envelope_routes_without_exact_work_unit_map
         "work_unit_id": synthetic_work_unit_id,
         "work_unit_fingerprint": "stage-outcome::dm004::submission-refresh",
         "authority_boundary": {
-            "action_family_authority": True,
+            "action_family_authority": False,
             "exact_work_unit_id_authority": False,
         },
     }
@@ -270,7 +278,7 @@ def test_synthetic_submission_family_envelope_routes_without_exact_work_unit_map
             "control_surface": "quality_repair_batch",
         },
     )
-    family_gate = module.authorize_authority_route(
+    context_gate = module.authorize_authority_route(
         route_action,
         {**base_context, "next_action": canonical_next_action},
     )
@@ -279,14 +287,8 @@ def test_synthetic_submission_family_envelope_routes_without_exact_work_unit_map
     assert "controller_route_work_unit_unsupported" in (
         exact_id_only_gate["controller_route_gate"]["blocking_reasons"]
     )
-    assert family_gate["authorized"] is True
-    assert family_gate["blocking_reasons"] == []
-    assert family_gate["controller_route_gate"]["action_family"] == (
-        "paper.package.submission_minimal"
-    )
-    assert family_gate["controller_route_gate"]["work_unit_id"] == synthetic_work_unit_id
-    assert family_gate["controller_route_gate"]["action_family_is_authority"] is True
-    assert family_gate["controller_route_gate"]["work_unit_id_authority"] is False
-    assert family_gate["controller_repair_authorization_ref"]["work_unit_id_role"] == (
-        "provenance_currentness_only"
-    )
+    assert context_gate["authorized"] is False
+    assert "controller_route_gate" not in context_gate
+    assert f"{context_gate['route_authorization_flag']}_false" in context_gate[
+        "blocking_reasons"
+    ]

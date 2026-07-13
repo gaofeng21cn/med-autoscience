@@ -6,6 +6,7 @@ from pathlib import Path
 
 from med_autoscience.scholarskills_required_package import (
     MAS_PACKAGE_REPAIR_COMMAND,
+    MAS_PACKAGE_STATUS_COMMAND,
     SCHOLARSKILLS_CAPABILITY_ABI,
     SCHOLARSKILLS_REQUIRED_EXPORT_IDS,
     SCHOLARSKILLS_REQUIRED_MODULE_IDS,
@@ -23,7 +24,7 @@ def _current_dependency(**overrides: object) -> dict[str, object]:
     dependency: dict[str, object] = {
         "package_id": "mas-scholar-skills",
         "status": "current",
-        "installed_version": "0.1.0",
+        "installed_version": "0.2.0",
         "capability_abi": SCHOLARSKILLS_CAPABILITY_ABI,
         "content_digest": f"sha256:{'a' * 64}",
         "required_export_ids": list(SCHOLARSKILLS_REQUIRED_EXPORT_IDS),
@@ -106,6 +107,10 @@ def test_consumer_requirement_matches_mas_agent_package_manifest() -> None:
     assert dependency["capability_abi"] == requirement["capability_abi"]
     assert dependency["required_export_ids"] == list(SCHOLARSKILLS_REQUIRED_SKILL_IDS)
     assert dependency["required_module_ids"] == list(SCHOLARSKILLS_REQUIRED_MODULE_IDS)
+    assert dependency["status_command_templates"] == {
+        scope: " ".join(command)
+        for scope, command in requirement["status_command_templates"].items()
+    }
     assert dependency["repair_command_templates"] == {
         scope: " ".join(command)
         for scope, command in requirement["repair_command_templates"].items()
@@ -238,13 +243,5 @@ def test_doctor_query_uses_public_opl_agent_package_status(tmp_path: Path) -> No
         runner=runner,
     )
 
-    assert observed_command == [
-        "opl",
-        "connect",
-        "agent-packages",
-        "status",
-        "--package-id",
-        "mas",
-        "--json",
-    ]
+    assert observed_command == [*MAS_PACKAGE_STATUS_COMMAND, "--json"]
     assert readback["operational_ready"] is True

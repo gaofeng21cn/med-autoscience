@@ -50,6 +50,7 @@ _AUTHORITY_TERMS = (
     "authority violation",
     "authority_violation",
     "artifact mutation authorization",
+    "stagerun currentness provider authorization",
     "submission authorization",
     "provider credential",
     "forbidden write",

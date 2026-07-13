@@ -9,7 +9,7 @@ from typing import Any
 
 SCHOLARSKILLS_PACKAGE_ID = "mas-scholar-skills"
 SCHOLARSKILLS_CAPABILITY_ABI = "mas-scholar-skills.v1"
-SCHOLARSKILLS_VERSION_REQUIREMENT = ">=0.1.0 <0.2.0"
+SCHOLARSKILLS_VERSION_REQUIREMENT = ">=0.2.0 <0.3.0"
 SCHOLARSKILLS_PROVIDER_MANIFEST_REF = (
     "external:mas-scholar-skills/contracts/opl_capability_package_manifest.json"
 )
@@ -46,18 +46,15 @@ SCHOLARSKILLS_REQUIRED_INTERFACE_IDS = (
 )
 MAS_PACKAGE_STATUS_COMMAND = (
     "opl",
-    "connect",
-    "agent-packages",
+    "packages",
     "status",
     "--package-id",
     "mas",
 )
 MAS_PACKAGE_REPAIR_COMMAND = (
     "opl",
-    "connect",
-    "agent-packages",
+    "packages",
     "repair",
-    "--package-id",
     "mas",
 )
 
