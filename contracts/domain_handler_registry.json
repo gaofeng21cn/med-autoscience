@@ -1,0 +1,75 @@
+{
+  "surface_kind": "domain_handler_registry",
+  "version": "domain-handler-registry.v1-candidate",
+  "agent_id": "mas",
+  "owner": "MedAutoScience",
+  "state": "candidate_pending_opl_v2_host_binding",
+  "active_runtime_binding": false,
+  "binding_note": "This candidate does not replace MedAutoScienceDomainEntry or the v1 source-command transport until OPL v2 callable ABI, containment, exact-byte output commit and readback are executable.",
+  "handlers": [
+    {
+      "handler_id": "mas.paper-mission-authority-evaluate",
+      "action_id": "paper_mission",
+      "execution_mode": "direct_authority_handler",
+      "binding": {
+        "kind": "python_callable",
+        "module": "med_autoscience.authority_handlers.paper_mission",
+        "callable": "evaluate_paper_mission_authority"
+      },
+      "input_schema_ref": "contracts/schemas/v2/mas-paper-mission-authority.input.schema.json",
+      "output_schema_ref": "contracts/schemas/v2/mas-paper-mission-authority.output.schema.json",
+      "host_injected_fields": [
+        "host_context.run_ref",
+        "host_context.producer_attempt_ref",
+        "host_context.output_ref",
+        "host_context.output_state"
+      ],
+      "mas_domain_record_fields": [
+        "mission",
+        "medical_evidence",
+        "independent_review",
+        "repair_state",
+        "hard_gate"
+      ],
+      "allowed_effects": [
+        "pure_domain_authority_result"
+      ],
+      "forbidden_effects": [
+        "profile_or_path_discovery",
+        "workspace_or_source_discovery",
+        "filesystem_read_or_write",
+        "network_access",
+        "process_spawn",
+        "executor_invoke",
+        "opl_or_codex_invoke",
+        "queue_or_session_mutation",
+        "dag_or_attempt_lifecycle_mutation",
+        "runtime_ledger_read_or_write",
+        "artifact_or_receipt_persistence"
+      ],
+      "returns": [
+        "owner_receipt",
+        "route_back",
+        "completed_with_quality_debt",
+        "typed_blocker",
+        "human_gate",
+        "invalid_host_input"
+      ],
+      "ai_first_boundary": {
+        "program_originates_medical_quality_verdict": false,
+        "independent_reviewer_record_required_for_owner_receipt": true,
+        "reviewer_attempt_must_differ_from_producer_attempt": true,
+        "reviewer_receipt_must_bind_exact_output_digest": true
+      }
+    }
+  ],
+  "cutover_gate_ref": "contracts/paper_mission_authority_handler_parity.json#/cutover_gates",
+  "non_claims": {
+    "opl_v2_binding_landed": false,
+    "legacy_transport_retired": false,
+    "runtime_ready": false,
+    "paper_progress": false,
+    "publication_ready": false,
+    "production_ready": false
+  }
+}

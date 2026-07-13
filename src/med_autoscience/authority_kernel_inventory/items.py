@@ -139,6 +139,7 @@ def inventory_items() -> tuple[AuthorityKernelItem, ...]:
             upcollect_target="OPL Capability Registry invokes advisory workers fail-open",
         ),
         _capability_item(),
+        _paper_mission_authority_handler_item(),
         _diagnostic_probe_tombstone_item(),
     )
 
@@ -236,6 +237,46 @@ def _capability_item() -> AuthorityKernelItem:
             "publication, artifact, memory, or study truth authority."
         ),
         upcollect_target="OPL Capability Registry / Tool Arsenal runtime consumption",
+    )
+
+
+def _paper_mission_authority_handler_item() -> AuthorityKernelItem:
+    return AuthorityKernelItem(
+        item_id="paper_mission_authority_handler.evaluate_hosted_result",
+        category="paper_mission_authority_handler",
+        owner=OWNER,
+        surface_ref=(
+            "src/med_autoscience/authority_handlers/paper_mission.py::"
+            "evaluate_paper_mission_authority"
+        ),
+        active_caller_refs=(),
+        allowed_writes=(),
+        forbidden_authority=tuple(FORBIDDEN_DOMAIN_AUTHORITY),
+        forbidden_writes=(
+            "filesystem_read_or_write",
+            "network_access",
+            "process_spawn",
+            "queue_session_dag_or_attempt_lifecycle",
+            "runtime_ledger",
+            "artifact_or_receipt_persistence",
+        ),
+        output_refs=(
+            "mas_paper_mission_owner_receipt",
+            "mas_paper_mission_typed_blocker",
+            "mas_paper_mission_human_gate",
+            "paper_mission_route_back",
+            "paper_mission_quality_debt",
+        ),
+        cannot_lift_to_opl_reason=(
+            "The callable validates MAS source-readiness and AI-first reviewer records "
+            "and returns the exact MAS owner receipt, route-back, quality-debt, "
+            "typed-blocker, or human-gate result. OPL may host the callable and persist "
+            "its exact bytes but cannot originate or rewrite that medical authority result."
+        ),
+        upcollect_target=(
+            "OPL v2 direct callable host with schema validation and exact-byte result "
+            "persistence"
+        ),
     )
 
 
