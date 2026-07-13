@@ -155,6 +155,20 @@ def _dispatch_profile_command(
     profile_ref: Path,
 ) -> dict[str, Any]:
     handlers = {
+        "set-study-lifecycle": lambda: set_study_lifecycle(
+            profile=profile,
+            profile_ref=profile_ref,
+            study_id=str(request["study_id"]),
+            lifecycle_state=str(request["lifecycle_state"]),
+            reason_code=str(request["reason_code"]),
+            reason_summary=str(request["reason_summary"]),
+            source_kind=str(request["source_kind"]),
+            source_ref=str(request["source_ref"]),
+            evidence_refs=tuple(
+                str(item) for item in _sequence_value(request.get("evidence_refs"))
+            ),
+            recorded_at=_optional_text(request.get("recorded_at")),
+        ),
         "study-progress": lambda: read_study_progress(
             profile=profile,
             profile_ref=profile_ref,
@@ -203,6 +217,14 @@ def launch_study(**kwargs: Any) -> dict[str, Any]:
     from med_autoscience.controllers.study_launch_projection import launch_study as _launch_study
 
     return _launch_study(**kwargs)
+
+
+def set_study_lifecycle(**kwargs: Any) -> dict[str, Any]:
+    from med_autoscience.controllers.study_lifecycle_control import (
+        set_study_lifecycle as _set_study_lifecycle,
+    )
+
+    return _set_study_lifecycle(**kwargs)
 
 
 def read_study_progress(**kwargs: Any) -> dict[str, Any]:

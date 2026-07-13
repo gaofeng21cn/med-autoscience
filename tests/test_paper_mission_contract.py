@@ -16,6 +16,7 @@ from med_autoscience.paper_mission_run import (
 from med_autoscience.paper_mission_transaction import (
     build_paper_mission_transaction,
 )
+from tests.study_runtime_test_helpers import make_profile, write_study
 
 
 pytestmark = [pytest.mark.contract, pytest.mark.meta]
@@ -231,3 +232,40 @@ def test_paper_mission_run_rejects_unknown_consume_result_status() -> None:
     payload["consume_result"]["status"] = "publication_ready"
     with pytest.raises(PaperMissionContractError, match="unsupported consume_result status"):
         PaperMissionRun.from_payload(payload)
+
+
+def test_materialized_mission_inspect_has_no_retired_consumption_helper_call(
+    tmp_path: Path,
+) -> None:
+    from med_autoscience.paper_mission_domain.materialized_mission_readback import (
+        build_materialized_mission_readback_if_available,
+    )
+
+    profile = make_profile(tmp_path)
+    write_study(profile.workspace_root, STUDY_ID)
+    mission_root = (
+        profile.workspace_root
+        / "ops"
+        / "medautoscience"
+        / "paper_mission_one_shot_migration"
+        / "regression"
+        / STUDY_ID
+    )
+    mission_root.mkdir(parents=True)
+    (mission_root / "paper_mission_run.json").write_text(
+        json.dumps(_valid_payload()),
+        encoding="utf-8",
+    )
+
+    result = build_materialized_mission_readback_if_available(
+        profile=profile,
+        profile_ref=tmp_path / "profile.local.toml",
+        study_id=STUDY_ID,
+        paper_mission_command="inspect",
+        dry_run=False,
+        source="pytest",
+    )
+
+    assert result is not None
+    assert result["surface_kind"] == "paper_mission_materialized_readback"
+    assert result["study_id"] == STUDY_ID

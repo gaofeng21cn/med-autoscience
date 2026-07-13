@@ -5,6 +5,7 @@ from pathlib import Path
 from typing import Any
 
 from med_autoscience.controllers import domain_status_projection, study_truth_kernel
+from med_autoscience.controllers import study_lifecycle_control
 from med_autoscience.controllers.study_progress.projection import (
     build_study_progress_projection,
 )
@@ -33,6 +34,21 @@ def launch_study(
         study_root=study_root,
     )
     selected_entry_mode = _entry_mode(entry_mode)
+    lifecycle = study_lifecycle_control.read_study_lifecycle(
+        study_root=resolved_study_root,
+        study_id=resolved_study_id,
+    )
+    lifecycle_gate = study_lifecycle_control.build_launch_lifecycle_gate(
+        study_id=resolved_study_id,
+        study_root=resolved_study_root,
+        lifecycle=lifecycle or {},
+        explicit_user_wakeup=explicit_user_wakeup,
+        allow_stopped_relaunch=allow_stopped_relaunch,
+    )
+    if lifecycle_gate is not None:
+        lifecycle_gate["runtime_handoff"]["entry_mode"] = selected_entry_mode
+        lifecycle_gate["runtime_handoff"]["force_requested"] = bool(force)
+        return lifecycle_gate
     runtime_status = _mapping_payload(
         domain_status_projection.progress_projection(
             profile=profile,
@@ -48,6 +64,23 @@ def launch_study(
         profile_ref=profile_ref,
         enabled=explicit_user_wakeup,
     )
+    lifecycle_transition = None
+    if wakeup is not None and study_lifecycle_control.lifecycle_is_inactive(lifecycle):
+        lifecycle_transition = study_lifecycle_control.set_study_lifecycle(
+            profile=profile,
+            profile_ref=profile_ref,
+            study_id=resolved_study_id,
+            lifecycle_state="active",
+            reason_code="explicit_user_wakeup",
+            reason_summary="The user explicitly reactivated this MAS study line.",
+            source_kind="explicit_user_wakeup",
+            source_ref=str(wakeup["event_id"]),
+            evidence_refs=(
+                str(resolved_study_root / study_lifecycle_control.STUDY_LIFECYCLE_RELPATH),
+                str(wakeup["snapshot_path"]),
+            ),
+            recorded_at=_text(wakeup.get("recorded_at")),
+        )
     if wakeup is not None:
         runtime_status = _mapping_payload(
             domain_status_projection.progress_projection(
@@ -81,6 +114,7 @@ def launch_study(
             "allow_stopped_relaunch_requested": bool(allow_stopped_relaunch),
             "explicit_user_wakeup_requested": bool(explicit_user_wakeup),
             "explicit_user_wakeup_ref": (wakeup or {}).get("event_id"),
+            "lifecycle_transition": lifecycle_transition,
             "force_requested": bool(force),
             "authority_boundary": {
                 "mas_creates_provider_attempt": False,
@@ -152,6 +186,7 @@ def _record_explicit_user_wakeup(
     )
     return {
         "event_id": event["event_id"],
+        "recorded_at": recorded_at,
         "snapshot_path": str(snapshot_path),
         "snapshot": study_truth_kernel.rebuild_truth_snapshot(
             study_root=study_root,

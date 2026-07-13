@@ -247,11 +247,6 @@ def build_materialized_mission_readback_if_available(
     ):
         transaction_output_fields.pop("next_action", None)
         transaction_output_fields.pop("canonical_next_action_source", None)
-    transaction_output_fields = (
-        suppress_consumed_route_checkpoint_transaction_next_action(
-            transaction_output_fields=transaction_output_fields,
-        )
-    )
     if next_action_override is not None:
         transaction_output_fields["next_action"] = next_action_override
         if canonical_next_action_source is not None:

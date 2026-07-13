@@ -49,7 +49,7 @@ def test_domain_descriptor_exposes_generic_standard_agent_interface() -> None:
             "current_stage_id": "current_stage_id",
             "current_stage_status": "current_stage_status",
             "package_status": "package_status",
-            "lifecycle_ref": "study_status_ref",
+            "lifecycle_ref": "lifecycle_ref",
         },
     }
     assert interface["runtime"] == {

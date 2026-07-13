@@ -10,6 +10,7 @@ from typing import Any
 import yaml
 
 from med_autoscience.profiles import WorkspaceProfile, load_profile
+from med_autoscience.controllers import study_lifecycle_control
 from med_autoscience.controllers.study_workspace_status.contract import (
     AUTHORITY_BOUNDARY,
     CURRENT_PAPER_INPUTS,
@@ -151,6 +152,10 @@ def _study_status(
     runtime_quest_root = (profile.runtime_root / study_id).expanduser().resolve()
     study_yaml_path = study_root / "study.yaml"
     study_config = _read_yaml_mapping(study_yaml_path)
+    lifecycle = study_lifecycle_control.read_study_lifecycle(
+        study_root=study_root,
+        study_id=study_id,
+    )
     current_inputs = _current_paper_inputs(profile=profile, study_root=study_root)
     product_views = _product_views(study_root)
     missing_required_inputs = [
@@ -165,7 +170,10 @@ def _study_status(
         if surface["required"] is True and surface["materialized_by_controller"] is True and surface["present"] is not True
     ]
     stage_payload = _stage_index_payload(study_id=study_id, study_root=study_root)
-    stage_index = stage_payload["stage_index"]
+    stage_index = study_lifecycle_control.stage_index_respecting_lifecycle(
+        stage_index=stage_payload["stage_index"],
+        lifecycle=lifecycle,
+    )
     stage_validation = stage_payload["validation"]
     blockers = _blockers(
         profile=profile,
@@ -178,15 +186,23 @@ def _study_status(
         missing_required_inputs=missing_required_inputs,
         stage_validation=stage_validation,
     )
-    status = _status(
+    workspace_structure_status = _status(
         blockers=blockers,
         missing_entry_surfaces=missing_entry_surfaces,
         materialization_gaps=stage_validation["materialization_gaps"],
     )
-    package_status = _current_package_status(
-        study_root=study_root,
-        current_inputs=current_inputs,
-        recorded_at=recorded_at,
+    status = (
+        str(lifecycle["lifecycle_state"])
+        if lifecycle is not None
+        else workspace_structure_status
+    )
+    package_status = study_lifecycle_control.package_status_respecting_lifecycle(
+        package_status=_current_package_status(
+            study_root=study_root,
+            current_inputs=current_inputs,
+            recorded_at=recorded_at,
+        ),
+        lifecycle=lifecycle,
     )
     paper_clean_room_status = _paper_clean_room_rebuild_status(study_root=study_root)
     validation = {
@@ -213,6 +229,8 @@ def _study_status(
         paper_clean_room_status=paper_clean_room_status,
         study_root=study_root,
     )
+    if study_lifecycle_control.lifecycle_is_inactive(lifecycle):
+        next_action = dict(lifecycle["next_action"])
     current_truth_map = {
         "schema_version": 1,
         "surface_kind": "study_workspace_current_truth_map",
@@ -223,6 +241,12 @@ def _study_status(
         "product_views": product_views,
         "stage_index_ref": USER_ENTRY_REFS["stage_index"].as_posix(),
         "current_stage": stage_index.get("current_stage"),
+        "lifecycle": lifecycle,
+        "lifecycle_ref": (
+            study_lifecycle_control.STUDY_LIFECYCLE_RELPATH.as_posix()
+            if lifecycle is not None
+            else None
+        ),
         "package_status": package_status,
         "paper_clean_room_rebuild": paper_clean_room_status,
     }
@@ -242,6 +266,19 @@ def _study_status(
         "schema_version": 1,
         "surface_kind": SURFACE_KIND,
         "status": status,
+        "business_status": status,
+        "lifecycle_state": (
+            str(lifecycle["lifecycle_state"])
+            if lifecycle is not None
+            else None
+        ),
+        "lifecycle": lifecycle,
+        "lifecycle_ref": (
+            study_lifecycle_control.STUDY_LIFECYCLE_RELPATH.as_posix()
+            if lifecycle is not None
+            else None
+        ),
+        "workspace_structure_status": workspace_structure_status,
         "recorded_at": recorded_at,
         "study_id": study_id,
         "study_root": str(study_root),

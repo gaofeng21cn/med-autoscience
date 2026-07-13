@@ -39,6 +39,18 @@ def domain_entry_handler_target(command: str) -> str:
 
 
 SERVICE_SAFE_OPERATOR_COMMANDS: dict[str, DomainEntryCommandSpec] = {
+    "set-study-lifecycle": DomainEntryCommandSpec(
+        (
+            "profile_ref",
+            "study_id",
+            "lifecycle_state",
+            "reason_code",
+            "reason_summary",
+            "source_kind",
+            "source_ref",
+        ),
+        ("evidence_refs", "recorded_at"),
+    ),
     "study-progress": DomainEntryCommandSpec(("profile_ref", "study_id"), ("entry_mode",)),
     "paper-mission": DomainEntryCommandSpec(
         ("profile_ref", "study_id"),

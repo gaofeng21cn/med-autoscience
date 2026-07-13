@@ -1621,6 +1621,84 @@
         "task_ref"
       ],
       "optional_fields": []
+    },
+    {
+      "action_id": "set_study_lifecycle",
+      "authority_boundary": {
+        "authoritative_truth_refs": [
+          "studies/<study_id>/control/lifecycle.json",
+          "runtime/artifacts/study_lifecycle_control/latest.json"
+        ],
+        "descriptor_projection_owner": "one-person-lab",
+        "domain_handler_target_owner": "MedAutoScience",
+        "domain_truth_owner": "MedAutoScience",
+        "helper_owner": "MedAutoScience",
+        "helper_write_policy": "study_lifecycle_control_and_derived_workspace_projection_only"
+      },
+      "effect": "mutating",
+      "human_gate_ids": [
+        "study_lifecycle_control_gate"
+      ],
+      "input_schema_ref": "contracts/schemas/v1/mas-action.input.schema.json#/$defs/set_study_lifecycle",
+      "output_schema_ref": "contracts/schemas/v1/mas-action.output.schema.json",
+      "owner": "med-autoscience",
+      "source_command": {
+        "command": "med_autoscience.domain_entry:MedAutoScienceDomainEntry.dispatch#set_study_lifecycle",
+        "surface_kind": "study_lifecycle_control"
+      },
+      "summary": "Record durable user-facing study lifecycle truth and refresh the domain-owned workspace projection without changing paper content or runtime telemetry.",
+      "supported_surfaces": {
+        "ai_sdk": {
+          "tool_name": "set_study_lifecycle"
+        },
+        "cli": {
+          "command": "med_autoscience.domain_entry:MedAutoScienceDomainEntry.dispatch#set_study_lifecycle",
+          "surface_kind": "study_lifecycle_control"
+        },
+        "mcp": {
+          "command": "med_autoscience.domain_entry:MedAutoScienceDomainEntry.dispatch#set_study_lifecycle",
+          "descriptor_only": true,
+          "public_runtime": false,
+          "surface_kind": "study_lifecycle_control",
+          "tool_name": "set_study_lifecycle"
+        },
+        "openai": {
+          "tool_name": "set_study_lifecycle"
+        },
+        "product_entry": {
+          "action_key": "set_study_lifecycle",
+          "command": "med_autoscience.domain_entry:MedAutoScienceDomainEntry.dispatch#set_study_lifecycle",
+          "surface_kind": "study_lifecycle_control"
+        },
+        "skill": {
+          "command": "med_autoscience.domain_entry:MedAutoScienceDomainEntry.dispatch#set_study_lifecycle",
+          "command_contract_id": "set_study_lifecycle",
+          "surface_kind": "study_lifecycle_control"
+        }
+      },
+      "title": "Set durable MAS study lifecycle",
+      "workspace_locator_fields": [
+        "profile_ref",
+        "study_id",
+        "lifecycle_state",
+        "reason_code",
+        "reason_summary",
+        "source_kind",
+        "source_ref"
+      ],
+      "required_fields": [
+        "profile_ref",
+        "study_id",
+        "lifecycle_state",
+        "reason_code",
+        "reason_summary",
+        "source_kind",
+        "source_ref"
+      ],
+      "optional_fields": [
+        "evidence_refs",
+        "recorded_at"
+      ]
     }
   ],
   "authority_boundary": {

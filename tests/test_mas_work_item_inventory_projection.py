@@ -70,7 +70,7 @@ def test_inventory_projection_preserves_domain_owned_business_values() -> None:
                 "current_stage_id": "stage-02",
                 "current_stage_status": "domain_stage_status_value",
                 "package_status": "domain_package_status_value",
-                "study_status_ref": "STUDY_STATUS.md",
+                "lifecycle_ref": "control/lifecycle.json",
                 "stage_index_ref": "control/stage_index.json",
             }
         ]
@@ -85,7 +85,7 @@ def test_inventory_projection_preserves_domain_owned_business_values() -> None:
             "current_stage_id": "stage-02",
             "current_stage_status": "domain_stage_status_value",
             "package_status": "domain_package_status_value",
-            "lifecycle_ref": "STUDY_STATUS.md",
+            "lifecycle_ref": "control/lifecycle.json",
         }
     ]
     assert descriptor["authority_boundary"]["domain_truth_owner"] == "MedAutoScience"
@@ -134,7 +134,7 @@ def test_current_local_portfolio_indexes_project_all_nine_studies() -> None:
             assert projected["current_stage_id"] == source["current_stage_id"]
             assert projected["current_stage_status"] == source["current_stage_status"]
             assert projected["package_status"] == source["package_status"]
-            assert projected["lifecycle_ref"] == source["study_status_ref"]
+            assert projected["lifecycle_ref"] == source["lifecycle_ref"]
             assert source["stage_index_ref"] == "control/stage_index.json"
 
         observed_ids[workspace_name] = {

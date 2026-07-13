@@ -74,6 +74,7 @@ from .transaction_readback import (
 from med_autoscience.controllers.stage_closure_terminalizer import (
     stage_closure_decision_projection,
 )
+from med_autoscience.controllers import study_lifecycle_control
 
 _stage_closure_receipt_passthrough = _stage_closure_terminalizer_readback._stage_closure_receipt_passthrough
 _terminal_source_readback_newer = _stage_closure_terminalizer_readback._terminal_source_readback_newer
@@ -185,6 +186,23 @@ def build_paper_mission_readback(
             runtime_readback_payload=runtime_readback_payload,
             output_root=output_root,
             source=source,
+        )
+    lifecycle = study_lifecycle_control.read_profile_study_lifecycle(
+        profile=profile,
+        study_id=study_id,
+    )
+    if (
+        paper_mission_command in {"inspect", "start", "resume", "drive"}
+        and study_lifecycle_control.lifecycle_is_inactive(lifecycle)
+    ):
+        return study_lifecycle_control.build_paper_mission_lifecycle_readback(
+            profile=profile,
+            profile_ref=profile_ref,
+            study_id=study_id,
+            paper_mission_command=paper_mission_command,
+            source=source,
+            dry_run=dry_run,
+            lifecycle=lifecycle,
         )
     if paper_mission_command == "package-candidate":
         return _build_materialized_candidate_package_readback(

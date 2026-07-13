@@ -5,6 +5,7 @@ from med_autoscience.controllers import artifact_runtime_proof
 from med_autoscience.controllers import medical_paper_ops_health, medical_paper_readiness
 from med_autoscience.controllers import open_auto_research_projection, opl_runtime_refs
 from med_autoscience.controllers import outer_supervision_slo, paper_authority_migration, paper_progress_stall
+from med_autoscience.controllers import study_lifecycle_control
 from med_autoscience.reviewer_revision_feedbackops_dispatch import read_reviewer_revision_feedbackops_execution_readback
 from .delivery_inspection import attach_delivery_inspection_projection as _attach_delivery_inspection_projection
 from .delivery_inspection import read_delivery_inspection_projection as _read_delivery_inspection_projection
@@ -149,7 +150,10 @@ def build_study_progress_projection(
             payload=refreshed_existing,
             study_root=study_root,
         )
-        return _without_legacy_next_action_authority(refreshed_existing)
+        return study_lifecycle_control.apply_lifecycle_to_progress_readback(
+            payload=_without_legacy_next_action_authority(refreshed_existing),
+            study_root=study_root,
+        )
 
     resolved_study_id = study_id
     resolved_study_root = study_root
@@ -888,7 +892,10 @@ def build_study_progress_projection(
         payload=payload,
         study_root=resolved_study_root,
     )
-    return _progress_projection_with_canonical_domain_next_action(payload)
+    return study_lifecycle_control.apply_lifecycle_to_progress_readback(
+        payload=_progress_projection_with_canonical_domain_next_action(payload),
+        study_root=resolved_study_root,
+    )
 
 
 def _attach_reviewer_revision_feedbackops_execution_readback(

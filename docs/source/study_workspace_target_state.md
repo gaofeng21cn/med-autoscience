@@ -50,6 +50,10 @@ MAS/OPL 的理想论文 workspace 必须同时表达两层结构：
     <study_id>/
 
   runtime/
+    artifacts/
+      study_lifecycle_control/
+        latest.json
+        history/
     quests/
       <study_id>/
 
@@ -87,6 +91,7 @@ studies/<study_id>/
   paper.yaml
 
   control/
+    lifecycle.json
     current_stage.json
     next_action.json
     stage_index.json
@@ -147,6 +152,7 @@ studies/<study_id>/
 | --- | --- | --- |
 | `study.yaml` | study identity、scope、profile binding | study identity truth |
 | `paper.yaml` | paper-facing metadata、journal route、current package refs | paper metadata truth |
+| `control/lifecycle.json` | 用户可理解的 `active/paused/delivered_paused/stopped` durable truth、恢复策略与 package milestone 语义 | lifecycle truth |
 | `control/` | 当前 stage、下一动作、owner、blocker、用户检查入口 | control/read-model projection |
 | `artifacts/stage_outputs/` | Stage Native stage-owned artifacts、receipts、blockers、lineage | progress / claim evidence carrier; no transition authority |
 | `paper/` | 当前可读论文正文、表图目录、review ledger | canonical product surface |
@@ -226,6 +232,12 @@ paper.yaml
 ```
 
 如果某个 stage 修改了 `paper/draft.md`，stage folder 应记录 produced ref、hash、lineage 和 receipt；`paper/draft.md` 仍是当前正文入口。这样用户看 `paper/` 能检查正文，看 `artifacts/stage_outputs/<stage_id>/` 能检查推进证据。
+
+## Lifecycle Precedence
+
+论文业务 lifecycle 不等于 runtime stage。`control/lifecycle.json` 是 MAS domain-owned user truth；`runtime/artifacts/study_lifecycle_control/latest.json` 是病种 workspace 的聚合 ledger。具体状态与恢复门禁见 [Study Lifecycle Control](./study_lifecycle_control.md)。
+
+当 lifecycle 为 `paused`、`delivered_paused` 或 `stopped` 时，`workspace_index.json`、`study-state-matrix`、`study-progress` 与 `paper-mission inspect` 必须统一投影 `current_stage_id=null`。旧 stage、runtime attempt、heartbeat、Token telemetry 和 archive residue只能进入诊断层，不能覆盖 lifecycle，也不能把已暂停或已停止论文翻译成“系统阻塞”。
 
 ## Current Stage Index
 

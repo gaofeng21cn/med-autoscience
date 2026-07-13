@@ -939,6 +939,65 @@
           "minLength": 1
         }
       }
+    },
+    "set_study_lifecycle": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "profile_ref",
+        "study_id",
+        "lifecycle_state",
+        "reason_code",
+        "reason_summary",
+        "source_kind",
+        "source_ref"
+      ],
+      "properties": {
+        "evidence_refs": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "lifecycle_state": {
+          "type": "string",
+          "enum": [
+            "active",
+            "paused",
+            "delivered_paused",
+            "stopped"
+          ]
+        },
+        "profile_ref": {
+          "type": "string",
+          "minLength": 1
+        },
+        "reason_code": {
+          "type": "string",
+          "minLength": 1
+        },
+        "reason_summary": {
+          "type": "string",
+          "minLength": 1
+        },
+        "recorded_at": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "source_kind": {
+          "type": "string",
+          "minLength": 1
+        },
+        "source_ref": {
+          "type": "string",
+          "minLength": 1
+        },
+        "study_id": {
+          "type": "string",
+          "minLength": 1
+        }
+      }
     }
   }
 }

@@ -8,6 +8,7 @@ from typing import Any
 import yaml
 
 from med_autoscience.profiles import WorkspaceProfile
+from med_autoscience.controllers import study_lifecycle_control
 from med_autoscience.controllers.study_workspace_status.contract import (
     AUTHORITY_BOUNDARY,
     LEGACY_USER_ENTRY_REFS,
@@ -350,6 +351,8 @@ def _paper_yaml_payload(*, study: Mapping[str, Any]) -> dict[str, Any]:
         "canonical_study_root": study["study_root"],
         "target_state_reference_doc": TARGET_STATE_REFERENCE_DOC,
         "stage_index_ref": USER_ENTRY_REFS["stage_index"].as_posix(),
+        "lifecycle_ref": study.get("lifecycle_ref"),
+        "lifecycle_state": study.get("lifecycle_state"),
         "current_stage_id": study["stage_index"].get("current_stage_id"),
         "current_refs": {
             key: refs[key]["selected_source_relative_path"]
@@ -385,6 +388,8 @@ def _render_status_markdown(*, study: Mapping[str, Any]) -> str:
         f"- Runtime/provenance root: `{study['runtime_quest_root']}`",
         f"- Target-state reference: `{TARGET_STATE_REFERENCE_DOC}`",
         f"- Current stage: `{study['stage_index'].get('current_stage_id')}`",
+        f"- Lifecycle state: `{study.get('lifecycle_state') or 'not_recorded'}`",
+        f"- Lifecycle control: `{study.get('lifecycle_ref') or 'not_recorded'}`",
         f"- Stage index: `{USER_ENTRY_REFS['stage_index'].as_posix()}`",
         f"- Current manuscript: `{_selected_ref(refs, 'current_manuscript')}`",
         f"- Evidence ledger: `{_selected_ref(refs, 'evidence_ledger')}`",
@@ -403,10 +408,22 @@ def _workspace_study_entry(*, profile: WorkspaceProfile, study: Mapping[str, Any
     study_root = Path(str(study["study_root"]))
     runtime_root = Path(str(study["runtime_quest_root"]))
     current_stage = study["stage_index"].get("current_stage") or {}
+    lifecycle = study.get("lifecycle") if isinstance(study.get("lifecycle"), Mapping) else None
+    lifecycle_inactive = study_lifecycle_control.lifecycle_is_inactive(lifecycle)
     entry = {
         "study_id": study["study_id"],
         "display_name": study.get("study_title") or study["study_id"],
         "status": study["status"],
+        "business_status": study["status"],
+        "lifecycle_state": study.get("lifecycle_state"),
+        "lifecycle_ref": study.get("lifecycle_ref"),
+        "lifecycle_reason_code": (lifecycle or {}).get("reason_code"),
+        "lifecycle_reason_summary": (lifecycle or {}).get("reason_summary"),
+        "next_action": dict((lifecycle or {}).get("next_action") or study.get("next_action") or {}),
+        "resume_policy": dict((lifecycle or {}).get("resume_policy") or {}),
+        "auto_resume_allowed": bool(
+            ((lifecycle or {}).get("resume_policy") or {}).get("auto_resume_allowed")
+        ) if lifecycle is not None else None,
         "canonical_study_root": _relative_path(path=study_root, root=workspace_root),
         "runtime_provenance_root": _relative_path(path=runtime_root, root=workspace_root),
         "current_stage_id": study["stage_index"].get("current_stage_id"),
@@ -417,7 +434,9 @@ def _workspace_study_entry(*, profile: WorkspaceProfile, study: Mapping[str, Any
         "paper_entry_ref": "manuscript/draft.md",
         "publication_package_status_ref": USER_ENTRY_REFS["current_package_status"].as_posix(),
         "package_status": study["current_truth_map"]["package_status"].get("status"),
-        "blockers": list(study.get("blockers") or []),
+        "blockers": [] if lifecycle_inactive else list(study.get("blockers") or []),
+        "diagnostic_blockers": list(study.get("blockers") or []),
+        "workspace_structure_status": study.get("workspace_structure_status"),
         "runtime_root_is_current_paper_truth": False,
         "archive_roots_are_current_truth": False,
     }

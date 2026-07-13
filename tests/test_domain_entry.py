@@ -411,6 +411,7 @@ def _install_required_only_dispatch_handlers(monkeypatch, tmp_path: Path) -> dic
     monkeypatch.setattr(domain_entry, "read_study_progress", capture("study-progress"))
     monkeypatch.setattr(domain_entry, "build_paper_mission_readback", capture("paper-mission"))
     monkeypatch.setattr(domain_entry, "launch_study", capture("launch-study"))
+    monkeypatch.setattr(domain_entry, "set_study_lifecycle", capture("set-study-lifecycle"))
     monkeypatch.setattr(domain_entry, "submit_study_task", capture("submit-study-task"))
 
     module_handlers = {
@@ -480,6 +481,11 @@ def _required_only_request(
         "profile_ref": str(tmp_path / "profile.local.toml"),
         "study_id": "study-001",
         "task_intent": "inspect",
+        "lifecycle_state": "paused",
+        "reason_code": "user_paused",
+        "reason_summary": "User paused the study.",
+        "source_kind": "explicit_user_truth",
+        "source_ref": "user_instruction:pytest",
         "study_root": str(tmp_path / "study"),
         "workspace_roots": [str(tmp_path)],
         "mode": "summary",
