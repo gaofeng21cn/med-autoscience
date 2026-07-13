@@ -77,6 +77,10 @@ Foundry 系列 canonical policy 只存在于 OPL Framework。MAS 不声明或安
 
 默认 profile/workspace/project 身份、workspace binding、direct-entry command template、runtime registration ref、progress aliases 与 routing hints 由 MAS 在 `contracts/domain_descriptor.json#/standard_agent_interface` 按 `opl_standard_agent_interface.v1` 声明，由 OPL generic consumer 验证和消费。OPL 不再从静态 registry 推断 MAS domain body，MAS 也不生成第二套 hosted surface。
 
+## D-20 验证按证据类型去重
+
+Canonical `scripts/verify.sh` 默认只执行一次 line-budget，并把 fast pytest 选集收集一次；smoke/fast Make target 不重复全仓结构扫描。Family boundary case 在同一隔离 pytest invocation 中执行。Table-driven case 必须保留可读稳定 id，且不得合并或削弱 authority、fail-closed 与 zero-write 断言。
+
 ## D-19 Provider 与 dispatch transport
 
 Reference provider invocation/retry/cache/receipt 归 OPL Connect；domain-handler transport receipt persistence 归 OPL Runway/Ledger。MAS 只保留医学 reference judgment、domain result、owner receipt/typed blocker signer 与 forbidden-write guard，不在 workspace 创建通用 dispatch receipt store。

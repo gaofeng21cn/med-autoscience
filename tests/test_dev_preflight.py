@@ -8,11 +8,29 @@ import pytest
 pytestmark = pytest.mark.family
 
 
-def test_run_preflight_treats_docs_as_review_only_without_running_commands(tmp_path: Path) -> None:
+@pytest.mark.parametrize(
+    "changed_file",
+    [
+        pytest.param("docs/active/untracked_runtime_contract.md", id="active-doc"),
+        pytest.param("README.md", id="root-readme"),
+        pytest.param(
+            "docs/policies/runtime-governance/external_runtime_dependency_gate.md",
+            id="external-runtime-policy",
+        ),
+        pytest.param(
+            "docs/history/program/integration_harness_activation_package.md",
+            id="history-integration-harness",
+        ),
+    ],
+)
+def test_run_preflight_treats_documentation_as_review_only_without_running_commands(
+    changed_file: str,
+    tmp_path: Path,
+) -> None:
     module = importlib.import_module("med_autoscience.dev_preflight")
 
     result = module.run_preflight(
-        changed_files=["docs/active/untracked_runtime_contract.md"],
+        changed_files=[changed_file],
         repo_root=tmp_path,
     )
 
@@ -23,7 +41,18 @@ def test_run_preflight_treats_docs_as_review_only_without_running_commands(tmp_p
     assert result.planned_commands == ()
 
 
-def test_run_preflight_routes_unknown_python_changes_to_smoke(monkeypatch, tmp_path: Path) -> None:
+@pytest.mark.parametrize(
+    "changed_file",
+    [
+        pytest.param("src/med_autoscience/controllers/new_controller.py", id="unknown-python"),
+        pytest.param("tests/test_new_controller.py", id="unknown-test"),
+    ],
+)
+def test_run_preflight_routes_unknown_code_changes_to_smoke(
+    changed_file: str,
+    monkeypatch,
+    tmp_path: Path,
+) -> None:
     module = importlib.import_module("med_autoscience.dev_preflight")
     calls: list[list[str]] = []
 
@@ -40,7 +69,7 @@ def test_run_preflight_routes_unknown_python_changes_to_smoke(monkeypatch, tmp_p
     monkeypatch.setattr(module.subprocess, "run", fake_run)
 
     result = module.run_preflight(
-        changed_files=["src/med_autoscience/controllers/new_controller.py"],
+        changed_files=[changed_file],
         repo_root=tmp_path,
     )
 
@@ -49,35 +78,6 @@ def test_run_preflight_routes_unknown_python_changes_to_smoke(monkeypatch, tmp_p
     assert result.unclassified_changes == ()
     assert result.planned_commands == ("make test-smoke",)
     assert calls == [["make", "test-smoke"]]
-
-
-def test_run_preflight_routes_unknown_test_changes_to_smoke(monkeypatch, tmp_path: Path) -> None:
-    module = importlib.import_module("med_autoscience.dev_preflight")
-    calls: list[list[str]] = []
-
-    def fake_run(command, **kwargs):
-        calls.append(list(command))
-
-        class Result:
-            returncode = 0
-            stdout = "ok\n"
-            stderr = ""
-
-        return Result()
-
-    monkeypatch.setattr(module.subprocess, "run", fake_run)
-
-    result = module.run_preflight(
-        changed_files=["tests/test_new_controller.py"],
-        repo_root=tmp_path,
-    )
-
-    assert result.ok is True
-    assert result.matched_categories == ("generic_python_smoke_surface",)
-    assert result.unclassified_changes == ()
-    assert result.planned_commands == ("make test-smoke",)
-    assert calls == [["make", "test-smoke"]]
-
 
 def test_run_preflight_keeps_unknown_workflow_config_fail_closed(monkeypatch, tmp_path: Path) -> None:
     module = importlib.import_module("med_autoscience.dev_preflight")
@@ -130,35 +130,6 @@ def test_run_ci_preflight_runs_smoke_for_empty_diff(monkeypatch, tmp_path: Path)
     assert calls == [["make", "test-smoke"]]
 
 
-def test_run_preflight_executes_planned_commands(monkeypatch, tmp_path: Path) -> None:
-    module = importlib.import_module("med_autoscience.dev_preflight")
-    calls: list[list[str]] = []
-
-    def fake_run(command, **kwargs):
-        calls.append(list(command))
-
-        class Result:
-            returncode = 0
-            stdout = "ok\n"
-            stderr = ""
-
-        return Result()
-
-    monkeypatch.setattr(module.subprocess, "run", fake_run)
-
-    result = module.run_preflight(
-        changed_files=["README.md"],
-        repo_root=tmp_path,
-    )
-
-    assert result.ok is True
-    assert result.matched_categories == ("documentation_review_only",)
-    assert result.unclassified_changes == ()
-    assert result.planned_commands == ()
-    assert result.results == ()
-    assert calls == []
-
-
 def test_render_preflight_text_includes_failed_command_output_tail() -> None:
     module = importlib.import_module("med_autoscience.dev_preflight")
 
@@ -187,64 +158,6 @@ def test_render_preflight_text_includes_failed_command_output_tail() -> None:
     assert "      FAILED tests/test_example.py::test_contract" in text
     assert "    stderr_tail:" in text
     assert "      pytest: error: unknown config option" in text
-
-
-def test_run_preflight_executes_external_runtime_dependency_commands(monkeypatch, tmp_path: Path) -> None:
-    module = importlib.import_module("med_autoscience.dev_preflight")
-    calls: list[list[str]] = []
-
-    def fake_run(command, **kwargs):
-        calls.append(list(command))
-
-        class Result:
-            returncode = 0
-            stdout = "ok\n"
-            stderr = ""
-
-        return Result()
-
-    monkeypatch.setattr(module.subprocess, "run", fake_run)
-
-    result = module.run_preflight(
-        changed_files=["docs/policies/runtime-governance/external_runtime_dependency_gate.md"],
-        repo_root=tmp_path,
-    )
-
-    assert result.ok is True
-    assert result.matched_categories == ("documentation_review_only",)
-    assert result.unclassified_changes == ()
-    assert result.planned_commands == ()
-    assert result.results == ()
-    assert calls == []
-
-
-def test_run_preflight_executes_integration_harness_commands(monkeypatch, tmp_path: Path) -> None:
-    module = importlib.import_module("med_autoscience.dev_preflight")
-    calls: list[list[str]] = []
-
-    def fake_run(command, **kwargs):
-        calls.append(list(command))
-
-        class Result:
-            returncode = 0
-            stdout = "ok\n"
-            stderr = ""
-
-        return Result()
-
-    monkeypatch.setattr(module.subprocess, "run", fake_run)
-
-    result = module.run_preflight(
-        changed_files=["docs/history/program/integration_harness_activation_package.md"],
-        repo_root=tmp_path,
-    )
-
-    assert result.ok is True
-    assert result.matched_categories == ("documentation_review_only",)
-    assert result.unclassified_changes == ()
-    assert result.planned_commands == ()
-    assert result.results == ()
-    assert calls == []
 
 
 def test_run_preflight_executes_family_shared_lane(monkeypatch, tmp_path: Path) -> None:
@@ -317,9 +230,9 @@ def test_family_verify_lane_is_exposed_from_makefile_and_verify_script() -> None
         "@$(call run_isolated_python,-m pytest tests/test_foundry_agent_series_consumer_contract.py "
         "tests/test_framework_python_carrier.py tests/test_opl_module_runtime_carrier.py "
         "tests/test_dev_preflight_contract.py "
-        "tests/test_dev_preflight.py -q)"
+        "tests/test_dev_preflight.py tests/test_opl_agent_lab_longline_migration.py -q)"
     ) in makefile
-    assert "@$(call run_isolated_python,-m pytest tests/test_opl_agent_lab_longline_migration.py -q)" in makefile
+    assert makefile.count("tests/test_opl_agent_lab_longline_migration.py") == 1
     assert "scripts/run-pytest-clean.sh" not in makefile
     assert (
         'if [[ "${lane}" == "family" ]]; then\n'

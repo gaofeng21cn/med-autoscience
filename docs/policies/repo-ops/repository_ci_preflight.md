@@ -33,7 +33,8 @@ scripts/verify.sh full
 
 ## Lane semantics
 
-- default/smoke：最小入口与 sanity，不证明 broader behavior。
+- default：一次 repo hygiene、line-budget 与 Python compile sanity 后，执行 fast pytest 选集；不会再在 smoke/fast 中重复全仓 line-budget 扫描。
+- smoke：只验证最小入口，不证明 broader behavior 或结构预算。
 - `ci-preflight <base-ref>`：根据 checked-in change-aware policy选择本次触达面。
 - regression：普通行为回归，重型 display/submission/family/meta由独立 lane承担。
 - meta：machine contracts、generated interface/entry与 repo governance一致性。
@@ -46,6 +47,7 @@ scripts/verify.sh full
 - 触及 machine contract、action catalog、test entry或 runtime semantics时，按变更面追加 meta/focused/default/full。
 - Python/pytest必须经 clean runner，避免把 `.venv`、cache、bytecode或 egg-info写回 checkout。
 - Line budget是结构 signal，不替代行为验证，也不代表 runtime/paper readiness。
+- `family` 在同一隔离 pytest 进程中收集全部 family boundary case，避免为同一依赖环境重复导出、建环境和收集。
 
 ## Evidence boundary
 

@@ -41,30 +41,23 @@ def test_study_runtime_decision_facade_does_not_export_loader_helper() -> None:
     assert "import_module" not in module.__all__
 
 
-def test_study_runtime_types_reexports_publication_supervisor_surface() -> None:
+@pytest.mark.parametrize(
+    "symbol_name",
+    [
+        pytest.param("StudyRuntimePublicationSupervisorState", id="publication-supervisor"),
+        pytest.param("StudyRuntimeExecutionOwnerGuard", id="execution-owner-guard"),
+        pytest.param("StudyRuntimePendingUserInteraction", id="pending-user-interaction"),
+        pytest.param("StudyRuntimeContinuationState", id="continuation-state"),
+    ],
+)
+def test_study_runtime_types_reexports_progress_projection_surface(symbol_name: str) -> None:
     typed_surface = importlib.import_module("med_autoscience.controllers.study_runtime_types")
     status_surface = importlib.import_module("med_autoscience.controllers.progress_projection")
 
-    assert typed_surface.StudyRuntimePublicationSupervisorState is status_surface.StudyRuntimePublicationSupervisorState
-    _assert_progress_projection_owned(typed_surface.StudyRuntimePublicationSupervisorState, status_surface)
-def test_study_runtime_types_reexports_execution_owner_guard_surface() -> None:
-    typed_surface = importlib.import_module("med_autoscience.controllers.study_runtime_types")
-    status_surface = importlib.import_module("med_autoscience.controllers.progress_projection")
-
-    assert typed_surface.StudyRuntimeExecutionOwnerGuard is status_surface.StudyRuntimeExecutionOwnerGuard
-    _assert_progress_projection_owned(typed_surface.StudyRuntimeExecutionOwnerGuard, status_surface)
-def test_study_runtime_types_reexports_pending_user_interaction_surface() -> None:
-    typed_surface = importlib.import_module("med_autoscience.controllers.study_runtime_types")
-    status_surface = importlib.import_module("med_autoscience.controllers.progress_projection")
-
-    assert typed_surface.StudyRuntimePendingUserInteraction is status_surface.StudyRuntimePendingUserInteraction
-    _assert_progress_projection_owned(typed_surface.StudyRuntimePendingUserInteraction, status_surface)
-def test_study_runtime_types_reexports_continuation_state_surface() -> None:
-    typed_surface = importlib.import_module("med_autoscience.controllers.study_runtime_types")
-    status_surface = importlib.import_module("med_autoscience.controllers.progress_projection")
-
-    assert typed_surface.StudyRuntimeContinuationState is status_surface.StudyRuntimeContinuationState
-    _assert_progress_projection_owned(typed_surface.StudyRuntimeContinuationState, status_surface)
+    typed_symbol = getattr(typed_surface, symbol_name)
+    status_symbol = getattr(status_surface, symbol_name)
+    assert typed_symbol is status_symbol
+    _assert_progress_projection_owned(typed_symbol, status_surface)
 def test_domain_status_projection_reexports_typed_surface_from_study_runtime_types() -> None:
     router = importlib.import_module("med_autoscience.controllers.domain_status_projection")
     typed_surface = importlib.import_module("med_autoscience.controllers.study_runtime_types")

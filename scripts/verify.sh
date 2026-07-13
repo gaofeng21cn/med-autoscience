@@ -61,7 +61,7 @@ lane="${1:-}"
 run_sanity_checks
 
 if [[ -z "${lane}" ]]; then
-  make test-smoke
+  make test-fast
   exit 0
 fi
 

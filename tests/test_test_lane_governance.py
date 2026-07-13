@@ -23,7 +23,6 @@ def test_fast_lane_uses_its_manifest_paths_and_verify_entrypoint() -> None:
     fast_paths = _manifest()["lanes"]["fast"]["paths"]
     assert fast_paths == [
         "tests/test_smoke_entrypoints.py",
-        "tests/test_line_budget.py",
         "tests/test_test_lane_governance.py",
     ]
 
@@ -35,6 +34,10 @@ def test_fast_lane_uses_its_manifest_paths_and_verify_entrypoint() -> None:
     assert "test-regression" not in fast_block
 
     verify_script = _read("scripts/verify.sh")
+    verify_default = verify_script.split('if [[ -z "${lane}" ]]', maxsplit=1)[1].split(
+        'if [[ "${lane}" == "smoke" ]]', maxsplit=1
+    )[0]
+    assert "make test-fast" in verify_default
     verify_fast = verify_script.split('if [[ "${lane}" == "fast" ]]', maxsplit=1)[
         1
     ].split('if [[ "${lane}" == "meta" ]]', maxsplit=1)[0]

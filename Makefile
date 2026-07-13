@@ -32,13 +32,12 @@ endef
 
 FAST_TESTS := \
 	tests/test_smoke_entrypoints.py \
-	tests/test_line_budget.py \
 	tests/test_test_lane_governance.py
 
 test: test-smoke
 
 test-smoke:
-	@$(call run_isolated_python,-m pytest tests/test_smoke_entrypoints.py tests/test_line_budget.py -q)
+	@$(call run_isolated_python,-m pytest tests/test_smoke_entrypoints.py -q)
 
 test-regression:
 	@$(call run_isolated_python,-m pytest -q $(MAS_PYTEST_XDIST_ARGS) -m "not meta and not display_heavy and not submission_heavy and not materialization_heavy and not family and not soak_or_golden")
@@ -63,8 +62,7 @@ test-soak-golden:
 	@$(call run_isolated_python,-m pytest -q $(MAS_PYTEST_XDIST_ARGS) -m soak_or_golden)
 
 test-family:
-	@$(call run_isolated_python,-m pytest tests/test_foundry_agent_series_consumer_contract.py tests/test_framework_python_carrier.py tests/test_opl_module_runtime_carrier.py tests/test_dev_preflight_contract.py tests/test_dev_preflight.py -q)
-	@$(call run_isolated_python,-m pytest tests/test_opl_agent_lab_longline_migration.py -q)
+	@$(call run_isolated_python,-m pytest tests/test_foundry_agent_series_consumer_contract.py tests/test_framework_python_carrier.py tests/test_opl_module_runtime_carrier.py tests/test_dev_preflight_contract.py tests/test_dev_preflight.py tests/test_opl_agent_lab_longline_migration.py -q)
 
 test-paths:
 	@test -n "$(TESTS)$(filter tests/%,$(MAKECMDGOALS))" || { echo "TESTS or test paths are required" >&2; exit 2; }

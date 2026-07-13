@@ -4,8 +4,7 @@
     "smoke": {
       "kind": "minimal_entry_contract",
       "paths": [
-        "tests/test_smoke_entrypoints.py",
-        "tests/test_line_budget.py"
+        "tests/test_smoke_entrypoints.py"
       ],
       "overlap_policy": "entry_contract_only"
     },
@@ -28,7 +27,6 @@
       "kind": "developer_fast_contract",
       "paths": [
         "tests/test_smoke_entrypoints.py",
-        "tests/test_line_budget.py",
         "tests/test_test_lane_governance.py"
       ],
       "overlap_policy": "entry_and_lane_governance_only",
