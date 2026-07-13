@@ -251,6 +251,7 @@ def build_category_specs(
             "contracts/golden_path_profile.json",
             "contracts/mas-paper-study-stage-pack.json",
             "contracts/memory_descriptor.json",
+            "contracts/opl_agent_package_manifest.json",
             "contracts/owner_receipt_contract.json",
             "contracts/pack_compiler_input.json",
             "contracts/paper_mission_run_contract.json",
@@ -260,6 +261,8 @@ def build_category_specs(
             "contracts/standard_agent_completion_evidence_status.json",
             "contracts/standard-agent-principles-adoption.json",
             "contracts/stage_artifact_kernel_adoption.json",
+            "contracts/stage_operating_principles.json",
+            "contracts/stage_route_reconcile_contract.json",
             "contracts/stage_run_kernel_profile.json",
             "src/med_autoscience/resources/stage_route_contract.yaml",
             "templates/codex/medautoscience-entry.SKILL.md",
@@ -268,10 +271,12 @@ def build_category_specs(
         prefix_paths=(
             "agent/knowledge/",
             "agent/primary_skill/",
+            "agent/principles/",
             "agent/prompts/",
             "agent/quality_gates/",
             "agent/skills/",
             "agent/stages/",
+            "agent/tools/",
         ),
         commands=(
             (
@@ -371,6 +376,7 @@ def build_category_specs(
             "scripts/opl-module-healthcheck.sh",
             "src/med_autoscience/dev_preflight.py",
             "src/med_autoscience/dev_preflight_contract/__init__.py",
+            "src/med_autoscience/dev_preflight_contract/category_specs.py",
             "src/med_autoscience/opl_module_carrier.py",
             "tests/test_dev_preflight.py",
             "tests/test_dev_preflight_contract.py",
@@ -381,7 +387,9 @@ def build_category_specs(
             "tests/test_opl_agent_lab_longline_migration.py",
             "uv.lock",
         ),
-        prefix_paths=(),
+        prefix_paths=(
+            "tests/dev_preflight_contract_cases/",
+        ),
         commands=(
             "make test-family",
         ),
@@ -402,6 +410,7 @@ def build_category_specs(
     spec_type(
         category_id="control_plane_surface",
         exact_paths=(
+            "contracts/state_index_kernel_adoption.json",
             "agent/stages/manifest.json",
             "scripts/real-paper-autonomy-soak-inventory.py",
             "src/med_autoscience/controllers/opl_provider_ready_adapter/__init__.py",

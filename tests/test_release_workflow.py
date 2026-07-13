@@ -18,6 +18,7 @@ CI_WORKFLOW_PATH = WORKFLOW_DIR / "ci.yml"
 ADVISORY_WORKFLOW_PATH = WORKFLOW_DIR / "advisory.yml"
 SENTRUX_ADVISORY_WORKFLOW_PATH = WORKFLOW_DIR / "sentrux-advisory.yml"
 RELEASE_WORKFLOW_PATH = WORKFLOW_DIR / "release.yml"
+WHITEPAPER_WORKFLOW_PATH = WORKFLOW_DIR / "whitepaper.yml"
 PYPROJECT_PATH = REPO_ROOT / "pyproject.toml"
 
 
@@ -39,11 +40,27 @@ def _workflow_step(workflow_job: str, step_name: str) -> str:
 
 def test_domain_repo_does_not_publish_github_releases() -> None:
     workflow_text = "\n".join(_workflow_texts())
+    non_whitepaper_workflow_text = "\n".join(
+        path.read_text(encoding="utf-8")
+        for path in sorted(WORKFLOW_DIR.glob("*.yml"))
+        if path != WHITEPAPER_WORKFLOW_PATH
+    )
 
     assert not RELEASE_WORKFLOW_PATH.exists()
     assert "softprops/action-gh-release" not in workflow_text
-    assert "contents: write" not in workflow_text
+    assert "contents: write" not in non_whitepaper_workflow_text
     assert "releases/download" not in workflow_text
+
+
+def test_whitepaper_workflow_limits_write_permission_to_manual_pages_publish() -> None:
+    workflow = WHITEPAPER_WORKFLOW_PATH.read_text(encoding="utf-8")
+
+    assert "contents: write" in workflow
+    assert "uses: gaofeng21cn/one-person-lab/.github/workflows/reusable-whitepaper.yml@main" in workflow
+    assert "profile: contracts/whitepaper_profile.json" in workflow
+    assert "output_name: mas-whitepaper" in workflow
+    assert "publish: ${{ github.event_name == 'workflow_dispatch' && inputs.publish }}" in workflow
+    assert "softprops/action-gh-release" not in workflow
 
 
 def test_ci_and_advisory_workflows_use_node24_ready_action_versions() -> None:
@@ -203,11 +220,20 @@ def test_ci_runs_medical_paper_ops_contract_guard_without_touching_live_workspac
 def test_ci_boundary_guards_mas_and_declared_scholarskills_pack_contract_regression() -> None:
     ci_workflow = CI_WORKFLOW_PATH.read_text(encoding="utf-8")
     quick_checks = _workflow_job(ci_workflow, "quick-checks")
+    advisory_workflow = ADVISORY_WORKFLOW_PATH.read_text(encoding="utf-8")
+    advisory_job = _workflow_job(advisory_workflow, "advisory")
 
     assert quick_checks.count("actions/checkout@v6") == 2
     assert quick_checks.count("repository:") == 1
     assert "repository: gaofeng21cn/mas-scholar-skills" in quick_checks
     assert "path: .ci/mas-scholar-skills" in quick_checks
+    for workflow_job in (quick_checks, advisory_job):
+        assert "git clone --depth=1 --filter=blob:none https://github.com/gaofeng21cn/one-person-lab.git ../one-person-lab" in workflow_job
+        assert "npm ci --prefix ../one-person-lab --ignore-scripts" in workflow_job
+        assert "npm run --prefix ../one-person-lab build" in workflow_job
+        assert 'echo "OPL_BIN=$GITHUB_WORKSPACE/../one-person-lab/bin/opl" >> "$GITHUB_ENV"' in workflow_job
+        assert 'packages link-framework --agent-root "$GITHUB_WORKSPACE" --json' in workflow_job
+        assert workflow_job.index("Checkout and build OPL Framework") < workflow_job.index("Link OPL Framework")
     assert "gaofeng21cn/med-deepscientist" not in ci_workflow
     assert ".ci/med-deepscientist" not in ci_workflow
 

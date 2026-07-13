@@ -593,6 +593,26 @@ def test_classify_changed_files_matches_standard_agent_pack_surface() -> None:
     ]
 
 
+def test_classify_changed_files_covers_current_standard_agent_contract_paths() -> None:
+    module = importlib.import_module("med_autoscience.dev_preflight_contract")
+
+    result = module.classify_changed_files(
+        [
+            "agent/principles/opl-standard-agent-principles.md",
+            "agent/tools/domain_affordances.md",
+            "contracts/opl_agent_package_manifest.json",
+            "contracts/stage_operating_principles.json",
+            "contracts/state_index_kernel_adoption.json",
+        ]
+    )
+
+    assert result.matched_categories == (
+        "standard_agent_pack_surface",
+        "control_plane_surface",
+    )
+    assert result.unclassified_changes == ()
+
+
 def test_classify_changed_files_matches_external_learning_sidecar_surface() -> None:
     module = importlib.import_module("med_autoscience.dev_preflight_contract")
 
