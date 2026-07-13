@@ -178,11 +178,11 @@ MAS 的所有 CLI、MCP、skill、domain-handler、owner callable、sidecar、na
 
 当前实现状态：
 
-- `contracts/action_catalog.json` 直接声明 22 个 action id、effect、handler target、supported surface、workspace locator fields、schema refs 和 authority boundary；MAS 不再维护 catalog generator。
+- `contracts/action_catalog.json` 直接声明六个公开 Stage action 与一个无用户 surface 的内部 authority action；公开 execution binding 指向 Stage manifest，内部 binding 指向 closed handler registry。MAS 不再维护 catalog generator。
 - `contracts/pack_compiler_input.json` 与 `contracts/generated_surface_handoff.json` 请求 OPL 生成/托管 CLI、MCP、Skill、product-entry、status、workbench 和 harness surface；repo-local MCP registry/JSON-RPC transport 已退役。
 - `src/med_autoscience/controllers/owner_callable_registry.py` 继续表达 internal owner action 的 required inputs/outputs/idempotency/fingerprint scope，但不再编译成 MAS-local Tool Arsenal public ABI。
 - `agent/primary_skill/SKILL.md` 是 canonical rich skill；`plugins/med-autoscience/skills/med-autoscience/SKILL.md` 是受控 carrier mirror。Agent-facing ordinary interface 由 OPL 从 action catalog/schema 生成。
-- `scientific_capability_registry` 是 catalog action；Display Pack 使用独立 `display_pack_*` actions。旧聚合 `display_pack_agent`、`authority_operations`、`agent_tool_arsenal` 和 diagnostic MCP tools 只属于 retired/provenance identity。
+- Scientific capability 与 Display Pack 不再作为独立 public action family；它们通过 Stage Tool Affordance Boundary 暴露能力，并由 MAS authority surface 关闭医学质量与 artifact gate。旧 `scientific_capability_registry`、`display_pack_*`、`display_pack_agent`、`authority_operations`、`agent_tool_arsenal` 和 diagnostic MCP tools 已退出 V2 public/default catalog；仍有 caller 的内部实现是待迁 residue。
 - `lightweight_executor_receipts.py` 只生成 refs-only internal evidence；它不执行命令、不新增 external runtime/admission gate，也不能写 owner receipt、typed blocker、publication eval、controller decisions、current package、submission package、stage closeout、quality verdict 或 artifact authority。
 
 目标接口：
@@ -271,14 +271,14 @@ MAS 的所有 CLI、MCP、skill、domain-handler、owner callable、sidecar、na
 2. 把现有 action catalog、stage route、quality contracts、generated surface handoff 对齐到该 contract。
 3. 给 direct MAS skill path 和 OPL-hosted path 加 parity fixture：同一 action 必须落到同一 MAS owner surface。
 4. 把 repo-local wrapper 标记为 generated target / authority function / diagnostic ref / tombstone 四类。
-5. OPL 从 `contracts/action_catalog.json`、schemas、stage route 和 primary skill 生成 compact action/tool descriptors；MAS 不再维护 `agent_tool_arsenal` contract、MCP tool 或 repo-local registry。`scientific_capability_registry` 继续提供 refs-only owner-consumption evidence shape，后续只按 OPL generated caller、parity 和真实 owner evidence 扩展。
+5. OPL 从 `contracts/action_catalog.json`、schemas、stage route 和 primary skill 生成 compact Stage action/tool descriptors；MAS 不再维护 `agent_tool_arsenal` contract、MCP tool 或 repo-local registry。能力 descriptor 由 OPL Atlas / Pack / Stagecraft 解析，MAS refs-only owner-consumption builder 只作为 Stage 内 authority helper 使用；旧 `scientific_capability_registry` action 是待迁 internal residue。
 
 验收：
 
 - OPL conformance 能从 pack 发现 MAS stage/action/quality/handoff。
 - hand-written generic wrapper 不再作为长期 owner。
 - 新 stage 只改 pack / contract，不改 runtime scheduler。
-- Agent 能通过 OPL generated `scientific_capability_registry` action 和 compact descriptors 读取或调用 current-delta-bound refs-only capability；MAS handler 能生成 refs-only owner-consumption evidence packet；OPL resolver/runtime 负责 ordinary invocation path。
+- Agent 能通过 OPL-hosted Stage action 的 Tool Affordance Boundary 和 compact descriptors 读取或调用 current-delta-bound refs-only capability；MAS authority helper 能生成 refs-only owner-consumption evidence packet；OPL resolver/runtime 负责 ordinary invocation path。
 
 ### Lane 2：OPL StageRun / durable execution 上收
 
@@ -374,7 +374,7 @@ MAS 的所有 CLI、MCP、skill、domain-handler、owner callable、sidecar、na
 
 实施步骤：
 
-1. 把 selector / resolver 归入 OPL `W3-capability-registry-fail-open`：由 `Atlas + Pack + Stagecraft` 表达 capability catalog、pack ABI、current-delta-bound use policy 和 fail-open / fail-blocker 规则；MAS 仓内已提供 OPL-owned consumption ABI 的 repo-native surface `scientific_capability_registry`。
+1. 把 selector / resolver 归入 OPL `W3-capability-registry-fail-open`：由 `Atlas + Pack + Stagecraft` 表达 capability catalog、pack ABI、current-delta-bound use policy 和 fail-open / fail-blocker 规则；MAS 只提供 Stage 内可调用的 refs-only owner-consumption builder，不提供第二个 registry public action。
 2. MAS 只在 pack / authority kernel 中声明每个 external-learning ref family 的 target stage、owner action、input refs、output ref family、allowed writes、forbidden authority 和 owner-consumption boundary。
 3. 将 Co-Scientist、Light、EvoScientist、PaperSpine、ARIS、ARK、AutoSci 等统一纳入 capability / advisory worker family；不能在 MAS 内再建私有 selector、always-on sidecar、第二 route table 或第二 active backlog。
 4. capability invocation 必须绑定 current work-unit identity、target surface、requested ref family / question 和 `no_new_default_next_action`。
@@ -386,9 +386,9 @@ MAS 的所有 CLI、MCP、skill、domain-handler、owner callable、sidecar、na
 
 - 新 capability 不新增默认 preflight。
 - sidecar / advisory worker 不生成 current owner，不写 owner receipt，不写 paper progress。
-- owner-consumption / live-soak evidence shape 已在 repo-side `scientific_capability_registry` API 与 focused tests 落地；owner-consumed refs 仍必须由真实 owner receipt、typed blocker、reviewer receipt 或 route-back evidence 才能计入当前 delta。
+- owner-consumption / live-soak evidence shape 已由 repo-side refs-only builder 与 focused tests 覆盖；旧 `scientific_capability_registry` API 仍属待迁 internal residue。owner-consumed refs 仍必须由真实 owner receipt、typed blocker、reviewer receipt 或 route-back evidence 才能计入当前 delta。
 - Agent 工具调用不要求用户理解具体 CLI/MCP/helper；用户只看到目标、授权、人类决策和异常。
-- Capability registry 的 MAS repo structure 已由 `scientific_capability_registry` action、schema、domain handler、owner-consumption evidence builder 和 focused tests 证明；OPL generated/hosted consumption 必须直接消费这些 refs，不经过已退役的 Tool Arsenal/MCP wrapper。ARS claim-support、AutoSci source discovery、ARK micro-canary 等真实进度晋级仍由 live owner receipt / typed blocker / reviewer receipt 证明。
+- Capability 的 MAS authority-consumption shape 已由 owner-consumption evidence builder 和 focused tests 证明；OPL-hosted Stage path 必须通过 Tool Affordance Boundary 消费这些 refs，不经过旧 `scientific_capability_registry` action、Tool Arsenal 或 MCP wrapper。ARS claim-support、AutoSci source discovery、ARK micro-canary 等真实进度晋级仍由 live owner receipt / typed blocker / reviewer receipt 证明。
 
 ### Lane 8：OPL Workbench / Operator UX
 
@@ -527,10 +527,10 @@ OPL primitive 的目标 ABI 必须统一满足以下字段族：
 
 1. **Lane 0 docs landing**：本文和核心入口落地，作为目标态 source of truth。
 2. **Lane 1 contract inventory**：列出 `DomainAgentPack` 所需 machine contract 和现有来源差距。
-3. **Lane 1 generated interface**：22-action catalog、schemas、primary skill、stage route 与 OPL generated surface handoff 已对齐；旧 Tool Arsenal contract、MCP runtime、`display_pack_agent` 聚合入口和 `hosted_ordinary_path_consumption` 已退役。`scientific_capability_registry` 与独立 `display_pack_*` actions 提供最小公开 ABI；剩余只是真实 owner evidence、generated caller negative samples 和 live-soak evidence。
+3. **Lane 1 generated interface**：V2 六个公开 Stage action、一个内部 registry-bound authority action、schemas、primary skill、stage route 与 OPL generated surface handoff 已对齐；旧 Tool Arsenal contract、MCP runtime、`display_pack_agent` 聚合入口和 `hosted_ordinary_path_consumption` 已退出 public/default surface。遗留内部 caller、source-closure 与物理删除仍是结构尾项，不能降为仅剩 live evidence。
 4. **Lane 3 default read-surface audit**：检查所有默认 status/export/workbench 是否明确 Codex CLI 是唯一 next-stage authority，并把 legacy `NextActionEnvelope` / `current_owner_delta` 限定为非绑定 route context / drilldown。
 5. **Lane 4 authority function inventory**：`contracts/authority_kernel_inventory.json` 已给 retained MAS functions 补 owner / allowed write / forbidden authority / output ref 分类；下一步按该 inventory 做物理收薄、旧 residue 删除门、OPL upcollect consumption 和真实 evidence 验证。
-6. **Lane 7 capability registry runtime ABI**：existing external-learning sidecar、Light advisory、Evo sidecar、Co-Scientist affordance 和 Display Pack capability 已折回 `scientific_capability_registry`，MAS 提供 current-delta-bound `index / resolve / invoke` ABI、allowed writes、forbidden authority、owner receipt / typed blocker 晋级边界、owner-consumption / live-soak evidence shape、standard-agent feedback-loop tail schema 和 hosted OPL consumption evidence；剩余是真实 owner evidence、direct/hosted parity、OPL production caller negative samples 和 long-soak negative conformance。
+6. **Lane 7 capability registry upcollect**：existing external-learning sidecar、Light advisory、Evo sidecar、Co-Scientist affordance 和 Display Pack capability 只作为 Stage affordance / domain helper migration input。通用 `index / resolve / invoke`、capability discovery 与 invocation ledger 归 OPL；MAS 只保留医学 allowed writes、forbidden authority、owner receipt / typed blocker 晋级边界和 domain result。关闭条件包括内部 caller 迁移、OPL hosted consumption、source-closure 与物理删除，不只是真实 owner/live evidence。
 7. **Lane 9 real canary selection**：选择真实 paper-line evidence target，不用 repo tests 代替 production evidence。
 
 每个 lane 的完成声明必须写清：功能/结构是否关闭，测试/证据是否关闭，是否仍需真实 paper-line / provider / reviewer / human gate 证据。

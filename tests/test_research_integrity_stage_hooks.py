@@ -6,6 +6,7 @@ from pathlib import Path
 from med_autoscience.research_integrity.stage_hooks import (
     FORBIDDEN_AUTHORITY_FLAGS,
     build_review_publication_gate_stage_hook_payload,
+    stage_obligation,
 )
 
 
@@ -50,7 +51,7 @@ def test_review_publication_gate_stage_hook_builds_reference_verification_gate_i
 
     assert payload["surface_kind"] == "research_integrity_review_publication_gate_stage_hook"
     assert payload["hook_role"] == "mandatory_review_publication_gate_input"
-    assert payload["triggered_action"] == "research-integrity-reference-verification"
+    assert payload["provider_resolution_action"] == "opl_connect_reference_verification"
     assert "reference_list_entered" in payload["trigger_points"]
     assert "publication_gate_entered" in payload["trigger_points"]
     assert payload["stage_context"] == {
@@ -92,15 +93,17 @@ def test_review_publication_gate_stage_hook_builds_reference_verification_gate_i
     assert obligation["mandatory_gate_input"] is True
     assert obligation["live_owner_consumption_claimed"] is False
     assert obligation["paper_mission_subordination"] == payload["paper_mission_subordination"]
-    assert obligation["triggered_action"] == "research-integrity-reference-verification"
+    assert obligation["provider_resolution_action"] == "opl_connect_reference_verification"
     assert payload["target_stage_ids"] == obligation["target_stage_ids"]
     provider_lookup = payload["triggered_domain_provider_lookup_contract"]
     assert provider_lookup == obligation["triggered_domain_provider_lookup_contract"]
     assert provider_lookup["surface_kind"] == "opl_connect_reference_verification_contract"
     assert provider_lookup["owner"] == "OPL Connect"
     assert provider_lookup["provider_lookup_mode"] == "opl_connect_receipt_input_only"
-    assert provider_lookup["mas_can_call_external_provider"] is False
-    assert provider_lookup["provider_evidence_consumed_by"] == "research-integrity-reference-verification"
+    assert provider_lookup["provider_action_id"] == "opl_connect_reference_verification"
+    assert provider_lookup["provider_evidence_consumed_by"] == (
+        "med_autoscience.research_integrity.reference_verification"
+    )
     assert provider_lookup["mandatory_gate_input_only"] is True
     assert provider_lookup["live_owner_consumption_claimed"] is False
     launch_required_input = payload["stage_launch_required_input"]
@@ -115,7 +118,9 @@ def test_review_publication_gate_stage_hook_builds_reference_verification_gate_i
     assert launch_required_input["mandatory_gate_input"] is True
     assert launch_required_input["live_owner_consumption_claimed"] is False
     assert launch_required_input["paper_mission_subordination"] == payload["paper_mission_subordination"]
-    assert launch_required_input["triggered_action"] == "research-integrity-reference-verification"
+    assert launch_required_input["provider_resolution_action"] == (
+        "opl_connect_reference_verification"
+    )
     assert launch_required_input["required_gate_input_surfaces"] == list(
         payload["required_gate_input_surfaces"]
     )
@@ -133,6 +138,7 @@ def test_stage_manifest_declares_mandatory_research_integrity_stage_hook_obligat
     stages = {stage["stage_id"]: stage for stage in manifest["stages"]}
     contract_obligation = research_integrity_contract["stage_hook_obligation"]
 
+    assert stage_obligation() == contract_obligation
     assert contract_obligation["surface_kind"] == "research_integrity_stage_hook_obligation"
     assert contract_obligation["obligation_level"] == "mandatory"
     assert contract_obligation["target_stage_ids"] == [
@@ -167,10 +173,12 @@ def test_stage_manifest_declares_mandatory_research_integrity_stage_hook_obligat
         assert pre_gate_check["stage_id"] == stage_id
         assert pre_gate_check["target_stage_ids"] == [stage_id]
         assert pre_gate_check["hook_id"] == "research-integrity-review-publication-gate-stage-hook"
-        assert pre_gate_check["command"] == "research-integrity-review-publication-gate-stage-hook"
+        assert pre_gate_check["stage_action_refs"] == [stage_id]
         assert pre_gate_check["launch_surface"] == "stage_contract.mandatory_pre_gate_checks"
         assert pre_gate_check["readback_surface"] == "stage_contract.mandatory_pre_gate_checks"
-        assert pre_gate_check["triggered_action"] == "research-integrity-reference-verification"
+        assert pre_gate_check["provider_resolution_action"] == (
+            "opl_connect_reference_verification"
+        )
         assert pre_gate_check["required_gate_input_surfaces"] == [
             "reference_verification_attestations",
             "claim_citation_support_matrix_v2",

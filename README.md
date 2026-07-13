@@ -154,13 +154,14 @@ Medical papers do not finish in one generation. The system can keep multiple cla
 <details>
   <summary><strong>Start here if you are handing this repo to Codex or another agent</strong></summary>
 
-- Cloning this repository provides the MAS declarative pack, not an OPL runtime installation. OPL discovers `contracts/domain_descriptor.json`, compiles the 22-action catalog, generates CLI/MCP/Skill/product surfaces, and hosts runtime/workbench behavior.
+- Install, update, or remove the MAS package with `opl packages install mas`, `opl packages update mas`, or `opl packages uninstall mas`. Installation resolves the required `mas-scholar-skills` closure in the same OPL transaction.
+- Cloning this repository provides the MAS declarative pack, not an OPL runtime installation. OPL discovers `contracts/domain_descriptor.json`, compiles six public Stage actions plus one internal authority handler binding, generates CLI/MCP/Skill/product surfaces, and hosts runtime/workbench behavior.
 - The canonical domain id is `mas`. `med-autoscience` is only the repository, package, and plugin locator.
-- The repo-root `agent/` pack and action schemas are the interface source. Local code is limited to domain-handler targets, medical authority functions, owner receipts, typed blockers, human gates, and body-free refs.
+- The repo-root `agent/` pack and action schemas are the interface source. Public execution uses six OPL-hosted Stage actions. `paper_mission_authority_evaluate` is an internal registry-bound MAS authority callable, not a user command.
 - Runtime environments are prepared by OPL from `contracts/runtime_environment_requirements.json`; MAS does not install Python/R packages or plugins from its import path or workspace bootstrap.
-- Current next-action authority is `StageOutcome -> NextActionEnvelope`. Queue, attempt, provider, status, or workbench state cannot select a MAS owner or prove paper progress.
+- The only current stage-route authority is `Codex CLI selected declared stage`. `StageOutcome`, legacy `NextActionEnvelope`, queue, attempt, provider, status, and workbench state are nonbinding context or observation; they cannot select the next stage or prove paper progress.
 - MAS may be used through its Codex skill or an OPL-hosted interface. Both routes return to the same MAS medical truth, quality, publication, and artifact authority surfaces.
-- Repo/source/control-plane cleanup is complete. Runtime, paper-line, publication, and production readiness remain separate live-evidence claims.
+- The V2 public/default command cutover is structurally landed. Legacy internal `domain_entry`, status/read-model, and queue-oriented callers still require OPL primitive parity, source-closure proof, caller migration, and physical-retirement authorization. Runtime, paper-line, publication, and production readiness remain separate live-evidence claims.
 - Read [Bootstrap](./bootstrap/README.md), [Architecture](./docs/architecture.md), and [Status](./docs/status.md) before changing package or runtime boundaries.
 
 </details>

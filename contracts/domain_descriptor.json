@@ -37,9 +37,7 @@
       ],
       "optional_locator_fields": [
         "workspace_root"
-      ],
-      "entry_command_template": null,
-      "manifest_command_template": null
+      ]
     },
     "inventory_projection": {
       "source_kind": "workspace_relative_json",
@@ -60,7 +58,6 @@
     },
     "runtime": {
       "runtime_domain_id": "mas",
-      "dispatch_command": null,
       "registration_ref": "contracts/domain_route_profile.json"
     },
     "progress": {
@@ -99,6 +96,7 @@
   },
   "standard_contract_refs": {
     "action_catalog": "contracts/action_catalog.json",
+    "domain_handler_registry": "contracts/domain_handler_registry.json",
     "display_pack_opl_adapter": "contracts/display_pack_opl_adapter.json",
     "domain_owner_answer_projection_profile": "contracts/domain_owner_answer_projection_profile.json",
     "domain_projection_profile": "contracts/domain_projection_profile.json",
@@ -110,6 +108,7 @@
     "private_functional_surface_policy": "contracts/private_functional_surface_policy.json",
     "progress_first_safety_envelope": "contracts/progress_first_safety_envelope.json",
     "runtime_environment_requirement_profile": "contracts/runtime_environment_requirements.json",
+    "source_closure_audit": "contracts/source_closure_audit.json",
     "stage_control_plane": "opl-generated:family_stage_control_plane"
   },
   "surface_kind": "domain_agent_descriptor"

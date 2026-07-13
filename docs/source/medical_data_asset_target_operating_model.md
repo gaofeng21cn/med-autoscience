@@ -221,7 +221,7 @@ DPCC 迁移和使用规则：
 - MAS internal authority functions：`data_assets_status`、`startup_data_readiness`、`apply_data_asset_update` 及 release/impact explain helpers 持有医学数据语义、source readiness、study impact 与 mutation receipt。
 - OPL generic owner surface：负责 workspace/file lifecycle、index rebuild/integrity、lineage display、cold restore、conformance 和 operator projection。
 
-这些 MAS functions 当前不在 22-action catalog 中，因此旧 `medautosci data ...` 只作为 retired/provenance command identity，不是可运行入口。需要公开调用时，必须先在 `contracts/action_catalog.json` 和 input/output schemas 增加 action id，再由 OPL 生成 surface；不得恢复 repo-local parser 或 wrapper。
+这些 MAS functions 当前不在 V2 public Stage action catalog 中，因此旧 `medautosci data ...` 只作为 retired/provenance command identity，不是可运行入口。需要公开调用时，必须先在 `contracts/action_catalog.json` 和 input/output schemas 增加 action id，再由 OPL 生成 surface；不得恢复 repo-local parser 或 wrapper。
 
 ## 近期落地顺序
 

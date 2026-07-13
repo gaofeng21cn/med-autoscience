@@ -97,13 +97,13 @@ MAS 侧只记录三类机器面：
 
 ## 后续优化折回
 
-External-learning 后续优化不再作为 MAS standalone selector / backlog 推进。当前公开 action id 是 `scientific_capability_registry`，由 OPL 从 catalog/schema 生成 CLI/MCP/Skill/product surface，并 dispatch 到 MAS handler。文件化 ScholarSkills package 的 owner-consumption 仍由同一 MAS domain handler/internal evidence builder 归一为 owner-gate request/readback；不恢复独立 CLI mode 或 Tool Arsenal。
+External-learning 后续优化不再作为 MAS standalone selector / backlog 推进，也不形成独立 public action。OPL Atlas + Pack + Stagecraft 在 V2 Stage Tool Affordance Boundary 内发现/解析 capability；文件化 ScholarSkills package 的 owner-consumption 由 MAS internal refs-only evidence builder 归一为 owner-gate request/readback，不恢复独立 CLI mode、`scientific_capability_registry` public action 或 Tool Arsenal。
 
-- `W3-capability-registry-fail-open`：OPL `Atlas + Pack + Stagecraft` 负责 hosted current-delta-bound capability resolver / selector、fail-open policy 和 route-required blocker policy；MAS 只提供 repo-native capability registry ABI 和 domain authority boundary。
+- `W3-capability-registry-fail-open`：OPL `Atlas + Pack + Stagecraft` 负责 hosted current-delta-bound capability resolver / selector、fail-open policy 和 route-required blocker policy；MAS 只提供 refs-only owner-consumption builder 和 domain authority boundary。
 - `W4-domain-kernel-manifest`：MAS 负责声明每个 external-learning ref family 的 domain consumption boundary、forbidden authority、owner receipt / typed blocker / reviewer receipt 晋级条件。
 - `W7-production-evidence-soak`：只有 ARS claim-support、AutoSci source discovery、ARK micro-canary 等 refs 被真实 owner action 消费并产出 owner receipt、typed blocker、reviewer receipt、human gate 或 route-back evidence 后，才计入 study progress。
 
-因此，MAS 侧不得新增第二 selector、第二 active backlog、always-on sidecar、默认 advisory scan 或独立外部学习调度面；已有 `run_external_learning_sidecar` 继续只是 refs-only worker execution slot，`scientific_capability_registry` 只负责按 current action/owner refs 汇总、列出、解析或显式调用已落地 refs-only capability，并通过 schema-bound input 消费 ScholarSkills package refs。
+因此，MAS 侧不得新增第二 selector、第二 active backlog、always-on sidecar、默认 advisory scan 或独立外部学习调度面；已有 `run_external_learning_sidecar` 继续只是 refs-only worker execution slot。旧 `scientific_capability_registry` 只作为 active-caller migration residue 读取，新的 capability 汇总、解析和调用必须经 OPL Stage Tool Affordance Boundary；MAS builder 只消费 ScholarSkills package refs 并形成非权威 owner-gate request。
 
 Nature-skills 2026-06-18 router/manifest 学习项也遵守同一条规则：`manifest.yaml` 的 axes / `always_load` / `references.on_demand` 可以启发 MAS-owned stage prompt authoring、stage quality pack descriptor、Display Pack descriptor 或 generated product-entry descriptor 的加载声明；canonical stage prompt source 仍是 `agent/stages/` + `agent/prompts/`，不能把 Nature-skills manifest、overlay template 或 Codex `.codex/skills` 投影当成 MAS 默认 skill source，也不能在 MAS repo 内新增独立 router selector。若未来推进实现，只能把缺口落为现有 owner surface 可消费的 descriptor field、quality pack ref floor、route-required ref、typed blocker candidate 或 OPL-hosted capability registry 消费项。
 
@@ -155,17 +155,17 @@ K-Dense BYOK 的可复用点不是它的 Pi SDK backend、local web app 或 BYOK
 | MCP servers 与 Modal compute | 映射为 OPL Connect / Runway policy：Connect 负责 tool trust、secret scope、server health；Runway 负责 remote execution receipt、file-in/out、timeout、cost 和 fail-open / fail-closed。 | 不把外部 MCP、Modal sandbox 或 remote compute 写成 MAS runtime owner、provider attempt authority 或 direct artifact mutation authority。 |
 | OpenRouter Fusion | 仅作为 watch-only reviewer briefing pattern：多模型 panel 可启发 methodology critique、literature synthesis 或 claim-support cross-check briefing。 | Fusion 没有 local tools、不可复现且 source 不完整；不能成为 independent reviewer gate、quality verdict、publication readiness 或 owner receipt。 |
 
-## Scientific Capability Registry landing
+## Stage capability landing
 
-External-learning 的当前统一落地面是 `scientific_capability_registry` + ScholarSkills owner-consumption，而不是 MAS 私有 selector、第二 backlog 或外部 runtime。外部框架可以进入三类 capability surface：
+External-learning 的当前统一落地面是 OPL Stage Tool Affordance Boundary + ScholarSkills owner-consumption，而不是 MAS 私有 selector、第二 backlog、`scientific_capability_registry` public action 或外部 runtime。外部框架可以进入三类 capability surface：
 
 - `refs_only_advisory_capability`：ARS、AutoSci / OmegaWiki、ARK、ARIS、PaperSpine、PaperOrchestra、Light 等只输出 refs-only advisory / candidate refs，默认 fail-open。
 - `scholarskills_module_capability`：图、表、统计、文献、写作、review、投稿和数据治理八类 active 学术能力以 `mas-scholar-skills.<module>` descriptor、required ref families、execution receipt candidate 和 file-materialized package manifest 暴露给 MAS。
-- `paper_mission_candidate_package_capability`：`paper-mission package-candidate` 将当前 PaperMission readback 转成 16 个非权威候选文件，包括 `owner_consumption_request.json`、`owner_blocker_packet.json`、`submission_milestone_checklist.json` 与 paper-facing candidate artifacts，用于 owner-consumption-first。
+- `paper_mission_candidate_package_capability`：旧 `paper-mission package-candidate` materializer 可将内部 PaperMission readback 转成非权威候选 refs；它是待迁 internal residue，不是 V2 action。V2 host-only authority 只通过 `paper_mission_authority_evaluate` 的 closed callable binding 进入。
 
 `scholarskills_module_capability` 的 source of truth 是外部 `mas-scholar-skills` repo 的 skill entry 和 module contract。`medical-manuscript-writing`、`medical-manuscript-review`、`medical-figure-design`、`medical-research-lit`、`medical-statistical-review`、`medical-table-design`、`medical-submission-prep` 和 `medical-data-governance` 作为可同步的 professional specialist skill 由该仓库维护。Display 的 active module 仍是 `mas-scholar-skills.display`；`medical-figure-style` 与 `medical-figure-composer` 是 display module 下的 dedicated 子 Skill / 触发面，分别产出 style reference / style-QA refs 与 panel composition / layout-QA refs，并由 `medical-figure-design` orchestrator 统一回到 MAS owner gate。`omics` 没有稳定 MAS 组学专业 workflow 前不作为 active module 暴露；通用 source / external-learning intake 归 OPL Framework 或 MAS stage/source surface，不放进 MAS Scholar Skills 专业 Skill 库占位。MAS 的 `write`、`review`、`figure`、`data/cohort` 等 stage 主提示词 canonical source 仍是本仓 `agent/stages/` + `agent/prompts/`。MAS 只引用外部 source 的 descriptor/readback、authority false flags、required ref families、专业 skill source refs 和 compact review refs，不在本仓维护第二套 ScholarSkills catalog 或第二套专业 skill 正文；MAS-local overlay templates 已物理退役，专业 skill 只经 OPL Connect materialize 到 workspace / quest `.codex/skills` 供 Codex discovery，且不能当作 stage 或 specialist source。Display gallery 的跨仓传播只允许 compact review package：PDF gallery、reference、status、quality audit、manifest 和 snapshot；不得把 MAS `outputs/display-pack-gallery/` build workspace、render caches、single-figure PNG/SVG/HTML exports、dependency locks、run-context files 或其他大规模中间产物复制进每个 workspace / quest local install。
 
-这些 landing 的共同 contract 是：stage 主提示词、professional skill、tool/connector 三段默认都保持 no-authority boundary。MAS 可以 `summary` / `inventory` 汇总当前能力面，发现、resolve、invoke readback、消费 refs、生成 owner-gate request 或 owner-blocker packet；MAS 不因这些 refs 直接写 study truth、paper body、artifact body、publication eval、controller decisions、owner receipt、typed blocker、human gate、submission package 或 `current_package`。当 external-learning / ScholarSkills package 缺 required refs、含 truthy authority flag、含 forbidden `written_files` 或 module id mismatch 时，consumer fail closed；当只是缺 advisory 或缺 owner response refs 时，ordinary current owner action fail-open 继续推进。
+这些 landing 的共同 contract 是：stage 主提示词、professional skill、tool/connector 三段默认都保持 no-authority boundary。OPL 可以汇总/发现/resolve capability 并返回 invoke readback；MAS 只消费 refs，生成 owner-gate request 或 owner-blocker candidate。任何一方都不能因这些 refs 直接写 study truth、paper body、artifact body、publication eval、controller decisions、owner receipt、typed blocker、human gate、submission package 或 `current_package`。当 external-learning / ScholarSkills package 缺 required refs、含 truthy authority flag、含 forbidden `written_files` 或 module id mismatch 时，consumer fail closed；当只是缺 advisory 或缺 owner response refs 时，ordinary current owner action fail-open 继续推进。
 
 只有后续 MAS owner surface 返回 owner receipt、quality gate receipt、reviewer receipt、route-back evidence、stable typed blocker、human gate 或 accepted canonical artifact delta，external-learning output 才能从 capability candidate 晋级为真实 paper / study progress。
 
@@ -176,7 +176,7 @@ External-learning 的当前统一落地面是 `scientific_capability_registry` +
 - 不接入 OpenScience Tauri / Electron / WebUI / OpenCode sidecar / MCP / runtime，不复制 OpenScience skill catalog，不把 `science_artifact` MCP、native viewer、project-local ledger、connector provisioning、rerun receipt 或 artifact graph 写成 MAS study truth、artifact authority、owner receipt、typed blocker、publication gate 或 source readiness verdict。
 - 不把 external review score、self-review checklist、tool selector score、observation memory、wiki graph、passport、issue DB 或 citation table 写成 MAS truth、quality verdict、publication readiness、artifact authority、memory accept/reject 或 owner receipt。
 - 不为补齐外部 intake 重新制造 full lifecycle preflight、read-model reconcile loop 或每步 checklist gate。
-- 不把 external-learning 后续优化写成 MAS 私有 selector / resolver / backlog；hosted selector / resolver 归 OPL Capability Registry，MAS repo 只暴露 `scientific_capability_registry` ABI、refs 消费与 authority 晋级边界。
+- 不把 external-learning 后续优化写成 MAS 私有 selector / resolver / backlog；hosted selector / resolver 归 OPL Atlas / Pack / Stagecraft，MAS repo 只暴露 Stage-consumable refs 与 authority 晋级边界。旧 `scientific_capability_registry` ABI 必须随 caller 迁移退役。
 
 ## 验证门槛
 

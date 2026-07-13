@@ -1,0 +1,78 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://opl.onepersonlab/contracts/mas-stage-action.input.schema.json",
+  "title": "MAS hosted stage action input",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "workspace_root",
+    "study_id"
+  ],
+  "properties": {
+    "workspace_root": {
+      "type": "string",
+      "minLength": 1
+    },
+    "study_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "user_intent": {
+      "type": "string",
+      "minLength": 1
+    },
+    "input_refs": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/typed_ref"
+      },
+      "uniqueItems": true
+    },
+    "route_context_refs": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/typed_ref"
+      },
+      "uniqueItems": true
+    },
+    "human_gate_refs": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/typed_ref"
+      },
+      "uniqueItems": true
+    }
+  },
+  "$defs": {
+    "typed_ref": {
+      "oneOf": [
+        {
+          "type": "string",
+          "minLength": 1
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "kind",
+            "ref"
+          ],
+          "properties": {
+            "kind": {
+              "type": "string",
+              "minLength": 1
+            },
+            "ref": {
+              "type": "string",
+              "minLength": 1
+            },
+            "sha256": {
+              "type": "string",
+              "pattern": "^sha256:[a-f0-9]{64}$"
+            }
+          }
+        }
+      ]
+    }
+  }
+}

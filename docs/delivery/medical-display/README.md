@@ -3,7 +3,7 @@
 Owner: `MedAutoScience`
 Purpose: `medical_display_entry`
 State: `active_current_truth`
-Machine boundary: 本文是人读入口。机器真相归 display actions/schemas、MAS figure quality/artifact authority 与 OPL pack/runtime refs。
+Machine boundary: 本文是人读入口。机器真相归 V2 Stage action catalog/manifest、Tool Affordance Boundary、MAS figure quality/artifact authority 与 OPL pack/runtime refs。
 
 ## Owner split
 
@@ -15,17 +15,15 @@ Medical display 遵循标准 OPL Agent 边界：
 
 MAS 不维护 repo-local display CLI、catalog generator、installer或 workbench shell。
 
-## Action surface
+## Stage affordance surface
 
-Display 由 action catalog 中五个标准 action表达：
+Display 不再形成独立 public action family。普通执行由六个 OPL-hosted Stage action承载：
 
-- `display_pack_capability_discover`
-- `display_pack_figure_plan`
-- `display_pack_orchestrate`
-- `display_pack_preflight`
-- `display_pack_render`
+- `manuscript_authoring` 形成 figure intent/spec 并按需调用模板、renderer 与 composition 能力；
+- `review_and_quality_gate` 消费 layout/visual/claim QC 与 independent review refs；
+- `finalize_and_publication_handoff` 绑定 final display refs、package refs 与 owner authority。
 
-OPL 从 catalog/schema 生成 CLI/MCP/Skill/product surface；MAS domain handlers只处理 figure intent、quality/authority boundary与结果 refs。
+OPL 通过 Stage Tool Affordance Boundary 发现 ScholarSkills/display pack、准备环境、执行 renderer 并运输 refs；MAS pure/domain authority functions只处理 figure intent、医学质量/authority boundary 与结果 refs。旧 `display_pack_*` handlers 是仍待迁移 caller 的内部 residue，不是 generated CLI/MCP/Skill/product surface。
 
 ## Current flow
 

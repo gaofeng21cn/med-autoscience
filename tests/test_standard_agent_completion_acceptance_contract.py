@@ -379,6 +379,8 @@ def test_standard_agent_completion_evidence_ledger_records_physical_retirement_c
         not in morphology["missing_evidence_tails"]
     )
     assert morphology["missing_evidence_tails"] == [
+        "legacy_internal_caller_migration_and_physical_delete_authorization_ref",
+        "repo_legacy_generic_effect_retirement_and_source_closure_verified_zero_ref",
         "direct_or_hosted_generated_surface_production_consumption_ref"
     ]
     assert {

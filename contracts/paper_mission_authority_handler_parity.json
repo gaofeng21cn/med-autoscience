@@ -1,0 +1,417 @@
+{
+  "surface_kind": "mas_paper_mission_authority_handler_parity",
+  "schema_version": 1,
+  "owner": "MedAutoScience",
+  "baseline_ref": "git:b91e8f681339973e9dfa75b779b552282c52251d",
+  "state": "registry_bound_structural_default_cutover_source_closure_and_legacy_retirement_pending",
+  "target_shape": "Declarative Medical Research Pack + OPL generated/hosted surfaces + minimal authority functions",
+  "scope": [
+    "paper_mission",
+    "mainline_status",
+    "mainline_phase",
+    "domain_handler_export",
+    "domain_handler_dispatch",
+    "paper_mission_owner_surface_private_transport"
+  ],
+  "owner_split": {
+    "opl": [
+      "profile_workspace_and_path_discovery",
+      "action_resolution_and_generated_interfaces",
+      "run_attempt_output_lifecycle",
+      "queue_session_dag_retry_and_runtime_ledger",
+      "workspace_output_slot_and_atomic_persistence",
+      "status_workbench_and_refs_only_readback"
+    ],
+    "mas": [
+      "medical_source_readiness_semantics",
+      "medical_evidence_and_negative_result_lineage",
+      "independent_reviewer_record_validation",
+      "repair_route_and_quality_debt_semantics",
+      "owner_receipt_typed_blocker_and_human_gate_result"
+    ]
+  },
+  "active_behavior_inventory": [
+    {
+      "behavior_id": "paper_mission.profile_workspace_discovery",
+      "surface_family": "paper_mission",
+      "current_source_refs": [
+        "src/med_autoscience/domain_entry.py::MedAutoScienceDomainEntry.dispatch#paper-mission",
+        "src/med_autoscience/paper_mission_domain/__init__.py::build_paper_mission_readback"
+      ],
+      "active_caller_refs": [
+        "src/med_autoscience/domain_entry.py::MedAutoScienceDomainEntry.dispatch#paper-mission-legacy-internal-non-default-caller"
+      ],
+      "current_behavior": "Resolves profile_ref, loads WorkspaceProfile and derives workspace/study paths before paper-mission readback.",
+      "target_owner": "one-person-lab",
+      "target_replacement": "OPL v2 action resolver and hosted Workspace context inject typed run/attempt/output refs.",
+      "candidate_coverage": "Input schema intentionally has no profile_ref, workspace root, study root, output root or path field.",
+      "legacy_retained_until_cutover": true,
+      "retirement_gate": "OPL v2 hosted paper_mission smoke proves equivalent profile/workspace selection and exact identity injection."
+    },
+    {
+      "behavior_id": "paper_mission.inspect_and_readback",
+      "surface_family": "paper_mission",
+      "current_source_refs": [
+        "src/med_autoscience/paper_mission_domain/__init__.py",
+        "src/med_autoscience/paper_mission_domain/transaction_readback.py",
+        "src/med_autoscience/paper_mission_domain/materialized_mission_readback.py",
+        "src/med_autoscience/paper_mission_stage_run_readback/__init__.py"
+      ],
+      "active_caller_refs": [
+        "src/med_autoscience/domain_entry.py::MedAutoScienceDomainEntry.dispatch#paper-mission-legacy-internal-non-default-caller",
+        "paper_mission_start_or_resume_task"
+      ],
+      "current_behavior": "Scans and loads paper mission, candidate, closeout, StageRun and materialized readback files and projects a large mixed read model.",
+      "target_owner": "one-person-lab",
+      "target_replacement": "OPL hosted readback/StateIndex provides body-free typed refs; MAS consumes only the domain record packet needed for authority.",
+      "candidate_coverage": "Handler accepts no read-model locator or generic I/O capability.",
+      "legacy_retained_until_cutover": true,
+      "retirement_gate": "Hosted readback parity covers current paper-mission inspect callers without MAS file scanning."
+    },
+    {
+      "behavior_id": "paper_mission.run_attempt_output_identity",
+      "surface_family": "paper_mission",
+      "current_source_refs": [
+        "src/med_autoscience/paper_mission_stage_run_readback/opl_task_readback.py",
+        "src/med_autoscience/paper_mission_stage_run_readback/route_identity.py"
+      ],
+      "active_caller_refs": [
+        "MAS paper mission closeout readback",
+        "OPL-hosted runtime payload consumer"
+      ],
+      "current_behavior": "Validates host-injected StageRun and attempt identity after the mixed readback path has already resolved workspace context.",
+      "target_owner": "shared_boundary",
+      "target_replacement": "OPL injects SHA-bound typed refs; MAS authority handler validates producer/reviewer separation and exact output digest binding.",
+      "candidate_coverage": "host_context plus independent_review exact-digest checks are executable.",
+      "legacy_retained_until_cutover": true,
+      "retirement_gate": "OPL runner schema validation and cross-attempt lineage tests pass through the real callable."
+    },
+    {
+      "behavior_id": "paper_mission.medical_source_and_evidence_semantics",
+      "surface_family": "paper_mission",
+      "current_source_refs": [
+        "src/med_autoscience/paper_mission_authority/__init__.py",
+        "src/med_autoscience/controllers/study_truth_kernel/__init__.py",
+        "contracts/mas-paper-study-stage-pack.json"
+      ],
+      "active_caller_refs": [
+        "paper mission candidate consumption",
+        "MAS stage quality and source-readiness gates"
+      ],
+      "current_behavior": "Preserves source readiness, evidence, negative result, failed path, artifact lineage, reproducibility and claim-boundary semantics.",
+      "target_owner": "med-autoscience",
+      "target_replacement": "mas.paper-mission-authority-evaluate",
+      "candidate_coverage": "Strict typed medical_evidence packet and owner-receipt output preserve all listed ref families.",
+      "legacy_retained_until_cutover": true,
+      "retirement_gate": "Parity tests prove successful, negative-result and not-ready paths through OPL v2."
+    },
+    {
+      "behavior_id": "paper_mission.independent_review_quality",
+      "surface_family": "paper_mission",
+      "current_source_refs": [
+        "contracts/private_functional_surface_policy.json#/independent_executor_reviewer_agent_policy",
+        "src/med_autoscience/controllers/ai_reviewer_publication_eval_workflow/__init__.py"
+      ],
+      "active_caller_refs": [
+        "AI reviewer workflow",
+        "publication quality gate",
+        "paper mission owner consumption"
+      ],
+      "current_behavior": "Requires a separate reviewer invocation and receipt bound to the exact executor output; program validation cannot originate the medical quality verdict.",
+      "target_owner": "med-autoscience",
+      "target_replacement": "MAS authority handler validates the AI-first reviewer record while OPL hosts the separate attempt.",
+      "candidate_coverage": "Rejects same-attempt review, digest drift and incomplete reviewer lineage.",
+      "legacy_retained_until_cutover": true,
+      "retirement_gate": "Real hosted producer and reviewer attempts return an exact MAS owner receipt or quality debt."
+    },
+    {
+      "behavior_id": "paper_mission.repair_budget_and_route_back",
+      "surface_family": "paper_mission",
+      "current_source_refs": [
+        "src/med_autoscience/paper_mission_domain/stage_closure_terminalizer.py",
+        "src/med_autoscience/controllers/reviewer_refinement_loop/repair_work_units.py"
+      ],
+      "active_caller_refs": [
+        "paper mission stage terminalizer",
+        "reviewer refinement loop"
+      ],
+      "current_behavior": "Routes repairable defects back while budget remains and advances consumable output with quality debt after budget exhaustion.",
+      "target_owner": "shared_boundary",
+      "target_replacement": "OPL injects exact repair attempt refs/counts; MAS returns route-back or completed_with_quality_debt semantics.",
+      "candidate_coverage": "Executable handler covers revision, rejection, missing review and exhausted-budget outcomes.",
+      "legacy_retained_until_cutover": true,
+      "retirement_gate": "Hosted repair/re-review attempt lineage and budget parity pass."
+    },
+    {
+      "behavior_id": "paper_mission.owner_receipt_blocker_human_gate",
+      "surface_family": "paper_mission",
+      "current_source_refs": [
+        "src/med_autoscience/controllers/owner_callable_registry.py",
+        "src/med_autoscience/controllers/stage_outcome_authority/action_execution/publication_handoff.py",
+        "src/med_autoscience/paper_mission_authority/__init__.py"
+      ],
+      "active_caller_refs": [
+        "owner callable registry",
+        "paper mission owner consumption",
+        "stage outcome owner route"
+      ],
+      "current_behavior": "Returns or materializes MAS owner receipts, typed blockers, human gates and route-back decisions.",
+      "target_owner": "med-autoscience",
+      "target_replacement": "MAS pure handler returns fingerprinted exact authority bytes; OPL persists without modifying domain result.",
+      "candidate_coverage": "All terminal authority result kinds are present and carry false publication/submission claims.",
+      "legacy_retained_until_cutover": true,
+      "retirement_gate": "OPL atomic output commit/readback proves exact handler result bytes and refs-only ledger."
+    },
+    {
+      "behavior_id": "paper_mission.candidate_and_artifact_persistence",
+      "surface_family": "paper_mission",
+      "current_source_refs": [
+        "src/med_autoscience/paper_mission_domain/candidate_package_outputs.py",
+        "src/med_autoscience/paper_mission_domain/one_shot_migration.py",
+        "src/med_autoscience/paper_mission_domain/typed_blocker_resolution.py"
+      ],
+      "active_caller_refs": [
+        "package-candidate",
+        "one-shot migration",
+        "typed-blocker-resolution"
+      ],
+      "current_behavior": "Creates output roots and writes candidate packages, readbacks, ledgers or resolution artifacts.",
+      "target_owner": "one-person-lab",
+      "target_replacement": "OPL Workspace output-slot and atomic action-output commit; MAS returns domain result bodies and refs only.",
+      "candidate_coverage": "Pure handler performs no persistence and marks exact-byte host persistence as required.",
+      "legacy_retained_until_cutover": true,
+      "retirement_gate": "OPL output commit has containment, digest, atomicity and readback proof for every migrated command."
+    },
+    {
+      "behavior_id": "mainline.private_product_status_shell",
+      "surface_family": "mainline_status_and_phase",
+      "current_source_refs": [
+        "src/med_autoscience/controllers/mainline_status/__init__.py",
+        "src/med_autoscience/controllers/mainline_status/program_surfaces.py",
+        "src/med_autoscience/controllers/mainline_status/rendering.py",
+        "src/med_autoscience/opl_module_carrier.py",
+        "scripts/opl-module-healthcheck.sh",
+        "scripts/opl-module-bootstrap.sh"
+      ],
+      "active_caller_refs": [
+        "src/med_autoscience/domain_entry.py::MedAutoScienceDomainEntry.dispatch#mainline-status-legacy-internal-non-default-caller",
+        "src/med_autoscience/domain_entry.py::MedAutoScienceDomainEntry.dispatch#mainline-phase-legacy-internal-non-default-caller",
+        "src/med_autoscience/opl_module_carrier.py::build_domain_handler_probe#mainline-status-active-module-healthcheck-caller"
+      ],
+      "current_behavior": "Builds a repo-development phase ladder, branded status payload and Markdown renderer as domain actions.",
+      "target_owner": "one-person-lab",
+      "target_replacement": "OPL generated package/status/workbench surfaces over machine contracts and refs; repo development narrative remains human docs.",
+      "candidate_coverage": "The v2 public catalog no longer advertises either private status action; legacy internal callers remain until OPL hosted status/readback parity authorizes physical retirement.",
+      "legacy_retained_until_cutover": true,
+      "retirement_gate": "OPL hosted status/phase parity and framework-owned package/source healthcheck are callable; generated/default surfaces stop advertising both MAS actions and the module carrier no longer invokes the private status shell."
+    },
+    {
+      "behavior_id": "private_transport.domain_handler_export_queue",
+      "surface_family": "domain_handler_export",
+      "current_source_refs": [
+        "src/med_autoscience/controllers/owner_route_handoff/domain_handler_export.py",
+        "src/med_autoscience/controllers/domain_handler_export/paper_mission_task_shaping.py"
+      ],
+      "active_caller_refs": [
+        "src/med_autoscience/domain_entry.py::MedAutoScienceDomainEntry.dispatch#domain-handler-export-legacy-internal-non-default-caller"
+      ],
+      "current_behavior": "Scans studies, builds paper_mission_default_tasks and pending_family_tasks and exports a mixed queue-shaped projection.",
+      "target_owner": "one-person-lab",
+      "target_replacement": "OPL action catalog resolver, hosted StateIndex and attempt planner.",
+      "candidate_coverage": "New handler registry contains no export queue or discovery operation.",
+      "legacy_retained_until_cutover": true,
+      "retirement_gate": "OPL resolver/default-caller parity is live and domain_handler_export has no active caller."
+    },
+    {
+      "behavior_id": "private_transport.domain_handler_dispatch_task_path",
+      "surface_family": "domain_handler_dispatch",
+      "current_source_refs": [
+        "src/med_autoscience/domain_entry.py::_dispatch_domain_handler",
+        "src/med_autoscience/controllers/owner_route_handoff/dispatch_orchestration.py",
+        "src/med_autoscience/paper_mission_domain/domain_handler_dispatch.py"
+      ],
+      "active_caller_refs": [
+        "src/med_autoscience/domain_entry.py::MedAutoScienceDomainEntry.dispatch#domain-handler-dispatch-legacy-internal-non-default-caller"
+      ],
+      "current_behavior": "Resolves task_ref, reads JSON from a path, loads profiles and dispatches mixed transport/domain behavior.",
+      "target_owner": "shared_boundary",
+      "target_replacement": "OPL v2 runner validates a structured request and directly invokes the registered pure MAS callable.",
+      "candidate_coverage": "Registry, strict schemas, pure callable, and OPL generated domain-handler descriptor are bound structurally; hosted terminal smoke and physical legacy caller retirement remain pending.",
+      "legacy_retained_until_cutover": true,
+      "retirement_gate": "OPL callable binding, output commit and real terminal smoke pass; task-path dispatch has zero active caller."
+    },
+    {
+      "behavior_id": "private_transport.owner_surface_queue_daemon_projection",
+      "surface_family": "paper_mission_owner_surface",
+      "current_source_refs": [
+        "src/med_autoscience/controllers/paper_mission_owner_surface/__init__.py",
+        "src/med_autoscience/controllers/paper_mission_owner_surface/action_projection.py",
+        "src/med_autoscience/controllers/paper_mission_owner_surface/queue_slo.py",
+        "src/med_autoscience/controllers/paper_mission_owner_surface/workspace_daemon.py"
+      ],
+      "active_caller_refs": [
+        "paper mission owner scan",
+        "study progress and stage-outcome read models"
+      ],
+      "current_behavior": "Builds action_queue, queue SLO, workspace daemon lifecycle and mixed status projections inside MAS.",
+      "target_owner": "one-person-lab",
+      "target_replacement": "OPL hosted status/workbench/StateIndex; MAS exports only body-free authority refs and exact results.",
+      "candidate_coverage": "Inventory only; source remains because hosted parity is not yet present.",
+      "legacy_retained_until_cutover": true,
+      "retirement_gate": "Hosted readback consumers cover all active study-progress/stage-outcome callers and source-closure reports no private generic effect."
+    }
+  ],
+  "legacy_command_parity": [
+    {
+      "command": "inspect",
+      "target": "OPL hosted readback over StateIndex and exact refs",
+      "mas_handler_role": "none_until_an_authority_decision_is_requested",
+      "status": "pending_opl_v2"
+    },
+    {
+      "command": "start_or_resume",
+      "target": "OPL agents run and StageRun lifecycle",
+      "mas_handler_role": "consume_the_hosted_attempt_result",
+      "status": "handler_candidate_ready_host_pending"
+    },
+    {
+      "command": "drive",
+      "target": "OPL stage-attempt orchestration plus explicit Codex-selected stage",
+      "mas_handler_role": "return_domain_authority_result_without_selecting_next_stage",
+      "status": "handler_candidate_ready_host_pending"
+    },
+    {
+      "command": "package-candidate",
+      "target": "OPL Workspace contained action-output commit",
+      "mas_handler_role": "return_candidate_artifact_and_authority_refs",
+      "status": "pending_opl_v2_output_commit"
+    },
+    {
+      "command": "consume-candidate",
+      "target": "mas.paper-mission-authority-evaluate",
+      "mas_handler_role": "validate_typed_domain_records_and_return_exact_result",
+      "status": "candidate_ready_host_pending"
+    },
+    {
+      "command": "terminalize-stage",
+      "target": "mas.paper-mission-authority-evaluate plus OPL exact result persistence",
+      "mas_handler_role": "owner_receipt_route_back_quality_debt_blocker_or_human_gate",
+      "status": "candidate_ready_host_pending"
+    },
+    {
+      "command": "typed-blocker-resolution",
+      "target": "OPL owner-answer transport followed by a fresh MAS authority invocation",
+      "mas_handler_role": "validate_the_new_domain_gate_record",
+      "status": "pending_opl_v2_owner_answer_binding"
+    },
+    {
+      "command": "one-shot-migration",
+      "target": "explicit history/import tool outside ordinary action execution",
+      "mas_handler_role": "none",
+      "status": "retained_explicit_migration_only_until_separate_parity"
+    }
+  ],
+  "cutover_gates": [
+    {
+      "gate_id": "opl_v2_registry_abi_accepted",
+      "status": "passed_repo_structural_readback",
+      "required_evidence": "OPL canonical registry schema accepts the MAS registry without compatibility translation."
+    },
+    {
+      "gate_id": "host_callable_security_boundary",
+      "status": "passed_pure_callable_closure_readback",
+      "required_evidence": "OPL runner blocks path discovery, filesystem/network/process access, opl/codex invocation and runtime mutation for the callable closure."
+    },
+    {
+      "gate_id": "sha_bound_input_and_exact_output_commit",
+      "status": "pending_live_hosted_smoke",
+      "required_evidence": "Real run/attempt/output refs validate and the returned bytes are atomically persisted and read back under the same digest."
+    },
+    {
+      "gate_id": "terminal_behavior_smoke",
+      "status": "candidate_focused_tests_only",
+      "required_evidence": "Hosted owner_receipt, route_back, quality_debt, typed_blocker, human_gate and invalid-input calls all pass."
+    },
+    {
+      "gate_id": "legacy_command_behavior_parity",
+      "status": "structural_default_cutover_done_physical_retirement_pending",
+      "required_evidence": "Every legacy command row is either hosted with equivalent behavior or explicitly retained as a non-default migration tool."
+    },
+    {
+      "gate_id": "default_callers_migrated",
+      "status": "passed_generated_default_readback",
+      "required_evidence": "Generated interfaces and direct skill paths use the v2 action; mainline and domain-handler transport actions are no longer advertised."
+    },
+    {
+      "gate_id": "source_closure_zero_private_generic_effect",
+      "status": "blocked_by_unreachable_legacy_generic_effect_residue",
+      "required_evidence": "Fresh OPL source-closure is verified zero across the callable closure and repo-tracked source; unreachable generic-effect residue must be physically retired rather than hidden by an allowlist."
+    },
+    {
+      "gate_id": "legacy_source_retirement_authorized",
+      "status": "blocked_by_prior_gates",
+      "required_evidence": "All prior gates pass, active callers are zero and replacement parity is fresh before deletion."
+    }
+  ],
+  "fresh_opl_readback": {
+    "observed_on": "2026-07-13",
+    "opl_ref": "git:64fbe809f8ea958410bce0f7c0a9de305ef5c5e5",
+    "mas_ref": "git:bb8c5ed97cd8e7f2a9c82d7dc087e6b471af7d05",
+    "interfaces": {
+      "status": "ready",
+      "public_stage_action_count": 6,
+      "internal_authority_action_count": 1,
+      "schema_roundtrip_status": "aligned"
+    },
+    "source_closure": {
+      "status": "blocked",
+      "scan_complete": true,
+      "entrypoint_count": 8,
+      "reachable_symbol_count": 33,
+      "unresolved_edge_count": 27,
+      "observed_effect_count": 534,
+      "reachable_effect_count": 0,
+      "private_generic_effect_count": 534,
+      "unreachable_sensitive_residue_count": 534,
+      "audit_mismatch_count": 534,
+      "closure_digest": "sha256:00ced80c376f9c95335fdac2adc208f43c0673ff95169739237a83294336ef41",
+      "interpretation": "The registered authority callable closure is pure. Repo source closure remains blocked because all 534 generic effects are unreachable legacy source residue and are not physically retired or approved as retained authority."
+    },
+    "conformance": {
+      "status": "blocked_only_by_source_closure",
+      "all_non_source_closure_check_groups_passed": true
+    },
+    "default_callers": {
+      "generated_default_surface_count": 8,
+      "ready_generated_default_surface_count": 8,
+      "surface_retirement_gate_count": 8,
+      "closed_surface_retirement_gate_count": 8,
+      "active_deletion_evidence_worklist_count": 0,
+      "missing_no_active_caller_proof_count": 0,
+      "missing_no_forbidden_write_proof_count": 0,
+      "missing_tombstone_or_provenance_ref_count": 0,
+      "physical_delete_authorized": false,
+      "status": "source_closure_blocked"
+    },
+    "residue_decisions": {
+      "decision_item_count": 0,
+      "status": "source_closure_blocked",
+      "residue_verification_status": "not_verified_zero"
+    },
+    "scaffold_validation": "passed",
+    "authority_boundary": {
+      "readback_authorizes_physical_delete": false,
+      "readback_claims_domain_ready": false,
+      "readback_claims_production_ready": false
+    }
+  },
+  "retirement_authorized": false,
+  "non_claims": {
+    "legacy_behavior_removed": false,
+    "opl_v2_runtime_ready": false,
+    "paper_mission_live_ready": false,
+    "paper_progress": false,
+    "publication_ready": false,
+    "production_ready": false
+  }
+}

@@ -46,6 +46,8 @@ def build_authority_kernel_inventory() -> dict[str, Any]:
             "docs/active/mas-ideal-state-gap-plan.md",
             "src/med_autoscience/controllers/owner_callable_registry.py",
             "contracts/action_catalog.json",
+            "contracts/domain_handler_registry.json",
+            "contracts/paper_mission_authority_handler_parity.json",
             "contracts/foundry-agent-os-domain-kernel-manifest.json",
             "contracts/mas-paper-study-stage-pack.json",
         ],

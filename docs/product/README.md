@@ -13,11 +13,11 @@ MAS 不维护 repo-local product shell。产品入口由 OPL 从 MAS pack 生成
 - status read model / workbench drilldown；
 - action transport 与 functional harness。
 
-MAS 提供 22-action catalog、schemas、domain-handler targets、body-free refs、owner receipts、typed blockers 与 authority refs。
+MAS 提供六个公开 Stage action、一个无用户 surface 的内部 registry-bound authority action、V2 schemas、body-free refs、owner receipts、typed blockers 与 authority refs。
 
 ## 默认论文入口
 
-`paper_mission` 是 action catalog 中的标准 action。默认控制链是：
+公开论文推进从六个 OPL-hosted Stage action 中选择；`paper_mission_authority_evaluate` 只供 host 内部调用，不是用户命令。默认控制链是：
 
 `Codex CLI selected stage -> nonbinding route context -> OPL readback -> MAS owner consumption`
 

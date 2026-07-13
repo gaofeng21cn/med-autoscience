@@ -11,7 +11,10 @@ from med_autoscience.research_integrity.reference_verification import (
 SURFACE_KIND = "research_integrity_review_publication_gate_stage_hook"
 SCHEMA_VERSION = 1
 HOOK_ID = "research-integrity-review-publication-gate-stage-hook"
-TRIGGERED_ACTION = "research-integrity-reference-verification"
+PROVIDER_RESOLUTION_ACTION = "opl_connect_reference_verification"
+REFERENCE_VERIFICATION_CONSUMER = (
+    "med_autoscience.research_integrity.reference_verification"
+)
 TARGET_STAGE_IDS = (
     "review_and_quality_gate",
     "finalize_and_publication_handoff",
@@ -84,7 +87,7 @@ def build_review_publication_gate_stage_hook_payload(
         "stage_obligation": stage_obligation(),
         "stage_hook_consumers": ["review_gate", "publication_gate"],
         "trigger_points": list(TRIGGER_POINTS),
-        "triggered_action": TRIGGERED_ACTION,
+        "provider_resolution_action": PROVIDER_RESOLUTION_ACTION,
         "triggered_domain_provider_lookup_contract": (
             triggered_domain_provider_lookup_contract()
         ),
@@ -109,12 +112,12 @@ def stage_obligation() -> dict[str, Any]:
         "surface_kind": "research_integrity_stage_hook_obligation",
         "schema_version": SCHEMA_VERSION,
         "hook_id": HOOK_ID,
-        "command": HOOK_ID,
+        "stage_action_refs": list(TARGET_STAGE_IDS),
         "obligation_level": "mandatory",
         "hook_role": "mandatory_review_publication_gate_input",
         "target_stage_ids": list(TARGET_STAGE_IDS),
         "trigger_points": list(TRIGGER_POINTS),
-        "triggered_action": TRIGGERED_ACTION,
+        "provider_resolution_action": PROVIDER_RESOLUTION_ACTION,
         "triggered_domain_provider_lookup_contract": (
             triggered_domain_provider_lookup_contract()
         ),
@@ -135,11 +138,11 @@ def stage_launch_required_input(*, stage_id: str | None = None) -> dict[str, Any
         "surface_kind": "research_integrity_stage_launch_required_input",
         "schema_version": SCHEMA_VERSION,
         "hook_id": HOOK_ID,
-        "command": HOOK_ID,
+        "stage_action_refs": target_stage_ids,
         "target_stage_ids": target_stage_ids,
         "launch_surface": "stage_contract.mandatory_pre_gate_checks",
         "readback_surface": "stage_contract.mandatory_pre_gate_checks",
-        "triggered_action": TRIGGERED_ACTION,
+        "provider_resolution_action": PROVIDER_RESOLUTION_ACTION,
         "trigger_points": list(TRIGGER_POINTS),
         "required_gate_input_surfaces": list(REQUIRED_GATE_INPUT_SURFACES),
         "triggered_domain_provider_lookup_contract": (
@@ -176,16 +179,14 @@ def triggered_domain_provider_lookup_contract() -> dict[str, Any]:
         "schema_version": SCHEMA_VERSION,
         "owner": "OPL Connect",
         "triggered_by_hook_id": HOOK_ID,
-        "triggered_action": TRIGGERED_ACTION,
+        "provider_action_id": PROVIDER_RESOLUTION_ACTION,
         "lookup_providers": list(LOOKUP_PROVIDERS),
         "provider_lookup_mode": "opl_connect_receipt_input_only",
-        "mas_role": "consume_provider_receipts_and_apply_medical_gate_judgment",
-        "provider_evidence_consumed_by": TRIGGERED_ACTION,
+        "provider_evidence_consumed_by": REFERENCE_VERIFICATION_CONSUMER,
         "mandatory_gate_input_only": True,
         "live_owner_consumption_claimed": False,
         "can_write_provider_attempt": False,
         "can_write_runtime_queue": False,
-        "mas_can_call_external_provider": False,
     }
 
 
@@ -231,7 +232,8 @@ __all__ = [
     "SCHEMA_VERSION",
     "SURFACE_KIND",
     "TARGET_STAGE_IDS",
-    "TRIGGERED_ACTION",
+    "PROVIDER_RESOLUTION_ACTION",
+    "REFERENCE_VERIFICATION_CONSUMER",
     "TRIGGER_POINTS",
     "authority_boundary",
     "build_review_publication_gate_stage_hook_payload",

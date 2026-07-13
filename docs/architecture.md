@@ -31,7 +31,7 @@ canonical id 固定为 `mas`。`med-autoscience` 仅是 repo/package/plugin loca
 
 `agent/` 与机器 contracts 描述：
 
-- 22 个 action 及其 input/output schema；
+- 六个与 canonical Stage 一一对应的公开 action、一个无用户 surface 的内部 authority action，以及各自 input/output schema；
 - stage manifest、prompt、knowledge refs 和 quality gate；
 - domain route/profile、projection 与 forbidden-write boundary；
 - `analysis-display` 环境需求，包括 R/Bioconductor 依赖声明；
@@ -39,13 +39,13 @@ canonical id 固定为 `mas`。`med-autoscience` 仅是 repo/package/plugin loca
 
 Pack 只声明需求和能力，不实现通用 transport、installer、workspace bootstrap、runtime shell 或 workbench。
 
-`mas-scholar-skills` 是 MAS 的必需能力包，不是可选外挂。独立仓库只形成开发、版本和发布边界；`contracts/opl_agent_package_manifest.json` 声明版本范围、capability ABI、11 个必需 Skill 与 8 个必需 module。OPL `packages` 统一解析、安装和激活依赖闭包，持有 digest lock、lifecycle receipt、卸载保护、闭包级更新与回滚；Framework module workflow 维护 checkout 的 `src/opl_framework` link。MAS 不维护私有安装入口、Framework lock 或第二套 package lifecycle。包缺失/不兼容时只消费 OPL status/repair owner surface。
+`mas-scholar-skills` 是 MAS 的必需能力包，不是可选外挂。独立仓库只形成开发、版本和发布边界；`contracts/opl_agent_package_manifest.json` 声明版本范围、capability ABI、11 个必需 Skill 与 8 个必需 module。用户只通过 `opl packages install/update/uninstall mas` 管理 MAS；OPL `packages` 在同一闭包事务内持有依赖解析、activation/status/repair、digest lock、lifecycle receipt、卸载保护、更新与回滚。MAS 不维护私有安装入口、Framework lock 或第二套 package lifecycle。
 
 Foundry 系列 policy 只由唯一 OPL Framework 持有。MAS 的 `contracts/foundry_agent_series.json` 是 refs-only consumer contract，只记录 canonical contract refs、policy fingerprint、MAS domain delta 与 false-authority envelope；MAS 不复制 OPL policy body，也不声明本地 Framework 依赖。
 
 Framework Python helper 同样由 OPL 持有。OPL module workflow 在 MAS checkout 维护 `src/opl_framework` carrier；MAS 通过该 namespace 消费，不在 `pyproject.toml` 或 `uv.lock` 声明、安装或锁定 OPL implementation。
 
-`contracts/domain_descriptor.json#/standard_agent_interface` 是 OPL generic consumer 的 MAS-owned machine input。它以 `opl_standard_agent_interface.v1` 声明默认 profile/workspace/project 身份、workspace locator fields、可选 work-item inventory projection、安全 argv command templates、runtime registration ref、progress aliases 与 routing hints；不承载 package lock、provider state、domain truth 或 artifact authority。
+`contracts/domain_descriptor.json#/standard_agent_interface` 是 OPL generic consumer 的 MAS-owned machine input。它以 `opl_standard_agent_interface.v1` 声明默认 profile/workspace/project 身份、workspace locator fields、可选 work-item inventory projection、runtime registration ref、progress aliases 与 routing hints；不声明 `entry_command_template`、`manifest_command_template` 或 `runtime.dispatch_command`，也不承载 package lock、provider state、domain truth 或 artifact authority。
 
 ### Work-item inventory 边界
 
@@ -63,7 +63,7 @@ Inventory、execution 与 telemetry 是三个独立事实面：
 
 OPL 是 generated/default owner：
 
-- 从 action catalog 生成 CLI、MCP、Skill、product-entry 与 harness；
+- 从 V2 Stage action catalog 生成 CLI、MCP、Skill、product-entry 与 harness，并从 closed handler registry 托管最小 authority callable；
 - 托管 status、workbench、runtime lifecycle、queue、attempt ledger、retry/dead-letter 与 observability；
 - 提供 StageRun、StateIndex、storage/lifecycle 与环境准备；
 - 传输 human gate、owner answer、receipt/blocker refs；
@@ -157,9 +157,9 @@ OPL 可以承载 command/event/outbox/StageRun 和 projection；MAS owner consum
 | CLI / MCP / Skill / product-entry manifest | OPL |
 | status read model / workbench drilldown | OPL |
 | runtime environment prepare/run | OPL |
-| domain handler target / medical authority result | MAS |
+| registry-bound minimal authority callable / medical authority result | MAS |
 
-MAS 不再维护 repo-local wrapper parity。新增 ordinary action 时，更新 catalog/schema/handler target，由 OPL 重新生成 surface；不新增 parser、JSON-RPC transport、installer 或 workbench renderer。
+MAS 不再维护 repo-local wrapper parity。新增公开能力时优先绑定 canonical Stage 并更新 catalog/schema；只有无法声明化的医学 authority 才能进入 closed handler registry。OPL 重新生成/托管 surface；MAS 不新增 parser、JSON-RPC transport、installer 或 workbench renderer。
 
 ## Live evidence 边界
 

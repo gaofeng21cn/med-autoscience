@@ -418,9 +418,9 @@ Generated surface 不应继续做：
 5. 显式指向外部共享的 `MedAutoScience` repo
 6. 如需 backend audit / upstream intake / parity oracle，再显式指向外部 `MedDeepScientist` reference repo；默认启动不需要
 7. 由 OPL workspace lifecycle surface 完成 locator/profile/environment 接入
-8. 用 generated action `submit_study_task` 写入 durable task intake
-9. 用 generated action `launch_study` 提交 MAS handoff
-10. 用 `study_progress` / `study_state_matrix` / `paper_mission` 读取进展与 owner route
+8. 以 workspace/study identity、用户目标和已有 refs 调用最适合当前增量的 V2 Stage action
+9. 由 OPL hydrate/持有 StageRun，Codex 在 Stage Tool Affordance Boundary 内执行
+10. 从 OPL StageRun/current-control/hosted workbench 与 MAS owner output 读取进展、owner route、typed blocker、human gate 或 owner receipt
 
 这样新项目不需要：
 

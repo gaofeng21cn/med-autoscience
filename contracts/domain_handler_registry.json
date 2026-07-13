@@ -1,0 +1,14 @@
+{
+  "surface_kind": "domain_handler_registry",
+  "version": "domain-handler-registry.v1",
+  "handlers": [
+    {
+      "handler_id": "mas.paper-mission-authority-evaluate",
+      "binding": {
+        "kind": "python_callable",
+        "module": "med_autoscience.authority_handlers.paper_mission",
+        "callable": "evaluate_paper_mission_authority"
+      }
+    }
+  ]
+}

@@ -15,6 +15,7 @@ REQUIRED_CATEGORIES = {
     "memory_accept_reject",
     "no_forbidden_write_proof",
     "refs_only_helper",
+    "paper_mission_authority_handler",
     "retired_diagnostic_provenance",
 }
 CONTRACT_ONLY_ITEM_OVERLAY_FIELDS = {
@@ -94,6 +95,12 @@ def test_authority_kernel_inventory_covers_required_categories_and_fields() -> N
             }:
                 assert item[field] == [], (item["item_id"], field)
                 continue
+            if (
+                item["category"] == "paper_mission_authority_handler"
+                and field == "allowed_writes"
+            ):
+                assert item[field] == [], (item["item_id"], field)
+                continue
             assert item[field], (item["item_id"], field)
         assert item["cannot_lift_to_opl_reason"]
         assert item.get("retirement_gate") or item.get("upcollect_target")
@@ -152,6 +159,14 @@ def test_authority_kernel_inventory_references_existing_representative_surfaces(
         "forbidden_writes"
     ]
     assert "refs-only advisory candidates" in items["refs_only_helper"]["output_refs"]
+    pure_handler = items["paper_mission_authority_handler"]
+    assert pure_handler["active_caller_refs"] == [
+        "contracts/action_catalog.json#/actions/6/execution_binding/handler_ref",
+        "contracts/domain_handler_registry.json#/handlers/0",
+        "opl-generated:domain_handler#paper_mission_authority_evaluate",
+    ]
+    assert pure_handler["allowed_writes"] == []
+    assert "mas_paper_mission_owner_receipt" in pure_handler["output_refs"]
     retired = items["retired_diagnostic_provenance"]
     assert retired["active_caller_refs"] == []
     assert retired["allowed_writes"] == []

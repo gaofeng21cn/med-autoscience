@@ -32,11 +32,9 @@ def test_domain_descriptor_exposes_generic_standard_agent_interface() -> None:
         "locator_surface_kind": "med_autoscience_workspace_profile",
         "required_locator_fields": ["profile_ref"],
         "optional_locator_fields": ["workspace_root"],
-        "entry_command_template": interface["workspace_binding"]["entry_command_template"],
-        "manifest_command_template": interface["workspace_binding"]["manifest_command_template"],
     }
-    assert interface["workspace_binding"]["entry_command_template"] is None
-    assert interface["workspace_binding"]["manifest_command_template"] is None
+    assert "entry_command_template" not in interface["workspace_binding"]
+    assert "manifest_command_template" not in interface["workspace_binding"]
     assert interface["inventory_projection"] == {
         "source_kind": "workspace_relative_json",
         "relative_path": "workspace_index.json",
@@ -50,13 +48,15 @@ def test_domain_descriptor_exposes_generic_standard_agent_interface() -> None:
             "current_stage_status": "current_stage_status",
             "package_status": "package_status",
             "lifecycle_ref": "lifecycle_ref",
+            "next_action": "next_action",
+            "stage_index_ref": "stage_index_ref",
         },
     }
     assert interface["runtime"] == {
         "runtime_domain_id": "mas",
-        "dispatch_command": None,
         "registration_ref": "contracts/domain_route_profile.json",
     }
+    assert "dispatch_command" not in interface["runtime"]
     assert interface["progress"] == {
         "deliverable_delta_aliases": ["paper_progress_delta", "paper_work_progress"],
         "platform_delta_aliases": ["runtime_transport_delta", "provider_attempt_delta"],

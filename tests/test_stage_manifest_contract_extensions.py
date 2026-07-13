@@ -61,7 +61,7 @@ FORBIDDEN_FRAMEWORK_FIELDS = {
     "runtime_event_refs",
 }
 HANDOFF_REVIEW_BOUNDARY = {
-    "artifact_effect": "mechanical_repackaging_of_reviewed_bytes",
+    "artifact_effect": "reviewed_immutable_refs_only",
     "freezes_canonical_artifact_bytes": False,
     "issues_quality_export_publication_or_ready_claim": False,
     "downstream_owner_retains_acceptance": True,

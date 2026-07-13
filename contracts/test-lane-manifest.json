@@ -317,10 +317,13 @@
       ]
     },
     "mas-entry-boundary": {
-      "kind": "focused_mas_entry_docs_contract_gate",
+      "kind": "focused_mas_v2_stage_registry_boundary_gate",
       "paths": [
         "tests/test_test_lane_governance.py",
         "tests/test_domain_entry.py",
+        "tests/test_domain_entry_contract.py",
+        "tests/test_paper_mission_authority_handler_v2.py",
+        "tests/test_opl_standard_pack_cases/test_generated_interface_cases.py",
         "tests/test_codex_plugin.py",
         "tests/test_codex_plugin_scaffold.py"
       ],
@@ -330,16 +333,20 @@
         "docs/runtime/control/controllers.md"
       ],
       "overlap_policy": "allowed_with_regression",
-      "authority_boundary": "entry_projection_and_controlled_domain_handler_bridge_no_study_truth_authority",
+      "authority_boundary": "opl_hosted_stage_actions_and_registry_bound_minimal_authority_handler_no_private_command_surface",
       "source_of_truth": [
         "contracts/action_catalog.json",
-        "src/med_autoscience/domain_entry.py",
+        "contracts/domain_handler_registry.json",
+        "contracts/source_closure_audit.json",
+        "agent/stages/manifest.json",
+        "agent/primary_skill/SKILL.md",
         "plugins/med-autoscience/skills/med-autoscience/SKILL.md",
         "plugins/med-autoscience/.codex-plugin/plugin.json",
         "docs/runtime/control/controllers.md"
       ],
       "policy_refs": [
-        "docs/runtime/control/controllers.md#mas-domain-handler-bridge",
+        "contracts/generated_surface_handoff.json",
+        "contracts/pack_compiler_input.json",
         "docs/architecture.md",
         "docs/status.md"
       ]

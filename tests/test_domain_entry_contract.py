@@ -1,37 +1,66 @@
 from __future__ import annotations
 
-from med_autoscience.domain_entry_contract import build_domain_entry_contract
+import json
+from pathlib import Path
+
+import pytest
 
 
-def test_domain_entry_contract_exposes_research_integrity_stage_hook_trigger() -> None:
-    contracts = {item["command"]: item for item in build_domain_entry_contract()["command_contracts"]}
-    hook = contracts["research-integrity-review-publication-gate-stage-hook"]
+pytestmark = pytest.mark.meta
+REPO_ROOT = Path(__file__).resolve().parents[1]
 
-    assert hook["required_fields"] == []
-    assert hook["optional_fields"] == [
-        "payload",
-        "stage_id",
-        "stage_event",
-        "stage_hook_ref",
-        "reference",
-        "references",
-        "provider_evidence",
-        "provider_receipts",
-        "source_refs",
-        "reference_manager_ref",
-        "manuscript_ref",
-        "claim_spans",
-        "claim",
-        "claims",
-        "citation_refs",
-        "evidence_refs",
-        "reference_attestation_refs",
-        "manuscript_sections",
-        "manuscript",
-        "numeric_facts",
-        "display_facts",
-        "reference_attestations",
-        "display_to_claim_map",
-        "reporting_guideline_expectations",
-        "reporting_checklist_expectations",
+
+def _read_json(relative_path: str) -> dict[str, object]:
+    return json.loads((REPO_ROOT / relative_path).read_text(encoding="utf-8"))
+
+
+def test_stage_action_schema_is_closed_and_matches_catalog_fields() -> None:
+    catalog = _read_json("contracts/action_catalog.json")
+    input_schema = _read_json("contracts/schemas/v2/mas-stage-action.input.schema.json")
+    output_schema = _read_json("contracts/schemas/v2/mas-stage-action.output.schema.json")
+    stage_actions = [
+        action
+        for action in catalog["actions"]
+        if action["execution_binding"]["kind"] == "stage_binding"
     ]
+
+    assert input_schema["additionalProperties"] is False
+    assert input_schema["required"] == ["workspace_root", "study_id"]
+    assert set(input_schema["properties"]) == {
+        "workspace_root",
+        "study_id",
+        "user_intent",
+        "input_refs",
+        "route_context_refs",
+        "human_gate_refs",
+    }
+    assert output_schema["additionalProperties"] is False
+    assert set(output_schema["properties"]["stage_id"]["enum"]) == {
+        action["action_id"] for action in stage_actions
+    }
+    for action in stage_actions:
+        assert action["required_fields"] == input_schema["required"]
+        assert set(action["required_fields"] + action["optional_fields"]) == set(
+            input_schema["properties"]
+        )
+
+
+def test_handler_registry_and_source_closure_contract_are_explicit() -> None:
+    descriptor = _read_json("contracts/domain_descriptor.json")
+    compiler_input = _read_json("contracts/pack_compiler_input.json")
+    source_closure = _read_json("contracts/source_closure_audit.json")
+
+    assert descriptor["standard_contract_refs"]["domain_handler_registry"] == (
+        "contracts/domain_handler_registry.json"
+    )
+    assert descriptor["standard_contract_refs"]["source_closure_audit"] == (
+        "contracts/source_closure_audit.json"
+    )
+    assert "paper_mission_authority_evaluate" in compiler_input[
+        "minimal_authority_functions"
+    ]
+    assert source_closure == {
+        "surface_kind": "standard_agent_source_closure_audit",
+        "version": "standard-agent-source-closure-audit.v1",
+        "entries": [],
+    }

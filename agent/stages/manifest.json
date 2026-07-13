@@ -45,9 +45,7 @@
         "agent/quality_gates/artifact_source_authority_gate.md"
       ],
       "allowed_action_refs": [
-        "submit_study_task",
-        "study_progress",
-        "scientific_capability_registry"
+        "direction_and_route_selection"
       ],
       "requires": [
         "study_intent_and_source_context_available"
@@ -312,9 +310,7 @@
           "no_op_budget_ref": "stage_contract.progress_delta_policy.no_op_currentness_budget",
           "owner_action": {
             "allowed_action_refs": [
-              "submit_study_task",
-              "study_progress",
-              "scientific_capability_registry"
+              "direction_and_route_selection"
             ],
             "next_owner": "MedAutoScience",
             "owner_receipt_required_for_quality_or_ready_claim": true,
@@ -401,9 +397,7 @@
           },
           {
             "ref": [
-              "submit_study_task",
-              "study_progress",
-              "scientific_capability_registry"
+              "direction_and_route_selection"
             ],
             "ref_kind": "action_ref",
             "role": "mas_guarded_action_trigger_candidates"
@@ -428,9 +422,7 @@
         "agent/quality_gates/artifact_source_authority_gate.md"
       ],
       "allowed_action_refs": [
-        "study_state_matrix",
-        "research_integrity_gate_input",
-        "scientific_capability_registry"
+        "baseline_and_evidence_setup"
       ],
       "requires": [
         "accepted_direction_or_typed_route_blocker_recorded"
@@ -694,9 +686,7 @@
           "no_op_budget_ref": "stage_contract.progress_delta_policy.no_op_currentness_budget",
           "owner_action": {
             "allowed_action_refs": [
-              "study_state_matrix",
-              "research_integrity_gate_input",
-              "scientific_capability_registry"
+              "baseline_and_evidence_setup"
             ],
             "next_owner": "MedAutoScience",
             "owner_receipt_required_for_quality_or_ready_claim": true,
@@ -780,9 +770,7 @@
           },
           {
             "ref": [
-              "study_state_matrix",
-              "research_integrity_gate_input",
-              "scientific_capability_registry"
+              "baseline_and_evidence_setup"
             ],
             "ref_kind": "action_ref",
             "role": "mas_guarded_action_trigger_candidates"
@@ -808,9 +796,7 @@
         "agent/quality_gates/artifact_source_authority_gate.md"
       ],
       "allowed_action_refs": [
-        "submit_study_task",
-        "study_progress",
-        "research_integrity_gate_input"
+        "bounded_analysis_campaign"
       ],
       "requires": [
         "source_and_evidence_baseline_ready"
@@ -1073,9 +1059,7 @@
           "no_op_budget_ref": "stage_contract.progress_delta_policy.no_op_currentness_budget",
           "owner_action": {
             "allowed_action_refs": [
-              "submit_study_task",
-              "study_progress",
-              "research_integrity_gate_input"
+              "bounded_analysis_campaign"
             ],
             "next_owner": "MedAutoScience",
             "owner_receipt_required_for_quality_or_ready_claim": true,
@@ -1156,9 +1140,7 @@
           },
           {
             "ref": [
-              "submit_study_task",
-              "study_progress",
-              "research_integrity_gate_input"
+              "bounded_analysis_campaign"
             ],
             "ref_kind": "action_ref",
             "role": "mas_guarded_action_trigger_candidates"
@@ -1184,9 +1166,7 @@
         "agent/quality_gates/ai_reviewer_auditor_gate.md"
       ],
       "allowed_action_refs": [
-        "submit_study_task",
-        "display_pack_orchestrate",
-        "display_pack_render"
+        "manuscript_authoring"
       ],
       "requires": [
         "bounded_analysis_evidence_ready"
@@ -1449,9 +1429,7 @@
           "no_op_budget_ref": "stage_contract.progress_delta_policy.no_op_currentness_budget",
           "owner_action": {
             "allowed_action_refs": [
-              "submit_study_task",
-              "display_pack_orchestrate",
-              "display_pack_render"
+              "manuscript_authoring"
             ],
             "next_owner": "MedAutoScience",
             "owner_receipt_required_for_quality_or_ready_claim": true,
@@ -1532,9 +1510,7 @@
           },
           {
             "ref": [
-              "submit_study_task",
-              "display_pack_orchestrate",
-              "display_pack_render"
+              "manuscript_authoring"
             ],
             "ref_kind": "action_ref",
             "role": "mas_guarded_action_trigger_candidates"
@@ -1677,9 +1653,7 @@
         "agent/quality_gates/artifact_source_authority_gate.md"
       ],
       "allowed_action_refs": [
-        "research_integrity_reference_verification",
-        "research_integrity_review_publication_gate_stage_hook",
-        "display_pack_preflight"
+        "review_and_quality_gate"
       ],
       "requires": [
         "manuscript_candidate_ready_for_independent_review"
@@ -1944,9 +1918,7 @@
           "no_op_budget_ref": "stage_contract.progress_delta_policy.no_op_currentness_budget",
           "owner_action": {
             "allowed_action_refs": [
-              "research_integrity_reference_verification",
-              "research_integrity_review_publication_gate_stage_hook",
-              "display_pack_preflight"
+              "review_and_quality_gate"
             ],
             "next_owner": "MedAutoScience",
             "owner_receipt_required_for_quality_or_ready_claim": true,
@@ -2030,9 +2002,7 @@
           },
           {
             "ref": [
-              "research_integrity_reference_verification",
-              "research_integrity_review_publication_gate_stage_hook",
-              "display_pack_preflight"
+              "review_and_quality_gate"
             ],
             "ref_kind": "action_ref",
             "role": "mas_guarded_action_trigger_candidates"
@@ -2175,7 +2145,9 @@
               "outputs_are_gate_inputs": true,
               "surface_authority": "mandatory_stage_hook_gate_input_only"
             },
-            "command": "research-integrity-review-publication-gate-stage-hook",
+            "stage_action_refs": [
+              "review_and_quality_gate"
+            ],
             "hook_id": "research-integrity-review-publication-gate-stage-hook",
             "launch_surface": "stage_contract.mandatory_pre_gate_checks",
             "live_owner_consumption_claimed": false,
@@ -2213,7 +2185,7 @@
               "review_gate_entered",
               "publication_gate_entered"
             ],
-            "triggered_action": "research-integrity-reference-verification",
+            "provider_resolution_action": "opl_connect_reference_verification",
             "triggered_domain_provider_lookup_contract": {
               "can_write_provider_attempt": false,
               "can_write_runtime_queue": false,
@@ -2228,10 +2200,10 @@
               "mandatory_gate_input_only": true,
               "owner": "OPL Connect",
               "provider_lookup_mode": "opl_connect_receipt_input_only",
-              "provider_evidence_consumed_by": "research-integrity-reference-verification",
+              "provider_evidence_consumed_by": "med_autoscience.research_integrity.reference_verification",
               "schema_version": 1,
               "surface_kind": "opl_connect_reference_verification_contract",
-              "triggered_action": "research-integrity-reference-verification",
+              "provider_action_id": "opl_connect_reference_verification",
               "triggered_by_hook_id": "research-integrity-review-publication-gate-stage-hook"
             }
           }
@@ -2263,9 +2235,7 @@
         "agent/quality_gates/artifact_source_authority_gate.md"
       ],
       "allowed_action_refs": [
-        "export_inspection_package",
-        "publication_aftercare_plan",
-        "domain_handler_export"
+        "finalize_and_publication_handoff"
       ],
       "requires": [
         "quality_gate_owner_result_recorded"
@@ -2274,6 +2244,12 @@
         "publication_handoff_receipt_or_typed_blocker_recorded"
       ],
       "next_stage_refs": [],
+      "handoff_review_boundary": {
+        "artifact_effect": "reviewed_immutable_refs_only",
+        "freezes_canonical_artifact_bytes": false,
+        "issues_quality_export_publication_or_ready_claim": false,
+        "downstream_owner_retains_acceptance": true
+      },
       "trust_lane": "human_gate",
       "tool_refs": [
         {
@@ -2528,9 +2504,7 @@
           "no_op_budget_ref": "stage_contract.progress_delta_policy.no_op_currentness_budget",
           "owner_action": {
             "allowed_action_refs": [
-              "export_inspection_package",
-              "publication_aftercare_plan",
-              "domain_handler_export"
+              "finalize_and_publication_handoff"
             ],
             "next_owner": "MedAutoScience",
             "owner_receipt_required_for_quality_or_ready_claim": true,
@@ -2617,9 +2591,7 @@
           },
           {
             "ref": [
-              "export_inspection_package",
-              "publication_aftercare_plan",
-              "domain_handler_export"
+              "finalize_and_publication_handoff"
             ],
             "ref_kind": "action_ref",
             "role": "mas_guarded_action_trigger_candidates"
@@ -2762,7 +2734,9 @@
               "outputs_are_gate_inputs": true,
               "surface_authority": "mandatory_stage_hook_gate_input_only"
             },
-            "command": "research-integrity-review-publication-gate-stage-hook",
+            "stage_action_refs": [
+              "finalize_and_publication_handoff"
+            ],
             "hook_id": "research-integrity-review-publication-gate-stage-hook",
             "launch_surface": "stage_contract.mandatory_pre_gate_checks",
             "live_owner_consumption_claimed": false,
@@ -2800,7 +2774,7 @@
               "review_gate_entered",
               "publication_gate_entered"
             ],
-            "triggered_action": "research-integrity-reference-verification",
+            "provider_resolution_action": "opl_connect_reference_verification",
             "triggered_domain_provider_lookup_contract": {
               "can_write_provider_attempt": false,
               "can_write_runtime_queue": false,
@@ -2815,10 +2789,10 @@
               "mandatory_gate_input_only": true,
               "owner": "OPL Connect",
               "provider_lookup_mode": "opl_connect_receipt_input_only",
-              "provider_evidence_consumed_by": "research-integrity-reference-verification",
+              "provider_evidence_consumed_by": "med_autoscience.research_integrity.reference_verification",
               "schema_version": 1,
               "surface_kind": "opl_connect_reference_verification_contract",
-              "triggered_action": "research-integrity-reference-verification",
+              "provider_action_id": "opl_connect_reference_verification",
               "triggered_by_hook_id": "research-integrity-review-publication-gate-stage-hook"
             }
           }

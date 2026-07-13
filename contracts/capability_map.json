@@ -850,12 +850,12 @@
       "improvement_tokens": [
         "med-autoscience",
         "primary_skill",
-        "domain_entry",
+        "hosted_stage_action",
         "mas_skill"
       ],
       "failure_tokens": [
         "primary_skill",
-        "domain_entry",
+        "private_command_surface",
         "mas_skill"
       ],
       "canonical_paths": [
@@ -882,6 +882,7 @@
         "agent/primary_skill/SKILL.md"
       ],
       "verification_refs": [
+        "tests/test_domain_entry.py",
         "tests/test_domain_entry_contract.py"
       ],
       "forbidden_surfaces": [
@@ -1852,7 +1853,7 @@
       "physical_source_ref": {
         "ref_kind": "contract_ref",
         "ref": "contracts/action_catalog.json",
-        "role": "domain_action_connector_catalog"
+        "role": "hosted_stage_action_catalog"
       },
       "runtime_projection_refs": [
         {
@@ -1864,10 +1865,15 @@
           "ref_kind": "contract_ref",
           "ref": "contracts/action_catalog.json",
           "role": "opl_generated_action_catalog_source"
+        },
+        {
+          "ref_kind": "contract_ref",
+          "ref": "contracts/domain_handler_registry.json",
+          "role": "minimal_authority_handler_binding_source"
         }
       ],
       "sync_policy": "repo_local_declarative_source",
-      "externalization_reason": "MAS declares domain action targets and affordance boundaries; OPL generates and hosts the CLI, MCP, Skill, product, status, and workbench tool surfaces.",
+      "externalization_reason": "MAS declares six Stage actions, domain affordance boundaries, and one non-public authority handler binding; OPL generates and hosts CLI, MCP, Skill, product, status, workbench, and callable transport surfaces.",
       "improvement_tokens": [
         "tool_connector",
         "action_catalog",
@@ -1880,11 +1886,13 @@
       ],
       "canonical_paths": [
         "agent/tools/domain_affordances.md",
-        "contracts/action_catalog.json"
+        "contracts/action_catalog.json",
+        "contracts/domain_handler_registry.json"
       ],
       "target_repo_file_hints": [
         "agent/tools/domain_affordances.md",
-        "contracts/action_catalog.json"
+        "contracts/action_catalog.json",
+        "contracts/domain_handler_registry.json"
       ],
       "authority_boundary": {
         "can_write_domain_truth": false,
@@ -1898,7 +1906,8 @@
       },
       "canonical_target_paths": [
         "agent/tools/domain_affordances.md",
-        "contracts/action_catalog.json"
+        "contracts/action_catalog.json",
+        "contracts/domain_handler_registry.json"
       ],
       "verification_refs": [
         "tests/test_domain_entry_contract.py",

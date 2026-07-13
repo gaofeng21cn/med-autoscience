@@ -15,28 +15,28 @@ MDS / DeepScientist 只作为 historical fixture、explicit archive import、bac
 
 | 功能面 | 当前入口 | 必须核对 | 不证明 |
 | --- | --- | --- | --- |
-| repo 主线 | generated `mainline_status` / `mainline_phase` action | action/schema/handler binding 与 refs-only output | runtime live、paper progress |
-| durable task intake | generated `submit_study_task` action | `profile_ref`、`study_id`、`task_intent`、durable intake ref | StageRun 已启动 |
-| launch handoff | generated `launch_study` action | MAS handoff、OPL hydrate/readback、same-identity refs | paper progress、publication ready |
-| study progress | generated `study_progress` / `study_state_matrix` / `paper_mission` action | study/quest/run identity 分离、owner route、typed blocker、freshness、receipt refs | quality/publication verdict |
-| OPL handoff | generated `domain_handler_export` / `domain_handler_dispatch` action | typed task、no-forbidden-write、return shape | owner receipt、provider attempt、publication verdict |
+| public Stage execution | six OPL-hosted Stage actions in `contracts/action_catalog.json` | action/schema/Stage manifest binding、workspace/study identity、StageRun receipt | runtime live、paper progress、quality verdict |
+| stage tool use | Stage Tool Affordance Boundary | capability refs、permission/write scope、forbidden authority、tool result refs | tool success 等于 stage/domain completion |
+| authority evaluation | host-only `paper_mission_authority_evaluate` | closed handler registry、pure callable、no user surface、authority output shape | public command、provider attempt、publication verdict |
 | environment | OPL `env prepare/run` owner surface | requirement profile、artifact root、platform 与 execution receipt | MAS domain ready、visual quality |
 | runtime health | OPL current-control/provider/attempt/worker readback | same-identity live attempt、lease、Temporal/worker liveness、terminal closeout | MAS stage completion、paper delta |
 | publication/quality | MAS `publication_eval/latest.json`、quality gate/owner receipt | current study identity、source/artifact refs、owner authority | submission completed unless separately receipted |
 
-Action id 的具体 CLI/MCP/tool spelling 由 OPL 从 `contracts/action_catalog.json` 和 schemas 生成。不要在本文维护手写命令。
+六个公开 action 是 `direction_and_route_selection`、`baseline_and_evidence_setup`、`bounded_analysis_campaign`、`manuscript_authoring`、`review_and_quality_gate` 和 `finalize_and_publication_handoff`。具体 CLI/MCP/tool spelling 由 OPL 从 V2 catalog、schemas 与 Stage manifest 生成；不要在本文维护手写命令或固定顺序。
 
-## Retired entrypoints
+## Legacy / internal residue
 
-以下名称只允许出现在 provenance/tombstone/no-resurrection 语境：
+以下名称已退出 V2 public/default surface，只允许出现在 internal residue inventory、active-caller migration、provenance/tombstone 或 no-resurrection 语境：
 
 - `doctor`、`backend-audit`、`backend-upgrade`、`overlay-status`、`bootstrap`；
 - `runtime domain-diagnostic-report`、`domain-health-diagnostic`、`paper-mission-owner-surface`、`owner-route-reconcile`；
 - `study progress-projection`、`publication gate`、`study delivery-sync`；
+- `mainline_status`、`mainline_phase`、`submit_study_task`、`launch_study`、`study_progress`、`study_state_matrix`、`paper_mission`、`domain_handler_export`、`domain_handler_dispatch`；
+- `scientific_capability_registry`、`display_pack_*` 与 direct `MedAutoScienceDomainEntry.dispatch`；
 - `ops/medautoscience/bin/*`、repo-local LaunchAgent/systemd/cron/docker service；
 - `medautosci` parser、`medautosci-mcp` 与 repo-local JSON-RPC transport。
 
-对应医学诊断、publication gate、delivery mutation、backend audit 等 internal functions 可以保留，但未进入 current action catalog 时不得包装成文档命令。需要公开 surface 时，先增加 action/schema 和 authority boundary，再由 OPL 生成。
+对应医学诊断、publication gate、delivery mutation、backend audit 等 pure/internal functions 只能在有 active caller、明确 authority boundary 和迁移门时暂留；它们不得包装成文档命令、第二 handler registry 或第二控制面。需要公开能力时，应优先进入现有 Stage Tool Affordance Boundary；只有独立 Stage 语义成立时才增加 Stage action。
 
 ## Live evidence gate
 

@@ -2,12 +2,12 @@
   "contract_id": "mas_authority_kernel_inventory.v1",
   "contract_ref": "contracts/authority_kernel_inventory.json",
   "counts": {
-    "category_count": 9,
+    "category_count": 10,
     "gap_count": 0,
-    "item_count": 9,
+    "item_count": 10,
     "owner_callable_backed_count": 4,
     "retirement_gate_count": 1,
-    "upcollect_target_count": 9
+    "upcollect_target_count": 10
   },
   "forbidden_domain_authority": [
     "study_truth",
@@ -315,8 +315,8 @@
     },
     {
       "active_caller_refs": [
-        "contracts/action_catalog.json#/actions/12",
-        "med_autoscience.domain_entry:MedAutoScienceDomainEntry.dispatch#scientific_capability_registry"
+        "contracts/capability_map.json#/capabilities/mas-tool-connector-catalog",
+        "src/med_autoscience/domain_entry.py::MedAutoScienceDomainEntry.dispatch#scientific-capability-registry-legacy-internal-non-default-caller"
       ],
       "allowed_writes": [
         "artifacts/advisory/external_learning_sidecar/latest.json",
@@ -349,6 +349,49 @@
       "surface_ref": "src/med_autoscience/scientific_capability_registry.py::build_scientific_capability_registry",
       "tombstone_or_provenance": "required_before_physical_delete",
       "upcollect_target": "OPL Capability Registry / Tool Arsenal runtime consumption"
+    },
+    {
+      "active_caller_refs": [
+        "contracts/action_catalog.json#/actions/6/execution_binding/handler_ref",
+        "contracts/domain_handler_registry.json#/handlers/0",
+        "opl-generated:domain_handler#paper_mission_authority_evaluate"
+      ],
+      "allowed_writes": [],
+      "cannot_lift_to_opl_reason": "The callable validates MAS source-readiness and AI-first reviewer records and returns the exact MAS owner receipt, route-back, quality-debt, typed-blocker, or human-gate result. OPL may host the callable and persist its exact bytes but cannot originate or rewrite that medical authority result.",
+      "category": "paper_mission_authority_handler",
+      "disposition": "retained_minimal_authority_function",
+      "forbidden_authority": [
+        "study_truth",
+        "publication_quality",
+        "submission_readiness",
+        "artifact_authority",
+        "memory_accept_reject",
+        "current_package"
+      ],
+      "forbidden_writes": [
+        "filesystem_read_or_write",
+        "network_access",
+        "process_spawn",
+        "queue_session_dag_or_attempt_lifecycle",
+        "runtime_ledger",
+        "artifact_or_receipt_persistence"
+      ],
+      "item_id": "paper_mission_authority_handler.evaluate_hosted_result",
+      "no_active_caller": "not_applicable_registry_bound_generated_caller",
+      "no_forbidden_write_proof": "focused_ast_and_behavior_tests_require_zero_profile_path_discovery_generic_io_spawn_opl_codex_queue_session_dag_or_runtime_ledger_effect",
+      "output_refs": [
+        "mas_paper_mission_owner_receipt",
+        "mas_paper_mission_typed_blocker",
+        "mas_paper_mission_human_gate",
+        "paper_mission_route_back",
+        "paper_mission_quality_debt"
+      ],
+      "owner": "MedAutoScience",
+      "replacement_parity": "contracts/paper_mission_authority_handler_parity.json",
+      "retirement_gate": "retain as the MAS authority callable after OPL v2 binds it; retire only if a later MAS-owned authority function supersedes the same exact domain semantics",
+      "surface_ref": "src/med_autoscience/authority_handlers/paper_mission.py::evaluate_paper_mission_authority",
+      "tombstone_or_provenance": "required_if_surface_is_later_retired",
+      "upcollect_target": "OPL v2 direct callable host with schema validation and exact-byte result persistence"
     },
     {
       "active_caller_refs": [],
@@ -429,6 +472,8 @@
     "docs/active/mas-ideal-state-gap-plan.md",
     "src/med_autoscience/controllers/owner_callable_registry.py",
     "contracts/action_catalog.json",
+    "contracts/domain_handler_registry.json",
+    "contracts/paper_mission_authority_handler_parity.json",
     "contracts/foundry-agent-os-domain-kernel-manifest.json",
     "contracts/mas-paper-study-stage-pack.json"
   ],

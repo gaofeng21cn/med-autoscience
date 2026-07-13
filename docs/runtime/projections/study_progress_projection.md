@@ -1,281 +1,80 @@
 # Study Progress Projection
 
 Owner: `MedAutoScience`
-Purpose: `Explain MAS runtime projection and read-model semantics for human maintainers.`
-State: `active_runtime_support`
-Machine boundary: Human-readable projection support only; projection truth remains in source, tests, CLI/read-model output, runtime artifacts, ledgers, and owner receipts.
+Purpose: `Explain the migration boundary for legacy MAS progress projections.`
+State: `migration_support`
+Machine boundary: 本文只解释迁移期 internal projection。当前运行与用户状态真相归 OPL StageRun/current-control/hosted workbench、MAS owner outputs、runtime artifacts、ledgers 与 owner receipts；`study_progress` / `study_state_matrix` 不在 V2 public action catalog 中。
 
-这份文档冻结 `MedAutoScience` 侧“前台持续有进度”的正式落地方向。
+## 当前结论
 
-核心结论：
+V2 不再把 MAS 私有 `study_progress` 或 `study_state_matrix` 作为 generated action、runtime owner 或 App authority。正式读链路是：
 
-- `study_progress` 是 `controller-owned progress projection`
-- 用户可见状态只从 `study_macro_state` 派生
-- 前台判断围绕同一条 study authority 展开，不再各入口自行拼装 runtime / publication / controller 细节
-- MAS-local Progress Portal / workbench materializer 已退役。当前用户展示面由 OPL App / OPL-hosted workbench 消费 `study_progress` 与 durable truth refs；MAS 只保留 refs-only projection、owner receipt、typed blocker 与 domain authority refs，不提供 repo-local HTTP service、action endpoint 或 MAS-owned generic workbench。
+`OPL StageRun/current-control identity -> MAS Stage/owner refs -> OPL hosted projection/workbench`
 
-## 1. 目标
+现有 controller/read-model code 仍被若干 internal diagnostic、replay、operator drilldown 与 legacy tests 调用，因此本轮只完成 public/default cutover，不宣称物理删除。它们必须保持：
 
-前台需要持续看到：
+- read-only；
+- `authority=false`；
+- same-identity/currentness aware；
+- 不选择 Stage、owner、next action 或 provider admission；
+- 不写 runtime、paper/package、artifact/memory body、owner receipt、typed blocker 或 human gate。
 
-- 几点几分完成了什么
-- 当前研究整体推进到哪一步
-- 论文主线推进到哪一步
-- 目前卡在什么地方
-- 下一步系统准备做什么
-- 是否触达医生 / PI 人类 gate 边界
+## Public read path
 
-这些信息必须以医生 / 医学专家能看懂的人话表达；runtime 内部技术术语只作为辅助细节。
+| 需求 | 当前 owner surface |
+| --- | --- |
+| Stage/attempt/worker/provider 状态 | OPL StageRun/current-control/Temporal-backed runtime |
+| 当前研究目标与 Stage result | V2 Stage action output + MAS domain refs |
+| 医学 truth / quality / publication decision | MAS owner receipt、typed blocker、human gate、quality/publication authority |
+| 用户状态、freshness、blocker 与 next safe action | OPL hosted status/workbench，从上述同一 identity 投影 |
+| 深度诊断 | OPL operator drilldown；必要时可读取 legacy MAS projection，但不得升格为 authority |
 
-当前“人话进度”展示可以吸收下列来源，但 stage 选择只能来自
-`Codex CLI selected declared stage`，再由 schema v2
-`user_visible_projection` 投影给入口层。下面这些 surface 只能提供摘要、
-证据、阻塞解释或 operator drilldown，不能选择 owner/action，也不能覆盖
-Codex 选择：
+用户和 Agent 不直接调用 `study_progress`、`study_state_matrix`、`paper_mission`、`launch_study` 或 `submit_study_task`。公开执行只走 V2 六个 Stage actions；host-only authority 只走 closed `paper_mission_authority_evaluate` binding。
 
-- `artifacts/controller/task_intake/latest.json` 的当前任务意图与输出要求
-- `runtime_supervision/latest.json` 的 `clinician_update`、`summary`、`next_action_summary`
-- `domain_diagnostic_report` 的 controller scan 结果
-- `publication_eval/latest.json` 的 verdict / gap summary
-- `controller_decisions/latest.json` 的正式下一步决定
-- `artifacts/controller/controller_confirmation_summary.json` 的待人工确认摘要
-- `bash_exec summary` 与 `details projection` 提供的最近推进描述
+## Internal diagnostic shape
 
-## 2. Authority 边界
+迁移期 `study_progress` 可以只读下列来源：
 
-`study_progress` 的正式定位是：
+- OPL current-control/attempt refs；
+- `progress_projection`；
+- current study task/artifact/source refs；
+- `publication_eval/latest.json` 与 `controller_decisions/latest.json`；
+- owner receipt、typed blocker、human gate、route-back refs；
+- runtime health/escalation refs；
+- explicit legacy archive/provenance refs。
 
-- `controller-owned progress projection`
-- 只读投影面
-- 前台解释层
+它可以生成 `study_macro_state`、`user_visible_projection`、freshness、blocker summary、deliverable/paper/platform-repair delta classification、diagnostic refs 与 no-authority boundary。所有字段都是 read model：
 
-启动、停止、恢复、study-level truth 写入和 runtime-owned surface 维护继续由正式 runtime/control surface 承担。`study_progress` 只读取权威表面，并把当前阶段、证据、阻塞、下一步和 gate 边界投影给前台。
+- queue empty、provider complete、active run id、trace visible 或 projection fresh 不等于 paper progress；
+- runtime repair 必须与 deliverable/paper delta 分区；
+- stale/conflicting identity 必须显式 `inspect/conflict`，不得猜测；
+- owner route、typed blocker、quality/publication verdict 只能引用真实 MAS owner output；
+- retry/review/repair budget 耗尽本身不关闭 Stage，也不自动生成 blocker。
 
-## 3. 输入表面
+## User projection rules
 
-`study_progress` 的 authority 输入只读下列表面：
+OPL hosted projection面向用户只展示当前阶段、最近可核查增量、阻塞原因、下一安全动作与是否需要人工判断。维护者 drilldown 可以展示 provider/attempt、lineage、staleness、route-back、artifact drift 与 legacy projection refs。
 
-- `progress_projection`
-- `studies/<study_id>/artifacts/controller/task_intake/latest.json`
-- `studies/<study_id>/artifacts/runtime/runtime_supervision/latest.json`
-- `studies/<study_id>/artifacts/runtime/last_launch_report.json`
-- `studies/<study_id>/artifacts/publication_eval/latest.json`
-- `studies/<study_id>/artifacts/controller_decisions/latest.json`
-- `studies/<study_id>/artifacts/controller/controller_confirmation_summary.json`
-- `runtime/quests/<quest_id>/artifacts/reports/escalation/runtime_escalation_record.json`
-- explicit archive import reference: `ops/med-deepscientist/runtime/quests/<quest_id>/artifacts/reports/escalation/runtime_escalation_record.json`
-- `domain_diagnostic_report` 最新 report
+任何 projection 都不得：
 
-允许吸收但不赋予 authority 的 enrichment surface：
+- 从旧 queue、transition table、`current_work_unit`、`current_execution_envelope` 或 cached module object 重新选择 next action；
+- 把 `current_owner_delta`、PaperRecovery 或 operator card 当 Stage authority；
+- 把 docs/status prose、Git state、workspace-local service 或 historical MDS/Hermes state 当 current runtime truth；
+- 直接授权 publication-ready、submission-ready、artifact mutation 或 `current_package` 更新。
 
-- legacy enrichment: `quest_root/.ds/projections/details.v1.json`
-- legacy enrichment: `quest_root/.ds/bash_exec/summary.json`
+## Retirement gate
 
-这里的关键约束是：
+Legacy progress source 只有在以下条件全部成立后才能物理删除：
 
-- canonical truth 仍来自 durable surface
-- `progress_projection` 内的 `interaction_arbitration` 与 `continuation_state` 属于正式 typed status surface，可直接用于前台判断“这是用户阻塞，还是 MAS 已经仲裁为自动继续”
-- legacy `details` projection 与 `bash_exec` summary 只用于补充“最近完成了什么”“论文建议推进到哪一步”，不得作为 active quest lifecycle 或 publication authority
-- `.ds/codex_history` 原始事件流只保留给审计和调试场景；新 quest 不依赖 `.ds`、MDS Git 或 `.ds/worktrees` 维护前台进度
-- 只要 `runtime_supervision/latest.json` 报告 `recovering / degraded / escalated`，前台就必须优先展示 runtime health，论文阶段在展示顺序上后置
-- 只要 `progress_projection.supervisor_tick_audit` 报告 `missing / stale / invalid`，前台就必须明确表述“MAS 外环监管心跳异常”，并停止使用“持续托管监管”口径
-- 前台的人话进度固定来自这些 `MAS` durable surface、MAS owner refs 与 OPL `current_control_state` refs；外部 executor adapter、diagnostic 或历史 substrate 的状态只按实际已验证接入情况描述
-- `study_progress` / `progress_projection` 的 lazy controller import 必须通过 `med_autoscience.lazy_module_proxy` 解析，并在每次访问时尊重 `sys.modules` 当前模块身份。测试或 generated-interface runtime reload 可能会删除并重导入 `domain_status_projection`、`study_progress`、`owner_route_handoff` 等模块；projection 入口不得缓存旧模块对象后继续读取旧 currentness、旧 monkeypatch 或旧 provider-admission 状态。新增 lazy import 不得私自复制缓存代理实现，也不得用 `lru_cache` 固定 runtime controller module object。
+1. OPL hosted projection覆盖所有 current product/operator caller；
+2. StageRun/current-control + MAS owner refs 能提供 replacement parity；
+3. `domain_entry_contract`、mainline status、paper mission、owner-route handoff 等 caller 已迁移；
+4. no-active-caller、no-forbidden-write、source-closure 和 residue decision fresh green；
+5. 相关 tests 改为保护 V2 Stage/hosted projection boundary，而不是固定 V1 action；
+6. history/tombstone 保留且无 alias/no-resurrection 回退。
 
-## 4. 输出合同
+在此之前，正确状态是 `internal_migration_residue`，不是 current public surface，也不是 fully retired。
 
-`study_progress` 至少输出：
+## 验证边界
 
-- `study_macro_state`
-- `user_visible_projection`
-- `current_stage`
-- `current_stage_summary`
-- `paper_stage`
-- `paper_stage_summary`
-- `runtime_decision`
-- `runtime_reason`
-- `task_intake`
-- `progress_freshness`
-- `deliverable_progress_delta`
-- `paper_progress_delta`
-- `platform_repair_delta`
-- `progress_delta_classification`
-- `opl_current_control_state_refs`
-- `domain_authority_refs`
-- `runtime_reconcile_trigger`
-- `runtime_continuity`
-- `latest_events`
-- `autonomy_soak_status`
-- `autonomy_contract.restore_point`
-- `quality_closure_truth`
-- `quality_review_followthrough`
-- `research_runtime_control_projection`
-- `current_blockers`
-- `next_system_action`
-- `needs_physician_decision`
-- `physician_decision_summary`
-- `supervision`
-- `refs`
-
-其中：
-
-- `study_macro_state` 是用户宏观状态唯一源，短枚举固定为 `writer_state/user_next/reason`
-- `user_visible_projection` 是从 `study_macro_state` 派生的人类可见状态读模型；OPL generated CLI/MCP/status/workbench、attention queue 都只能消费它
-- `current_stage` / `current_stage_summary` / `current_blockers` / `next_system_action` 保留为从 `user_visible_projection` 派生的展示字段，不再作为入口自行解释状态的来源
-- `task_intake` 表示当前 latest durable study task intake 摘要
-- `paper_stage` 表示论文主线当前建议推进阶段
-- `progress_freshness` 表示“最近有没有明确研究推进信号”，用于尽早暴露卡住、没进度或空转
-- `deliverable_progress_delta` / `platform_repair_delta` 是 OPL generic 进展增量分账投影：前者只计论文/交付物推进、candidate package/display freshness proof、AI reviewer eval follow-through、gate replay 和 write repair，后者只计 controller/read-model/currentness/OPL provider 修复，避免把平台修复混报为交付物推进
-- `paper_progress_delta` 是 MAS paper-facing alias，必须与 `deliverable_progress_delta` 同值；新 generic consumer 应优先读取 `deliverable_progress_delta`
-- `progress_delta_classification` 使用 OPL shared 分类：`deliverable_progress`、`platform_repair`、`mixed`、`typed_blocker`、`human_gate` 或 `stop_loss`
-- 默认 PaperMission readback 只投影 materialized `PaperMissionRun`、governed consumption ledger、MAS stage outcome 与 Codex-selected route context。缺少这些输入时物化 `paper_mission_readback_missing` quality-debt/no-output diagnostic，并允许 Codex选择任一 declared stage；不得从 legacy projection、provider admission、OPL queue/attempt 或 PaperRecovery residue猜测语义 route。
-- `opl_stage_attempt_receipt` 是 transport receipt-only 投影：固定不能改变 `stage_terminal_decision`，不能选择 `next_owner`，不能授权 provider admission，也不能把 OPL closeout / queue / attempt 状态升级成 MAS stage completion truth。
-- `progress_first_monitoring_summary` 是已退出默认 generated `study_progress` action 输出的 legacy/provenance 聚合面。内部 diagnostic helper 仍可在显式测试或非默认诊断路径中复用它解释 active run / stage attempt / worker liveness / next owner / next work unit / blocker / stage delta，但默认 study progress readback 不再输出该字段，也不再让它参与 PaperMission completion、next-owner 或 provider-admission authority 判断。
-- 顶层 `current_work_unit`、`current_executable_owner_action`、`paper_recovery_state`、`progress_first_monitoring_summary`、`provider_attempt_candidates`、`provider_attempt_pending_count`、`transition_request_candidates` 和 `transition_request_pending_count` 不再属于默认 generated `study_progress` action 输出合同。它们只能作为内部 diagnostic / provenance / operator drilldown，或在非默认 diagnostic helper 中解释 OPL/provider liveness。旧散字段不得重新猜“下一步”。`admission_pending` 只表示 owner/provider admission 待启动；`running_provider_attempt` 只能来自 strict OPL/provider running proof，不能由 `opl-stage-attempt://...` handle、active_run provenance 或 stale handoff queue 推断。
-- `current_execution_envelope` 是 legacy diagnostic execution-state projection；`current_execution_evidence` 是 refs-only evidence / drilldown surface。Codex CLI 是唯一 next-stage authority，legacy `NextActionEnvelope` 只携带显式 route context。已消费 action 的 legacy envelope必须清空可执行投影，不能把同一旧 action重新显示为下一步。缺 user stage log、review request、stage packet currentness或 typed closeout时记录 quality-debt/currentness diagnostic；只有冲突或 stale identity才形成 currentness blocker。
-- `progress_first_monitoring_summary.next_forced_delta` 是 OPL hosted workbench 的 non-default operator drilldown 字段。它只能解释当前 nonbinding Codex route context owner 需要产出的 study-scoped delta 类型与最小可核查 evidence refs，例如 deliverable / paper delta、platform repair、typed blocker、human gate 或 stop-loss；它不是 action endpoint，也不是 completion claim，且不属于默认 generated `study_progress` action 顶层合同。`target_surface_specificity`、`missing_explicit_target_surface`、`target_surface_fallback_reason` 与 `target_surface_diagnostic` 用于区分 `owner_route.target_surface` / `owner_route.next_forced_target_surface` / `domain_transition.guard_boundary.required_owner_surface` / owner action policy 派生的精确 target 和 generic route obligation fallback。OPL current-control handoff 给出的未消费 `action_queue`、legacy `current_execution_envelope` 或 provider admission candidates 只是 carrier / liveness / diagnostic evidence；只有 nonbinding Codex route context identity 或 strict same-identity `running_provider_attempt` proof，才能压过旧 `domain_transition`、旧 typed blocker 和旧 top-level queue。target surface 应从 canonical next action 自带 `required_output_surface`、strict running attempt 的 work unit 或 owner action policy 派生。只有没有 canonical next action、仅有缺 target 的 legacy owner-route 时，已有精确 `domain_transition` target 才可作为 specificity diagnostic 补充。publication-gate replay work-unit family 必须映射到 `run_gate_clearing_batch` 的 output surface，而不是停在 `request_opl_stage_attempt` 的泛化 stage-admission surface。消费方必须把 deliverable / paper delta 与 platform repair 分区展示：refs-only ledger closure、stage replay receipt accounting、typed-blocker payload record / verify、owner-route currentness 和 projection hygiene 只能进入 `platform_repair_delta` 或 operator diagnostic，不能写入 `deliverable_progress_delta` / `paper_progress_delta`，也不能显示为论文主线正在推进。
-- `progress_first_monitoring_summary.dispatch_consumption` 是 per-study dispatch/receipt 对账 drilldown，优先读取 OPL handoff、legacy execution envelope 和 domain stage attempt receipt consumption。它只暴露 `consumption_status`、`action_fingerprint`、`receipt_ref`、`execution_status` 与 `unconsumed_duration_hours` 等 refs-only 字段，用于解释历史或非默认 operator drilldown 中的 receipt 消费状态；不得把 ready owner action 重新投影为默认顶层 action。
-- Progress-first consumed receipt 规则：当 `domain_transition.completion_receipt_consumption.status` 已是 `consumed` / `receipt_consumed` / `completed`，且同一 `domain_transition` 已给出新的、不同于被消费 receipt 本身的 `owner` / `controller_action` / `next_work_unit` 时，`progress_first_monitoring_summary` 只能在 non-default drilldown 中解释该 study 的 successor / supersession 关系；默认下一 owner/action 仍必须来自 nonbinding Codex route context、StageOutcome 或 MAS owner consumption。旧的 `current_execution_envelope.typed_blocker`、旧 OPL handoff blocker 或旧 AI reviewer assessment blocker 只能作为历史证据，不得继续覆盖为 top-level `blocked_typed_owner`。若被消费的是 `ai_reviewer_publication_eval` receipt，且当前 transition 仍是同一个 `return_to_ai_reviewer_workflow` / reviewer-record work unit，read model 必须投影为 `receipt_consumed` observability，不计入 `ready_for_owner_action_count`，也不得触发同一 receipt/read-model reconcile 重复消耗；若该同一已消费 reviewer work unit 同时携带 `typed_closeout_packet_required` 等 typed closeout blocker，`study-state-matrix` 必须投影为 `blocked_typed_owner`，next owner / action / work unit 只作为 provenance。`receipt_consumed` 是 terminal observability/status bucket，不是 ready action bucket；matrix consumer 必须先做 consumed identity 判断，再计算 ready counts 和 `throughput_bottleneck`。AI reviewer publication eval receipt 必须投影 `work_unit_id`、`work_unit_fingerprint` 与 `owner_route_currentness_basis`；有显式 identity 时必须按 identity 比较，同为 `ai_reviewer_publication_eval` 但 identity 不同的 record 必须进入新的 canonical owner action，不能被 receipt kind 或 work-unit 名称前缀误判为同一 consumed reviewer unit。若 legacy existing summary 只把 `return_to_ai_reviewer_workflow` action type 填入 `next_work_unit`，但 consumed receipt 自身携带 canonical reviewer-record work-unit identity，则该 action-type handoff 只能作为 provenance，不能重新生成 ready owner action。legacy receipt 缺 identity 时只能走兼容性 work-unit-id 判断，并应作为需要补 currentness identity 的诊断信号。
-- Progress-first receipt identity 规则：`owner_callable_receipt_consumption.status=consumed` 与 `ai_reviewer_publication_eval` consumed receipt 都必须把被消费 owner route 的 `work_unit_id`、`work_unit_fingerprint` 与 `owner_route_currentness_basis` 投影到 receipt / drilldown 语境；`current_controller_followthrough` 与 non-default `progress_first_monitoring_summary` 只能用这些字段判断同一 `action_type` + 同一 work unit 已关闭，不能因为 receipt 缺 identity 再投影同一个默认 owner action，也不能把不同 work unit 的 reviewer record 消费成同一个 receipt。创建时 dispatch receipt、provider receipt 或旧 read-model receipt 不能替代这组 currentness identity；缺 identity 时只能作为诊断缺口，不得计为 Progress-first 向后推进。
-- Progress-first owner action 选择规则：当 consumed transition 已给出新的 owner/action/work unit 时，`domain-action-request-materialize` 必须从该 transition 生成 fresh owner route/action，即使旧 `opl_current_control_state.owner_route` 仍指向上一轮 owner 或 `allowed_actions=[]`。StageOutcome / owner-callable authority 只能签收与当前 route 匹配的 dispatch；`consumer/latest.json` 里的旧 ready dispatch 不得因为未传 `--action-types` 就绕过 currentness filter。这个规则用于阻断 DM002/DM003 这类论文线在 AI reviewer receipt 已消费后继续重跑旧 reviewer dispatch，保持 Progress-first 直接进入下一 owner work unit。
-- Terminal stage artifact owner action 选择规则：当 StageOutcome 通过 nonbinding Codex route context 指向 terminal `publication_handoff_owner_gate` / `publication_gate_owner` 时，默认 `study_progress`、`domain-action-request-materialize` 和 owner-callable authority 只能投影这一个 envelope-bound owner/action。`stage_artifact_index.next_owner_action` 与旧 `current_executable_owner_action.source=stage_artifact_index.next_owner_action` 只能作为 diagnostic identity input，不能作为默认 next-action selector。旧 `run_quality_repair_batch`、`run_gate_clearing_batch`、stale `consumer/latest.json`、stale owner request 和 consumed-transition tail 只能作为 provenance 或 superseded diagnostic，不得重新计入 ready dispatch、writer stagnation、gate replay 或 generic owner-route hydration。
-- Progress-first same-tick dispatch 规则：当 `domain-action-request-materialize` 已写出 canonical owner request 与 persisted dispatch，StageOutcome / owner-callable authority 必须能通过同一 request surface 选择并签收该 dispatch，即使 workspace scan/read-model 尚未更新到新的 owner route，且 `consumer/latest.json` 为空。`run_gate_clearing_batch` 的 canonical request surface 是 `artifacts/supervision/requests/gate_clearing_batch/latest.json`；request owner route 必须与 dispatch owner route 精确匹配、允许同一 action/owner 并满足 Owner-Route Attempt Protocol。带 publication-owner bridge 的 dispatch 若 bridge scan-currentness 不匹配，可由同 tick owner request 授权；缺 request 或 route/currentness 不匹配时继续 fail closed。
-- OPL authorization blocker 投影规则：`publication_handoff_owner_gate` dry-run 可达 MAS owner callable 只说明 selector/currentness 链路有效；`apply` 缺 OPL provider attempt、attempt lease、execution authorization decision 或 closeout receipt binding 时，read model 必须投影 `opl_execution_authorization_required` typed blocker，owner=`one-person-lab`。该 blocker 不计为 MAS paper delta、publication gate cleared、provider running proof、`current_package` freshness 或 artifact mutation authorization，也不得把下一步退回旧 writer/gate tail。
-- Progress-first currentness 继承规则：当 current-control action 或 consumed-transition owner route 已有完整 `owner_route_currentness_basis`，且其 `work_unit_id` 或 `work_unit_fingerprint` 匹配当前生成的 owner work unit，`domain-action-request-materialize` 必须把该 basis 原样投影到 dispatch owner route、prompt contract 和 attempt envelope。缺 `runtime_health_epoch/source_eval_id` 的 fallback route 只能作为 fail-closed diagnostic，不能覆盖已有完整 basis，也不能让同一 work unit 回到重复 receipt/read-model reconcile。
-- Progress-first owner-route reconcile 优先级：当 consumed AI reviewer route-back 已给出 `request_opl_stage_attempt` 与新的 write/finalize owner work unit 时，`paper-mission-owner-surface` 必须让 consumed transition 压过旧 `ai_reviewer_request_lifecycle.state=requested|assigned`、旧 `ai_reviewer_assessment_required` 与旧 `opl_stage_attempt_admission_required` repair lifecycle。旧 pending request 可以保留为历史 refs，但不得把 owner route 重新投回 `return_to_ai_reviewer_workflow`，也不得保留 external-supervisor lifecycle 继续遮蔽当前 write/gate owner action。
-- `progress_first_monitoring_summary.latest_terminal_stage` 必须投影 terminal closeout 语义和 telemetry 完整性：`semantic_completeness`、`telemetry_completeness`、`missing_user_stage_log_fields`、`missing_observability_fields`、`closeout_refs` 与 `terminal_closeout_semantic_completeness`。缺 user-readable stage log 或 changed surfaces 时，读模型只能显示 typed blocker diagnostic 和 next forced delta，不能把 provider terminal status 读成 Stage 完成。若 terminal closeout 已携带明确 `changed_paper_surfaces` 或 `changed_stage_surfaces` 但缺 `progress_delta_classification`，read-model 应从 changed surfaces 推断 `deliverable_progress` 或 `platform_repair` 并保留 `progress_delta_classification_source`；duration/token/cost 缺失只作为 observability diagnostic，不能把真实 paper-facing delta 压回 `typed_closeout_packet_required`。
-- `semantic_completeness` 的 required field 判断是 schema presence 判断，不是非空内容判断：`changed_stage_surfaces=[]`、`changed_paper_surfaces=[]` 和 `remaining_blockers=[]` 都是合法的显式 typed closeout 字段。只有字段真正缺失时才可计入 `missing_closeout_semantics`；空列表可说明 no-op、无 paper delta 或无剩余 blocker，不能被误判为 closeout semantic 缺失。
-- `study-state-matrix.progress_first_tick_accounting` 是 workspace/tick 级 Progress-first 对账面，汇总 `expected_owner_action_count`、`ready_for_owner_action_count`、`running_provider_attempt_count`、`typed_blocker_count`、`human_gate_count`、`unconsumed_owner_action_count`、`overdue_owner_pickup_count`、`missing_closeout_semantics_count`、`generic_target_surface_count` 与 `throughput_bottleneck_counts`，并逐 study 投影 `priority_rank`、`monitoring_status`、`throughput_bottleneck`、target specificity、closeout semantic 缺口和 telemetry 缺口；`throughput_bottlenecks` 是同一排序 study list 的 operator alias。它必须优先消费 `progress_projection.progress_first_monitoring_summary` 或顶层 `progress_first_monitoring_summary`，保证 workspace 矩阵与单 study generated `study_progress` action 使用同一 active attempt、worker liveness、latest terminal stage 和 dispatch consumption 事实；当该 summary 已给出 current authoritative `execution_state_kind=executable_owner_action`、next owner/action/work unit 且与 raw `domain_transition` 不一致时，`study-state-matrix.studies[].domain_transition`、`domain_transition_table.rows` 和 `family_transition_matrix_cases` 也必须投影 current owner handoff，不能继续把旧 consumed receipt transition 暴露给 OPL runner 或 operator。`running` 只能来自 OPL/provider strict live proof：非空 active run、`running_provider_attempt=true`，且 runtime health 明确为 `live`、`running`、`provider_admitted` 或 `attempt_running`；单独存在的 `active_run_id`、`opl-stage-attempt://...` handle、continuation state 或 stale handoff queue 只作为 provenance，不能把已 closeout、route-back 或 stale attempt 计为运行中。若 typed execution envelope 已声明 `execution_state_kind=typed_blocker` / `blocked_typed_owner` 且携带 typed blocker，即使仍保留 next owner / controller action provenance，也必须投影为 `blocked_typed_owner`，避免 stop-loss 或机制修复 blocker 被计回 ready dispatch。它只能暴露“每个非终局 study 是否落到 running / ready dispatch / receipt consumed / typed blocker / human gate / stalled unconsumed action”之一，不授权 runtime 写入、paper/package 写入、quality verdict 或 publication ready。
-- `study-state-matrix.progress_first_tick_accounting` 对 generic target、missing explicit target 或缺 closeout semantics只记录 `owner_route_contract_quality_debt`，不改写 `monitoring_status`、不减少 ready counts，也不生成 `blocked_owner_route_contract`。Operator 可以看到 `generic_target_surface` / `missing_closeout_semantics` diagnostic，Codex仍可选择任一 declared stage。
-- `study-state-matrix.progress_first_tick_accounting` 与单 study `progress_first_monitoring_summary` 必须共享同一 consumed AI reviewer receipt identity 判断。若 consumed receipt、当前 transition 或 matrix 复用的 existing `progress_first_monitoring_summary` 任一侧带有 `work_unit_id` / `work_unit_fingerprint` / `owner_route_currentness_basis`，workspace matrix 必须按该 identity 判断是否为同一 reviewer-record work unit；不同 identity 的 reviewer record 计入当前 owner action，不得因 receipt kind、controller action 或 reviewer-record work-unit 前缀相同而压成 `receipt_consumed`。只有两侧都缺 identity 的 legacy receipt 才能使用前缀兼容，并应继续暴露 currentness identity 缺口。
-- `study-state-matrix.studies[].supervisor_monitoring_bundle` 是 supervisor read-only bundle：它把当前 stage、active run / stage attempt、provider status、worker liveness、24h stage timeline refs、latest closeout、`publication_eval/latest.json` 摘要、currentness、typed blocker 和 next work unit 放到同一个 per-study JSON 字段，供 DM002/DM003 这类监督场景直接读取。该 bundle 是 refs-only 监控入口，不能当 quality verdict、publication ready verdict、submission ready verdict 或写入许可。
-- 当 generated `launch_study` action 的 input 明确请求 user wakeup，并写入 `explicit_resume` truth event，generated product-entry launch policy 必须同时暴露 `owner_handoff_hydration_required=true`、hydration action 与 owner refs。`progress_first_monitoring_summary` 应优先把这解释成 OPL owner-route hydration/recovery work unit，而不是继续把旧 `entry_mode_not_managed`、`explicit_resume_pending` 或 `parked_owner=user` 表述为当前用户阻塞。
-- `opl_current_control_state_refs` 表示 OPL 当前 attempt / provider / queue / retry-dead-letter / worker liveness projection refs；MAS 不重新解释为 runtime authority
-- `domain_authority_refs` 表示 MAS owner receipt、typed blocker、owner-route locator、artifact/source/status locator 和 no-forbidden-write refs
-- `runtime_reconcile_trigger` 表示读入口是否可以展示 OPL next action 或 MAS typed blocker；它只返回推荐命令、去重 fingerprint 和 blocked reasons，不直接执行 relaunch/redrive
-- `runtime_continuity` 是给 OPL hosted status/workbench、generated product-entry/MCP 与 OPL handoff 的 compact projection，用来显示 OPL current-control-state ref、MAS owner receipt / typed blocker、next owner 与 why not running；它不重新解释 study truth
-- `latest_events` 必须带明确时间戳
-- `autonomy_soak_status` 用于表达最近一次已被 durable surface 记录的自治续跑 / outer-loop dispatch，至少要能回答“系统自动转去了哪条线、关键问题是什么、下一次确认看什么、证据引用在哪里”
-- `autonomy_contract.restore_point` 是恢复点与 human gate 的前台真相；调用方应读取其中的 `human_gate_required` 与 `summary`，不要从泛化 blocker 推断恢复许可
-- `quality_closure_truth` / `quality_review_followthrough` 分别表达质量闭环裁决与复评后的跟进状态，用于和 `autonomy_soak_status` 一起解释“系统是否仍在同线自动收口”
-- `research_runtime_control_projection` 是给 OPL generated status/workbench/product-entry 与上层 gateway 消费的控制投影；它必须把 `restore_point_surface`、`artifact_pickup_surface.pickup_refs`、safe action refs 与 `research_gate_surface` 固定到同一条 `study_progress` 字段路径上
-- `needs_physician_decision` 只在触达正式人类 gate 边界时为 true
-- `physician_decision_summary` 必须说明触达的是初始方向锁定、重大转向、止损、外部凭据/秘密、投稿客观信息或最终投稿前审计中的哪一类
-- `supervision` 至少包含 `browser_url`、`quest_session_api_url`、`active_run_id`、`launch_report_path` 或 OPL current-control-state refs；`active_run_id` / launch report 只是 provenance，不能单独证明 worker live
-- `supervision` 应同步暴露 `supervisor_tick_status`，用于前台解释当前是否仍有新鲜的 MAS 外环监管
-- `runtime_continuity` 和 `runtime_reconcile_trigger` 的 authority flags 必须保持 `quality_ready_authorized=false`、`publication_ready_authorized=false`、`submission_ready_authorized=false`
-- 双 delta 分账属于 read-model 解释层：不得据此写 `publication_eval/latest.json`、`controller_decisions/latest.json`、paper/package 或任何 domain/runtime authority surface
-
-Late-stage read-model 必须按 progress-first 解释：当同一轮同时出现 sprint delta、candidate package/display freshness proof、gate replay request 和 single next owner blocker / human gate 时，前台先报告 deliverable/paper-facing delta，再报告 gate replay 与下一 owner；不能先把 quality gate blocker 当成“没有交付物进展”。平台修复、projection hygiene、owner-route currentness 或 OPL refs-only ledger closure 只能进入 `platform_repair_delta`，不能冒充 DM002/DM003 deliverable/paper progress。
-
-Progress-first 也适用于无实际 writer 的停滞解释：当 `active_run_id=null`、`actual_write_active=false`，且 OPL provider / worker 未 ready、runtime handoff stale、runtime retry/dead-letter 或 owner-route admission 仍未完成时，`why_not_progressing` 必须优先暴露 runtime / liveness / owner-route 阻断，例如 `runtime_recovery_retry_budget_exhausted` 或当前 owner handoff blocker。`publication_supervisor_state.bundle_tasks_downstream_only` 只能保留为次级 paper gate / downstream delivery 信息，不能抢占主因。typed blocker closeout 中的 structured `remaining_blockers` 也必须折回可执行 current owner projection，例如 `manuscript_story_surface_delta_missing` 进入 write route-back，而不是表现成空等。
-
-`progress_first_monitoring_summary` 是 legacy/provenance 监督入口，不是默认 `study_progress` 顶层合同。`study-state-matrix`、MCP compact projection 和 Portal/workbench 若消费该字段，只能把它作为 operator drilldown，并优先展示 canonical `next_action_envelope` 的 owner、action family、work-unit identity、required output contract、admission pending evidence 和 strict running proof；旧 `current_work_unit.status`、`active_run_id`、`running_provider_attempt`、`worker_liveness`、`progress_delta_classification`、`stage_progress_log` 和 `latest_terminal_stage` 只能作为 drilldown。`running_provider_attempt=true` 可以作为观测字段保留，但 `execution_state_kind=running_provider_attempt` 只能在 strict same-identity live proof 成立时压过 owner action；裸 running flag 或 stale OPL attempt handle 不能遮蔽 canonical next action、当前 dispatch owner route 或 route-back work unit。该字段的 `authority_boundary` 必须保持 `can_write_runtime_owned_surfaces=false`、`can_write_paper_or_package=false`、`can_authorize_quality_verdict=false`、`can_authorize_publication_ready=false`；`foreground_write_policy.supervisor_only=true` 时，前台只能监督或走 MAS/OPL owner route，不得直接写 runtime-owned surfaces。
-
-Progress-first owner action 不能被同 fingerprint 读模型误判为重复调度。当当前 owner route 已授权 `write/run_quality_repair_batch` 或 `ai_reviewer/return_to_ai_reviewer_workflow`，且没有已消费 owner receipt 或明确 terminal gate 时，safe reconcile / same-fingerprint scan 仍必须保留当前 owner action，直到 owner pickup、typed blocker、human gate 或新的 paper-facing artifact delta 关闭该 work unit。repeat suppression 的职责是阻止重复 executor dispatch 和已消费失败路径重放，不能清空当前 owner-authorized action queue。
-
-前台 markdown / 线程回报的固定口径至少保持下面顺序：
-
-1. 当前阶段
-2. 当前任务
-3. 论文推进
-4. 运行监管
-5. 当前阻塞
-6. 下一步
-7. 医生/PI gate（仅在触达正式边界时出现）
-8. 最近进展
-9. 监督入口
-
-## 4.1 用户可见读模型
-
-`user_visible_projection` 固定为 `study_progress_user_visible_projection`，当前 schema version 为 `2`。它的定位是 truth projection，不是高位 orchestrator。它由 `study_progress` assembly/read-model 层从 `study_macro_state` 生成，入口层只消费，不再自己从低层 surface 拼接当前阶段、阻塞、下一步或证据。
-
-该读模型至少包含：
-
-- `writer_state`
-- `user_next`
-- `reason`
-- `package_delivered`
-- `actual_write_active`
-- `user_action_required`
-- `state_label`
-- `state_summary`
-- `current_stage` / `current_stage_summary`
-- `paper_stage` / `paper_stage_summary`
-- `current_blockers`
-- `next_system_action`
-- `needs_user_decision` / `needs_physician_decision`，均从 `user_action_required` 派生
-- `supervision`
-- `evidence.latest_events`
-- `evidence.refs`
-- `evidence_refs`
-- `study_macro_state`
-- `conditions`
-
-用户可见状态固定为一组短标签：
-
-- `自动运行中`：`writer_state=live`，存在实际 writer / active run。
-- `系统排队处理中`：`writer_state=queued`，当前无实际写入，但 MAS 已有明确 owner/action。
-- `投稿包已交付，自动停驻`：`package_delivered=true`，系统已释放运行资源。
-- `投稿包已交付，等待外部投稿信息`：`package_delivered=true`、`writer_state=parked`、`user_next=submit_info`、`reason=external_info`。
-- `用户暂停/手动停驻`：当前无实际写入，需要显式恢复或新方案。
-- `质量修复/复审中`：质量、artifact 或 runtime 有明确修复 owner。
-- `等待 OPL runtime handoff`：generic runtime lifecycle 需要 OPL 接管；MAS 只输出 domain blocker / handoff refs。
-- `止损/终止`：当前论文线不再自动推进，需新计划或明确重开。
-
-入口层规则：
-
-- OPL generated CLI/MCP/status/workbench 与 workspace alerts 必须读取 schema v2 `user_visible_projection`。
-- `study_progress` action 的顶层 `current_stage`、`current_stage_summary`、`current_blockers`、`next_system_action`、`paper_stage` 和用户态 writer 字段必须来自自身的 `user_visible_projection`，其中 `reason` 是用户态 Progress-First reason。
-- Workspace 监控通过 generated `study_progress` 和 `study_state_matrix` action 读取；repo-local `ops/medautoscience/bin/*`、`progress-projection` wrapper 与手写 CLI command 已退役。
-- 缺少 v2 `user_visible_projection` 时，入口只允许通过 assembly/read-model 层用 `study_macro_state` 生成；缺 `study_macro_state` 或发现 writer 冲突时必须 fail-closed 为 `inspect/conflict`，提示重新生成 canonical projection。
-- 入口不得回退到 legacy top-level `current_stage/current_blockers/next_system_action` 作为用户状态来源。
-- `user_visible_projection.conditions` 只表达 projection 状态，例如 `macro_state_known`、`package_delivered`、`actual_write_active`、`blocked`、`next_action_known`、`evidence_available`、`user_action_required`、`runtime_supervised`；不得作为 runtime write gate 或 publication quality authority。
-- `evidence.refs` 只保存可审计引用路径；任何质量关闭、投稿授权、runtime 写操作仍回到 `publication_eval/latest.json`、`controller_decisions/latest.json`、`progress_projection` 和对应 controller surface。
-
-这个形态借鉴两个成熟工程模式：
-
-- Kubernetes 的 object `spec/status` 分层：controller 观察真实世界并把当前状态写入 status，用户入口读取 status，而不是每个入口重新推断实际状态。
-- CQRS / materialized view：写模型持有 authority，读模型面向查询和展示优化，读模型可以由权威事件/状态重建。
-
-## 5. 人话约束
-
-面向医生 / 医学专家的前台文案必须遵守：
-
-- 先说临床/研究含义，再说技术动作
-- 避免把 `quest`, `projection`, `fingerprint`, `runtime reentry` 这类内部术语直接当主句
-- 百分比进度只在有正式计算口径时展示
-- 对正在自动推进的 study，前台应尽量暴露 progress freshness；如果超过阈值仍无明确推进记录，就应把“可能卡住 / 空转”诚实写出来
-- bundle/build/proofing 只有在其属于当前主线 next step 时展示为下一步；如果 `bundle_tasks_downstream_only=true`，就必须明确那是后续步骤
-- 如果当前需要人工确认，必须直说“需要医生/PI 确认”，并说明对应的人类 gate 边界
-- 如果 `interaction_arbitration.action == resume`，前台应采用仲裁后的 resume 结论
-- 如果 `continuation_reason == unchanged_finalize_state` 且 MAS 已判定自动继续，前台必须把它表述成“系统接管 runtime 的本地 finalize 停车”，并说明这是 `MAS` 自主恢复动作
-
-方向锁定之后，普通科研和论文质量判断应投影为 `MAS` 自主推进中的下一步，例如补充分析、证据账本更新、review ledger 更新、稿件结构修订或投稿包准备。只有触达正式人类 gate 边界时，前台才展示医生/PI 判断区块。
-
-## 6. 运行形态
-
-`MedAutoScience` 继续保持下面的运行形态：
-
-- OPL current control state 持有 runtime state、attempt event、recovery、worker liveness 和 quest/stage lifecycle projection；MAS 持有 domain authority refs、owner receipt、typed blocker 和 publication/artifact/source authority
-- 默认 outer supervision scheduler owner 是 OPL `opl_provider_runtime_manager` / `opl_family_runtime_provider`；MAS local scheduler surface 已物理退役为 tombstone/provenance refs，不再每 `300` 秒调用 MAS one-shot supervision tick，也不再暴露公开 status/remove/ensure command；Hermes gateway cron 只在显式 status/remove 时作为 legacy diagnostic cleanup adapter
-- `MedAutoScience` 作为 tick-driven controller / read-model owner
-- 新增 `study_progress` 作为只读 progress/watch/report projection
-
-前台想要持续刷新进度，可以通过：
-
-- OPL generated CLI/MCP/status/workbench 调用同一 `study_progress` action
-- OPL provider/runtime manager 按当前 StageRun/readback 周期刷新；显式 legacy local 只保留 tombstone/provenance，外部 executor adapter 只用于显式 proof lane、diagnostic 或旧 provenance path
-
-来持续刷新前台时间线。控制面仍由现有 runtime/control surface 承担，前台只读投影负责解释当前状态和人类 gate 边界。
-
-这不是旧 MDS resident daemon 的 1:1 行为复刻。默认在线监管 owner 是 OPL provider/runtime manager；MAS 只提供 domain supervision read model、owner receipt、typed blocker 和 direct/local 诊断投影。该组合能满足日常进度与恢复投影，但不会恢复 MDS WebSocket terminal streaming、connector background threads 或 in-memory session store。行为差异见 [MDS Behavior Equivalence Gap Matrix](../../references/mds-parity/mds_behavior_equivalence_gap_matrix.md)。
-
-## 7. OPL-hosted Workbench 入口
-
-这里固定 OPL-hosted workbench / App-native MAS study view 和 `study_progress` 的关系：
-
-- `study_progress.user_visible_projection` 是 OPL App-native MAS study workbench 的主要用户状态输入。
-- OPL generated status/product-entry/MCP 和 OPL App workbench 应消费同一套 projection，而不是各自解释状态。
-- MAS repo 不再生成或托管 Progress Portal 本地 materializer；需要长期托管、刷新、跨域唤醒或统一状态面时，由 OPL App / OPL Runtime Manager 消费同一 read-model 和 OPL handoff refs。
-- 旧 MDS WebUI 的可视化价值可以被吸收，但默认品牌、路径和用户可见语义必须是 `Med Auto Science`。
+Focused projection tests只能证明 read-only、same-identity、no-second-decision 与 no-forbidden-write。它们不能证明 OPL runtime live、paper progress、publication quality、owner acceptance 或 App production readiness。最终 public/default 关闭还需要 V2 interfaces、source-closure、conformance、default-callers 与 residue-decisions fresh readback。

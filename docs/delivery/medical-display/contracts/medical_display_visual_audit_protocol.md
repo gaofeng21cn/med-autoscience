@@ -124,14 +124,14 @@ belongs in the caption or notes; the figure body should use short, readable labe
 For submission package refresh, currentness is not enough. The package is not visually accepted until the latest
 PDF and the latest visual audit receipt are bound to the same rendered display surface. The normal refresh order is:
 
-1. invoke the OPL-generated `display_pack_render` action so registry/catalog-driven figures and tables are regenerated through the current Display Pack renderer;
-2. invoke the OPL-generated submission/export owner route so the PDF consumes those regenerated artifacts;
-3. invoke the MAS display visual-audit handler through its generated action surface so `paper/figure_visual_audit_receipt.json` is refreshed after the final PDF export and records the final `figure_catalog.json` artifact refs, sha256 values, layout sidecar refs, and purpose-first readability findings;
-4. invoke the delivery-sync owner route for `submission_minimal` so the human-facing current package mirrors the PDF and visual audit receipt;
+1. run `manuscript_authoring` and let its Stage executor select the current Display Pack renderer through the Tool Affordance Boundary;
+2. run `finalize_and_publication_handoff` so the PDF consumes those regenerated artifacts;
+3. run `review_and_quality_gate` with an independent visual reviewer so `paper/figure_visual_audit_receipt.json` is refreshed after final PDF export and records the final `figure_catalog.json` artifact refs, sha256 values, layout sidecar refs, and purpose-first readability findings;
+4. let `finalize_and_publication_handoff` bind `submission_minimal`, the PDF, and visual audit receipt to the same owner-controlled package refs;
 5. inspect the rendered PDF pages before claiming the package is latest or visually clear.
 
-`display_pack_orchestrate` remains the figure-intent/spec driven route. It is not required for older registry/catalog papers
-whose official owner route is the generated `display_pack_render` action.
+Figure-intent/spec orchestration and renderer selection are Stage-internal tool choices, not public actions. Legacy
+`display_pack_orchestrate` / `display_pack_render` handlers remain internal migration residue until their callers move.
 `paper/submission_minimal/paper.pdf` or `manuscript/current_package/paper.pdf` has fresh PDF metadata and rendered
 page inspection confirms figure order, table legibility, and absence of obvious text overlap.
 

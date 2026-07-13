@@ -1,0 +1,140 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://opl.onepersonlab/contracts/mas-stage-action.output.schema.json",
+  "title": "MAS hosted stage action result",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "surface_kind",
+    "schema_version",
+    "stage_id",
+    "status",
+    "artifact_refs",
+    "quality_debt_refs",
+    "negative_result_refs",
+    "failed_path_refs",
+    "authority_boundary"
+  ],
+  "properties": {
+    "surface_kind": {
+      "const": "mas_stage_action_result"
+    },
+    "schema_version": {
+      "const": 1
+    },
+    "stage_id": {
+      "enum": [
+        "direction_and_route_selection",
+        "baseline_and_evidence_setup",
+        "bounded_analysis_campaign",
+        "manuscript_authoring",
+        "review_and_quality_gate",
+        "finalize_and_publication_handoff"
+      ]
+    },
+    "status": {
+      "enum": [
+        "completed",
+        "completed_with_quality_debt",
+        "route_back",
+        "typed_blocker",
+        "human_gate",
+        "failed",
+        "no_output"
+      ]
+    },
+    "stage_outcome_ref": {
+      "$ref": "#/$defs/nullable_typed_ref"
+    },
+    "artifact_refs": {
+      "$ref": "#/$defs/typed_refs"
+    },
+    "owner_receipt_ref": {
+      "$ref": "#/$defs/nullable_typed_ref"
+    },
+    "typed_blocker_ref": {
+      "$ref": "#/$defs/nullable_typed_ref"
+    },
+    "human_gate_ref": {
+      "$ref": "#/$defs/nullable_typed_ref"
+    },
+    "quality_debt_refs": {
+      "$ref": "#/$defs/typed_refs"
+    },
+    "negative_result_refs": {
+      "$ref": "#/$defs/typed_refs"
+    },
+    "failed_path_refs": {
+      "$ref": "#/$defs/typed_refs"
+    },
+    "authority_boundary": {
+      "type": "object",
+      "additionalProperties": true,
+      "required": [
+        "domain_truth_owner",
+        "opl_can_write_domain_truth",
+        "provider_completion_is_domain_completion"
+      ],
+      "properties": {
+        "domain_truth_owner": {
+          "const": "MedAutoScience"
+        },
+        "opl_can_write_domain_truth": {
+          "const": false
+        },
+        "provider_completion_is_domain_completion": {
+          "const": false
+        }
+      }
+    }
+  },
+  "$defs": {
+    "typed_ref": {
+      "oneOf": [
+        {
+          "type": "string",
+          "minLength": 1
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "kind",
+            "ref"
+          ],
+          "properties": {
+            "kind": {
+              "type": "string",
+              "minLength": 1
+            },
+            "ref": {
+              "type": "string",
+              "minLength": 1
+            },
+            "sha256": {
+              "type": "string",
+              "pattern": "^sha256:[a-f0-9]{64}$"
+            }
+          }
+        }
+      ]
+    },
+    "nullable_typed_ref": {
+      "oneOf": [
+        {
+          "$ref": "#/$defs/typed_ref"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "typed_refs": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/typed_ref"
+      },
+      "uniqueItems": true
+    }
+  }
+}

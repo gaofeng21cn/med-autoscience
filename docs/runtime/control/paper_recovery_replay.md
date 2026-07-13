@@ -3,7 +3,7 @@
 Owner: `MedAutoScience`
 Purpose: `paper_recovery_authority_and_replay_runbook`
 State: `superseded_control_design`
-Machine boundary: 本文是人读设计与事故 replay runbook。机器真相归 `contracts/paper_recovery_kernel_contract.json`、fresh `study_progress`、Codex CLI route judgment、owner receipt、typed blocker、human gate、route-back evidence 和 canonical changed surface refs；transport readback 不选择或阻断 stage route。
+Machine boundary: 本文是人读历史事故 replay。机器真相归 `contracts/paper_recovery_kernel_contract.json`、OPL StageRun/current-control、MAS owner receipt、typed blocker、human gate、route-back evidence 和 canonical changed surface refs；legacy `study_progress` / `domain_handler_export` 仅作 internal diagnostic，transport readback 不选择或阻断 stage route。
 
 ## Supersession notice
 
@@ -49,10 +49,10 @@ Legacy provider-admission replay 若引用 `paper_recovery_state`，必须携带
 
 Replay 读取顺序固定为：
 
-1. fresh `study_progress`
+1. OPL same-identity StageRun/current-control 与 MAS current owner refs
 2. `paper_recovery_state`
 3. OPL current-control / attempt / worker live readback
-4. MAS `domain_handler_export` refs and same-identity transition/closeout evidence
+4. legacy MAS `study_progress` / `domain_handler_export` diagnostic refs and same-identity transition/closeout evidence
 5. owner receipt / typed blocker / human gate / route-back refs
 
 常见事故与裁决：

@@ -81,9 +81,9 @@ MAS artifact / evidence / authority refs
 
 route 语义由 Codex CLI 的 decisive Attempt 负责：
 
-- primary-only StageRun 的 producer，或 formal Review StageRun 的终局 reviewer / re-reviewer，读取 MAS `study_state_matrix`、stage artifact、阴性结果与 route-back hints，自主选择任意 declared stage。
-- producer / repairer / repair-required reviewer 等非终局 Attempt 只能返回 `route_impact.stage_route_recommendation`；终局 Attempt 返回 `route_impact.stage_route_decision`。repairer 永远不能绕过 fresh re-review。
-- OPL 只在 queue / stage attempt ledger 中记录 transport state、provider receipt、closeout、dead-letter、retry 和 human gate，不执行 transition / guard / matrix runner。
+- primary-only StageRun 的 producer，或 formal Review StageRun 的终局 reviewer / re-reviewer，从 OPL StageRun/current-control/hosted workbench 读取 current refs；MAS legacy `study_state_matrix` 只可作为 internal diagnostic drilldown。decisive Attempt 结合 stage artifact、阴性结果与 route-back hints，自主选择任意 declared stage。
+- producer / repairer，以及 repair budget 尚未耗尽时 outcome 为 `repair_required` 的 reviewer / re-reviewer，只能返回 `route_impact.stage_route_recommendation`；终局 decisive Attempt 返回 `route_impact.stage_route_decision`。repairer 永远不能绕过 fresh re-review。
+- OPL StageRun controller 校验 decisive Attempt 的 route decision 并物化 transition；它记录 queue / attempt ledger、provider receipt、closeout、dead-letter、retry 和 human gate，但不拥有医学 route approval，也不运行 MAS 私有 matrix runner。
 - MAS owner callable 返回医学 owner receipt、typed blocker、no-op currentness proof、route-back reason、human gate schema 或 artifact/memory/source refs。
 - OPL 只能存 refs 和调度下一 attempt；它不能写 MAS study truth、publication verdict、artifact body、memory body、`current_package` 或 submission readiness。
 
@@ -222,7 +222,7 @@ MDS / DeepScientist 的 handoff 学习口径是减少默认握手、保持单一
 | `owner_route_handoff_no_write` | domain-handler export/dispatch 只写 body-free handoff 和 dispatch receipt。 | focused tests 证明不写 `.ds/runtime_state.json`、`.ds/user_message_queue.json`、publication eval、controller decisions、`current_package`。 |
 | `journal_resolution_flow` | 指定 journal 格式整理进入 `journal-resolution` / `finalize` route + OPL stage graph。 | 目标 journal refs、format delta refs、artifact authority receipt、independent review/human gate/typed blocker 可被 OPL ingest。 |
 | `executor_reviewer_auditor_split` | stage control plane 和 handoff tests 已要求 executor、reviewer、auditor 分离为独立 OPL invocations。 | quality/format/publication gate 不允许同一 invocation 自审关闭。 |
-| `transition_context_projection` | MAS `study_state_matrix` 只把 route context、负结果、quality debt 与建议 route-back 暴露给 Codex/OPL read model。 | 不保留 transition table 执行器；owner receipt/typed blocker只约束强 claim或真实硬边界，不关闭普通 route。 |
+| `transition_context_projection` | OPL hosted read model 暴露 route context、负结果、quality debt 与建议 route-back；legacy MAS `study_state_matrix` 只作迁移期 internal diagnostic。 | 不保留 transition table 执行器；owner receipt/typed blocker只约束强 claim或真实硬边界，不关闭普通 route。 |
 | `runtime_control_plane_retirement` | runtime_transport、SQLite lifecycle、worker lease、status/workbench shell 中的通用 runtime 控制面按 no-alias 退役；当前 handoff/read-model 语义禁止 MAS generic queue、attempt ledger、scheduler、retry/dead-letter、worker residency、runtime lifecycle 或 read-model owner。 | 新投影只允许 domain authority refs、owner receipt、typed blocker 和 OPL handoff refs；发现 generic runtime owner 语义时按复活控制面处理。 |
 | `paper_line_canary` | 真实 paper-line 证明仍是开放证据尾项；repo canary 已固化 DM002 progress-first late-stage 顺序。下一步目标是把 canary 从顺序 fixture 推进到 read-model + schema validation + evidence available / stable typed blocker 可见。 | 产出真实 OPL attempt -> MAS owner chain 的 progress delta、candidate package/display freshness proof、AI reviewer/gate receipt、artifact movement、human gate、stop-loss、owner receipt 或 stable typed blocker；success refs、schema pass 或 canary available 不得读成 domain ready。 |
 | `progress_first_coscientist_affordance` | 六项 Co-Scientist 剩余机制已固定为 current-owner-native JIT affordance：next-delta tournament、bounded micro-candidate generation、critique-as-repair-hint、reusable lesson extraction、strategy retrospective、opportunistic knowledge prefetch。 | 只在当前 owner / gate 显式声明或由 current delta 形态隐含需要时提高下一 owner selection、reviewer gap finding 和 failed-path memory reuse 效率；不得阻断 route、不得关闭质量/出版/产物 authority、不得把 prefetch / score / platform repair 算作 paper progress。 |

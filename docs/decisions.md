@@ -75,7 +75,7 @@ Foundry 系列 canonical policy 只存在于 OPL Framework。MAS 不声明或安
 
 ## D-18 Standard Agent interface descriptor
 
-默认 profile/workspace/project 身份、workspace binding、direct-entry command template、runtime registration ref、progress aliases 与 routing hints 由 MAS 在 `contracts/domain_descriptor.json#/standard_agent_interface` 按 `opl_standard_agent_interface.v1` 声明，由 OPL generic consumer 验证和消费。OPL 不再从静态 registry 推断 MAS domain body，MAS 也不生成第二套 hosted surface。
+默认 profile/workspace/project 身份、workspace binding、runtime registration ref、progress aliases 与 routing hints 由 MAS 在 `contracts/domain_descriptor.json#/standard_agent_interface` 按 `opl_standard_agent_interface.v1` 声明，由 OPL generic consumer 验证和消费。descriptor 不再声明 `entry_command_template`、`manifest_command_template` 或 `runtime.dispatch_command`；公开执行从六个 V2 Stage action 生成，内部最小 authority callable 只由 closed handler registry 绑定。OPL 不再从静态 registry 推断 MAS domain body，MAS 也不生成第二套 hosted surface。
 
 ## D-20 验证按证据类型去重
 

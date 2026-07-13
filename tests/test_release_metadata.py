@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import json
 import subprocess
 import tomllib
 from pathlib import Path
@@ -28,6 +29,22 @@ def test_package_version_matches_python_package_version() -> None:
     version = pyproject_data["project"]["version"]
 
     assert f'__version__ = "{version}"' in init_text
+
+
+def test_immutable_agent_package_version_matches_release_metadata() -> None:
+    pyproject_data = tomllib.loads(
+        (REPO_ROOT / "pyproject.toml").read_text(encoding="utf-8")
+    )
+    manifest = json.loads(
+        (REPO_ROOT / "contracts" / "opl_agent_package_manifest.json").read_text(
+            encoding="utf-8"
+        )
+    )
+    version = pyproject_data["project"]["version"]
+
+    assert version == "0.2.1"
+    assert manifest["version"] == version
+    assert manifest["distribution_payload"]["immutable_tag"] == version
 
 
 def test_legacy_github_release_metadata_files_are_retired() -> None:

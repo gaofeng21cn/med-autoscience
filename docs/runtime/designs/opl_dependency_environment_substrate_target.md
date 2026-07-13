@@ -52,8 +52,8 @@ Machine boundary: 本文是 MAS 仓内记录的 OPL runtime environment substrat
 MAS 侧目标接入点：
 
 - `renderer_dependency_profile.json` 升级为 OPL 可消费的 `DependencyRequirementProfile`，其中 R/ggplot2 evidence renderer 声明基础 R 包，cohort/reporting-flow shell 另声明 `ggconsort`-capable profile；该 profile 把 `ggconsort` 声明为 GitHub source dependency `tgerke/ggconsort`。
-- `display_pack_agent.preflight` 查询 dependency receipt；缺失时返回 `opl_pack_substrate_issue`、`dependency_lock_refresh_required` 或 `human_or_admin_gate_required`。
-- `display_pack_render` 只消费 `DependencyRunContext`，不直接依赖 host PATH / site library，也不在 renderer 内安装 R 包或拉取 GitHub source。
+- `manuscript_authoring` Stage 内的 display preflight affordance 查询 dependency receipt；缺失时返回 `opl_pack_substrate_issue`、`dependency_lock_refresh_required` 或 `human_or_admin_gate_required` candidate。
+- display render affordance 只消费 `DependencyRunContext`，不直接依赖 host PATH / site library，也不在 renderer 内安装 R 包或拉取 GitHub source；旧 `display_pack_render` 是 internal residue，不是 public action。
 - `display_pack_lock.json`、render receipt 和 publication manifest 保存 dependency lock / receipt refs。
 - visual audit 继续审图，不审依赖；依赖回执不能替代视觉审计。
 - `cohort_flow_figure` 当前 checked-in renderer 是 R/ggplot2 + `ggconsort` subprocess renderer；`ggconsort` 来自 dependency intent 中的 GitHub source `tgerke/ggconsort`，必须由 OPL prepare 交付 managed run context 后再执行。缺 prepared receipt / run-context 时，MAS fail closed 到 dependency route；不能在 renderer 内安装依赖，也不能把任何 fallback 输出写成已使用 `ggconsort`。
