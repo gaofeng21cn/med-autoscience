@@ -321,7 +321,7 @@ def _capabilities() -> list[dict[str, Any]]:
             invocation_kind="descriptor_only_current_owner_input_refs",
             callable_surface="stage_route_contract_and_hypothesis_portfolio_pack",
             output_refs=["external-learning:co_scientist:<action_type>"],
-            role="hypothesis_portfolio_tournament_meta_review_refs_only_affordance",
+            role="hypothesis_portfolio_tournament_strategy_retrospective_refs_only_affordance",
         ),
         _capability(
             capability_id="nature_figure_display_contract_refs",

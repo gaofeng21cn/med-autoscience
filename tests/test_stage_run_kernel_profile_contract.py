@@ -34,15 +34,14 @@ def test_stage_run_kernel_profile_declares_minimal_stage_native_state_shell() ->
     ]
     assert profile["kernel_role"] == "minimal_state_shell_not_mas_controller_system"
     assert profile["stage_folder_manifest_role"] == "artifact_evidence_and_structure_contract"
-    assert profile["transition_authority"] == {
-        "terminal_transition_authority": (
-            "consumable_artifact_progress_or_owner_answer_or_hard_stop"
-        ),
-        "provider_completion_counts_as_transition": False,
-        "file_presence_counts_as_transition": False,
-        "quality_budget_exhaustion_blocks_transition": False,
-        "owner_receipt_required_for_quality_or_ready_claim": True,
-    }
+    route = profile["codex_semantic_route_policy"]
+    assert route["semantic_owner"] == "codex_cli"
+    assert route["readable_artifact_allows_any_declared_stage"] is True
+    assert route["provider_completion_is_route_decision"] is False
+    assert route["file_presence_without_readability_is_progress"] is False
+    assert route["quality_budget_exhaustion_blocks_route"] is False
+    assert route["owner_receipt_required_for_quality_or_ready_claim"] is True
+    assert route["framework_can_accept_reject_rank_or_override_route"] is False
 
     assert profile["required_object_models"] == [
         "StageRun",
@@ -82,11 +81,12 @@ def test_stage_folder_manifest_foundation_requires_role_artifacts_and_receipts()
     assert manifest["role_artifact_contract"]["role_is_interface"] is True
     assert manifest["role_artifact_contract"]["artifact_ref_body_included"] is False
     closeout = manifest["closeout_contract"]
-    assert closeout["requires_progress_receipt_or_owner_answer_or_hard_stop"] is True
+    assert closeout["structured_progress_receipt_preferred_not_required"] is True
+    assert closeout["readable_artifact_sufficient_for_progress"] is True
     assert closeout["owner_receipt_required_for_quality_or_ready_claim"] is True
     assert closeout["owner_receipt_ref_role"] == "domain_quality_or_ready_claim_authority"
     assert closeout["typed_blocker_ref_role"] == "legal_hard_stop_authority"
-    assert manifest["closeout_contract"]["output_only_stage_folder_is_orphan"] is True
+    assert manifest["closeout_contract"]["output_only_stage_folder_is_orphan"] is False
     assert manifest["projection_contract"]["projection_directory_is_authority"] is False
 
 
@@ -127,16 +127,12 @@ def test_stage_run_states_keep_provider_and_domain_closeout_separate() -> None:
         "InfrastructureCrashed",
         "Superseded",
     } <= set(states["exception_states"])
-    assert states["terminal_transition_authority"]["DomainAccepted"] == (
-        "MAS validates consumable artifact progress, consumes an owner answer, "
-        "or records a legal hard stop"
-    )
-    assert states["terminal_transition_authority"]["NextStageReady"] == (
-        "route emitted from validated progress, an owner answer, or a legal hard stop"
-    )
     assert states["provider_completion_counts_as_domain_accepted"] is False
     assert states["stage_folder_files_count_as_next_stage_ready"] is False
-    assert states["validated_consumable_artifact_progress_counts_as_transition"] is True
+    assert states["latest_json_counts_as_domain_accepted"] is False
+    assert states["read_model_can_select_semantic_route"] is False
+    assert states["readable_artifact_counts_as_progress_input"] is True
+    assert states["codex_can_route_to_any_declared_stage"] is True
     assert states["quality_debt_counts_as_quality_acceptance"] is False
 
 
@@ -150,6 +146,7 @@ def test_ordinary_progress_handoff_accepts_t0_progress_delta_without_ready_claim
     assert handoff["executor_output_requirement"] == "concrete_delta"
     assert handoff["accepted_closeout_shapes"] == [
         "ProgressDeltaReceipt",
+        "RawReadableArtifact",
         "OwnerReceipt",
         "TypedBlocker",
         "human_gate_ref",
@@ -240,12 +237,14 @@ def test_stage_run_object_models_capture_stage_folder_manifest_and_receipt_refs(
     assert models["ArtifactRef"]["file_presence_counts_as_completion"] is False
 
     assert models["OwnerReceipt"]["owner"] == "med-autoscience"
-    assert models["OwnerReceipt"]["transition_authority"] == "success_or_route_handoff"
+    assert models["OwnerReceipt"]["role"] == "domain_success_or_route_handoff_receipt"
+    assert models["OwnerReceipt"]["codex_route_input_role"] == "quality_or_owner_answer_context"
     assert "consumed_artifact_refs" in models["OwnerReceipt"]["required_fields"]
     assert "produced_artifact_refs" in models["OwnerReceipt"]["required_fields"]
 
     assert models["TypedBlocker"]["owner"] == "med-autoscience"
-    assert models["TypedBlocker"]["transition_authority"] == "blocked_or_deferred_domain_outcome"
+    assert models["TypedBlocker"]["role"] == "stable_domain_blocker_or_deferred_outcome"
+    assert models["TypedBlocker"]["codex_route_input_role"] == "legal_hard_stop_or_deferred_context"
     assert {
         "blocker_type",
         "blocking_owner",
@@ -256,7 +255,7 @@ def test_stage_run_object_models_capture_stage_folder_manifest_and_receipt_refs(
 
     assert models["ReadModel"]["owner"] == "opl_or_product_projection"
     assert models["ReadModel"]["authority_boundary"]["rebuildable_projection"] is True
-    assert models["ReadModel"]["authority_boundary"]["can_write_transition"] is False
+    assert models["ReadModel"]["authority_boundary"]["can_select_semantic_route"] is False
     assert models["ReadModel"]["authority_boundary"]["can_promote_latest_to_authority"] is False
 
 
@@ -268,7 +267,7 @@ def test_coscientist_strategy_refs_stay_within_stage_and_advisory() -> None:
         "candidate_generation_refs",
         "reflection_refs",
         "review_refs",
-        "meta_review_refs",
+        "strategy_retrospective_refs",
         "ranking_refs",
         "proximity_refs",
         "evolution_refs",
@@ -288,7 +287,7 @@ def test_coscientist_strategy_refs_stay_within_stage_and_advisory() -> None:
         "bounded_micro_candidate_generation",
         "critique_as_repair_hint",
         "reusable_lesson_extraction",
-        "triggered_meta_review",
+        "strategy_retrospective",
         "opportunistic_knowledge_prefetch",
     ]
     assert boundary["progress_jit_affordance_can_block_attempt_when_missing"] is False
@@ -296,7 +295,7 @@ def test_coscientist_strategy_refs_stay_within_stage_and_advisory() -> None:
     assert boundary["micro_candidate_unselected_branch_blocks_route"] is False
     assert boundary["critique_hint_can_close_quality_gate"] is False
     assert boundary["reusable_lesson_max_refs_per_invoked_attempt"] == 1
-    assert boundary["meta_review_triggered_only_by"] == [
+    assert boundary["strategy_retrospective_triggered_only_by"] == [
         "stop_loss_candidate",
         "repeated_failure",
         "human_gate_pressure",
@@ -329,7 +328,7 @@ def test_stage_run_kernel_boundary_keeps_mas_authority_and_opl_runtime_substrate
         "memory_accept_reject",
         "owner_receipt",
         "typed_blocker",
-        "route_decision",
+        "domain_route_context",
     ]
     assert boundary["forbidden_opl_authority"] == [
         "write_mas_study_truth",
@@ -390,12 +389,12 @@ def test_legacy_runtime_wrappers_are_retired_to_diagnostic_or_provenance_roles()
     ]
 
 
-def test_projection_surfaces_are_explicitly_forbidden_as_transition_authority() -> None:
+def test_projection_surfaces_are_explicitly_forbidden_as_semantic_route_authority() -> None:
     projection = _profile()["projection_boundary"]
 
     assert projection["read_models_are_rebuildable"] is True
     assert projection["latest_progress_portal_and_workbench_are_projection_only"] is True
-    assert projection["forbidden_transition_authority"] == [
+    assert projection["forbidden_semantic_route_sources"] == [
         "publication_eval/latest.json",
         "controller_decisions/latest.json",
         "study_progress_projection",
@@ -428,7 +427,7 @@ def test_stage_run_canary_requires_coscientist_refs_without_legacy_wrapper_autho
         "candidate_generation_refs",
         "reflection_refs",
         "review_refs",
-        "meta_review_refs",
+        "strategy_retrospective_refs",
     ]
     assert canary["coscientist_strategy_refs_authority"] == "advisory_within_stage_only"
     assert canary["canary_success_requires"] == [
@@ -464,7 +463,7 @@ def test_controlled_stage_run_canary_evidence_shape_is_locked() -> None:
         "grounded_reflection",
         "comparative_selection",
         "evolution_and_revision",
-        "meta_review_learning",
+        "strategy_retrospective",
         "independent_quality_gate",
     ]
     for strategy in strategy_trace.values():
@@ -483,7 +482,7 @@ def test_controlled_stage_run_canary_role_artifacts_and_closeout_are_refs_only()
         "reflection_review_ref",
         "ranking_selection_ref",
         "revision_lineage_ref",
-        "meta_review_ref",
+        "strategy_retrospective_ref",
         "independent_gate_ref",
     ]
     role_artifacts = evidence["role_artifact_refs"]
@@ -579,25 +578,25 @@ def test_controlled_canary_operator_summary_is_read_model_only_and_fails_closed_
         "publication_ready",
         "artifact_mutation_authorized",
         "current_package_updated",
-        "legacy_runtime_residue_authorizes_transition",
+        "legacy_runtime_residue_authorizes_semantic_route",
     } <= set(summary["forbidden_operator_claims"])
     assert set(contract["forbidden_operator_claims_must_include"]) <= set(
         summary["forbidden_operator_claims"]
     )
-    assert "legacy_runtime_residue_authorizes_transition" in boundary["forbidden_operator_claims"]
+    assert "legacy_runtime_residue_authorizes_semantic_route" in boundary["forbidden_operator_claims"]
     assert evidence["claim_boundary"]["claims_live_domain_progress"] is False
     assert evidence["claim_boundary"]["claims_paper_closure"] is False
     assert evidence["claim_boundary"]["claims_publication_ready"] is False
 
 
-def test_controlled_canary_legacy_runtime_residue_guard_cannot_authorize_transition() -> None:
+def test_controlled_canary_legacy_runtime_residue_guard_cannot_select_semantic_route() -> None:
     profile = _profile()
     evidence = _controlled_canary_evidence()
     contract = profile["controlled_canary_operator_summary_contract"]
     guard = evidence["legacy_runtime_residue_guard"]
     retirement = profile["legacy_runtime_wrapper_retirement"]
 
-    assert guard["guard_kind"] == "legacy_runtime_residue_transition_authority_guard"
+    assert guard["guard_kind"] == "legacy_runtime_residue_no_semantic_route_authority_guard"
     assert guard["retired_surfaces"] == retirement["retired_mas_local_surfaces"]
     assert guard["allowed_roles"] == [
         "migration_input",
@@ -608,9 +607,9 @@ def test_controlled_canary_legacy_runtime_residue_guard_cannot_authorize_transit
     assert guard["residue_presence_counts_as_stage_progress"] is False
     assert guard["residue_presence_counts_as_closeout"] is False
     assert guard["operator_summary_must_not_promote_residue"] is True
-    assert contract["legacy_runtime_residue_can_authorize_transition"] is False
+    assert contract["legacy_runtime_residue_can_select_semantic_route"] is False
     assert {
-        "stage_transition",
+        "semantic_stage_route_selection",
         "domain_closeout",
         "publication_quality_verdict",
         "artifact_mutation_authorization",

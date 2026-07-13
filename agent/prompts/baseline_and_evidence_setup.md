@@ -13,6 +13,13 @@ Establish a reproducible baseline, comparator, source/provenance chain, and
 primary evidence basis for the selected route. Produce a supportable claim
 boundary or an exact source/evidence repair route.
 
+## Quality Cycle
+
+Produce the best baseline artifact for this attempt role. Same-thread checking
+is `in_thread_refinement` only. Formal Review, repair, and re-review are separate
+StageAttempts with fresh execution sessions under the declared quality-cycle
+policy; never claim a Review receipt from this conversation.
+
 ## Good Work
 
 - Resolve cohort, inclusion/exclusion, endpoint, exposure or model target,

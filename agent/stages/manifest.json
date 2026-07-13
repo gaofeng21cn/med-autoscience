@@ -3,6 +3,8 @@
   "version": "opl-standard-agent-declarative-stage-manifest.v1",
   "target_domain_id": "mas",
   "owner": "mas",
+  "quality_governance_profile_ref": "contracts/opl-framework/official-knowledge-deliverable-quality-profile.json",
+  "meta_review_policy_ref": "contracts/stage_quality_cycle_policy.json#/meta_review_policy",
   "progress_first_policy": {
     "consumable_artifact_advances_stage": true,
     "no_output_or_failure_diagnostic_advances_stage": true,
@@ -23,6 +25,7 @@
     {
       "stage_id": "direction_and_route_selection",
       "stage_kind": "planning",
+      "stage_quality_cycle_policy_ref": "contracts/stage_quality_cycle_policy.json#/stage_policies/direction_and_route_selection",
       "title": "Direction and route selection",
       "summary": "Select a medically defensible study direction and route from current evidence.",
       "goal": "Choose the next research route without treating OPL transport or provider state as medical truth.",
@@ -261,7 +264,7 @@
             "micro_candidate_board_ref",
             "critique_repair_hint_ref",
             "memory_lesson_ref",
-            "meta_review_trigger_ref",
+            "strategy_retrospective_ref",
             "opportunistic_prefetch_ref"
           ],
           "progress_enhancement_refs_block_route": false,
@@ -406,6 +409,7 @@
     {
       "stage_id": "baseline_and_evidence_setup",
       "stage_kind": "source_preparation",
+      "stage_quality_cycle_policy_ref": "contracts/stage_quality_cycle_policy.json#/stage_policies/baseline_and_evidence_setup",
       "title": "Baseline and evidence setup",
       "summary": "Establish source readiness, study baseline, and the evidence boundary.",
       "goal": "Bind data, source, claim, and artifact refs before analysis is accepted as claim-bearing evidence.",
@@ -643,7 +647,7 @@
             "micro_candidate_board_ref",
             "critique_repair_hint_ref",
             "memory_lesson_ref",
-            "meta_review_trigger_ref",
+            "strategy_retrospective_ref",
             "opportunistic_prefetch_ref"
           ],
           "progress_enhancement_refs_block_route": false,
@@ -784,6 +788,7 @@
     {
       "stage_id": "bounded_analysis_campaign",
       "stage_kind": "domain_specific",
+      "stage_quality_cycle_policy_ref": "contracts/stage_quality_cycle_policy.json#/stage_policies/bounded_analysis_campaign",
       "title": "Bounded analysis campaign",
       "summary": "Run the accepted analysis route within explicit evidence and authority bounds.",
       "goal": "Produce reviewable analysis refs without widening claims beyond the accepted study boundary.",
@@ -1022,7 +1027,7 @@
             "micro_candidate_board_ref",
             "critique_repair_hint_ref",
             "memory_lesson_ref",
-            "meta_review_trigger_ref",
+            "strategy_retrospective_ref",
             "opportunistic_prefetch_ref"
           ],
           "progress_enhancement_refs_block_route": false,
@@ -1159,6 +1164,7 @@
     {
       "stage_id": "manuscript_authoring",
       "stage_kind": "creation",
+      "stage_quality_cycle_policy_ref": "contracts/stage_quality_cycle_policy.json#/stage_policies/manuscript_authoring",
       "title": "Manuscript authoring",
       "summary": "Draft and revise the manuscript against accepted analysis and evidence refs.",
       "goal": "Materialize a reviewable manuscript without self-authorizing publication quality.",
@@ -1397,7 +1403,7 @@
             "micro_candidate_board_ref",
             "critique_repair_hint_ref",
             "memory_lesson_ref",
-            "meta_review_trigger_ref",
+            "strategy_retrospective_ref",
             "opportunistic_prefetch_ref"
           ],
           "progress_enhancement_refs_block_route": false,
@@ -1649,6 +1655,8 @@
     {
       "stage_id": "review_and_quality_gate",
       "stage_kind": "review",
+      "stage_role": "cross_stage_meta_review",
+      "stage_quality_cycle_policy_ref": "contracts/stage_quality_cycle_policy.json#/stage_policies/review_and_quality_gate",
       "title": "Review and quality gate",
       "summary": "Run independent medical, statistical, evidence, and display review.",
       "goal": "Return an owner receipt, typed blocker, human gate, or route-back from independent review evidence.",
@@ -1889,7 +1897,7 @@
             "micro_candidate_board_ref",
             "critique_repair_hint_ref",
             "memory_lesson_ref",
-            "meta_review_trigger_ref",
+            "strategy_retrospective_ref",
             "opportunistic_prefetch_ref"
           ],
           "progress_enhancement_refs_block_route": false,
@@ -2228,6 +2236,7 @@
     {
       "stage_id": "finalize_and_publication_handoff",
       "stage_kind": "packaging",
+      "stage_quality_cycle_policy_ref": "contracts/stage_quality_cycle_policy.json#/stage_policies/finalize_and_publication_handoff",
       "title": "Finalize and publication handoff",
       "summary": "Freeze the accepted package and return publication-facing authority refs.",
       "goal": "Prepare the final inspection and publication handoff without bypassing human submission authority.",
@@ -2465,7 +2474,7 @@
             "micro_candidate_board_ref",
             "critique_repair_hint_ref",
             "memory_lesson_ref",
-            "meta_review_trigger_ref",
+            "strategy_retrospective_ref",
             "opportunistic_prefetch_ref"
           ],
           "progress_enhancement_refs_block_route": false,

@@ -23,6 +23,22 @@
     "default_stage_id": "direction_and_route_selection",
     "forbidden_owner_tokens": []
   },
+  "quality_governance": {
+    "profile_ref": "contracts/stage_quality_cycle_policy.json",
+    "required_for_all_canonical_stages": true,
+    "formal_review_requires_independent_attempt": true,
+    "formal_review_requires_new_execution_session": true,
+    "no_context_inheritance_required": true,
+    "same_thread_checking_is_in_thread_refinement_only": true,
+    "default_max_quality_revision_rounds": 3,
+    "meta_review_stage_id": "review_and_quality_gate"
+  },
+  "canonical_stage_mapping": {
+    "source_ref": "contracts/stage_quality_cycle_policy.json#/canonical_to_physical_stage_mapping",
+    "canonical_stage_count": 6,
+    "physical_stage_count": 8,
+    "legacy_routes_are_runtime_inputs_not_canonical_stages": true
+  },
   "physical_morphology": {
     "scan_roots": [
       "agent/",

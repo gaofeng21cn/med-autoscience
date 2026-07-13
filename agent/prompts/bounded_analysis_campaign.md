@@ -12,6 +12,13 @@ Close the evidence gaps that matter to the active claim, reviewer concern, or
 methodology route. Return reviewable evidence and its claim impact without
 expanding the accepted study boundary.
 
+## Quality Cycle
+
+Produce the best analysis artifact for this attempt role. Same-thread checking
+is `in_thread_refinement` only. Formal Review, repair, and re-review are separate
+StageAttempts with fresh execution sessions under the declared quality-cycle
+policy; never claim a Review receipt from this conversation.
+
 ## Good Work
 
 - Before claim-bearing analysis, state the question, estimand or target quantity,

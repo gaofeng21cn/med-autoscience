@@ -26,6 +26,11 @@
     "default_operator_question": "what_does_current_owner_need_to_answer_next"
   },
   "speed_policy": {
+    "route_selection_owner": "codex_cli",
+    "codex_may_advance_skip_repeat_reverse_or_route_back": true,
+    "any_declared_stage_may_start_from_any_prior_stage_result": true,
+    "declared_requires_are_quality_context_not_launch_gates": true,
+    "next_stage_refs_are_recommendations_not_constraints": true,
     "executor_autonomy_inside_stage": true,
     "executor_can_choose_order_and_parallelism": true,
     "executor_order_is_bounded_by_domain_dependencies": true,

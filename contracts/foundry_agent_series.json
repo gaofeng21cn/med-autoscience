@@ -7,7 +7,7 @@
   "canonical_skeleton_contract_ref": "contracts/opl-framework/standard-domain-agent-skeleton-contract.json",
   "shared_policy_release": {
     "policy_release_contract_ref": "contracts/opl-framework/foundry-agent-series-policy-release.json",
-    "policy_bundle_fingerprint": "sha256:30a1d0034eeafbf5ea042fc33c64af585c3e68276328eb97d20903105087bb5d",
+    "policy_bundle_fingerprint": "sha256:2abdcbe6e7c238dfc0bcbff2251fb0eda505647927446a6fbf47ae8b28253415",
     "fingerprint_algorithm": "sha256:stable-json",
     "domain_contract_policy_release_pin_required": true,
     "domain_adapter_must_not_copy_policy_body_as_authority": true,

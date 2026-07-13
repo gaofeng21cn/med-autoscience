@@ -31,7 +31,7 @@
         "reflection_review_ref",
         "ranking_selection_ref",
         "revision_lineage_ref",
-        "meta_review_ref",
+        "strategy_retrospective_ref",
         "independent_gate_ref"
       ],
       "closeout_requires": "owner_receipt_or_typed_blocker",
@@ -90,11 +90,11 @@
       "authority": "advisory_within_stage_only",
       "can_closeout": false
     },
-    "meta_review_learning": {
+    "strategy_retrospective": {
       "refs": [
         {
-          "ref": "mas://controlled-canary/stage-run/ai-reviewer-publication-eval-rebuild/meta-review",
-          "role": "meta_review_ref",
+          "ref": "mas://controlled-canary/stage-run/ai-reviewer-publication-eval-rebuild/strategy-retrospective",
+          "role": "strategy_retrospective_ref",
           "body_included": false
         }
       ],
@@ -134,9 +134,9 @@
       "role": "revision_lineage_ref",
       "body_included": false
     },
-    "meta_review_ref": {
-      "ref": "mas://controlled-canary/stage-run/ai-reviewer-publication-eval-rebuild/meta-review",
-      "role": "meta_review_ref",
+    "strategy_retrospective_ref": {
+      "ref": "mas://controlled-canary/stage-run/ai-reviewer-publication-eval-rebuild/strategy-retrospective",
+      "role": "strategy_retrospective_ref",
       "body_included": false
     },
     "independent_gate_ref": {

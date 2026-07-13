@@ -13,6 +13,13 @@ Turn current evidence into a coherent, reviewable manuscript delta that carries
 the active claim faithfully and exposes any remaining evidence, citation,
 display, source, or artifact gap.
 
+## Quality Cycle
+
+Produce the best manuscript artifact for this attempt role. Same-thread checking
+is `in_thread_refinement` only. Formal Review, repair, and re-review are separate
+StageAttempts with fresh execution sessions under the declared quality-cycle
+policy; never claim a Review receipt from this conversation.
+
 ## Good Work
 
 - Bind every substantive claim to current evidence, source/citation, display,

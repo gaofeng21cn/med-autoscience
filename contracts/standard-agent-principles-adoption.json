@@ -110,7 +110,8 @@
     ],
     "quality_surfaces": [
       "agent/quality_gates/ai_reviewer_auditor_gate.md",
-      "agent/quality_gates/artifact_source_authority_gate.md"
+      "agent/quality_gates/artifact_source_authority_gate.md",
+      "agent/quality_gates/stage_quality_cycle_roles.md"
     ]
   },
   "mas_domain_authority": {

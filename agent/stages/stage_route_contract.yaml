@@ -16,7 +16,7 @@ progress_first_jit_affordance_policy:
     - decision
     - journal-resolution
   source_ref: agent/stages/stage_native_semantic_pack.yaml#/stage_native_semantic_pack/progress_enhancement
-  route_obligation: Co-Scientist-style generation, tournament, critique, memory, meta-review, and prefetch are current-owner-native JIT affordances. They are available to the ordinary route, are not default route motions, and auto-run only when the current owner action, owner route, route-back, typed blocker, reviewer gate, or stop-loss decision explicitly declares or implicitly requires the ref family, repair context, briefing, or arbitration for the current delta shape.
+  route_obligation: Co-Scientist-style generation, tournament, critique, memory, strategy retrospective, and prefetch are current-owner-native JIT affordances. They are available to the ordinary route, are not default route motions, and auto-run only when the current owner action, owner route, route-back, typed blocker, reviewer gate, or stop-loss decision explicitly declares or implicitly requires the ref family, repair context, briefing, or arbitration for the current delta shape.
   allowed_outputs:
     - ranked_next_owner_delta_refs_advisory
     - reviewer_repair_hint_refs_advisory
@@ -39,7 +39,7 @@ progress_first_jit_affordance_policy:
     next_delta_tournament: at_most_1_per_attempt_for_ordering_only
     critique_as_repair_hint: at_most_3_reviewer_hints_per_attempt
     reusable_lesson_extraction: at_most_1_reusable_refs_only_lesson_ref_per_invoked_attempt
-    triggered_meta_review: only_for_stop_loss_repeated_failure_human_gate_claim_boundary_drift_or_no_loop_budget
+    strategy_retrospective: only_for_stop_loss_repeated_failure_human_gate_claim_boundary_drift_or_no_loop_budget
     opportunistic_knowledge_prefetch: refs_only_and_must_not_delay_next_owner_dispatch
   anti_stall_requirements:
     - JIT affordance work must be skipped or truncated before it delays owner dispatch

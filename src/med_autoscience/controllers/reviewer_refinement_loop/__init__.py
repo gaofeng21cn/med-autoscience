@@ -43,6 +43,18 @@ _QUALITY_REPAIR_BATCH_PATH = Path("artifacts/controller/quality_repair_batch/lat
 _REVIEW_LEDGER_FALLBACK_PATH = Path("paper/review/review_ledger.json")
 _REPAIR_PLANNING_MODE = "repair_planning_only"
 _ACCEPTED_MODE = "accepted"
+_CANONICAL_STAGE_FOR_ROUTE = {
+    "scout": "direction_and_route_selection",
+    "idea": "direction_and_route_selection",
+    "baseline": "baseline_and_evidence_setup",
+    "experiment": "bounded_analysis_campaign",
+    "analysis-campaign": "bounded_analysis_campaign",
+    "write": "manuscript_authoring",
+    "review": "review_and_quality_gate",
+    "finalize": "finalize_and_publication_handoff",
+    "decision": "review_and_quality_gate",
+    "journal-resolution": "finalize_and_publication_handoff",
+}
 
 
 def _text(value: object) -> str:
@@ -257,11 +269,15 @@ def _first_same_line_route_back(
     for action in _list_of_mappings(publication_eval.get("recommended_actions")):
         if _text(action.get("action_type")) != StudyDecisionType.ROUTE_BACK_SAME_LINE.value:
             continue
+        route_target = _text(action.get("route_target")) or "review"
         return {
             "action_id": _text(action.get("action_id")) or None,
             "action_type": StudyDecisionType.ROUTE_BACK_SAME_LINE.value,
             "priority": _text(action.get("priority")) or "now",
-            "route_target": _text(action.get("route_target")) or "review",
+            "route_target": route_target,
+            "defect_owner_stage_id": _CANONICAL_STAGE_FOR_ROUTE.get(
+                route_target, "review_and_quality_gate"
+            ),
             "route_key_question": _text(action.get("route_key_question")) or None,
             "route_rationale": _text(action.get("route_rationale"))
             or _text(action.get("reason"))
@@ -536,6 +552,7 @@ def _fallback_route_back(
         "action_type": StudyDecisionType.ROUTE_BACK_SAME_LINE.value,
         "priority": "now",
         "route_target": target,
+        "defect_owner_stage_id": _CANONICAL_STAGE_FOR_ROUTE[target],
         "route_key_question": key_question,
         "route_rationale": rationale,
         "requires_controller_decision": True,
@@ -707,6 +724,12 @@ def build_reviewer_refinement_loop_read_model(*, study_root: str | Path) -> dict
         "contract": {
             "read_model_only": True,
             "mode_when_blocked": _REPAIR_PLANNING_MODE,
+            "reviewer_inline_repair_allowed": False,
+            "repair_requires_new_stage_attempt": True,
+            "repair_requires_new_execution_session": True,
+            "re_review_requires_new_stage_attempt": True,
+            "re_review_requires_new_execution_session": True,
+            "no_context_inheritance": True,
             "max_automated_review_repair_rounds": bounded_review_repair_policy[
                 "max_automated_repair_rounds"
             ],

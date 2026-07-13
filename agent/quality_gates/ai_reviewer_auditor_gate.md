@@ -6,18 +6,26 @@ Machine boundary: this gate requires independent reviewer/auditor records. It is
 
 ## Required Independent Record
 
-The reviewer or auditor agent must run as a separate invocation from the executor whose work is being judged. The record must include:
+The reviewer or auditor agent must run as a new StageAttempt and execution
+session from the executor whose work is being judged. It must not resume or
+inherit the executor conversation. Same-thread checking is
+`in_thread_refinement` and cannot emit this gate's receipt. The record must
+include:
 
 - reviewer/auditor role and invocation or task record id.
+- producer and reviewer attempt/session refs, with distinct session identities
+  and `no_context_inheritance=true`.
 - separate context summary and refs reviewed.
 - manuscript, source, evidence, artifact, review, runtime, controller, and memory refs considered.
 - hypothesis portfolio candidate, assumption, support/contradiction, novelty/provenance, testability/safety, negative failed-path, advisory ranking/proximity, and human gate receipt refs when the route depends on a hypothesis portfolio.
-- JIT progress-affordance refs when explicitly requested and consumed, including next-delta tournament, bounded micro-candidate, critique-as-repair-hint, triggered meta-review, prefetch, and reusable refs-only lesson refs.
+- JIT progress-affordance refs when explicitly requested and consumed, including next-delta tournament, bounded micro-candidate, critique-as-repair-hint, strategy retrospective, prefetch, and reusable refs-only lesson refs.
 - medical judgment findings, not only checklist status.
 - verdict or route-back recommendation with typed blocker when not ready.
 - receipt proving currentness relative to task intake, controller decisions, manuscript/source refs, and artifact rebuild proof.
 
-Codex CLI may serve as reviewer/auditor only when invoked as this separate task with its own context, task record, and receipt.
+Codex CLI may serve as reviewer/auditor only when invoked as this separate task
+with its own new thread/context, task record, and receipt. Re-review after repair
+must also use a new session distinct from the repairer.
 
 ## Judgment Floor
 
@@ -31,7 +39,7 @@ Rubrics and quality packs define the traceable floor. The reviewer/auditor must 
 - limitations, failed paths, reader risk, contribution logic, and journal fit.
 - route memory relevance and memory writeback safety.
 - hypothesis novelty, evidence balance, failed-path handling, advisory ranking limits, testability, safety, and human/independent-review boundary.
-- progress-first use of JIT affordances: when explicitly requested by the current owner or gate, tournaments may order next owner deltas, critique may become repair hints, meta-review may explain stop-loss/repeated failure/human gate/claim-boundary drift/no-loop budget, and reusable lesson extraction may write one refs-only lesson.
+- progress-first use of JIT affordances: when explicitly requested by the current owner or gate, tournaments may order next owner deltas, critique may become repair hints, strategy retrospective may explain stop-loss/repeated failure/human gate/claim-boundary drift/no-loop budget, and reusable lesson extraction may write one refs-only lesson.
 - registry, phenotype-atlas, and treatment-gap manuscript floors: clinical discovery contract before Results drafting, Methods reconstructability before prose polish, finding-led Results paragraphs, recorded-care review terminology, medication-capture sensitivity before headline claims, and current-evidence-bounded revision scope.
 
 The journal-family floor must be explicitly consumed when the route touches manuscript, review, finalization, or journal resolution:
@@ -70,7 +78,7 @@ Do not issue a quality, publication, export, or submission-ready claim when:
 - required journal-family pack refs, output refs, typed blocker refs, or owner receipts are missing for an in-scope route.
 - publication eval says ready but reviewer operating-system trace or manuscript refs are not current.
 - only mechanical checks, test pass, provider completion, generated interface readiness, package presence, prose completeness, template completion, or pack presence support the ready claim.
-- next-delta tournament, micro-candidate generation, critique-as-repair-hint, reusable lesson extraction, triggered meta-review, or opportunistic prefetch is used to admit a route, close this gate, promote a stage, or authorize publication/submission readiness.
+- next-delta tournament, micro-candidate generation, critique-as-repair-hint, reusable lesson extraction, strategy retrospective, or opportunistic prefetch is used to admit a route, close this gate, promote a stage, or authorize publication/submission readiness.
 
 This fail-closed rule protects the claim, not ordinary stage progression. When a
 current, consumable independent-review packet exists but bounded repair budget is

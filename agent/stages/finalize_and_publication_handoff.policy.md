@@ -2,6 +2,11 @@
 
 This stage performs publication handoff after current quality, artifact, source, and journal refs are available. It distinguishes internal handoff readiness from external submission. Artifact mutation needs MAS artifact authority and rebuild proof; external journal submission remains under human supervision.
 
+Formal Stage Review follows `contracts/stage_quality_cycle_policy.json`: the
+reviewer is a new StageAttempt and execution session in this StageRun, consumes
+only declared artifact/source/rubric refs, and inherits no producer conversation.
+Checking inside the producer thread is `in_thread_refinement`, not Review.
+
 When a change is required, preserve the professional dependency: obtain MAS
 mutation authority, mutate canonical source, rebuild derived artifacts/package,
 obtain fresh proof and risk-matched independent review for the rebuilt bytes,

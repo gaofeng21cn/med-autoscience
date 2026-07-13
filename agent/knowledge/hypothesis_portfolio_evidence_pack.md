@@ -6,7 +6,7 @@ Machine boundary: this file defines semantic requirements for stage packs and ge
 
 ## Portfolio Object
 
-A MAS hypothesis portfolio is a refs-first research object for choosing and auditing study directions. It may include Co-Scientist-inspired generation, reflection, ranking, evolution, proximity, and meta-review signals, but those signals are advisory inputs only.
+A MAS hypothesis portfolio is a refs-first research object for choosing and auditing study directions. It may include Co-Scientist-inspired generation, reflection, ranking, evolution, proximity, and strategy retrospective signals, but those signals are advisory inputs only.
 
 Each hypothesis candidate must carry:
 
@@ -47,7 +47,7 @@ The JIT mechanisms are:
 - bounded micro-candidate generation: generate at most three candidates for the immediate next delta, repair hint, or reusable lesson.
 - critique-as-repair-hint: turn critique into actionable repair-hint refs for the next executor or independent reviewer.
 - reusable lesson extraction: preserve at most one reusable lesson ref for the explicitly invoked current-owner need, with no evidence, memory, artifact, or manuscript body copied into the handoff.
-- triggered meta-review: run only for stop-loss, repeated failure, human gate, claim-boundary drift, or exhausted no-loop budget.
+- strategy retrospective: run only for stop-loss, repeated failure, human gate, claim-boundary drift, or exhausted no-loop budget.
 - opportunistic knowledge prefetch: prefetch source, evidence, failed-path, reviewer concern, or journal-neighbor refs only when it does not delay the declared owner dispatch.
 
 These signals cannot admit a route, close an AI reviewer or artifact/source gate, promote a stage, authorize publication/submission readiness, generate a default next owner, or mutate study truth, artifacts, memory, or current package state. Missing JIT affordance refs should be skipped unless the route-required evidence refs are actually absent, in which case the route emits the normal typed blocker.

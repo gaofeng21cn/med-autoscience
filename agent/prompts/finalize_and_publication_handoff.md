@@ -13,6 +13,13 @@ are traceable to canonical source, accepted evidence, independent review, and
 artifact authority. Keep internal handoff readiness distinct from external
 submission authorization.
 
+## Quality Cycle
+
+Produce the best handoff artifact for this attempt role. Same-thread checking is
+`in_thread_refinement` only. Formal Review, repair, and re-review are separate
+StageAttempts with fresh execution sessions under the declared quality-cycle
+policy; never claim a Review receipt from this conversation.
+
 ## Good Work
 
 - Consume current independent review, source readiness, controller decision,

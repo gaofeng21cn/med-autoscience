@@ -240,6 +240,7 @@
       ],
       "accepted_terminal_shapes": [
         "ProgressDeltaReceipt",
+        "NoOutputOrFailureDiagnostic",
         "OwnerReceipt",
         "TypedBlocker"
       ],
@@ -259,7 +260,7 @@
       "candidate_generation_refs",
       "reflection_refs",
       "review_refs",
-      "meta_review_refs",
+      "strategy_retrospective_refs",
       "ranking_refs",
       "proximity_refs",
       "evolution_refs"
@@ -277,7 +278,7 @@
       "bounded_micro_candidate_generation",
       "critique_as_repair_hint",
       "reusable_lesson_extraction",
-      "triggered_meta_review",
+      "strategy_retrospective",
       "opportunistic_knowledge_prefetch"
     ],
     "progress_jit_affordance_can_block_attempt_when_missing": false,
@@ -285,7 +286,7 @@
     "micro_candidate_unselected_branch_blocks_route": false,
     "critique_hint_can_close_quality_gate": false,
     "reusable_lesson_max_refs_per_invoked_attempt": 1,
-    "meta_review_triggered_only_by": [
+    "strategy_retrospective_triggered_only_by": [
       "stop_loss_candidate",
       "repeated_failure",
       "human_gate_pressure",
@@ -506,7 +507,7 @@
       "candidate_generation_refs",
       "reflection_refs",
       "review_refs",
-      "meta_review_refs"
+      "strategy_retrospective_refs"
     ],
     "coscientist_strategy_refs_authority": "advisory_within_stage_only",
     "canary_success_requires": [

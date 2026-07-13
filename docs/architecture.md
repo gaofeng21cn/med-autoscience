@@ -63,6 +63,39 @@ Reference provider transport 同样单向：MAS 通过 OPL Framework carrier 调
 
 `Codex CLI` 是 stage 内第一公民 executor；其他 executor adapter 必须显式接入，且不承诺质量等价。Temporal 是 hosted durable runtime 的 substrate，属于 OPL 平台边界。
 
+## Stage 内质量循环与 Meta Review
+
+MAS 的六个 canonical Stage 通过
+Framework registry 绑定的
+`contracts/opl-framework/official-knowledge-deliverable-quality-profile.json`
+进入 OPL quality-cycle ABI；MAS 的 `contracts/stage_quality_cycle_policy.json`
+只持有各 Stage 的角色、rubric、风险深度与预算扩展。同一
+producer thread 内的写后检查只叫 `in_thread_refinement`，不产生 Review
+receipt。正式 Stage Review 在同一 StageRun 下创建新的 reviewer
+StageAttempt 和 execution session；repairer、re-reviewer 也分别使用新的
+Attempt/session，且只消费 exact artifact/source/rubric/lineage refs，不继承
+producer conversation。
+
+每个 `stage_quality_cycle_policy_ref` 都解析到严格的 per-Stage policy：Stage
+prompt、四角色 prompt、quality rubric、risk/depth、预算和 Attempt boundary
+均显式声明，role overlay 只能收窄而不能改写 Stage goal、scope 或 authority。
+五个产出 Stage 要求 formal Review；`review_and_quality_gate` 本身已经是独立
+Meta Review StageRun，因此不递归再创建一层 formal Review。
+
+默认质量预算是初稿之后最多三轮 `repairer + re_reviewer`。provider retry、
+protocol closeout resume 和 owner-callable dispatch retry 不消耗该预算。预算
+耗尽但已有可消费产物时以 `completed_with_quality_debt` 推进；质量债继续
+阻止 publication、export、submission 或 ready 声明。
+
+`review_and_quality_gate` 是独立 cross-Stage Meta Review StageRun。它不在
+reviewer thread 内修稿，而是输出 defect-owner matrix，route-back 到最早能
+关闭根因的 canonical Stage，再等待新 generation 和 fresh Review。六个
+canonical Stage 与既有八个 paper-study physical Stage 的唯一映射也由该
+合同持有；旧 route id 只作 runtime/migration 输入，不形成第二套 Stage 真相。
+循环停损、重复失败、human gate、claim-boundary drift 或预算耗尽后的非权威
+学习机制统一叫 `strategy_retrospective`，不能产生 Review receipt，也不能
+替代 Stage Review 或 cross-Stage Meta Review。
+
 ## MAS 保留职责
 
 MAS 只保留不能声明化或上收的 domain authority：

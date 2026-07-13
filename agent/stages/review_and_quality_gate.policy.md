@@ -1,6 +1,16 @@
 # Review And Quality Gate Policy
 
-This stage requires independent reviewer or auditor invocation. The reviewer reads stage outputs, source refs, evidence refs, review refs, manuscript refs, and artifact refs from a separate task record. Mechanical guards can validate provenance or block stale records; they cannot emit the medical quality verdict.
+This is the independent cross-Stage Meta Review. It starts a new StageRun whose
+primary Attempt uses the shared `producer` role, inherits no upstream authoring
+or analysis conversation, and consumes only exact stage artifact hashes, source
+refs, Stage Review receipts, global rubric refs, and necessary lineage. Mechanical
+guards can validate provenance or block stale records; they cannot emit the
+medical quality verdict.
+
+The Meta Reviewer does not repair upstream artifacts inline. It emits a
+defect-owner matrix and routes to the earliest canonical Stage that can close the
+root cause. The target Stage creates a new generation and passes fresh independent
+Review before this Meta Review runs again.
 
 Quality and ready claims fail closed when the independent record or current refs
 are missing. Stage transition does not fail closed for an ordinary repair gap: a

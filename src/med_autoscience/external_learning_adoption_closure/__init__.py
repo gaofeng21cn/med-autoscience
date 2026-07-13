@@ -205,7 +205,7 @@ def build_external_learning_adoption_closure() -> dict[str, Any]:
                 "hypothesis_portfolio",
                 "evidence_pack",
                 "advisory_ranking",
-                "triggered_meta_review",
+                "strategy_retrospective",
                 "progress_first_enhancement_layer",
             ],
             local_execution_state="semantic_pack_and_route_contract_landed",

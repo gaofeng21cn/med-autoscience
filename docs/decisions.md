@@ -89,6 +89,26 @@ Reference provider invocation/retry/cache/receipt 归 OPL Connect；domain-handl
 
 六个 Stage prompt 采用目标/好结果/关键依赖/边界/handoff 形态，不再复制工具目录、固定 `search -> inspect -> sync` 或 specialist checklist。工具顺序由 Codex 在专业依赖内决定；科研预声明、failed-path 留痕、独立 review、canonical-source mutation -> rebuild -> fresh proof、human submission 等因果或 authority 顺序继续由 Stage policy、Skill、quality gate 与 contract 固定。普通质量缺口允许 `completed_with_quality_debt`，ready claim 仍 fail closed。
 
+## D-20 独立上下文 Stage Review
+
+正式 Review 不是 producer thread 内自检。producer 同 thread 内只能做
+`in_thread_refinement`；reviewer、repairer、re-reviewer 必须是同一 StageRun
+下不同 StageAttempt 和 execution session，Review context 仅由 exact artifact、
+source、rubric 与必要 lineage refs 组装。相同基座模型可以复用，但 session
+identity 不得复用。`codex exec resume` 只可用于 typed closeout 协议补全，
+不得被解释为 Review。
+
+`review_and_quality_gate` 固定为独立 cross-Stage Meta Review，不继承任何
+上游生成对话、不内联修复，只输出 defect-owner route。默认最多三轮语义
+修订；provider/dispatch retry 与语义质量预算分账。机器真相是
+`contracts/stage_quality_cycle_policy.json`。
+
+每个 Stage 的 policy 必须完整满足 Framework `stage-quality-cycle-policy.v1`
+shape，显式绑定 Stage prompt、四角色 prompt、rubric、risk/depth、预算与
+Attempt boundary。五个产出 Stage 启用 formal Review；Meta Review Stage
+不递归 Review 自身。旧 `triggered_meta_review` 只作为历史分类标签保留，active
+机器术语统一为非权威 `strategy_retrospective`，不得与正式 Review 混用。
+
 ## 机器入口
 
 - `contracts/domain_descriptor.json`
