@@ -405,6 +405,7 @@ def _workspace_study_entry(*, profile: WorkspaceProfile, study: Mapping[str, Any
     current_stage = study["stage_index"].get("current_stage") or {}
     entry = {
         "study_id": study["study_id"],
+        "display_name": study.get("study_title") or study["study_id"],
         "status": study["status"],
         "canonical_study_root": _relative_path(path=study_root, root=workspace_root),
         "runtime_provenance_root": _relative_path(path=runtime_root, root=workspace_root),
@@ -420,8 +421,6 @@ def _workspace_study_entry(*, profile: WorkspaceProfile, study: Mapping[str, Any
         "runtime_root_is_current_paper_truth": False,
         "archive_roots_are_current_truth": False,
     }
-    if study.get("study_title"):
-        entry["display_name"] = study["study_title"]
     return entry
 
 

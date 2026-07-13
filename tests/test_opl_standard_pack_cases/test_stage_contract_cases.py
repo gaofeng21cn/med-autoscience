@@ -43,6 +43,7 @@ def test_domain_descriptor_exposes_generic_standard_agent_interface() -> None:
         "items_pointer": "/studies",
         "field_map": {
             "work_item_id": "study_id",
+            "display_name": "display_name",
             "work_item_root": "canonical_study_root",
             "business_status": "status",
             "current_stage_id": "current_stage_id",

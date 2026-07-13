@@ -242,6 +242,7 @@ def test_study_workspace_status_apply_materializes_workspace_index_and_migration
     assert blocker["authority_boundary"]["paper_body_mutation_allowed"] is False
     assert package_status["status"] == "not_ready"
     assert package_status["current_package_root"].endswith(f"{study_id}/submission")
+    assert workspace_index["studies"][0]["display_name"] == study["study_title"]
     assert workspace_index["studies"][0]["paper_entry_ref"] == "manuscript/draft.md"
     assert workspace_index["studies"][0]["publication_package_status_ref"] == "submission/STATUS.json"
     assert workspace_index["schema_version"] == "mas.workspace_index.v1"
