@@ -88,8 +88,8 @@ def build_review_publication_gate_stage_hook_payload(
         "stage_hook_consumers": ["review_gate", "publication_gate"],
         "trigger_points": list(TRIGGER_POINTS),
         "provider_resolution_action": PROVIDER_RESOLUTION_ACTION,
-        "triggered_domain_provider_lookup_contract": (
-            triggered_domain_provider_lookup_contract()
+        "provider_resolution_contract": (
+            provider_resolution_contract()
         ),
         "stage_launch_required_input": stage_launch_required_input(),
         "required_gate_input_surfaces": list(REQUIRED_GATE_INPUT_SURFACES),
@@ -118,8 +118,8 @@ def stage_obligation() -> dict[str, Any]:
         "target_stage_ids": list(TARGET_STAGE_IDS),
         "trigger_points": list(TRIGGER_POINTS),
         "provider_resolution_action": PROVIDER_RESOLUTION_ACTION,
-        "triggered_domain_provider_lookup_contract": (
-            triggered_domain_provider_lookup_contract()
+        "provider_resolution_contract": (
+            provider_resolution_contract()
         ),
         "stage_launch_required_input": stage_launch_required_input(),
         "required_gate_input_surfaces": list(REQUIRED_GATE_INPUT_SURFACES),
@@ -145,8 +145,8 @@ def stage_launch_required_input(*, stage_id: str | None = None) -> dict[str, Any
         "provider_resolution_action": PROVIDER_RESOLUTION_ACTION,
         "trigger_points": list(TRIGGER_POINTS),
         "required_gate_input_surfaces": list(REQUIRED_GATE_INPUT_SURFACES),
-        "triggered_domain_provider_lookup_contract": (
-            triggered_domain_provider_lookup_contract()
+        "provider_resolution_contract": (
+            provider_resolution_contract()
         ),
         "mandatory_before_stage_completion": True,
         "required_before_owner_receipt_or_typed_blocker": True,
@@ -173,7 +173,7 @@ def completion_boundary() -> dict[str, Any]:
     }
 
 
-def triggered_domain_provider_lookup_contract() -> dict[str, Any]:
+def provider_resolution_contract() -> dict[str, Any]:
     return {
         "surface_kind": "opl_connect_reference_verification_contract",
         "schema_version": SCHEMA_VERSION,
@@ -183,6 +183,9 @@ def triggered_domain_provider_lookup_contract() -> dict[str, Any]:
         "lookup_providers": list(LOOKUP_PROVIDERS),
         "provider_lookup_mode": "opl_connect_receipt_input_only",
         "provider_evidence_consumed_by": REFERENCE_VERIFICATION_CONSUMER,
+        "request_only": True,
+        "execution_owner": "OPL Connect",
+        "mas_can_invoke_opl_connect": False,
         "mandatory_gate_input_only": True,
         "live_owner_consumption_claimed": False,
         "can_write_provider_attempt": False,
@@ -194,7 +197,8 @@ def authority_boundary() -> dict[str, Any]:
     return {
         "outputs_are_gate_inputs": True,
         "surface_authority": "mandatory_stage_hook_gate_input_only",
-        "can_request_provider_lookup": True,
+        "can_declare_provider_resolution_requirement": True,
+        "can_invoke_opl_connect": False,
         **{flag: False for flag in FORBIDDEN_AUTHORITY_FLAGS},
     }
 
@@ -240,5 +244,5 @@ __all__ = [
     "completion_boundary",
     "stage_obligation",
     "stage_launch_required_input",
-    "triggered_domain_provider_lookup_contract",
+    "provider_resolution_contract",
 ]

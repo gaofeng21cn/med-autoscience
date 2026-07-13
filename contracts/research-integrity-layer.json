@@ -18,7 +18,7 @@
     "can_close_without_owner_gate_or_typed_blocker": false
   },
   "target_state": {
-    "summary": "Review and publication gate stage launch/readback surfaces require the RI hook as a mandatory pre-gate input; the hook requests OPL Connect provider receipt transport to pull provider evidence, then MAS Research Integrity Gate consumes that evidence and emits gate input.",
+    "summary": "Review and publication gate stage launch/readback surfaces require the RI hook as a mandatory pre-gate input; the host resolves the declared OPL Connect action and injects its provider receipt, then MAS Research Integrity Gate consumes that evidence and emits gate input without invoking transport.",
     "is_independent_professional_skill": false,
     "provider_lookup_owner": "OPL Connect",
     "provider_lookup_mode": "opl_connect_receipt_input_only",
@@ -46,10 +46,11 @@
     "transition_only": false,
     "live_provider_authority_claimed": false,
     "authoritative_provider_truth_owner": "external provider source systems",
-    "domain_provider_lookup_allowed_contexts": [
+    "provider_receipt_consumption_contexts": [
       "research_integrity_gate_input"
     ],
-    "fallback_output_role": "provider_evidence_gate_input_only",
+    "missing_evidence_output_role": "provider_resolution_action_request_only",
+    "provider_evidence_input_only": true,
     "forbidden_claims": [
       "authoritative_live_citation_verification",
       "Claude Science equivalent online verification",
@@ -61,6 +62,7 @@
     "provider_lookup_owner": "OPL Connect",
     "mas_can_call_external_provider": false,
     "can_call_external_provider": false,
+    "can_invoke_opl_connect": false,
     "can_claim_live_provider_truth": false,
     "can_be_used_as_authoritative_provider_truth_without_owner_consumption": false,
     "can_materialize_provider_receipt": false,
@@ -135,7 +137,7 @@
       "publication_gate_entered"
     ],
     "provider_resolution_action": "opl_connect_reference_verification",
-    "triggered_domain_provider_lookup_contract": {
+    "provider_resolution_contract": {
       "surface_kind": "opl_connect_reference_verification_contract",
       "schema_version": 1,
       "owner": "OPL Connect",
@@ -150,6 +152,9 @@
       ],
       "provider_lookup_mode": "opl_connect_receipt_input_only",
       "provider_evidence_consumed_by": "med_autoscience.research_integrity.reference_verification",
+      "request_only": true,
+      "execution_owner": "OPL Connect",
+      "mas_can_invoke_opl_connect": false,
       "mandatory_gate_input_only": true,
       "live_owner_consumption_claimed": false,
       "can_write_provider_attempt": false,
@@ -181,7 +186,7 @@
         "claim_citation_support_matrix_v2",
         "manuscript_consistency_meta_review"
       ],
-      "triggered_domain_provider_lookup_contract": {
+      "provider_resolution_contract": {
         "surface_kind": "opl_connect_reference_verification_contract",
         "schema_version": 1,
         "owner": "OPL Connect",
@@ -196,6 +201,9 @@
         ],
         "provider_lookup_mode": "opl_connect_receipt_input_only",
         "provider_evidence_consumed_by": "med_autoscience.research_integrity.reference_verification",
+        "request_only": true,
+        "execution_owner": "OPL Connect",
+        "mas_can_invoke_opl_connect": false,
         "mandatory_gate_input_only": true,
         "live_owner_consumption_claimed": false,
         "can_write_provider_attempt": false,
@@ -221,7 +229,8 @@
       "authority_boundary": {
         "outputs_are_gate_inputs": true,
         "surface_authority": "mandatory_stage_hook_gate_input_only",
-        "can_request_provider_lookup": true,
+        "can_declare_provider_resolution_requirement": true,
+        "can_invoke_opl_connect": false,
         "can_write_mas_study_truth": false,
         "can_write_publication_eval_latest": false,
         "can_write_publication_eval": false,
@@ -262,7 +271,8 @@
     "authority_boundary": {
       "outputs_are_gate_inputs": true,
       "surface_authority": "mandatory_stage_hook_gate_input_only",
-      "can_request_provider_lookup": true,
+      "can_declare_provider_resolution_requirement": true,
+      "can_invoke_opl_connect": false,
       "can_write_mas_study_truth": false,
       "can_write_publication_eval_latest": false,
       "can_write_publication_eval": false,
@@ -533,7 +543,7 @@
       "live_provider_authority_claimed": false,
       "authoritative_provider_truth_owner": "external provider source systems",
       "provider_receipt_transport": "OPL Connect invokes configured reference providers and returns read-only receipt candidates; MAS does not own provider HTTP, credentials, retry, cache, or receipt persistence.",
-      "provider_evidence_consumption": "research-integrity-reference-verification accepts optional generic provider receipts, normalizes provider_evidence from receipt root and references, preserves provider_receipt_refs and source_refs, and falls back to OPL Connect reference verification only when no evidence is present; neither input becomes authoritative without MAS owner consumption",
+      "provider_evidence_consumption": "research-integrity-reference-verification accepts host-supplied provider receipts or evidence, normalizes provider_evidence from receipt root and references, and preserves provider_receipt_refs and source_refs; when evidence is absent it emits a request-only provider_resolution_action and never invokes OPL Connect itself",
       "stage_hook": "review_and_quality_gate and finalize_and_publication_handoff consume the declarative Research Integrity obligation; OPL Connect resolves provider evidence and MAS pure builders return gate input",
       "forbidden_side_effects": [
         "publication_eval/latest.json write",
@@ -604,7 +614,7 @@
       "claim_citation_support_matrix_v2",
       "manuscript_consistency_meta_review"
     ],
-    "triggered_domain_provider_lookup_contract": {
+    "provider_resolution_contract": {
       "surface_kind": "opl_connect_reference_verification_contract",
       "schema_version": 1,
       "owner": "OPL Connect",
@@ -619,6 +629,9 @@
       ],
       "provider_lookup_mode": "opl_connect_receipt_input_only",
       "provider_evidence_consumed_by": "med_autoscience.research_integrity.reference_verification",
+      "request_only": true,
+      "execution_owner": "OPL Connect",
+      "mas_can_invoke_opl_connect": false,
       "mandatory_gate_input_only": true,
       "live_owner_consumption_claimed": false,
       "can_write_provider_attempt": false,
@@ -644,7 +657,8 @@
     "authority_boundary": {
       "outputs_are_gate_inputs": true,
       "surface_authority": "mandatory_stage_hook_gate_input_only",
-      "can_request_provider_lookup": true,
+      "can_declare_provider_resolution_requirement": true,
+      "can_invoke_opl_connect": false,
       "can_write_mas_study_truth": false,
       "can_write_publication_eval_latest": false,
       "can_write_publication_eval": false,

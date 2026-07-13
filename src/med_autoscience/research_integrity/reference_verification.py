@@ -3,12 +3,8 @@ from __future__ import annotations
 from collections.abc import Mapping, Sequence
 from typing import Any
 
-from med_autoscience.research_integrity.gate_bundle import (
-    authority_boundary as gate_authority_boundary,
-    build_research_integrity_gate_input_bundle,
-)
 from med_autoscience.research_integrity.provider_lookup import (
-    build_reference_provider_lookup_bundle,
+    build_reference_provider_receipt_consumption_bundle,
     provider_lookup_authority_boundary,
 )
 
@@ -50,29 +46,16 @@ def build_reference_verification_payload(
         _ref_sequence(payload.get("source_refs")),
         _provider_receipt_source_refs(provider_receipts),
     )
-    if provider_evidence:
-        reference_checks = [
-            {"reference": reference, "provider_evidence": list(_evidence_for_reference(reference, provider_evidence))}
-            for reference in references
-        ]
-        gate_input = build_research_integrity_gate_input_bundle(
-            reference_checks=reference_checks,
-            **common_kwargs,
-        )
-        provider_lookup_bundle = None
-        status = gate_input["status"]
-        provider_summary = _provider_summary_from_evidence(reference_checks)
-        boundary = _authority_boundary(external_provider_called=False)
-    else:
-        provider_lookup_bundle = build_reference_provider_lookup_bundle(
-            references=references,
-            provider_config=provider_config,
-            **common_kwargs,
-        )
-        gate_input = provider_lookup_bundle["gate_input_bundle"]
-        status = provider_lookup_bundle["status"]
-        provider_summary = provider_lookup_bundle["provider_summary"]
-        boundary = _authority_boundary(external_provider_called=True)
+    provider_receipt_consumption = build_reference_provider_receipt_consumption_bundle(
+        references=references,
+        provider_evidence=provider_evidence,
+        provider_config=provider_config,
+        **common_kwargs,
+    )
+    gate_input = provider_receipt_consumption["gate_input_bundle"]
+    status = provider_receipt_consumption["status"]
+    provider_summary = provider_receipt_consumption["provider_summary"]
+    boundary = _authority_boundary()
 
     return {
         "surface_kind": SURFACE_KIND,
@@ -85,7 +68,7 @@ def build_reference_verification_payload(
         "manuscript_ref": _text(payload.get("manuscript_ref")),
         "provider_summary": provider_summary,
         "surfaces": {
-            "provider_lookup_bundle": provider_lookup_bundle,
+            "provider_receipt_consumption_bundle": provider_receipt_consumption,
             "research_integrity_gate_input_bundle": gate_input,
         },
         "blocker_candidates": gate_input["blocker_candidates"],
@@ -94,10 +77,11 @@ def build_reference_verification_payload(
     }
 
 
-def _authority_boundary(*, external_provider_called: bool) -> dict[str, Any]:
-    boundary = provider_lookup_authority_boundary() if external_provider_called else gate_authority_boundary()
+def _authority_boundary() -> dict[str, Any]:
+    boundary = provider_lookup_authority_boundary()
     boundary["surface_role"] = "reference_verification_gate_input_only"
-    boundary["can_call_external_provider"] = external_provider_called
+    boundary["can_call_external_provider"] = False
+    boundary["can_invoke_opl_connect"] = False
     boundary["can_write_provider_lookup_cache_or_receipt"] = False
     boundary["can_write_provider_attempt"] = False
     boundary["can_write_owner_receipt"] = False
@@ -111,26 +95,6 @@ def _references(payload: Mapping[str, Any]) -> tuple[Mapping[str, Any], ...]:
     if values:
         return values
     return _mapping_sequence(payload.get("reference"))
-
-
-def _evidence_for_reference(
-    reference: Mapping[str, Any],
-    provider_evidence: Sequence[Mapping[str, Any]],
-) -> tuple[Mapping[str, Any], ...]:
-    reference_id = _text(
-        reference.get("reference_id")
-        or reference.get("ref_id")
-        or reference.get("id")
-        or reference.get("ID")
-        or reference.get("citation_key")
-        or reference.get("key")
-    )
-    selected: list[Mapping[str, Any]] = []
-    for evidence in provider_evidence:
-        evidence_ref_id = _text(evidence.get("reference_id") or evidence.get("ref_id") or evidence.get("id"))
-        if not evidence_ref_id or not reference_id or evidence_ref_id == reference_id:
-            selected.append(evidence)
-    return tuple(selected)
 
 
 def _provider_evidence_from_receipts(
@@ -221,20 +185,6 @@ def _reference_id(reference: Mapping[str, Any]) -> str | None:
         or reference.get("citation_key")
         or reference.get("key")
     )
-
-
-def _provider_summary_from_evidence(reference_checks: Sequence[Mapping[str, Any]]) -> dict[str, int]:
-    summary = {"found": 0, "not_found": 0, "error": 0}
-    for check in reference_checks:
-        for evidence in check.get("provider_evidence") or ():
-            if not isinstance(evidence, Mapping):
-                continue
-            status = _text(evidence.get("lookup_status")) or "found"
-            if status in summary:
-                summary[status] += 1
-            else:
-                summary["found"] += 1
-    return summary
 
 
 def _first_present(payload: Mapping[str, Any], *field_names: str) -> Any:

@@ -2132,7 +2132,8 @@
               "can_materialize_human_gate": false,
               "can_materialize_typed_blocker": false,
               "can_mutate_current_package": false,
-              "can_request_provider_lookup": true,
+              "can_declare_provider_resolution_requirement": true,
+              "can_invoke_opl_connect": false,
               "can_sign_owner_receipt": false,
               "can_write_controller_decisions": false,
               "can_write_current_package": false,
@@ -2186,7 +2187,7 @@
               "publication_gate_entered"
             ],
             "provider_resolution_action": "opl_connect_reference_verification",
-            "triggered_domain_provider_lookup_contract": {
+            "provider_resolution_contract": {
               "can_write_provider_attempt": false,
               "can_write_runtime_queue": false,
               "live_owner_consumption_claimed": false,
@@ -2201,6 +2202,9 @@
               "owner": "OPL Connect",
               "provider_lookup_mode": "opl_connect_receipt_input_only",
               "provider_evidence_consumed_by": "med_autoscience.research_integrity.reference_verification",
+              "request_only": true,
+              "execution_owner": "OPL Connect",
+              "mas_can_invoke_opl_connect": false,
               "schema_version": 1,
               "surface_kind": "opl_connect_reference_verification_contract",
               "provider_action_id": "opl_connect_reference_verification",
@@ -2721,7 +2725,8 @@
               "can_materialize_human_gate": false,
               "can_materialize_typed_blocker": false,
               "can_mutate_current_package": false,
-              "can_request_provider_lookup": true,
+              "can_declare_provider_resolution_requirement": true,
+              "can_invoke_opl_connect": false,
               "can_sign_owner_receipt": false,
               "can_write_controller_decisions": false,
               "can_write_current_package": false,
@@ -2775,7 +2780,7 @@
               "publication_gate_entered"
             ],
             "provider_resolution_action": "opl_connect_reference_verification",
-            "triggered_domain_provider_lookup_contract": {
+            "provider_resolution_contract": {
               "can_write_provider_attempt": false,
               "can_write_runtime_queue": false,
               "live_owner_consumption_claimed": false,
@@ -2790,6 +2795,9 @@
               "owner": "OPL Connect",
               "provider_lookup_mode": "opl_connect_receipt_input_only",
               "provider_evidence_consumed_by": "med_autoscience.research_integrity.reference_verification",
+              "request_only": true,
+              "execution_owner": "OPL Connect",
+              "mas_can_invoke_opl_connect": false,
               "schema_version": 1,
               "surface_kind": "opl_connect_reference_verification_contract",
               "provider_action_id": "opl_connect_reference_verification",

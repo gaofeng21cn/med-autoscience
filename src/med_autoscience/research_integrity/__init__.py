@@ -11,8 +11,8 @@ from .manuscript_consistency import (
 )
 from .provider_lookup import (
     ProviderLookupConfig,
-    build_reference_provider_lookup_bundle,
-    lookup_reference_provider_evidence,
+    build_reference_provider_receipt_consumption_bundle,
+    select_reference_provider_evidence,
 )
 from .reference_verification import (
     build_reference_verification_payload,
@@ -33,11 +33,11 @@ __all__ = [
     "ProviderLookupConfig",
     "build_claim_citation_support_matrix_v2",
     "build_manuscript_consistency_meta_review",
-    "build_reference_provider_lookup_bundle",
+    "build_reference_provider_receipt_consumption_bundle",
     "build_reference_verification_payload",
     "build_review_publication_gate_stage_hook_payload",
     "build_reference_verification_attestation",
     "build_reference_verification_attestation_dict",
     "build_research_integrity_gate_input_bundle",
-    "lookup_reference_provider_evidence",
+    "select_reference_provider_evidence",
 ]

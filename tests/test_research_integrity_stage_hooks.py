@@ -95,8 +95,8 @@ def test_review_publication_gate_stage_hook_builds_reference_verification_gate_i
     assert obligation["paper_mission_subordination"] == payload["paper_mission_subordination"]
     assert obligation["provider_resolution_action"] == "opl_connect_reference_verification"
     assert payload["target_stage_ids"] == obligation["target_stage_ids"]
-    provider_lookup = payload["triggered_domain_provider_lookup_contract"]
-    assert provider_lookup == obligation["triggered_domain_provider_lookup_contract"]
+    provider_lookup = payload["provider_resolution_contract"]
+    assert provider_lookup == obligation["provider_resolution_contract"]
     assert provider_lookup["surface_kind"] == "opl_connect_reference_verification_contract"
     assert provider_lookup["owner"] == "OPL Connect"
     assert provider_lookup["provider_lookup_mode"] == "opl_connect_receipt_input_only"
@@ -106,6 +106,10 @@ def test_review_publication_gate_stage_hook_builds_reference_verification_gate_i
     )
     assert provider_lookup["mandatory_gate_input_only"] is True
     assert provider_lookup["live_owner_consumption_claimed"] is False
+    assert provider_lookup["request_only"] is True
+    assert provider_lookup["execution_owner"] == "OPL Connect"
+    assert provider_lookup["mas_can_invoke_opl_connect"] is False
+    assert payload["authority_boundary"]["can_invoke_opl_connect"] is False
     launch_required_input = payload["stage_launch_required_input"]
     assert launch_required_input == obligation["stage_launch_required_input"]
     assert launch_required_input["surface_kind"] == (
@@ -184,8 +188,8 @@ def test_stage_manifest_declares_mandatory_research_integrity_stage_hook_obligat
             "claim_citation_support_matrix_v2",
             "manuscript_consistency_meta_review",
         ]
-        assert pre_gate_check["triggered_domain_provider_lookup_contract"] == contract_obligation[
-            "triggered_domain_provider_lookup_contract"
+        assert pre_gate_check["provider_resolution_contract"] == contract_obligation[
+            "provider_resolution_contract"
         ]
         assert pre_gate_check["mandatory_before_stage_completion"] is True
         assert pre_gate_check["required_before_owner_receipt_or_typed_blocker"] is True
