@@ -97,7 +97,7 @@ stage_native_semantic_pack:
       - pairwise_debate
       - tournament
       - evolution
-      - meta_review_summary
+      - strategy_retrospective_summary
     allowed_uses:
       - exploration_ordering
       - candidate_clustering
@@ -329,7 +329,7 @@ stage_native_semantic_pack:
         opportunistic_prefetch_limit: only refs needed by the next declared owner delta or reviewer hint
         external_pattern_intake_limit: advisory_or_evidence_log_gaps_do_not_preflight_block_dispatch
         skill_engineering_intake_limit: skill_engineering_affordance_gaps_do_not_preflight_block_dispatch
-        meta_review_trigger_only:
+        strategy_retrospective_trigger_only:
           - stop_loss
           - repeated_failure
           - human_gate
@@ -373,7 +373,7 @@ stage_native_semantic_pack:
             - route_back
             - reviewer_repair_pattern
             - reusable_source_or_artifact_boundary_pattern
-        triggered_meta_review:
+        strategy_retrospective:
           role: synthesize why the loop should stop, reroute, ask a human, or repair claim-boundary drift.
           trigger_only:
             - stop_loss
@@ -448,7 +448,7 @@ stage_native_semantic_pack:
       - proximity_ref_advisory
       - pairwise_debate_ref_advisory
       - evolution_ref_advisory
-      - meta_review_summary_ref_advisory
+      - strategy_retrospective_summary_ref_advisory
     quality_claim_reviewer_independence: &quality_claim_reviewer_independence
       required_for_quality_or_ready_claim: true
       missing_or_same_invocation_blocks_stage_transition: false

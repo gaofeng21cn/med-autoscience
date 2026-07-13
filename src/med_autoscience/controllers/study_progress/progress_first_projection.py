@@ -31,7 +31,7 @@ PROGRESS_JIT_AFFORDANCE_MECHANISMS = (
     "bounded_micro_candidate_generation",
     "critique_as_repair_hint",
     "reusable_lesson_extraction",
-    "triggered_meta_review",
+    "strategy_retrospective",
     "opportunistic_knowledge_prefetch",
 )
 PROGRESS_ENHANCEMENT_TRIGGER_REASONS = (
@@ -815,7 +815,7 @@ def _progress_jit_affordance_policy(*, owner_route: Mapping[str, Any]) -> dict[s
             "body_included": False,
             "missing_lesson_blocks_route": False,
         },
-        "triggered_meta_review": {
+        "strategy_retrospective": {
             "trigger_reasons": list(PROGRESS_ENHANCEMENT_TRIGGER_REASONS),
             "runs_every_attempt": False,
             "purpose": "reduce_looping_and_choose_route_owner",

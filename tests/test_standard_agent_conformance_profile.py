@@ -20,6 +20,18 @@ def test_standard_agent_conformance_profile_matches_canonical_stage_pack() -> No
     assert profile["golden_path"]["required_stage_ids"] == stage_ids
     assert profile["golden_path"]["allowed_stage_ids"] == stage_ids
     assert profile["golden_path"]["default_stage_id"] == "direction_and_route_selection"
+    assert profile["quality_governance"] == {
+        "profile_ref": "contracts/stage_quality_cycle_policy.json",
+        "required_for_all_canonical_stages": True,
+        "formal_review_requires_independent_attempt": True,
+        "formal_review_requires_new_execution_session": True,
+        "no_context_inheritance_required": True,
+        "same_thread_checking_is_in_thread_refinement_only": True,
+        "default_max_quality_revision_rounds": 3,
+        "meta_review_stage_id": "review_and_quality_gate",
+    }
+    assert profile["canonical_stage_mapping"]["canonical_stage_count"] == 6
+    assert profile["canonical_stage_mapping"]["physical_stage_count"] == 8
 
 
 def test_standard_agent_conformance_profile_classifies_every_required_surface() -> None:

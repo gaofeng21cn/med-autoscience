@@ -376,6 +376,7 @@ def test_reviewer_refinement_loop_maps_revert_to_same_line_route_back_without_pa
         "route_key_question": "Which claim sentence exceeds evidence strength?",
         "route_rationale": "AI reviewer requires same-line manuscript repair before package advance.",
         "requires_controller_decision": True,
+        "defect_owner_stage_id": "manuscript_authoring",
         "artifact_refs": [payload["runtime_context_refs"]["main_result_ref"]],
         "snapshot_refs": [
             {
@@ -501,9 +502,15 @@ def test_reviewer_refinement_loop_generates_executable_repair_work_units_for_blo
     assert units == read_model["repair_loop"]["repair_work_units"]
     assert read_model["repair_loop"]["status"] == "executable_ready"
     assert read_model["repair_loop"]["execution_contract"] == {
-        "contract_id": "reviewer_refinement_repair_work_units_v1",
+        "contract_id": "reviewer_refinement_repair_work_units_v2",
         "dispatch_surface": "repair_work_units",
-            "dispatch_authority": "owner_route_or_domain_handler",
+        "dispatch_authority": "owner_route_or_domain_handler",
+        "reviewer_inline_repair_allowed": False,
+        "new_stage_attempt_required": True,
+        "new_execution_session_required": True,
+        "no_context_inheritance": True,
+        "repair_attempt_role": "repairer",
+        "re_review_attempt_role": "re_reviewer",
         "direct_package_mutation_allowed": False,
         "current_package_mutation_allowed": False,
         "quality_authorization_allowed": False,
@@ -562,11 +569,18 @@ def test_reviewer_refinement_loop_generates_executable_repair_work_units_for_blo
         str(study_root / "paper" / "review" / "review_ledger.json"),
         str(study_root / "paper" / "manuscript.md"),
     ]
-    assert analysis_unit["retry_budget"] == {
+    assert analysis_unit["dispatch_retry_budget"] == {
+        "budget_kind": "owner_callable_dispatch_retry",
         "max_attempts": 1,
         "remaining_attempts": 1,
         "retry_policy": "single_batch_owner_replay_only",
     }
+    assert analysis_unit["attempt_role"] == "repairer"
+    assert analysis_unit["parent_attempt_role"] == "reviewer"
+    assert analysis_unit["new_stage_attempt_required"] is True
+    assert analysis_unit["new_execution_session_required"] is True
+    assert analysis_unit["no_context_inheritance"] is True
+    assert analysis_unit["defect_owner_stage_id"] == "bounded_analysis_campaign"
 
     recheck_unit = by_surface[
         "ai_reviewer_publication_eval_workflow.run_ai_reviewer_publication_eval_workflow"
@@ -578,6 +592,12 @@ def test_reviewer_refinement_loop_generates_executable_repair_work_units_for_blo
     assert recheck_unit["required_outputs"] == ["artifacts/publication_eval/latest.json"]
     assert recheck_unit["artifact_delta_predicate"] == "ai_reviewer_judgement_updated"
     assert recheck_unit["gate_replay_target"] == "controller_decisions/latest.json"
+    assert recheck_unit["attempt_role"] == "re_reviewer"
+    assert recheck_unit["parent_attempt_role"] == "repairer"
+    assert recheck_unit["new_stage_attempt_required"] is True
+    assert recheck_unit["new_execution_session_required"] is True
+    assert recheck_unit["no_context_inheritance"] is True
+    assert recheck_unit["defect_owner_stage_id"] == "review_and_quality_gate"
     assert read_model["bounded_review_repair_policy"]["status"] == (
         "auto_advance_with_repair_budget_available"
     )
@@ -734,7 +754,8 @@ def test_reviewer_refinement_loop_batches_multiple_gaps_per_callable_surface(
         "publication_gap:claim-strength",
         "publication_gap:claim-map-overreach",
     }
-    assert quality_unit["retry_budget"] == {
+    assert quality_unit["dispatch_retry_budget"] == {
+        "budget_kind": "owner_callable_dispatch_retry",
         "max_attempts": 1,
         "remaining_attempts": 1,
         "retry_policy": "single_batch_owner_replay_only",

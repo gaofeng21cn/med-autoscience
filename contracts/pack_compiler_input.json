@@ -157,7 +157,7 @@
     "portfolio_role": "mas_owned_hypothesis_candidate_and_evidence_ref_pack",
     "progress_enhancement_contract": {
       "max_reusable_memory_lesson_refs_per_attempt": 1,
-      "meta_review_triggered_only_by": [
+      "strategy_retrospective_triggered_only_by": [
         "stop_loss_candidate",
         "repeated_failure",
         "human_gate_pressure",
@@ -173,7 +173,7 @@
       "micro_candidate_board_ref",
       "critique_repair_hint_ref",
       "memory_lesson_ref",
-      "meta_review_trigger_ref",
+      "strategy_retrospective_ref",
       "opportunistic_prefetch_ref"
     ],
     "progress_enhancement_refs_block_route": false,
@@ -182,6 +182,12 @@
     "validator_ref": "src/med_autoscience/opl_domain_pack/hypothesis_portfolio_pack.py::validate_hypothesis_portfolio_candidate_refs"
   },
   "independent_executor_reviewer_agent_policy": {
+    "attempt_roles": [
+      "producer",
+      "reviewer",
+      "repairer",
+      "re_reviewer"
+    ],
     "codex_cli_may_serve_both_roles_only_as_separate_invocations": true,
     "executor_agent_role": "stage_work_executor",
     "missing_independent_reviewer_record_policy": "quality_debt_and_route_back_without_stage_block",
@@ -191,6 +197,10 @@
     "reviewer_auditor_agent_role": "quality_gate_reviewer_or_auditor",
     "reviewer_receipt_executor_binding_field": "reviewed_executor_receipt_ref",
     "reviewer_receipt_must_bind_executor_receipt": true,
+    "reviewer_session_must_differ_from_producer_session": true,
+    "no_context_inheritance_required": true,
+    "same_thread_checking_classification": "in_thread_refinement",
+    "same_thread_checking_can_emit_review_receipt": false,
     "self_review_closes_quality_gate": false,
     "separate_context_record_required": true,
     "separate_invocation_required": true,
@@ -219,12 +229,14 @@
     "agent/knowledge/publication_route_memory.md",
     "agent/knowledge/source_readiness_and_artifact_authority.md",
     "contracts/domain_owner_answer_projection_profile.json",
+    "contracts/stage_quality_cycle_policy.json",
     "agent/prompts/baseline_and_evidence_setup.md",
     "agent/prompts/bounded_analysis_campaign.md",
     "agent/prompts/direction_and_route_selection.md",
     "agent/prompts/finalize_and_publication_handoff.md",
     "agent/prompts/manuscript_authoring.md",
     "agent/prompts/review_and_quality_gate.md",
+    "agent/quality_gates/stage_quality_cycle_roles.md",
     "agent/quality_gates/ai_reviewer_auditor_gate.md",
     "agent/quality_gates/artifact_source_authority_gate.md",
     "agent/skills/medical_research_execution.md",
@@ -254,15 +266,18 @@
     "runtime_environment_requirement_profile": "contracts/runtime_environment_requirements.json",
     "owner_receipt_schema_source_ref": "contracts/owner_receipt_contract.json",
     "quality_gate_source_ref": "agent/quality_gates/ai_reviewer_auditor_gate.md",
+    "stage_quality_cycle_policy_ref": "contracts/stage_quality_cycle_policy.json",
     "required_domain_pack_paths": [
       "agent/stages/stage_route_contract.yaml",
       "agent/stages/stage_native_semantic_pack.yaml",
+      "contracts/stage_quality_cycle_policy.json",
       "agent/prompts/direction_and_route_selection.md",
       "agent/prompts/baseline_and_evidence_setup.md",
       "agent/prompts/bounded_analysis_campaign.md",
       "agent/prompts/manuscript_authoring.md",
       "agent/prompts/review_and_quality_gate.md",
       "agent/prompts/finalize_and_publication_handoff.md",
+      "agent/quality_gates/stage_quality_cycle_roles.md",
       "agent/stages/direction_and_route_selection.policy.md",
       "agent/stages/baseline_and_evidence_setup.policy.md",
       "agent/stages/bounded_analysis_campaign.policy.md",

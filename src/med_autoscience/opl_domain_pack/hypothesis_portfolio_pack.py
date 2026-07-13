@@ -38,7 +38,7 @@ HYPOTHESIS_PORTFOLIO_PROGRESS_ENHANCEMENT_REFS = [
     "micro_candidate_board_ref",
     "critique_repair_hint_ref",
     "memory_lesson_ref",
-    "meta_review_trigger_ref",
+    "strategy_retrospective_ref",
     "opportunistic_prefetch_ref",
 ]
 HYPOTHESIS_PORTFOLIO_FORBIDDEN_FAMILY_ACTIONS = [
@@ -62,7 +62,7 @@ PROGRESS_ENHANCEMENT_AUTHORITY_BOUNDARY = {
     "micro_candidates_can_block_selected_owner_action": False,
     "critique_hint_can_close_quality_gate": False,
     "memory_lesson_body_required": False,
-    "meta_review_runs_every_attempt": False,
+    "strategy_retrospective_runs_every_attempt": False,
     "opportunistic_prefetch_blocks_mainline": False,
 }
 
@@ -161,7 +161,7 @@ def _forbidden_progress_enhancement_authority_claims(candidate: Mapping[str, Any
         "authorizes_publication_readiness",
         "authorizes_artifact_mutation",
         "counts_prefetch_as_paper_progress",
-        "runs_meta_review_every_attempt",
+        "runs_strategy_retrospective_every_attempt",
     ):
         if authority_flags.get(key) is True:
             forbidden.append(key)
@@ -243,7 +243,7 @@ def build_hypothesis_portfolio_evidence_pack_contract() -> dict[str, object]:
             "role": "advisory_progress_accelerator",
             "missing_progress_enhancement_ref_blocks_route": False,
             "max_reusable_memory_lesson_refs_per_attempt": 1,
-            "meta_review_triggered_only_by": [
+            "strategy_retrospective_triggered_only_by": [
                 "stop_loss_candidate",
                 "repeated_failure",
                 "human_gate_pressure",

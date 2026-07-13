@@ -10,9 +10,15 @@ from med_autoscience.controllers.owner_callable_registry import owner_callable_f
 
 
 EXECUTION_CONTRACT: dict[str, Any] = {
-    "contract_id": "reviewer_refinement_repair_work_units_v1",
+    "contract_id": "reviewer_refinement_repair_work_units_v2",
     "dispatch_surface": "repair_work_units",
     "dispatch_authority": "owner_route_or_domain_handler",
+    "reviewer_inline_repair_allowed": False,
+    "new_stage_attempt_required": True,
+    "new_execution_session_required": True,
+    "no_context_inheritance": True,
+    "repair_attempt_role": "repairer",
+    "re_review_attempt_role": "re_reviewer",
     "direct_package_mutation_allowed": False,
     "current_package_mutation_allowed": False,
     "quality_authorization_allowed": False,
@@ -141,6 +147,12 @@ def _repair_work_unit(
         "work_unit_type": work_unit_type,
         "owner": _text(contract.get("owner")),
         "callable_surface": _text(contract.get("callable_surface")),
+        "attempt_role": _attempt_role(work_unit_type),
+        "parent_attempt_role": "repairer" if work_unit_type == "ai_reviewer_recheck" else "reviewer",
+        "new_stage_attempt_required": True,
+        "new_execution_session_required": True,
+        "no_context_inheritance": True,
+        "defect_owner_stage_id": _defect_owner_stage_id(work_unit_type),
         "required_inputs": _required_inputs(
             publication_eval_path=publication_eval_path,
             source_refs=source_refs,
@@ -152,7 +164,8 @@ def _repair_work_unit(
         "idempotency_key": f"reviewer_refinement_loop:{unit_id}:{source_fingerprint}",
         "source_fingerprint": source_fingerprint,
         "source_refs": source_refs,
-        "retry_budget": {
+        "dispatch_retry_budget": {
+            "budget_kind": "owner_callable_dispatch_retry",
             "max_attempts": 2,
             "remaining_attempts": 2,
             "retry_policy": "idempotent_owner_replay_only",
@@ -178,6 +191,18 @@ def _owner_contract(work_unit_type: str) -> dict[str, Any]:
         "owner": "quality_repair_batch",
         "callable_surface": "quality_repair_batch.run_quality_repair_batch",
     }
+
+
+def _attempt_role(work_unit_type: str) -> str:
+    return "re_reviewer" if work_unit_type == "ai_reviewer_recheck" else "repairer"
+
+
+def _defect_owner_stage_id(work_unit_type: str) -> str:
+    if work_unit_type in {"analysis_repair", "evidence_ledger_repair"}:
+        return "bounded_analysis_campaign"
+    if work_unit_type in {"text_repair", "claim_downgrade"}:
+        return "manuscript_authoring"
+    return "review_and_quality_gate"
 
 
 def _required_inputs(
@@ -382,7 +407,8 @@ def _batch_unit_for_callable_surface(
             "idempotency_key": f"reviewer_refinement_loop:{unit_id}:{source_fingerprint}",
             "source_fingerprint": source_fingerprint,
             "source_refs": source_refs,
-            "retry_budget": {
+            "dispatch_retry_budget": {
+                "budget_kind": "owner_callable_dispatch_retry",
                 "max_attempts": 1,
                 "remaining_attempts": 1,
                 "retry_policy": "single_batch_owner_replay_only",

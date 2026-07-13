@@ -228,7 +228,7 @@ def test_current_owner_ticket_exposes_current_owner_native_jit_affordance_policy
         "bounded_micro_candidate_generation",
         "critique_as_repair_hint",
         "reusable_lesson_extraction",
-        "triggered_meta_review",
+        "strategy_retrospective",
         "opportunistic_knowledge_prefetch",
     ]
     assert policy["default_posture"] == "current_owner_native_jit_affordance"
@@ -249,8 +249,8 @@ def test_current_owner_ticket_exposes_current_owner_native_jit_affordance_policy
     assert policy["critique_as_repair_hint"]["can_close_quality_gate"] is False
     assert policy["reusable_lesson_extraction"]["max_reusable_lesson_refs_per_invocation"] == 1
     assert policy["reusable_lesson_extraction"]["missing_lesson_blocks_route"] is False
-    assert policy["triggered_meta_review"]["runs_every_attempt"] is False
-    assert policy["triggered_meta_review"]["trigger_reasons"] == [
+    assert policy["strategy_retrospective"]["runs_every_attempt"] is False
+    assert policy["strategy_retrospective"]["trigger_reasons"] == [
         "stop_loss_candidate",
         "repeated_failure",
         "human_gate_pressure",

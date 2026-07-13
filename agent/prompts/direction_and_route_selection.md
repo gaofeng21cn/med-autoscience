@@ -12,6 +12,13 @@ Choose the most worthwhile next research route inside the active study boundary.
 Decide whether to proceed, narrow, pivot, stop, or request a human decision, and
 leave a consumable rationale for both the selected and rejected routes.
 
+## Quality Cycle
+
+Produce the best route artifact for this attempt role. Same-thread checking is
+`in_thread_refinement` only. Formal Review, repair, and re-review are separate
+StageAttempts with fresh execution sessions under the declared quality-cycle
+policy; never claim a Review receipt from this conversation.
+
 ## Good Work
 
 - Use current study, source, evidence, literature, controller, reviewer, and

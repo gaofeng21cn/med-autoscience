@@ -575,7 +575,7 @@
     "forbidden_default_motions": [
       "always_generate_micro_candidates",
       "always_run_next_delta_tournament",
-      "always_run_meta_review",
+      "always_run_strategy_retrospective",
       "always_prefetch_context",
       "always_scan_memory",
       "always_score_routes",
@@ -616,7 +616,7 @@
           "debate_or_tournament_ref",
           "ranking_ref",
           "evolution_ref",
-          "meta_review_ref",
+          "strategy_retrospective_ref",
           "research_overview_ref"
         ],
         "forbidden_roles": [
@@ -653,8 +653,8 @@
       "max_next_delta_tournaments_per_attempt": 1,
       "max_reviewer_repair_hints_per_attempt": 3,
       "max_reusable_lesson_refs_per_attempt": 1,
-      "meta_review_runs_every_attempt": false,
-      "meta_review_triggered_only_by": [
+      "strategy_retrospective_runs_every_attempt": false,
+      "strategy_retrospective_triggered_only_by": [
         "stop_loss_candidate",
         "repeated_failure",
         "human_gate_pressure",

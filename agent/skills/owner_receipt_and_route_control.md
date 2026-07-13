@@ -15,7 +15,7 @@ Every mutating or decision-bearing path must emit a durable owner receipt. The r
 - currentness basis relative to task intake, controller decision, manuscript/source refs, and artifact rebuild refs.
 - consumed quality pack refs, including journal-family pack refs when in scope.
 - decision-trace refs and failed-path ledger refs for negative results, failed attempts, route switches, claim narrowing, methodology route-back, and stop-loss decisions; include only summaries and refs in handoff/read-model fields, never ledger body.
-- JIT affordance refs when explicitly requested and consumed by the current owner or gate: ranked next-owner delta refs, reviewer repair hint refs, triggered meta-review refs, opportunistic prefetch refs, and at most one reusable refs-only lesson ref.
+- JIT affordance refs when explicitly requested and consumed by the current owner or gate: ranked next-owner delta refs, reviewer repair hint refs, strategy retrospective refs, opportunistic prefetch refs, and at most one reusable refs-only lesson ref.
 - ScholarSkills specialist route refs when journal-family packs are consumed,
   using the foldback matrix in
   `mas-scholar-skills/references/professional-quality-ref-templates.md#mas-journal-family-pack-foldback`.
@@ -54,8 +54,8 @@ A typed blocker must name the blocker semantics, route-back owner, missing refs,
 - Route forward may start with missing refs recorded as quality debt; current refs are required only for the corresponding quality/publication/submission claim.
 - Route forward from manuscript, review, finalize, or journal-resolution work only when in-scope journal-family packs have output refs, typed blockers, or explicit out-of-scope reasoning in the receipt.
 - Preserve failed-path and stop-loss evidence as structured ledger refs so later stages do not repeat invalid routes; downstream route control may consume the ref but must not treat ledger body as route authority.
-- Do not invoke progress-first advisory work by default. Next-delta tournament, bounded micro-candidate generation, critique-as-repair-hint, reusable lesson extraction, triggered meta-review, and opportunistic prefetch are JIT affordances only when the current owner action, owner route, route-back, typed blocker, reviewer/publication gate, human gate, or stop-loss decision explicitly asks for that ref family, briefing, repair question, or arbitration need.
-- Preserve JIT affordance outputs as route ordering and repair context only. They cannot block the declared next owner, extend the loop, create a default next action, or replace controller/owner/quality-gate authority. Secondary caps apply only after explicit invocation: at most three micro-candidates, one next-delta tournament, three reviewer repair hints, and one reusable refs-only lesson; meta-review remains limited to stop-loss, repeated failure, human gate, claim-boundary drift, or no-loop budget exhaustion.
+- Do not invoke progress-first advisory work by default. Next-delta tournament, bounded micro-candidate generation, critique-as-repair-hint, reusable lesson extraction, strategy retrospective, and opportunistic prefetch are JIT affordances only when the current owner action, owner route, route-back, typed blocker, reviewer/publication gate, human gate, or stop-loss decision explicitly asks for that ref family, briefing, repair question, or arbitration need.
+- Preserve JIT affordance outputs as route ordering and repair context only. They cannot block the declared next owner, extend the loop, create a default next action, or replace controller/owner/quality-gate authority. Secondary caps apply only after explicit invocation: at most three micro-candidates, one next-delta tournament, three reviewer repair hints, and one reusable refs-only lesson; strategy retrospective remains limited to stop-loss, repeated failure, human gate, claim-boundary drift, or no-loop budget exhaustion.
 - Human gate blocks auto-advance only when the stage or authority boundary says external decision is required.
 - Do not convert an ordinary quality gap or zero-output attempt into a blocker.
   Materialize a progress diagnostic and exact debt refs. Block only for an
@@ -68,7 +68,13 @@ Programs, validators, materializers, generated surfaces, and OPL-hosted descript
 
 ## Independence Boundary
 
-Execution receipts and review/audit receipts are separate artifacts. The same invocation cannot execute work and then close the AI-first quality gate for that work. Missing independent reviewer/auditor record fails closed or routes back.
+Execution receipts and review/audit receipts are separate artifacts. The same
+invocation or execution session cannot execute work and then close the AI-first
+quality gate for that work. A formal reviewer, repairer, and re-reviewer are new
+StageAttempts/sessions with explicit lineage and no conversation inheritance;
+same-thread checking is only `in_thread_refinement`. Missing independent
+reviewer/auditor record fails closed for quality claims or routes back without
+blocking ordinary progress when a consumable artifact exists.
 
 ## Nature-Skills Absorption Boundary
 

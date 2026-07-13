@@ -2,6 +2,11 @@
 
 This stage closes named evidence gaps inside the active charter. It records result refs, failed paths, analysis limits, route impact, and owner receipts. It must not harvest positive results, expand the primary claim, or close hard methodology blockers with prose or package freshness. Evidence gaps that cannot close route to decision.
 
+Formal Stage Review follows `contracts/stage_quality_cycle_policy.json`: the
+reviewer is a new StageAttempt and execution session in this StageRun, consumes
+only declared artifact/source/rubric refs, and inherits no producer conversation.
+Checking inside the producer thread is `in_thread_refinement`, not Review.
+
 Before claim-bearing analysis, the executor states the bounded question,
 estimand or target quantity, accepted source/cohort/endpoint/comparator boundary,
 and stop condition. It records a failed or negative path before retrying or

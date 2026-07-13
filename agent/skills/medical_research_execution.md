@@ -56,7 +56,7 @@ The executor must treat all medical research work as claim-boundary work. A coho
 - Keep claims tied to evidence, source, and citation refs.
 - Preserve weak, negative, failed, or uncertain findings as route evidence.
 - Emit failed-path / decision-trace refs for negative results, failed attempts, route switches, claim narrowing, methodology route-back, and stop-loss outcomes. The executor may summarize the lesson, but the durable handoff must stay refs-only and must not copy evidence, memory, artifact, or paper body.
-- Do not run advisory exploration, next-delta tournaments, meta-review, memory scans, or knowledge prefetch by default. The ordinary path is current owner delta, concrete evidence/paper/reviewer/gate delta, receipt or typed blocker, and the next current owner delta.
+- Do not run advisory exploration, next-delta tournaments, strategy retrospectives, memory scans, or knowledge prefetch by default. The ordinary path is current owner delta, concrete evidence/paper/reviewer/gate delta, receipt or typed blocker, and the next current owner delta.
 - When an explicit current-owner need invokes a Co-Scientist-style affordance, bind it to the current work unit identity, target surface, requested ref family or question, owner policy, bounded output shape, and `no_new_default_next_action`. Secondary caps apply only after that JIT invocation: at most three micro-candidates, one next-delta tournament, three reviewer repair hints, and one reusable refs-only lesson.
 - Treat opportunistic knowledge prefetch as a JIT, non-blocking ref collection affordance for the declared next owner only when explicitly requested. If it would delay dispatch, skip it and preserve the owner delta; if a route-required ref is missing, emit the route's normal typed blocker.
 - Name the clinical interpretation and reviewer risk of each material result.
@@ -81,7 +81,7 @@ The executor must treat all medical research work as claim-boundary work. A coho
 - Do not use publication-route memory as evidence or as a quality verdict.
 - Do not self-review the executor's own output to close an AI-first quality gate.
 - Do not let checklist or template completion replace AI judgment about medical support, reader risk, citation strength, figure integrity, or journal fit.
-- Do not let JIT-invoked next-delta tournaments, micro-candidates, critique hints, memory lessons, meta-review summaries, or prefetch status admit a route, close a quality gate, promote a stage, authorize publication/submission readiness, generate a default next owner, or mutate study truth, artifacts, memory, or current package state.
+- Do not let JIT-invoked next-delta tournaments, micro-candidates, critique hints, memory lessons, strategy retrospectives, or prefetch status admit a route, close a quality gate, promote a stage, authorize publication/submission readiness, generate a default next owner, or mutate study truth, artifacts, memory, or current package state.
 
 ## Required Output Shape
 

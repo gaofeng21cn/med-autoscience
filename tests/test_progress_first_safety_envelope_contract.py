@@ -483,7 +483,7 @@ def test_hybrid_policy_is_owner_native_jit_affordance_not_budgeted_sidecar() -> 
     assert {
         "always_generate_micro_candidates",
         "always_run_next_delta_tournament",
-        "always_run_meta_review",
+        "always_run_strategy_retrospective",
         "always_prefetch_context",
         "always_scan_memory",
         "always_score_routes",
@@ -504,7 +504,7 @@ def test_hybrid_policy_is_owner_native_jit_affordance_not_budgeted_sidecar() -> 
     assert cap["max_next_delta_tournaments_per_attempt"] == 1
     assert cap["max_reviewer_repair_hints_per_attempt"] == 3
     assert cap["max_reusable_lesson_refs_per_attempt"] == 1
-    assert cap["meta_review_runs_every_attempt"] is False
+    assert cap["strategy_retrospective_runs_every_attempt"] is False
     assert cap["opportunistic_prefetch_mainline_waits"] is False
     assert cap["missing_advisory_scan_blocks_owner_action"] is False
 

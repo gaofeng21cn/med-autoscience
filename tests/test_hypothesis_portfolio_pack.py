@@ -143,7 +143,7 @@ def test_missing_progress_enhancement_refs_do_not_block_complete_candidate() -> 
         "micro_candidates_can_block_selected_owner_action": False,
         "critique_hint_can_close_quality_gate": False,
         "memory_lesson_body_required": False,
-        "meta_review_runs_every_attempt": False,
+        "strategy_retrospective_runs_every_attempt": False,
         "opportunistic_prefetch_blocks_mainline": False,
     }
 
@@ -198,7 +198,7 @@ def test_hypothesis_portfolio_contract_exposes_progress_first_validator() -> Non
         "role": "advisory_progress_accelerator",
         "missing_progress_enhancement_ref_blocks_route": False,
         "max_reusable_memory_lesson_refs_per_attempt": 1,
-        "meta_review_triggered_only_by": [
+        "strategy_retrospective_triggered_only_by": [
             "stop_loss_candidate",
             "repeated_failure",
             "human_gate_pressure",
