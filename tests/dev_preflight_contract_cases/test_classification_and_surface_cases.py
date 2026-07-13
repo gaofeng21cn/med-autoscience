@@ -600,7 +600,10 @@ def test_classify_changed_files_covers_current_standard_agent_contract_paths() -
         [
             "agent/principles/opl-standard-agent-principles.md",
             "agent/tools/domain_affordances.md",
+            "contracts/domain_handler_registry.json",
             "contracts/opl_agent_package_manifest.json",
+            "contracts/paper_mission_authority_handler_parity.json",
+            "contracts/source_closure_audit.json",
             "contracts/stage_operating_principles.json",
             "contracts/state_index_kernel_adoption.json",
         ]
