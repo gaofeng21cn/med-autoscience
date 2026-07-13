@@ -4,7 +4,7 @@
   "package_id": "mas",
   "display_name": "Med Auto Science",
   "publisher": "one-person-lab",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "source": "first_party_repo_local",
   "carrier_source_role": "codex_plugin_default_carrier_not_package_truth",
   "schema_ref": "one-person-lab/contracts/opl-framework/agent-package-manifest.schema.json",
@@ -15,14 +15,14 @@
     "payload_ref": "ghcr.io/gaofeng21cn/opl-agent-med-autoscience:latest",
     "payload_digest_ref": "sha256:1111111111111111111111111111111111111111111111111111111111111111",
     "required_skill_pack_lock_refs": [
-      "opl://agent-package-lock/mas-scholar-skills/0.1.0/managed-ghcr-capability-package"
+      "opl://agent-package-lock/mas-scholar-skills/0.2.0/managed-ghcr-capability-package"
     ],
     "proof_status": "non_live_contract_fixture",
     "live_download_proof": false,
     "installed_reload_proof": false,
     "oci_ref": "ghcr.io/gaofeng21cn/opl-agent-med-autoscience:latest",
     "oci_media_type": "application/vnd.oci.image.manifest.v1+json",
-    "immutable_tag": "0.1.0",
+    "immutable_tag": "0.2.0",
     "rolling_tag": "latest",
     "promotion_policy": "daily_candidate_gates_then_promote_latest",
     "install_truth": "resolved_digest_lock"
@@ -44,7 +44,7 @@
       "kind": "framework_capability_package",
       "required": true,
       "dependency_kind": "hard_runtime_dependency",
-      "version_requirement": ">=0.1.0 <0.2.0",
+      "version_requirement": ">=0.2.0 <0.3.0",
       "capability_abi": "mas-scholar-skills.v1",
       "provider_manifest_ref": "mas-scholar-skills/contracts/opl_capability_package_manifest.json",
       "required_export_ids": [
