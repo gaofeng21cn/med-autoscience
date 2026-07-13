@@ -35,18 +35,8 @@ def test_domain_descriptor_exposes_generic_standard_agent_interface() -> None:
         "entry_command_template": interface["workspace_binding"]["entry_command_template"],
         "manifest_command_template": interface["workspace_binding"]["manifest_command_template"],
     }
-    for command_field in ("entry_command_template", "manifest_command_template"):
-        command = interface["workspace_binding"][command_field]
-        assert command[:7] == [
-            "uv",
-            "run",
-            "--isolated",
-            "--frozen",
-            "--project",
-            "{workspace_root}",
-            "python",
-        ]
-        assert command[-1] == "{profile_ref}"
+    assert interface["workspace_binding"]["entry_command_template"] is None
+    assert interface["workspace_binding"]["manifest_command_template"] is None
     assert interface["runtime"] == {
         "runtime_domain_id": "mas",
         "dispatch_command": None,
