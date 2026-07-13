@@ -15,6 +15,11 @@ Machine boundary: 本文是人读导航。机器真相归 `agent/`、`contracts/
 | 当前有效决策 | [关键决策](./decisions.md) |
 | 当前状态 | [当前状态](./status.md) |
 
+## 面向用户
+
+- [MAS 白皮书（在线阅读）](https://gaofeng21cn.github.io/med-autoscience/latest/whitepapers/mas-whitepaper.html)：解释 MAS 的设计理念、研究线、证据链、独立审阅与人机边界。
+- [MAS 白皮书（PDF）](https://gaofeng21cn.github.io/med-autoscience/latest/whitepapers/mas-whitepaper.pdf)：适合离线阅读与转发。
+
 ## 当前计划
 
 [MAS 理想目标态差距与完善计划](./active/mas-ideal-state-gap-plan.md) 是唯一结构完成度 owner。OE-01 至 OE-12 已全部完成 repo/source/control-plane 落地；Live evidence 独立后置。

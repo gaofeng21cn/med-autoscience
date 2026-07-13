@@ -10,5 +10,7 @@ Machine boundary: 人读公开索引。产品真相继续归核心文档、contr
 当前入口先看：
 
 - [仓库首页](../../README.md)
+- [MAS 白皮书（在线阅读）](https://gaofeng21cn.github.io/med-autoscience/latest/whitepapers/mas-whitepaper.html)
+- [MAS 白皮书（PDF）](https://gaofeng21cn.github.io/med-autoscience/latest/whitepapers/mas-whitepaper.pdf)
 - [项目概览](../project.md)
 - [当前状态](../status.md)

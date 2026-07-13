@@ -30,6 +30,18 @@ jobs:
           repository: gaofeng21cn/mas-scholar-skills
           path: .ci/mas-scholar-skills
 
+      - name: Set up Node.js 24
+        uses: actions/setup-node@v6
+        with:
+          node-version: '24'
+
+      - name: Checkout and build OPL Framework
+        run: |
+          git clone --depth=1 --filter=blob:none https://github.com/gaofeng21cn/one-person-lab.git ../one-person-lab
+          npm ci --prefix ../one-person-lab --ignore-scripts
+          npm run --prefix ../one-person-lab build
+          echo "OPL_BIN=$GITHUB_WORKSPACE/../one-person-lab/bin/opl" >> "$GITHUB_ENV"
+
       - name: Set up Python 3.12
         uses: actions/setup-python@v6
         with:
@@ -45,6 +57,10 @@ jobs:
 
       - name: Export isolated test requirements
         run: uv export --quiet --frozen --no-emit-project --group dev --format requirements-txt > "${RUNNER_TEMP}/mas-requirements.txt"
+
+      - name: Link OPL Framework
+        run: |
+          "$OPL_BIN" packages link-framework --agent-root "$GITHUB_WORKSPACE" --json
 
       - name: Run change-aware CI preflight
         run: scripts/verify.sh ci-preflight "${{ github.event_name == 'pull_request' && github.event.pull_request.base.sha || github.event.before }}"
