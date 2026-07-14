@@ -24,7 +24,7 @@ Machine boundary: 本文是人读约束；机器事实以 contracts、source、r
 
 ## Authority
 
-- 领域 route 语义只由 decisive Codex Attempt 决定；OPL StageRun controller 只校验并物化 transition。producer/repairer/`same_stage_repair_required` reviewer 不得获得终局 route authority；`cross_stage_route_back_before_budget_exhaustion` reviewer/re-reviewer 只在最窄 canonical owner 是另一个 declared Stage 时成为终局 decisive Attempt。
+- 领域 route 语义只由 decisive Codex Attempt 决定；OPL StageRun controller 只校验并物化 transition。Formal Review StageRun 的 producer/repairer/`same_stage_repair_required` reviewer 不得获得终局 route authority；primary-only StageRun 的 producer可以成为 decisive Attempt；`cross_stage_route_back_before_budget_exhaustion` reviewer/re-reviewer 只在最窄 canonical owner 是另一个 declared Stage 时成为终局 decisive Attempt。
 - OPL transport/readback 只有传输权；同 identity 的 MAS owner consumption 才能解释 domain result。
 - AI-first quality gate 必须消费独立 reviewer/auditor invocation 与 receipt；executor 不得自审并关闭质量门。
 - publication、submission、artifact mutation、memory accept/reject 与 source readiness 必须由对应 MAS owner surface裁决。

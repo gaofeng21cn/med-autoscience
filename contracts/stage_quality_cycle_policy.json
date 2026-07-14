@@ -30,7 +30,6 @@
     ],
     "producer_can_be_decisive_attempt_in_formal_review": false,
     "repairer_can_be_decisive_attempt": false,
-    "producer_or_repairer_may_return_terminal_route_decision": false,
     "same_stage_repair_required_with_budget_remaining_continues_quality_loop": true,
     "repair_required_review_or_re_review_may_select_cross_stage_route_back_before_budget_exhaustion": true,
     "repair_required_cross_stage_route_back_requires_target_different_from_current_stage": true,

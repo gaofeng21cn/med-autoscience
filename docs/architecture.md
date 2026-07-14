@@ -101,7 +101,8 @@ bytes 重新完成 fresh Stage Review 与 Meta Review 后才能回到 Handoff。
 
 跨 Stage 路由仍由 Codex 的领域判断产生，但终局 owner 随 StageRun 形态固定：
 primary-only StageRun 的 producer 作决定；启用 formal Review 时，只有终局
-reviewer 或 re-reviewer 作决定。producer、repairer 始终只能给 recommendation。
+reviewer 或 re-reviewer 作决定。在 formal Review StageRun 内，producer、repairer
+始终只能给 recommendation；primary-only StageRun 的 producer不受此限制。
 仍有 repair budget 且缺陷可在当前 Stage 修复时，`repair_required` reviewer 也只给
 recommendation并继续本 Stage 质量循环；若 required finding 的最窄 canonical
 owner 是另一个 declared Stage，则 reviewer / re-reviewer 可在预算耗尽前以

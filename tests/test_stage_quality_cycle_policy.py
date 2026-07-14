@@ -104,7 +104,7 @@ def test_route_authority_is_split_and_legacy_owner_is_absent() -> None:
     ]
     assert route["producer_can_be_decisive_attempt_in_formal_review"] is False
     assert route["repairer_can_be_decisive_attempt"] is False
-    assert route["producer_or_repairer_may_return_terminal_route_decision"] is False
+    assert "producer_or_repairer_may_return_terminal_route_decision" not in route
     assert route[
         "same_stage_repair_required_with_budget_remaining_continues_quality_loop"
     ] is True
