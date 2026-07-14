@@ -28,11 +28,40 @@ def test_package_plugin_and_python_versions_are_one_semver() -> None:
     assert package["version"] == pyproject["project"]["version"] == plugin["version"]
     assert package["version"] == "0.2.2"
     assert package["distribution_payload"]["immutable_tag"] == package["version"]
+    assert package["agent_id"] == package["package_id"] == "mas"
+    assert package["codex_surface"]["plugin_id"] == "med-autoscience"
     assert "scripts" not in pyproject["project"]
 
     prompt_text = json.dumps(plugin["interface"]["defaultPrompt"]).lower()
     assert "doctor" not in prompt_text
     assert "controller" not in prompt_text
+
+
+def test_stage_route_contract_has_one_canonical_package_source() -> None:
+    pyproject = tomllib.loads((ROOT / "pyproject.toml").read_text(encoding="utf-8"))
+    manifest_lines = {
+        line.strip()
+        for line in (ROOT / "MANIFEST.in").read_text(encoding="utf-8").splitlines()
+        if line.strip() and not line.lstrip().startswith("#")
+    }
+    pack_input = json.loads(
+        (ROOT / "contracts/pack_compiler_input.json").read_text(encoding="utf-8")
+    )
+
+    canonical = ROOT / "agent/stages/stage_route_contract.yaml"
+    packaged_mirror = ROOT / "src/med_autoscience/resources/stage_route_contract.yaml"
+    resources_root = ROOT / "src/med_autoscience/resources"
+    assert canonical.is_file()
+    assert not packaged_mirror.exists()
+    assert not any(path.is_file() for path in resources_root.rglob("*"))
+    assert pyproject["tool"]["setuptools"]["package-data"] == {
+        "med_autoscience.styles": ["*.csl"]
+    }
+    assert "include agent/stages/stage_route_contract.yaml" in manifest_lines
+    assert all("src/med_autoscience/resources" not in line for line in manifest_lines)
+    assert pack_input["source_refs"]["required_domain_pack_paths"].count(
+        "agent/stages/stage_route_contract.yaml"
+    ) == 1
 
 
 def test_scholarskills_is_a_managed_hard_dependency_not_a_sixth_agent() -> None:

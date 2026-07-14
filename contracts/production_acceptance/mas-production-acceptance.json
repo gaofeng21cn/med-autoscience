@@ -2,7 +2,7 @@
   "surface_kind": "mas_domain_owned_production_acceptance",
   "version": "mas-production-acceptance.v2",
   "schema_version": 2,
-  "domain_id": "mas",
+  "domain_id": "medautoscience",
   "owner": "MedAutoScience",
   "state": "live_evidence_required_outside_repo_source",
   "acceptance_status": "not_claimed_by_structural_conformance",

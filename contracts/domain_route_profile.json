@@ -5,7 +5,7 @@
   "profile_id": "mas.domain_route.v2",
   "profile_role": "declarative_stage_route_registration",
   "agent_id": "mas",
-  "domain_id": "mas",
+  "domain_id": "medautoscience",
   "domain_truth_owner": "MedAutoScience",
   "runtime_owner": "one-person-lab",
   "stage_manifest_ref": "agent/stages/manifest.json",

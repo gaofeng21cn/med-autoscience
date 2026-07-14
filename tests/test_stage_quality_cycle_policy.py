@@ -83,6 +83,49 @@ def test_route_authority_is_split_and_legacy_owner_is_absent() -> None:
         )
         assert "route_selection_owner" not in policy
 
+    progress_policy = manifest["progress_first_policy"]
+    assert progress_policy["primary_only_decisive_attempt_role"] == "producer"
+    assert progress_policy["formal_review_decisive_attempt_roles"] == [
+        "reviewer",
+        "re_reviewer",
+    ]
+    assert progress_policy["repairer_can_be_decisive_attempt"] is False
+
+
+def test_main_prompts_label_the_forward_stage_as_a_default_not_a_route_constraint() -> None:
+    manifest = _load("agent/stages/manifest.json")
+    stage_ids = {
+        "direction_and_route_selection",
+        "baseline_and_evidence_setup",
+        "bounded_analysis_campaign",
+        "manuscript_authoring",
+    }
+
+    prompts = {
+        stage["stage_id"]: (ROOT / stage["prompt_ref"]).read_text(encoding="utf-8")
+        for stage in manifest["stages"]
+        if stage["stage_id"] in stage_ids
+    }
+    assert set(prompts) == stage_ids
+    for prompt in prompts.values():
+        assert "\nDefault forward stage: " in prompt
+        assert "\nNext stage: " not in prompt
+
+
+def test_active_stage_manifest_uses_canonical_review_gate_input_ids() -> None:
+    manifest = _load("agent/stages/manifest.json")
+    required_gate_inputs = {
+        gate_input
+        for stage in manifest["stages"]
+        for check in stage.get("stage_contract_extension", {}).get(
+            "mandatory_pre_gate_checks", []
+        )
+        for gate_input in check.get("required_gate_input_surfaces", [])
+    }
+
+    assert "manuscript_consistency_gate_input" in required_gate_inputs
+    assert "manuscript_consistency_meta_review" not in required_gate_inputs
+
 
 def test_hypothesis_promotion_is_a_review_contract_not_python_validator() -> None:
     manifest = _load("agent/stages/manifest.json")

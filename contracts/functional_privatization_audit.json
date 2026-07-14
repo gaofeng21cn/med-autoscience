@@ -1,8 +1,8 @@
 {
   "surface_kind": "functional_privatization_audit",
   "schema_version": 1,
-  "domain_id": "mas",
-  "target_domain_id": "mas",
+  "domain_id": "medautoscience",
+  "target_domain_id": "medautoscience",
   "owner": "med-autoscience",
   "status": "standard_domain_pack_and_registry_bound_authority_function_only",
   "classification_policy": {

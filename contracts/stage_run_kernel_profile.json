@@ -1,12 +1,16 @@
 {
-  "surface_kind": "mas_opl_stage_run_kernel_profile",
+  "surface_kind": "opl_stage_run_kernel_profile",
   "version": "stage-run-kernel-profile.v1",
-  "domain_id": "med-autoscience",
+  "domain_id": "medautoscience",
   "owner": "MedAutoScience / OPL Framework",
   "state": "active_contract",
   "purpose": "Machine-readable StageRun transport profile for Stage Native execution: any readable artifact is Codex route input; structured manifests, receipts, review and repair improve quality but do not control progression.",
   "machine_boundary": "This profile defines a minimal StageRun state shell and authority boundary. It does not declare paper closure, publication readiness, domain readiness, quality readiness, artifact readiness, current_package freshness, or production readiness.",
-  "source_design_ref": "human_doc:mas_opl_stage_native_state_machine",
+  "kernel_contract_ref": "contracts/opl-framework/stage-run-kernel-contract.json",
+  "stage_manifest_schema_ref": "contracts/opl-framework/stage-manifest.schema.json",
+  "role_artifact_ref_schema_ref": "contracts/opl-framework/role-artifact-ref.schema.json",
+  "owner_receipt_schema_ref": "contracts/opl-framework/stage-owner-receipt.schema.json",
+  "typed_blocker_schema_ref": "contracts/opl-framework/stage-typed-blocker.schema.json",
   "stage_folder_contract_ref": "contracts/opl-framework/stage-artifact-runtime-contract.json",
   "owner_receipt_contract_ref": "contracts/owner_receipt_contract.json",
   "opl_contract_refs": {
@@ -29,7 +33,16 @@
     "role_artifacts",
     "progress_receipt_or_owner_answer_or_hard_stop"
   ],
-  "kernel_role": "minimal_state_shell_not_mas_controller_system",
+  "kernel_role": "minimal_state_shell_not_domain_controller_system",
+  "authority_boundary": {
+    "opl_can_write_domain_truth": false,
+    "opl_can_mutate_artifact_body": false,
+    "opl_can_sign_domain_owner_receipt": false,
+    "opl_can_create_typed_blocker": false,
+    "opl_can_authorize_quality_or_export": false,
+    "provider_completion_counts_as_domain_accepted": false,
+    "read_model_can_be_truth_source": false
+  },
   "stage_folder_manifest_role": "artifact_evidence_and_structure_contract",
   "codex_semantic_route_policy": {
     "semantic_route_decision_owner": "decisive_codex_attempt",
@@ -43,7 +56,7 @@
   },
   "required_object_models": [
     "StageRun",
-    "ArtifactRef",
+    "RoleArtifactRef",
     "ProgressDeltaReceipt",
     "OwnerReceipt",
     "TypedBlocker",
@@ -118,7 +131,7 @@
       "NextStageReady": "The OPL StageRun controller validated and materialized the declared target recommended by the decisive Attempt."
     },
     "provider_completion_counts_as_domain_accepted": false,
-    "stage_folder_files_count_as_next_stage_ready": false,
+    "file_presence_counts_as_stage_complete": false,
     "latest_json_counts_as_domain_accepted": false,
     "read_model_can_select_semantic_route": false,
     "readable_artifact_counts_as_progress_input": true,
@@ -324,7 +337,7 @@
         "can_replace_typed_blocker": false
       }
     },
-    "ArtifactRef": {
+    "RoleArtifactRef": {
       "owner": "mas_authority_or_opl_locator",
       "role": "immutable_role_artifact_locator_with_lineage",
       "required_fields": [
@@ -387,48 +400,9 @@
         "rebuildable_projection": true,
         "can_select_semantic_route": false,
         "can_promote_latest_to_authority": false,
-        "can_write_mas_truth": false
+        "can_write_domain_truth": false
       }
     }
-  },
-  "opl_mas_boundary": {
-    "opl_owns": [
-      "stage_run_spec_status",
-      "event_log",
-      "queue",
-      "hold",
-      "admission",
-      "lease",
-      "attempt",
-      "retry_dead_letter",
-      "projection_rebuild"
-    ],
-    "mas_owns": [
-      "stage_semantics",
-      "study_truth",
-      "publication_quality_verdict",
-      "artifact_authority",
-      "memory_accept_reject",
-      "owner_receipt",
-      "typed_blocker",
-      "domain_route_context"
-    ],
-    "forbidden_opl_authority": [
-      "write_mas_study_truth",
-      "write_publication_eval_as_authority",
-      "write_controller_decision_as_authority",
-      "mutate_domain_artifact_body",
-      "authorize_publication_quality",
-      "sign_mas_owner_receipt",
-      "replace_mas_typed_blocker"
-    ],
-    "forbidden_mas_claims": [
-      "mas_owns_generic_queue",
-      "mas_owns_generic_attempt_ledger",
-      "mas_owns_generic_state_machine_runner",
-      "mas_owns_generic_read_model_shell",
-      "mas_controller_system_required_for_stage_run_kernel"
-    ]
   },
   "legacy_runtime_wrapper_retirement": {
     "retired_mas_local_surfaces": [

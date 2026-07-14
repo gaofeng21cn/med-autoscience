@@ -2,7 +2,7 @@
   "surface_kind": "opl_standard_agent_conformance_profile",
   "version": "opl.standard-agent-conformance-profile.v1",
   "profile_id": "med-autoscience.standard-agent-conformance.v1",
-  "target_domain_id": "med-autoscience",
+  "target_domain_id": "medautoscience",
   "golden_path": {
     "required_stage_ids": [
       "direction_and_route_selection",

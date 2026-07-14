@@ -25,7 +25,7 @@ MAS registry-bound authority function
   owner receipt / typed blocker / human gate / domain refs
 ```
 
-canonical id 固定为 `mas`。`med-autoscience` 仅是 repo/package/plugin locator。
+canonical agent/package id 固定为 `mas`；machine `domain_id` / `target_domain_id` 固定为 `medautoscience`。`med-autoscience` 仅是 repo/package/plugin locator。
 
 ## Declarative Medical Research Pack
 

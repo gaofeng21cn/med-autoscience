@@ -6,7 +6,7 @@
     "opl_can_write_domain_truth": false,
     "opl_can_write_memory_body": false
   },
-  "domain_id": "mas",
+  "domain_id": "medautoscience",
   "domain_label": "Med Auto Science",
   "domain_repo_can_own_generated_surface": false,
   "domain_repo_runtime_role": "domain_handler_target_and_authority_functions",
@@ -57,7 +57,7 @@
       }
     },
     "runtime": {
-      "runtime_domain_id": "mas",
+      "runtime_domain_id": "medautoscience",
       "registration_ref": "contracts/domain_route_profile.json"
     },
     "progress": {
@@ -97,7 +97,9 @@
   "standard_contract_refs": {
     "action_catalog": "contracts/action_catalog.json",
     "domain_handler_registry": "contracts/domain_handler_registry.json",
-    "domain_owner_answer_projection_profile": "contracts/domain_owner_answer_projection_profile.json",
+    "hosted_action_runtime": "contracts/opl-framework/standard-agent-hosted-action-runtime-contract.json",
+    "owner_answer_schema": "contracts/opl-framework/owner-answer.schema.json",
+    "stage_run_kernel_profile": "contracts/stage_run_kernel_profile.json",
     "domain_projection_profile": "contracts/domain_projection_profile.json",
     "domain_route_profile": "contracts/domain_route_profile.json",
     "foundry_agent_series": "contracts/foundry_agent_series.json",

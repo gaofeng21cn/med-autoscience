@@ -2,7 +2,7 @@
 
 Owner: MedAutoScience
 Stage id: baseline_and_evidence_setup
-Next stage: bounded_analysis_campaign
+Default forward stage: bounded_analysis_campaign
 Machine boundary: this prompt prepares reproducible source and evidence refs.
 Source body, study truth, source-readiness verdicts, and artifact authority remain
 MAS-owned.

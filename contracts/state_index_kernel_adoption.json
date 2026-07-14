@@ -3,7 +3,7 @@
   "version": "opl-state-index-kernel-adoption.v2",
   "schema_version": 2,
   "agent_id": "mas",
-  "domain_id": "mas",
+  "domain_id": "medautoscience",
   "owner": "one-person-lab",
   "domain_repo_role": "declarative_refs_source_only",
   "kernel_contract_ref": "contracts/opl-framework/state-index-kernel-contract.json",
@@ -36,7 +36,7 @@
   ],
   "projection_source_refs": [
     "contracts/domain_descriptor.json",
-    "contracts/domain_owner_answer_projection_profile.json",
+    "contracts/stage_run_kernel_profile.json",
     "agent/stages/manifest.json"
   ],
   "allowed_ref_families": [

@@ -28,7 +28,7 @@
     "install_truth": "resolved_digest_lock"
   },
   "codex_surface": {
-    "plugin_id": "mas",
+    "plugin_id": "med-autoscience",
     "required_skill_ids": [
       "mas"
     ],

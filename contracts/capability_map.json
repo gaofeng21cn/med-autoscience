@@ -1,7 +1,7 @@
 {
   "surface_kind": "opl_standard_agent_capability_map",
   "schema_version": "standard-agent-capability-map.v1",
-  "domain_id": "med-autoscience",
+  "domain_id": "medautoscience",
   "owner": "MedAutoScience",
   "state": "active_refs_only_external_capability_map",
   "updated_at": "2026-07-03",

@@ -2,7 +2,7 @@
   "surface_kind": "opl_domain_stage_quality_cycle_profile",
   "version": "domain-stage-quality-cycle-profile.v1",
   "profile_id": "mas.official-high-value-knowledge-deliverable.v1",
-  "domain_id": "mas",
+  "domain_id": "medautoscience",
   "owner": "MedAutoScience",
   "shared_contract_ref": "external_repo:one-person-lab/contracts/opl-framework/stage-quality-cycle-contract.json",
   "route_selection_contract_ref": "external_repo:one-person-lab/contracts/opl-framework/stage-quality-cycle-contract.json#/cross_stage_route_selection",

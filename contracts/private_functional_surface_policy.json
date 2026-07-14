@@ -1,12 +1,12 @@
 {
   "surface_kind": "opl_domain_private_functional_surface_admission_policy",
   "schema_version": 2,
-  "domain_id": "mas",
+  "domain_id": "medautoscience",
   "default_posture": "forbidden",
   "allowed_domain_surfaces": [
     "declarative_medical_research_pack",
     "registry_bound_paper_mission_authority_function",
-    "package_bundled_domain_styles_and_resources"
+    "package_bundled_domain_styles"
   ],
   "allowed_developer_surfaces": [
     "developer_proof",
@@ -45,8 +45,7 @@
       "src/med_autoscience/authority_handlers/"
     ],
     "allowed_package_data_roots": [
-      "src/med_autoscience/styles/",
-      "src/med_autoscience/resources/"
+      "src/med_autoscience/styles/"
     ],
     "package_initializers_are_declaration_only": true,
     "all_other_med_autoscience_python_surfaces_forbidden": true,

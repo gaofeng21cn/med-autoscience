@@ -5,12 +5,14 @@
   "profile_id": "mas.domain_projection.v2",
   "profile_role": "declarative_generated_surface_input",
   "agent_id": "mas",
-  "domain_id": "mas",
+  "domain_id": "medautoscience",
   "domain_truth_owner": "MedAutoScience",
   "projection_owner": "one-person-lab",
   "source_contract_refs": [
     "contracts/domain_descriptor.json",
-    "contracts/domain_owner_answer_projection_profile.json",
+    "contracts/opl-framework/standard-agent-hosted-action-runtime-contract.json",
+    "contracts/opl-framework/owner-answer.schema.json",
+    "contracts/stage_run_kernel_profile.json",
     "contracts/action_catalog.json"
   ],
   "generic_fields": [

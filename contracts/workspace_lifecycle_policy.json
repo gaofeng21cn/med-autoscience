@@ -2,7 +2,7 @@
   "surface_kind": "opl_domain_workspace_file_lifecycle_policy",
   "version": "opl-domain-workspace-file-lifecycle.v1",
   "policy_owner": "one-person-lab",
-  "domain_id": "med-autoscience",
+  "domain_id": "medautoscience",
   "structural_gate_only": true,
   "repo_source_boundaries": {
     "required_roots": [

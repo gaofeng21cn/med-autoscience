@@ -5,7 +5,7 @@ Purpose: `project_current_truth`
 State: `active_current_truth`
 Machine boundary: 本文是人读概览。机器真相归 `agent/`、`contracts/`、唯一 registry-bound authority function、OPL runtime durable surfaces、真实 workspace artifact 与 owner receipts。
 
-`Med Auto Science`（canonical id：`mas`）是 OPL family 中的医学研究 domain agent。当前目标形态固定为：
+`Med Auto Science`（canonical agent id：`mas`；machine domain id：`medautoscience`）是 OPL family 中的医学研究 domain agent。当前目标形态固定为：
 
 > `Declarative Medical Research Pack + OPL generated/hosted surfaces + one registry-bound authority function`
 

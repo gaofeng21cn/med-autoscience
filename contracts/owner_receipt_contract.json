@@ -7,7 +7,7 @@
     "artifact_lifecycle_receipt",
     "agent_capability_evolution_receipt"
   ],
-  "domain_id": "med-autoscience",
+  "domain_id": "medautoscience",
   "forbidden_claims": [
     "opl_authorized_domain_ready",
     "opl_authorized_quality_or_export_verdict",

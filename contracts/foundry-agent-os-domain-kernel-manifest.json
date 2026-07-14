@@ -1,7 +1,7 @@
 {
   "surface_kind": "foundry_agent_os_domain_kernel_manifest",
   "version": "foundry-agent-os-domain-kernel-manifest.v1",
-  "domain_id": "med-autoscience",
+  "domain_id": "medautoscience",
   "domain_agent_id": "mas",
   "owner": "MedAutoScience",
   "state": "active_contract",

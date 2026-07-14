@@ -541,7 +541,7 @@ stage_native_semantic_pack:
         <<: *standard_stage_completion_policy
         policy_ref: stage-completion-policy:mas/scout
         stage_id: scout
-        target_domain_id: med-autoscience
+        target_domain_id: medautoscience
       closeout:
         valid_outcomes:
           - owner_receipt
@@ -612,7 +612,7 @@ stage_native_semantic_pack:
         <<: *standard_stage_completion_policy
         policy_ref: stage-completion-policy:mas/idea
         stage_id: idea
-        target_domain_id: med-autoscience
+        target_domain_id: medautoscience
       closeout:
         valid_outcomes:
           - owner_receipt
@@ -685,7 +685,7 @@ stage_native_semantic_pack:
         <<: *standard_stage_completion_policy
         policy_ref: stage-completion-policy:mas/baseline
         stage_id: baseline
-        target_domain_id: med-autoscience
+        target_domain_id: medautoscience
       closeout:
         valid_outcomes:
           - owner_receipt
@@ -758,7 +758,7 @@ stage_native_semantic_pack:
         <<: *standard_stage_completion_policy
         policy_ref: stage-completion-policy:mas/experiment
         stage_id: experiment
-        target_domain_id: med-autoscience
+        target_domain_id: medautoscience
       closeout:
         valid_outcomes:
           - owner_receipt
@@ -833,7 +833,7 @@ stage_native_semantic_pack:
         <<: *standard_stage_completion_policy
         policy_ref: stage-completion-policy:mas/analysis-campaign
         stage_id: analysis-campaign
-        target_domain_id: med-autoscience
+        target_domain_id: medautoscience
       closeout:
         valid_outcomes:
           - owner_receipt
@@ -909,7 +909,7 @@ stage_native_semantic_pack:
         <<: *standard_stage_completion_policy
         policy_ref: stage-completion-policy:mas/write
         stage_id: write
-        target_domain_id: med-autoscience
+        target_domain_id: medautoscience
       closeout:
         valid_outcomes:
           - owner_receipt
@@ -984,7 +984,7 @@ stage_native_semantic_pack:
         <<: *standard_stage_completion_policy
         policy_ref: stage-completion-policy:mas/review
         stage_id: review
-        target_domain_id: med-autoscience
+        target_domain_id: medautoscience
       closeout:
         valid_outcomes:
           - independent_reviewer_record
@@ -1059,7 +1059,7 @@ stage_native_semantic_pack:
         <<: *standard_stage_completion_policy
         policy_ref: stage-completion-policy:mas/finalize
         stage_id: finalize
-        target_domain_id: med-autoscience
+        target_domain_id: medautoscience
       closeout:
         valid_outcomes:
           - publication_handoff_receipt
@@ -1133,7 +1133,7 @@ stage_native_semantic_pack:
         <<: *standard_stage_completion_policy
         policy_ref: stage-completion-policy:mas/decision
         stage_id: decision
-        target_domain_id: med-autoscience
+        target_domain_id: medautoscience
       closeout:
         valid_outcomes:
           - controller_decision_receipt
@@ -1208,7 +1208,7 @@ stage_native_semantic_pack:
         <<: *standard_stage_completion_policy
         policy_ref: stage-completion-policy:mas/journal-resolution
         stage_id: journal-resolution
-        target_domain_id: med-autoscience
+        target_domain_id: medautoscience
       closeout:
         valid_outcomes:
           - owner_receipt

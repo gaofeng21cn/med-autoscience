@@ -5,7 +5,7 @@
     "opl_can_mutate_artifacts": false
   },
   "canonical_artifact_authority": "MedAutoScience",
-  "domain_id": "med-autoscience",
+  "domain_id": "medautoscience",
   "opl_projection_policy": "locator_lifecycle_and_receipt_refs_only",
   "schema_version": 1,
   "surface_kind": "artifact_locator_contract"

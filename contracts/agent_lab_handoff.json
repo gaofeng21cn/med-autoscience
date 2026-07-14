@@ -1,7 +1,7 @@
 {
   "surface_kind": "domain_agent_lab_production_evidence_handoff",
   "schema_version": 1,
-  "domain_id": "med-autoscience",
+  "domain_id": "medautoscience",
   "owner": "MedAutoScience",
   "updated_at": "2026-07-04",
   "handoff_status": "ready_for_opl_meta_agent_and_agent_lab_execution",

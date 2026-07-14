@@ -25,7 +25,7 @@ publication/submission ready 或 production ready。
 
 | Surface | Current state |
 | --- | --- |
-| Identity | canonical id `mas`；`med-autoscience` 只作 repo/package/plugin locator |
+| Identity | canonical agent/package id `mas`；machine domain id `medautoscience`；`med-autoscience` 只作 repo/package/plugin locator |
 | Package | immutable SemVer `0.2.2`；`mas-scholar-skills >=0.2.0 <0.3.0` 为硬依赖，生命周期统一归 `opl packages` |
 | Declarative pack | `agent/` 持有 primary skill、六个 Stage、prompts、knowledge 与 quality gates；plugin skill 是字节一致的分发镜像 |
 | Action catalog | `family-action-catalog.v2`：六个公开 Stage action + 一个无用户 surface 的内部 authority action |

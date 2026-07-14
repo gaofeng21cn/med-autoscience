@@ -38,7 +38,7 @@ Machine boundary: 本文是人读导航。机器真相归 `agent/`、`contracts/
 
 ## OPL 系列分层
 
-MAS 的 canonical id 是 `mas`，长期形态是：
+MAS 的 canonical agent id 是 `mas`，machine domain id 是 `medautoscience`，长期形态是：
 
 > `Declarative Medical Research Pack + OPL generated/hosted surfaces + minimal authority functions`
 

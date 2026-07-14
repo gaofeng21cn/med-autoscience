@@ -4,7 +4,7 @@
   "state": "active_contract",
   "policy_owner": "one-person-lab",
   "owner": "MedAutoScience",
-  "domain_id": "med-autoscience",
+  "domain_id": "medautoscience",
   "purpose": "Keep OPL stages easy to manage while preserving fast owner-delta progression.",
   "principle_summary": {
     "management_logic": "MAS manages medical research progress through coarse stage attempts and owner receipts, not through stale study-level action queues.",

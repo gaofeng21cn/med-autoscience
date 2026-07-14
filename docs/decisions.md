@@ -11,7 +11,7 @@ MAS 的目标形态是 `Declarative Medical Research Pack + OPL generated/hosted
 
 ## D-02 Identity
 
-canonical id 固定为 `mas`。`med-autoscience` 是 repo/package/plugin locator。
+canonical agent/package id 固定为 `mas`；machine `domain_id` / `target_domain_id` 固定为 `medautoscience`。`med-autoscience` 是 repo/package/plugin locator。
 
 ## D-03 Generated surface owner
 

@@ -2,7 +2,7 @@
 
 Owner: MedAutoScience
 Stage id: bounded_analysis_campaign
-Next stage: manuscript_authoring
+Default forward stage: manuscript_authoring
 Machine boundary: this prompt directs bounded scientific analysis. Evidence
 ledgers, study truth, runtime events, and owner receipts remain MAS-owned.
 

@@ -1,13 +1,19 @@
 {
   "surface_kind": "opl_standard_agent_declarative_stage_manifest",
   "version": "opl-standard-agent-declarative-stage-manifest.v1",
-  "target_domain_id": "mas",
-  "owner": "mas",
+  "target_domain_id": "medautoscience",
+  "owner": "medautoscience",
   "quality_governance_profile_ref": "contracts/opl-framework/official-knowledge-deliverable-quality-profile.json",
   "meta_review_policy_ref": "contracts/stage_quality_cycle_policy.json#/meta_review_policy",
   "progress_first_policy": {
     "semantic_route_decision_owner": "decisive_codex_attempt",
     "stage_transition_materialization_owner": "opl_stage_run_controller",
+    "primary_only_decisive_attempt_role": "producer",
+    "formal_review_decisive_attempt_roles": [
+      "reviewer",
+      "re_reviewer"
+    ],
+    "repairer_can_be_decisive_attempt": false,
     "codex_may_advance_skip_repeat_reverse_or_route_back": true,
     "any_declared_stage_may_start_from_any_prior_stage_result": true,
     "declared_requires_are_quality_context_not_launch_gates": true,
@@ -2173,7 +2179,7 @@
             "required_gate_input_surfaces": [
               "reference_verification_attestations",
               "claim_citation_support_matrix_v2",
-              "manuscript_consistency_meta_review"
+              "manuscript_consistency_gate_input"
             ],
             "schema_version": 1,
             "stage_id": "review_and_quality_gate",
@@ -2769,7 +2775,7 @@
             "required_gate_input_surfaces": [
               "reference_verification_attestations",
               "claim_citation_support_matrix_v2",
-              "manuscript_consistency_meta_review"
+              "manuscript_consistency_gate_input"
             ],
             "schema_version": 1,
             "stage_id": "finalize_and_publication_handoff",
@@ -2816,7 +2822,7 @@
     }
   ],
   "authority_boundary": {
-    "domain_truth_owner": "mas",
+    "domain_truth_owner": "medautoscience",
     "medical_quality_verdict_owner": "mas",
     "publication_quality_verdict_owner": "mas",
     "artifact_mutation_authority_owner": "mas",

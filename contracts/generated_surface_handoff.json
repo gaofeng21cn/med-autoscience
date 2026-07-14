@@ -1,7 +1,7 @@
 {
   "agent_pack_ref_source": "contracts/pack_compiler_input.json#/required_domain_pack_paths",
   "consumes_agent_pack_refs": true,
-  "domain_id": "mas",
+  "domain_id": "medautoscience",
   "domain_repo_can_own_generated_surface": false,
   "generated_surface_owner": "one-person-lab",
   "generated_surface_policy": {
