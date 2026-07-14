@@ -26,7 +26,7 @@ def test_package_plugin_and_python_versions_are_one_semver() -> None:
     )
 
     assert package["version"] == pyproject["project"]["version"] == plugin["version"]
-    assert package["version"] == "0.2.5"
+    assert package["version"] == "0.2.6"
     assert package["distribution_payload"]["immutable_tag"] == package["version"]
     assert package["agent_id"] == package["package_id"] == "mas"
     assert package["codex_surface"]["plugin_id"] == "med-autoscience"
@@ -80,7 +80,7 @@ def test_scholarskills_is_a_managed_hard_dependency_not_a_sixth_agent() -> None:
     assert dependency["dependency_kind"] == "hard_runtime_dependency"
     assert dependency["version_requirement"] == ">=0.2.0 <0.3.0"
     assert package["distribution_payload"]["required_skill_pack_lock_refs"] == [
-        "opl://agent-package-lock/mas-scholar-skills/0.2.2/"
+        "opl://agent-package-lock/mas-scholar-skills/0.2.3/"
         "managed-ghcr-capability-package"
     ]
     assert dependency["required_module_ids"] == [
