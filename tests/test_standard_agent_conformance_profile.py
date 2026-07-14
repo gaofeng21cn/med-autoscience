@@ -55,7 +55,9 @@ def test_standard_agent_conformance_profile_classifies_every_required_surface() 
 
 def test_agent_lab_handoff_uses_the_generic_evolution_skill_ref() -> None:
     handoff = json.loads(AGENT_LAB_HANDOFF.read_text(encoding="utf-8"))
-    adapter = handoff["suite_templates"]["medical_manuscript_quality"]
+    adapter = handoff["meta_agent_work_order_contract"][
+        "external_suite_improvement_policy"
+    ]["medical_manuscript_quality"]
 
     assert adapter["agent_evolution_skill_ref"] == (
         "opl-meta-agent:oma-agent-evolution"
