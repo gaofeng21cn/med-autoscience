@@ -21,7 +21,7 @@ Machine boundary: 机器真相归 `agent/stages/manifest.json`、`agent/stages/s
 - `semantic_route_decision_owner=decisive_codex_attempt`
 - `stage_transition_materialization_owner=opl_stage_run_controller`
 
-Primary-only StageRun 的 producer 是 decisive Attempt。Formal Review StageRun 只有终局 reviewer / re-reviewer 是 decisive Attempt；producer、repairer 与仍有 repair budget 的 `repair_required` reviewer只能给 recommendation。预算耗尽且 artifact 可消费时，终局 reviewer / re-reviewer 给 route decision，controller 以 `completed_with_quality_debt` 物化。
+Primary-only StageRun 的 producer 是 decisive Attempt。Formal Review StageRun 只有终局 reviewer / re-reviewer 是 decisive Attempt；producer、repairer 始终只能给 recommendation。仍有 repair budget 且缺陷可在当前 Stage 修复时，`repair_required` reviewer也只给 recommendation；若最窄 canonical owner 是另一个 declared Stage，则 reviewer / re-reviewer 可提前以 `repair_required + route_back` 终结当前 StageRun，这是预算耗尽前唯一允许的终局 `repair_required` 路由。预算耗尽且 artifact 可消费时，终局 reviewer / re-reviewer 给 route decision，controller 以 `completed_with_quality_debt` 物化。
 
 Attempt 只返回：
 

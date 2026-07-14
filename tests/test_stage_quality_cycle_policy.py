@@ -75,6 +75,7 @@ def test_all_six_stages_bind_quality_policy_and_budget_exhaustion() -> None:
 def test_route_authority_is_split_and_legacy_owner_is_absent() -> None:
     principles = _load("contracts/stage_operating_principles.json")
     manifest = _load("agent/stages/manifest.json")
+    profile = _load("contracts/stage_quality_cycle_policy.json")
 
     for policy in (principles["speed_policy"], manifest["progress_first_policy"]):
         assert policy["semantic_route_decision_owner"] == "decisive_codex_attempt"
@@ -90,6 +91,69 @@ def test_route_authority_is_split_and_legacy_owner_is_absent() -> None:
         "re_reviewer",
     ]
     assert progress_policy["repairer_can_be_decisive_attempt"] is False
+
+    route = profile["cross_stage_route_selection"]
+    assert route["semantic_route_decision_owner"] == "decisive_codex_attempt"
+    assert route["stage_transition_materialization_owner"] == (
+        "opl_stage_run_controller"
+    )
+    assert route["primary_only_decisive_attempt_role"] == "producer"
+    assert route["formal_review_decisive_attempt_roles"] == [
+        "reviewer",
+        "re_reviewer",
+    ]
+    assert route["producer_can_be_decisive_attempt_in_formal_review"] is False
+    assert route["repairer_can_be_decisive_attempt"] is False
+    assert route["producer_or_repairer_may_return_terminal_route_decision"] is False
+    assert route[
+        "same_stage_repair_required_with_budget_remaining_continues_quality_loop"
+    ] is True
+    assert route[
+        "repair_required_review_or_re_review_may_select_cross_stage_route_back_before_budget_exhaustion"
+    ] is True
+    assert route[
+        "repair_required_cross_stage_route_back_requires_target_different_from_current_stage"
+    ] is True
+    assert route[
+        "cross_stage_route_back_requires_narrowest_canonical_owner_stage"
+    ] is True
+    assert route[
+        "repair_required_review_or_re_review_may_select_other_terminal_route_before_budget_exhaustion"
+    ] is False
+    assert route[
+        "repair_required_review_or_re_review_may_select_terminal_route_after_budget_exhaustion"
+    ] is True
+    assert route["hard_stop_or_zero_consumable_artifact_route_output"] == "none"
+
+
+def test_quality_role_prompt_allows_only_cross_stage_route_back_before_exhaustion() -> None:
+    roles = (ROOT / "agent/quality_gates/stage_quality_cycle_roles.md").read_text(
+        encoding="utf-8"
+    )
+    analysis_prompt = (ROOT / "agent/prompts/bounded_analysis_campaign.md").read_text(
+        encoding="utf-8"
+    )
+    normalized_roles = " ".join(roles.split())
+    reviewer = roles.split("## Reviewer", 1)[1].split("## Repairer", 1)[0]
+    re_reviewer = roles.split("## Re Reviewer", 1)[1]
+
+    assert roles.count("`same_stage_repair_required`") >= 3
+    assert "controller creates the next fresh repairer Attempt" in roles
+    assert roles.count("`cross_stage_route_back_before_budget_exhaustion`") >= 3
+    assert "outcome `repair_required` plus exactly one" in normalized_roles
+    assert "`decision_kind=route_back`" in roles
+    assert "`target_stage_id` different from the current" in normalized_roles
+    assert "only terminal route allowed before repair-budget exhaustion" in normalized_roles
+    assert "narrowest canonical owner is a different declared Stage" in normalized_roles
+    assert "A repairer never makes a terminal route decision" in roles
+    assert "hard-boundary reviewer returns no route output" in normalized_roles
+    assert "same-Stage repair continues the quality loop" in analysis_prompt
+    for decisive_review_section in (reviewer, re_reviewer):
+        assert "`same_stage_repair_required`" in decisive_review_section
+        assert (
+            "`cross_stage_route_back_before_budget_exhaustion`"
+            in decisive_review_section
+        )
 
 
 def test_main_prompts_label_the_forward_stage_as_a_default_not_a_route_constraint() -> None:

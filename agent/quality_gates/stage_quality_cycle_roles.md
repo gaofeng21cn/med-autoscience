@@ -14,13 +14,24 @@ the same fields plus `reason`. Never return both or use
 
 ## Quality Budget And Hard Boundaries
 
-Use the controller-provided `quality_round_index`, `max_repair_rounds`, and exact
-artifact identity to choose one branch:
+Use the controller-provided `quality_round_index`, `max_repair_rounds`, current
+`stage_id`, declared Stage targets, and exact artifact identity to choose one
+branch:
 
-- `repair_budget_remaining`: when required defects still need repair and another
-  repair round remains, a reviewer or re-reviewer returns outcome
-  `repair_required` and at most `route_impact.stage_route_recommendation`. This
-  branch is non-terminal; the controller creates the next fresh repairer Attempt.
+- `same_stage_repair_required`: when the current Stage is the narrowest
+  canonical owner of the required repair and another repair round remains, a
+  reviewer or re-reviewer returns outcome `repair_required` and at most
+  `route_impact.stage_route_recommendation`. This branch is non-terminal; the
+  controller creates the next fresh repairer Attempt.
+- `cross_stage_route_back_before_budget_exhaustion`: when the narrowest canonical
+  owner of required work is a different declared Stage, a reviewer or
+  re-reviewer may end the current StageRun before budget exhaustion. Return outcome
+  `repair_required` plus exactly one `route_impact.stage_route_decision` with
+  `decision_kind=route_back`, a `target_stage_id` different from the current
+  Stage, and non-empty `evidence_refs` binding the finding and owner diagnosis.
+  This is the only terminal route allowed before repair-budget exhaustion for
+  outcome `repair_required`; the controller validates and materializes the
+  route-back instead of creating an in-Stage repairer.
 - `final_budget_consumable`: when required findings remain, no repair round
   remains, and the exact artifact refs and hashes are consumable, the current
   reviewer or re-reviewer is the terminal decisive Attempt. Required findings
@@ -73,12 +84,14 @@ Review receipt or repair map. The OPL StageRun controller materializes the
 `opl_stage_review_receipt` from this Attempt's identity, session, exact reviewed
 hashes, rubric, and outcome.
 
-While repair budget remains, an outcome of `repair_required` is non-terminal;
-return at most a route recommendation when the defect belongs elsewhere and let
-the controller continue the quality loop. At final consumable budget, keep
-outcome `repair_required` and follow `final_budget_consumable`. When this reviewer
-progress-terminalizes the StageRun, it is the decisive Attempt and returns the
-route decision. A hard-boundary reviewer returns no route output.
+While repair budget remains and the repair belongs to this Stage, an outcome of
+`repair_required` is non-terminal and returns at most a route recommendation.
+This is `same_stage_repair_required`. If the narrowest canonical owner is a
+different declared Stage, follow
+`cross_stage_route_back_before_budget_exhaustion`; this reviewer becomes the
+decisive Attempt for that terminal route-back. At final consumable budget, keep
+outcome `repair_required` and follow `final_budget_consumable`. A hard-boundary
+reviewer returns no route output.
 
 ## Repairer
 
@@ -104,9 +117,11 @@ trigger another repair round; ordinary new suggestions are optional observations
 or quality debt and cannot reopen the loop. Never inherit the repairer
 conversation or create the controller-owned Review receipt.
 
-When another repair round is required and remains available, return only a route
-recommendation. On the final consumable round, keep outcome `repair_required`
-and return the route decision for controller-classified terminal quality debt.
-When this re-reviewer progress-terminalizes the StageRun, it is the decisive
-Attempt and returns the route decision. A hard-boundary re-reviewer returns no
-route output.
+When another repair round is required, remains available, and belongs to this
+Stage, return only a route recommendation. This is
+`same_stage_repair_required`. If the narrowest canonical owner is a different
+declared Stage, follow `cross_stage_route_back_before_budget_exhaustion`; this
+re-reviewer becomes the decisive Attempt for that terminal route-back. On the
+final consumable round, keep outcome `repair_required` and return the route
+decision for controller-classified terminal quality debt. A hard-boundary
+re-reviewer returns no route output.

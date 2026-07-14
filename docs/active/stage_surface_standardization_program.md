@@ -36,7 +36,7 @@ workbench、provider transport 或 transition controller。
 - reviewer outcome 只写入 `route_impact.stage_quality_cycle.outcome`，五值为 `pass`、`repair_required`、`quality_debt`、`blocked`、`human_gate`。
 - Attempt 不签发 review receipt；OPL controller 校验 identity/lineage/hash 后物化 receipt。
 - optional observation不重开 repair loop，也不强制整体降级。
-- repair budget 尚存时，`repair_required` 只给 recommendation并继续 repair；预算耗尽且 artifact 可消费时，终局 reviewer/re_reviewer 给 route decision，controller 投影 `completed_with_quality_debt`。
+- repair budget 尚存且缺陷可在当前 Stage 修复时，`repair_required` 只给 recommendation并继续 repair；若最窄 canonical owner 是另一个 declared Stage，reviewer/re_reviewer 可提前以 `repair_required + route_back` 终结当前 StageRun，这是预算耗尽前唯一允许的终局 `repair_required` 路由；预算耗尽且 artifact 可消费时，终局 reviewer/re_reviewer 给 route decision，controller 投影 `completed_with_quality_debt`。
 - 零可消费 artifact、真实 hard gate 或 human gate 不给 route decision。
 
 ## Route owner

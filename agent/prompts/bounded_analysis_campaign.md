@@ -52,5 +52,8 @@ block promotion or ready claims. Route back to baseline for source/provenance
 repair or to direction for claim or method changes. When no consumable delta is
 produced, preserve the failed/negative path as a diagnostic and return an
 evidence-backed route recommendation. Because this Stage uses formal Review,
-only the terminal reviewer or re-reviewer selects the next declared Stage; typed
-blockers and human gates are reserved for real hard boundaries.
+only a terminal reviewer or re-reviewer selects the next declared Stage. A
+reviewer may terminally route back before budget exhaustion only when the
+narrowest canonical owner of required work is a different declared Stage;
+same-Stage repair continues the quality loop. Typed blockers and human gates are
+reserved for real hard boundaries.

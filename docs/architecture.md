@@ -101,10 +101,13 @@ bytes 重新完成 fresh Stage Review 与 Meta Review 后才能回到 Handoff。
 
 跨 Stage 路由仍由 Codex 的领域判断产生，但终局 owner 随 StageRun 形态固定：
 primary-only StageRun 的 producer 作决定；启用 formal Review 时，只有终局
-reviewer 或 re-reviewer 作决定。producer、repairer 和仍返回
-`repair_required` 且仍有 repair budget 的 reviewer 只能给 recommendation；
-预算耗尽且已有可消费 artifact 时，该 reviewer / re-reviewer 是终局 decisive
-Attempt，必须给出 route decision，由 controller 投影
+reviewer 或 re-reviewer 作决定。producer、repairer 始终只能给 recommendation。
+仍有 repair budget 且缺陷可在当前 Stage 修复时，`repair_required` reviewer 也只给
+recommendation并继续本 Stage 质量循环；若 required finding 的最窄 canonical
+owner 是另一个 declared Stage，则 reviewer / re-reviewer 可在预算耗尽前以
+`repair_required + route_back` 成为终局 decisive Attempt，这也是预算耗尽前唯一
+允许的终局 `repair_required` 路由。预算耗尽且已有可消费 artifact 时，该
+reviewer / re-reviewer 同样是终局 decisive Attempt，必须给出 route decision，由 controller 投影
 `completed_with_quality_debt`。机器输出统一为
 `route_impact.stage_route_decision` / `stage_route_recommendation`；OPL 只校验
 Attempt 资格与目标是否为 manifest declared Stage，不解释或改写医学语义。
