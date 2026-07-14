@@ -7,6 +7,7 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[1]
 PROFILE = ROOT / "contracts" / "standard_agent_conformance_profile.json"
 STAGE_MANIFEST = ROOT / "agent" / "stages" / "manifest.json"
+AGENT_LAB_HANDOFF = ROOT / "contracts" / "agent_lab_handoff.json"
 
 
 def test_standard_agent_conformance_profile_matches_canonical_stage_pack() -> None:
@@ -50,3 +51,13 @@ def test_standard_agent_conformance_profile_classifies_every_required_surface() 
     assert "medical_truth_quality_artifact_and_owner_receipt_remain_mas_owned" in morphology[
         "required_parity_gates"
     ]
+
+
+def test_agent_lab_handoff_uses_the_generic_evolution_skill_ref() -> None:
+    handoff = json.loads(AGENT_LAB_HANDOFF.read_text(encoding="utf-8"))
+    adapter = handoff["suite_templates"]["medical_manuscript_quality"]
+
+    assert adapter["agent_evolution_skill_ref"] == (
+        "opl-meta-agent:oma-agent-evolution"
+    )
+    assert "oma_evolution_skill_ref" not in adapter

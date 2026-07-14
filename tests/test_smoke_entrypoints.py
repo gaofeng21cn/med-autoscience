@@ -15,7 +15,7 @@ def test_package_import_and_authority_handler_entrypoint() -> None:
     package = importlib.import_module("med_autoscience")
     handlers = importlib.import_module("med_autoscience.authority_handlers")
 
-    assert package.__version__ == "0.2.2"
+    assert package.__version__ == "0.2.3"
     assert callable(handlers.evaluate_paper_mission_authority)
 
 

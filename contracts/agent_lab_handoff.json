@@ -384,7 +384,7 @@
       },
       "medical_manuscript_quality": {
         "adapter_role": "domain_thin_feedback_adapter",
-        "oma_evolution_skill_ref": "opl-meta-agent:oma-agent-evolution",
+        "agent_evolution_skill_ref": "opl-meta-agent:oma-agent-evolution",
         "contract_itself_triggers_execution": false,
         "trigger_chain": [
           "mas_action:submit_study_task writes reviewer_revision intake",
