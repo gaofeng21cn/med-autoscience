@@ -1,10 +1,9 @@
 from __future__ import annotations
 
-import os
-import zipfile
+from collections.abc import Mapping
 from dataclasses import dataclass
+import os
 from pathlib import Path
-from urllib import request
 
 from med_autoscience.publication_profiles import (
     FRONTIERS_FAMILY_HARVARD_PROFILE,
@@ -15,8 +14,12 @@ from med_autoscience.publication_profiles import (
 
 
 STYLES_ROOT = Path(__file__).resolve().parents[2] / "styles"
-FRONTIERS_TEMPLATE_ZIP_URL = "https://www.frontiersin.org/Design/zip/Frontiers_Word_Templates.zip"
-FRONTIERS_HARVARD_CSL_URL = "https://raw.githubusercontent.com/citation-style-language/styles/master/frontiers.csl"
+FRONTIERS_TEMPLATE_RESOURCE_ID = "frontiers_word_manuscript_template"
+FRONTIERS_SUPPLEMENTARY_TEMPLATE_RESOURCE_ID = "frontiers_word_supplementary_template"
+FRONTIERS_CSL_RESOURCE_ID = "frontiers_harvard_csl"
+FRONTIERS_TEMPLATE_ENV = "OPL_MAS_FRONTIERS_TEMPLATE_DOCX"
+FRONTIERS_SUPPLEMENTARY_TEMPLATE_ENV = "OPL_MAS_FRONTIERS_SUPPLEMENTARY_TEMPLATE_DOCX"
+FRONTIERS_CSL_ENV = "OPL_MAS_FRONTIERS_CSL_PATH"
 FRONTIERS_KEYWORDS = [
     "NF-PitNET",
     "pituitary neuroendocrine tumor",
@@ -61,6 +64,59 @@ class PublicationProfileConfig:
     journal_family: str | None = None
     reference_style_family: str | None = None
 
+
+class MissingProvisionedSubmissionResource(FileNotFoundError):
+    def __init__(self, *, resource_id: str, env_name: str) -> None:
+        self.resolution = {
+            "status": "request_only",
+            "action_id": "opl_pack_provision_submission_resource",
+            "resource_id": resource_id,
+            "path_env": env_name,
+            "requires_existing_exact_path": True,
+            "network_fallback_allowed": False,
+        }
+        super().__init__(
+            f"missing host-provisioned submission resource `{resource_id}`; "
+            f"provide an existing exact path through {env_name}"
+        )
+
+
+def submission_resource_requirements() -> dict[str, object]:
+    return {
+        "surface_kind": "mas_submission_resource_requirements.v1",
+        "schema_version": 1,
+        "owner": "OPL Pack or the invoking host",
+        "purpose": (
+            "Declare exact-path submission resources without giving MAS a package "
+            "downloader or network provisioning control plane."
+        ),
+        "resources": {
+            FRONTIERS_CSL_RESOURCE_ID: {
+                "provisioning": "package_bundled_or_host_exact_path",
+                "package_path": "src/med_autoscience/styles/frontiers.csl",
+                "path_env": FRONTIERS_CSL_ENV,
+            },
+            FRONTIERS_TEMPLATE_RESOURCE_ID: {
+                "provisioning": "host_exact_path_required",
+                "path_env": FRONTIERS_TEMPLATE_ENV,
+            },
+            FRONTIERS_SUPPLEMENTARY_TEMPLATE_RESOURCE_ID: {
+                "provisioning": "host_exact_path_required",
+                "path_env": FRONTIERS_SUPPLEMENTARY_TEMPLATE_ENV,
+            },
+        },
+        "missing_resource_output": {
+            "status": "request_only",
+            "action_id": "opl_pack_provision_submission_resource",
+        },
+        "authority_boundary": {
+            "mas_can_download_resources": False,
+            "network_fallback_allowed": False,
+            "requires_existing_exact_path": True,
+        },
+    }
+
+
 def default_ama_csl_path() -> Path:
     return STYLES_ROOT / "american-medical-association.csl"
 
@@ -73,73 +129,63 @@ def default_acs_csl_path() -> Path:
     return STYLES_ROOT / "american-chemical-society.csl"
 
 
-def frontiers_cache_dir() -> Path:
-    xdg_cache = os.getenv("XDG_CACHE_HOME", "").strip()
-    if xdg_cache:
-        return Path(xdg_cache).expanduser() / "med-autoscience" / "frontiers_word_templates"
-    return Path.home() / ".cache" / "med-autoscience" / "frontiers_word_templates"
-
-
-def default_frontiers_template_docx_path() -> Path:
-    return frontiers_cache_dir() / "Frontiers_Template.docx"
-
-
-def default_frontiers_supplementary_template_docx_path() -> Path:
-    return frontiers_cache_dir() / "Supplementary_Material.docx"
-
-def resolve_override_path(env_name: str) -> Path | None:
-    value = os.getenv(env_name, "").strip()
-    if not value:
-        return None
-    path = Path(value).expanduser().resolve()
-    if not path.exists():
-        raise FileNotFoundError(f"missing override resource for {env_name}: {path}")
+def resolve_provisioned_path(
+    *,
+    resource_id: str,
+    env_name: str,
+    provisioned_resources: Mapping[str, str | Path] | None = None,
+) -> Path:
+    explicit = (provisioned_resources or {}).get(resource_id)
+    raw_path = str(explicit or os.getenv(env_name, "")).strip()
+    if not raw_path:
+        raise MissingProvisionedSubmissionResource(resource_id=resource_id, env_name=env_name)
+    path = Path(raw_path).expanduser().resolve()
+    if not path.is_file():
+        raise FileNotFoundError(f"provisioned submission resource is not a file for {resource_id}: {path}")
     return path
 
 
-def download_to_path(*, url: str, output_path: Path) -> Path:
-    output_path.parent.mkdir(parents=True, exist_ok=True)
-    with request.urlopen(url) as response:  # noqa: S310
-        output_path.write_bytes(response.read())
-    return output_path
+def ensure_frontiers_word_templates(
+    *,
+    provisioned_resources: Mapping[str, str | Path] | None = None,
+) -> tuple[Path, Path]:
+    return (
+        resolve_provisioned_path(
+            resource_id=FRONTIERS_TEMPLATE_RESOURCE_ID,
+            env_name=FRONTIERS_TEMPLATE_ENV,
+            provisioned_resources=provisioned_resources,
+        ),
+        resolve_provisioned_path(
+            resource_id=FRONTIERS_SUPPLEMENTARY_TEMPLATE_RESOURCE_ID,
+            env_name=FRONTIERS_SUPPLEMENTARY_TEMPLATE_ENV,
+            provisioned_resources=provisioned_resources,
+        ),
+    )
 
 
-def ensure_frontiers_word_templates() -> tuple[Path, Path]:
-    manuscript_override = resolve_override_path("DEEPSCIENTIST_FRONTIERS_TEMPLATE_DOCX")
-    supplementary_override = resolve_override_path("DEEPSCIENTIST_FRONTIERS_SUPPLEMENTARY_TEMPLATE_DOCX")
-    manuscript_template = manuscript_override or default_frontiers_template_docx_path()
-    supplementary_template = supplementary_override or default_frontiers_supplementary_template_docx_path()
-    if manuscript_template.exists() and supplementary_template.exists():
-        return manuscript_template, supplementary_template
-
-    archive_path = frontiers_cache_dir() / "Frontiers_Word_Templates.zip"
-    if not archive_path.exists():
-        download_to_path(url=FRONTIERS_TEMPLATE_ZIP_URL, output_path=archive_path)
-
-    with zipfile.ZipFile(archive_path) as archive:
-        if not manuscript_template.exists():
-            manuscript_template.write_bytes(archive.read("Frontiers_Word_Templates/Frontiers_Template.docx"))
-        if not supplementary_template.exists():
-            supplementary_template.write_bytes(
-                archive.read("Frontiers_Word_Templates/Supplementary_Material.docx")
-            )
-    return manuscript_template, supplementary_template
-
-
-def ensure_frontiers_harvard_csl_path() -> Path:
-    override = resolve_override_path("DEEPSCIENTIST_FRONTIERS_CSL")
-    if override is not None:
-        return override
+def ensure_frontiers_harvard_csl_path(
+    *,
+    provisioned_resources: Mapping[str, str | Path] | None = None,
+) -> Path:
+    explicit = (provisioned_resources or {}).get(FRONTIERS_CSL_RESOURCE_ID)
+    env_path = os.getenv(FRONTIERS_CSL_ENV, "").strip()
+    if explicit or env_path:
+        return resolve_provisioned_path(
+            resource_id=FRONTIERS_CSL_RESOURCE_ID,
+            env_name=FRONTIERS_CSL_ENV,
+            provisioned_resources=provisioned_resources,
+        )
     csl_path = default_frontiers_harvard_csl_path()
-    if csl_path.exists():
-        return csl_path
-    return download_to_path(url=FRONTIERS_HARVARD_CSL_URL, output_path=csl_path)
+    if not csl_path.is_file():
+        raise FileNotFoundError(f"missing package-bundled Frontiers Harvard CSL file: {csl_path}")
+    return csl_path
 
 
 def resolve_publication_profile_config(
     *,
     publication_profile: str,
     citation_style: str | None,
+    provisioned_resources: Mapping[str, str | Path] | None = None,
 ) -> PublicationProfileConfig:
     normalized_publication_profile = normalize_publication_profile(publication_profile)
     normalized_citation_style = str(citation_style or "auto").strip()
@@ -151,7 +197,7 @@ def resolve_publication_profile_config(
                 f"unsupported citation style for {normalized_publication_profile}: {resolved_citation_style}"
             )
         csl_path = default_ama_csl_path()
-        if not csl_path.exists():
+        if not csl_path.is_file():
             raise FileNotFoundError(f"missing AMA CSL file: {csl_path}")
         return PublicationProfileConfig(
             publication_profile=normalized_publication_profile,
@@ -168,11 +214,13 @@ def resolve_publication_profile_config(
             raise ValueError(
                 f"unsupported citation style for {normalized_publication_profile}: {resolved_citation_style}"
             )
-        manuscript_template, supplementary_template = ensure_frontiers_word_templates()
+        manuscript_template, supplementary_template = ensure_frontiers_word_templates(
+            provisioned_resources=provisioned_resources,
+        )
         return PublicationProfileConfig(
             publication_profile=normalized_publication_profile,
             citation_style=resolved_citation_style,
-            csl_path=ensure_frontiers_harvard_csl_path(),
+            csl_path=ensure_frontiers_harvard_csl_path(provisioned_resources=provisioned_resources),
             output_dir_rel=Path("journal_submissions") / normalized_publication_profile,
             reference_doc_path=manuscript_template,
             supplementary_reference_doc_path=supplementary_template,
@@ -188,7 +236,7 @@ def resolve_publication_profile_config(
                 f"unsupported citation style for {normalized_publication_profile}: {resolved_citation_style}"
             )
         csl_path = default_acs_csl_path()
-        if not csl_path.exists():
+        if not csl_path.is_file():
             raise FileNotFoundError(f"missing ACS CSL file: {csl_path}")
         return PublicationProfileConfig(
             publication_profile=normalized_publication_profile,
@@ -201,3 +249,26 @@ def resolve_publication_profile_config(
         )
 
     raise ValueError(f"unsupported publication profile: {publication_profile}")
+
+
+__all__ = [
+    "FRONTIERS_CSL_ENV",
+    "FRONTIERS_CSL_RESOURCE_ID",
+    "FRONTIERS_KEYWORDS",
+    "FRONTIERS_SUPPLEMENTARY_TEMPLATE_ENV",
+    "FRONTIERS_SUPPLEMENTARY_TEMPLATE_RESOURCE_ID",
+    "FRONTIERS_TEMPLATE_ENV",
+    "FRONTIERS_TEMPLATE_RESOURCE_ID",
+    "MissingProvisionedSubmissionResource",
+    "PublicationProfileConfig",
+    "STYLES_ROOT",
+    "SUBMISSION_FRONT_MATTER_FIELD_ALIASES",
+    "default_acs_csl_path",
+    "default_ama_csl_path",
+    "default_frontiers_harvard_csl_path",
+    "ensure_frontiers_harvard_csl_path",
+    "ensure_frontiers_word_templates",
+    "resolve_provisioned_path",
+    "resolve_publication_profile_config",
+    "submission_resource_requirements",
+]

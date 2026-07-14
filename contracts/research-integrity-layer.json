@@ -32,6 +32,8 @@
     ],
     "lookup_providers": [
       "crossref",
+      "pubmed",
+      "pmc",
       "openalex",
       "semantic_scholar",
       "publisher",
@@ -47,7 +49,11 @@
     "live_provider_authority_claimed": false,
     "authoritative_provider_truth_owner": "external provider source systems",
     "provider_receipt_consumption_contexts": [
-      "research_integrity_gate_input"
+      "research_integrity_gate_input",
+      "startup_literature_resolution",
+      "medical_literature_audit",
+      "medical_paper_readiness_authoring",
+      "submission_reference_gap_repair"
     ],
     "missing_evidence_output_role": "provider_resolution_action_request_only",
     "provider_evidence_input_only": true,
@@ -145,6 +151,8 @@
       "provider_action_id": "opl_connect_reference_verification",
       "lookup_providers": [
         "crossref",
+        "pubmed",
+        "pmc",
         "openalex",
         "semantic_scholar",
         "publisher",
@@ -194,6 +202,8 @@
         "provider_action_id": "opl_connect_reference_verification",
         "lookup_providers": [
           "crossref",
+          "pubmed",
+          "pmc",
           "openalex",
           "semantic_scholar",
           "publisher",
@@ -442,6 +452,11 @@
       "mas_owned_responsibility": "clinical citation suitability, source tier interpretation, claim support consumption"
     },
     {
+      "provider": "pmc",
+      "opl_owned_responsibility": "Europe PMC metadata and availability transport, retry, cache, and connector receipt",
+      "mas_owned_responsibility": "full-text evidence eligibility; availability alone never proves body verification"
+    },
+    {
       "provider": "openalex",
       "opl_owned_responsibility": "works lookup, identifier graph transport, cache, and connector receipt",
       "mas_owned_responsibility": "bibliographic conflict interpretation and review routing"
@@ -544,6 +559,15 @@
       "authoritative_provider_truth_owner": "external provider source systems",
       "provider_receipt_transport": "OPL Connect invokes configured reference providers and returns read-only receipt candidates; MAS does not own provider HTTP, credentials, retry, cache, or receipt persistence.",
       "provider_evidence_consumption": "research-integrity-reference-verification accepts host-supplied provider receipts or evidence, normalizes provider_evidence from receipt root and references, and preserves provider_receipt_refs and source_refs; when evidence is absent it emits a request-only provider_resolution_action and never invokes OPL Connect itself",
+      "retired_private_transports": [
+        "src/med_autoscience/adapters/literature/doi.py::fetch_crossref_work",
+        "src/med_autoscience/adapters/literature/pmc.py::fetch_pmc_record",
+        "src/med_autoscience/adapters/literature/pubmed.py::fetch_pubmed_summary",
+        "src/med_autoscience/adapters/literature/semantic_scholar.py::search_papers",
+        "src/med_autoscience/adapters/literature/semantic_scholar.py::match_paper",
+        "src/med_autoscience/adapters/literature/semantic_scholar.py::fetch_paper_batch",
+        "src/med_autoscience/controllers/medical_paper_readiness_payload_authoring/provider_adapters.py::_write_provider_response_ledger"
+      ],
       "stage_hook": "review_and_quality_gate and finalize_and_publication_handoff consume the declarative Research Integrity obligation; OPL Connect resolves provider evidence and MAS pure builders return gate input",
       "forbidden_side_effects": [
         "publication_eval/latest.json write",
@@ -562,6 +586,8 @@
       "src/med_autoscience/research_integrity/manuscript_consistency.py",
       "src/med_autoscience/research_integrity/gate_bundle.py",
       "src/med_autoscience/research_integrity/provider_lookup.py",
+      "src/med_autoscience/research_integrity/reference_verification.py",
+      "src/med_autoscience/adapters/literature/opl_connect_receipts.py",
       "src/med_autoscience/research_integrity/stage_hooks.py"
     ],
     "pure_builder_surfaces": [
@@ -570,6 +596,8 @@
       "med_autoscience.research_integrity.manuscript_consistency",
       "med_autoscience.research_integrity.gate_bundle",
       "med_autoscience.research_integrity.provider_lookup",
+      "med_autoscience.research_integrity.reference_verification",
+      "med_autoscience.adapters.literature.opl_connect_receipts",
       "med_autoscience.research_integrity.stage_hooks"
     ],
     "expected_tests": [
@@ -579,6 +607,7 @@
       "tests/test_research_integrity_claim_citation_support_v2.py",
       "tests/test_research_integrity_manuscript_consistency.py",
       "tests/test_research_integrity_provider_lookup.py",
+      "tests/test_literature_opl_connect_receipts.py",
       "tests/test_research_integrity_reference_verification.py",
       "tests/test_research_integrity_stage_hooks.py"
     ],
@@ -622,6 +651,8 @@
       "provider_action_id": "opl_connect_reference_verification",
       "lookup_providers": [
         "crossref",
+        "pubmed",
+        "pmc",
         "openalex",
         "semantic_scholar",
         "publisher",

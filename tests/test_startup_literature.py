@@ -1,62 +1,52 @@
 from __future__ import annotations
 
-from dataclasses import asdict
 import importlib
 
 
-def test_resolve_startup_literature_records_enriches_supported_startup_sources(monkeypatch) -> None:
+def _provider_receipts() -> tuple[dict[str, object], ...]:
+    return (
+        {
+            "receipt_ref": "opl://connect/references/verify/startup",
+            "provider_evidence": [
+                {
+                    "reference_id": "pmid:12345",
+                    "provider": "pubmed",
+                    "lookup_status": "found",
+                    "status": "matched",
+                    "match_status": "identifier_matched",
+                    "matched_identifiers": {"pmid": "12345"},
+                    "metadata": {
+                        "title": "PubMed anchor paper",
+                        "authors": ["A. Author"],
+                        "year": "2024",
+                        "journal": "Diabetes Care",
+                    },
+                    "provider_identifiers": {"pmid": "12345", "doi": "10.1000/pubmed-anchor"},
+                },
+                {
+                    "reference_id": "doi:10.1000/example-doi",
+                    "provider": "crossref",
+                    "lookup_status": "found",
+                    "status": "matched",
+                    "match_status": "identifier_matched",
+                    "matched_identifiers": {"doi": "10.1000/example-doi"},
+                    "metadata": {
+                        "title": "DOI-only neighboring paper",
+                        "authors": ["B. Author"],
+                        "year": "2022",
+                        "journal": "BMJ Open",
+                    },
+                    "provider_identifiers": {"doi": "10.1000/example-doi"},
+                },
+            ],
+        },
+    )
+
+
+def test_resolve_startup_literature_enriches_supported_startup_sources_from_receipts() -> None:
     module = importlib.import_module("med_autoscience.startup_literature")
-    records_module = importlib.import_module("med_autoscience.literature_records")
 
-    pubmed_record = records_module.LiteratureRecord(
-        record_id="pmid:12345",
-        title="PubMed anchor paper",
-        authors=("A. Author",),
-        year=2024,
-        journal="Diabetes Care",
-        doi="10.1000/pubmed-anchor",
-        pmid="12345",
-        pmcid=None,
-        arxiv_id=None,
-        abstract=None,
-        full_text_availability="abstract_only",
-        source_priority=2,
-        citation_payload={"source": "pubmed"},
-        local_asset_paths=(),
-        relevance_role="candidate",
-        claim_support_scope=(),
-    )
-    doi_record = records_module.LiteratureRecord(
-        record_id="doi:10.1000/example-doi",
-        title="DOI-only neighboring paper",
-        authors=("B. Author",),
-        year=2022,
-        journal="BMJ Open",
-        doi="10.1000/example-doi",
-        pmid=None,
-        pmcid=None,
-        arxiv_id=None,
-        abstract=None,
-        full_text_availability="metadata_only",
-        source_priority=3,
-        citation_payload={"source": "crossref"},
-        local_asset_paths=(),
-        relevance_role="candidate",
-        claim_support_scope=(),
-    )
-
-    monkeypatch.setattr(
-        module.pubmed_adapter,
-        "fetch_pubmed_summary",
-        lambda *, pmids: [pubmed_record] if pmids == ["12345"] else [],
-    )
-    monkeypatch.setattr(
-        module.doi_adapter,
-        "fetch_crossref_work",
-        lambda *, doi: doi_record if doi == "10.1000/example-doi" else None,
-    )
-
-    payload = module.resolve_startup_literature_records(
+    resolution = module.resolve_startup_literature(
         startup_contract={
             "paper_urls": [
                 "https://pubmed.ncbi.nlm.nih.gov/12345/",
@@ -79,30 +69,26 @@ def test_resolve_startup_literature_records_enriches_supported_startup_sources(m
                     }
                 ]
             },
-        }
+        },
+        provider_receipts=_provider_receipts(),
     )
 
-    assert payload == [
-        {
-            **asdict(pubmed_record),
-            "relevance_role": "anchor_paper",
-            "claim_support_scope": (),
-        },
-        {
-            **asdict(doi_record),
-            "relevance_role": "adjacent_inspiration",
-            "claim_support_scope": ("paper_framing", "journal_fit_neighbor"),
-        },
+    assert resolution["status"] == "resolved"
+    assert resolution["provider_receipt_refs"] == ["opl://connect/references/verify/startup"]
+    records = resolution["records"]
+    assert [record["record_id"] for record in records] == [
+        "pmid:12345",
+        "doi:10.1000/example-doi",
     ]
+    assert records[0]["relevance_role"] == "anchor_paper"
+    assert records[1]["relevance_role"] == "adjacent_inspiration"
+    assert records[1]["claim_support_scope"] == ("paper_framing", "journal_fit_neighbor")
 
 
-def test_resolve_startup_literature_records_falls_back_to_title_plus_url_for_non_identifier_example(monkeypatch) -> None:
+def test_resolve_startup_literature_keeps_local_seed_without_provider_identifier() -> None:
     module = importlib.import_module("med_autoscience.startup_literature")
 
-    monkeypatch.setattr(module.pubmed_adapter, "fetch_pubmed_summary", lambda *, pmids: [])
-    monkeypatch.setattr(module.doi_adapter, "fetch_crossref_work", lambda *, doi: None)
-
-    payload = module.resolve_startup_literature_records(
+    resolution = module.resolve_startup_literature(
         startup_contract={
             "journal_shortlist": {
                 "candidates": [
@@ -121,7 +107,8 @@ def test_resolve_startup_literature_records_falls_back_to_title_plus_url_for_non
         }
     )
 
-    assert payload == [
+    assert resolution["status"] == "resolved"
+    assert resolution["records"] == [
         {
             "record_id": "url:https_example_org_narrative_review",
             "title": "Narrative review without PubMed id",

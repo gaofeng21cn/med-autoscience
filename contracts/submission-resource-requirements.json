@@ -1,0 +1,30 @@
+{
+  "surface_kind": "mas_submission_resource_requirements.v1",
+  "schema_version": 1,
+  "owner": "OPL Pack or the invoking host",
+  "purpose": "Declare exact-path submission resources without giving MAS a package downloader or network provisioning control plane.",
+  "resources": {
+    "frontiers_harvard_csl": {
+      "provisioning": "package_bundled_or_host_exact_path",
+      "package_path": "src/med_autoscience/styles/frontiers.csl",
+      "path_env": "OPL_MAS_FRONTIERS_CSL_PATH"
+    },
+    "frontiers_word_manuscript_template": {
+      "provisioning": "host_exact_path_required",
+      "path_env": "OPL_MAS_FRONTIERS_TEMPLATE_DOCX"
+    },
+    "frontiers_word_supplementary_template": {
+      "provisioning": "host_exact_path_required",
+      "path_env": "OPL_MAS_FRONTIERS_SUPPLEMENTARY_TEMPLATE_DOCX"
+    }
+  },
+  "missing_resource_output": {
+    "status": "request_only",
+    "action_id": "opl_pack_provision_submission_resource"
+  },
+  "authority_boundary": {
+    "mas_can_download_resources": false,
+    "network_fallback_allowed": false,
+    "requires_existing_exact_path": true
+  }
+}

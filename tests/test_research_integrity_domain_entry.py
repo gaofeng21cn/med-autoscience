@@ -54,6 +54,8 @@ def test_research_integrity_contract_points_to_pure_builders_only() -> None:
         "med_autoscience.research_integrity.manuscript_consistency",
         "med_autoscience.research_integrity.gate_bundle",
         "med_autoscience.research_integrity.provider_lookup",
+        "med_autoscience.research_integrity.reference_verification",
+        "med_autoscience.adapters.literature.opl_connect_receipts",
         "med_autoscience.research_integrity.stage_hooks",
     ]
     assert "MedAutoScienceDomainEntry" not in serialized

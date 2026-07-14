@@ -32,6 +32,8 @@ REQUIRED_GATE_INPUT_SURFACES = (
 )
 LOOKUP_PROVIDERS = (
     "crossref",
+    "pubmed",
+    "pmc",
     "openalex",
     "semantic_scholar",
     "publisher",

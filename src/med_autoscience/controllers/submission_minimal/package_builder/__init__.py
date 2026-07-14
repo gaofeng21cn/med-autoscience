@@ -1,7 +1,7 @@
 import argparse
 import inspect
 import shutil
-from collections.abc import Mapping
+from collections.abc import Mapping, Sequence
 from pathlib import Path
 from typing import Any
 
@@ -35,7 +35,6 @@ from ..shared_base import (
     resolve_compiled_markdown_path,
     resolve_compiled_pdf_path,
     resolve_output_root,
-    resolve_publication_profile_config,
     resolve_relpath,
     resolve_submission_compiled_source_excluded_roots,
     resolve_table_source_paths,
@@ -44,6 +43,7 @@ from ..shared_base import (
     workspace_root_from_paper_root,
     write_text,
 )
+from ..profile_config import resolve_publication_profile_config
 from ..authority import (
     _authority_blocking_artifact_refs,
     _authority_gate_fingerprint,
@@ -192,6 +192,8 @@ def create_submission_minimal_package(
     citation_style: str | None = "auto",
     authority_route_context: Mapping[str, Any] | None = None,
     route_context: Mapping[str, Any] | None = None,
+    provider_receipts: Sequence[Mapping[str, Any]] = (),
+    provisioned_resources: Mapping[str, str | Path] | None = None,
 ) -> dict[str, Any]:
     from med_autoscience.controllers.authority_write_route import (
         attach_write_route_gate,
@@ -232,6 +234,7 @@ def create_submission_minimal_package(
     profile_config = resolve_publication_profile_config(
         publication_profile=requested_publication_profile,
         citation_style=citation_style,
+        provisioned_resources=provisioned_resources,
     )
     resolved_publication_profile = profile_config.publication_profile
     target_submission_root = resolve_output_root(
@@ -571,6 +574,7 @@ def create_submission_minimal_package(
             workspace_root=workspace_root,
             label_root=label_root,
             source_markdown_path=source_markdown_path,
+            provider_receipts=provider_receipts,
         )
 
         export_docx(

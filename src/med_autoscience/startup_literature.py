@@ -6,8 +6,11 @@ import re
 from typing import Any
 from urllib.parse import urlparse
 
+from collections.abc import Mapping, Sequence
+
 from med_autoscience.adapters.literature import doi as doi_adapter
 from med_autoscience.adapters.literature import pubmed as pubmed_adapter
+from med_autoscience.adapters.literature.opl_connect_receipts import records_from_resolution
 from med_autoscience.literature_records import LiteratureRecord
 
 
@@ -214,13 +217,22 @@ def _record_from_seed(seed: dict[str, Any]) -> LiteratureRecord | None:
     )
 
 
-def resolve_startup_literature_records(*, startup_contract: dict[str, Any]) -> list[dict[str, object]]:
+def resolve_startup_literature(
+    *,
+    startup_contract: dict[str, Any],
+    provider_receipts: Sequence[Mapping[str, Any]] = (),
+) -> dict[str, object]:
     if not isinstance(startup_contract, dict):
         raise TypeError("startup_contract must be a mapping")
 
     seeds = _dedupe_seeds(_collect_startup_seeds(startup_contract))
     if not seeds:
-        return []
+        return {
+            "status": "resolved",
+            "records": [],
+            "provider_receipt_refs": [],
+            "provider_resolution_requests": [],
+        }
 
     pmid_order: list[str] = []
     doi_order: list[str] = []
@@ -232,16 +244,24 @@ def resolve_startup_literature_records(*, startup_contract: dict[str, Any]) -> l
         elif doi is not None and doi not in doi_order:
             doi_order.append(doi)
 
-    records_by_pmid: dict[str, LiteratureRecord] = {}
-    if pmid_order:
-        for record in pubmed_adapter.fetch_pubmed_summary(pmids=pmid_order):
-            records_by_pmid[str(record.pmid)] = record
-
-    records_by_doi: dict[str, LiteratureRecord] = {}
-    for doi in doi_order:
-        record = doi_adapter.fetch_crossref_work(doi=doi)
-        if record.doi is not None:
-            records_by_doi[record.doi.lower()] = record
+    pubmed_resolution = pubmed_adapter.resolve_pubmed_summaries_from_receipts(
+        pmids=pmid_order,
+        provider_receipts=provider_receipts,
+    )
+    crossref_resolution = doi_adapter.crossref_records_from_receipts(
+        dois=doi_order,
+        provider_receipts=provider_receipts,
+    )
+    records_by_pmid = {
+        str(record.pmid): record
+        for record in records_from_resolution(pubmed_resolution)
+        if record.pmid
+    }
+    records_by_doi = {
+        str(record.doi).lower(): record
+        for record in records_from_resolution(crossref_resolution)
+        if record.doi
+    }
 
     resolved: list[LiteratureRecord] = []
     seen_record_ids: set[str] = set()
@@ -265,4 +285,25 @@ def resolve_startup_literature_records(*, startup_contract: dict[str, Any]) -> l
             continue
         seen_record_ids.add(record.record_id)
         resolved.append(record)
-    return [asdict(record) for record in resolved]
+    resolutions = (pubmed_resolution, crossref_resolution)
+    missing_resolutions = [resolution for resolution in resolutions if resolution["status"] != "resolved"]
+    status = "resolved"
+    if missing_resolutions:
+        status = "request_only" if not provider_receipts else "missing_evidence"
+    return {
+        "status": status,
+        "records": [asdict(record) for record in resolved],
+        "provider_receipt_refs": list(
+            dict.fromkeys(
+                str(ref)
+                for resolution in resolutions
+                for ref in list(resolution.get("provider_receipt_refs") or [])
+                if str(ref).strip()
+            )
+        ),
+        "provider_resolution_requests": [
+            resolution["provider_resolution_request"]
+            for resolution in missing_resolutions
+            if resolution.get("missing_provider_evidence_reference_ids")
+        ],
+    }

@@ -16,9 +16,12 @@ def test_build_study_reference_context_writes_artifact_and_emits_opl_source_inta
 
     monkeypatch.setattr(
         module.startup_literature,
-        "resolve_startup_literature_records",
-        lambda *, startup_contract: [
-            {
+        "resolve_startup_literature",
+        lambda *, startup_contract, provider_receipts=(): {
+            "status": "resolved",
+            "provider_receipt_refs": ["opl://connect/references/verify/startup"],
+            "provider_resolution_requests": [],
+            "records": [{
                 "record_id": "pmid:12345",
                 "title": "Prediction model paper",
                 "authors": ["A. Author"],
@@ -35,8 +38,8 @@ def test_build_study_reference_context_writes_artifact_and_emits_opl_source_inta
                 "local_asset_paths": [],
                 "relevance_role": "anchor_paper",
                 "claim_support_scope": ["paper_framing"],
-            }
-        ],
+            }],
+        },
     )
 
     context = module.build_study_reference_context(
@@ -61,6 +64,11 @@ def test_build_study_reference_context_writes_artifact_and_emits_opl_source_inta
     assert context["workspace_source_intake_request"]["status"] == "opl_source_intake_required"
     assert context["workspace_source_intake_request"]["record_count"] == 2
     assert context["record_count"] == 2
+    assert context["startup_provider_resolution"] == {
+        "status": "resolved",
+        "provider_receipt_refs": ["opl://connect/references/verify/startup"],
+        "provider_resolution_requests": [],
+    }
     assert context["mandatory_anchor_record_ids"] == ["pmid:12345"]
     assert context["selected_record_ids"] == ["pmid:12345", "doi:10.1000/example-2"]
     assert context["selections"] == [

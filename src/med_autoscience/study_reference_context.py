@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+from collections.abc import Mapping, Sequence
 from pathlib import Path
 from typing import Any
 
@@ -62,11 +63,16 @@ def build_study_reference_context(
     study_root: Path,
     workspace_root: Path,
     startup_contract: dict[str, Any],
+    provider_receipts: Sequence[Mapping[str, Any]] = (),
 ) -> dict[str, object]:
     resolved_study_root = Path(study_root).expanduser().resolve()
     resolved_workspace_root = Path(workspace_root).expanduser().resolve()
 
-    startup_records = startup_literature.resolve_startup_literature_records(startup_contract=startup_contract)
+    startup_resolution = startup_literature.resolve_startup_literature(
+        startup_contract=startup_contract,
+        provider_receipts=provider_receipts,
+    )
+    startup_records = list(startup_resolution["records"])
     reference_contract = reference_papers.resolve_reference_paper_contract_from_payload(
         anchor_root=resolved_study_root,
         payload={"reference_papers": startup_contract.get("reference_papers")},
@@ -151,6 +157,11 @@ def build_study_reference_context(
         "optional_neighbor_record_ids": optional_neighbor_record_ids,
         "selections": selections,
         "records": records,
+        "startup_provider_resolution": {
+            "status": startup_resolution["status"],
+            "provider_receipt_refs": startup_resolution["provider_receipt_refs"],
+            "provider_resolution_requests": startup_resolution["provider_resolution_requests"],
+        },
         "artifact_path": str(artifact_path),
     }
     _write_json(artifact_path, payload)

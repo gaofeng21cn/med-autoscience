@@ -270,6 +270,7 @@
     "quality_gate_source_ref": "agent/quality_gates/ai_reviewer_auditor_gate.md",
     "stage_quality_cycle_policy_ref": "contracts/stage_quality_cycle_policy.json",
     "source_closure_audit": "contracts/source_closure_audit.json",
+    "submission_resource_requirements": "contracts/submission-resource-requirements.json",
     "required_domain_pack_paths": [
       "agent/stages/stage_route_contract.yaml",
       "agent/stages/stage_native_semantic_pack.yaml",

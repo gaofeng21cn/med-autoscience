@@ -2,8 +2,8 @@ from pathlib import Path
 import re
 from typing import Any
 
+from .profile_config import FRONTIERS_KEYWORDS
 from .shared_base import (
-    FRONTIERS_KEYWORDS,
     count_bibtex_entries,
     markdown_citation_keys,
     resolve_submission_references_source,

@@ -2193,6 +2193,8 @@
               "live_owner_consumption_claimed": false,
               "lookup_providers": [
                 "crossref",
+                "pubmed",
+                "pmc",
                 "openalex",
                 "semantic_scholar",
                 "publisher",
@@ -2786,6 +2788,8 @@
               "live_owner_consumption_claimed": false,
               "lookup_providers": [
                 "crossref",
+                "pubmed",
+                "pmc",
                 "openalex",
                 "semantic_scholar",
                 "publisher",

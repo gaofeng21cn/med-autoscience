@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from collections.abc import Mapping
+from collections.abc import Mapping, Sequence
 from datetime import datetime, timezone
 import json
 from pathlib import Path
@@ -17,6 +17,7 @@ from med_autoscience.controllers import statistical_discipline_runtime
 from med_autoscience.controllers import study_line_decision_engine
 from med_autoscience.controllers.medical_paper_readiness_payload_authoring import (
     authoring_runtime_authorization as authoring_runtime_authorization_authoring,
+    host_provider_receipts,
     literature_provider_runtime as literature_provider_runtime_authoring,
     provider_adapters as provider_adapter_authoring,
     route_decision as route_decision_authoring,
@@ -54,7 +55,7 @@ def author_operator_payload(
     surface_key: str | None,
     profile: WorkspaceProfile | None = None,
     generated_at: str | None = None,
-    write_provider_response_ledger: bool = False,
+    provider_receipts: Sequence[Mapping[str, Any]] = (),
 ) -> dict[str, Any]:
     if _text(surface_key) not in SUPPORTED_SURFACE_KEYS:
         return _blocked_payload("unsupported_surface_key", surface_key=surface_key)
@@ -150,20 +151,11 @@ def author_operator_payload(
         if payload:
             return payload
         return _blocked_payload("insufficient_authoring_runtime_authorization_payload_sources", surface_key=surface_key)
-    existing = provider_adapter_authoring.payload_from_existing_literature_intelligence(
-        study_root=root,
-        generated_at=timestamp,
-        source=SOURCE,
-        surface=SURFACE,
-        schema_version=SCHEMA_VERSION,
-    )
-    if existing:
-        return existing
     provider_backed = provider_adapter_authoring.payload_from_provider_adapters(
         study_root=root,
         generated_at=timestamp,
         surface_key=surface_key,
-        write_provider_response_ledger=write_provider_response_ledger,
+        provider_receipts=provider_receipts,
         source=SOURCE,
         surface=SURFACE,
         schema_version=SCHEMA_VERSION,
@@ -171,6 +163,9 @@ def author_operator_payload(
     if provider_backed:
         return provider_backed
     return _blocked_payload("insufficient_literature_provider_payload_sources", surface_key=surface_key)
+
+
+provider_receipts_from_host_payloads = host_provider_receipts.provider_receipts_from_host_payloads
 
 
 def _payload_from_existing_literature_scout(*, study_root: Path) -> dict[str, Any]:

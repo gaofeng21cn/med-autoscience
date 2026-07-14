@@ -38,10 +38,9 @@ def build_reference_verification_payload(
         ),
     }
     provider_receipts = _mapping_sequence(payload.get("provider_receipts"))
-    provider_evidence = _mapping_sequence(payload.get("provider_evidence")) + _provider_evidence_from_receipts(
-        provider_receipts,
-    )
-    provider_receipt_refs = _provider_receipt_refs(provider_receipts)
+    receipt_evidence = provider_evidence_from_receipts(provider_receipts)
+    provider_evidence = _mapping_sequence(payload.get("provider_evidence")) + receipt_evidence
+    provider_receipt_refs = _provider_receipt_refs(provider_receipts, receipt_evidence=receipt_evidence)
     source_refs = _merge_ref_sequences(
         _ref_sequence(payload.get("source_refs")),
         _provider_receipt_source_refs(provider_receipts),
@@ -97,35 +96,58 @@ def _references(payload: Mapping[str, Any]) -> tuple[Mapping[str, Any], ...]:
     return _mapping_sequence(payload.get("reference"))
 
 
-def _provider_evidence_from_receipts(
+def provider_evidence_from_receipts(
     provider_receipts: Sequence[Mapping[str, Any]],
 ) -> tuple[Mapping[str, Any], ...]:
+    """Normalize evidence carried by OPL Connect receipts without invoking transport."""
+
     evidence: list[Mapping[str, Any]] = []
     for receipt in provider_receipts:
         receipt_ref = _provider_receipt_ref(receipt)
         source_refs = _receipt_source_refs(receipt)
-        evidence.extend(
-            _evidence_with_receipt_context(item, receipt_ref=receipt_ref, source_refs=source_refs)
-            for item in _mapping_sequence(receipt.get("provider_evidence"))
+        _extend_receipt_evidence(
+            evidence,
+            _mapping_sequence(receipt.get("provider_evidence")),
+            receipt_ref=receipt_ref,
+            source_refs=source_refs,
         )
         for reference in _mapping_sequence(receipt.get("references")):
             reference_id = _reference_id(reference)
-            evidence.extend(
-                _evidence_with_receipt_context(
-                    item,
-                    receipt_ref=receipt_ref,
-                    source_refs=source_refs,
-                    reference_id=reference_id,
-                )
-                for item in _mapping_sequence(reference.get("provider_evidence"))
+            _extend_receipt_evidence(
+                evidence,
+                _mapping_sequence(reference.get("provider_evidence")),
+                receipt_ref=receipt_ref,
+                source_refs=source_refs,
+                reference_id=reference_id,
             )
         opl_connect = _optional_mapping(receipt.get("opl_connect_reference_verification")) or {}
         opl_source_refs = _merge_ref_sequences(source_refs, _ref_sequence(opl_connect.get("source_refs")))
-        evidence.extend(
-            _evidence_with_receipt_context(item, receipt_ref=receipt_ref, source_refs=opl_source_refs)
-            for item in _mapping_sequence(opl_connect.get("provider_evidence"))
+        _extend_receipt_evidence(
+            evidence,
+            _mapping_sequence(opl_connect.get("provider_evidence")),
+            receipt_ref=receipt_ref,
+            source_refs=opl_source_refs,
         )
     return tuple(evidence)
+
+
+def _extend_receipt_evidence(
+    target: list[Mapping[str, Any]],
+    candidates: Sequence[Mapping[str, Any]],
+    *,
+    receipt_ref: str | None,
+    source_refs: Sequence[Mapping[str, Any] | str],
+    reference_id: str | None = None,
+) -> None:
+    for candidate in candidates:
+        normalized = _evidence_with_receipt_context(
+            candidate,
+            receipt_ref=receipt_ref,
+            source_refs=source_refs,
+            reference_id=reference_id,
+        )
+        if _text(normalized.get("receipt_ref")):
+            target.append(normalized)
 
 
 def _evidence_with_receipt_context(
@@ -147,8 +169,27 @@ def _evidence_with_receipt_context(
     return normalized
 
 
-def _provider_receipt_refs(provider_receipts: Sequence[Mapping[str, Any]]) -> tuple[str, ...]:
-    return tuple(ref for receipt in provider_receipts if (ref := _provider_receipt_ref(receipt)))
+def _provider_receipt_refs(
+    provider_receipts: Sequence[Mapping[str, Any]],
+    *,
+    receipt_evidence: Sequence[Mapping[str, Any]],
+) -> tuple[str, ...]:
+    refs: list[str] = []
+    for receipt in provider_receipts:
+        if ref := _provider_receipt_ref(receipt):
+            refs.append(ref)
+        opl_connect = _optional_mapping(receipt.get("opl_connect_reference_verification")) or {}
+        refs.extend(
+            ref
+            for nested in _mapping_sequence(opl_connect.get("provider_receipts"))
+            if (ref := _provider_receipt_ref(nested))
+        )
+    refs.extend(
+        ref
+        for evidence in receipt_evidence
+        if (ref := _text(evidence.get("receipt_ref")))
+    )
+    return tuple(dict.fromkeys(refs))
 
 
 def _provider_receipt_source_refs(
@@ -249,4 +290,5 @@ __all__ = [
     "SCHEMA_VERSION",
     "SURFACE_KIND",
     "build_reference_verification_payload",
+    "provider_evidence_from_receipts",
 ]

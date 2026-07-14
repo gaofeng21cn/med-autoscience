@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from dataclasses import asdict
+from collections.abc import Mapping, Sequence
 from datetime import datetime, timezone
 import json
 from pathlib import Path
@@ -75,19 +75,32 @@ def write_audit_files(quest_root: Path, report: dict[str, object]) -> tuple[Path
     return json_path, markdown_path
 
 
-def run_controller(*, quest_root: Path, apply: bool) -> dict[str, object]:
+def run_controller(
+    *,
+    quest_root: Path,
+    apply: bool,
+    provider_receipts: Sequence[Mapping[str, object]] = (),
+) -> dict[str, object]:
     resolved_quest_root = Path(quest_root).expanduser().resolve()
     gap_report_path = resolved_quest_root / "paper" / "review" / "reference_gap_report.json"
     payload = _load_gap_report(resolved_quest_root)
     missing_pmids = _missing_pmids(payload)
     action = "clear"
+    provider_resolution: dict[str, object] | None = None
     if apply and missing_pmids:
-        fetched_records = pubmed_adapter.fetch_pubmed_summary(pmids=missing_pmids)
-        literature_hydration_controller.run_literature_hydration(
-            quest_root=resolved_quest_root,
-            records=[record if isinstance(record, dict) else asdict(record) for record in fetched_records],
+        provider_resolution = pubmed_adapter.resolve_pubmed_summaries_from_receipts(
+            pmids=missing_pmids,
+            provider_receipts=provider_receipts,
         )
-        action = "supplemented"
+        fetched_records = list(provider_resolution["records"])
+        if fetched_records:
+            literature_hydration_controller.run_literature_hydration(
+                quest_root=resolved_quest_root,
+                records=fetched_records,
+            )
+            action = "supplemented_from_opl_connect_receipt"
+        else:
+            action = "opl_connect_receipt_required"
     blockers = ["reference_gaps_present"] if missing_pmids else []
     report = {
         "generated_at": utc_now(),
@@ -97,6 +110,7 @@ def run_controller(*, quest_root: Path, apply: bool) -> dict[str, object]:
         "blockers": blockers,
         "action": action,
         "missing_pmids": missing_pmids,
+        "provider_resolution": provider_resolution,
     }
     json_path: Path | None = None
     md_path: Path | None = None
@@ -108,6 +122,7 @@ def run_controller(*, quest_root: Path, apply: bool) -> dict[str, object]:
         "action": action,
         "quest_root": str(resolved_quest_root),
         "missing_pmids": missing_pmids,
+        "provider_resolution": provider_resolution,
         "report_json": str(json_path) if json_path is not None else None,
         "report_markdown": str(md_path) if md_path is not None else None,
     }

@@ -1,13 +1,12 @@
 from __future__ import annotations
 
 import argparse, hashlib, json, os, re, shutil, subprocess, tempfile, zipfile
-from dataclasses import asdict, dataclass
+from collections.abc import Mapping, Sequence
+from dataclasses import dataclass
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
-from urllib import request
 
-from med_autoscience.literature_records import LiteratureRecord
 from med_autoscience.display_pack_resolver import get_pack_id
 from med_autoscience.workspace_paths import literature_root
 from med_autoscience.publication_profiles import (
@@ -24,25 +23,7 @@ from med_autoscience.controllers.paper_artifacts import (
 from med_autoscience.controllers.study_paper_context import resolve_study_root_from_paper_root
 
 from .export_renderers import export_docx, export_pdf
-from .profile_config import (
-    FRONTIERS_HARVARD_CSL_URL,
-    FRONTIERS_KEYWORDS,
-    FRONTIERS_TEMPLATE_ZIP_URL,
-    STYLES_ROOT,
-    SUBMISSION_FRONT_MATTER_FIELD_ALIASES,
-    PublicationProfileConfig,
-    default_acs_csl_path,
-    default_ama_csl_path,
-    default_frontiers_harvard_csl_path,
-    default_frontiers_supplementary_template_docx_path,
-    default_frontiers_template_docx_path,
-    download_to_path,
-    ensure_frontiers_harvard_csl_path,
-    ensure_frontiers_word_templates,
-    frontiers_cache_dir,
-    resolve_override_path,
-    resolve_publication_profile_config,
-)
+from .profile_config import SUBMISSION_FRONT_MATTER_FIELD_ALIASES
 
 def utc_now() -> str:
     return datetime.now(timezone.utc).replace(microsecond=0).isoformat()
@@ -757,6 +738,7 @@ def materialize_and_validate_submission_references(
     workspace_root: Path,
     label_root: Path | None = None,
     source_markdown_path: Path,
+    provider_receipts: Sequence[Mapping[str, Any]] = (),
 ) -> tuple[dict[str, Any] | None, Path | None, dict[str, Any]]:
     references_manifest = materialize_submission_references(
         paper_root=paper_root,
@@ -770,14 +752,19 @@ def materialize_and_validate_submission_references(
             source_markdown_path=source_markdown_path,
             references_path=submission_root / "references.bib" if references_manifest is not None else None,
         )
-    except (FileNotFoundError, SubmissionReferenceCoverageError):
+    except (FileNotFoundError, SubmissionReferenceCoverageError) as coverage_error:
         repair_report = auto_repair_submission_reference_gaps(
             paper_root=paper_root,
             workspace_root=workspace_root,
             source_markdown_path=source_markdown_path,
             references_path=submission_root / "references.bib" if references_manifest is not None else None,
+            provider_receipts=provider_receipts,
         )
         if repair_report["status"] != "repaired":
+            if repair_report["status"] in {"request_only", "missing_evidence"}:
+                raise SubmissionReferenceProviderReceiptRequired(
+                    provider_resolution=repair_report,
+                ) from coverage_error
             raise
         references_manifest = materialize_submission_references(
             paper_root=paper_root,
@@ -870,116 +857,33 @@ class SubmissionReferenceCoverageError(ValueError):
         )
 
 
-def auto_repair_submission_reference_gaps(*, paper_root: Path, workspace_root: Path, source_markdown_path: Path, references_path: Path | None) -> dict[str, Any]:
-    from med_autoscience.adapters.literature import pubmed as pubmed_adapter
+class SubmissionReferenceProviderReceiptRequired(RuntimeError):
+    def __init__(self, *, provider_resolution: Mapping[str, Any]) -> None:
+        self.provider_resolution = dict(provider_resolution)
+        self.provider_resolution_request = dict(
+            provider_resolution.get("provider_resolution_request") or {}
+        )
+        super().__init__(
+            "submission reference repair requires an OPL Connect provider receipt"
+        )
 
-    citation_keys = sorted(markdown_citation_keys(source_markdown_path.read_text(encoding="utf-8")))
-    if not citation_keys:
-        return {"status": "not_required", "missing_citation_keys": []}
-    reference_text = references_path.read_text(encoding="utf-8") if references_path is not None and references_path.exists() else ""
-    missing_keys = sorted(set(citation_keys) - bibtex_entry_keys(reference_text))
-    if not missing_keys:
-        return {"status": "already_complete", "missing_citation_keys": []}
-    pmids_by_key = _pmids_by_submission_citation_key(missing_keys)
-    unsupported_keys = [key for key in missing_keys if key not in pmids_by_key]
-    if unsupported_keys:
-        return {
-            "status": "unsupported_missing_citation_keys",
-            "missing_citation_keys": missing_keys,
-            "unsupported_citation_keys": unsupported_keys,
-        }
 
-    requested_pmids = [pmids_by_key[key] for key in missing_keys]
-    fetched_records = pubmed_adapter.fetch_pubmed_summary(pmids=requested_pmids)
-    fetched_by_key = {
-        _submission_bibtex_key_for_record(record): record
-        for record in fetched_records
-        if _submission_bibtex_key_for_record(record) in missing_keys
-    }
-    still_missing = [key for key in missing_keys if key not in fetched_by_key]
-    if still_missing:
-        return {
-            "status": "pubmed_records_missing",
-            "missing_citation_keys": missing_keys,
-            "unresolved_citation_keys": still_missing,
-            "fetched_record_count": len(fetched_records),
-        }
+def auto_repair_submission_reference_gaps(
+    *,
+    paper_root: Path,
+    workspace_root: Path,
+    source_markdown_path: Path,
+    references_path: Path | None,
+    provider_receipts: Sequence[Mapping[str, Any]] = (),
+) -> dict[str, Any]:
+    from .reference_gap_repair import repair_submission_reference_gaps
 
-    source_path, source_kind = resolve_submission_references_source(paper_root=paper_root)
-    source_text = source_path.read_text(encoding="utf-8") if source_path is not None and source_path.exists() else ""
-    existing_keys = bibtex_entry_keys(source_text)
-    appended_entries = [
-        _render_submission_bib_entry(fetched_by_key[key])
-        for key in missing_keys
-        if key not in existing_keys
-    ]
-    target_path = paper_root / "references.bib"
-    merged_text = _merge_references_text(source_text, appended_entries)
-    write_text(target_path, merged_text)
-    workspace_literature_sync = _sync_workspace_literature(
+    return repair_submission_reference_gaps(
+        paper_root=paper_root,
         workspace_root=workspace_root,
-        records=list(fetched_records),
-    )
-
-    return {
-        "status": "repaired",
-        "repair_scope": "study_paper_references",
-        "source_kind": source_kind,
-        "source_path": _path_label_from_workspace(path=source_path, workspace_root=workspace_root) if source_path else None,
-        "output_path": _path_label_from_workspace(path=target_path, workspace_root=workspace_root),
-        "missing_citation_keys": missing_keys,
-        "fetched_pmids": requested_pmids,
-        "fetched_record_count": len(fetched_records),
-        "workspace_literature_sync": workspace_literature_sync,
-    }
-
-
-def _pmids_by_submission_citation_key(citation_keys: list[str]) -> dict[str, str]:
-    pmids: dict[str, str] = {}
-    for key in citation_keys:
-        match = re.fullmatch(r"pmid[_:.-]?(\d+)", key, flags=re.IGNORECASE)
-        if match:
-            pmids[key] = match.group(1)
-    return pmids
-
-
-def _submission_bibtex_key_for_record(record: LiteratureRecord) -> str:
-    return re.sub(r"[^A-Za-z0-9]+", "_", record.record_id).strip("_") or "reference"
-
-
-def _render_submission_bib_entry(record: LiteratureRecord) -> str:
-    lines = [f"@article{{{_submission_bibtex_key_for_record(record)},", f"  title = {{{record.title}}},"]
-    if record.authors:
-        lines.append(f"  author = {{{' and '.join(record.authors)}}},")
-    if record.journal:
-        lines.append(f"  journal = {{{record.journal}}},")
-    if record.year is not None:
-        lines.append(f"  year = {{{record.year}}},")
-    if record.doi:
-        lines.append(f"  doi = {{{record.doi}}},")
-    if record.pmid:
-        lines.append(f"  pmid = {{{record.pmid}}},")
-    lines.append("}")
-    return "\n".join(lines) + "\n\n"
-
-
-def _merge_references_text(source_text: str, appended_entries: list[str]) -> str:
-    if not appended_entries:
-        return source_text if source_text.endswith("\n") or not source_text else source_text + "\n"
-    prefix = source_text.rstrip()
-    if prefix:
-        return prefix + "\n\n" + "".join(appended_entries)
-    return "".join(appended_entries)
-
-
-def _sync_workspace_literature(*, workspace_root: Path, records: list[LiteratureRecord]) -> dict[str, object] | None:
-    if not records:
-        return None
-    from med_autoscience.controllers import workspace_literature as workspace_literature_controller
-
-    return workspace_literature_controller.sync_workspace_literature(
-        workspace_root=workspace_root,
-        records=[asdict(record) for record in records],
+        source_markdown_path=source_markdown_path,
+        references_path=references_path,
+        provider_receipts=provider_receipts,
     )
 
 

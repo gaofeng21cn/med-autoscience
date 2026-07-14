@@ -1,7 +1,7 @@
 from __future__ import annotations
 
-from collections.abc import Mapping
-from datetime import datetime, timedelta, timezone
+from collections.abc import Mapping, Sequence
+from datetime import datetime, timezone
 import json
 from pathlib import Path
 from typing import Any
@@ -13,73 +13,16 @@ from med_autoscience.adapters.literature import pubmed
 from med_autoscience.adapters.literature import semantic_scholar
 
 
-def payload_from_existing_literature_intelligence(
-    *,
-    study_root: Path,
-    generated_at: str,
-    source: str,
-    surface: str,
-    schema_version: int,
-) -> dict[str, Any]:
-    path = study_root / "artifacts" / "medical_paper" / "literature_intelligence_os.json"
-    payload = _read_json(path)
-    if not payload:
-        return {}
-    if _text(payload.get("status")) != "ready":
-        return {}
-    provider_names = {
-        _text(item.get("provider_name"))
-        for item in _mapping_list(payload.get("provider_provenance"))
-    }
-    if not {"pubmed", "crossref", "semantic_scholar"}.issubset(provider_names):
-        return {}
-    providers: list[dict[str, Any]] = []
-    for provider in _mapping_list(payload.get("provider_provenance")):
-        provider_name = _text(provider.get("provider_name"))
-        refs = [_text(item) for item in _list(provider.get("source_refs")) if _text(item)]
-        providers.append(
-            {
-                "provider": provider_name,
-                "query": _text(provider.get("query")) or _search_query_from_payload(payload),
-                "retrieved_at": _text(provider.get("retrieved_at")) or generated_at,
-                "request_id": f"{provider_name}-existing-literature-intelligence",
-                "response_status": _text(provider.get("response_status")) or "ok",
-                "credential_status": _ready_credential(provider_name),
-                "rate_limit_status": _ok_rate_limit(),
-                "cache_freshness": _fresh_cache(generated_at),
-                "provider_response_ledger_refs": refs,
-                "items": _items_for_provider(provider_name=provider_name, payload=payload),
-            }
-        )
-    return _payload(
-        study_root=study_root,
-        generated_at=generated_at,
-        search_strategy=_mapping(payload.get("search_strategy")),
-        search_date=_text(payload.get("search_date")) or _date_from_timestamp(generated_at),
-        why_worth_doing=_text(payload.get("why_worth_doing")) or _text(payload.get("study_rationale")),
-        providers=providers,
-        screening_decisions=_mapping_list(payload.get("screening_decisions")),
-        citation_ledger_refs=[_text(item) for item in _list(payload.get("citation_ledger_refs")) if _text(item)],
-        source_basis="existing_literature_intelligence_os",
-        source_refs=[str(path)],
-        source=source,
-        surface=surface,
-        schema_version=schema_version,
-    )
-
-
 def payload_from_provider_adapters(
     *,
     study_root: Path,
     generated_at: str,
     surface_key: str | None,
-    write_provider_response_ledger: bool,
+    provider_receipts: Sequence[Mapping[str, Any]],
     source: str,
     surface: str,
     schema_version: int,
 ) -> dict[str, Any]:
-    if not write_provider_response_ledger:
-        return {}
     study = _read_yaml(study_root / "study.yaml")
     if not study:
         return {}
@@ -95,26 +38,19 @@ def payload_from_provider_adapters(
     if not pmids and not materialized_records:
         return {}
 
-    pubmed_records = _fetch_pubmed_records(pmids)
-    if not pubmed_records:
-        fallback = _payload_from_verified_literature_materialization(
-            study_root=study_root,
-            generated_at=generated_at,
-            study=study,
-            materialized_records=materialized_records,
-            write_provider_response_ledger=write_provider_response_ledger,
-            source=source,
-            surface=surface,
-            schema_version=schema_version,
-        )
-        if fallback:
-            return fallback
+    pubmed_resolution = pubmed.resolve_pubmed_summaries_from_receipts(
+        pmids=list(dict.fromkeys(pmids))[:20],
+        provider_receipts=provider_receipts,
+    )
+    pubmed_records = list(pubmed_resolution["records"])
+    if pubmed_resolution["status"] != "resolved" or not pubmed_records:
         return _blocked_payload(
-            "provider_adapter_fetch_failed_pubmed",
+            "opl_connect_reference_receipt_required_pubmed",
             surface_key=surface_key,
             source=source,
             surface=surface,
             schema_version=schema_version,
+            provider_resolution=pubmed_resolution,
         )
 
     records = _merged_records(pubmed_records, materialized_records)
@@ -153,12 +89,11 @@ def payload_from_provider_adapters(
         )
 
     pubmed_provider = _pubmed_provider_from_records(
-        study_root=study_root,
         records=pubmed_records,
         anchor=anchor,
         generated_at=generated_at,
         query=_text(_search_strategy_from_study(study).get("query")),
-        schema_version=schema_version,
+        receipt_refs=list(pubmed_resolution["provider_receipt_refs"]),
     )
     if not pubmed_provider:
         return _blocked_payload(
@@ -169,12 +104,11 @@ def payload_from_provider_adapters(
             schema_version=schema_version,
         )
 
-    crossref_provider = _crossref_provider_from_records(
-        study_root=study_root,
+    crossref_provider, crossref_resolution = _crossref_provider_from_records(
         records=((guideline, "guidelines"), (systematic, "systematic_reviews")),
         generated_at=generated_at,
         query=f"{_text(_search_strategy_from_study(study).get('query'))} guideline systematic review".strip(),
-        schema_version=schema_version,
+        provider_receipts=provider_receipts,
     )
     if not crossref_provider:
         return _blocked_payload(
@@ -183,19 +117,18 @@ def payload_from_provider_adapters(
             source=source,
             surface=surface,
             schema_version=schema_version,
+            provider_resolution=crossref_resolution,
         )
 
-    semantic_provider = _semantic_provider_from_records(
+    semantic_provider, semantic_resolution = _semantic_provider_from_records(
         records=_semantic_candidate_records(
             systematic=systematic,
             guideline=guideline,
             anchor=anchor,
             records=records,
         ),
-        study_root=study_root,
         generated_at=generated_at,
-        write_provider_response_ledger=write_provider_response_ledger,
-        schema_version=schema_version,
+        provider_receipts=provider_receipts,
     )
     if not semantic_provider:
         return _blocked_payload(
@@ -204,6 +137,7 @@ def payload_from_provider_adapters(
             source=source,
             surface=surface,
             schema_version=schema_version,
+            provider_resolution=semantic_resolution,
         )
     search_strategy = _search_strategy_from_study(study)
     providers = [pubmed_provider, crossref_provider, semantic_provider]
@@ -225,7 +159,7 @@ def payload_from_provider_adapters(
         providers=providers,
         screening_decisions=_screening_decisions(providers),
         citation_ledger_refs=list(dict.fromkeys(citation_refs)),
-        source_basis="study_contract_and_live_provider_adapters",
+        source_basis="study_contract_and_opl_connect_provider_receipts",
         source_refs=[
             str(study_root / "study.yaml"),
             *(
@@ -238,144 +172,6 @@ def payload_from_provider_adapters(
         surface=surface,
         schema_version=schema_version,
     )
-
-
-def _payload_from_verified_literature_materialization(
-    *,
-    study_root: Path,
-    generated_at: str,
-    study: Mapping[str, Any],
-    materialized_records: list[Mapping[str, Any]],
-    write_provider_response_ledger: bool,
-    source: str,
-    surface: str,
-    schema_version: int,
-) -> dict[str, Any]:
-    verified_records = [
-        dict(record)
-        for record in materialized_records
-        if _text(record.get("pmid"))
-        and _text(record.get("materialization_status")) in {"verified_pubmed", "pubmed_verified"}
-    ]
-    if not verified_records:
-        return {}
-    anchor = _first_record_with_pmid(verified_records) or verified_records[0]
-    guideline = _first_record_matching(
-        verified_records,
-        ("guideline", "guidelines", "primary healthcare", "tripod", "statement"),
-    )
-    systematic = _first_record_matching(
-        verified_records,
-        ("systematic review", "subclassification", "classification", "meta-analysis", "meta analysis"),
-    )
-    if anchor is None or guideline is None or systematic is None:
-        return {}
-    semantic_record = systematic if _record_ref(systematic) != _record_ref(anchor) else guideline
-    query = _text(_search_strategy_from_study(study).get("query"))
-    materialization_ref = "artifacts/publication_eval/literature_materialization.json"
-    ledger_ref = (
-        _write_provider_response_ledger(
-            study_root=study_root,
-            provider="pubmed",
-            request_id="pubmed-verified-literature-materialization-"
-            + _slug("-".join(_text(record.get("pmid")) for record in verified_records if _text(record.get("pmid")))),
-            retrieved_at=generated_at,
-            response_status="ok",
-            payload={
-                "source_basis": "verified_literature_materialization",
-                "records": verified_records,
-            },
-            schema_version=schema_version,
-        )
-        if write_provider_response_ledger
-        else materialization_ref
-    )
-    providers = [
-        _materialized_provider(
-            provider="pubmed",
-            records=tuple((record, "anchor_papers") for record in verified_records if _record_ref(record)),
-            generated_at=generated_at,
-            query=query,
-            ledger_ref=ledger_ref,
-            source_ref=materialization_ref,
-        ),
-        _materialized_provider(
-            provider="crossref",
-            records=((guideline, "guidelines"), (systematic, "systematic_reviews")),
-            generated_at=generated_at,
-            query=f"{query} guideline systematic review".strip(),
-            ledger_ref=ledger_ref,
-            source_ref=materialization_ref,
-        ),
-        _materialized_provider(
-            provider="semantic_scholar",
-            records=((semantic_record, "journal_neighbor_refs"),),
-            generated_at=generated_at,
-            query=_text(semantic_record.get("title")) or query,
-            ledger_ref=ledger_ref,
-            source_ref=materialization_ref,
-            semantic_score=True,
-        ),
-    ]
-    if any(not provider.get("items") for provider in providers):
-        return {}
-    citation_refs = [
-        ref
-        for provider in providers
-        for ref in _citation_refs_from_provider(provider)
-    ]
-    return _payload(
-        study_root=study_root,
-        generated_at=generated_at,
-        search_strategy=_search_strategy_from_study(study),
-        search_date=_date_from_timestamp(generated_at),
-        why_worth_doing=(
-            _text(study.get("literature_anchor_summary"))
-            or _text(study.get("paper_framing_summary"))
-            or _text(study.get("primary_question"))
-        ),
-        providers=providers,
-        screening_decisions=_screening_decisions(providers),
-        citation_ledger_refs=list(dict.fromkeys(citation_refs)),
-        source_basis="verified_literature_materialization",
-        source_refs=[str(study_root / materialization_ref)],
-        source=source,
-        surface=surface,
-        schema_version=schema_version,
-    )
-
-
-def _materialized_provider(
-    *,
-    provider: str,
-    records: tuple[tuple[Mapping[str, Any], str], ...],
-    generated_at: str,
-    query: str | None,
-    ledger_ref: str,
-    source_ref: str,
-    semantic_score: bool = False,
-) -> dict[str, Any]:
-    items: list[dict[str, Any]] = []
-    for record, category in records:
-        item = _provider_item_from_record(record, category=category)
-        if semantic_score:
-            item["score"] = 0.9
-            item["score_source_ref"] = source_ref
-        if item.get("ref"):
-            items.append(item)
-    return {
-        "provider": provider,
-        "query": _text(query) or (items[0]["title"] if items else "verified literature materialization"),
-        "retrieved_at": generated_at,
-        "request_id": f"{provider}-verified-literature-materialization",
-        "response_status": "ok",
-        "credential_status": _public_api_credential(provider),
-        "rate_limit_status": _ok_rate_limit(),
-        "cache_freshness": _fresh_cache(generated_at),
-        "provider_response_ledger_refs": [ledger_ref],
-        "source_refs": [source_ref],
-        "items": items,
-    }
 
 
 def _semantic_candidate_records(
@@ -401,86 +197,69 @@ def _semantic_candidate_records(
 def _semantic_provider_from_records(
     *,
     records: tuple[Mapping[str, Any], ...],
-    study_root: Path,
     generated_at: str,
-    write_provider_response_ledger: bool,
-    schema_version: int,
-) -> dict[str, Any]:
+    provider_receipts: Sequence[Mapping[str, Any]],
+) -> tuple[dict[str, Any], dict[str, Any] | None]:
+    unresolved: dict[str, Any] | None = None
     for record in records:
-        provider = _semantic_provider_from_record(
+        provider, resolution = _semantic_provider_from_record(
             record=record,
-            study_root=study_root,
             generated_at=generated_at,
-            write_provider_response_ledger=write_provider_response_ledger,
-            schema_version=schema_version,
+            provider_receipts=provider_receipts,
         )
         if provider:
-            return provider
-    return {}
+            return provider, None
+        if resolution is not None:
+            unresolved = resolution
+    return {}, unresolved
 
 
 def _semantic_provider_from_record(
     *,
     record: Mapping[str, Any],
-    study_root: Path,
     generated_at: str,
-    write_provider_response_ledger: bool,
-    schema_version: int,
-) -> dict[str, Any]:
+    provider_receipts: Sequence[Mapping[str, Any]],
+) -> tuple[dict[str, Any], dict[str, Any] | None]:
     doi = _text(record.get("doi"))
     pmid = _text(record.get("pmid"))
-    try:
-        if doi:
-            response = semantic_scholar.fetch_paper_batch(
-                paper_ids=[f"DOI:{doi}"],
-                fields=("paperId", "title", "year", "venue", "externalIds", "citationCount"),
-            )
-            request_id = f"semantic-scholar-doi-{_slug(doi)}"
-        elif pmid:
-            response = semantic_scholar.fetch_paper_batch(
-                paper_ids=[f"PMID:{pmid}"],
-                fields=("paperId", "title", "year", "venue", "externalIds", "citationCount"),
-            )
-            request_id = f"semantic-scholar-pmid-{pmid}"
-        else:
-            return {}
-    except Exception:
-        return {}
-    if _text(response.get("response_status")) != "ok":
-        return {}
-    papers = _semantic_papers(response.get("payload"))
-    if not papers:
-        return {}
-    paper = papers[0]
-    paper_id = _text(paper.get("paperId")) or _text(paper.get("paper_id"))
-    if not paper_id:
-        return {}
-    provider_response_ledger_ref = (
-        _write_provider_response_ledger(
-            study_root=study_root,
-            provider="semantic_scholar",
-            request_id=request_id,
-            retrieved_at=generated_at,
-            response_status=_text(response.get("response_status")) or "ok",
-            payload=dict(response),
-            schema_version=schema_version,
-        )
-        if write_provider_response_ledger
-        else ""
+    if not doi and not pmid:
+        return {}, None
+    reference_id = f"doi:{doi}" if doi else f"pmid:{pmid}"
+    resolution = semantic_scholar.resolve_semantic_scholar_records_from_receipts(
+        references=({"id": reference_id, "doi": doi, "pmid": pmid, "title": _text(record.get("title"))},),
+        provider_receipts=provider_receipts,
     )
-    return semantic_scholar.provider_payload_from_response(
-        query=_text(record.get("title")) or _text(record.get("ref")) or "medical literature neighbor",
-        retrieved_at=generated_at,
-        request_id=request_id,
-        response=response,
-        credential_ref="public_api:semantic_scholar_graph",
-        provider_response_ledger_ref=provider_response_ledger_ref,
-        citation_ledger_refs={paper_id: _citation_ref_for_record(record)},
-        category_by_paper_id={paper_id: "journal_neighbor_refs"},
-        score_by_paper_id={paper_id: _semantic_score(paper)},
-        score_source_ref=f"semantic_scholar:{request_id}",
-        cache_freshness=_fresh_cache(generated_at),
-    )
+    if resolution["status"] != "resolved":
+        return {}, resolution
+    records = list(resolution["records"])
+    if not records:
+        return {}, resolution
+    resolved = records[0]
+    resolved_ref = _record_ref(resolved)
+    request_id = f"semantic-scholar-receipt-{_slug(resolved_ref)}"
+    return {
+        "provider": "semantic_scholar",
+        "query": _text(record.get("title")) or _text(record.get("ref")) or "medical literature neighbor",
+        "retrieved_at": generated_at,
+        "request_id": request_id,
+        "response_status": "ok",
+        "credential_status": _receipt_bound_credential(
+            list(resolution["provider_receipt_refs"])
+        ),
+        "rate_limit_status": _ok_rate_limit(),
+        "cache_freshness": _fresh_cache(generated_at),
+        "provider_response_ledger_refs": list(resolution["provider_receipt_refs"]),
+        "items": [
+            {
+                "ref": resolved_ref,
+                "category": "journal_neighbor_refs",
+                "title": _text(resolved.get("title")),
+                "citation_ledger_ref": _citation_ref_for_record(resolved),
+                "score": _semantic_score(resolved),
+                "score_source_ref": f"opl_connect:{request_id}",
+            }
+        ],
+    }, None
 
 
 def _payload(
@@ -525,6 +304,7 @@ def _blocked_payload(
     source: str,
     surface: str,
     schema_version: int,
+    provider_resolution: Mapping[str, Any] | None = None,
 ) -> dict[str, Any]:
     return {
         "payload_source": source,
@@ -533,47 +313,28 @@ def _blocked_payload(
         "status": "blocked",
         "blocked_reason": reason,
         "surface_key": _text(surface_key),
+        "provider_resolution": dict(provider_resolution) if provider_resolution else None,
         "quality_claim_authorized": False,
         "mechanical_projection_can_authorize_quality": False,
     }
 
 
-def _fetch_pubmed_records(pmids: list[str]) -> list[dict[str, Any]]:
-    try:
-        records = pubmed.fetch_pubmed_summary(pmids=list(dict.fromkeys(pmids))[:20])
-    except Exception:
-        return []
-    return [
-        {
-            "record_id": record.record_id,
-            "title": record.title,
-            "doi": record.doi,
-            "pmid": record.pmid,
-            "year": record.year,
-            "journal": record.journal,
-            "citation_payload": dict(record.citation_payload),
-        }
-        for record in records
-    ]
-
-
-def _fetch_crossref_record(record: Mapping[str, Any]) -> dict[str, Any]:
+def _fetch_crossref_record(
+    record: Mapping[str, Any],
+    *,
+    provider_receipts: Sequence[Mapping[str, Any]],
+) -> tuple[dict[str, Any], list[str], dict[str, Any] | None]:
     doi = _text(record.get("doi"))
     if not doi:
-        return {}
-    try:
-        fetched = crossref.fetch_crossref_work(doi=doi)
-    except Exception:
-        return {}
-    return {
-        "record_id": fetched.record_id,
-        "title": fetched.title,
-        "doi": fetched.doi,
-        "pmid": fetched.pmid,
-        "year": fetched.year,
-        "journal": fetched.journal,
-        "citation_payload": dict(fetched.citation_payload),
-    }
+        return {}, [], None
+    resolution = crossref.resolve_crossref_work_from_receipts(
+        doi=doi,
+        provider_receipts=provider_receipts,
+    )
+    records = list(resolution["records"])
+    if not records:
+        return {}, [], resolution
+    return dict(records[0]), list(resolution["provider_receipt_refs"]), None
 
 
 def _merged_records(
@@ -595,26 +356,16 @@ def _merged_records(
 
 def _pubmed_provider_from_records(
     *,
-    study_root: Path,
     records: list[Mapping[str, Any]],
     anchor: Mapping[str, Any],
     generated_at: str,
     query: str | None,
-    schema_version: int,
+    receipt_refs: list[str],
 ) -> dict[str, Any]:
     if not records:
         return {}
     request_id = "pubmed-esummary-" + _slug(
         "-".join(_text(record.get("pmid")) for record in records if record.get("pmid"))
-    )
-    ledger_ref = _write_provider_response_ledger(
-        study_root=study_root,
-        provider="pubmed",
-        request_id=request_id,
-        retrieved_at=generated_at,
-        response_status="ok",
-        payload={"records": [dict(record) for record in records]},
-        schema_version=schema_version,
     )
     anchor_ref = _record_ref(anchor)
     items: list[dict[str, Any]] = []
@@ -628,54 +379,49 @@ def _pubmed_provider_from_records(
         "retrieved_at": generated_at,
         "request_id": request_id,
         "response_status": "ok",
-        "credential_status": _public_api_credential("pubmed"),
+        "credential_status": _receipt_bound_credential(receipt_refs),
         "rate_limit_status": _ok_rate_limit(),
         "cache_freshness": _fresh_cache(generated_at),
-        "provider_response_ledger_refs": [ledger_ref],
+        "provider_response_ledger_refs": receipt_refs,
         "items": [item for item in items if item.get("ref")],
     }
 
 
 def _crossref_provider_from_records(
     *,
-    study_root: Path,
     records: tuple[tuple[Mapping[str, Any], str], ...],
     generated_at: str,
     query: str | None,
-    schema_version: int,
-) -> dict[str, Any]:
+    provider_receipts: Sequence[Mapping[str, Any]],
+) -> tuple[dict[str, Any], dict[str, Any] | None]:
     fetched_records: list[dict[str, Any]] = []
+    receipt_refs: list[str] = []
     items: list[dict[str, Any]] = []
     for record, category in records:
-        fetched = _fetch_crossref_record(record)
+        fetched, fetched_receipt_refs, resolution = _fetch_crossref_record(
+            record,
+            provider_receipts=provider_receipts,
+        )
         if not fetched:
-            return {}
+            return {}, resolution
         fetched_records.append(fetched)
+        receipt_refs.extend(fetched_receipt_refs)
         item = _provider_item_from_record(fetched, category=category)
         if item.get("ref"):
             items.append(item)
     request_id = "crossref-works-" + _slug("-".join(_text(record.get("doi")) for record in fetched_records))
-    ledger_ref = _write_provider_response_ledger(
-        study_root=study_root,
-        provider="crossref",
-        request_id=request_id,
-        retrieved_at=generated_at,
-        response_status="ok",
-        payload={"records": fetched_records},
-        schema_version=schema_version,
-    )
     return {
         "provider": "crossref",
         "query": _text(query) or _text(fetched_records[0].get("title")),
         "retrieved_at": generated_at,
         "request_id": request_id,
         "response_status": "ok",
-        "credential_status": _public_api_credential("crossref"),
+        "credential_status": _receipt_bound_credential(receipt_refs),
         "rate_limit_status": _ok_rate_limit(),
         "cache_freshness": _fresh_cache(generated_at),
-        "provider_response_ledger_refs": [ledger_ref],
+        "provider_response_ledger_refs": list(dict.fromkeys(receipt_refs)),
         "items": items,
-    }
+    }, None
 
 
 def _provider_item_from_record(record: Mapping[str, Any], *, category: str) -> dict[str, Any]:
@@ -687,73 +433,12 @@ def _provider_item_from_record(record: Mapping[str, Any], *, category: str) -> d
     }
 
 
-def _write_provider_response_ledger(
-    *,
-    study_root: Path,
-    provider: str,
-    request_id: str,
-    retrieved_at: str,
-    response_status: str,
-    payload: Mapping[str, Any],
-    schema_version: int,
-) -> str:
-    relative_path = Path("artifacts") / "medical_paper" / "provider_responses" / f"{_slug(request_id)}.json"
-    output_path = study_root / relative_path
-    output_path.parent.mkdir(parents=True, exist_ok=True)
-    output_path.write_text(
-        json.dumps(
-            {
-                "surface": "literature_provider_response_ledger_entry",
-                "schema_version": schema_version,
-                "provider": provider,
-                "request_id": request_id,
-                "retrieved_at": retrieved_at,
-                "response_status": response_status,
-                "payload": dict(payload),
-                "quality_claim_authorized": False,
-                "mechanical_projection_can_authorize_quality": False,
-            },
-            ensure_ascii=False,
-            indent=2,
-        )
-        + "\n",
-        encoding="utf-8",
-    )
-    return str(relative_path)
-
-
-def _public_api_credential(provider: str) -> dict[str, str]:
-    refs = {
-        "pubmed": "public_api:pubmed_esummary",
-        "crossref": "public_api:crossref_works",
-        "semantic_scholar": "public_api:semantic_scholar_graph",
-    }
+def _receipt_bound_credential(receipt_refs: Sequence[str]) -> dict[str, str]:
+    refs = [_text(ref) for ref in receipt_refs if _text(ref)]
     return {
-        "status": "ready",
-        "credential_ref": refs.get(provider, "public_api:provider"),
+        "status": "ready" if refs else "missing",
+        "credential_ref": refs[0] if refs else "",
     }
-
-
-def _items_for_provider(*, provider_name: str, payload: Mapping[str, Any]) -> list[dict[str, Any]]:
-    categories = {
-        "pubmed": ("anchor_papers",),
-        "crossref": ("guidelines", "systematic_reviews"),
-        "semantic_scholar": ("journal_neighbor_refs",),
-    }.get(provider_name, ())
-    items: list[dict[str, Any]] = []
-    for category in categories:
-        for ref in [_text(item) for item in _list(payload.get(category)) if _text(item)]:
-            item: dict[str, Any] = {
-                "ref": ref,
-                "category": category,
-                "title": ref,
-                "citation_ledger_ref": _citation_ref_from_ref(ref, payload),
-            }
-            if category == "journal_neighbor_refs":
-                item["score"] = 0.9
-                item["score_source_ref"] = "existing_literature_intelligence_os"
-            items.append(item)
-    return items
 
 
 def _records_from_literature_materialization(payload: Mapping[str, Any]) -> list[dict[str, Any]]:
@@ -850,31 +535,12 @@ def _citation_ref_for_record(record: Mapping[str, Any]) -> str:
     return f"paper/evidence_ledger.json#{_slug(record_id)}"
 
 
-def _citation_ref_from_ref(ref: str, payload: Mapping[str, Any]) -> str:
-    for existing in [_text(item) for item in _list(payload.get("citation_ledger_refs")) if _text(item)]:
-        if _slug(ref).lower() in _slug(existing).lower() or ref in existing:
-            return existing
-    return f"paper/evidence_ledger.json#{_slug(ref)}"
-
-
 def _record_ref(record: Mapping[str, Any]) -> str:
     if pmid := _text(record.get("pmid")):
         return f"pmid:{pmid}"
     if doi := _text(record.get("doi")):
         return f"doi:{doi}"
     return _text(record.get("record_id")) or ""
-
-
-def _semantic_papers(payload: object) -> list[Mapping[str, Any]]:
-    if isinstance(payload, list):
-        return [item for item in payload if isinstance(item, Mapping)]
-    if isinstance(payload, Mapping):
-        data = payload.get("data")
-        if isinstance(data, list):
-            return [item for item in data if isinstance(item, Mapping)]
-        if payload.get("paperId") or payload.get("paper_id"):
-            return [payload]
-    return []
 
 
 def _semantic_score(paper: Mapping[str, Any]) -> float:
@@ -910,7 +576,6 @@ def _fresh_cache(generated_at: str) -> dict[str, Any]:
     return {
         "status": "fresh",
         "checked_at": generated_at,
-        "expires_at": _plus_one_day(generated_at),
     }
 
 
@@ -919,28 +584,12 @@ def _ok_rate_limit() -> dict[str, Any]:
         "status": "ok",
         "remaining": None,
         "reset_at": "",
-        "backoff": {"policy": "exponential", "retry_after_seconds": 0},
+        "backoff": {"retry_after_seconds": 0},
     }
-
-
-def _ready_credential(provider: str | None) -> dict[str, str]:
-    return _public_api_credential(_text(provider))
-
-
-def _search_query_from_payload(payload: Mapping[str, Any]) -> str:
-    return _text(_mapping(payload.get("search_strategy")).get("query")) or _text(payload.get("query"))
 
 
 def _date_from_timestamp(value: str) -> str:
     return value[:10] if len(value) >= 10 else _utc_now()[:10]
-
-
-def _plus_one_day(value: str) -> str:
-    try:
-        parsed = datetime.fromisoformat(value.replace("Z", "+00:00"))
-    except ValueError:
-        parsed = datetime.now(timezone.utc)
-    return (parsed + timedelta(days=1)).isoformat()
 
 
 def _utc_now() -> str:
@@ -971,7 +620,4 @@ def _list(value: object) -> list[object]:
     return list(value) if isinstance(value, list) else []
 
 
-__all__ = [
-    "payload_from_existing_literature_intelligence",
-    "payload_from_provider_adapters",
-]
+__all__ = ["payload_from_provider_adapters"]

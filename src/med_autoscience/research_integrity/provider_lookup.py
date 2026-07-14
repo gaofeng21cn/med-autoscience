@@ -17,7 +17,15 @@ from med_autoscience.research_integrity.reference_authenticity import (
 
 SURFACE_KIND = "reference_provider_receipt_consumption_bundle"
 SCHEMA_VERSION = "mas-reference-provider-receipt-consumption.v1"
-DEFAULT_PROVIDERS = ("crossref", "openalex", "semantic-scholar", "crossmark", "publisher")
+DEFAULT_PROVIDERS = (
+    "crossref",
+    "pubmed",
+    "pmc",
+    "openalex",
+    "semantic-scholar",
+    "crossmark",
+    "publisher",
+)
 SUPPORTED_LOOKUP_PROVIDERS = frozenset(DEFAULT_PROVIDERS)
 PROVIDER_LOOKUP_MODE = "opl_connect_receipt_input_only"
 PROVIDER_RESOLUTION_ACTION = "opl_connect_reference_verification"

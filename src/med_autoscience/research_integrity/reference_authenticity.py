@@ -12,6 +12,7 @@ SUPPORTED_PROVIDERS = frozenset(
     {
         "crossref",
         "pubmed",
+        "pmc",
         "openalex",
         "semantic_scholar",
         "publisher",

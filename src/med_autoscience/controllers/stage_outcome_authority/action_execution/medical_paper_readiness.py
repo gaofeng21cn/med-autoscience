@@ -93,7 +93,12 @@ def execute_complete_medical_paper_readiness_surface(
             study_root=study_root,
             surface_key=surface_key,
             profile=profile,
-            write_provider_response_ledger=apply,
+            provider_receipts=(
+                medical_paper_readiness_payload_authoring.provider_receipts_from_host_payloads(
+                    dispatch_payload,
+                    request_payload,
+                )
+            ),
         )
         if _text(authored_payload.get("status")) != "blocked":
             operator_payload = authored_payload

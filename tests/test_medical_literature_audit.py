@@ -16,23 +16,67 @@ def test_medical_literature_audit_apply_triggers_literature_hydration(monkeypatc
     called: dict[str, object] = {}
 
     monkeypatch.setattr(
-        module.pubmed_adapter,
-        "fetch_pubmed_summary",
-        lambda *, pmids: [{"record_id": "pmid:12345", "title": "Paper title", "pmid": "12345"}],
-    )
-    monkeypatch.setattr(
         module.literature_hydration_controller,
         "run_literature_hydration",
         lambda *, quest_root, records: called.update({"quest_root": quest_root, "records": records})
         or {"status": "hydrated"},
     )
 
-    report = module.run_controller(quest_root=quest_root, apply=True)
+    report = module.run_controller(
+        quest_root=quest_root,
+        apply=True,
+        provider_receipts=(
+            {
+                "receipt_ref": "opl://connect/references/verify/pubmed-12345",
+                "provider_evidence": [
+                    {
+                        "reference_id": "pmid:12345",
+                        "provider": "pubmed",
+                        "lookup_status": "found",
+                        "status": "matched",
+                        "match_status": "identifier_matched",
+                        "matched_identifiers": {"pmid": "12345"},
+                        "metadata": {"title": "Paper title"},
+                    }
+                ],
+            },
+        ),
+    )
 
     assert report["status"] == "blocked"
-    assert report["action"] == "supplemented"
+    assert report["action"] == "supplemented_from_opl_connect_receipt"
     assert called["quest_root"] == quest_root
     assert called["records"][0]["record_id"] == "pmid:12345"
+
+
+def test_medical_literature_audit_without_receipt_requests_opl_connect(
+    monkeypatch,
+    tmp_path: Path,
+) -> None:
+    module = importlib.import_module("med_autoscience.controllers.medical_literature_audit")
+    quest_root = tmp_path / "runtime" / "quests" / "001-risk"
+    (quest_root / "paper" / "review").mkdir(parents=True, exist_ok=True)
+    (quest_root / "paper" / "review" / "reference_gap_report.json").write_text(
+        '{"missing_pmids": ["12345"]}',
+        encoding="utf-8",
+    )
+    monkeypatch.setattr(
+        module.literature_hydration_controller,
+        "run_literature_hydration",
+        lambda **_: (_ for _ in ()).throw(AssertionError("hydration requires provider evidence")),
+    )
+
+    report = module.run_controller(quest_root=quest_root, apply=True)
+
+    assert report["action"] == "opl_connect_receipt_required"
+    assert report["provider_resolution"]["status"] == "request_only"
+    assert report["provider_resolution"]["provider_resolution_request"] == {
+        "action_id": "opl_connect_reference_verification",
+        "request_only": True,
+        "references": [{"id": "pmid:12345", "pmid": "12345"}],
+        "providers": ["pubmed"],
+        "identifier_provider": "pubmed",
+    }
 
 
 def test_write_audit_files_materializes_domain_report(tmp_path: Path) -> None:

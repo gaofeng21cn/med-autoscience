@@ -109,6 +109,7 @@
     "progress_first_safety_envelope": "contracts/progress_first_safety_envelope.json",
     "runtime_environment_requirement_profile": "contracts/runtime_environment_requirements.json",
     "source_closure_audit": "contracts/source_closure_audit.json",
+    "submission_resource_requirements": "contracts/submission-resource-requirements.json",
     "stage_control_plane": "opl-generated:family_stage_control_plane"
   },
   "surface_kind": "domain_agent_descriptor"
