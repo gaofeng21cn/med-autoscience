@@ -52,18 +52,10 @@
         "handoff_packet_ref"
       ],
       "source_surfaces": [
-        "src/med_autoscience/study_task_intake*.py",
-        "src/med_autoscience/study_task_intake.py",
-        "src/med_autoscience/study_task_intake_surfaces.py",
-        "src/med_autoscience/study_task_intake_direct_completion.py",
-        "src/med_autoscience/study_task_intake_revision.py",
-        "src/med_autoscience/study_task_intake_fast_lane.py",
-        "src/med_autoscience/study_task_intake_fast_lane_closeout.py",
-        "src/med_autoscience/study_task_intake_manual_hold.py",
-        "src/med_autoscience/study_task_intake_stop_loss.py",
-        "src/med_autoscience/study_task_intake_delivery_closeout.py",
-        "src/med_autoscience/study_task_intake_rebuttal_closeout.py",
-        "src/med_autoscience/study_task_intake_reviewer_quality.py"
+        "agent/stages/manifest.json#/stages/0",
+        "agent/prompts/direction_and_route_selection.md",
+        "agent/knowledge/medical_research_truth.md",
+        "agent/knowledge/source_readiness_and_artifact_authority.md"
       ]
     },
     "workspace_source_intake_shell": {

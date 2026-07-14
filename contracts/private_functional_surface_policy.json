@@ -1,418 +1,86 @@
 {
-  "ai_first_record_validator_function_ids": [
-    "artifact_mutation_authorization"
+  "surface_kind": "opl_domain_private_functional_surface_admission_policy",
+  "schema_version": 2,
+  "domain_id": "mas",
+  "default_posture": "forbidden",
+  "allowed_domain_surfaces": [
+    "declarative_medical_research_pack",
+    "registry_bound_paper_mission_authority_function",
+    "package_bundled_domain_styles_and_resources"
   ],
-  "ai_first_stage_gate_function_ids": [
-    "publication_quality_verdict",
-    "ai_reviewer_quality_decision",
-    "publication_route_memory_accept_reject",
-    "source_readiness_verdict"
+  "allowed_developer_surfaces": [
+    "developer_proof",
+    "repo_verification"
   ],
-  "allowed_judgment_modes": [
-    "ai_first_stage_gate",
-    "ai_first_record_validator",
-    "mechanical_guard"
-  ],
-  "allowed_private_surface_classes": [
-    "ai_first_stage_quality_gate_boundary",
-    "domain_native_helper_implementation",
-    "owner_receipt_signer"
-  ],
-  "classification_required_for_private_surfaces": true,
-  "default_posture": "forbidden_until_classified_and_receipted",
-  "domain_id": "med-autoscience",
   "forbidden_generic_owner_roles": [
     "generic_scheduler_owner",
-    "generic_daemon_owner",
-    "generic_lifecycle_owner",
-    "generic_queue_owner",
+    "generic_runner_owner",
     "generic_attempt_ledger_owner",
-    "generic_state_machine_runner_owner",
-    "generic_cli_mcp_product_wrapper_owner",
-    "generic_sidecar_owner",
     "generic_session_store_owner",
-    "generic_status_workbench_owner",
     "generic_workspace_source_intake_owner",
-    "generic_memory_transport_owner",
-    "generic_artifact_gallery_owner",
-    "generic_operator_workbench_owner",
-    "generic_observability_slo_owner",
-    "generic_persistence_engine_owner",
-    "generic_sqlite_lifecycle_owner",
-    "generic_native_helper_envelope_owner",
+    "generic_artifact_lifecycle_owner",
     "generic_review_repair_transport_owner",
+    "generic_cli_mcp_product_wrapper_owner",
+    "generic_status_workbench_owner",
+    "generic_domain_entry_runtime_owner",
+    "generic_provider_transport_owner",
+    "generic_package_provisioner_owner",
     "generated_surface_owner_in_domain_repo"
   ],
-  "forbidden_mechanical_decision_surfaces": [
-    "script_exit_code_as_publication_quality_verdict",
-    "function_return_value_as_ai_reviewer_quality_decision",
-    "test_pass_as_artifact_mutation_authorization",
-    "queue_completion_as_publication_route_memory_accept_reject",
-    "file_presence_as_source_readiness_verdict"
-  ],
-  "forbidden_primary_allowed_private_surface_models": [
-    "domain_truth_verdict_authorizer",
-    "*_authorizer"
-  ],
-  "forbidden_private_surface_classes": [
-    "generic_scheduler",
-    "generic_queue_or_attempt_ledger",
-    "generic_cli_mcp_product_wrapper",
-    "generic_workbench_shell",
-    "generic_observability_runtime"
-  ],
-  "gate_validator_ref": "src/med_autoscience/controllers/ai_first_private_authority.py::validate_ai_first_private_authority_gate",
-  "independent_executor_reviewer_agent_policy": {
-    "codex_cli_may_serve_both_roles_only_as_separate_invocations": true,
-    "executor_agent_role": "stage_work_executor",
-    "missing_independent_reviewer_record_policy": "quality_debt_and_route_back_without_stage_block",
-    "missing_independent_reviewer_record_blocks_stage_transition": false,
-    "independent_reviewer_record_required_for_quality_or_ready_claim": true,
-    "required": true,
-    "reviewer_auditor_agent_role": "quality_gate_reviewer_or_auditor",
-    "reviewer_receipt_executor_binding_field": "reviewed_executor_receipt_ref",
-    "reviewer_receipt_must_bind_executor_receipt": true,
-    "self_review_closes_quality_gate": false,
-    "separate_context_record_required": true,
-    "separate_invocation_required": true,
-    "separate_receipt_required": true,
-    "separate_task_record_required": true,
-    "surface_kind": "independent_executor_reviewer_agent_policy"
+  "no_second_control_plane_gate": {
+    "repo_local_cli_allowed": false,
+    "repo_local_mcp_allowed": false,
+    "repo_local_domain_entry_runtime_allowed": false,
+    "repo_local_runtime_allowed": false,
+    "repo_local_scheduler_allowed": false,
+    "repo_local_session_store_allowed": false,
+    "repo_local_provider_transport_allowed": false,
+    "repo_local_package_provisioner_allowed": false,
+    "repo_local_workbench_allowed": false,
+    "compatibility_alias_allowed": false,
+    "fallback_runtime_allowed": false
   },
-  "mas_private_surface_retirement_gate_policy": {
+  "source_morphology": {
+    "allowed_python_roots": [
+      "src/med_autoscience/authority_handlers/"
+    ],
+    "allowed_package_data_roots": [
+      "src/med_autoscience/styles/",
+      "src/med_autoscience/resources/"
+    ],
+    "package_initializers_are_declaration_only": true,
+    "all_other_med_autoscience_python_surfaces_forbidden": true,
+    "verification_ref": "scripts/repo_hygiene_audit.py"
+  },
+  "decisive_review_boundary": {
+    "criteria_owner": "MedAutoScience",
+    "criteria_refs": [
+      "agent/quality_gates/",
+      "agent/knowledge/",
+      "agent/stages/manifest.json",
+      "contracts/stage_quality_cycle_policy.json"
+    ],
+    "decision_roles": [
+      "reviewer",
+      "re_reviewer"
+    ],
+    "attempt_outcome_path": "route_impact.stage_quality_cycle.outcome",
+    "review_receipt_materializer_owner": "opl_stage_run_controller",
+    "repository_local_callable_validator_allowed": false
+  },
+  "retirement_policy": {
     "active_caller_alone_retains_surface": false,
-    "allowed_dispositions": [
-      "opl_primitive",
-      "temporary_refs_projection",
-      "retained_minimal_authority_function",
-      "tombstone_only"
-    ],
-    "forbidden_retention_reasons": [
-      "current_tests_green",
-      "legacy_caller_exists",
-      "read_model_projection_needed",
-      "operator_ui_uses_path",
-      "docs_reference_exists"
-    ],
-    "must_not_claim": [
-      "live_runtime_ready",
-      "publication_ready",
-      "domain_ready",
-      "production_ready",
-      "unscoped_physical_delete_authorized",
-      "100_percent_complete_without_live_proof"
-    ],
-    "required_fields": [
-      "disposition",
-      "replacement_owner",
-      "no_active_caller",
-      "replacement_parity",
-      "no_forbidden_write_proof",
-      "tombstone_or_provenance",
-      "retirement_gate"
-    ],
-    "surface_kind": "mas_private_surface_retirement_gate_policy"
+    "compatibility_shim_allowed": false,
+    "history_or_provenance_can_restore_runtime": false,
+    "retired_surface_provenance_ref": "docs/history/standard-agent-private-control-plane-retirement.md"
   },
-  "mechanical_guard_function_ids": [
-    "owner_receipt_signer",
-    "medical_helper_implementation"
-  ],
-  "migration_only_physical_retirement_decision": {
-    "authority_boundary": {
-      "can_claim_domain_ready": false,
-      "can_claim_production_ready": false,
-      "can_claim_publication_ready": false,
-      "is_owner_acceptance_receipt": false,
-      "is_quality_or_export_receipt": false,
-      "is_runtime_owner_receipt": false,
-      "migration_only": true
-    },
-    "authorization": {
-      "applies_only_to_exact_deleted_paths": true,
-      "authority_basis": "repository_maintainer_directive",
-      "physical_delete_authorized": true
-    },
-    "canonical_ref": "contracts/private_functional_surface_policy.json#/migration_only_physical_retirement_decision",
-    "decision_id": "mas.private-surface-retirement.2026-07-10.v1",
-    "decision_kind": "migration_only_repo_source_physical_retirement",
-    "gate_evidence": {
-      "no_active_caller": {
-        "refs": [
-          "contracts/functional_privatization_audit.json#/bridge_exit_gate",
-          "tests/test_legacy_active_path_retire.py"
-        ],
-        "status": "satisfied"
-      },
-      "no_forbidden_write": {
-        "refs": [
-          "no-forbidden-write:mas/default-caller-deletion/workbench_portal_generic_shell/refs-only-boundary",
-          "no-forbidden-write:mas/default-caller-deletion/paper_mission_owner_surface_materialize_dispatch_shell/refs-only-boundary",
-          "no-forbidden-write:mas/default-caller-deletion/generic_cli_mcp_product_wrappers/refs-only-boundary"
-        ],
-        "status": "satisfied"
-      },
-      "provenance": {
-        "refs": [
-          "git:753239240761ca1430471d25e2731658f092e001..7ed2e5a3b4da21158547db68cf029e317b93a743#deleted-paths",
-          "contracts/runtime/mas-runtime-surface-retirement-inventory.json"
-        ],
-        "status": "satisfied"
-      },
-      "replacement_parity": {
-        "refs": [
-          "external_repo:one-person-lab@673eac1f#opl-agents-interfaces-format-all/wrapper-ready",
-          "external_repo:one-person-lab@673eac1f#opl-agents-interfaces-format-all/direct-entry-parity-aligned",
-          "external_repo:one-person-lab@673eac1f#opl-agents-interfaces-format-all/issues-zero"
-        ],
-        "status": "aligned"
-      }
-    },
-    "owner": "med-autoscience",
-    "owner_decision_refs": [
-      "contracts/private_functional_surface_policy.json#/migration_only_physical_retirement_decision"
-    ],
-    "schema_version": 1,
-    "scope": {
-      "deleted_path_count": 93,
-      "deleted_path_scopes": [
-        {
-          "deleted_paths": [
-            "src/med_autoscience/controllers/product_entry/attention_projection.py",
-            "src/med_autoscience/controllers/product_entry/automation_surfaces.py",
-            "src/med_autoscience/controllers/product_entry/boundary_surfaces.py",
-            "src/med_autoscience/controllers/product_entry/command_surfaces.py",
-            "src/med_autoscience/controllers/product_entry/entry_runtime.py",
-            "src/med_autoscience/controllers/product_entry/family_lifecycle_surfaces.py",
-            "src/med_autoscience/controllers/product_entry/generated_status_projection.py",
-            "src/med_autoscience/controllers/product_entry/guarded_workflow_steps.py",
-            "src/med_autoscience/controllers/product_entry/human_status_view.py",
-            "src/med_autoscience/controllers/product_entry/manifest_projection_compaction.py",
-            "src/med_autoscience/controllers/product_entry/manifest_rendering.py",
-            "src/med_autoscience/controllers/product_entry/manifest_shell_surfaces.py",
-            "src/med_autoscience/controllers/product_entry/manifest_status_surface.py",
-            "src/med_autoscience/controllers/product_entry/manifest_surfaces.py",
-            "src/med_autoscience/controllers/product_entry/paper_orchestra_operator.py",
-            "src/med_autoscience/controllers/product_entry/program_runtime_surfaces.py",
-            "src/med_autoscience/controllers/product_entry/program_surfaces.py",
-            "src/med_autoscience/controllers/product_entry/shared.py",
-            "src/med_autoscience/controllers/product_entry/shared_base.py",
-            "src/med_autoscience/controllers/product_entry/shared_labels.py",
-            "src/med_autoscience/controllers/product_entry/workspace_attention.py",
-            "src/med_autoscience/controllers/product_entry/workspace_cockpit/attention_hub.py",
-            "src/med_autoscience/controllers/product_entry/workspace_cockpit/cockpit_markdown.py",
-            "src/med_autoscience/controllers/product_entry/workspace_cockpit/cockpit_markdown_ai.py",
-            "src/med_autoscience/controllers/product_entry/workspace_cockpit/cockpit_markdown_common.py",
-            "src/med_autoscience/controllers/product_entry/workspace_cockpit/cockpit_markdown_header.py",
-            "src/med_autoscience/controllers/product_entry/workspace_cockpit/cockpit_markdown_medical.py",
-            "src/med_autoscience/controllers/product_entry/workspace_cockpit/cockpit_markdown_queue.py",
-            "src/med_autoscience/controllers/product_entry/workspace_cockpit/cockpit_markdown_sections.py",
-            "src/med_autoscience/controllers/product_entry/workspace_cockpit/cockpit_markdown_studies.py",
-            "src/med_autoscience/controllers/product_entry/workspace_cockpit/cockpit_payload.py",
-            "src/med_autoscience/controllers/product_entry/workspace_cockpit/command_assembly.py",
-            "src/med_autoscience/controllers/product_entry/workspace_cockpit/health_cards.py",
-            "src/med_autoscience/controllers/product_entry/workspace_cockpit/launch_surface.py",
-            "src/med_autoscience/controllers/product_entry/workspace_cockpit/progress_projection.py",
-            "src/med_autoscience/controllers/product_entry/workspace_cockpit/readiness_and_delivery.py",
-            "src/med_autoscience/controllers/product_entry/workspace_cockpit/state_and_study_items.py",
-            "src/med_autoscience/controllers/product_entry/workspace_surfaces.py",
-            "tests/product_entry_cases/__init__.py",
-            "tests/product_entry_cases/action_catalog_parity.py",
-            "tests/product_entry_cases/action_catalog_parity_cases/action_catalog_cases.py",
-            "tests/product_entry_cases/action_catalog_parity_cases/memory_and_skeleton_cases.py",
-            "tests/product_entry_cases/action_catalog_parity_cases/provider_cases.py",
-            "tests/product_entry_cases/action_catalog_parity_cases/shared.py",
-            "tests/product_entry_cases/action_catalog_parity_cases/stage_descriptor_cases.py",
-            "tests/product_entry_cases/attention_queue_and_cockpit_base.py",
-            "tests/product_entry_cases/authority_operation_manifest.py",
-            "tests/product_entry_cases/cockpit_status_and_entry_status_focus_cases/test_ai_first_operations.py",
-            "tests/product_entry_cases/cockpit_status_and_entry_status_focus_cases/test_autonomy_runtime_control.py",
-            "tests/product_entry_cases/cockpit_status_and_entry_status_focus_cases/test_cross_study_completion.py",
-            "tests/product_entry_cases/cockpit_status_and_entry_status_focus_cases/test_gate_clearing_followthrough.py",
-            "tests/product_entry_cases/cockpit_status_and_entry_status_focus_cases/test_medical_paper_readiness_v2_actions.py",
-            "tests/product_entry_cases/cockpit_status_and_entry_status_focus_cases/test_product_entry_medical_paper_readiness.py",
-            "tests/product_entry_cases/cockpit_status_and_entry_status_focus_cases/test_projection_error_isolation.py",
-            "tests/product_entry_cases/cockpit_status_and_entry_status_focus_cases/test_quality_lane.py",
-            "tests/product_entry_cases/cockpit_status_and_entry_status_focus_cases/test_status_cards.py",
-            "tests/product_entry_cases/cockpit_status_and_entry_status_focus_cases/test_workspace_medical_paper_ops_health.py",
-            "tests/product_entry_cases/delivery_inspection_visibility.py",
-            "tests/product_entry_cases/entry_status_focus_cases.py",
-            "tests/product_entry_cases/functional_closure_projection.py",
-            "tests/product_entry_cases/functional_consumer_boundary.py",
-            "tests/product_entry_cases/manifest_launch_and_task_intake.py",
-            "tests/product_entry_cases/manifest_launch_and_task_intake_cases/launch_study_surfaces.py",
-            "tests/product_entry_cases/manifest_launch_and_task_intake_cases/test_explicit_wakeup.py",
-            "tests/product_entry_cases/open_auto_research_projection.py",
-            "tests/product_entry_cases/opl_current_control_state_handoff_projection.py",
-            "tests/product_entry_cases/paper_orchestra_operator_projection.py",
-            "tests/product_entry_cases/product_entry_builder_cases.py",
-            "tests/product_entry_cases/product_entry_markdown_and_skill_catalog.py",
-            "tests/product_entry_cases/product_entry_markdown_preview_cases.py",
-            "tests/product_entry_cases/product_entry_preflight_and_task_submission.py",
-            "tests/product_entry_cases/product_entry_supervision_and_boundary_cases.py",
-            "tests/product_entry_cases/product_entry_task_submission_cases.py",
-            "tests/product_entry_cases/repo_shell_and_handoff_templates.py",
-            "tests/product_entry_cases/repo_shell_entry_assertions.py",
-            "tests/product_entry_cases/repo_shell_phase_assertions.py",
-            "tests/product_entry_cases/repo_shell_preflight_assertions.py",
-            "tests/product_entry_cases/repo_shell_runtime_assertions.py",
-            "tests/product_entry_cases/shared.py",
-            "tests/product_entry_cases/shared_base.py",
-            "tests/product_entry_cases/transition_spec_descriptor.py",
-            "tests/test_product_entry.py"
-          ],
-          "scope_id": "workbench_and_product_entry_private_shell",
-          "surface_ids": [
-            "workbench_portal_generic_shell",
-            "generic_cli_mcp_product_wrappers"
-          ]
-        },
-        {
-          "deleted_paths": [
-            "src/med_autoscience/controllers/artifact_lifecycle_operations_report/markdown.py",
-            "src/med_autoscience/controllers/artifact_lifecycle_operations_report/operational_summary.py",
-            "src/med_autoscience/controllers/artifact_lifecycle_operations_report/scan_policy.py",
-            "src/med_autoscience/controllers/artifact_lifecycle_operations_report/study_projection.py"
-          ],
-          "scope_id": "artifact_lifecycle_private_render_and_scan_shell",
-          "surface_ids": [
-            "artifact_lifecycle_storage_audit_shell"
-          ]
-        },
-        {
-          "deleted_paths": [
-            "src/med_autoscience/controllers/paper_mission_owner_surface/repo_write_policy.py",
-            "tests/test_gate_clearing_batch_cases/quality_repair_route_context.py"
-          ],
-          "scope_id": "paper_mission_private_write_policy_shell",
-          "surface_ids": [
-            "paper_mission_owner_surface_materialize_dispatch_shell"
-          ]
-        },
-        {
-          "deleted_paths": [
-            "contracts/unique_control_plane_canary_registry.json",
-            "docs/active/unique_control_plane_canary_registry.md",
-            "src/med_autoscience/controllers/study_progress/opl_current_control_state_handoff/mode_fields.py",
-            "src/med_autoscience/controllers/unique_control_plane_canary_registry.py",
-            "tests/test_unique_control_plane_canary_registry.py"
-          ],
-          "scope_id": "unique_control_plane_canary_and_mode_shell",
-          "surface_ids": [
-            "generic_daemon_or_scheduler_lifecycle"
-          ]
-        }
-      ],
-      "evaluated_candidate_ref": "git:7ed2e5a3b4da21158547db68cf029e317b93a743",
-      "source_migration_base_ref": "git:753239240761ca1430471d25e2731658f092e001"
-    },
-    "state": "authorized_and_applied_for_exact_scope",
-    "surface_kind": "mas_private_surface_physical_retirement_decision"
-  },
-  "program_output_policy": "programs_validate_ai_first_stage_gate_records_and_emit_receipts_or_typed_blockers_only",
-  "requires_ai_first_record": true,
-  "runtime_enforcement_status": "contract_validator_landed",
-  "schema_version": 1,
-  "stage_quality_gate_boundaries": [
-    {
-      "boundary_id": "publication_quality_stage_gate_boundary",
-      "decision_output_owner": "independent_reviewer_auditor_agent",
-      "judgment_mode": "ai_first_stage_gate",
-      "program_may_emit_pass_ready_verdict": false,
-      "program_role": "validator",
-      "required_record_refs": [
-        "ai_reviewer_record",
-        "quality_pack_evidence_refs"
-      ],
-      "requires_ai_first_record": true,
-      "route_back_semantics": "route_back_to_review_or_revision_stage",
-      "trace_refs": [
-        "stage_quality_pack:publication_quality",
-        "publication_eval/latest.json",
-        "review_ledger",
-        "evidence_ledger"
-      ],
-      "typed_blocker_semantics": "publication_quality_blocker"
-    },
-    {
-      "boundary_id": "ai_reviewer_quality_stage_gate_boundary",
-      "decision_output_owner": "independent_reviewer_auditor_agent",
-      "judgment_mode": "ai_first_stage_gate",
-      "program_may_emit_pass_ready_verdict": false,
-      "program_role": "validator",
-      "required_record_refs": [
-        "ai_reviewer_record",
-        "reviewer_operating_system_trace"
-      ],
-      "requires_ai_first_record": true,
-      "route_back_semantics": "route_back_to_ai_reviewer_repair_stage",
-      "trace_refs": [
-        "AI reviewer workflow",
-        "AI reviewer-backed publication eval",
-        "stage_quality_pack:ai_reviewer_quality"
-      ],
-      "typed_blocker_semantics": "ai_reviewer_quality_blocker"
-    },
-    {
-      "boundary_id": "artifact_mutation_stage_gate_boundary",
-      "decision_output_owner": "independent_reviewer_auditor_agent",
-      "judgment_mode": "ai_first_record_validator",
-      "program_may_emit_pass_ready_verdict": false,
-      "program_role": "materializer",
-      "required_record_refs": [
-        "quality_pack_evidence_refs",
-        "artifact_rebuild_proof"
-      ],
-      "requires_ai_first_record": true,
-      "route_back_semantics": "route_back_to_artifact_rebuild_or_source_revision_stage",
-      "trace_refs": [
-        "stage_quality_pack:artifact_materialization",
-        "canonical manuscript",
-        "current_package",
-        "artifact rebuild proof"
-      ],
-      "typed_blocker_semantics": "artifact_mutation_blocker"
-    },
-    {
-      "boundary_id": "publication_route_memory_accept_reject_stage_gate_boundary",
-      "decision_output_owner": "independent_reviewer_auditor_agent",
-      "judgment_mode": "ai_first_stage_gate",
-      "program_may_emit_pass_ready_verdict": false,
-      "program_role": "guard",
-      "required_record_refs": [
-        "publication_route_memory_body",
-        "memory_writeback_receipt_refs"
-      ],
-      "requires_ai_first_record": true,
-      "route_back_semantics": "route_back_to_memory_writeback_repair_stage",
-      "trace_refs": [
-        "publication-route memory body",
-        "memory writeback proposal",
-        "memory writeback router receipt",
-        "stage_quality_pack:publication_route_memory"
-      ],
-      "typed_blocker_semantics": "publication_route_memory_writeback_blocker"
-    },
-    {
-      "boundary_id": "source_readiness_stage_gate_boundary",
-      "decision_output_owner": "independent_reviewer_auditor_agent",
-      "judgment_mode": "ai_first_stage_gate",
-      "program_may_emit_pass_ready_verdict": false,
-      "program_role": "validator",
-      "required_record_refs": [
-        "study_charter",
-        "quality_pack_evidence_refs"
-      ],
-      "requires_ai_first_record": true,
-      "route_back_semantics": "route_back_to_source_intake_or_study_design_stage",
-      "trace_refs": [
-        "study charter",
-        "source readiness checks",
-        "evidence ledger",
-        "stage_quality_pack:source_readiness"
-      ],
-      "typed_blocker_semantics": "source_readiness_blocker"
-    }
-  ],
-  "surface_kind": "opl_domain_private_functional_surface_admission_policy",
-  "verdict_function_model_retired": true
+  "authority_boundary": {
+    "policy_can_write_domain_truth": false,
+    "policy_can_write_memory_body": false,
+    "policy_can_mutate_domain_artifact_body": false,
+    "policy_can_sign_owner_receipt": false,
+    "opl_can_write_domain_truth": false,
+    "opl_can_authorize_quality_or_export": false,
+    "provider_completion_is_domain_completion": false
+  }
 }

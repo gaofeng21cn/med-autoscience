@@ -1,36 +1,31 @@
 from __future__ import annotations
 
+import importlib
 import json
 from pathlib import Path
-import tomllib
 
 import pytest
 
 
 pytestmark = pytest.mark.meta
-REPO_ROOT = Path(__file__).resolve().parents[1]
+ROOT = Path(__file__).resolve().parents[1]
 
 
-def _read(relative_path: str) -> str:
-    return (REPO_ROOT / relative_path).read_text(encoding="utf-8")
+def test_package_import_and_authority_handler_entrypoint() -> None:
+    package = importlib.import_module("med_autoscience")
+    handlers = importlib.import_module("med_autoscience.authority_handlers")
+
+    assert package.__version__ == "0.2.2"
+    assert callable(handlers.evaluate_paper_mission_authority)
 
 
-def _manifest() -> dict[str, object]:
-    return json.loads(_read("contracts/test-lane-manifest.json"))
-
-
-def test_smoke_lane_paths_match_its_make_recipe() -> None:
-    paths = _manifest()["lanes"]["smoke"]["paths"]
-
-    assert paths == ["tests/test_smoke_entrypoints.py"]
-    expected_recipe = f"\t@$(call run_isolated_python,-m pytest {' '.join(paths)} -q)"
-    smoke_recipe = _read("Makefile").split("test-smoke:\n", 1)[1].split("\n\n", 1)[0]
-    assert smoke_recipe == expected_recipe
-
-
-def test_test_lane_manifest_registers_pytest_markers() -> None:
-    manifest_markers = set(_manifest()["marker_registry"])
-    marker_lines = tomllib.loads(_read("pyproject.toml"))["tool"]["pytest"]["ini_options"]["markers"]
-    registered_markers = {line.split(":", maxsplit=1)[0] for line in marker_lines}
-
-    assert manifest_markers == registered_markers
+def test_direct_and_hosted_entry_sources_resolve() -> None:
+    catalog = json.loads(
+        (ROOT / "contracts/action_catalog.json").read_text(encoding="utf-8")
+    )
+    assert (ROOT / "agent/primary_skill/SKILL.md").is_file()
+    assert len(catalog["actions"]) == 7
+    for action in catalog["actions"]:
+        binding = action["execution_binding"]
+        if binding["kind"] == "stage_binding":
+            assert (ROOT / binding["stage_manifest_ref"]).is_file()

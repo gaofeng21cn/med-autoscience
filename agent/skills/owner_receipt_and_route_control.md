@@ -49,7 +49,7 @@ A typed blocker must name the blocker semantics, route-back owner, missing refs,
 
 ## Route Control Rules
 
-- Treat `owner_route`, controller decisions, and stage handoff refs as domain recommendations; Codex CLI remains the semantic route owner.
+- Treat `owner_route`, controller decisions, and stage handoff refs as domain evidence or recommendations. The decisive Codex Attempt owns the semantic route decision: producer for a primary-only StageRun, terminal reviewer/re-reviewer for formal Review. Repairer and nonterminal reviewer/re-reviewer are never decisive. The OPL StageRun controller only validates the decisive role and declared target, then materializes the transition; it does not interpret or rewrite medical route semantics.
 - Route back when a stage exposes source, evidence, method, claim, writing, artifact, memory, or review currentness gaps.
 - Route forward may start with missing refs recorded as quality debt; current refs are required only for the corresponding quality/publication/submission claim.
 - Route forward from manuscript, review, finalize, or journal-resolution work only when in-scope journal-family packs have output refs, typed blockers, or explicit out-of-scope reasoning in the receipt.

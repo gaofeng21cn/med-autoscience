@@ -140,12 +140,12 @@
       },
       {
         "body_included": false,
-        "ref": "tests/test_opl_standard_pack_cases/test_generated_interface_cases.py",
+        "ref": "tests/test_standard_agent_boundary.py",
         "role": "standard_pack_contract_test_surface"
       },
       {
         "body_included": false,
-        "ref": "tests/test_mas_production_acceptance.py",
+        "ref": "tests/test_opl_standard_pack_cases/test_stage_contract_cases.py",
         "role": "agent_evidence_handoff_contract_test_surface"
       }
     ],

@@ -70,10 +70,10 @@ Memory-like runtime surfaces in `portfolio/research_memory/**`, `artifacts/stage
 
 The previous non-Markdown-first agent-context residues have been migrated:
 
-| previous surface | current canonical body | current role of code |
-| --- | --- | --- |
-| `src/med_autoscience/policies/study_archetypes.py` | `docs/policies/study-workflow/study_archetypes.md` | parser, validator, typed API, overlay renderer |
-| `src/med_autoscience/policies/research_route_bias.py` | `docs/policies/study-workflow/research_route_bias_policy.md` | parser, validator, typed API, overlay renderer |
+| current canonical body | machine consumer |
+| --- | --- |
+| `docs/policies/study-workflow/study_archetypes.md` | MAS Stage prompt / knowledge refs；需要结构字段时由 declarative contract 明确声明 |
+| `docs/policies/study-workflow/research_route_bias_policy.md` | decisive Codex Attempt 的人读专业约束；OPL controller 不解析 prose 决定 route |
 
 `agent/stages/stage_route_contract.yaml` is still structured because it is the MAS route/stage contract source, not a natural-language memory body. It defines route ids, entry modes, gates, durable outputs, route-back triggers, stage knowledge obligations, and derived OPL/family descriptors. It may later gain a richer Markdown projection for human reading, but replacing the contract with Markdown would move route authority into prose and break current stage-surface tests.
 

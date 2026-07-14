@@ -249,7 +249,7 @@
   },
   "verification_refs": [
     {
-      "ref": "tests/test_stage_run_kernel_profile_contract.py",
+      "ref": "tests/test_standard_agent_conformance_profile.py",
       "role": "focused_controlled_canary_contract_test",
       "body_included": false
     }

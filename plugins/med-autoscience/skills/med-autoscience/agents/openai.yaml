@@ -1,4 +1,4 @@
 interface:
   display_name: "Med Auto Science"
-  short_description: "Medical research runtime for Codex"
-  default_prompt: "Use $med-autoscience to inspect the current Med Auto Science workspace status and next safe runtime action."
+  short_description: "Medical research domain pack for Codex"
+  default_prompt: "Use $med-autoscience to select the appropriate MAS Stage action and return a scoped, evidence-grounded result."

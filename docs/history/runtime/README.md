@@ -36,6 +36,8 @@ Superseded read rule：历史 runtime 文档里的旧 producer/gate/transport qu
 | [runtime event and outer-loop input implementation plan](runtime_event_and_outer_loop_input_implementation_plan.md) | 已完成的 native runtime truth / outer-loop input 实施计划。 | [runtime event and outer-loop input contract](../../runtime/contracts/runtime_event_and_outer_loop_input_contract.md)。 |
 | [runtime supervision loop](runtime_supervision_loop.md) | 旧 MAS supervision loop tombstone 与 owner receipt provenance。 | OPL current-control-state / StageAttempt projection；MAS active 面为 owner receipt、typed blockers、domain authority refs 与 refs-only projection。 |
 | [workspace knowledge and literature implementation plan](workspace_knowledge_and_literature_implementation_plan.md) | 已完成的 workspace knowledge / literature 实施计划。 | [workspace knowledge and literature contract](../../runtime/contracts/workspace_knowledge_and_literature_contract.md)。 |
+| [journal package builtins design](journal_package_builtins_upgrade_design.md) | 已退役的 MAS-local journal/package controller 设计。 | OPL-hosted Stage execution、MAS declarative submission policy 与 owner authority。 |
+| [progress-first evidence-gap policy](progress_first_evidence_gap_policy.md) | 已退役的 MAS-local evidence-gap classifier/projection 设计。 | Stage quality-cycle outcome、typed blocker/human gate 与 MAS owner consumption。 |
 
 ## Tombstone / Provenance Index
 

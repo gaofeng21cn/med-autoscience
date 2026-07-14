@@ -88,6 +88,19 @@ ENTRYPOINT_TOKEN_DENYLIST = {
     "default-executor": "retired_default_executor_entrypoint",
     "progress-portal": "retired_progress_portal_entrypoint",
 }
+EXPECTED_STANDARD_AGENT_SOURCE_FILES = frozenset(
+    {
+        "src/med_autoscience/__init__.py",
+        "src/med_autoscience/authority_handlers/__init__.py",
+        "src/med_autoscience/authority_handlers/paper_mission.py",
+        "src/med_autoscience/resources/__init__.py",
+        "src/med_autoscience/resources/stage_route_contract.yaml",
+        "src/med_autoscience/styles/__init__.py",
+        "src/med_autoscience/styles/american-chemical-society.csl",
+        "src/med_autoscience/styles/american-medical-association.csl",
+        "src/med_autoscience/styles/frontiers.csl",
+    }
+)
 
 
 def _default_repo_root() -> Path:
@@ -172,6 +185,26 @@ def audit_active_surface_residue(root: Path) -> list[str]:
         check=True,
     )
     violations: list[str] = []
+    mas_source_root = root / "src" / "med_autoscience"
+    if mas_source_root.is_dir():
+        observed_source_files = {
+            _relative(path, root)
+            for path in mas_source_root.rglob("*")
+            if path.is_file()
+        }
+        for relative_path in sorted(
+            observed_source_files - EXPECTED_STANDARD_AGENT_SOURCE_FILES
+        ):
+            violations.append(
+                f"{relative_path}: nonstandard_mas_private_source_surface"
+            )
+        for relative_path in sorted(
+            EXPECTED_STANDARD_AGENT_SOURCE_FILES - observed_source_files
+        ):
+            violations.append(
+                f"{relative_path}: required_standard_agent_source_missing"
+            )
+
     entrypoint_paths = ENTRYPOINT_PATHS | _discover_entrypoint_paths(root)
     for raw_path in result.stdout.split("\0"):
         if not raw_path:

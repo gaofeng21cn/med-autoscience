@@ -15,20 +15,14 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  quick-checks:
+  standard-agent:
     runs-on: macOS-latest
-    name: Run change-aware CI preflight and build
+    name: Verify MAS pack, authority handler, and OPL-hosted interfaces
     steps:
       - name: Checkout repository
         uses: actions/checkout@v6
         with:
           fetch-depth: 0
-
-      - name: Checkout MAS Scholar Skills display pack
-        uses: actions/checkout@v6
-        with:
-          repository: gaofeng21cn/mas-scholar-skills
-          path: .ci/mas-scholar-skills
 
       - name: Set up Node.js 24
         uses: actions/setup-node@v6
@@ -55,25 +49,31 @@ jobs:
             uv.lock
             pyproject.toml
 
-      - name: Export isolated test requirements
-        run: uv export --quiet --frozen --no-emit-project --group dev --format requirements-txt > "${RUNNER_TEMP}/mas-requirements.txt"
-
-      - name: Link OPL Framework
+      - name: Link current OPL Framework package lifecycle
         run: |
           "$OPL_BIN" packages link-framework --agent-root "$GITHUB_WORKSPACE" --json
 
-      - name: Run change-aware CI preflight
-        run: scripts/verify.sh ci-preflight "${{ github.event_name == 'pull_request' && github.event.pull_request.base.sha || github.event.before }}"
+      - name: Run MAS repository verification
+        run: scripts/verify.sh full
 
-      - name: Run medical paper ops contract guard
-        run: make test-medical-paper-ops
+      - name: Compile standard Agent pack and hosted interfaces
+        run: |
+          family_root="$(mktemp -d "${RUNNER_TEMP}/mas-family.XXXXXX")"
+          trap 'rm -rf "$family_root"' EXIT
+          ln -s "$GITHUB_WORKSPACE" "$family_root/med-autoscience"
+          OPL_FAMILY_WORKSPACE_ROOT="$family_root" "$OPL_BIN" agents pack-compiler --family-defaults --json
+          "$OPL_BIN" agents interfaces --repo-dir "$GITHUB_WORKSPACE" --json
+          "$OPL_BIN" agents conformance --agent "mas=$GITHUB_WORKSPACE" --json
+          "$OPL_BIN" agents default-callers --agent "mas=$GITHUB_WORKSPACE" --json
+          "$OPL_BIN" agents source-closure --agent "mas=$GITHUB_WORKSPACE" --json
+          "$OPL_BIN" agents residue-decisions --agent "mas=$GITHUB_WORKSPACE" --json
 
-      - name: Build sdist and wheel
+      - name: Build sdist and wheel outside checkout
         run: scripts/run-build-clean.sh --outdir "${RUNNER_TEMP}/mas-dist"
 
       - name: Upload artifacts
         uses: actions/upload-artifact@v7
         with:
-          name: macos-dist
+          name: mas-standard-agent-package
           path: ${{ runner.temp }}/mas-dist
           retention-days: 7

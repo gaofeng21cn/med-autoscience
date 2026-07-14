@@ -1,38 +1,11 @@
 # MAS Stage / Route / Handoff 标准
 
-Status: `active_runtime_support`
 Owner: `MedAutoScience`
 Purpose: `stage_route_handoff_standard`
 State: `active_support`
-Machine boundary: 本文是 MAS 面向 OPL stage-led runtime 的人读标准。机器 truth 继续归 `agent/` semantic pack、`opl-generated:family_stage_control_plane`、`contracts/action_catalog.json`、`contracts/generated_surface_handoff.json`、domain-handler export/dispatch receipt、domain transition table、owner receipt、typed blocker、publication eval、controller decision 和真实 workspace artifact。
-Date: `2026-05-26`
+Machine boundary: 机器真相归 `agent/stages/manifest.json`、`agent/stages/stage_route_contract.yaml`、V2 action catalog、Stage quality-cycle policy 与 OPL StageRun/Attempt contracts。
 
-## 结论
-
-`stage` 和 `route` 不是同一层对象。MAS 可以声明 stage 语义与 route 语义，但 MAS 不负责 route 与 route 之间的 generic 调度。
-
-- `stage` 是 OPL provider-backed attempt 的大型研究步骤与 admission 单位。
-- `route` 是 MAS 医学 owner-chain 的 domain transition recommendation，表示下一步 owner、route-back、human gate、typed blocker 或 owner action。
-- `handoff` 是 MAS 给 OPL 的 body-free refs-only 交接包，用来让 OPL hydrate queue、创建 stage attempt、执行 retry/dead-letter、唤醒 provider 或生成 operator workorder。
-- `stage_outcome/opl-handoff` 只保留为 OPL-owned stage id / historical owner-route protocol vocabulary / readback provenance。它不是 MAS `domain-handler dispatch` allowlist task，也不是 MAS 私有 queue 或 admission 入口。
-
-MAS repo 内不再扩展私有 queue、scheduler、checkpoint、resume、retry/dead-letter、worker liveness arbiter、route graph runner 或 generic state-machine runtime。OPL 当前若承载能力不足，应补 OPL stage graph / transition runner / runtime manager / App read model，而不是在 MAS 回补私有 runtime。
-
-## 固定术语
-
-| 术语 | Owner | MAS 可做什么 | MAS 不能做什么 |
-| --- | --- | --- | --- |
-| `stage` | OPL runtime owns lifecycle; MAS declares semantics | 声明 prompt、knowledge、quality gate、expected receipt、monitor refs、forbidden authority、医学成功条件。 | 持有 attempt ledger、provider checkpoint、retry/dead-letter、worker residency 或 stage runner。 |
-| `route` | MAS declares domain semantics; OPL transports | 给出 next owner、route-back reason、allowed action、guard refs、typed blocker、owner receipt expectation。 | 把 route 当小 stage、直接调度下一 route、写 runtime liveness/redrive truth。 |
-| `domain_transition` | MAS domain truth | 用 domain transition table / study state matrix 表达医学状态和 guard。 | 作为 generic state-machine runner 或 publication-ready verdict。 |
-| `owner_route_handoff` | MAS produces refs; OPL consumes | 写 body-free handoff artifact，暴露给 domain-handler export 和 OPL queue hydrate。 | 写 `.ds/runtime_state.json` 的 generic owner-route latch，清 active run，改 worker running，直接 resume/stop/pause runtime。 |
-| `owner_route_attempt_protocol` | MAS declares domain execution envelope; OPL transports | 声明 Codex-selected route context、currentness basis、allowed/forbidden surfaces、raw/typed closeout或 diagnostic 和 provider/domain completion boundary。 | 维护 reason-to-action registry、priority lattice、blocked-actions whitelist，或让 OPL 判断 stage route、医学质量、publication ready、package freshness、study truth。 |
-| `authority_function` | MAS | 执行医学方法学、AI reviewer verdict、artifact mutation authorization、memory accept/reject、owner receipt signing。 | 承担 OPL queue、provider lifecycle、App/workbench generic shell。 |
-| `child_graph` | OPL | MAS 只声明子任务语义、guard、receipt refs。 | MAS 不实现 child graph scheduler。 |
-
-## 当前 MAS stage 与 route
-
-当前 stable stage 是 6 个大型研究步骤：
+## 六个 canonical Stage
 
 1. `direction_and_route_selection`
 2. `baseline_and_evidence_setup`
@@ -41,202 +14,31 @@ MAS repo 内不再扩展私有 queue、scheduler、checkpoint、resume、retry/d
 5. `review_and_quality_gate`
 6. `finalize_and_publication_handoff`
 
-当前 route contract 包含 10 个 domain route：
+旧 physical route、domain-transition、NextAction、PaperRecovery、owner-route wrapper 与 queue hydration 不形成第二 Stage graph，也不再是 active caller。
 
-1. `scout`
-2. `idea`
-3. `baseline`
-4. `experiment`
-5. `analysis-campaign`
-6. `write`
-7. `review`
-8. `finalize`
-9. `decision`
-10. `journal-resolution`
+## Authority split
 
-这些 route contract 里出现的 `durable_outputs_minimum`、`hard_success_gate`、`memory_closeout_obligations` 是 domain obligation 和 owner receipt expectation，不是 route 自己拥有 runtime attempt lifecycle。
+- `semantic_route_decision_owner=decisive_codex_attempt`
+- `stage_transition_materialization_owner=opl_stage_run_controller`
 
-Co-Scientist-inspired Stage / Route 重构的 runtime-facing design 位于 [Co-Scientist Stage / Route 重构设计与执行规格](./designs/coscientist_stage_route_restructure.md)。该规格只能在本文的 `stage != route`、MAS owner-route、OPL refs-only handoff 和 AI-first quality gate 边界内执行：Generation / Reflection / Ranking / Proximity / Evolution / Meta-review 只能转译为 MAS stage role、portfolio advisory signal、reviewer briefing 或 memory feedback；不能把 ranking/Elo/proximity、provider completion、queue state 或 workbench visibility 写成 MAS source readiness、quality verdict、publication gate closeout、artifact authority 或 human/expert approval。
+Primary-only StageRun 的 producer 是 decisive Attempt。Formal Review StageRun 只有终局 reviewer / re-reviewer 是 decisive Attempt；producer、repairer 与仍有 repair budget 的 `repair_required` reviewer只能给 recommendation。预算耗尽且 artifact 可消费时，终局 reviewer / re-reviewer 给 route decision，controller 以 `completed_with_quality_debt` 物化。
 
-Progress-first Co-Scientist affordance 的 handoff 读法固定为：affordance 默认可供 current owner 使用，但 ordinary handoff 默认不运行 `next-delta tournament`、`bounded micro-candidate generation`、`critique-as-repair-hint`、`reusable lesson extraction`、`strategy retrospective` 或 `opportunistic knowledge prefetch`。只有当前 owner action、owner route、route-back、typed blocker、reviewer gate 或 stop-loss 判断显式声明，或 current delta / gate 形态本身隐含需要 ref family、repair context、briefing 或 arbitration 时，才即时调用对应 affordance。它们可以帮助当前 owner 更快选下一 action、帮助 reviewer / auditor 更快定位缺口、帮助 memory 避免重复失败路径；它们不能变成 OPL admission gate、MAS quality closure、publication readiness、artifact authority、route blocking layer，也不能把 prefetch、review score、platform repair 或 route ranking 计为 paper / deliverable progress。缺少这些 affordance refs 时，handoff 仍按 owner-route attempt protocol、currentness basis、allowed action、forbidden surfaces 和 required closeout boundary fail-open to progress 或 fail-closed to typed blocker，不能因为 affordance 缺席而阻断 agent 顺畅推进。
+Attempt 只返回：
 
-Progress-first review / repair / carry-forward 的标准读法见 [Progress-First Quality Loop](./control/progress_first_quality_loop.md)。Review / repair 是有界质量循环，不是默认安全截停层；预算耗尽必须先做 severity decision。`fatal_blocker` 才阻断并输出 stable `TypedBlocker`、`human_gate_ref` 或 route / owner redesign；`must_fix_before_current_gate`、`carry_forward_advisory` 和 `optional_polish` 若复判为非 fatal，必须通过 `CarryForwardRiskReceipt` 带风险推进下一 owner。`CarryForwardRiskReceipt` 是 ordinary progress handoff receipt，只能证明非 fatal 风险可接力，不能声明 quality-clean、publication-ready、submission-ready、artifact authority 或 package freshness。
+- `route_impact.stage_route_recommendation` 或 `route_impact.stage_route_decision`；
+- reviewer / re-reviewer 的 `route_impact.stage_quality_cycle.outcome`；
+- exact artifact/source/rubric/lineage refs、findings 与 required closeout refs。
 
-当前 owner-route attempt protocol 可读、body-free 且 currentness-safe：`tests/paper_mission_owner_surface_cases/test_owner_route_attempt_protocol.py` 证明 `mas-owner-route-attempt-protocol.v1`、非绑定 route context、currentness basis、provider/domain completion boundary 和缺字段 quality-debt/currentness 规则。旧 reason registry、priority lattice、blocked-actions、`owner_route_handoff_tasks.py` / `controller_route_back_tasks.py` task builder 已退役；真实 paper-line provider apply、MAS owner-chain closeout、long-soak、artifact movement 和 human gate receipt 仍是独立证据尾项。
+OPL controller 只验证角色资格、declared target、identity、lineage 与 exact hashes，然后记录 transition。它不解释或改写医学语义。MAS authority function只处理 host 注入的医学 owner boundary，不启动 runtime、不写 session、不物化 transition。
 
-2026-06-01 更新：`med_autoscience.stage_route_contract.route_obligations_descriptor` 现在从 `agent/stages/stage_route_contract.yaml` 直接投影 10 个 route 的 `knowledge_input_obligations` 与 `memory_closeout_obligations`，并以 `present` / `missing` / `blocker` 形态给出每个 route 的 `handoff_readiness`。同一投影已嵌入 product-entry `family_stage_control_plane_descriptor.route_obligations_descriptor`，供 OPL/operator 在 stage handoff 前读取需要携带的知识输入、memory closeout 输出和缺失字段；它仍是 body-free read-only descriptor，不能替代 MAS owner receipt、memory router receipt、quality verdict、publication readiness 或 artifact authority。
+## Handoff
 
-## OPL 承载方式
+Handoff 是 body-free refs 与 evidence 的交接，不是 MAS 私有 queue 或 runner。OPL 可以据此启动目标 StageRun、记录 Attempt、传输 receipt/blocker/human gate并投影 status；不能写 MAS study truth、publication verdict、artifact body、memory body或 current package。
 
-MAS 在 OPL 中应按下面链路运行：
+## Hard stop 与 progress
 
-```text
-MAS artifact / evidence / authority refs
-  -> Codex CLI reads current artifact, negative result and route-back context
-  -> the decisive Codex Attempt selects any declared stage
-  -> OPL StageRun transports the task and records the attempt
-  -> MAS authority function handles only domain authority boundaries
-  -> OPL receipt ledger + App/operator read model
-```
+普通质量缺口在预算耗尽且 artifact 可消费时进入 `completed_with_quality_debt`。只有真实 authority/safety/identity/currentness/credential/irreversible/human gate，或在 diagnostic 尝试后仍无任何可消费 artifact，才是 hard stop。成功物化的 no-output/failure diagnostic 本身可以作为可消费进展 artifact。
 
-route 语义由 Codex CLI 的 decisive Attempt 负责：
+## 验证
 
-- primary-only StageRun 的 producer，或 formal Review StageRun 的终局 reviewer / re-reviewer，从 OPL StageRun/current-control/hosted workbench 读取 current refs；MAS legacy `study_state_matrix` 只可作为 internal diagnostic drilldown。decisive Attempt 结合 stage artifact、阴性结果与 route-back hints，自主选择任意 declared stage。
-- producer / repairer，以及 repair budget 尚未耗尽时 outcome 为 `repair_required` 的 reviewer / re-reviewer，只能返回 `route_impact.stage_route_recommendation`；终局 decisive Attempt 返回 `route_impact.stage_route_decision`。repairer 永远不能绕过 fresh re-review。
-- OPL StageRun controller 校验 decisive Attempt 的 route decision 并物化 transition；它记录 queue / attempt ledger、provider receipt、closeout、dead-letter、retry 和 human gate，但不拥有医学 route approval，也不运行 MAS 私有 matrix runner。
-- MAS owner callable 返回医学 owner receipt、typed blocker、no-op currentness proof、route-back reason、human gate schema 或 artifact/memory/source refs。
-- OPL 只能存 refs 和调度下一 attempt；它不能写 MAS study truth、publication verdict、artifact body、memory body、`current_package` 或 submission readiness。
-
-## 指定杂志格式整理任务
-
-客户指定投稿杂志后，格式整理不是 MAS 私有的小 stage 串行脚本。正确运行链路是：
-
-1. MAS 在 `journal-resolution` / `finalize` route 中声明目标 journal、author guideline refs、format requirement refs、submission package boundary、artifact authority boundary 和 human gate 条件。
-2. 若 journal 要求会改变 manuscript、table、figure、analysis 或 current-package bytes，Codex route-back 到最早拥有该内容的 canonical Stage；变化后的 bytes 必须完成该 Stage 的 fresh Review，并重新进入 cross-Stage Meta Review。
-3. 只有 exact reviewed hashes 与 fresh Meta Review refs 回到 `finalize_and_publication_handoff` 后，OPL 才创建或继续该 Stage 的 primary Attempt；这个 Attempt 只生成确定性的 inspection archive、manifest、hashes 和 refs-only handoff candidate，不做 artifact mutation 或递归 Review。
-4. 下游 MAS authority function 可以基于 exact candidate refs 签 owner receipt 或 typed blocker；这属于 manifest 中 `downstream_owner_retains_acceptance=true` 的 owner acceptance，不是 Handoff primary Attempt 自己签 quality/publication/submission/ready claim。
-5. 外部 submission、credentials、portal action 与不可逆 delivery 仍由 human gate 控制；provider completion、package freshness 或 Handoff candidate 不能替代 MAS owner acceptance。
-
-这解释了“交付完里程碑投稿包后，客户指定投稿杂志，按指定杂志改格式”到底属于什么流程：journal 解释可以从 `journal-resolution` / `finalize` route 发起，但实际 byte 变更必须 route-back 到内容 owner Stage；`finalize_and_publication_handoff` 只接回已经重新 Review 与 Meta Review 的 exact bytes。MAS 继续保留目标 journal 解释、artifact mutation authority、publication gate 和 downstream owner receipt，但这些 authority 不转移给 Handoff Attempt。
-
-## Handoff Packet 规则
-
-OPL-facing canonical route contract 固定由 `contracts/domain_route_profile.json` 提供。MAS active producer 只输出 `domain_route/stage-route`、`domain_route/stage-outcome`、`domain_route/analysis-queue-progress`、`domain_route/reviewer-refresh` 与 `domain_autonomy/*` task kind；legacy `paper_mission/*`、`paper_autonomy/*`、`publication_aftercare/*` 只能在该 profile 的 normalization table、历史 evidence 或兼容输入出现。OPL intake 只消费 `agent_id`、`domain_id`、owner ids、`status` / `wait_kind` / `command_kind`、route / attempt identity、`domain_route_*_ref`、source refs、receipt labels 与 authority boundary，不读取 paper/study payload 作为框架语义。
-
-terminal sync 的 primary discriminator 是 `status`：`accepted_for_provider_projection` 才可形成 runtime request；`typed_wait + typed_blocker_authority` 等待 typed-blocker / lineage refs；`typed_wait + human_gate_authority` 等待 human/owner-decision refs；`terminal_no_runtime + mission_complete + complete_mission` 是 no-runtime terminal。所有路径均禁止 OPL 写 domain truth、quality verdict、owner receipt、typed blocker、human gate、current package、artifact body，或把 provider / queue observation 升级成 domain progress / ready claim。
-
-允许输出：
-
-- `domain_route_ref`
-- `owner_route_ref`
-- `route_obligations_descriptor_ref`
-- `owner_reason_contract`
-- `owner_route_currentness_basis`
-- `task_kind`
-- `dedupe_key`
-- `source_scope_refs`
-- `artifact_scope_refs`
-- `workspace_scope_refs`
-- `runtime_event_refs`
-- `expected_owner_receipt_refs`
-- `typed_blocker_refs`
-- `human_gate_schema_ref`
-- `authority_boundary`
-- `no_forbidden_write_ref`
-- `required_closeout_packet`
-- `completion_boundary`
-- `ordinary_progress_handoff_policy`
-
-禁止输出：
-
-- study truth body
-- paper body 或 manuscript body
-- publication verdict body
-- AI reviewer verdict body
-- artifact body / package body
-- memory body
-- `current_package` mutation
-- runtime queue state、retry state、dead-letter state、worker liveness truth
-
-## Owner-Route Attempt Protocol
-
-MAS owner-callable handoff 必须先通过 `mas-owner-route-attempt-protocol.v1`：
-
-1. `owner_reason_contract` 只提供 diagnostic、forbidden-surfaces 与 regression refs；Codex 已选择的 action/context 可以在 currentness basis 下执行，不能由 reason registry、priority table 或静态 action map 自动恢复或否决。
-2. 不存在 `priority_lattice`、reason-to-owner/action 表或 `blocked_actions` 控制面；多个可行方向由 Codex 根据当前 artifact、负结果和领域语义判断。
-3. `owner_route_currentness_basis` 只绑定 source/work-unit/truth/runtime 时效锚点：至少携带 work unit fingerprint、truth epoch，以及 runtime health epoch 或 `source_eval_id`；`owner_reason` 归 `owner_reason_contract`、route reason 或 source refs diagnostic，不得混入 currentness basis 作为 exact dispatch contract。
-5. typed closeout 与 `paper_stage_log`（或同义 `user_stage_log` / `stage_log_summary`）是高质量 claim-evidence carrier，可覆盖 stage_name、problem_summary、stage_goal、paper_work_done、changed_paper_surfaces、outcome、remaining_blockers、duration/token/cost refs、evidence_refs 和 progress delta 字段；缺失或格式漂移只形成质量债。raw/free-text/partial/negative/no-output diagnostic 仍完成本轮并允许下一 stage 启动。
-6. OPL 记录 attempt started/completed/blocked/failed、raw/typed closeout refs、diagnostic、stdout/session/provider timing；MAS 消费这些输入后再决定 owner receipt、AI reviewer eval、publication gate、package freshness或真实硬边界 typed blocker。
-7. OPL `StageRun` / `StageAttemptReceipt` 持有 attempt ledger、decision trace、retry、dedupe 与 repeat suppression。MAS 只消费相关 refs 作为医学判断输入，并返回 domain evidence、owner receipt、typed blocker 或 human gate；MAS 不维护或驱动 generic attempt lifecycle。
-
-Currentness / running proof 的口径由 [Next Action Control Plane](./control/next_action_control_plane.md) 收口：semantic route 只来自 `Codex CLI selected declared stage`，current transport 只来自同 identity 的 OPL StageRun / attempt receipt，status 是 OPL handoff、runtime health 与 stage progress log 的观测投影。旧 `NextActionEnvelope`、`current_work_unit`、`current_execution_envelope` 与 action queue 只能作为 nonbinding diagnostic / provenance / drilldown。status 只有在携带可比较的 stage/run/action identity 并与当前 OPL attempt receipt 匹配时，才能升级为 `running_provider_attempt`；裸 liveness 或 read-model refresh 只能作为 observability。缺 comparable identity 时只把该旧 attempt 标为 stale currentness diagnostic，不能把它写成论文进展，也不能阻止 Codex 启动其他 declared stage。
-
-Stage artifact index 是 derived projection 和 artifact-first diagnostic input。它不得派生默认 `current_executable_owner_action`，也不得在缺 route context 时补造 owner action。旧 stage artifact / selected dispatch / packet residue 只能作为 operator drilldown、migration diagnostic 或 no-resurrection evidence；不得反向覆盖 Codex选择、不得制造 provider admission、不得替代 currentness identity。read-model projection 可以暴露这些 refs 供 operator drilldown，但不能生成 domain authority。
-
-Ordinary progress handoff 的机器口径固定在 `contracts/stage_run_kernel_profile.json#/ordinary_progress_handoff` 与 `agent/stages/stage_route_contract.yaml#/ordinary_progress_handoff_policy`。普通 executor step 产出 concrete delta 后，可以用 `ProgressDeltaReceipt` 作为 `T0_progress_delta` 轻量回执，携带 changed / produced / consumed refs、progress_delta_classification、deliverable_progress_delta、platform_repair_delta、next_owner 和 next_required_delta。它只让 `current_owner_delta` / `stage_run_current_owner_delta` 继续接力，不替代 MAS `OwnerReceipt`、`TypedBlocker`、quality gate、artifact authority、memory accept/reject、publication/submission gate 或 production evidence。readiness 只按当前 delta 的需要 JIT 检查；完整 readiness inventory、lineage、restore、long-soak、cleanup 和 production evidence 默认是 audit sidecar 或 terminal gate。
-
-`CarryForwardRiskReceipt` 是同一 ordinary progress handoff 家族的非 fatal 风险回执。它必须绑定 current work-unit identity、target surface refs、source/currentness refs、originating reviewer/gate/repair refs、severity、why_nonfatal、deferred gap refs、next owner、next required delta、reentry condition、forbidden claims 和 MAS/OPL authority boundary。它不得携带 `fatal_blocker` severity；fatal 必须转为 stable `TypedBlocker`、`human_gate_ref` 或 route / owner redesign。OPL `StageRun` / `StageAttemptReceipt` 负责 generic repeat、retry、dedupe、stale 和 budget 状态；MAS 只据其 refs 作医学 severity 判断，OPL 不能替 MAS 签 quality verdict、publication/submission readiness、artifact authority 或 carry-forward acceptance。
-
-2026-06-09 owner-chain canary 更新：real paper-line provider canary 的每条 `paper_line_owner_chain_results` 必须暴露 `ordinary_progress_handoff_proof`，并显式给出 `accepted_closeout_shape`、`ProgressDeltaReceipt_or_OwnerReceipt_or_TypedBlocker`、`next_owner`、`next_required_delta`、`readiness_jit_scope` 和 `audit_sidecar_passive`。该 proof 的成功路径只接受 MAS `OwnerReceipt` 或 stable `TypedBlocker`；provider completion 不能关闭 canary，audit sidecar / readiness inventory 不能生成 default next action。fixture canary 可以证明该合同可见，但仍不声明 live paper closure、publication-ready、artifact mutation authority 或 production-ready。
-
-Late-stage paper flow 的默认顺序是 progress-first：在 `review_and_quality_gate` / `finalize_and_publication_handoff` 一类 late-stage route 中，MAS owner chain 必须先看到 sprint delta、candidate package/display freshness proof 或同等 paper-facing progress ref，再把 AI reviewer / publication gate replay 作为后续质量复核。quality gate 可以把 delta 转成 route-back、single next owner blocker、human gate 或 stable typed blocker；它不能替代 sprint delta，也不能把 controller/read-model/currentness/provider 修复包装成 paper progress。DM002 `20260529T095414Z` effective-eval sprint repo canary 用 refs-only fixture 固化这一顺序：progress proof 与 gate replay request 可同时进入 handoff refs，但 stage success refs 仍不声明 domain ready、publication ready 或 `current_package` 更新。下一层目标是让 research evidence pack ref family 同时出现在 read-model、schema validation 和 DM002 canary evidence 中：read-model 给出 availability，schema validation 对缺失或越权 fail closed，canary 返回 evidence available 或 stable typed blocker；这只是 owner-chain audit evidence，不是 publication-ready。
-
-Progress-First throughput closeout 的高质量口径是：typed closeout 尽量给出 forward delta、changed surface、delta classification 和 next target surface；no-op、失败、阴性或零结果必须保留 failed-path lineage，并可物化 diagnostic。`paper_stage_log.next_forced_delta` 与 `study_progress.next_forced_delta` 是 Codex 的 route context，不是必填 launch gate；该投影仍是 refs-only 监督面，不能写 paper/package truth，也不能授权 publication / submission ready。
-
-OPL budget exhausted 或 repeat-suppressed receipt 只证明 generic attempt lifecycle 已关闭，不能直接等同于 safe stop-loss。MAS 消费该 receipt 后必须返回医学 domain evidence：fatal 时为 `TypedBlocker`、`human_gate_ref` 或 route redesign；nonfatal 时为 `CarryForwardRiskReceipt`、owner receipt 或 successor handoff。MAS 不维护同义 route-back 签名、预算 ledger、fallback executor 或 repeat-suppression 状态，也不把 queue、provider liveness 或 transport receipt 写成 paper progress。
-
-## Ordinary Progress Handoff
-
-2026-06-09 后，MAS handoff 必须把普通推进与审计旁路拆开。默认 handoff 先服务 ordinary progress spine：
-
-```text
-current_owner_delta
-  -> executor concrete delta
-  -> ProgressDeltaReceipt / CarryForwardRiskReceipt / OwnerReceipt / TypedBlocker
-  -> next current_owner_delta
-```
-
-`ProgressDeltaReceipt` 是普通推进的最小可接力返回形态：
-
-```text
-ProgressDeltaReceipt
-  receipt_id
-  study_id
-  stage_id
-  producer
-  delta_classification
-  changed_surfaces[]
-  produced_refs[]
-  consumed_refs[]
-  next_owner
-  next_required_delta
-  blocker_ref?
-```
-
-它允许 MAS 把一次写作、分析、证据整理、review 修订、readiness surface materialization 或 platform repair 记录为可接力 delta。它不能替代 `OwnerReceipt`、`TypedBlocker`、AI reviewer receipt、artifact mutation receipt、publication package receipt、submission handoff receipt 或 human gate receipt。
-
-`CarryForwardRiskReceipt` 允许 MAS 把一次 review / repair 后仍存在的非 fatal 风险记录为可接力 risk delta。它不能替代 `ProgressDeltaReceipt` 的实际 changed surface，也不能替代 `OwnerReceipt`、`TypedBlocker`、AI reviewer receipt、artifact mutation receipt、publication package receipt、submission handoff receipt 或 human gate receipt；它只说明当前风险可被下一 owner 明确看见并继续处理。
-
-Audit sidecar refs 可以随 handoff 提供，但默认不能抢占 ordinary path：
-
-- `trace_refs`
-- `lineage_refs`
-- `replay_refs`
-- `restore_refs`
-- `readiness_inventory_refs`
-- `long_soak_refs`
-- `cleanup_refs`
-- `production_evidence_refs`
-
-这些 refs 只有在破坏 owner、authority、selected executor、forbidden write、execution authorization、closeout binding、accepted answer shape、artifact/package/memory mutation、publication/submission/export claim 或 human/safety gate 时，才升级为 hard blocker。缺 prompt / skill / tool / knowledge / rubric refs、Co-Scientist advisory refs、readiness inventory、full replay、restore proof、long-soak 或 cleanup proof，默认应输出 advisory warning、route-back recommendation、production evidence gap 或 typed blocker，而不是阻断所有 ordinary handoff。
-
-MDS / DeepScientist 的 handoff 学习口径是减少默认握手、保持单一下一步和持续产出；不得因此恢复 MDS / DeepScientist 默认 backend、runtime owner、quality owner、artifact authority 或 publication readiness oracle。
-
-## 落地状态与证据门
-
-下面只记录当前标准的落地状态与仍需补证的门槛，不作为新的并行任务板。后续如果按这些方向实施，仍必须独立 worktree、独立验证，完成后吸收回 main 并清理本次 worktree/branch。
-
-| scope | 当前状态 | 证据门 |
-| --- | --- | --- |
-| `route_contract_clarity` | route contract、stage control plane、本文和 handoff contract 已固化 `route != stage`。 | docs/status、runtime index、migration inventory 都指向同一标准；后续新增 route/stage 文案不得把 route 写成 runtime unit。 |
-| `owner_route_handoff_no_write` | domain-handler export/dispatch 只写 body-free handoff 和 dispatch receipt。 | focused tests 证明不写 `.ds/runtime_state.json`、`.ds/user_message_queue.json`、publication eval、controller decisions、`current_package`。 |
-| `journal_resolution_flow` | 指定 journal 格式整理进入 `journal-resolution` / `finalize` route + OPL stage graph。 | 目标 journal refs、format delta refs、artifact authority receipt、independent review/human gate/typed blocker 可被 OPL ingest。 |
-| `executor_reviewer_auditor_split` | stage control plane 和 handoff tests 已要求 executor、reviewer、auditor 分离为独立 OPL invocations。 | quality/format/publication gate 不允许同一 invocation 自审关闭。 |
-| `transition_context_projection` | OPL hosted read model 暴露 route context、负结果、quality debt 与建议 route-back；legacy MAS `study_state_matrix` 只作迁移期 internal diagnostic。 | 不保留 transition table 执行器；owner receipt/typed blocker只约束强 claim或真实硬边界，不关闭普通 route。 |
-| `runtime_control_plane_retirement` | runtime_transport、SQLite lifecycle、worker lease、status/workbench shell 中的通用 runtime 控制面按 no-alias 退役；当前 handoff/read-model 语义禁止 MAS generic queue、attempt ledger、scheduler、retry/dead-letter、worker residency、runtime lifecycle 或 read-model owner。 | 新投影只允许 domain authority refs、owner receipt、typed blocker 和 OPL handoff refs；发现 generic runtime owner 语义时按复活控制面处理。 |
-| `paper_line_canary` | 真实 paper-line 证明仍是开放证据尾项；repo canary 已固化 DM002 progress-first late-stage 顺序。下一步目标是把 canary 从顺序 fixture 推进到 read-model + schema validation + evidence available / stable typed blocker 可见。 | 产出真实 OPL attempt -> MAS owner chain 的 progress delta、candidate package/display freshness proof、AI reviewer/gate receipt、artifact movement、human gate、stop-loss、owner receipt 或 stable typed blocker；success refs、schema pass 或 canary available 不得读成 domain ready。 |
-| `progress_first_coscientist_affordance` | 六项 Co-Scientist 剩余机制已固定为 current-owner-native JIT affordance：next-delta tournament、bounded micro-candidate generation、critique-as-repair-hint、reusable lesson extraction、strategy retrospective、opportunistic knowledge prefetch。 | 只在当前 owner / gate 显式声明或由 current delta 形态隐含需要时提高下一 owner selection、reviewer gap finding 和 failed-path memory reuse 效率；不得阻断 route、不得关闭质量/出版/产物 authority、不得把 prefetch / score / platform repair 算作 paper progress。 |
-| `progress_first_quality_loop` | Review / repair / carry-forward 已固定为 Progress-first 的有界质量循环。Severity taxonomy 为 `fatal_blocker`、`must_fix_before_current_gate`、`carry_forward_advisory`、`optional_polish`；预算耗尽必须复判 severity。 | fatal 才阻断并输出 typed blocker / human gate / route redesign；非 fatal 必须用 `CarryForwardRiskReceipt` 和下一 owner 接力。OPL 只持有通用 loop-risk evaluator，MAS 持有医学 severity policy；carry-forward 不得读成 publication/submission readiness。 |
-
-## 禁止误写
-
-- 不把 `route` 写成 MAS 自己调度的小 stage。
-- 不把 transition runner pass 写成 publication-ready、submission-ready 或 artifact-ready。
-- 不把 OPL provider completion 写成 MAS owner receipt。
-- 不把 OPL stage graph hints 写成 publication-ready、submission-ready、artifact-ready、domain completion 或 physical delete authorization。
-- 不把 owner-route handoff 写成 runtime liveness/redrive 仲裁。
-- 不把旧 runtime/control adapter 写成 MAS generic runtime owner、compat alias、diagnostic fallback 或当前 active caller gate。
-- 不用同一 agent execution + 自审关闭 AI-first quality gate。
-- 不把 Co-Scientist affordance 写成默认前置流程、admission gate、quality closure、publication readiness、artifact authority、route blocking layer、paper progress、production-ready 或真实 paper-line closeout。
-- 不把 review / repair 预算耗尽写成默认 safe stop-loss；必须先做 severity decision，fatal 才阻断，非 fatal 用 `CarryForwardRiskReceipt` 推进。
-- 不把 `CarryForwardRiskReceipt` 写成 quality-clean、publication-ready、submission-ready、artifact authority、package freshness、domain-ready 或 production-ready。
+运行 `scripts/verify.sh fast`、`scripts/verify.sh meta`，并在冻结 Framework 读取单仓 interfaces/conformance/default-callers/residue/source-closure。结构绿不替代真实 StageRun、Review receipt、owner result 或 paper artifact evidence。

@@ -4,7 +4,7 @@ Status: `active_docs_governance`
 Owner: `MedAutoScience`
 Purpose: `docs_lifecycle_governance`
 State: `active_support`
-Machine boundary: 本文是人读治理入口。MAS 机器真相继续归 runtime/controller/schema/source/generated surfaces、CLI/MCP/API 行为、study workspace artifacts、domain manifests、owner receipts 和语义化 `human_doc:*` id。
+Machine boundary: 本文是人读治理入口。MAS 机器真相归 declarative pack/contracts、唯一 registry-bound authority handler、study workspace domain artifacts 与 MAS owner answers；OPL hosted StageRun/Attempt/readback 和 generated surfaces 持有通用运行与展示事实。语义化 `human_doc:*` id 只作人读关联。
 
 ## 当前结论
 
@@ -33,7 +33,7 @@ MAS 采用 OPL-family canonical docs taxonomy：
 - 每份长期文档必须在开头或索引中明确 owner、purpose、state 和 machine boundary。`state=active_plan` 表示仍决定执行顺序；`state=active_support` 表示仍支撑当前 owner 但不自行排队；`support_reference` 表示参考材料；`history_only` / `history_provenance` 表示不能作为 current truth。
 - 已落地基础文档只有在仍承担 guard、provenance 分类、source intake 规则或 drift 判断时才留在 `docs/active/`；纯过程、旧 lane table、旧 activation package、旧 full record 和 dated closeout 必须放入 `docs/history/**`。
 - `docs/decisions.md` 保留决策日期日志；不要为了压缩过程流水而改写 decisions 的历史记录。
-- dated specs、dated closeout 和历史 full record 不能直接作为 current truth；当前 truth 必须由核心五件套、当前 owner doc、machine-readable contract 或 runtime/controller surface 承载。
+- dated specs、dated closeout 和历史 full record 不能直接作为 current truth；当前 domain truth 必须由核心五件套、当前 owner doc、machine-readable contract、domain artifact 或 authority handler/owner answer 承载；通用执行状态由 OPL hosted StageRun/Attempt/readback 承载。
 - `docs/status.md` 只维护当前状态摘要，不承载 dated follow-up ledger；执行顺序只在 `docs/active/current-development-lines.md` 维护；program 文档组合只在 `docs/active/program_portfolio_consolidation.md` 维护。旧 docs lifecycle closeout 记录只按 `docs/history/program/README.md` 的历史索引读取。
 - `docs/status.md` 允许记录“最近一次已记录 live audit”的 compact summary，但不得继续追加 dated receipt id、stage attempt id、OPL worklist 计数、record/verify URL 或长 follow-through 段落。需要保留过程证据时，写入 `docs/history/program/` 或对应 history 目录。
 - OPL doc doctor 只作为预检信号：它可以提示缺少 lifecycle header、旧词汇或 active/history 边界风险，但不能直接变成执行清单。每条 warning 都必须回到 live source、contracts、tests、CLI/read-model、runtime receipt/blocker 或 canonical docs 证明后，才决定是更新 current owner 文档、折回 history/tombstone，还是保留为历史/决策语境。
@@ -72,7 +72,7 @@ MAG、RCA、MDS 或 OPL-owned App/workbench 的并行 backlog 不写入 MAS acti
 
 ## 内容级整合规则
 
-1. 当前 factual truth 合入核心五件套、runtime/controller/schema/source、machine-readable contract 或当前 owner doc。
+1. 当前 factual truth 合入核心五件套、declarative pack/schema/source、machine-readable contract、domain artifact、authority handler/owner answer 或当前 owner doc；通用 execution/readback 归 OPL hosted surface。
 2. 当前执行、差距、program baton 和仍决定下一步顺序的 owner plan 留在 `docs/active/`。
 3. Runtime/control/projection/display 进入 `docs/runtime/`；完成或退役计划进入 `docs/history/runtime/`。
 4. Medical display 和 delivery authority support 进入 `docs/delivery/`；真实 artifact authority 仍归 MAS domain artifact surfaces。

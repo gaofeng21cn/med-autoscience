@@ -3,62 +3,36 @@
 Owner: `MedAutoScience`
 Purpose: `active_execution_and_gap_index`
 State: `active_support`
-Machine boundary: 人读索引。机器真相继续归 contracts、schemas、source、runtime ledgers、study workspaces、publication artifacts 与 owner receipts。
+Machine boundary: 人读索引。机器真相归 declarative pack、contracts、唯一 authority function、OPL runtime ledgers、study workspaces、publication artifacts 与 owner receipts。
 
-本目录是 OPL-family canonical 目录中承接 MAS 当前执行、当前计划、当前差距和 active baton 的位置。当前唯一 single Active Truth owner 是 [MAS 理想目标态差距与完善计划](./mas-ideal-state-gap-plan.md)：它维护当前唯一真相、目标态、已落地状态、功能/结构差距、近期完善计划和历史索引。Ready / publication / production 证据回 owner evidence surface；dated closeout、过程流水、旧 full record 和 superseded plan 进入 `docs/history/**`。
+本目录只承接当前执行、当前差距与仍有效的验收边界。唯一结构完成度 owner 是
+[MAS 理想目标态差距与完善计划](./mas-ideal-state-gap-plan.md)。旧 migration、
+private-control-plane、runtime implementation 和 dated proof 流水归 Git 或
+`docs/history/**`，不得从 active 文档恢复实现。
 
-旧 `docs/program/` active-baton 层已物理退役。当前 MAS 执行地图、论文自治目标、产品化依托、stage 形式计划和 landed foundation guard 文档都进入本目录。已完成或被 current owner surface 吸收的 framework migration / retirement 记录进入 history。`program_id` 与 `human_doc:program_*` 只作为语义 ID 保留，不代表物理 `docs/program/` 目录。
+## 当前入口
 
-当前入口先看：
+- [MAS 理想目标态差距与完善计划](./mas-ideal-state-gap-plan.md)：唯一结构完成度矩阵与 Live Evidence tail。
+- [MAS Current Development Lines](./current-development-lines.md)：只列当前维护线，不维护第二 backlog。
+- [MAS Executor-First 重构边界](./mas_executor_first_rearchitecture_program.md)：完成后的 no-resurrection guard。
+- [MAS Stage Surface Standardization](./stage_surface_standardization_program.md)：declarative Stage/Review/route 形态。
+- [AI-first Paper Autonomy Closure](./ai_first_paper_autonomy_closure_program.md)：真实论文线验收合同。
+- [OPL App MAS Workbench Boundary](./opl_app_mas_runtime_workbench_program.md)：OPL-owned App 只读投影边界。
+- [Program Portfolio Consolidation](./program_portfolio_consolidation.md)：这些稳定路径的唯一职责。
 
-- [文档索引](../README.md)
-- [当前状态](../status.md)
-- [MAS 理想目标态差距与完善计划](./mas-ideal-state-gap-plan.md)
-- [MAS executor-first 重构目标与迁移计划](./mas_executor_first_rearchitecture_program.md)
-- [MAS Current Development Lines](./current-development-lines.md)
-- [Program Portfolio Consolidation](./program_portfolio_consolidation.md)
-- [MAS / OPL Stage Native 状态机设计](./mas-opl-stage-native-state-machine.md)
-- [MAS Stage Surface Standardization Program](./stage_surface_standardization_program.md)
-- [Co-Scientist Stage / Route 重构设计与执行规格](../runtime/designs/coscientist_stage_route_restructure.md)
-- [MAS Stage Surfaces](../runtime/contracts/stage_surfaces.md)
+## 当前层次
 
-过程归档只在需要追溯历史时读取，不作为 active 默认入口：
-
-- [MAS standard agent 文档过程归档 2026-05](../history/program/mas-standard-agent-doc-process-history-2026-05.md)
-- [MAS docs portfolio coverage ledger](../history/docs-portfolio-coverage-ledger/README.md)
-- [MAS broader docs portfolio SSOT closeout 2026-06-07](../history/program/mas_broader_docs_portfolio_ssot_closeout_2026_06_07.md)
-- [MAS 状态与 Contract 收薄折返记录 2026-05-29](../history/program/mas-state-contract-thinning-foldback-record-2026-05-29.md)
-- [Progress-first Stage 推进吞吐审计 2026-06-01](../history/program/progress_first_stage_throughput_audit_2026_06_01.md)
-
-## 当前 active 层次
-
-| 层次 | 文档 | 当前作用 |
+| 层次 | Owner | 当前作用 |
 | --- | --- | --- |
-| 理想差距 / 完善计划 | [MAS 理想目标态差距与完善计划](./mas-ideal-state-gap-plan.md) | 对照 MAS 理想目标态，维护当前唯一真相、已落地状态、功能/结构差距、完善顺序、历史索引和禁止误写口径。 |
-| Stage Native 状态机设计 | [MAS / OPL Stage Native 状态机设计](./mas-opl-stage-native-state-machine.md) | 把 Stage Native 目录产出思路收敛为 `stage folder + manifest + role artifact + OwnerReceipt / TypedBlocker`，并按 ordinary progress spine / audit sidecar 分层读取轻量 progress delta、Stage transition、delivery artifact 和 production evidence；StageRun Kernel foundation 已落到 MAS contract/source/projection 和 OPL refs-only substrate，live DM002/DM003 canary 与补偿链退役仍按 gap plan 推进。 |
-| 下一执行规格 | [Co-Scientist Stage / Route 重构设计与执行规格](../runtime/designs/coscientist_stage_route_restructure.md) | 把 Co-Scientist 启发的 Stage-native scientific work system 转成下一 `/goal` 的 runtime-facing 规格、并行 lane、验收门和吸收规则；它不替代 gap plan，也不声明实现已落地。 |
-| 控制面收薄 guard | [MAS Current Development Lines](./current-development-lines.md) + [MAS 理想目标态差距与完善计划](./mas-ideal-state-gap-plan.md) | 当前 active 层只保留 `macro_state + owner_route + receipt_or_blocker + evidence_refs` 行为契约和 production evidence tail；已关闭折返记录进入 history/provenance。 |
-| 当前内容线索引 | [MAS Current Development Lines](./current-development-lines.md) | 把仍有效内容线归为 landed foundation、functional follow-through gate 或 production evidence gate；不维护第二 backlog，若与 gap plan 冲突以 gap plan 为准。 |
-| 文档组合 / 历史归位 | [Program Portfolio Consolidation](./program_portfolio_consolidation.md) | 只说明 active program 文档唯一职责、历史记录去向和 direct retirement rule；不替代 gap plan，也不作为第二 backlog。 |
-| 目标 / 验收 owner | [AI-first Paper Autonomy Closure Program](./ai_first_paper_autonomy_closure_program.md) | 只定义 MAS 论文自治验收合同和 AI-first quality gate；dated evidence 与 full record 回 history。 |
-| B002 / B003 论文优先恢复 | [B002 / B003 论文优先恢复运行规则](./b002_b003_paper_first_recovery_runbook.md) | 当前 DM002/DM003 paper-first 运行规则：governed MAS/OPL path 优先；若 governed path 被 handoff/authorization/currentness 阻塞，切 foreground paper sprint，先产出可审阅论文工作品或 owner decision packet；同时把 MAS/OPL 缺陷拆成独立 repair lane proposal / candidate，不让平台修复卡死论文主线，repo 修复由主会话吸收到 main。 |
-| Executor-first 边界 | [MAS Executor-First 重构计划](./mas_executor_first_rearchitecture_program.md) | 已落地边界：OPL StageRun 持有 executor/runtime；MAS pack 提供 stage context，MAS owner消费 outcome。旧 dispatch/recovery控制面已退役或 tombstone-only。 |
-| Stage pack owner | [MAS Stage Surface Standardization Program](./stage_surface_standardization_program.md) | 只维护 stage/prompt/skill/knowledge/quality gate 的标准形态；长 proof 流水回 history。 |
-| Product projection owner | [OPL App MAS Runtime Workbench Program](./opl_app_mas_runtime_workbench_program.md) | 只维护 MAS 输出给 OPL App/workbench 的 refs-only 投影边界；不复制通用 workbench。 |
-| Landed foundation guard | [MAS/MDS Owner Boundary Contract](../policies/runtime-governance/mas_mds_owner_boundary_contract.md)、[Domain Authority Refs Index Guard](../runtime/domain_authority_refs_index_guard.md)、[MDS absorb guard history](../history/program/mas_single_project_mds_absorb_guard_2026_06_07.md) | 只保留 MDS provenance、monolith closeout、body-free authority-ref adapter、retired SQLite/file provenance、quest/root Git retirement 和 drift guard；不再作为活跃实现队列。 |
-| External pattern intake | [Co-Scientist Hypothesis Portfolio Intake](../references/mainline/co_scientist_hypothesis_portfolio_intake.md) | 只提供 hypothesis portfolio / evidence pack 的 MAS-native contract-first 叙事；若后续要变成 active implementation，必须折回 gap plan、stage surfaces、runtime contracts 和 tests，不能把 ranking/proximity prose 直接写成 authority。 |
-
-实际开发按内容块推进，不按整份旧文档推进。P0/P1/P2/P3/P3a 的完整旧记录已经归档；当前 active owner 文档只保留当前 owner 边界、gate 分类和仍可执行的内容线。旧 full record、旧 board、旧 activation package、dated follow-through 和命令流水只作为 history provenance 读取。
-
-active 文档不得继续追加历史增量长清单。若需要记录 proof、receipt、分支名、测试输出、OPL worklist 数字、same-day follow-through 或 closeout 过程，写入 `docs/history/program/` 或对应 history 目录；active 层只保留当前 gate 是否仍 open、谁负责、下一条验证命令类别和不能误写的边界。
+| Repo/source 结构 | MAS maintainers | 保持 declarative pack + one authority function，阻止 private runtime/wrapper 复活 |
+| Generated/runtime platform | OPL | CLI/MCP/Skill/status/workbench、StageRun/Attempt、StateIndex、lifecycle、provider/package transport |
+| Domain authority | MAS | 医学 truth、quality/publication/artifact/memory 判断与 owner answer |
+| Live Evidence | MAS + OPL owner surfaces | 真实 StageRun、paper artifact、independent Review、publication/release readback |
 
 ## 放置规则
 
-- `docs/active/`：仍需要执行顺序、owner gate、当前差距或当前 owner plan 的文档。
-- `docs/runtime/`：runtime contract、control surface、projection、display、active design；它说明已经或正在变成 runtime/API/contract 的技术面。
-- `docs/delivery/`：manuscript、package、submission/export 和 medical-display delivery 支撑。
-- `docs/references/`：支撑参考、parity、integration、MDS 学习和 mainline assessment；dated verification ledger 归 `docs/history/program/`。
-- `docs/policies/`：稳定内部规则和长期 workflow/governance policy。
-- `docs/history/program/`：旧 full record、closeout、activation package、dated recurring intake snapshot、process archive 和 superseded plan。
-
-判断方式：如果内容还决定“接下来按什么顺序做、由谁验收、什么算完成”，放 `docs/active/`；如果已经沉淀成 runtime/interface 约束，放 `docs/runtime/`；如果只是背景、比较、学习或证据，放 `docs/references/`；如果只保留历史脉络或 dated process，放 `docs/history/`。
+- 当前结构差距与验收顺序只写入 `mas-ideal-state-gap-plan.md`。
+- Stage/Review/route 的稳定声明边界写入 stage support 文档和 machine contracts。
+- App/workbench 只记录 OPL-owned projection boundary，不维护 MAS-local UI/runtime实现。
+- dated receipts、worktree、commit、命令流水与旧实现说明进入 history/Git。
+- Live Evidence 必须写回 runtime/owner/release surface，不用 docs、tests 或 read model代替。

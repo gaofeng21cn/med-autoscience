@@ -81,7 +81,7 @@ upstream `baseline` skill 已经明确：
 `MAS` 里对应吸收：
 
 - `agent/stages/baseline_and_evidence_setup.policy.md`
-- `src/med_autoscience/policies/controller_first.py`
+- 历史 `controller_first` policy implementation（已退役，精确路径由 Git provenance 持有）
 
 来源判断：
 
@@ -106,7 +106,7 @@ upstream 已经把 follow-up evidence work 收紧成单独的 `analysis-campaign
 `MAS` 里对应吸收：
 
 - `agent/stages/bounded_analysis_campaign.policy.md`
-- `src/med_autoscience/study_charter.py` 里的 `bounded_analysis`
+- 历史 `study_charter.bounded_analysis` implementation（已退役，精确路径由 Git provenance 持有）
 - `d3d7f77` `Route bounded analysis through MAS outer loop`
 - `3058e13` `Add bounded analysis charter contract`
 

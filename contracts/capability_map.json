@@ -735,8 +735,8 @@
         "contracts/research-integrity-layer.json"
       ],
       "verification_refs": [
-        "tests/test_research_integrity_stage_hooks.py",
-        "tests/test_research_integrity_reference_verification.py"
+        "tests/test_stage_quality_cycle_policy.py",
+        "tests/test_standard_agent_conformance_profile.py"
       ],
       "failure_token_refs": [
         "opl-framework:contracts/opl-framework/agent-lab-failure-token-registry.json#/medical_failure_types/quality_gate",
@@ -758,7 +758,7 @@
         "contracts/production_acceptance/mas-production-acceptance.json"
       ],
       "verification_refs": [
-        "tests/test_agent_lab_medical_manuscript_quality.py"
+        "tests/test_standard_agent_conformance_profile.py"
       ],
       "failure_token_refs": [
         "opl-framework:contracts/opl-framework/agent-lab-failure-token-registry.json#/medical_failure_types/agent_lab",
@@ -882,8 +882,8 @@
         "agent/primary_skill/SKILL.md"
       ],
       "verification_refs": [
-        "tests/test_domain_entry.py",
-        "tests/test_domain_entry_contract.py"
+        "tests/test_smoke_entrypoints.py",
+        "tests/test_standard_agent_boundary.py"
       ],
       "forbidden_surfaces": [
         "Yang authority/current_package/publication_eval/controller_decisions",
@@ -1910,9 +1910,8 @@
         "contracts/domain_handler_registry.json"
       ],
       "verification_refs": [
-        "tests/test_domain_entry_contract.py",
-        "tests/test_research_integrity_domain_entry.py",
-        "tests/test_display_pack_agent_surfaces.py"
+        "tests/test_standard_agent_boundary.py",
+        "tests/test_opl_standard_pack_cases/test_stage_contract_cases.py"
       ],
       "forbidden_surfaces": [
         "Yang authority/current_package/publication_eval/controller_decisions",
@@ -1996,7 +1995,8 @@
         "agent/stages/manifest.json"
       ],
       "verification_refs": [
-        "tests/test_stage_prompt_specialist_routes.py"
+        "tests/test_stage_manifest_contract_extensions.py",
+        "tests/test_stage_quality_cycle_policy.py"
       ],
       "forbidden_surfaces": [
         "Yang authority/current_package/publication_eval/controller_decisions",
@@ -2080,7 +2080,7 @@
         "contracts/domain_descriptor.json"
       ],
       "verification_refs": [
-        "tests/test_agent_lab_medical_manuscript_quality.py"
+        "tests/test_stage_quality_cycle_policy.py"
       ],
       "forbidden_surfaces": [
         "Yang authority/current_package/publication_eval/controller_decisions",
@@ -2164,8 +2164,8 @@
         "contracts/research-integrity-layer.json"
       ],
       "verification_refs": [
-        "tests/test_research_integrity_stage_hooks.py",
-        "tests/test_research_integrity_reference_verification.py"
+        "tests/test_stage_quality_cycle_policy.py",
+        "tests/test_standard_agent_conformance_profile.py"
       ],
       "forbidden_surfaces": [
         "Yang authority/current_package/publication_eval/controller_decisions",
@@ -2251,7 +2251,7 @@
         "contracts/production_acceptance/mas-production-acceptance.json"
       ],
       "verification_refs": [
-        "tests/test_agent_lab_medical_manuscript_quality.py"
+        "tests/test_standard_agent_conformance_profile.py"
       ],
       "forbidden_surfaces": [
         "Yang authority/current_package/publication_eval/controller_decisions",

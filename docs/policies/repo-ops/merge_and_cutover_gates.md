@@ -65,20 +65,15 @@ Machine boundary: Human-readable repository policy only; enforceable truth remai
 
 至少要有：
 
-- `tests/test_opl_runtime_contract.py`
-- `tests/test_opl_runtime_contract_no_provider_backend.py`
-- `tests/test_adapter_retirement_boundary.py`
-- `tests/test_workspace_runtime_layout.py`
-- `tests/test_runtime_protocol_study_runtime.py`
-- `tests/test_study_runtime_router.py`
-- `tests/test_dev_preflight_contract.py`
-- `make test-meta`
+- `scripts/verify.sh fast`
+- `scripts/verify.sh meta`
+- `tests/test_standard_agent_boundary.py`
+- `tests/test_standard_agent_conformance_profile.py`
+- `git diff --check`
 
-如果当前改动同时触及 activation wording / preflight surface，继续补跑：
-
-- `tests/test_dev_preflight.py`
-- `tests/test_domain_diagnostic_report.py`
-- `tests/test_study_delivery_sync.py`
+如果当前改动同时触及 OPL activation、Package lifecycle 或 hosted preflight，继续在
+冻结 Framework 上运行单仓 `pack-compiler`、`interfaces`、`conformance`、
+`default-callers`、`residue-decisions` 与 `source-closure` readback。
 
 纯 Markdown wording / integration-harness 文案变更只需要人工/Agent documentation review，不再通过 pytest 锁定具体措辞。
 - `tests/test_publication_gate.py`

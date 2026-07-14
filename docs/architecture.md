@@ -20,7 +20,7 @@ OPL generated and hosted surfaces
   runtime / StageRun / StateIndex / lifecycle / observability
                     |
                     v
-MAS domain-handler targets and minimal authority functions
+MAS registry-bound authority function
   medical truth / quality / publication / artifact / memory
   owner receipt / typed blocker / human gate / domain refs
 ```
@@ -102,7 +102,10 @@ bytes 重新完成 fresh Stage Review 与 Meta Review 后才能回到 Handoff。
 跨 Stage 路由仍由 Codex 的领域判断产生，但终局 owner 随 StageRun 形态固定：
 primary-only StageRun 的 producer 作决定；启用 formal Review 时，只有终局
 reviewer 或 re-reviewer 作决定。producer、repairer 和仍返回
-`repair_required` 的 reviewer 只能给 recommendation。机器输出统一为
+`repair_required` 且仍有 repair budget 的 reviewer 只能给 recommendation；
+预算耗尽且已有可消费 artifact 时，该 reviewer / re-reviewer 是终局 decisive
+Attempt，必须给出 route decision，由 controller 投影
+`completed_with_quality_debt`。机器输出统一为
 `route_impact.stage_route_decision` / `stage_route_recommendation`；OPL 只校验
 Attempt 资格与目标是否为 manifest declared Stage，不解释或改写医学语义。
 Reviewer 与 re-reviewer 的质量结果统一写入
@@ -130,23 +133,25 @@ canonical Stage 与既有八个 paper-study physical Stage 的唯一映射也由
 
 ## MAS 保留职责
 
-MAS 只保留不能声明化或上收的 domain authority：
+MAS 的专业能力由 declarative pack、ScholarSkills 与独立 Review 承载；唯一保留的
+非声明式 domain authority 是 registry-bound paper-mission evaluation：
 
 - study/source readiness 与医学研究语义；
 - AI reviewer/auditor 质量记录与 publication gate；
 - canonical paper、evidence、artifact mutation 与 memory accept/reject；
 - owner receipt、typed blocker、human gate 与 route-back decision；
-- domain-native validators/materializers，且不得获得通用 runtime authority。
+- exact host-input validation 与医学 owner answer materialization，且不得获得通用 runtime authority。
 
 Retained surface 的机器 inventory 是 `contracts/authority_kernel_inventory.json`。inventory presence 只证明分类存在，不证明 live ready。
 
 ## Progress control
 
-默认且唯一的 stage-route authority 只有：
+stage-route owner 固定拆分为：
 
-`Codex CLI selected declared stage`
+- `semantic_route_decision_owner=decisive_codex_attempt`
+- `stage_transition_materialization_owner=opl_stage_run_controller`
 
-OPL 可以承载 command/event/outbox/StageRun 和 projection；MAS owner consumption 解释医学结果。旧 provider admission、current work unit、PaperRecovery、domain-action request 和 repo-local controller shell 只能是 tombstone/provenance 或受限 diagnostic，不得重新成为 authority。
+OPL controller 只校验和物化 decisive Attempt 的 route decision，不获得医学语义批准权。MAS owner consumption 解释医学结果。旧 provider admission、current work unit、PaperRecovery、domain-action request 和 repo-local controller shell 只存在于 Git/history provenance，不得重新成为 authority 或 active diagnostic implementation。
 
 ## Generated surface handoff
 

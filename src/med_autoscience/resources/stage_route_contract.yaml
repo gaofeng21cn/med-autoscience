@@ -54,8 +54,10 @@ progress_first_jit_affordance_policy:
     blocker, human gate, or stop-loss instead of starting another advisory loop
 ordinary_progress_handoff_policy:
   source_ref: contracts/stage_run_kernel_profile.json#/ordinary_progress_handoff
-  default_progress_root: codex_cli_selected_stage
-  stage_goal_source: codex_cli_stage_prompt_plus_any_prior_stage_result
+  default_progress_root: decisive_codex_attempt_selected_stage_goal
+  stage_goal_source: decisive_codex_attempt_stage_prompt_plus_any_prior_stage_result
+  semantic_route_decision_owner: decisive_codex_attempt
+  stage_transition_materialization_owner: opl_stage_run_controller
   executor_output_requirement: artifact_or_progress_diagnostic
   accepted_closeout_shapes:
   - ProgressDeltaReceipt

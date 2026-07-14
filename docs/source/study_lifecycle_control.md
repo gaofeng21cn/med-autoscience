@@ -67,15 +67,14 @@ reports/latest_status.json
 - App/Framework 可以只读消费，不得覆盖 lifecycle truth。
 - Token、耗时和历史 attempt 可继续作为诊断证据，但不改变论文业务状态。
 
-## Formal Write Entry
+## Formal Write Boundary
 
-唯一正式写入口是 domain action：
+Lifecycle 变更必须由当前受权 StageAttempt形成 explicit owner request，并由 MAS
+owner-authorized canonical artifact mutation落盘；OPL负责传输、identity、receipt与
+readback，不解释或改写 lifecycle语义。不得恢复已退役的 domain-entry dispatch、
+workspace wrapper或 direct file-edit command。
 
-```text
-med_autoscience.domain_entry:MedAutoScienceDomainEntry.dispatch#set_study_lifecycle
-```
-
-必填字段：
+Owner request至少绑定：
 
 - `profile_ref`
 - `study_id`
@@ -87,7 +86,7 @@ med_autoscience.domain_entry:MedAutoScienceDomainEntry.dispatch#set_study_lifecy
 
 可选字段：`evidence_refs`、`recorded_at`。
 
-该 action 原子写入 per-study current/history，刷新 workspace lifecycle ledger，再通过现有 study workspace status controller 重新物化 inventory。它不修改论文正文，不写 publication eval，不提升 current package，不写 runtime queue 或 provider attempt。
+合法 mutation原子更新 per-study current/history与 workspace inventory refs。它不修改论文正文，不写 publication verdict，不提升 current package，也不写 OPL queue/provider state。
 
 ## Wakeup Gate
 

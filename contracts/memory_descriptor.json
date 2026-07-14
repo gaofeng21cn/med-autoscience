@@ -66,11 +66,6 @@
       "ref": "docs/policies/study-workflow/study_archetypes.md",
       "ref_kind": "human_doc",
       "role": "first_generation_memory_seed"
-    },
-    {
-      "ref": "med_autoscience.research_memory_contract.research_memory_contract",
-      "ref_kind": "python_symbol",
-      "role": "retrieval_writeback_contract"
     }
   ],
   "recall_projection_ref": {

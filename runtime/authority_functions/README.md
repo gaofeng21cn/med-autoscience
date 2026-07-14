@@ -7,15 +7,12 @@ Machine boundary: This directory declares MAS-owned authority functions for OPL 
 
 ## Retained Authority
 
-MAS retains authority for owner receipts, typed blockers, medical research truth, clinical or cohort truth, publication quality verdicts, source-integrity verdicts, artifact mutation authorization, publication route decisions, and memory accept/reject decisions.
+MAS retains the medical criteria and authority for owner receipts, typed blockers, research truth, publication quality, source integrity, artifact mutation, route decisions, and memory acceptance. Open-ended judgments are made by the decisive producer/reviewer roles declared in `agent/`; they are not implemented as repository-local validator functions.
 
 ## OPL Boundary
 
 OPL generated surfaces may consume body-free refs, manifests, lineage refs, and receipts through these boundaries. They must not write medical research truth, clinical truth, manuscript bodies, figure bodies, owner receipt bodies, typed blocker bodies, runtime state, queues, caches, or generated artifacts from this declaration.
 
-## Function Refs
+## Function Ref
 
-- `medical_research_owner_receipt_signer`: MAS-owned closeout authority for stage owner receipts or MAS-owned typed blockers.
-- `publication_quality_gate`: MAS-owned publication quality and integrity gate, including citation, calculation, source, figure-code, and manuscript-readiness checks.
-- `artifact_mutation_authorizer`: MAS-owned authorization surface for manuscript, figure, table, data-product, and submission-package body mutation.
-- `memory_accept_reject_decider`: MAS-owned decision surface for durable medical research memory body acceptance or rejection.
+- `med_autoscience.authority_handlers.paper_mission.evaluate_paper_mission_authority`: pure, registry-bound evaluation of exact OPL-hosted refs. It performs no filesystem, network, process, runtime, package, or lifecycle operation. The callable does not replace independent reviewer/re_reviewer judgment and cannot materialize a Stage transition.

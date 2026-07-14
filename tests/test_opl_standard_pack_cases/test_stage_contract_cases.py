@@ -98,7 +98,7 @@ def test_pack_compiler_input_declares_python_helper_boundary_without_generic_run
 
     helper_implementations = helpers["entries"]
     assert {entry["language"] for entry in helper_implementations} == {"python"}
-    assert {entry["role"] for entry in helper_implementations} == {"domain_helper"}
+    assert {entry["role"] for entry in helper_implementations} == {"authority_function"}
     for entry in helper_implementations:
         assert entry["source_roots"]
         for source_root in entry["source_roots"]:
@@ -156,7 +156,11 @@ def test_zero_readable_stage_output_is_a_progress_diagnostic() -> None:
         (REPO_ROOT / "agent/stages/manifest.json").read_text(encoding="utf-8")
     )
     progress_policy = stage_manifest["progress_first_policy"]
-    assert progress_policy["route_selection_owner"] == "codex_cli"
+    assert progress_policy["semantic_route_decision_owner"] == "decisive_codex_attempt"
+    assert progress_policy["stage_transition_materialization_owner"] == (
+        "opl_stage_run_controller"
+    )
+    assert "route_selection_owner" not in progress_policy
     assert progress_policy["codex_may_advance_skip_repeat_reverse_or_route_back"] is True
     assert progress_policy["any_declared_stage_may_start_from_any_prior_stage_result"] is True
     assert progress_policy["declared_requires_are_quality_context_not_launch_gates"] is True

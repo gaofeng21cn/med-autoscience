@@ -1,72 +1,26 @@
 # Program Portfolio Consolidation
 
-Status: `active_portfolio_governance`
-Last reviewed: `2026-07-11`
 Owner: `MedAutoScience`
-Purpose: `active_program_document_lifecycle`
+Purpose: `active_document_responsibility_map`
 State: `active_support`
-Machine boundary: 本文是人读 program 文档组合治理入口。机器真相继续归 `contracts/`、source、runtime/controller surfaces、product-entry manifest、owner receipts 和真实 workspace evidence。
+Machine boundary: 本文只治理 active 文档职责，不是机器 backlog 或 runtime truth。
 
-## 当前结论
+## 单一职责
 
-`docs/active/` 只承载仍需要执行顺序、owner gate、当前差距或当前完成门槛的文档。它不保存 dated proof ledger、attempt id、分支名、长 closeout 流水或旧 phase checklist。
-
-MAS 当前唯一 gap / completion plan 是 [MAS 理想目标态差距与完善计划](./mas-ideal-state-gap-plan.md)。当前唯一执行地图是 [MAS 当前开发线路](./current-development-lines.md)。本文只说明各 program 文档的唯一职责、归档关系和禁止重复维护的内容。
-
-## 当前 Program 职责表
-
-| document | unique responsibility | state | 不承载 |
-| --- | --- | --- | --- |
-| [MAS 理想目标态差距与完善计划](./mas-ideal-state-gap-plan.md) | 唯一当前 truth、目标态、已落地状态、功能/结构差距、完善顺序、历史索引和禁止误写口径。 | `active_plan` | 不保存 dated closeout、receipt 流水、旧 phase checklist 或 ready/publication evidence worklist。 |
-| [MAS 当前开发线路](./current-development-lines.md) | 唯一内容级执行地图，按 `landed_foundation` / `functional_follow_through_gate` / `production_evidence_gate` 分配后续工作。 | `active_plan_index` | 不成为第二 gap matrix，不冻结瞬时 proof 计数。 |
-| [AI-first 论文自治闭环](./ai_first_paper_autonomy_closure_program.md) | 论文自治目标和验收合同：真实 paper line 上的 artifact delta、gate replay、AI reviewer update、route decision、human gate、stop-loss 或 typed blocker。 | `active_target_and_acceptance_owner` | 不维护 OPL provider 实现、App UI、旧 MDS/Hermes/local scheduler 退役清单。 |
-| [OPL App MAS Runtime Workbench Program](./opl_app_mas_runtime_workbench_program.md) | MAS 输出给 OPL App/workbench 的 refs-only 投影、owner-route handoff refs、stage review / memory drilldown 边界。 | `active_support` | 不复制通用 workbench，不定义 study truth 或 publication readiness。 |
-| [MAS Stage Surface Standardization Program](./stage_surface_standardization_program.md) | Stage / prompt / skill / knowledge / quality gate / review-index 的标准形态和横向守门。 | `active_support` | 不作为 OPL production closure 总计划，不维护长 proof ledger。 |
-| [MAS/MDS Owner Boundary Contract](../policies/runtime-governance/mas_mds_owner_boundary_contract.md) + [MDS absorb guard history](../history/program/mas_single_project_mds_absorb_guard_2026_06_07.md) | MDS retained-role、provenance、archive/import、parity oracle 和 monolith closeout guard。 | `landed_foundation_guard` | 不作为活跃 MDS migration queue，不恢复 MDS 默认 backend。 |
-| [Domain Authority Refs Index Guard](../runtime/domain_authority_refs_index_guard.md) | body-free `med_autoscience.opl_domain_pack.state_index_source_refs`、retired MAS-local StateIndex/SQLite provenance、restore proof 和 stale runtime-control drift guard。 | `landed_foundation_guard` | 不作为 broad runtime refactor board，不授权 study/publication/artifact truth，不恢复 MAS-owned runtime lifecycle/read-model/scheduler。 |
-
-## 历史归位
-
-| content type | target |
+| 文档 | 唯一职责 |
 | --- | --- |
-| full record、旧 phase table、旧 activation package、旧 board、完整命令流水 | `docs/history/program/` |
-| completed framework migration / retirement owner record | `docs/history/program/opl_temporal_mas_runtime_retirement_program.md` |
-| old runtime / outer-loop / wakeup / legacy boundary design | `docs/history/runtime/` |
-| old Domain Harness OS / Open Harness OS / Research Foundry positioning | `docs/history/positioning/` |
-| external learning dated intake | `docs/history/program/*_learning_intake_YYYY_MM_DD.md` |
-| current target / current gap / current execution map | `docs/references/positioning/mas_ideal_state.md`、`docs/active/mas-ideal-state-gap-plan.md`、`docs/active/current-development-lines.md` |
-| stable operating rule | `docs/policies/` |
-| stable runtime/control/projection/display contract explanation | `docs/runtime/` |
-| background support or parity oracle | `docs/references/` |
+| `mas-ideal-state-gap-plan.md` | 结构完成度、Plan Completion Audit 与 Live Evidence tail |
+| `current-development-lines.md` | 当前三类维护线索引 |
+| `mas_executor_first_rearchitecture_program.md` | executor/runtime owner no-resurrection guard |
+| `stage_surface_standardization_program.md` | declarative Stage/Review/route shape |
+| `ai_first_paper_autonomy_closure_program.md` | 真实 paper-line验收合同 |
+| `opl_app_mas_runtime_workbench_program.md` | OPL-owned App refs-only projection boundary |
+| `overengineering-retirement-plan.md` | 已完成 overengineering retirement guard |
 
-## Direct Retirement Rule
+## 生命周期
 
-当旧模块、旧接口、旧 CLI alias、旧 wrapper、旧 facade、旧测试入口或旧文档入口已被当前 owner surface 替代时，默认完成形态是退役，而不是兼容保留：
-
-1. 证明没有 default CLI/MCP/product-entry/app-skill/OPL active caller。
-2. 证明没有 public surface、fixture 或 provenance 必须依赖该旧入口。
-3. 证明 replacement owner surface、history link 或 tombstone contract 已存在。
-4. 删除旧源码、命令 wrapper、alias、facade 和对应兼容测试；测试改断言当前 machine-readable contract、schema、CLI/API、manifest、generated artifact 或 fail-closed 行为。
-
-满足上述条件后，不保留旧名兼容层，不新增聚合兼容测试，也不把旧文档路径当成稳定机器接口。
-
-## 新内容准入
-
-新增 program-like 内容必须先回答四个问题：
-
-1. 是否改变当前功能/结构差距？如果是，更新 `mas-ideal-state-gap-plan.md`；ready / publication / production 证据只路由到 owner evidence surface，不在 active 层维护第二 worklist。
-2. 是否改变实际执行顺序或 gate 分类？如果是，更新 `current-development-lines.md`。
-3. 是否只是 dated proof、closeout、attempt、receipt、branch 或历史解释？如果是，写入 `docs/history/**`，不在 active 或 references 层维护第二份 verification ledger。
-4. 是否变成稳定 runtime / policy / delivery / source / product / reference 规则？如果是，落入对应 canonical 目录，不扩写 active program。
-
-无法回答这些问题的文档不应新增到 active layer。
-
-## 验收
-
-Program 文档治理的完成标准：
-
-- active 层每份文档有唯一任务，不互相维护第二份 gap matrix 或第二份 execution queue。
-- dated evidence、旧 closeout、旧路线和 superseded plan 只在 history/provenance 层保留。
-- MAS 文档只维护 MAS-owned truth、authority、direct/hosted boundary 和上收候选；OPL/MAG/RCA backlog 不写进 MAS active docs。
-- 旧兼容面满足退役条件后直接删除、archive 或 tombstone；不保留兼容 alias、facade、wrapper 或聚合测试。
-- `docs/**` 不作为机器接口；代码和测试依赖 schema、JSON、CLI/API payload、manifest、contract、source path 或 durable semantic ID。
+- 当前事实进入核心五件套、machine contracts或唯一 active plan。
+- dated proof、旧 phase、worktree/commit/receipt流水与退役实现说明进入 Git/history。
+- active 文档不维护第二 gap matrix、第二 route table或第二 runtime model。
+- 已删除 source path 只可在明确 history/provenance中出现，不得作为 current implementation。
+- OPL全局平台计划不复制到 MAS；MAS只记录 domain input、authority boundary与 evidence需求。

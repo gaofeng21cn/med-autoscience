@@ -7,7 +7,7 @@ Machine boundary: 本文解释 package/environment handoff。可执行真相归 
 
 ## 结论
 
-MAS 不再提供 repo-local workspace initializer、editable import bootstrap、Python/R environment builder 或 Codex plugin installer。OPL package lifecycle 安装 MAS runtime source carrier 时，调用 MAS-owned narrow carrier scripts；环境 owner 仍是 OPL Base，依赖环境、uv cache 与 bytecode 全部位于 source checkout 外。
+MAS 不再提供 repo-local workspace initializer、editable import bootstrap、Python/R environment builder、Codex plugin installer 或 runtime healthcheck。OPL Package lifecycle 从 Release Set 或显式 manifest/registry 选择 MAS，原子解析 MAS 与 `mas-scholar-skills` 依赖闭包，并持有 lock、receipt、scope activation、更新、修复、回滚与卸载保护。环境 owner 仍是 OPL Base，依赖环境、uv cache 与 bytecode 全部位于 source checkout 外。
 
 当前 bootstrap 是两部分：
 
@@ -26,15 +26,16 @@ OPL 读取：
 
 canonical domain id 是 `mas`。`med-autoscience` 仅作为 repo/package/plugin locator。
 
-OPL runtime source carrier 使用以下 owner commands：
+用户与 operator 只使用 OPL Package lifecycle：
 
 ```bash
-bash scripts/opl-module-bootstrap.sh
-bash scripts/opl-module-healthcheck.sh
-bash scripts/opl-module-healthcheck.sh --probe
+opl packages install mas --json
+opl packages update mas --json
+opl packages status --package-id mas --json
+opl packages repair mas --json
 ```
 
-bootstrap 默认把依赖环境放到 OPL/user state root，把 uv cache 放到 cache root；OPL 可通过 `OPL_MODULE_RUNTIME_ROOT` / `OPL_MODULE_CACHE_ROOT` 或 MAS-specific override 指定位置。healthcheck 与 probe 不安装依赖、不写 domain truth；probe 只通过 `med_autoscience.domain_entry:MedAutoScienceDomainEntry.dispatch` 执行只读 `mainline-status`。
+workspace / quest 的 Skill materialization 通过 `--scope workspace|quest` 与对应 target 参数进入同一 package closure transaction。`status` 读取 lock、projection、migration 与 lifecycle receipt；`repair` 对当前依赖闭包和 scope materialization fail-closed 修复。上述命令都不写 MAS domain truth、不生成 owner receipt，也不授权 domain 或 production ready。
 
 ## Python packaging
 
@@ -77,7 +78,7 @@ Study workspace lifecycle、locator、StateIndex、retention/restore 与 hosted 
 
 ## 验收
 
-- OPL 能解析 descriptor、pack、22-action catalog 与 schemas；
+- OPL 能解析 descriptor、pack、7-action V2 catalog 与 schemas；
 - OPL 能解析 runtime requirement profile；
 - MAS import 不依赖 checkout path mutation；
 - generated interfaces 不依赖 repo-local installer/workspace initializer；

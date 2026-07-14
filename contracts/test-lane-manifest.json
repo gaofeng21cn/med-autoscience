@@ -1,355 +1,53 @@
 {
-  "schema_version": 1,
+  "schema_version": 2,
   "lanes": {
     "smoke": {
-      "kind": "minimal_entry_contract",
+      "kind": "direct_and_hosted_entry_contract",
       "paths": [
         "tests/test_smoke_entrypoints.py"
-      ],
-      "overlap_policy": "entry_contract_only"
-    },
-    "submission": {
-      "kind": "artifact_materialization_gate",
-      "markers": [
-        "submission_heavy",
-        "materialization_heavy"
-      ],
-      "overlap_policy": "excluded_from_default_regression"
-    },
-    "soak-golden": {
-      "kind": "explicit_runtime_soak_and_golden_oracle_gate",
-      "markers": [
-        "soak_or_golden"
-      ],
-      "overlap_policy": "excluded_from_default_regression_included_in_full"
+      ]
     },
     "fast": {
-      "kind": "developer_fast_contract",
+      "kind": "standard_agent_boundary_and_authority_contract",
       "paths": [
         "tests/test_smoke_entrypoints.py",
+        "tests/test_standard_agent_boundary.py",
+        "tests/test_package_contracts.py",
+        "tests/test_paper_mission_authority_handler_v2.py",
+        "tests/test_stage_quality_cycle_policy.py",
+        "tests/test_stage_manifest_contract_extensions.py",
+        "tests/test_standard_agent_conformance_profile.py",
+        "tests/test_opl_standard_pack_cases/test_stage_contract_cases.py",
+        "tests/test_codex_plugin.py",
+        "tests/test_codex_plugin_scaffold.py",
+        "tests/test_codex_plugin_installer.py",
         "tests/test_test_lane_governance.py"
-      ],
-      "overlap_policy": "entry_and_lane_governance_only",
-      "source_of_truth": [
-        "Makefile",
-        "scripts/verify.sh",
-        "contracts/test-lane-manifest.json",
-        "pyproject.toml"
+      ]
+    },
+    "meta": {
+      "kind": "machine_contract_and_repo_boundary",
+      "markers": [
+        "meta"
       ]
     },
     "regression": {
-      "kind": "explicit_behavior_regression_gate",
-      "marker_expression": "not meta and not display_heavy and not submission_heavy and not materialization_heavy and not family and not soak_or_golden",
-      "overlap_policy": "explicit_advisory_or_release_lane"
+      "kind": "authority_function_behavior",
+      "marker_expression": "not meta"
     },
-    "display": {
-      "kind": "explicit_display_materialization_gate",
-      "markers": [
-        "display_heavy"
-      ],
-      "overlap_policy": "explicit_heavy_lane"
+    "full": {
+      "kind": "complete_repo_test_collection",
+      "paths": [
+        "tests"
+      ]
     },
-    "family": {
-      "kind": "explicit_family_shared_boundary_gate",
-      "markers": [
-        "family"
-      ],
-      "overlap_policy": "explicit_family_lane"
+    "structure": {
+      "kind": "repo_hygiene_and_source_structure"
     }
   },
   "marker_registry": [
     "meta",
-    "display_heavy",
-    "submission_heavy",
-    "family",
     "contract",
     "integration",
-    "materialization_heavy",
-    "soak_or_golden"
-  ],
-  "focused_lanes": {
-    "control-plane": {
-      "kind": "focused_owner_surface_gate",
-      "overlap_policy": "allowed_with_regression"
-    },
-    "control-plane-autonomy": {
-      "kind": "focused_autonomy_control_surface_gate",
-      "paths": [],
-      "overlap_policy": "allowed_with_regression",
-      "authority_boundary": "read_only_inventory_and_observability"
-    },
-    "outer-supervision-slo": {
-      "kind": "focused_outer_supervision_slo_contract_gate",
-      "paths": [
-        "tests/test_opl_unique_control_plane_boundary.py",
-        "tests/test_opl_runtime_contract.py",
-        "tests/test_runtime_supervision.py",
-        "tests/paper_mission_owner_surface_cases/test_owner_route_attempt_protocol.py",
-        "tests/study_progress_cases",
-        "tests/test_mas_workspace_domain_projection.py"
-      ],
-      "overlap_policy": "allowed_with_regression",
-      "authority_boundary": "scheduler_bound_read_model_safe_reconcile_projection",
-      "implementation_status": "landed_standard_agent_purity_guard",
-      "active_path_role": "opl_replacement_default",
-      "default_scheduler_owner": "opl_current_control_state",
-      "default_adapter_id": "opl_family_runtime_provider",
-      "mas_repo_local_watch_loop_retired": true,
-      "default_tick_interval_seconds": 300,
-      "replacement_owner": "one-person-lab",
-      "replacement_owner_surface": "opl_current_control_state_refs_only",
-      "replacement_contract_expected_capabilities": [
-        "scheduler_lifecycle",
-        "cadence_slo",
-        "job_registry_latest_run_projection",
-        "provider_slo",
-        "wakeup_transport",
-        "attempt_queue_retry_dead_letter",
-        "operator_projection"
-      ],
-      "mas_domain_authority_after_migration": [
-        "paper_progress_slo_semantics",
-        "mas_owner_receipt",
-        "typed_blocker",
-        "safe_action_refs",
-        "quality_source_refs",
-        "no_forbidden_write_evidence"
-      ],
-      "resident_daemon_allowed": false,
-      "retired_workspace_local_service_allowed": false,
-      "purity_proof_required": [
-        "opl_replacement_contract_available",
-        "replacement_proof",
-        "standard_agent_purity_guard",
-        "no_forbidden_write",
-        "focused_cli_status_tests",
-        "git_diff_check"
-      ],
-      "standard_agent_purity_guard": {
-        "default_caller_count": 0,
-        "runtime_package_residue_count": 0,
-        "retired_alias_residue_refs": [],
-        "history_detail_in_default_read_model": false
-      },
-      "history_detail_in_default_read_model": false
-    },
-    "mas-durable-autonomy-closeout": {
-      "kind": "focused_mas_durable_autonomy_closeout_gate",
-      "paths": [
-        "tests/test_autonomy_ai_doctor.py",
-        "tests/test_opl_unique_control_plane_boundary.py",
-        "tests/test_paper_mission_owner_surface.py",
-        "tests/test_opl_runtime_contract.py",
-        "tests/test_opl_runtime_contract_no_provider_backend.py"
-      ],
-      "overlap_policy": "allowed_with_regression",
-      "authority_boundary": "slo_breach_progress_pressure_continuation_projection_only",
-      "implementation_status": "landed_standard_agent_purity_guard",
-      "surface_kind": "autonomy_progress_slo_status",
-      "required_breach_fields_when_state_breach": [
-        "breach_reason",
-        "breach_explanation"
-      ],
-      "required_progress_pressure_fields_when_no_outcome_or_timeout": [
-        "status",
-        "purpose",
-        "no_progress_is_terminal_failure",
-        "timeout_is_terminal_failure",
-        "continuation_required",
-        "quality_gate_relaxation_allowed"
-      ],
-      "progress_pressure_terminal_policy": "no_outcome_timeout_and_no_delta_are_non_terminal_continuation_pressure_unless_stop_loss_hard_human_gate_or_external_provider_blocker",
-      "allowed_breach_explanation_categories": [
-        "owner_route",
-        "human_gate",
-        "bundle_blocker",
-        "quality_repair",
-        "worker_recovery",
-        "safe_reconcile_dry_run"
-      ],
-      "required_continuity_refs": [
-        "worker_lease",
-        "checkpoint_lineage",
-        "retry_budget",
-        "idempotent_dispatch",
-        "controller_apply_receipt"
-      ],
-      "default_scheduler_owner": "opl_current_control_state",
-      "default_adapter_id": "opl_family_runtime_provider",
-      "active_path_role": "opl_replacement_default",
-      "replacement_owner": "one-person-lab",
-      "replacement_owner_surface": "opl_current_control_state_refs_only",
-      "resident_daemon_allowed": false,
-      "forbidden_authority_writes": [
-        "paper/current_package",
-        "manuscript/current_package",
-        "paper/submission_minimal",
-        "manuscript/submission_minimal",
-        "publication_eval/latest.json",
-        "controller_decisions/latest.json",
-        "domain_authority_refs.sqlite",
-        "restore_archive"
-      ],
-      "standard_agent_purity_guard": {
-        "default_caller_count": 0,
-        "runtime_package_residue_count": 0,
-        "retired_alias_residue_refs": [],
-        "history_detail_in_default_read_model": false
-      },
-      "history_detail_in_default_read_model": false
-    },
-    "mas-workbench-projection": {
-      "kind": "focused_mas_opl_runtime_workbench_projection_gate",
-      "paths": [],
-      "docs": [
-        "docs/active/opl_app_mas_runtime_workbench_program.md"
-      ],
-      "overlap_policy": "allowed_with_regression",
-      "authority_boundary": "read_only_opl_app_projection_no_mas_truth_transfer",
-      "implementation_status": "landed_read_only_projection",
-      "surface_kind": "mas_opl_runtime_workbench_projection",
-      "truth_owner": "MedAutoScience",
-      "consumer_role": "opl_app_projection_consumer_and_action_transport_only",
-      "workbench_projection_fields": [
-        "paper_route_lens.current_route",
-        "paper_route_lens.route_attempts",
-        "paper_route_lens.route_attempt_counts",
-        "paper_route_lens.owner_receipt_refs",
-        "paper_route_lens.typed_blocker_refs",
-        "paper_route_lens.reviewer_gate_refs",
-        "paper_route_lens.artifact_refs",
-        "paper_route_lens.source_refs",
-        "paper_route_lens.workspace_refs",
-        "paper_route_lens.next_route_refs",
-        "paper_route_lens.next_action_refs"
-      ],
-      "forbidden_authority_writes": [
-        "study_truth",
-        "publication_eval/latest.json",
-        "controller_decisions/latest.json",
-        "domain_authority_refs.sqlite",
-        "terminal_commands",
-        "current_package",
-        "paper/current_package",
-        "manuscript/current_package",
-        "paper/submission_minimal",
-        "manuscript/submission_minimal",
-        "evidence_ledger",
-        "review_ledger"
-      ]
-    },
-    "paper-progress-degradation-closeout": {
-      "kind": "focused_paper_progress_degradation_closeout_gate",
-      "paths": [
-        "tests/test_mds_capability_parity.py",
-        "tests/test_study_runtime_execution_evidence_adoption_cases/test_standard_agent_purity_boundary.py",
-        "tests/paper_mission_owner_surface_cases/test_non_persistent_scan_projection.py",
-        "tests/paper_mission_owner_surface_cases/test_control_surface_artifact_delta.py",
-        "tests/test_opl_runtime_contract.py",
-        "tests/test_runtime_supervision.py",
-        "tests/paper_mission_owner_surface_cases/test_owner_route_attempt_protocol.py",
-        "tests/test_paper_autonomy_stability_evidence.py",
-        "tests/study_progress_cases"
-      ],
-      "overlap_policy": "allowed_with_regression",
-      "authority_boundary": "paper_progress_read_model_owner_handoff_guard",
-      "implementation_status": {
-        "paper_progress_degradation_classifier": "landed",
-        "opl_stage_attempt_receipt_current_identity_gate": "landed",
-        "paper_progress_stall_safe_reconcile": "landed",
-        "paper_progress_degradation_evidence": "landed_read_model",
-        "production_blocker_impact_projection": "landed"
-      },
-      "production_degrading_overlays": [
-        "owner_handoff_dispatch",
-        "work_unit_redrive"
-      ],
-      "dry_run_dispatch_policy": "zero_codex_dispatch",
-      "apply_dispatch_guard": "explicit_opl_execution_authorization_for_current_stage_run_identity",
-      "projection_fields": [
-        "affects_output",
-        "next_owner",
-        "why_not_running",
-        "same_fingerprint_or_handoff",
-        "will_start_llm",
-        "safe_reconcile_command",
-        "route",
-        "source_refs"
-      ],
-      "forbidden_runtime_regressions": [
-        "default_mds_daemon_dependency",
-        "default_mds_webui_dependency",
-        "old_workspace_local_service_manager"
-      ],
-      "forbidden_authority_writes": [
-        "current_package",
-        "paper/current_package",
-        "manuscript/current_package",
-        "paper/submission_minimal",
-        "manuscript/submission_minimal",
-        "publication_eval/latest.json",
-        "controller_decisions/latest.json",
-        "study_truth",
-        "quality_ready",
-        "publication_ready",
-        "submission_ready",
-        "domain_authority_refs.sqlite",
-        "restore_archive"
-      ]
-    },
-    "paper-autonomy-stability-evidence": {
-      "kind": "focused_paper_autonomy_stability_evidence_gate",
-      "paths": [
-        "tests/test_paper_autonomy_stability_evidence.py",
-        "tests/test_legacy_active_path_retire.py"
-      ],
-      "overlap_policy": "allowed_with_regression",
-      "authority_boundary": "read_only_evidence_no_publication_authority",
-      "implementation_status": "evidence_read_model_landed",
-      "completion_claim_rule": "landed_only_when_real_evidence_has_no_blockers",
-      "fallback_status": "evidence_landed_with_blockers",
-      "forbidden_authority_writes": [
-        "current_package",
-        "publication_eval/latest.json",
-        "controller_decisions/latest.json",
-        "domain_authority_refs.sqlite",
-        "restore_archive"
-      ]
-    },
-    "mas-entry-boundary": {
-      "kind": "focused_mas_v2_stage_registry_boundary_gate",
-      "paths": [
-        "tests/test_test_lane_governance.py",
-        "tests/test_domain_entry.py",
-        "tests/test_domain_entry_contract.py",
-        "tests/test_paper_mission_authority_handler_v2.py",
-        "tests/test_opl_standard_pack_cases/test_generated_interface_cases.py",
-        "tests/test_codex_plugin.py",
-        "tests/test_codex_plugin_scaffold.py"
-      ],
-      "docs": [
-        "docs/status.md",
-        "docs/architecture.md",
-        "docs/runtime/control/controllers.md"
-      ],
-      "overlap_policy": "allowed_with_regression",
-      "authority_boundary": "opl_hosted_stage_actions_and_registry_bound_minimal_authority_handler_no_private_command_surface",
-      "source_of_truth": [
-        "contracts/action_catalog.json",
-        "contracts/domain_handler_registry.json",
-        "contracts/source_closure_audit.json",
-        "agent/stages/manifest.json",
-        "agent/primary_skill/SKILL.md",
-        "plugins/med-autoscience/skills/med-autoscience/SKILL.md",
-        "plugins/med-autoscience/.codex-plugin/plugin.json",
-        "docs/runtime/control/controllers.md"
-      ],
-      "policy_refs": [
-        "contracts/generated_surface_handoff.json",
-        "contracts/pack_compiler_input.json",
-        "docs/architecture.md",
-        "docs/status.md"
-      ]
-    }
-  }
+    "family"
+  ]
 }

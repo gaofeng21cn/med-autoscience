@@ -5,7 +5,7 @@
     {
       "file": "scripts/repo_hygiene_audit.py",
       "symbol": "_default_repo_root",
-      "source_digest": "sha256:cc5a98b54f28f6cea9d980dd86cf805db5c70e65240123922ebcf9a55c4e480c",
+      "source_digest": "sha256:2d8c318a08501b220307e0d7e36afd39c5d35c9243b3c60a473c7f961f92142c",
       "allowed_effects": [
         "process_spawn"
       ],
@@ -18,7 +18,7 @@
     {
       "file": "scripts/repo_hygiene_audit.py",
       "symbol": "audit_tracked_paths",
-      "source_digest": "sha256:cc5a98b54f28f6cea9d980dd86cf805db5c70e65240123922ebcf9a55c4e480c",
+      "source_digest": "sha256:2d8c318a08501b220307e0d7e36afd39c5d35c9243b3c60a473c7f961f92142c",
       "allowed_effects": [
         "process_spawn"
       ],
@@ -31,7 +31,7 @@
     {
       "file": "scripts/repo_hygiene_audit.py",
       "symbol": "audit_active_surface_residue",
-      "source_digest": "sha256:cc5a98b54f28f6cea9d980dd86cf805db5c70e65240123922ebcf9a55c4e480c",
+      "source_digest": "sha256:2d8c318a08501b220307e0d7e36afd39c5d35c9243b3c60a473c7f961f92142c",
       "allowed_effects": [
         "process_spawn"
       ],
@@ -44,7 +44,7 @@
     {
       "file": "scripts/repo_hygiene_audit.py",
       "symbol": "_is_git_ignored",
-      "source_digest": "sha256:cc5a98b54f28f6cea9d980dd86cf805db5c70e65240123922ebcf9a55c4e480c",
+      "source_digest": "sha256:2d8c318a08501b220307e0d7e36afd39c5d35c9243b3c60a473c7f961f92142c",
       "allowed_effects": [
         "process_spawn"
       ],
@@ -57,7 +57,7 @@
     {
       "file": "scripts/repo_hygiene_audit.py",
       "symbol": "_remove_path",
-      "source_digest": "sha256:cc5a98b54f28f6cea9d980dd86cf805db5c70e65240123922ebcf9a55c4e480c",
+      "source_digest": "sha256:2d8c318a08501b220307e0d7e36afd39c5d35c9243b3c60a473c7f961f92142c",
       "allowed_effects": [
         "filesystem_write"
       ],

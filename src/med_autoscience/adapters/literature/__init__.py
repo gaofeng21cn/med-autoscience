@@ -1,1 +1,0 @@
-"""Medical literature adapter modules."""

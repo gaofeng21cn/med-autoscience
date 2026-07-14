@@ -22,9 +22,33 @@
     "status": "request_only",
     "action_id": "opl_pack_provision_submission_resource"
   },
+  "hosted_receipt_consumer": {
+    "owner": "OPL Pack",
+    "consumer": "opl_hosted_stage_action_preflight",
+    "request_action_id": "opl_pack_provision_submission_resource",
+    "receipt_surface_kind": "opl_pack_submission_resource_receipt",
+    "receipt_version": "opl-pack-submission-resource-receipt.v1",
+    "required_fields": [
+      "surface_kind",
+      "version",
+      "request_id",
+      "package_id",
+      "resource_id",
+      "exact_path",
+      "content_sha256",
+      "materialization_status",
+      "package_lifecycle_receipt_ref"
+    ],
+    "accepted_materialization_status": "materialized",
+    "consumption_policy": "validate_exact_path_and_digest_then_pass_refs_to_the_stage_attempt",
+    "missing_or_mismatched_receipt_effect": "return_the_same_request_only_action_without_local_fallback"
+  },
   "authority_boundary": {
     "mas_can_download_resources": false,
     "network_fallback_allowed": false,
-    "requires_existing_exact_path": true
+    "requires_existing_exact_path": true,
+    "mas_can_materialize_or_repair_resource": false,
+    "pack_receipt_is_medical_or_submission_verdict": false,
+    "pack_receipt_is_owner_receipt": false
   }
 }

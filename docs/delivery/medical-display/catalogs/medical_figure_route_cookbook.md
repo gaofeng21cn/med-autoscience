@@ -3,11 +3,11 @@
 Owner: `MedAutoScience`
 Purpose: `Maintain the human-readable paper-facing figure route cookbook for MAS delivery work.`
 State: `active_support`
-Machine boundary: Human-readable delivery route taxonomy only. Dispatchable figure-route truth remains in `src/med_autoscience/figure_routes.py`, domain-handler figure-route contracts, renderer/template source, tests, contracts, generated artifacts, and audit receipts.
+Machine boundary: Human-readable delivery route taxonomy only. Current execution truth remains in the six Stage actions, MAS ScholarSkills figure capabilities, OPL-hosted tool execution, Stage Review receipts, contracts, generated artifacts, and owner receipts.
 
 这份 cookbook 学习 `DeepScientist` paper-plot refresh 的做法，但只吸收“图形路线要有可复用 cookbook、输入 contract 和审阅标准”的方法。
 
-这里的 `route` 指 paper-facing display route family，不是 MAS domain-handler 或 OPL dispatcher route id。当前可解析的 figure-route metadata 只允许 `figure_script_fix:<figure-id>` 和 `figure_illustration_program:<figure-id>`；旧 `sidecar:<figure-id>`、autofigure 或外部绘图 route 已退役并 fail closed。若需要判断 dispatchable route、renderer family 或 artifact-authority 边界，读 [Domain Handler Figure Routes](../contracts/domain_handler_figure_routes.md)、`src/med_autoscience/figure_routes.py` 和 focused tests。
+这里的 `route` 指 paper-facing display 方法族，不是 MAS domain-handler 或 OPL dispatcher route id。具体图件工作由当前 Stage prompt 调用 `medical-figure-design` / `medical-figure-style` / `medical-figure-composer`，OPL 只托管工具与 Attempt；artifact quality 由独立 Review 判断，publication/export authority 仍归 MAS owner surface。旧 sidecar、autofigure 与 repo-local renderer route 不得恢复。
 
 ## 稳定医学图形路线
 

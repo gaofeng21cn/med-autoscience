@@ -1,56 +1,31 @@
-# MAS 当前开发线路
+# MAS Current Development Lines
 
 Owner: `MedAutoScience`
-Purpose: `active_line_index`
-State: `active_support_index`
-Machine boundary: 本文是人读索引。唯一结构完成度入口是 [MAS 理想目标态差距与完善计划](./mas-ideal-state-gap-plan.md)。
+Purpose: `current_development_line_index`
+State: `active_support`
+Machine boundary: 本文只做当前维护线索引；结构完成度归 `mas-ideal-state-gap-plan.md`，运行与论文事实归 OPL/MAS owner surfaces。
 
-## 当前主线
+## 当前结论
 
-MAS repo 当前只维护两类工作：
+Repo/source/control-plane 结构已关闭。当前不再有“迁移 MAS 私有 runtime”的开发线；
+后续变更只能落入以下三类。
 
-1. `Declarative Medical Research Pack`
-   - stages、prompts、knowledge、quality gates；
-   - 六个公开 Stage action、一个内部 registry-bound authority action、V2 schemas 与 domain route/profile；
-   - runtime environment requirement profile；
-   - primary skill 与 plugin carrier currentness。
-
-2. `Minimal Medical Authority Functions`
-   - study/source truth；
-   - AI reviewer/publication quality；
-   - artifact/memory authority；
-   - owner receipt、typed blocker、human gate、route-back。
-
-CLI、MCP、product-entry、status、workbench、runtime lifecycle、StateIndex、storage/health 和环境 provisioning 归 OPL generated/hosted surfaces，不再是 MAS 开发线。
-
-## Active lines
-
-| Line | Owner | 当前工作 |
+| Line | Owner | 允许范围 |
 | --- | --- | --- |
-| Pack currentness | MAS | action/schema/stage/skill declarations 与 OPL compiler input 同步 |
-| Medical authority | MAS | 最小 authority function、forbidden-write guard、owner receipts |
-| Generated interfaces | OPL | 从 catalog 生成 CLI/MCP/Skill/product/status/workbench |
-| Runtime platform | OPL | StageRun、StateIndex、queue/attempt、lifecycle/storage、observability |
-| Live evidence | MAS + OPL owners | fresh runtime/paper/quality/publication receipts；独立后置 |
-| Structural closeout | MAS + OPL maintainers | V2 public/default cutover 已关闭；遗留 internal callers/source-closure/物理删除与最终双仓吸收仍待关闭 |
+| Declarative domain evolution | MAS | Stage、prompt、knowledge、quality gate、action/schema、医学 policy |
+| Shared platform evolution | OPL | generated surfaces、StageRun/Attempt、workspace/source/artifact/memory locator、package/provider/lifecycle/App shell |
+| Live owner evidence | MAS + OPL | 真实 paper artifact、independent Review、owner receipt、publication/release readback |
 
-## 已关闭结构线
+## 维护门
 
-OE-01 至 OE-12 中 OE-03、OE-11 仍为 `partial`。旧 bootstrap、pytest aggregation、StateIndex pilot、installer、retirement subsystem、workbench、Tool Arsenal、CLI/MCP glue 与 legacy next-action producer 已退出 public/default surface；仍有 active caller 的 `domain_entry/mainline/read-model/queue` 源码只能作为迁移 residue，不能写成已物理退役。
+- 新通用能力先检查 OPL Pack / Connect / Runway / Ledger / Workspace / Console 是否已有 owner surface。
+- MAS 新程序面只允许一个已登记的医学 authority function；新增候选必须证明无法声明化或上收。
+- primary skill 与 plugin carrier 必须字节一致。
+- source allowlist、no-resurrection scan、source closure、interfaces/conformance/default-callers/residue 必须保持关闭。
+- Live Evidence 缺失只形成后置证据项，不得恢复 MAS-local wrapper、diagnostic runtime 或 persistence。
 
-`scripts/run-build-clean.sh` 继续承担正式 build-isolation；已退役的是旧 runtime/editable clean runner，不得把两者混写。Provider、paper progress、reviewer/publication、submission 与 production readiness 仍是独立 `partial_deferred` evidence tail。
+## 当前 evidence tail
 
-## 维护规则
-
-- 新需求先判断是 domain declaration/authority，还是 OPL platform responsibility。
-- Platform requirement 写成 OPL-owned contract/ref，不在 MAS 新建 wrapper。
-- Live evidence 不用 docs、tests、dry-run 或 projection 替代。
-- 历史过程读 Git 与 `docs/history/`，不回填到 active docs。
-
-## 导航
-
-- [Active truth plan](./mas-ideal-state-gap-plan.md)
-- [Project](../project.md)
-- [Architecture](../architecture.md)
-- [Status](../status.md)
-- [Runtime boundary](../runtime/contracts/runtime_boundary.md)
+真实 StageRun、provider long-soak、paper semantic delta、independent reviewer receipt、
+publication/submission owner verdict 与 release/install readback 仍按各自 authority surface
+验收。它们不是 repo 结构 backlog。

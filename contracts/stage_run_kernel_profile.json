@@ -32,7 +32,8 @@
   "kernel_role": "minimal_state_shell_not_mas_controller_system",
   "stage_folder_manifest_role": "artifact_evidence_and_structure_contract",
   "codex_semantic_route_policy": {
-    "semantic_owner": "codex_cli",
+    "semantic_route_decision_owner": "decisive_codex_attempt",
+    "stage_transition_materialization_owner": "opl_stage_run_controller",
     "readable_artifact_allows_any_declared_stage": true,
     "provider_completion_is_route_decision": false,
     "file_presence_without_readability_is_progress": false,
@@ -114,7 +115,7 @@
       "Running": "Provider attempt has live proof.",
       "Terminalizing": "Provider wrote a closeout packet and OPL is ingesting terminal refs.",
       "DomainAccepted": "Passive projection observed readable progress, an owner answer, or a legal hard stop; this is not semantic route authority.",
-      "NextStageReady": "Passive projection observed the next stage selected by Codex CLI."
+      "NextStageReady": "The OPL StageRun controller validated and materialized the declared target recommended by the decisive Attempt."
     },
     "provider_completion_counts_as_domain_accepted": false,
     "stage_folder_files_count_as_next_stage_ready": false,
@@ -157,7 +158,9 @@
   "ordinary_progress_handoff": {
     "surface_kind": "mas_ordinary_progress_handoff_policy",
     "version": "ordinary-progress-handoff.v1",
-    "default_progress_root": "codex_cli_selected_stage",
+    "default_progress_root": "decisive_codex_attempt_selected_stage_goal",
+    "semantic_route_decision_owner": "decisive_codex_attempt",
+    "stage_transition_materialization_owner": "opl_stage_run_controller",
     "stage_goal_source": "codex_cli_stage_prompt_plus_any_prior_stage_result",
     "executor_output_requirement": "artifact_or_progress_diagnostic",
     "accepted_closeout_shapes": [

@@ -25,7 +25,7 @@ qc_profiles = ["publication_evidence_curve"]
 ai_policy = "ai_visual_audit_only_no_claim_carriage"
 goldens = ["templates/roc_curve_binary/goldens/minimal"]
 exemplars = ["link-only:paperplot-example"]
-provenance = ["contract:display-pack-contract.v2"]
+provenance = ["capability:medical-figure-design"]
 
 [opl_handoff]
 status = "opl_hosted_stage_affordance"

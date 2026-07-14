@@ -3,7 +3,7 @@
 Owner: `MedAutoScience`
 Purpose: `external_pattern_learning_reference`
 State: `active_support`
-Machine boundary: 人读学习记录。机器可读投影见 `src/med_autoscience/ars_learning_projection.py`、`product_entry_manifest.ars_learning_projection`、`domain_handler_export.ars_learning_projection` 和 `contracts/opl-framework/family-contract-adoption.json#academic_research_skills_learning_projection`。
+Machine boundary: 人读 refs-only 学习记录。需要被当前 Stage 消费的内容进入 `agent/knowledge/`、`agent/skills/` 或 ScholarSkills；通用 projection、worker 与 adoption 合同归 OPL Framework，MAS 不保留私有 callable 或复制的 Framework contract。
 
 Landing boundary: 本 reference 记录 ARS pattern 与 MAS-native projection；它不单独证明 worker / executor / owner callable 已落地。是否可写成 landed，按 [External Learning Adoption Closure Runbook](../../runtime/control/external_learning_adoption_closure.md) 的 landing status 判断；缺 owner surface、read-model consumer、worker/sidecar slot、callable/action catalog 或验证时必须继续标为 gap。
 

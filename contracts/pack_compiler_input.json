@@ -1,17 +1,14 @@
 {
-  "ai_first_record_validator_function_ids": [
-    "artifact_mutation_authorization"
-  ],
-  "ai_first_stage_gate_function_ids": [
+  "domain_review_decision_ids": [
     "publication_quality_verdict",
     "ai_reviewer_quality_decision",
+    "artifact_mutation_authorization",
     "publication_route_memory_accept_reject",
     "source_readiness_verdict"
   ],
   "allowed_judgment_modes": [
-    "ai_first_stage_gate",
-    "ai_first_record_validator",
-    "mechanical_guard"
+    "decisive_reviewer_judgment",
+    "registry_bound_authority_evaluation"
   ],
   "authority_boundary": {
     "agent_pack_owner": "MedAutoScience",
@@ -59,7 +56,7 @@
     "queue_completion_as_publication_route_memory_accept_reject",
     "file_presence_as_source_readiness_verdict"
   ],
-  "gate_validator_ref": "src/med_autoscience/controllers/ai_first_private_authority.py::validate_ai_first_private_authority_gate",
+  "stage_quality_receipt_contract_ref": "contracts/stage_quality_cycle_policy.json#/shared_surface_contracts/review_receipt",
   "generated_surface_owner": "one-person-lab",
   "implementation_profile": {
     "profile_id": "opl.standard_domain_agent.v1",
@@ -73,9 +70,9 @@
       "entries": [
         {
           "language": "python",
-          "role": "domain_helper",
+          "role": "authority_function",
           "source_roots": [
-            "src/med_autoscience/"
+            "src/med_autoscience/authority_handlers/"
           ]
         }
       ],
@@ -128,7 +125,7 @@
       "ranking_and_proximity_authority": "advisory_only",
       "testability_safety_owner": "MedAutoScience"
     },
-    "candidate_promotion_requires_validator": true,
+    "candidate_promotion_requires_review_receipt": true,
     "candidate_required_ref_families": [
       "hypothesis_candidate_ref",
       "assumption_ref",
@@ -147,7 +144,8 @@
     "candidate_validation_output_contract": {
       "degraded_status": "completed_with_quality_debt",
       "can_promote_candidate_requires": "all_required_ref_families_present",
-      "route_back_selection_owner": "codex_cli",
+      "semantic_route_decision_owner": "decisive_codex_attempt",
+      "stage_transition_materialization_owner": "opl_stage_run_controller",
       "route_back_may_target_any_declared_stage": true,
       "success_status": "validated"
     },
@@ -179,7 +177,7 @@
     "progress_enhancement_refs_block_route": false,
     "schema_version": 1,
     "surface_kind": "mas_hypothesis_portfolio_evidence_pack_contract",
-    "validator_ref": "src/med_autoscience/opl_domain_pack/hypothesis_portfolio_pack.py::validate_hypothesis_portfolio_candidate_refs"
+    "validation_contract_ref": "contracts/stage_quality_cycle_policy.json#/quality_cycle_defaults/formal_review"
   },
   "independent_executor_reviewer_agent_policy": {
     "attempt_roles": [
@@ -208,22 +206,11 @@
     "separate_task_record_required": true,
     "surface_kind": "independent_executor_reviewer_agent_policy"
   },
-  "mechanical_guard_function_ids": [
-    "owner_receipt_signer",
-    "medical_helper_implementation"
-  ],
   "minimal_authority_functions": [
-    "paper_mission_authority_evaluate",
-    "publication_quality_stage_gate_boundary",
-    "ai_reviewer_quality_stage_gate_boundary",
-    "artifact_mutation_stage_gate_boundary",
-    "publication_route_memory_accept_reject_stage_gate_boundary",
-    "source_readiness_stage_gate_boundary",
-    "owner_receipt_signer",
-    "medical_native_helper_implementation"
+    "paper_mission_authority_evaluate"
   ],
-  "minimal_authority_semantic_model": "ai_first_stage_quality_gate_boundaries_not_script_function_verdicts",
-  "program_output_policy": "programs_validate_ai_first_stage_gate_records_and_emit_receipts_or_typed_blockers_only",
+  "minimal_authority_semantic_model": "registry_bound_pure_authority_function_plus_declarative_decisive_reviewer_contracts",
+  "program_output_policy": "the_registry_bound_authority_function_validates_exact_host_injected_records; decisive_reviewer_attempts_make_medical_judgments",
   "required_domain_pack_paths": [
     "agent/knowledge/hypothesis_portfolio_evidence_pack.md",
     "agent/knowledge/medical_research_truth.md",
@@ -254,7 +241,7 @@
     "agent/tools/domain_affordances.md"
   ],
   "requires_ai_first_record": true,
-  "runtime_enforcement_status": "contract_validator_landed",
+  "runtime_enforcement_status": "opl_hosted_stage_quality_receipt_and_registry_bound_authority_handler",
   "schema_version": 1,
   "source_refs": {
     "action_catalog": "contracts/action_catalog.json",
@@ -264,7 +251,7 @@
     "executor_policy_source_ref": "opl-generated:family_stage_control_plane#/stages/0/selected_executor",
     "domain_handler_registry": "contracts/domain_handler_registry.json",
     "generated_surface_handoff_source_ref": "contracts/generated_surface_handoff.json",
-    "memory_descriptor": "src/med_autoscience/opl_domain_pack/family_adoption.py::build_domain_memory_descriptor",
+    "memory_descriptor": "contracts/memory_descriptor.json",
     "runtime_environment_requirement_profile": "contracts/runtime_environment_requirements.json",
     "owner_receipt_schema_source_ref": "contracts/owner_receipt_contract.json",
     "quality_gate_source_ref": "agent/quality_gates/ai_reviewer_auditor_gate.md",
@@ -307,7 +294,8 @@
       "decision_output_owner": "independent_reviewer_auditor_agent",
       "judgment_mode": "ai_first_stage_gate",
       "program_may_emit_pass_ready_verdict": false,
-      "program_role": "validator",
+      "program_role": "none_declarative_reviewer_boundary",
+      "review_receipt_contract_ref": "contracts/stage_quality_cycle_policy.json#/shared_surface_contracts/review_receipt",
       "required_record_refs": [
         "ai_reviewer_record",
         "quality_pack_evidence_refs"
@@ -327,7 +315,8 @@
       "decision_output_owner": "independent_reviewer_auditor_agent",
       "judgment_mode": "ai_first_stage_gate",
       "program_may_emit_pass_ready_verdict": false,
-      "program_role": "validator",
+      "program_role": "none_declarative_reviewer_boundary",
+      "review_receipt_contract_ref": "contracts/stage_quality_cycle_policy.json#/shared_surface_contracts/review_receipt",
       "required_record_refs": [
         "ai_reviewer_record",
         "reviewer_operating_system_trace"
@@ -346,7 +335,8 @@
       "decision_output_owner": "independent_reviewer_auditor_agent",
       "judgment_mode": "ai_first_record_validator",
       "program_may_emit_pass_ready_verdict": false,
-      "program_role": "materializer",
+      "program_role": "none_declarative_reviewer_boundary",
+      "review_receipt_contract_ref": "contracts/stage_quality_cycle_policy.json#/shared_surface_contracts/review_receipt",
       "required_record_refs": [
         "quality_pack_evidence_refs",
         "artifact_rebuild_proof"
@@ -366,7 +356,8 @@
       "decision_output_owner": "independent_reviewer_auditor_agent",
       "judgment_mode": "ai_first_stage_gate",
       "program_may_emit_pass_ready_verdict": false,
-      "program_role": "guard",
+      "program_role": "none_declarative_reviewer_boundary",
+      "review_receipt_contract_ref": "contracts/stage_quality_cycle_policy.json#/shared_surface_contracts/review_receipt",
       "required_record_refs": [
         "publication_route_memory_body",
         "memory_writeback_receipt_refs"
@@ -386,7 +377,8 @@
       "decision_output_owner": "independent_reviewer_auditor_agent",
       "judgment_mode": "ai_first_stage_gate",
       "program_may_emit_pass_ready_verdict": false,
-      "program_role": "validator",
+      "program_role": "none_declarative_reviewer_boundary",
+      "review_receipt_contract_ref": "contracts/stage_quality_cycle_policy.json#/shared_surface_contracts/review_receipt",
       "required_record_refs": [
         "study_charter",
         "quality_pack_evidence_refs"
@@ -513,8 +505,8 @@
   },
   "standard_stage_gate_output_model": {
     "executor_output": "stage_work_artifact_source_evidence_refs_and_execution_receipt",
-    "program_output": "provenance_currentness_schema_receipt_or_typed_blocker",
-    "reviewer_output": "independent_ai_reviewer_or_auditor_gate_record",
+    "authority_function_output": "deterministic_domain_authority_result_over_exact_host_injected_refs",
+    "reviewer_output": "canonical_independent_reviewer_attempt_outcome_materialized_by_opl_as_stage_review_receipt",
     "self_review_closes_gate": false
   },
   "standard_stage_pack_conformance": {

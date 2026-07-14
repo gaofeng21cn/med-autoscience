@@ -1,68 +1,47 @@
-# Runtime 文档生命周期
+# Runtime 文档入口
 
-Status: `active runtime docs index`
 Owner: `MedAutoScience`
-Purpose: `runtime_docs_index`
-State: `active_support`
-Machine boundary: 本目录是 MAS domain runtime-facing 文档索引。机器真相继续归 contracts、schema、OPL generated-interface payload、owner receipt、runtime/controller durable surfaces 和真实 workspace artifact。
+Purpose: `runtime_boundary_index`
+State: `active_index`
+Machine boundary: MAS 只声明 domain Stage、policy、quality 与 authority inputs/results；StageRun、Attempt、Temporal、queue、session、retry、StateIndex、lifecycle、provider transport 与 hosted read model归 OPL。
 
-`docs/runtime/` 按生命周期角色组织。
+## 当前结论
 
-当前口径：MAS runtime docs 只定义医学研究 domain agent 的 domain-authority refs surfaces、controller truth、typed blocker、owner receipt、artifact locator 和 projection/display contract。通用 stage attempt、provider workflow、queue、wakeup、retry/dead-letter、resume、human gate transport、attempt ledger、generic state-machine runner、generic memory/artifact/workbench primitive 与跨 domain projection 属于 OPL Framework / shared family layer。MAS direct/local 诊断只能读取 MAS domain truth、owner receipt、typed blocker 和 projection，不能启动或替代 hosted autonomy。
+MAS 没有 repo-local runtime control plane。当前链路只有：
 
-本文是 runtime support 索引，不是 active backlog、runtime ready 证明或 provider/live evidence ledger。当前 completion、gap 和下一步回到 `docs/active/mas-ideal-state-gap-plan.md`；runtime 机器真相回到 contracts、source、OPL generated/read-model output、runtime/controller durable surfaces、owner receipts 和 typed blockers；已完成或退役 runtime 过程进入 `docs/history/runtime/`。
+```text
+MAS declarative pack
+  -> OPL generated interface / hosted StageRun
+  -> decisive Codex Attempt
+  -> OPL controller materializes transition
+  -> MAS owner consumes domain result
+```
 
-Hypothesis portfolio / evidence pack 进入 runtime 读面时，只能表现为 MAS owner refs、advisory ranking/proximity projection、missing ref family、typed blocker、reviewer/human gate refs 或 owner receipt refs。OPL runtime 可以调度探索 stage、运输 refs、投影候选排序和显示证据包完整性；不能把 Elo、ranking、proximity、queue completion、attempt ledger 或 workbench 可见性升级成 source readiness、quality verdict、publication gate closeout、artifact authority 或 human/expert approval。
+`src/med_autoscience/` 只保留 package init、一个 registry-bound authority handler、route resource 与 CSL assets。旧 scheduler、runner、queue、session store、lifecycle/SQLite、StateIndex、status/workbench、provider/package transport、NextAction、PaperRecovery 与 private validator只在 Git/history provenance 中读取。
 
-历史 MAS-local scheduler、Hermes/MDS、runtime lifecycle/SQLite、workspace-local wrapper 与旧 alias 仅作为 [history/runtime](../history/runtime/) provenance、explicit archive/import reference 或 parity oracle 读取；当前默认面是 OPL/Temporal hosted runtime + MAS domain authority refs、owner receipts、typed blockers 和 minimal authority functions。
+## 当前入口
 
-当前 progress / workbench 默认读面是 `artifact_first_mission_summary.paper_mission_run`，对齐 `contracts/paper_mission_run_contract.json` / `paper-mission-run.v1`。domain diagnostic、currentness、storage、owner-route、dispatch、PaperRecovery 和旧 current-owner producer 只进入 platform diagnostics / migration / provenance；它们不能作为 runtime docs 中的 product/default domain-handler mainline、paper progress、runtime-ready、publication-ready 或 DM002/DM003 completion claim。
+- [Runtime boundary](./contracts/runtime_boundary.md)：OPL runtime 与 MAS authority 的总边界。
+- [Research Integrity Layer](./contracts/research_integrity_layer.md)：OPL Connect receipt、declarative gate 与 independent Review 的输入链。
+- [Stage / Route / Handoff](./stage_route_handoff_standard.md)：六 Stage、decisive Attempt 与 controller materialization。
+- [Route decision owner](./control/next_action_control_plane.md)：语义 route decision 与 transition materialization 拆分。
+- [External learning closure](./control/external_learning_adoption_closure.md)：外部模式只能进入 refs、Skill、OPL hosted surface 或 owner consumption。
+- [Domain Authority Refs / StateIndex boundary](./domain_authority_refs_index_guard.md)：禁止 MAS-local index/lifecycle 复活。
+- [Study progress projection](./projections/study_progress_projection.md)：只读 body-free projection 与 false-authority 边界。
 
-当前唯一 stage 语义控制面是 [Next Action Control Plane](./control/next_action_control_plane.md) 定义的 `Codex CLI selected declared stage`；nonbinding route context 只是可选输入。旧 `NextActionEnvelope`、`current_work_unit`、`current_executable_owner_action`、provider admission、delivery mirror、queue、attempt、PaperRecovery、`legacy_next_action_authority` 或 domain-transition 字段只能作为 superseded diagnostic、history provenance、transport observation 或 no-resurrection guard；不能作为 current owner/action 默认入口、default dispatch selector、provider admission authority、delivery/submission completion、paper progress 或 readiness evidence。需要解释 OPL transport 时，按 `OPL StageAttemptReceipt -> MAS owner consumption` 读取 receipt，不把 provider admission / StageAttempt / queue attempt 本身写成 MAS next action 或默认完成判断。
+## 目录职责
 
 | 目录 | 角色 |
 | --- | --- |
-| [contracts](./contracts/) | MAS runtime-facing contracts、owner boundary、durable surface、artifact authority 和 backend/interface 规则。 |
-| [control](./control/) | MAS controller、domain transition control、owner route、safe action 和 runtime action surface。通用 provider/queue/attempt 归 OPL。 |
-| [projections](./projections/) | Read model、用户可见状态、observability 和非权威摘要。 |
-| display（已退役） | MAS-local Progress Portal/display 目录已退役；当前展示由 OPL-hosted workbench/App 读取 MAS refs-only projection。 |
-| [designs](./designs/) | 活跃 / 已落地 runtime design support。它们解释目标边界、已落地支撑和剩余设计判断，但不替代 source、contracts、tests、generated/read-model output 或 runtime receipts。 |
+| `contracts/` | runtime-facing owner split、receipt/input shape 与 false-authority boundary |
+| `control/` | 当前 Stage/route/owner consumption 规则；不得承载私有 runner |
+| `projections/` | body-free read model；不得授权 domain action或 mutation |
+| `designs/` | 尚有当前设计价值的支撑材料；已完成或退役内容进入 history |
 
-## 主入口
+## 验收边界
 
-- [Runtime boundary](./contracts/runtime_boundary.md)
-- [Agent runtime interface](./contracts/agent_runtime_interface.md)
-- [Runtime handle and durable surface contract](./contracts/runtime_handle_and_durable_surface_contract.md)
-- [Research Integrity Layer Contract](./contracts/research_integrity_layer.md)：固定 OPL Connect provider receipt -> MAS RI Gate -> AI reviewer / publication gate consumer 的非权威输入链；合同、docs 和 meta 绿不能声明 live provider truth、owner receipt、publication-ready 或 current-package freshness。
-- [MAS Stage / Route / Handoff 标准](./stage_route_handoff_standard.md)：解释 stage、route、handoff、owner route 与 OPL stage graph 的关系；route 不是 MAS 私有小 stage，route 间调度归 OPL runtime manager / transition runner。
-- [MAS / OPL Agent OS 目标运行架构与重构计划](./designs/mas_opl_agent_os_target_operating_architecture.md)：把 OPL Agent OS、MAS Medical Research Pack、MAS Authority Kernel、Scientific Capability Registry 和可并行重构 lane 固定为当前目标运行架构；它是可执行 target plan，不是 live study truth。
-- [MAS executor-first 重构目标与迁移计划](../active/mas_executor_first_rearchitecture_program.md)：固定 artifact-first paper mission 默认叙事、`PaperMissionRun` contract shape、OPL-hosted workbench mission summary 投影，以及旧 domain diagnostic / owner-route / dispatch / PaperRecovery 默认主路径退役边界；它不声明 live DM002/DM003 mission consume 完成。
-- [Co-Scientist Stage / Route 重构设计与执行规格](./designs/coscientist_stage_route_restructure.md)：把 Co-Scientist 启发转译为 MAS Stage-native scientific work system 的 runtime-facing design 和下一 `/goal` 执行规格；它不替代 `docs/active/mas-ideal-state-gap-plan.md` 的 single Active Truth，不声明实现已完成，实际完成仍需落到 semantic pack、contracts、source、tests、owner receipts 和 runtime evidence。
-- [External Learning Adoption Closure Runbook](./control/external_learning_adoption_closure.md)：固定 Co-Scientist、Nature-skills、Academic Research Skills、AutoSci / OmegaWiki、EvoScientist / EvoSkills、ARK、ARIS、PaperSpine、Open Auto Research 等 external-learning intake 的完成口径。`adopt_contract` / reference intake / design doc 不等于 landed；只有进入 owner surface、read-model、worker/sidecar slot、callable/action catalog、quality pack consumer、controller-authorized soak 或等价 repo-native surface，且有验证证明 allowed writes / forbidden authority / nonblocking 边界，才算实际落地。
-- [Study runtime control surface](./control/study_runtime_control_surface.md)
-- [Study runtime orchestration](./control/study_runtime_orchestration.md)
-- [Domain Authority Refs Index Guard](./domain_authority_refs_index_guard.md)：body-free StateIndex source refs、owner receipt、typed blocker、restore/archive provenance 和 legacy SQLite/file boundary guard。
-- [Data Asset Storage Retention Runbook](./data_asset_storage_retention.md)：固定 `data/datasets/**` 数据资产 body 与 runtime residue、cold-store、SQLite compact 的分账边界；OPL 只消费 locator/ref/projection，不持有 MAS 医学数据 authority。
-- [Study progress projection](./projections/study_progress_projection.md)
-
-`designs/` 下的文档可以记录已经落地的 runtime support 设计，例如 journal requirements / journal package controller 边界；当前实现和 readiness 判断仍以对应 source、contracts、tests 和 generated/read-model output 为准。
-
-## Superseded Control-Plane Designs
-
-下列文档仍留在 `docs/runtime/` 是为了提供事故 replay、identity/currentness 诊断和 no-resurrection guard；它们不是 active backlog、默认 next-action 入口、provider admission 入口或 live acceptance checklist：
-
-- [PaperRecovery 事故 replay 与 authority 边界](./control/paper_recovery_replay.md)
-- [PaperRecovery Obligation 目标架构](./designs/paper_recovery_obligation_target_architecture.md)
-- [Paper Autonomy Supervisor 目标设计](./designs/paper_autonomy_supervisor_target.md)
-
-这些文档中的 `current_work_unit`、`current_executable_owner_action`、PaperRecovery、provider admission、action queue、StageAttempt、current-control transition 或 exact-id 语言只能作为 superseded diagnostic / history provenance / no-resurrection context。当前 operator 判断必须回到 [Next Action Control Plane](./control/next_action_control_plane.md) 的 `Codex CLI selected stage -> nonbinding route context`，再看同 identity 的 OPL StageAttemptReceipt 是否被 MAS owner surface 消费。
+Repo/source/control-plane 结构用 fast/meta、repo hygiene、source closure、interfaces、conformance、default-callers 与 residue-decisions 验证。Live runtime、paper progress、publication、submission 或 production claim必须有 fresh StageRun/Attempt、independent Review receipt、MAS owner result与真实 artifact evidence。
 
 ## 历史
 
-已完成 runtime implementation plans、旧 outer-loop 设计说明、runtime supervision loop tombstone 和 private implementation migration inventories 归档到 [history/runtime](../history/runtime/)。这些材料只作 provenance，不是 active backlog，也不能用来重开旧 MDS daemon、WebUI、retired default-provider path、workspace-local service path 或 MAS-owned generic runtime/platform work。
-
-## 规则
-
-Contracts/control docs 可以描述 authority。Projection/display docs 只能描述既有 truth 如何被读取或展示。新增 runtime docs 必须进入上方子目录之一，并写明 owner、purpose、state 和 machine boundary。
-
-如果 runtime 文档需要 generic scheduling、queue、attempt、memory、artifact lifecycle、workbench 或 observability primitive，必须写成 OPL / shared-family owner requirement；MAS 只维护 domain transition spec、owner receipt、typed blocker、quality/artifact authority 和 runtime-facing projection。
+旧 runtime implementation、private control plane、MDS daemon、workspace-local service 与迁移记录归 [history/runtime](../history/runtime/)。History 只解释来源，不恢复 active caller或兼容面。

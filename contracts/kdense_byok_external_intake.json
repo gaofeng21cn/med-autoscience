@@ -240,7 +240,7 @@
       "reuse_mode": "parse_as_stagecraft_recipe_seed",
       "local_owner_surface": "OPL Stagecraft recipe catalog",
       "copy_body_into_mas": false,
-      "sidecar_worker_landing_ref": "med_autoscience.external_learning_progress_workers.build_kdense_byok_pattern_advisory#stagecraft_recipe_seed_refs",
+      "hosted_projection_ref": "opl-generated:stagecraft_recipe_seed_refs",
       "completion_gate": "recipe_schema_importer_and_stage_policy_tests"
     },
     {
@@ -248,7 +248,7 @@
       "reuse_mode": "parse_as_atlas_source_ref_seed",
       "local_owner_surface": "OPL Atlas source catalog",
       "copy_body_into_mas": false,
-      "sidecar_worker_landing_ref": "med_autoscience.external_learning_progress_workers.build_kdense_byok_pattern_advisory#atlas_source_ref_seed_refs",
+      "hosted_projection_ref": "opl-generated:atlas_source_ref_seed_refs",
       "completion_gate": "source_ref_schema_importer_and_policy_approval_tests"
     },
     {
@@ -256,12 +256,12 @@
       "reuse_mode": "selective_external_skill_sync",
       "local_owner_surface": "OPL Connect external-skills",
       "copy_body_into_mas": false,
-      "sidecar_worker_landing_ref": "med_autoscience.external_learning_progress_workers.build_kdense_byok_pattern_advisory#specialist_allowlist_refs",
+      "hosted_projection_ref": "opl-connect:external_skill_allowlist_refs",
       "completion_gate": "search_inspect_sync_receipt_and_no_bulk_load_guard"
     }
   ],
   "repo_native_projection_builders": {
-    "closeout_status": "repo_projection_landed",
+    "closeout_status": "private_builders_retired_to_hosted_surfaces",
     "authority_boundary": {
       "refs_only": true,
       "advisory_only": true,
@@ -279,9 +279,9 @@
       "can_claim_paper_progress": false
     },
     "catalog_surfaces": {
-      "status": "repo_native_projection_landed",
-      "builder_ref": "src/med_autoscience/kdense_byok_catalog_surfaces.py",
-      "test_ref": "tests/test_kdense_byok_catalog_surfaces.py",
+      "status": "opl_generated_projection",
+      "builder_ref": "opl-generated:stagecraft_atlas_and_specialist_catalog_projection",
+      "test_ref": "opl-framework:standard_agent_generated_surface_conformance",
       "projected_surfaces": [
         "stagecraft_recipe_catalog",
         "atlas_source_ref_catalog",
@@ -301,9 +301,9 @@
       ]
     },
     "runtime_surfaces": {
-      "status": "repo_native_projection_landed",
-      "builder_ref": "src/med_autoscience/kdense_byok_runtime_surfaces.py",
-      "test_ref": "tests/test_kdense_byok_runtime_surfaces.py",
+      "status": "opl_hosted_projection",
+      "builder_ref": "opl-hosted:runway_ledger_console_refs_projection",
+      "test_ref": "opl-framework:standard_agent_hosted_surface_conformance",
       "projected_surfaces": [
         "attempt_replay_lab_notebook_export",
         "cost_ledger_budget_cap",
@@ -337,7 +337,7 @@
       "local_owner_surface": "contracts/kdense_byok_external_intake.json",
       "target_landing": "source evidence contract",
       "landing_status": "contract_projection_landed",
-      "completion_gate": "tests/test_kdense_byok_external_intake.py::test_kdense_byok_intake_contract_pins_sources_and_counts",
+      "completion_gate": "tests/test_standard_agent_boundary.py::test_active_machine_surfaces_do_not_reference_retired_mas_implementation",
       "why_worth_learning": "prevents future K-Dense references from drifting into unpinned or authority-bearing claims"
     },
     {

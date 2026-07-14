@@ -97,7 +97,6 @@
   "standard_contract_refs": {
     "action_catalog": "contracts/action_catalog.json",
     "domain_handler_registry": "contracts/domain_handler_registry.json",
-    "display_pack_opl_adapter": "contracts/display_pack_opl_adapter.json",
     "domain_owner_answer_projection_profile": "contracts/domain_owner_answer_projection_profile.json",
     "domain_projection_profile": "contracts/domain_projection_profile.json",
     "domain_route_profile": "contracts/domain_route_profile.json",
@@ -106,7 +105,6 @@
     "generated_surface_handoff": "contracts/generated_surface_handoff.json",
     "pack_compiler_input": "contracts/pack_compiler_input.json",
     "private_functional_surface_policy": "contracts/private_functional_surface_policy.json",
-    "progress_first_safety_envelope": "contracts/progress_first_safety_envelope.json",
     "runtime_environment_requirement_profile": "contracts/runtime_environment_requirements.json",
     "source_closure_audit": "contracts/source_closure_audit.json",
     "submission_resource_requirements": "contracts/submission-resource-requirements.json",
