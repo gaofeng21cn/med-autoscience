@@ -56,6 +56,16 @@
         "stage_index_ref": "stage_index_ref"
       }
     },
+    "stage_catalog": {
+      "source_kind": "agent_repo_relative_json",
+      "relative_path": "contracts/mas-paper-study-stage-pack.json",
+      "items_pointer": "/stages",
+      "field_map": {
+        "stage_id": "stage_id",
+        "display_name": "display_name",
+        "display_names": "display_names"
+      }
+    },
     "runtime": {
       "runtime_domain_id": "medautoscience",
       "registration_ref": "contracts/domain_route_profile.json"

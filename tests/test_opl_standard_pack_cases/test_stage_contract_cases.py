@@ -5,6 +5,28 @@ import json
 from pathlib import Path
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
+EXPECTED_PAPER_STAGE_DISPLAY_NAMES = {
+    "01-study_intake": {"en-US": "Study Intake", "zh-CN": "研究立项"},
+    "02-protocol_and_analysis_plan": {
+        "en-US": "Protocol And Analysis Plan",
+        "zh-CN": "研究方案与分析计划",
+    },
+    "03-data_asset_and_cohort_build": {
+        "en-US": "Data Asset And Cohort Build",
+        "zh-CN": "数据资产与队列构建",
+    },
+    "04-analysis_execution": {"en-US": "Analysis Execution", "zh-CN": "分析执行"},
+    "05-evidence_synthesis": {"en-US": "Evidence Synthesis", "zh-CN": "证据综合"},
+    "06-manuscript_authoring": {"en-US": "Manuscript Authoring", "zh-CN": "论文撰写"},
+    "07-independent_review_and_revision": {
+        "en-US": "Independent Review And Revision",
+        "zh-CN": "独立评审与修订",
+    },
+    "08-publication_package_handoff": {
+        "en-US": "Publication Package Handoff",
+        "zh-CN": "投稿包交接",
+    },
+}
 
 
 def _read_contract(name: str) -> dict[str, object]:
@@ -53,6 +75,16 @@ def test_domain_descriptor_exposes_generic_standard_agent_interface() -> None:
             "stage_index_ref": "stage_index_ref",
         },
     }
+    assert interface["stage_catalog"] == {
+        "source_kind": "agent_repo_relative_json",
+        "relative_path": "contracts/mas-paper-study-stage-pack.json",
+        "items_pointer": "/stages",
+        "field_map": {
+            "stage_id": "stage_id",
+            "display_name": "display_name",
+            "display_names": "display_names",
+        },
+    }
     assert interface["runtime"] == {
         "runtime_domain_id": "medautoscience",
         "registration_ref": "contracts/domain_route_profile.json",
@@ -65,6 +97,25 @@ def test_domain_descriptor_exposes_generic_standard_agent_interface() -> None:
     assert interface["routing"]["ambiguity_policy"] == (
         "require_explicit_domain_selection_when_multiple_standard_agents_match"
     )
+
+
+def test_paper_study_stage_catalog_declares_stable_localized_display_names() -> None:
+    stage_pack = _read_contract("mas-paper-study-stage-pack")
+    stages = stage_pack["stages"]
+
+    assert isinstance(stages, list)
+    assert [stage["stage_id"] for stage in stages] == list(
+        EXPECTED_PAPER_STAGE_DISPLAY_NAMES
+    )
+    for stage in stages:
+        expected_names = EXPECTED_PAPER_STAGE_DISPLAY_NAMES[stage["stage_id"]]
+        display_names = stage["display_names"]
+
+        assert isinstance(display_names, dict)
+        assert {
+            locale: display_names.get(locale) for locale in expected_names
+        } == expected_names
+        assert stage["display_name"] == display_names["en-US"]
 
 
 def test_package_manifest_routes_interface_and_lifecycle_to_opl_packages() -> None:

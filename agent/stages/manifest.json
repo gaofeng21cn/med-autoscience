@@ -39,6 +39,10 @@
       "stage_kind": "planning",
       "stage_quality_cycle_policy_ref": "contracts/stage_quality_cycle_policy.json#/stage_policies/direction_and_route_selection",
       "title": "Direction and route selection",
+      "display_names": {
+        "en-US": "Direction and route selection",
+        "zh-CN": "研究方向与路线选择"
+      },
       "summary": "Select a medically defensible study direction and route from current evidence.",
       "goal": "Choose the next research route without treating OPL transport or provider state as medical truth.",
       "policy_ref": "agent/stages/direction_and_route_selection.policy.md",
@@ -417,6 +421,10 @@
       "stage_kind": "source_preparation",
       "stage_quality_cycle_policy_ref": "contracts/stage_quality_cycle_policy.json#/stage_policies/baseline_and_evidence_setup",
       "title": "Baseline and evidence setup",
+      "display_names": {
+        "en-US": "Baseline and evidence setup",
+        "zh-CN": "基线与证据准备"
+      },
       "summary": "Establish source readiness, study baseline, and the evidence boundary.",
       "goal": "Bind data, source, claim, and artifact refs before analysis is accepted as claim-bearing evidence.",
       "policy_ref": "agent/stages/baseline_and_evidence_setup.policy.md",
@@ -790,6 +798,10 @@
       "stage_kind": "domain_specific",
       "stage_quality_cycle_policy_ref": "contracts/stage_quality_cycle_policy.json#/stage_policies/bounded_analysis_campaign",
       "title": "Bounded analysis campaign",
+      "display_names": {
+        "en-US": "Bounded analysis campaign",
+        "zh-CN": "有界分析推进"
+      },
       "summary": "Run the accepted analysis route within explicit evidence and authority bounds.",
       "goal": "Produce reviewable analysis refs without widening claims beyond the accepted study boundary.",
       "policy_ref": "agent/stages/bounded_analysis_campaign.policy.md",
@@ -1160,6 +1172,10 @@
       "stage_kind": "creation",
       "stage_quality_cycle_policy_ref": "contracts/stage_quality_cycle_policy.json#/stage_policies/manuscript_authoring",
       "title": "Manuscript authoring",
+      "display_names": {
+        "en-US": "Manuscript authoring",
+        "zh-CN": "论文撰写"
+      },
       "summary": "Draft and revise the manuscript against accepted analysis and evidence refs.",
       "goal": "Materialize a reviewable manuscript without self-authorizing publication quality.",
       "policy_ref": "agent/stages/manuscript_authoring.policy.md",
@@ -1646,6 +1662,10 @@
       "stage_role": "cross_stage_meta_review",
       "stage_quality_cycle_policy_ref": "contracts/stage_quality_cycle_policy.json#/stage_policies/review_and_quality_gate",
       "title": "Review and quality gate",
+      "display_names": {
+        "en-US": "Review and quality gate",
+        "zh-CN": "评审与质量门禁"
+      },
       "summary": "Run independent medical, statistical, evidence, and display review.",
       "goal": "Return an owner receipt, typed blocker, human gate, or route-back from independent review evidence.",
       "policy_ref": "agent/stages/review_and_quality_gate.policy.md",
@@ -2235,6 +2255,10 @@
       },
       "stage_quality_cycle_policy_ref": "contracts/stage_quality_cycle_policy.json#/stage_policies/finalize_and_publication_handoff",
       "title": "Finalize and publication handoff",
+      "display_names": {
+        "en-US": "Finalize and publication handoff",
+        "zh-CN": "定稿与投稿交接"
+      },
       "summary": "Mechanically package exact already-reviewed bytes for inspection and return publication-facing refs.",
       "goal": "Prepare an inspectable publication handoff without changing canonical bytes or bypassing downstream acceptance and human submission authority.",
       "policy_ref": "agent/stages/finalize_and_publication_handoff.policy.md",

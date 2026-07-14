@@ -8,16 +8,53 @@ ROOT = Path(__file__).resolve().parents[1]
 PROFILE = ROOT / "contracts" / "standard_agent_conformance_profile.json"
 STAGE_MANIFEST = ROOT / "agent" / "stages" / "manifest.json"
 AGENT_LAB_HANDOFF = ROOT / "contracts" / "agent_lab_handoff.json"
+EXPECTED_STAGE_DISPLAY_NAMES = {
+    "direction_and_route_selection": {
+        "en-US": "Direction and route selection",
+        "zh-CN": "研究方向与路线选择",
+    },
+    "baseline_and_evidence_setup": {
+        "en-US": "Baseline and evidence setup",
+        "zh-CN": "基线与证据准备",
+    },
+    "bounded_analysis_campaign": {
+        "en-US": "Bounded analysis campaign",
+        "zh-CN": "有界分析推进",
+    },
+    "manuscript_authoring": {
+        "en-US": "Manuscript authoring",
+        "zh-CN": "论文撰写",
+    },
+    "review_and_quality_gate": {
+        "en-US": "Review and quality gate",
+        "zh-CN": "评审与质量门禁",
+    },
+    "finalize_and_publication_handoff": {
+        "en-US": "Finalize and publication handoff",
+        "zh-CN": "定稿与投稿交接",
+    },
+}
 
 
 def test_standard_agent_conformance_profile_matches_canonical_stage_pack() -> None:
     profile = json.loads(PROFILE.read_text(encoding="utf-8"))
     stage_manifest = json.loads(STAGE_MANIFEST.read_text(encoding="utf-8"))
-    stage_ids = [stage["stage_id"] for stage in stage_manifest["stages"]]
+    stages = stage_manifest["stages"]
+    stage_ids = [stage["stage_id"] for stage in stages]
 
     assert profile["surface_kind"] == "opl_standard_agent_conformance_profile"
     assert profile["version"] == "opl.standard-agent-conformance-profile.v1"
     assert profile["target_domain_id"] == "medautoscience"
+    assert stage_ids == list(EXPECTED_STAGE_DISPLAY_NAMES)
+    for stage in stages:
+        expected_names = EXPECTED_STAGE_DISPLAY_NAMES[stage["stage_id"]]
+        display_names = stage["display_names"]
+
+        assert isinstance(display_names, dict)
+        assert {
+            locale: display_names.get(locale) for locale in expected_names
+        } == expected_names
+        assert stage["title"] == display_names["en-US"]
     assert profile["golden_path"]["required_stage_ids"] == stage_ids
     assert profile["golden_path"]["allowed_stage_ids"] == stage_ids
     assert profile["golden_path"]["default_stage_id"] == "direction_and_route_selection"

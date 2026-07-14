@@ -187,6 +187,10 @@
     {
       "stage_id": "01-study_intake",
       "display_name": "Study Intake",
+      "display_names": {
+        "en-US": "Study Intake",
+        "zh-CN": "研究立项"
+      },
       "purpose": "Freeze the study question, source boundary, owner route, and first MAS-owned receipt surface.",
       "next_stage_ids": [
         "02-protocol_and_analysis_plan"
@@ -209,6 +213,10 @@
     {
       "stage_id": "02-protocol_and_analysis_plan",
       "display_name": "Protocol And Analysis Plan",
+      "display_names": {
+        "en-US": "Protocol And Analysis Plan",
+        "zh-CN": "研究方案与分析计划"
+      },
       "purpose": "Materialize the protocol, endpoint/cohort lock, and statistical analysis plan before data or compute work.",
       "next_stage_ids": [
         "03-data_asset_and_cohort_build"
@@ -231,6 +239,10 @@
     {
       "stage_id": "03-data_asset_and_cohort_build",
       "display_name": "Data Asset And Cohort Build",
+      "display_names": {
+        "en-US": "Data Asset And Cohort Build",
+        "zh-CN": "数据资产与队列构建"
+      },
       "purpose": "Lock data assets, cohort construction, inclusion/exclusion, and source-readiness receipt refs.",
       "next_stage_ids": [
         "04-analysis_execution"
@@ -253,6 +265,10 @@
     {
       "stage_id": "04-analysis_execution",
       "display_name": "Analysis Execution",
+      "display_names": {
+        "en-US": "Analysis Execution",
+        "zh-CN": "分析执行"
+      },
       "purpose": "Run and record reproducible analysis execution against the locked protocol and cohort boundary.",
       "next_stage_ids": [
         "05-evidence_synthesis"
@@ -275,6 +291,10 @@
     {
       "stage_id": "05-evidence_synthesis",
       "display_name": "Evidence Synthesis",
+      "display_names": {
+        "en-US": "Evidence Synthesis",
+        "zh-CN": "证据综合"
+      },
       "purpose": "Synthesize claim evidence, route memory decisions, and remaining gaps before authoring.",
       "next_stage_ids": [
         "06-manuscript_authoring"
@@ -297,6 +317,10 @@
     {
       "stage_id": "06-manuscript_authoring",
       "display_name": "Manuscript Authoring",
+      "display_names": {
+        "en-US": "Manuscript Authoring",
+        "zh-CN": "论文撰写"
+      },
       "purpose": "Produce manuscript/package refs and artifact authority receipts without making file names the interface.",
       "next_stage_ids": [
         "07-independent_review_and_revision"
@@ -319,6 +343,10 @@
     {
       "stage_id": "07-independent_review_and_revision",
       "display_name": "Independent Review And Revision",
+      "display_names": {
+        "en-US": "Independent Review And Revision",
+        "zh-CN": "独立评审与修订"
+      },
       "purpose": "Close independent reviewer/auditor quality records and revision action refs through separate invocation evidence.",
       "bounded_review_repair_policy": {
         "max_automated_repair_rounds": 3,
@@ -377,6 +405,10 @@
     {
       "stage_id": "08-publication_package_handoff",
       "display_name": "Publication Package Handoff",
+      "display_names": {
+        "en-US": "Publication Package Handoff",
+        "zh-CN": "投稿包交接"
+      },
       "purpose": "Turn the reviewed manuscript, evidence, package, and gate refs into a publication handoff decision: ready-for-human-submission, human-gate, route-back, or typed blocker.",
       "done_definition": {
         "publication_ready_claim_requires": [
