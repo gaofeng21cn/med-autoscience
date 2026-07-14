@@ -66,11 +66,6 @@
       "ref": "docs/policies/study-workflow/study_archetypes.md",
       "ref_kind": "human_doc",
       "role": "first_generation_memory_seed"
-    },
-    {
-      "ref": "med_autoscience.research_memory_contract.research_memory_contract",
-      "ref_kind": "python_symbol",
-      "role": "retrieval_writeback_contract"
     }
   ],
   "recall_projection_ref": {
@@ -103,7 +98,7 @@
   ],
   "status": "active",
   "surface_kind": "family_domain_memory_ref",
-  "target_domain_id": "med-autoscience",
+  "target_domain_id": "medautoscience",
   "version": "family-domain-memory-ref.v1",
   "workspace_apply_surface": {
     "memory_pack_locator": "memory/portfolio/research_memory/publication_route_memory/memory_pack.json",

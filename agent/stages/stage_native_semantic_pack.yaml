@@ -19,7 +19,7 @@ stage_native_semantic_pack:
     surface_kind: domain_stage_completion_policy
     version: domain-stage-completion-policy.v1
     owner: one-person-lab
-    standard_agent_requirement: codex_cli_routes_any_readable_artifact_to_any_declared_stage_quality_closeout_is_optional_for_progress
+    standard_agent_requirement: decisive_codex_attempt_recommends_any_declared_stage_from_consumable_progress_and_opl_controller_materializes_the_validated_transition
     completion_judgment_owner: domain_stage
     closeout_packet_required: false
     closeout_packet_required_for_progress: false
@@ -29,9 +29,9 @@ stage_native_semantic_pack:
     framework_derives_minimal_progress_envelope: true
     provider_completion_is_domain_completion: false
     opl_content_judgment_allowed: false
-    semantic_next_or_route_back_owner: codex_cli
-    next_stage_transition_owner: codex_cli
-    transition_transport_owner: opl_runtime
+    semantic_route_decision_owner: decisive_codex_attempt
+    stage_transition_materialization_owner: opl_stage_run_controller
+    route_recommendation_transport_owner: opl_runtime
     required_closeout_outcomes:
       - completed_and_continue
       - completed_with_quality_debt
@@ -56,7 +56,8 @@ stage_native_semantic_pack:
       conformance_pass_counts_as_stage_complete: false
       raw_or_partial_artifact_counts_as_stage_progress: true
   ai_route_back_policy:
-    route_selection_owner: codex_cli
+    semantic_route_decision_owner: decisive_codex_attempt
+    stage_transition_materialization_owner: opl_stage_run_controller
     allowed_targets: any_declared_stage
     repeated_stage_attempt_is_valid_progress: true
     negative_result_policy: preserve_result_and_failed_path_refs_then_route_to_idea_baseline_or_other_ai_selected_stage
@@ -175,8 +176,8 @@ stage_native_semantic_pack:
           - /tmp/kdense-byok/web/src/components/file-preview-panel.tsx
           - /tmp/kdense-byok/web/src/components/latex-editor.tsx
         absorbed_as: opl_stagecraft_atlas_workspace_vault_connect_pattern_refs
-        sidecar_worker_landing: med_autoscience.external_learning_progress_workers.build_kdense_byok_pattern_advisory
-        sidecar_worker_status: refs_only_candidate_refs_emitted
+        declarative_reference_contract: contracts/kdense_byok_external_intake.json
+        landing_status: reference_only_no_mas_worker
         useful_patterns:
           - workflows_json_to_stagecraft_recipe_catalog_candidates
           - databases_json_to_atlas_source_ref_candidate_catalog
@@ -263,7 +264,8 @@ stage_native_semantic_pack:
       - RDKit
       - PyHealth
     kdense_byok_reusable_reading:
-      sidecar_worker_landing: med_autoscience.external_learning_progress_workers.build_kdense_byok_pattern_advisory
+      declarative_reference_contract: contracts/kdense_byok_external_intake.json
+      landing_status: reference_only_no_mas_worker
       workflows_become: opl_stagecraft_recipe_catalog_candidates
       databases_become: opl_atlas_source_ref_candidate_catalog
       specialists_become: codex_specialist_roster_and_independent_reviewer_lanes
@@ -539,7 +541,7 @@ stage_native_semantic_pack:
         <<: *standard_stage_completion_policy
         policy_ref: stage-completion-policy:mas/scout
         stage_id: scout
-        target_domain_id: med-autoscience
+        target_domain_id: medautoscience
       closeout:
         valid_outcomes:
           - owner_receipt
@@ -610,7 +612,7 @@ stage_native_semantic_pack:
         <<: *standard_stage_completion_policy
         policy_ref: stage-completion-policy:mas/idea
         stage_id: idea
-        target_domain_id: med-autoscience
+        target_domain_id: medautoscience
       closeout:
         valid_outcomes:
           - owner_receipt
@@ -683,7 +685,7 @@ stage_native_semantic_pack:
         <<: *standard_stage_completion_policy
         policy_ref: stage-completion-policy:mas/baseline
         stage_id: baseline
-        target_domain_id: med-autoscience
+        target_domain_id: medautoscience
       closeout:
         valid_outcomes:
           - owner_receipt
@@ -756,7 +758,7 @@ stage_native_semantic_pack:
         <<: *standard_stage_completion_policy
         policy_ref: stage-completion-policy:mas/experiment
         stage_id: experiment
-        target_domain_id: med-autoscience
+        target_domain_id: medautoscience
       closeout:
         valid_outcomes:
           - owner_receipt
@@ -831,7 +833,7 @@ stage_native_semantic_pack:
         <<: *standard_stage_completion_policy
         policy_ref: stage-completion-policy:mas/analysis-campaign
         stage_id: analysis-campaign
-        target_domain_id: med-autoscience
+        target_domain_id: medautoscience
       closeout:
         valid_outcomes:
           - owner_receipt
@@ -907,7 +909,7 @@ stage_native_semantic_pack:
         <<: *standard_stage_completion_policy
         policy_ref: stage-completion-policy:mas/write
         stage_id: write
-        target_domain_id: med-autoscience
+        target_domain_id: medautoscience
       closeout:
         valid_outcomes:
           - owner_receipt
@@ -982,7 +984,7 @@ stage_native_semantic_pack:
         <<: *standard_stage_completion_policy
         policy_ref: stage-completion-policy:mas/review
         stage_id: review
-        target_domain_id: med-autoscience
+        target_domain_id: medautoscience
       closeout:
         valid_outcomes:
           - independent_reviewer_record
@@ -1057,7 +1059,7 @@ stage_native_semantic_pack:
         <<: *standard_stage_completion_policy
         policy_ref: stage-completion-policy:mas/finalize
         stage_id: finalize
-        target_domain_id: med-autoscience
+        target_domain_id: medautoscience
       closeout:
         valid_outcomes:
           - publication_handoff_receipt
@@ -1131,7 +1133,7 @@ stage_native_semantic_pack:
         <<: *standard_stage_completion_policy
         policy_ref: stage-completion-policy:mas/decision
         stage_id: decision
-        target_domain_id: med-autoscience
+        target_domain_id: medautoscience
       closeout:
         valid_outcomes:
           - controller_decision_receipt
@@ -1206,7 +1208,7 @@ stage_native_semantic_pack:
         <<: *standard_stage_completion_policy
         policy_ref: stage-completion-policy:mas/journal-resolution
         stage_id: journal-resolution
-        target_domain_id: med-autoscience
+        target_domain_id: medautoscience
       closeout:
         valid_outcomes:
           - owner_receipt

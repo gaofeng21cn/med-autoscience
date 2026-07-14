@@ -1,8 +1,11 @@
 {
   "surface_kind": "opl_state_index_kernel_adoption",
-  "version": "opl-state-index-kernel-adoption.v1",
-  "owner": "med-autoscience",
-  "domain_id": "med-autoscience",
+  "version": "opl-state-index-kernel-adoption.v2",
+  "schema_version": 2,
+  "agent_id": "mas",
+  "domain_id": "medautoscience",
+  "owner": "one-person-lab",
+  "domain_repo_role": "declarative_refs_source_only",
   "kernel_contract_ref": "contracts/opl-framework/state-index-kernel-contract.json",
   "sqlite_role": "rebuildable_refs_only_sidecar_index",
   "physical_truth_role": "stage_folder_manifest_receipt_artifact_body_file_truth",
@@ -28,36 +31,23 @@
   ],
   "domain_ref_sources": [
     "contracts/stage_run_kernel_profile.json",
-    "contracts/workspace_lifecycle_policy.json",
     "contracts/generated_surface_handoff.json",
     "contracts/action_catalog.json"
   ],
-  "mas_refs_source_adapter": {
-    "surface_kind": "mas_opl_state_index_source_adapter",
-    "implementation_ref": "src/med_autoscience/opl_domain_pack/state_index_source_refs.py",
-    "manifest_ref": "runtime/artifacts/opl_state_index_source_adapter/authority_refs_source.json",
-    "source_families": [
-      "authority_ref_metadata",
-      "archive_refs",
-      "owner_route_receipts",
-      "runtime_receipt_refs",
-      "stage_artifact_delta_refs"
-    ],
-    "local_persistence": "absent",
-    "body_included": false,
-    "derived_index_rebuildable": true,
-    "state_index_owner": "one-person-lab",
-    "mas_state_index_authority": false,
-    "refs_projection_only": true,
-    "body_free": true,
-    "can_drive_lifecycle": false,
-    "can_select_next_action": false,
-    "can_authorize_currentness": false,
-    "can_authorize_provider_attempt": false,
-    "replacement_owner_surface": "one-person-lab StateIndexKernel",
-    "opl_state_index_contract_active": true,
-    "retired_pilot_tombstone": "runtime:mas-refs-only-state-index-pilot-retired"
-  },
+  "projection_source_refs": [
+    "contracts/domain_descriptor.json",
+    "contracts/stage_run_kernel_profile.json",
+    "agent/stages/manifest.json"
+  ],
+  "allowed_ref_families": [
+    "stage_run_refs",
+    "stage_attempt_refs",
+    "artifact_refs",
+    "owner_receipt_refs",
+    "typed_blocker_refs",
+    "human_gate_refs",
+    "route_decision_refs"
+  ],
   "compaction_policy": {
     "small_file_runtime_refs_may_be_indexed": true,
     "large_payload_strategy": "store_preview_hash_and_refs_never_body",
@@ -82,6 +72,14 @@
     "opl_can_store_large_artifact_blob_in_sqlite": false,
     "opl_can_create_domain_owner_receipt": false,
     "opl_can_authorize_quality_or_export": false,
-    "domain_repo_can_own_generic_sqlite_persistence_engine": false
+    "domain_repo_can_own_generic_sqlite_persistence_engine": false,
+    "domain_repo_owns_generic_index": false,
+    "domain_repo_owns_sqlite_lifecycle": false,
+    "index_is_rebuildable_projection": true,
+    "index_is_domain_truth": false,
+    "index_can_store_artifact_body": false,
+    "index_can_create_owner_receipt": false,
+    "index_can_authorize_quality_or_publication": false,
+    "index_can_select_or_materialize_stage_route": false
   }
 }

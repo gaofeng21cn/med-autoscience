@@ -24,9 +24,9 @@ Python evidence templates are absent from current inventory, hidden defaults, ex
 - `/Users/gaofeng/workspace/mas-scholar-skills/packs/medical-display-core/templates/*/template.toml`
 - `/Users/gaofeng/workspace/mas-scholar-skills/packs/medical-display-core/canonical_template_catalog.json`
 - `/Users/gaofeng/workspace/mas-scholar-skills/packs/medical-display-core/renderer_migration_ledger.json`
-- `src/med_autoscience/display_registry.py`
-- `src/med_autoscience/display_schema_contract.py`
-- `src/med_autoscience/controllers/display_surface_materialization/`
+- `contracts/capability_map.json`
+- `contracts/stage_quality_cycle_policy.json`
+- `agent/prompts/`
 - `src/med_autoscience/display_layout_qc/`
 - ScholarSkills gallery manifest / snapshot under `/Users/gaofeng/workspace/mas-scholar-skills/gallery/medical-display/`
 

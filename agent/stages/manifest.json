@@ -1,12 +1,19 @@
 {
   "surface_kind": "opl_standard_agent_declarative_stage_manifest",
   "version": "opl-standard-agent-declarative-stage-manifest.v1",
-  "target_domain_id": "mas",
-  "owner": "mas",
+  "target_domain_id": "medautoscience",
+  "owner": "medautoscience",
   "quality_governance_profile_ref": "contracts/opl-framework/official-knowledge-deliverable-quality-profile.json",
   "meta_review_policy_ref": "contracts/stage_quality_cycle_policy.json#/meta_review_policy",
   "progress_first_policy": {
-    "route_selection_owner": "codex_cli",
+    "semantic_route_decision_owner": "decisive_codex_attempt",
+    "stage_transition_materialization_owner": "opl_stage_run_controller",
+    "primary_only_decisive_attempt_role": "producer",
+    "formal_review_decisive_attempt_roles": [
+      "reviewer",
+      "re_reviewer"
+    ],
+    "repairer_can_be_decisive_attempt": false,
     "codex_may_advance_skip_repeat_reverse_or_route_back": true,
     "any_declared_stage_may_start_from_any_prior_stage_result": true,
     "declared_requires_are_quality_context_not_launch_gates": true,
@@ -251,7 +258,7 @@
             "evolution_ref"
           ],
           "advisory_refs_are_authority": false,
-          "candidate_promotion_requires_validator": true,
+          "candidate_promotion_requires_review_receipt": true,
           "consumption_boundary": "refs_only_no_body_no_authority_transfer",
           "descriptor_ref": "/product_entry_manifest/family_stage_control_plane_descriptor/hypothesis_portfolio_evidence_pack",
           "missing_ref_output_policy": {
@@ -287,7 +294,7 @@
             "human_gate_receipt_ref",
             "owner_receipt_or_typed_blocker_ref"
           ],
-          "validator_ref": "src/med_autoscience/opl_domain_pack/hypothesis_portfolio_pack.py::validate_hypothesis_portfolio_candidate_refs"
+          "validation_contract_ref": "contracts/stage_quality_cycle_policy.json#/quality_cycle_defaults/formal_review"
         },
         "minimum_forward_delta": {
           "acceptance_refs": [
@@ -628,7 +635,7 @@
             "evolution_ref"
           ],
           "advisory_refs_are_authority": false,
-          "candidate_promotion_requires_validator": true,
+          "candidate_promotion_requires_review_receipt": true,
           "consumption_boundary": "refs_only_no_body_no_authority_transfer",
           "descriptor_ref": "/product_entry_manifest/family_stage_control_plane_descriptor/hypothesis_portfolio_evidence_pack",
           "missing_ref_output_policy": {
@@ -664,7 +671,7 @@
             "human_gate_receipt_ref",
             "owner_receipt_or_typed_blocker_ref"
           ],
-          "validator_ref": "src/med_autoscience/opl_domain_pack/hypothesis_portfolio_pack.py::validate_hypothesis_portfolio_candidate_refs"
+          "validation_contract_ref": "contracts/stage_quality_cycle_policy.json#/quality_cycle_defaults/formal_review"
         },
         "minimum_forward_delta": {
           "acceptance_refs": [
@@ -1002,7 +1009,7 @@
             "evolution_ref"
           ],
           "advisory_refs_are_authority": false,
-          "candidate_promotion_requires_validator": true,
+          "candidate_promotion_requires_review_receipt": true,
           "consumption_boundary": "refs_only_no_body_no_authority_transfer",
           "descriptor_ref": "/product_entry_manifest/family_stage_control_plane_descriptor/hypothesis_portfolio_evidence_pack",
           "missing_ref_output_policy": {
@@ -1038,7 +1045,7 @@
             "human_gate_receipt_ref",
             "owner_receipt_or_typed_blocker_ref"
           ],
-          "validator_ref": "src/med_autoscience/opl_domain_pack/hypothesis_portfolio_pack.py::validate_hypothesis_portfolio_candidate_refs"
+          "validation_contract_ref": "contracts/stage_quality_cycle_policy.json#/quality_cycle_defaults/formal_review"
         },
         "minimum_forward_delta": {
           "acceptance_refs": [
@@ -1372,7 +1379,7 @@
             "evolution_ref"
           ],
           "advisory_refs_are_authority": false,
-          "candidate_promotion_requires_validator": true,
+          "candidate_promotion_requires_review_receipt": true,
           "consumption_boundary": "refs_only_no_body_no_authority_transfer",
           "descriptor_ref": "/product_entry_manifest/family_stage_control_plane_descriptor/hypothesis_portfolio_evidence_pack",
           "missing_ref_output_policy": {
@@ -1408,7 +1415,7 @@
             "human_gate_receipt_ref",
             "owner_receipt_or_typed_blocker_ref"
           ],
-          "validator_ref": "src/med_autoscience/opl_domain_pack/hypothesis_portfolio_pack.py::validate_hypothesis_portfolio_candidate_refs"
+          "validation_contract_ref": "contracts/stage_quality_cycle_policy.json#/quality_cycle_defaults/formal_review"
         },
         "minimum_forward_delta": {
           "acceptance_refs": [
@@ -1860,7 +1867,7 @@
             "evolution_ref"
           ],
           "advisory_refs_are_authority": false,
-          "candidate_promotion_requires_validator": true,
+          "candidate_promotion_requires_review_receipt": true,
           "consumption_boundary": "refs_only_no_body_no_authority_transfer",
           "descriptor_ref": "/product_entry_manifest/family_stage_control_plane_descriptor/hypothesis_portfolio_evidence_pack",
           "missing_ref_output_policy": {
@@ -1896,7 +1903,7 @@
             "human_gate_receipt_ref",
             "owner_receipt_or_typed_blocker_ref"
           ],
-          "validator_ref": "src/med_autoscience/opl_domain_pack/hypothesis_portfolio_pack.py::validate_hypothesis_portfolio_candidate_refs"
+          "validation_contract_ref": "contracts/stage_quality_cycle_policy.json#/quality_cycle_defaults/formal_review"
         },
         "minimum_forward_delta": {
           "acceptance_refs": [
@@ -2172,7 +2179,7 @@
             "required_gate_input_surfaces": [
               "reference_verification_attestations",
               "claim_citation_support_matrix_v2",
-              "manuscript_consistency_meta_review"
+              "manuscript_consistency_gate_input"
             ],
             "schema_version": 1,
             "stage_id": "review_and_quality_gate",
@@ -2193,6 +2200,8 @@
               "live_owner_consumption_claimed": false,
               "lookup_providers": [
                 "crossref",
+                "pubmed",
+                "pmc",
                 "openalex",
                 "semantic_scholar",
                 "publisher",
@@ -2201,7 +2210,8 @@
               "mandatory_gate_input_only": true,
               "owner": "OPL Connect",
               "provider_lookup_mode": "opl_connect_receipt_input_only",
-              "provider_evidence_consumed_by": "med_autoscience.research_integrity.reference_verification",
+              "provider_receipt_consumed_by": "opl_hosted:mas_independent_reviewer_attempt",
+              "provider_receipt_validation_contract_ref": "contracts/research-integrity-layer.json#/provider_lookup_boundary",
               "request_only": true,
               "execution_owner": "OPL Connect",
               "mas_can_invoke_opl_connect": false,
@@ -2449,7 +2459,7 @@
             "evolution_ref"
           ],
           "advisory_refs_are_authority": false,
-          "candidate_promotion_requires_validator": true,
+          "candidate_promotion_requires_review_receipt": true,
           "consumption_boundary": "refs_only_no_body_no_authority_transfer",
           "descriptor_ref": "/product_entry_manifest/family_stage_control_plane_descriptor/hypothesis_portfolio_evidence_pack",
           "missing_ref_output_policy": {
@@ -2485,7 +2495,7 @@
             "human_gate_receipt_ref",
             "owner_receipt_or_typed_blocker_ref"
           ],
-          "validator_ref": "src/med_autoscience/opl_domain_pack/hypothesis_portfolio_pack.py::validate_hypothesis_portfolio_candidate_refs"
+          "validation_contract_ref": "contracts/stage_quality_cycle_policy.json#/quality_cycle_defaults/formal_review"
         },
         "minimum_forward_delta": {
           "acceptance_refs": [
@@ -2765,7 +2775,7 @@
             "required_gate_input_surfaces": [
               "reference_verification_attestations",
               "claim_citation_support_matrix_v2",
-              "manuscript_consistency_meta_review"
+              "manuscript_consistency_gate_input"
             ],
             "schema_version": 1,
             "stage_id": "finalize_and_publication_handoff",
@@ -2786,6 +2796,8 @@
               "live_owner_consumption_claimed": false,
               "lookup_providers": [
                 "crossref",
+                "pubmed",
+                "pmc",
                 "openalex",
                 "semantic_scholar",
                 "publisher",
@@ -2794,7 +2806,8 @@
               "mandatory_gate_input_only": true,
               "owner": "OPL Connect",
               "provider_lookup_mode": "opl_connect_receipt_input_only",
-              "provider_evidence_consumed_by": "med_autoscience.research_integrity.reference_verification",
+              "provider_receipt_consumed_by": "opl_hosted:mas_independent_reviewer_attempt",
+              "provider_receipt_validation_contract_ref": "contracts/research-integrity-layer.json#/provider_lookup_boundary",
               "request_only": true,
               "execution_owner": "OPL Connect",
               "mas_can_invoke_opl_connect": false,
@@ -2809,7 +2822,7 @@
     }
   ],
   "authority_boundary": {
-    "domain_truth_owner": "mas",
+    "domain_truth_owner": "medautoscience",
     "medical_quality_verdict_owner": "mas",
     "publication_quality_verdict_owner": "mas",
     "artifact_mutation_authority_owner": "mas",

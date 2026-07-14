@@ -1,66 +1,41 @@
-# AI-first 论文自治闭环
+# AI-first Paper Autonomy Closure
 
-Status: `active_target_and_acceptance_owner`
-Last reviewed: `2026-06-12`
 Owner: `MedAutoScience`
 Purpose: `paper_autonomy_acceptance_contract`
-State: `active_target_and_acceptance_owner`
-Machine boundary: 本文是人读目标和验收合同。机器真相继续归 `study_charter`、evidence/review ledger、`publication_eval/latest.json`、`controller_decisions/latest.json`、`progress_projection`、`domain_diagnostic_report`、domain-handler receipt、owner-route receipt、manuscript/package rebuild proof 和真实 workspace artifact refs。
+State: `active_support`
+Machine boundary: 本文只定义真实论文线验收；机器事实归 workspace artifacts、independent Review receipts、MAS authority results 与 OPL StageRun/readback。
 
-完整历史记录见 [2026-05-10 AI-first paper autonomy full record](../history/program/ai_first_paper_autonomy_closure_program_2026_05_10_full_record.md)。历史 full record 只用于追溯当时的 lane、证据和外部工程参考；当前执行口径以本文、[MAS 当前开发线路](./current-development-lines.md) 和 [MAS 理想目标态差距与完善计划](./mas-ideal-state-gap-plan.md) 为准。
+## 目标
 
-## 当前定位
+AI-first autonomy 表示 Codex Attempts 能在 declared Stage 内形成可消费论文增量，
+独立 Review 能发现并路由质量问题，MAS owner surface 能给出可信 owner answer，
+OPL 能持久、幂等地执行和投影这条链路。
 
-本文是 MAS 论文自治的目标和验收面。它定义 MAS 要在真实 paper line 上交付什么证据：AI reviewer finding、repair work unit、canonical artifact delta、publication gate replay、AI reviewer recheck、route decision、human gate、stop-loss 或明确 typed blocker。
+它不要求 MAS 维护 controller、queue、provider、scheduler、workbench 或第二套
+runtime。MAS 的医学 judgment 与 OPL 的 transport/runtime truth 始终分离。
 
-它不持有 OPL provider 实现、One Person Lab App UI、通用 queue / attempt ledger / retry-dead-letter / human-gate transport，也不维护旧 MDS/Hermes/local scheduler 的退役清单。通用运行外围归 OPL Framework；MAS 持有医学研究 truth、paper quality、publication judgment、reviewer repair、route decision、evidence/review ledger、canonical manuscript/package authority 和 owner receipt。
+## 可关闭的结果
 
-B002 / B003 当前采用 [论文优先恢复运行规则](./b002_b003_paper_first_recovery_runbook.md)：governed MAS / OPL path 仍是默认权威路径；当该路径被 OPL lease、execution authorization、currentness 或 handoff 缺口阻塞，且继续修平台不能在本轮产生论文 owner delta 时，executor 必须切到 foreground paper sprint，先产出可审阅、可接力的 manual paper work product 或 owner decision packet。该 work product 不自动更新 MAS truth、publication readiness 或 current package authority，后续必须由 MAS/OPL owner path 消费、采纳、拒绝或转成 blocker。
+一次真实 paper-line验收必须以以下之一终止：
 
-## 当前状态
+- accepted owner receipt + reviewed artifact semantic delta；
+- route-back + exact defect owner / evidence refs；
+- stable typed blocker；
+- legitimate human gate；
+- completed-with-quality-debt + consumable artifact + blocked ready claims。
 
-repo-level 论文自治 loop 已具备 callable surface、owner receipt 和 focused proof，但仍处在 production evidence gate：
+Provider completion、queue empty、tests green、projection current、candidate package或
+单次 dry-run都不是 paper progress。
 
-| 面 | 当前状态 | owner |
-| --- | --- | --- |
-| reviewer finding -> repair | `repo_surface_landed` | MAS reviewer / repair owner surfaces |
-| canonical delta / gate replay / reviewer recheck | `repo_surface_landed` | MAS publication gate、AI reviewer workflow、artifact authority |
-| route decision / weak-result handling | `repo_surface_landed` | MAS route decision 与 controller decision surfaces |
-| stage knowledge / publication-route memory | `repo_contract_and_read_model_landed` | MAS stage knowledge packet、closeout packet、memory router receipt |
-| provider-hosted paper apply | `dm002_owner_receipt_refs_observed_scaleout_pending` | OPL provider transport + MAS domain-handler / owner chain |
-|真实 paper closure | `evidence_gated_live_soak` | live MAS study truth surfaces |
+## Quality independence
 
-当前可以声明的是：MAS 有 provider-guarded apply receipt surface、route-memory consumed / writeback ref chain、多条真实 paper line 的 guarded proof surface、DM002 owner receipt success refs、OPL production proof ingestion 和 no-forbidden-write boundary。不能声明 OPL provider proof、queue completion、repo tests、provider attempt completion 或单条 DM002 success refs 等于 paper closure、submission readiness 或 publication-ready。
+- executor和 reviewer/auditor必须是独立 Attempt/session/receipt。
+- reviewer审阅 exact artifact/source/rubric hashes。
+- ordinary observation不重开循环；required finding必须进入 repair closure。
+- publication/export/submission/ready claim 必须由对应 owner verdict关闭。
 
-## 验收合同
+## Evidence tail
 
-一次真实 autonomous work unit 只有在 MAS owner surface 中留下以下任一结果时，才计入论文自治进展：
-
-- manuscript、table、figure、result、package、evidence ledger 或 review ledger 的 canonical delta；
-- publication gate replay 后 owner 前进；
-- AI reviewer judgment update；
-- route decision、claim downgrade、bounded repair、switch-line、stop-loss 或 human gate；
-- typed blocker，且 blocker 明确缺失的 owner、input、permission 或 scientific constraint。
-
-Worker liveness、queue item、status refresh、provider completion、只读 projection 和文档状态都只是支撑信号，不是 paper progress。
-
-Foreground paper sprint 的 manual work product 可以作为普通论文推进工作品和 owner 决策输入，但不能单独写成 autonomous work unit 完成。它只有在后续进入 MAS owner receipt、quality gate receipt、canonical changed surface ref、reviewer/gate delta、human gate、route-back evidence 或 stable typed blocker 后，才计入 governed recovery truth。
-
-## Gate 分类
-
-| gate | class | 当前状态 | 可接受证据 |
-| --- | --- | --- | --- |
-| `live_paper_owner_chain` | `production_evidence_gate` | `planned; guarded surfaces landed` | MAS truth surface 中的 artifact delta、gate replay、reviewer update、route decision、human gate、stop-loss 或 typed blocker。 |
-| `provider_hosted_guarded_apply` | `production_evidence_gate` | `surface_landed; live soak pending` | OPL attempt ref + MAS domain-handler dispatch receipt + MAS owner receipt + no-forbidden-write proof；provider completion alone 不计入。 |
-| `human_gate_resume` | `production_evidence_gate` | `owner_boundary_landed` | MAS controller/runtime 记录 gate reason、resume/refusal、next owner 和 blocker；OPL signal 只是 transport。 |
-| `publication_route_memory_writeback` | `functional_follow_through_gate` | `implemented; scaleout pending` | Stage closeout proposal、MAS router accepted/rejected/blocked receipt、body-free refs、operator grouping 与 stale/deprecated review summary。 |
-| `stage_review_index_instance` | `functional_follow_through_gate` | `locator proof landed; live instances pending` | live attempt 产出 review page/index refs、freshness、claim impact、next owner 或 blocker；review/index 不授权 publication readiness。 |
-
-## 与其他 owner 文档的关系
-
-- P1 / Workbench 产品化读 [OPL App MAS Runtime Workbench Program](./opl_app_mas_runtime_workbench_program.md)。
-- OPL framework、provider、domain-handler 和 standard Agent runtime boundary 读 [MAS 理想目标态差距与完善计划](./mas-ideal-state-gap-plan.md)、[MAS 当前开发线路](./current-development-lines.md) 和 [Runtime Boundary](../runtime/contracts/runtime_boundary.md)。
-- P3 / MDS provenance、monolith closeout、archive/parity guard 读 [MAS/MDS Owner Boundary Contract](../policies/runtime-governance/mas_mds_owner_boundary_contract.md) 和 [MDS absorb guard history](../history/program/mas_single_project_mds_absorb_guard_2026_06_07.md)。
-- P3a / body-free StateIndex source adapter、retired MAS-local SQLite/file provenance、restore proof 和 stale runtime-control drift guard 读 [Domain Authority Refs Index Guard](../runtime/domain_authority_refs_index_guard.md)。
-
-新增实现细节先按 [Program Portfolio Consolidation](./program_portfolio_consolidation.md) 和 [MAS 当前开发线路](./current-development-lines.md) 归类，再落到实际 owner 文档；本文只保留论文自治目标、验收口径和 live evidence gate。
+Repo结构已关闭；本文件剩余工作只来自真实 paper lines：StageRun replay、provider
+long-soak、artifact delta、Review receipt、owner acceptance、publication/submission
+readback。缺失 evidence时输出 typed blocker或保持未验证，不恢复 MAS-local runtime。

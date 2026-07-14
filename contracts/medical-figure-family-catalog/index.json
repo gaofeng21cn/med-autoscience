@@ -1,44 +1,32 @@
 {
-  "schema_version": 1,
-  "catalog_id": "medical_figure_family_catalog.v1",
+  "surface_kind": "mas_medical_figure_family_catalog",
+  "version": "medical-figure-family-catalog.v2",
+  "schema_version": 2,
   "owner": "MedAutoScience",
-  "purpose": "MAS-native ontology for medical manuscript figure families. It provides a high-quality starter floor, loose matching vocabulary, style and palette policy, and QA gates while preserving AI authority to redesign figures for paper-local scientific clarity.",
-  "machine_boundary": "This catalog is a planning, matching, and quality-policy surface. It is not a renderer, a publication verdict, an artifact authority, a statistical analysis engine, or a replacement for real rendered-figure visual audit.",
-  "source_module": "src/med_autoscience/medical_figure_family_catalog.py",
-  "ai_adaptation_policy_ref": "ai_adaptation_policy.json",
-  "style_profiles_ref": "style_profiles.json",
-  "palette_tokens_ref": "palette_tokens.json",
-  "qa_gates_ref": "qa_gates.json",
-  "external_sources_ref": "external_sources.json",
-  "category_refs": [
-    "categories/study_design_and_flow.json",
-    "categories/population_and_baseline.json",
-    "categories/registry_and_phenotype_quality.json",
-    "categories/effect_estimation.json",
-    "categories/survival_and_time_to_event.json",
-    "categories/diagnosis_and_prediction.json",
-    "categories/trial_response_and_safety.json",
-    "categories/meta_analysis.json",
-    "categories/omics_and_molecular.json",
-    "categories/single_cell_and_spatial.json",
-    "categories/ml_explainability_and_causal.json",
-    "categories/longitudinal_and_patient_trajectory.json",
-    "categories/publication_shells.json"
+  "catalog_role": "declarative_domain_style_and_quality_context",
+  "catalog_refs": [
+    "contracts/medical-figure-family-catalog/ai_adaptation_policy.json",
+    "contracts/medical-figure-family-catalog/composition_recipe_policy.json",
+    "contracts/medical-figure-family-catalog/external_sources.json",
+    "contracts/medical-figure-family-catalog/palette_tokens.json",
+    "contracts/medical-figure-family-catalog/qa_gates.json",
+    "contracts/medical-figure-family-catalog/starter_recipe_policy.json",
+    "contracts/medical-figure-family-catalog/style_profiles.json"
   ],
-  "verification": {
-    "focused_tests": [
-      "tests/test_medical_figure_family_catalog.py"
-    ],
-    "required_when_changed": [
-      "make test-paths -- tests/test_medical_figure_family_catalog.py",
-      "scripts/verify.sh"
-    ]
-  },
-  "starter_recipe_policy_ref": "starter_recipe_policy.json",
-  "composition_recipe_policy_ref": "composition_recipe_policy.json",
-  "composition_recipe_refs": [
-    "composition_recipes/clinical_prediction_and_ml.json",
-    "composition_recipes/design_and_image.json",
-    "composition_recipes/omics_and_atlas.json"
-  ]
+  "consumer_refs": [
+    "contracts/capability_map.json#/capabilities",
+    "external_repo:mas-scholar-skills/skills/medical-figure-design/SKILL.md",
+    "external_repo:mas-scholar-skills/skills/medical-figure-style/SKILL.md",
+    "external_repo:mas-scholar-skills/skills/medical-figure-composer/SKILL.md"
+  ],
+  "execution_owner": "opl_hosted_stage_attempt",
+  "quality_judgment_owner": "independent_reviewer_or_re_reviewer",
+  "authority_boundary": {
+    "catalog_is_renderer_or_validator": false,
+    "catalog_can_write_artifact_body": false,
+    "catalog_can_create_quality_verdict": false,
+    "catalog_can_authorize_export_or_publication": false,
+    "scholar_skills_can_create_owner_receipt": false,
+    "opl_can_interpret_medical_visual_quality": false
+  }
 }

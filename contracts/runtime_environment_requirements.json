@@ -1,7 +1,7 @@
 {
   "surface_kind": "opl_runtime_environment_requirement_profile",
   "version": "opl-runtime-environment-requirement-profile.v1",
-  "domain_id": "mas",
+  "domain_id": "medautoscience",
   "profile_id": "analysis-display",
   "ownership_boundary": {
     "profile_owner": "MedAutoScience",

@@ -1,73 +1,45 @@
 {
+  "surface_kind": "opl_domain_projection_profile",
+  "version": "domain-projection-profile.v2",
+  "schema_version": 2,
+  "profile_id": "mas.domain_projection.v2",
+  "profile_role": "declarative_generated_surface_input",
   "agent_id": "mas",
-  "authority_boundary": {
-    "can_authorize_publication_ready": false,
-    "can_authorize_quality_verdict": false,
-    "can_create_human_gate": false,
-    "can_create_owner_receipt": false,
-    "can_create_typed_blocker": false,
-    "can_mutate_artifact_body": false,
-    "can_write_current_owner_delta": false,
-    "can_write_domain_truth": false,
-    "can_write_stage_current_pointer": false,
-    "can_write_stage_terminal_state": false,
-    "projection_is_authority": false,
-    "provider_completion_is_domain_progress": false
-  },
-  "authority_refs": [
-    "src/med_autoscience/controllers/next_action_envelope.py#compile_next_action_envelope",
-    "contracts/domain_descriptor.json#/authority_boundary",
-    "contracts/owner_receipt_contract.json"
+  "domain_id": "medautoscience",
+  "domain_truth_owner": "MedAutoScience",
+  "projection_owner": "one-person-lab",
+  "source_contract_refs": [
+    "contracts/domain_descriptor.json",
+    "contracts/opl-framework/standard-agent-hosted-action-runtime-contract.json",
+    "contracts/opl-framework/owner-answer.schema.json",
+    "contracts/stage_run_kernel_profile.json",
+    "contracts/action_catalog.json"
+  ],
+  "generic_fields": [
+    "domain_id",
+    "work_item_id",
+    "status",
+    "current_owner",
+    "stage_id",
+    "source_refs",
+    "receipt_refs",
+    "blocker_refs",
+    "authority_boundary"
   ],
   "domain_display_extension": {
     "field": "domain_display",
     "interpretation": "opaque_domain_owned_display_payload",
     "opl_may_probe_fields": false
   },
-  "domain_id": "medautoscience",
-  "field_mapping": {
-    "action_type": "next_action.action_type",
-    "current_owner": "next_action.owner",
-    "currentness_basis": "next_action.diagnostic_refs",
-    "source_refs": [
-      "next_action.required_input_refs",
-      "next_action.diagnostic_refs"
-    ],
-    "stage_id": "next_action.stage_id",
-    "status": "next_action.action_kind",
-    "work_unit_fingerprint": "next_action.work_unit_fingerprint",
-    "work_unit_id": "next_action.work_unit_id"
-  },
-  "generic_fields": [
-    "domain_id",
-    "work_unit_id",
-    "work_unit_fingerprint",
-    "status",
-    "current_owner",
-    "stage_id",
-    "action_type",
-    "currentness_basis",
-    "source_refs",
-    "authority_boundary"
-  ],
-  "host_owner": "one-person-lab",
-  "legacy_domain_ids": [
-    "med-autoscience"
-  ],
-  "profile_id": "medautoscience.next_action.profile.v1",
-  "projection_owner": "MedAutoScience",
-  "projection_surface_kind": "opl_domain_next_action_profile_projection",
-  "schema_version": 1,
-  "source_paths": [
-    "src/med_autoscience/controllers/next_action_envelope.py",
-    "src/med_autoscience/domain_projection_profile.py",
-    "src/med_autoscience/controllers/study_launch_projection.py",
-    "src/med_autoscience/controllers/study_task_submission.py"
-  ],
-  "surface_kind": "opl_domain_next_action_profile",
-  "surface_kinds": {
-    "next_action": "opl_domain_next_action_profile_projection",
-    "domain_display": "mas_workspace_domain_display",
-    "domain_projection": "opl_domain_projection"
+  "authority_boundary": {
+    "projection_is_authority": false,
+    "provider_completion_is_domain_progress": false,
+    "can_write_domain_truth": false,
+    "can_mutate_artifact_body": false,
+    "can_create_owner_receipt": false,
+    "can_create_typed_blocker": false,
+    "can_create_human_gate": false,
+    "can_authorize_quality_or_publication": false,
+    "can_materialize_stage_transition": false
   }
 }

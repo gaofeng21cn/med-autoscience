@@ -7,8 +7,8 @@ Machine boundary: 本文是人读约束；机器事实以 contracts、source、r
 
 ## 身份与 owner
 
-- canonical id 是 `mas`；repo/package/plugin locator 不改变 domain identity。
-- MAS 是 `Declarative Medical Research Pack + minimal authority functions`；OPL 持有 generated/hosted platform surfaces。
+- canonical agent/package id 是 `mas`；machine `domain_id` / `target_domain_id` 是 `medautoscience`；repo/package/plugin locator 是 `med-autoscience`。
+- MAS 是 `Declarative Medical Research Pack + one registry-bound authority function`；OPL 持有 generated/hosted platform surfaces。
 - OPL 不得写 MAS study truth、quality/publication verdict、canonical artifact body、memory body 或 owner receipt。
 - MAS 不得重新拥有 generic runtime、queue、attempt ledger、StateIndex、lifecycle/storage、observability、installer、CLI/MCP transport 或 workbench shell。
 - MAS 只输出 typed runtime request / route handoff并消费 OPL host 注入的 canonical payload；不得解析 OPL binary、spawn CLI、主动 probe runtime 或把缺失 host receipt 解释为 submission success。
@@ -17,14 +17,14 @@ Machine boundary: 本文是人读约束；机器事实以 contracts、source、r
 
 - `agent/` 是 canonical rich pack source；plugin carrier mirror 是分发要求，不是重复实现。
 - V2 action catalog 当前包含六个公开 Stage action，以及一个无用户 surface 的内部 authority action。普通 interface 从 catalog/schema 生成，不在 MAS 新增手写 parser、JSON-RPC glue 或 duplicate descriptor。
-- V2 generated/default interface 只绑定 Stage manifest 与 closed handler registry。遗留 `domain_entry` 及其 status/read-model/queue caller 只能作为待迁 residue，不得重新成为 public/default platform facade。
+- V2 generated/default interface 只绑定 Stage manifest 与 closed handler registry。旧 `domain_entry` 及其 status/read-model/queue caller 已物理退役，不得以 compatibility、diagnostic 或 test fixture 名义恢复为 active source。
 - Foundry 系列 policy 归唯一 OPL Framework；MAS 只保留 canonical refs、policy fingerprint、domain delta 与 false-authority envelope，不复制 policy body，也不安装 Framework policy carrier。
 - 环境依赖在 `contracts/runtime_environment_requirements.json` 声明；prepare/run 归 OPL。MAS 可保留 `mas_provisioning_allowed=false` 的只读环境检查/投影，但不在 import、workspace 或 installer 中安装、修复环境，也不授权 ready。
 - `mas-scholar-skills` 是 MAS 硬依赖。核心 package、ABI 或任一必需 export 缺失/不兼容时必须 `operational_ready=false`，不得静默降级；安装、激活、修复、更新、锁定、回滚和依赖卸载保护统一归 `opl packages`。可选 named-specialty Skill 不进入该 readiness floor。
 
 ## Authority
 
-- 默认且唯一的 stage-route authority 是 `Codex CLI selected declared stage`；nonbinding route context 只是可选输入，缺失时不得阻止推进。
+- 领域 route 语义只由 decisive Codex Attempt 决定；OPL StageRun controller 只校验并物化 transition。producer/repairer/nonterminal reviewer 不得获得终局 route authority。
 - OPL transport/readback 只有传输权；同 identity 的 MAS owner consumption 才能解释 domain result。
 - AI-first quality gate 必须消费独立 reviewer/auditor invocation 与 receipt；executor 不得自审并关闭质量门。
 - publication、submission、artifact mutation、memory accept/reject 与 source readiness 必须由对应 MAS owner surface裁决。
@@ -35,7 +35,7 @@ Machine boundary: 本文是人读约束；机器事实以 contracts、source、r
 - Stage 主提示词只承载本 Stage 的目标、好结果、关键专业依赖、authority 边界与 handoff 语义；专业方法细节归 `agent/skills/`、ScholarSkills 与 quality gate，工具能力归 affordance catalog。
 - Codex 可自主选择工具、迭代、替代和安全并行，但不得颠倒会破坏 claim/estimand、source 或 failed-path provenance、fresh review/artifact proof、owner/human authority 或不可逆动作安全性的依赖顺序。
 - 新外部 Skill 只用于明确或已证明的能力缺口；sync 前必须检查 identity、provenance、permissions、data/credential scope 与 compatibility。已安装且已检查的兼容 Skill 可直接复用，不要求重复固定搜索流程。
-- 可消费 delta 在质量预算耗尽时以 `completed_with_quality_debt` 前进；零、损坏、不可读或失败输出物化 no-output/failure diagnostic 后同样前进。quality debt 阻断 quality/publication/export/submission-ready claim，不阻断普通 Stage transition。只有 executor unavailable、真实 authority/safety/identity/currentness/credential/irreversible/human decision 才成为硬 blocker。
+- 可消费 delta 在质量预算耗尽时以 `completed_with_quality_debt` 前进；成功物化的 no-output/failure diagnostic 本身可作为进展 artifact，字面上仍无任何可消费 artifact 时则硬停止。quality debt 阻断 quality/publication/export/submission-ready claim，不阻断普通 Stage transition。只有 executor unavailable、真实 authority/safety/identity/currentness/credential/irreversible/human decision 或零可消费 artifact 才成为硬 blocker。
 
 ## 退役与兼容
 
@@ -46,7 +46,7 @@ Machine boundary: 本文是人读约束；机器事实以 contracts、source、r
 
 ## Durable truth
 
-- study、publication、runtime 与 display 真相归 stable runtime/controller/contract/generated artifact surface；docs 只解释和导航。
+- study/publication/display domain truth 归 MAS declarative policy、authority result 与 canonical artifact；runtime/transition truth 归 OPL durable surface；docs 只解释和导航。
 - SQLite/index/read model 是可重建投影，不得替代 canonical files、owner receipts 或 artifact authority。
 - status/workbench 只能读取 body-free refs、receipts、blockers 与 diagnostics，不得授权执行或变更 artifact。
 - workspace 不依赖 MAS checkout 内 `.venv`；环境由 OPL substrate 和标准 package tooling 准备。

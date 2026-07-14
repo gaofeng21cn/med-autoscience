@@ -1,7 +1,7 @@
 {
   "surface_kind": "domain_agent_lab_production_evidence_handoff",
   "schema_version": 1,
-  "domain_id": "med-autoscience",
+  "domain_id": "medautoscience",
   "owner": "MedAutoScience",
   "updated_at": "2026-07-04",
   "handoff_status": "ready_for_opl_meta_agent_and_agent_lab_execution",
@@ -114,7 +114,7 @@
         "body_included": false
       },
       {
-        "ref": "tests/test_mas_production_acceptance.py",
+        "ref": "tests/test_standard_agent_conformance_profile.py",
         "role": "agent_evidence_handoff_contract_test_surface",
         "body_included": false
       }
@@ -499,15 +499,11 @@
           }
         ],
         "patch_surface_hints": [
-          "src/med_autoscience/controllers/agent_lab_medical_manuscript_quality.py",
-          "src/med_autoscience/controllers/pre_draft_quality_runtime.py",
-          "src/med_autoscience/policies/medical_reporting_contract.py",
-          "src/med_autoscience/policies/medical_reporting_checklist.py",
+          "agent/prompts/manuscript_authoring.md",
+          "agent/quality_gates/stage_quality_cycle_roles.md",
+          "agent/knowledge/medical_research_truth.md",
           "external_repo:mas-scholar-skills/skills/medical-manuscript-writing/SKILL.md",
-          "tests/test_agent_lab_medical_manuscript_quality.py",
-          "tests/test_pre_draft_quality_runtime.py",
-          "tests/test_medical_reporting_checklist_quality_gates.py",
-          "docs/policies/quality/medical_manuscript_first_draft_quality.md"
+          "tests/test_stage_quality_cycle_policy.py"
         ],
         "runtime_required_surface_refs": [
           "publication_eval/latest.json",

@@ -1,6 +1,6 @@
 # Med Auto Science
 
-本仓是 OPL 的医学研究 domain agent，canonical id 为 `mas`。
+本仓是 OPL 的医学研究 domain agent；canonical agent/package id 为 `mas`，machine `domain_id` / `target_domain_id` 与 domain-owned Stage manifest owner 为 `medautoscience`。`med-autoscience` 只作为 repo/package/plugin/carrier locator。
 
 - MAS 持有 study、publication、medical quality、artifact 和 owner receipt authority。
 - OPL Framework 持有通用 runtime、attempt lifecycle、workspace/artifact transport 与 generated interfaces。

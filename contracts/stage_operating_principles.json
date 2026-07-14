@@ -4,7 +4,7 @@
   "state": "active_contract",
   "policy_owner": "one-person-lab",
   "owner": "MedAutoScience",
-  "domain_id": "med-autoscience",
+  "domain_id": "medautoscience",
   "purpose": "Keep OPL stages easy to manage while preserving fast owner-delta progression.",
   "principle_summary": {
     "management_logic": "MAS manages medical research progress through coarse stage attempts and owner receipts, not through stale study-level action queues.",
@@ -26,7 +26,8 @@
     "default_operator_question": "what_does_current_owner_need_to_answer_next"
   },
   "speed_policy": {
-    "route_selection_owner": "codex_cli",
+    "semantic_route_decision_owner": "decisive_codex_attempt",
+    "stage_transition_materialization_owner": "opl_stage_run_controller",
     "codex_may_advance_skip_repeat_reverse_or_route_back": true,
     "any_declared_stage_may_start_from_any_prior_stage_result": true,
     "declared_requires_are_quality_context_not_launch_gates": true,
@@ -48,7 +49,7 @@
     "quality_budget_exhaustion_status": "completed_with_quality_debt",
     "quality_debt_blocks_stage_transition": false,
     "quality_debt_blocks_quality_export_or_ready_claims": true,
-    "codex_cli_is_single_semantic_control_plane": true,
+    "decisive_attempt_is_single_semantic_route_plane": true,
     "output_schema_control_plane_enabled": false,
     "normalizer_or_validator_failure_blocks_stage": false,
     "raw_or_partial_output_advances": true,

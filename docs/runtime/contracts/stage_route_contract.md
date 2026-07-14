@@ -215,8 +215,10 @@ The YAML route contract selects stages and route families. It does not authorize
 
 ## Ordinary Progress Handoff Policy
 - source_ref: contracts/stage_run_kernel_profile.json#/ordinary_progress_handoff
-- default_progress_root: codex_cli_selected_stage
-- stage_goal_source: codex_cli_stage_prompt_plus_any_prior_stage_result
+- default_progress_root: decisive_codex_attempt_selected_stage_goal
+- stage_goal_source: decisive_codex_attempt_stage_prompt_plus_any_prior_stage_result
+- semantic_route_decision_owner: decisive_codex_attempt
+- stage_transition_materialization_owner: opl_stage_run_controller
 - executor_output_requirement: artifact_or_progress_diagnostic
 - accepted_closeout_shapes: ProgressDeltaReceipt | RawReadableArtifact | NoOutputOrFailureDiagnostic | OwnerReceipt | TypedBlocker | human_gate_ref | route_back_ref
 - progress_delta_receipt_kind: ProgressDeltaReceipt
@@ -238,8 +240,9 @@ The YAML route contract selects stages and route families. It does not authorize
 - audit_sidecar_can_close_stage: False
 - audit_sidecar_can_claim_domain_ready: False
 
-## Single AI Route Boundary
-- route_selection_owner: `codex_cli`.
+## Route Decision / Transition Boundary
+- semantic_route_decision_owner: `decisive_codex_attempt`.
+- stage_transition_materialization_owner: `opl_stage_run_controller`.
 - Any readable artifact, partial draft, failed attempt, negative result, or diagnostic may be passed to any declared next stage.
 - Transport receipts, schemas, packet validators, read models, retry budgets, and closeout projections cannot select, reject, or rewrite a stage route.
 - Quality debt blocks accepted/publication/export/readiness claims, never ordinary stage transition.

@@ -2,7 +2,7 @@
   "surface_kind": "opl_stage_artifact_kernel_adoption",
   "version": "opl-stage-artifact-kernel-adoption.v1",
   "owner": "med-autoscience",
-  "domain_id": "med-autoscience",
+  "domain_id": "medautoscience",
   "kernel_contract_ref": "contracts/opl-framework/stage-artifact-runtime-contract.json",
   "stage_folder_unit": [
     "Stage Folder",

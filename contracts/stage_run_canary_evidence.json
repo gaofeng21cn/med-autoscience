@@ -1,7 +1,7 @@
 {
   "surface_kind": "opl_stage_run_controlled_canary_evidence",
   "version": "stage-run-controlled-canary.v1",
-  "domain_id": "med-autoscience",
+  "domain_id": "medautoscience",
   "owner": "MedAutoScience",
   "state": "active_controlled_fixture",
   "canary_id": "mas_stage_run_controlled_canary_ai_reviewer_publication_eval_rebuild",
@@ -249,7 +249,7 @@
   },
   "verification_refs": [
     {
-      "ref": "tests/test_stage_run_kernel_profile_contract.py",
+      "ref": "tests/test_standard_agent_conformance_profile.py",
       "role": "focused_controlled_canary_contract_test",
       "body_included": false
     }

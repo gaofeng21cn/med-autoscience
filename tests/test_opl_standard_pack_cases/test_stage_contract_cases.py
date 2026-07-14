@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import hashlib
 import json
 from pathlib import Path
 
@@ -14,7 +15,7 @@ def test_pack_compiler_input_declares_canonical_agent_identity() -> None:
     materialized = _read_contract("pack_compiler_input")
 
     assert materialized["canonical_agent_id"] == "mas"
-    assert materialized["domain_id"] == "mas"
+    assert materialized["domain_id"] == "medautoscience"
 
 
 def test_domain_descriptor_exposes_generic_standard_agent_interface() -> None:
@@ -53,7 +54,7 @@ def test_domain_descriptor_exposes_generic_standard_agent_interface() -> None:
         },
     }
     assert interface["runtime"] == {
-        "runtime_domain_id": "mas",
+        "runtime_domain_id": "medautoscience",
         "registration_ref": "contracts/domain_route_profile.json",
     }
     assert "dispatch_command" not in interface["runtime"]
@@ -69,6 +70,9 @@ def test_domain_descriptor_exposes_generic_standard_agent_interface() -> None:
 def test_package_manifest_routes_interface_and_lifecycle_to_opl_packages() -> None:
     manifest = _read_contract("opl_agent_package_manifest")
 
+    assert manifest["agent_id"] == "mas"
+    assert manifest["package_id"] == "mas"
+    assert manifest["codex_surface"]["plugin_id"] == "med-autoscience"
     assert manifest["domain_descriptor_ref"] == "contracts/domain_descriptor.json"
     dependency = manifest["capability_dependencies"][0]
     assert all(
@@ -86,7 +90,7 @@ def test_pack_compiler_input_declares_python_helper_boundary_without_generic_run
     profile = materialized["implementation_profile"]
 
     assert materialized["canonical_agent_id"] == "mas"
-    assert materialized["domain_id"] == "mas"
+    assert materialized["domain_id"] == "medautoscience"
     assert profile["profile_id"] == "opl.standard_domain_agent.v1"
     assert profile["agent_identity"] == "declarative_standard_agent_pack"
     assert profile["pack_formats"] == ["markdown", "json"]
@@ -98,7 +102,7 @@ def test_pack_compiler_input_declares_python_helper_boundary_without_generic_run
 
     helper_implementations = helpers["entries"]
     assert {entry["language"] for entry in helper_implementations} == {"python"}
-    assert {entry["role"] for entry in helper_implementations} == {"domain_helper"}
+    assert {entry["role"] for entry in helper_implementations} == {"authority_function"}
     for entry in helper_implementations:
         assert entry["source_roots"]
         for source_root in entry["source_roots"]:
@@ -106,32 +110,210 @@ def test_pack_compiler_input_declares_python_helper_boundary_without_generic_run
             assert (REPO_ROOT / source_root).is_dir(), source_root
 
 
-def test_domain_owner_answer_projection_profile_is_domain_owned_and_refs_only() -> None:
+def test_owner_answer_uses_the_hosted_stage_run_contract_without_private_dispatch_abi() -> None:
     descriptor = _read_contract("domain_descriptor")
-    profile = _read_contract("domain_owner_answer_projection_profile")
+    pack_input = _read_contract("pack_compiler_input")
+    projection = _read_contract("domain_projection_profile")
+    state_index = _read_contract("state_index_kernel_adoption")
 
-    assert descriptor["standard_contract_refs"]["domain_owner_answer_projection_profile"] == (
-        "contracts/domain_owner_answer_projection_profile.json"
+    assert not (REPO_ROOT / "contracts/domain_owner_answer_projection_profile.json").exists()
+    contract_refs = descriptor["standard_contract_refs"]
+    assert "domain_owner_answer_projection_profile" not in contract_refs
+    assert contract_refs["hosted_action_runtime"] == (
+        "contracts/opl-framework/standard-agent-hosted-action-runtime-contract.json"
     )
-    assert profile["surface_kind"] == "opl_domain_owner_answer_projection_profile"
-    assert profile["version"] == "domain-owner-answer-projection-profile.v1"
-    assert profile["profile_role"] == "registry"
-    assert profile["domain_id"] == "medautoscience"
-    assert profile["binding_project_id"] == "medautoscience"
-    assert profile["checkout_currentness_required"] is True
-    assert profile["projection_relative_path"] == [
-        "artifacts",
-        "publication_handoff",
-        "owner_receipt.json",
+    assert contract_refs["owner_answer_schema"] == (
+        "contracts/opl-framework/owner-answer.schema.json"
+    )
+    assert contract_refs["stage_run_kernel_profile"] == (
+        "contracts/stage_run_kernel_profile.json"
+    )
+    assert pack_input["source_refs"]["hosted_action_runtime_contract_ref"] == (
+        "contracts/opl-framework/standard-agent-hosted-action-runtime-contract.json"
+    )
+    assert pack_input["source_refs"]["owner_answer_schema_source_ref"] == (
+        "contracts/opl-framework/owner-answer.schema.json"
+    )
+    assert pack_input["source_refs"]["stage_run_kernel_profile_ref"] == (
+        "contracts/stage_run_kernel_profile.json"
+    )
+    assert "contracts/domain_owner_answer_projection_profile.json" not in pack_input[
+        "required_domain_pack_paths"
     ]
-    assert profile["authority_boundary"] == {
-        "refs_only": True,
-        "can_write_domain_truth": False,
-        "can_create_owner_receipt": False,
-        "can_create_typed_blocker": False,
-        "can_claim_domain_ready": False,
-        "can_claim_production_ready": False,
+    assert projection["source_contract_refs"] == [
+        "contracts/domain_descriptor.json",
+        "contracts/opl-framework/standard-agent-hosted-action-runtime-contract.json",
+        "contracts/opl-framework/owner-answer.schema.json",
+        "contracts/stage_run_kernel_profile.json",
+        "contracts/action_catalog.json",
+    ]
+    assert state_index["projection_source_refs"] == [
+        "contracts/domain_descriptor.json",
+        "contracts/stage_run_kernel_profile.json",
+        "agent/stages/manifest.json",
+    ]
+
+    active_payload = "\n".join(
+        path.read_text(encoding="utf-8")
+        for root in (REPO_ROOT / "agent", REPO_ROOT / "contracts", REPO_ROOT / "runtime")
+        for path in root.rglob("*")
+        if path.is_file() and path.suffix in {".json", ".yaml", ".yml", ".md"}
+    )
+    for retired_token in (
+        "domain_owner/default-executor-dispatch",
+        "complete_medical_paper",
+        "artifacts/medical_paper/readiness_owner_receipt.json",
+        "artifacts/medical_paper/readiness_typed_blocker.json",
+    ):
+        assert retired_token not in active_payload
+
+
+def test_stage_run_kernel_profile_has_the_exact_generic_base_abi() -> None:
+    profile = _read_contract("stage_run_kernel_profile")
+
+    assert {
+        "surface_kind": profile["surface_kind"],
+        "version": profile["version"],
+        "domain_id": profile["domain_id"],
+        "kernel_contract_ref": profile["kernel_contract_ref"],
+        "kernel_role": profile["kernel_role"],
+        "stage_native_unit": profile["stage_native_unit"],
+        "required_object_models": profile["required_object_models"],
+        "authority_boundary": profile["authority_boundary"],
+    } == {
+        "surface_kind": "opl_stage_run_kernel_profile",
+        "version": "stage-run-kernel-profile.v1",
+        "domain_id": "medautoscience",
+        "kernel_contract_ref": "contracts/opl-framework/stage-run-kernel-contract.json",
+        "kernel_role": "minimal_state_shell_not_domain_controller_system",
+        "stage_native_unit": [
+            "stage_folder",
+            "stage_manifest",
+            "role_artifacts",
+            "progress_receipt_or_owner_answer_or_hard_stop",
+        ],
+        "required_object_models": [
+            "StageRun",
+            "RoleArtifactRef",
+            "ProgressDeltaReceipt",
+            "OwnerReceipt",
+            "TypedBlocker",
+            "ReadModel",
+        ],
+        "authority_boundary": {
+            "opl_can_write_domain_truth": False,
+            "opl_can_mutate_artifact_body": False,
+            "opl_can_sign_domain_owner_receipt": False,
+            "opl_can_create_typed_blocker": False,
+            "opl_can_authorize_quality_or_export": False,
+            "provider_completion_counts_as_domain_accepted": False,
+            "read_model_can_be_truth_source": False,
+        },
     }
+    assert profile["stage_run_state_machine"]["file_presence_counts_as_stage_complete"] is False
+    assert "ArtifactRef" not in profile["object_models"]
+    assert "RoleArtifactRef" in profile["object_models"]
+    assert "source_design_ref" not in profile
+    assert "opl_mas_boundary" not in profile
+    assert "can_write_mas_truth" not in json.dumps(profile)
+
+
+def test_machine_identity_fields_match_the_framework_registry_semantics() -> None:
+    forbidden: dict[str, list[str]] = {}
+
+    def visit(value: object, location: str) -> None:
+        if isinstance(value, dict):
+            for key, item in value.items():
+                child = f"{location}.{key}"
+                if key in {
+                    "domain_id",
+                    "target_domain_id",
+                    "runtime_domain_id",
+                    "stage_control_plane_target_domain_id",
+                } and item in {"mas", "med-autoscience"}:
+                    forbidden.setdefault(child, []).append(str(item))
+                visit(item, child)
+        elif isinstance(value, list):
+            for index, item in enumerate(value):
+                visit(item, f"{location}[{index}]")
+
+    for root in (REPO_ROOT / "agent", REPO_ROOT / "contracts", REPO_ROOT / "runtime"):
+        for path in sorted(root.rglob("*.json")):
+            visit(json.loads(path.read_text(encoding="utf-8")), path.relative_to(REPO_ROOT).as_posix())
+
+    assert forbidden == {}
+    canonical_top_level_fields = {
+        "agent/stages/manifest.json": "target_domain_id",
+        "contracts/action_catalog.json": "target_domain_id",
+        "contracts/agent_lab_handoff.json": "domain_id",
+        "contracts/artifact_locator_contract.json": "domain_id",
+        "contracts/capability_map.json": "domain_id",
+        "contracts/domain_descriptor.json": "domain_id",
+        "contracts/domain_projection_profile.json": "domain_id",
+        "contracts/domain_route_profile.json": "domain_id",
+        "contracts/foundry-agent-os-domain-kernel-manifest.json": "domain_id",
+        "contracts/foundry_agent_series.json": "domain_id",
+        "contracts/generated_surface_handoff.json": "domain_id",
+        "contracts/golden_path_profile.json": "domain_id",
+        "contracts/memory_descriptor.json": "target_domain_id",
+        "contracts/owner_receipt_contract.json": "domain_id",
+        "contracts/pack_compiler_input.json": "domain_id",
+        "contracts/private_functional_surface_policy.json": "domain_id",
+        "contracts/runtime_environment_requirements.json": "domain_id",
+        "contracts/stage_artifact_kernel_adoption.json": "domain_id",
+        "contracts/stage_operating_principles.json": "domain_id",
+        "contracts/stage_quality_cycle_policy.json": "domain_id",
+        "contracts/stage_run_canary_evidence.json": "domain_id",
+        "contracts/stage_run_kernel_profile.json": "domain_id",
+        "contracts/standard-agent-principles-adoption.json": "domain_id",
+        "contracts/standard_agent_conformance_profile.json": "target_domain_id",
+        "contracts/state_index_kernel_adoption.json": "domain_id",
+        "contracts/workspace_lifecycle_policy.json": "domain_id",
+    }
+    for relative_path, field in canonical_top_level_fields.items():
+        payload = json.loads((REPO_ROOT / relative_path).read_text(encoding="utf-8"))
+        assert payload[field] == "medautoscience", (relative_path, field, payload[field])
+
+    stage_manifest = json.loads(
+        (REPO_ROOT / "agent/stages/manifest.json").read_text(encoding="utf-8")
+    )
+    assert stage_manifest["owner"] == "medautoscience"
+    assert stage_manifest["authority_boundary"]["domain_truth_owner"] == "medautoscience"
+
+    audit = _read_contract("functional_privatization_audit")
+    assert audit["domain_id"] == audit["target_domain_id"] == "medautoscience"
+    assert _read_contract("foundry_agent_series")["stage_control_plane_target_domain_id"] == (
+        "medautoscience"
+    )
+    assert _read_contract("domain_descriptor")["standard_agent_interface"]["runtime"] == {
+        "runtime_domain_id": "medautoscience",
+        "registration_ref": "contracts/domain_route_profile.json",
+    }
+    stage_pack = _read_contract("mas-paper-study-stage-pack")
+    assert stage_pack["physical_stage_folder_kernel"]["locator"]["domain_id"] == (
+        "medautoscience"
+    )
+    assert _read_contract("pack_compiler_input")["canonical_agent_id"] == "mas"
+    assert _read_contract("domain_route_profile")["agent_id"] == "mas"
+    assert _read_contract("domain_projection_profile")["agent_id"] == "mas"
+    assert _read_contract("state_index_kernel_adoption")["agent_id"] == "mas"
+    assert _read_contract("opl_agent_package_manifest")["codex_surface"]["plugin_id"] == (
+        "med-autoscience"
+    )
+    semantic_pack = (REPO_ROOT / "agent/stages/stage_native_semantic_pack.yaml").read_text(
+        encoding="utf-8"
+    )
+    assert "target_domain_id: med-autoscience" not in semantic_pack
+    assert "target_domain_id: medautoscience" in semantic_pack
+
+
+def test_source_closure_audit_tracks_current_hygiene_script_digest() -> None:
+    source_path = REPO_ROOT / "scripts/repo_hygiene_audit.py"
+    expected_digest = f"sha256:{hashlib.sha256(source_path.read_bytes()).hexdigest()}"
+    audit = _read_contract("source_closure_audit")
+
+    assert audit["entries"]
+    assert {entry["source_digest"] for entry in audit["entries"]} == {expected_digest}
 
 
 def test_opl_standard_pack_declares_single_ordinary_default_stage() -> None:
@@ -156,7 +338,17 @@ def test_zero_readable_stage_output_is_a_progress_diagnostic() -> None:
         (REPO_ROOT / "agent/stages/manifest.json").read_text(encoding="utf-8")
     )
     progress_policy = stage_manifest["progress_first_policy"]
-    assert progress_policy["route_selection_owner"] == "codex_cli"
+    assert progress_policy["semantic_route_decision_owner"] == "decisive_codex_attempt"
+    assert progress_policy["stage_transition_materialization_owner"] == (
+        "opl_stage_run_controller"
+    )
+    assert "route_selection_owner" not in progress_policy
+    assert progress_policy["primary_only_decisive_attempt_role"] == "producer"
+    assert progress_policy["formal_review_decisive_attempt_roles"] == [
+        "reviewer",
+        "re_reviewer",
+    ]
+    assert progress_policy["repairer_can_be_decisive_attempt"] is False
     assert progress_policy["codex_may_advance_skip_repeat_reverse_or_route_back"] is True
     assert progress_policy["any_declared_stage_may_start_from_any_prior_stage_result"] is True
     assert progress_policy["declared_requires_are_quality_context_not_launch_gates"] is True

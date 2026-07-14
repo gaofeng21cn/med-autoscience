@@ -13,7 +13,7 @@
     "domain_adapter_must_not_copy_policy_body_as_authority": true,
     "consumer_alignment_check": "foundry:policy-release"
   },
-  "domain_id": "mas",
+  "domain_id": "medautoscience",
   "foundry_agent_id": "mas",
   "product_layer": "foundry_agent",
   "domain_label": "Research Foundry",
@@ -24,7 +24,7 @@
   ],
   "stage_manifest_ref": "agent/stages/manifest.json",
   "stage_control_plane_ref": "opl-generated:family_stage_control_plane",
-  "stage_control_plane_target_domain_id": "med-autoscience",
+  "stage_control_plane_target_domain_id": "medautoscience",
   "app_projection_ref": "contracts/generated_surface_handoff.json#/generated_surfaces/3",
   "domain_delta": {
     "domain_pack_kind": "declarative_medical_research_pack",

@@ -7,7 +7,7 @@ Machine boundary: human-readable domain specialization. Machine-readable adoptio
 
 MAS adopts the OPL principles as a medical-research Foundry Agent:
 
-- Intake is MAS `01-study_intake` plus the durable `src/med_autoscience/study_task_intake*.py` surfaces, not a standalone Skill. It freezes study question, source boundary, owner route, source readiness assessment, and the first MAS-owned receipt or blocker surface.
+- Intake is the declarative `direction_and_route_selection` Stage plus its prompt and MAS knowledge refs, not a standalone Skill or private controller. It frames the study question, source boundary, route recommendation, source-readiness evidence needs, and the first MAS owner-answer boundary.
 - MAS owns study truth, clinical/source readiness, publication quality, artifact/current-package authority, memory accept/reject decisions, owner receipts, typed blockers, human gates, and controller decisions.
 - OPL may host stage runtime, generated surfaces, refs-only workspace/source locator, attempt transport, and conformance readbacks. It does not write MAS truth, sign MAS owner receipts, create MAS typed blockers, create human gates, or authorize publication/submission readiness.
 - MAS ScholarSkills is a refs-only professional capability pack. Its active modules are `display`, `tables`, `stats`, `lit`, `write`, `review`, `submit`, and `data`. `intake` is not an active ScholarSkills module, and `omics` stays deferred/reference until MAS has a stable real omics professional workflow.

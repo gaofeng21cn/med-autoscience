@@ -4,7 +4,7 @@
   "profile_id": "med-autoscience.golden-path",
   "domain": "med-autoscience",
   "owner": "MedAutoScience",
-  "domain_id": "med-autoscience",
+  "domain_id": "medautoscience",
   "state": "advisory_current_contract",
   "profile_role": "medical_research_foundry_agent_golden_path_profile",
   "purpose": "Med Auto Science golden path for OPL-hosted Foundry Agent execution under current_owner_delta and AI-first medical research quality gates.",

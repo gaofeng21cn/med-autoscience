@@ -2,22 +2,70 @@
 from __future__ import annotations
 
 import argparse
-import sys
 from pathlib import Path
 
 
 REPO_ROOT = Path(__file__).resolve().parent.parent
-sys.path.insert(0, str(REPO_ROOT / "src"))
-
-from med_autoscience.controllers.boundary_fitness import (  # noqa: E402
-    DEFAULT_BASELINE,
-    PREFERRED_LINE_LIMIT,
-    audit_boundary_fitness,
+DEFAULT_LIMIT = 1000
+CODE_SUFFIXES = frozenset(
+    {
+        ".py",
+        ".js",
+        ".jsx",
+        ".mjs",
+        ".cjs",
+        ".ts",
+        ".tsx",
+        ".mts",
+        ".cts",
+        ".sh",
+        ".bash",
+        ".zsh",
+        ".rs",
+        ".go",
+    }
+)
+IGNORED_PARTS = frozenset(
+    {
+        ".git",
+        ".codegraph",
+        ".venv",
+        ".pytest_cache",
+        ".ruff_cache",
+        ".mypy_cache",
+        "node_modules",
+        "dist",
+        "build",
+        "coverage",
+        "__pycache__",
+    }
 )
 
 
-DEFAULT_LIMIT = PREFERRED_LINE_LIMIT
-BASELINE = DEFAULT_BASELINE
+def _code_files() -> list[Path]:
+    return sorted(
+        path
+        for path in REPO_ROOT.rglob("*")
+        if path.is_file()
+        and path.suffix in CODE_SUFFIXES
+        and not any(part in IGNORED_PARTS for part in path.relative_to(REPO_ROOT).parts)
+        and not path.name.endswith(".min.js")
+    )
+
+
+def _line_count(path: Path) -> int:
+    try:
+        return len(path.read_text(encoding="utf-8").splitlines())
+    except UnicodeDecodeError:
+        return 0
+
+
+def _oversized_files() -> list[tuple[Path, int]]:
+    return [
+        (path, line_count)
+        for path in _code_files()
+        if (line_count := _line_count(path)) > DEFAULT_LIMIT
+    ]
 
 
 def main() -> int:
@@ -26,17 +74,21 @@ def main() -> int:
     parser.add_argument('--strict', action='store_true', help='compatibility alias; line budget remains advisory')
     args = parser.parse_args()
 
-    report = audit_boundary_fitness(REPO_ROOT, baseline=BASELINE)
+    oversized = _oversized_files()
     if args.list:
-        for finding in report.oversized_findings:
-            print(f"{finding.line_count:6d} {finding.path}")
+        for path, line_count in oversized:
+            print(f"{line_count:6d} {path.relative_to(REPO_ROOT).as_posix()}")
         return 0
 
-    failures = report.oversized_findings
-    if failures:
-        print(f'line budget advisory found {len(failures)} issue{"s" if len(failures) != 1 else ""}:')
-        for failure in failures:
-            print(f'- {failure.path}: {failure.message}; {failure.recommendation}')
+    if oversized:
+        suffix = "s" if len(oversized) != 1 else ""
+        print(f"line budget advisory found {len(oversized)} issue{suffix}:")
+        for path, line_count in oversized:
+            relative_path = path.relative_to(REPO_ROOT).as_posix()
+            print(
+                f"- {relative_path}: {line_count} lines exceeds the preferred "
+                f"{DEFAULT_LIMIT}-line boundary; split by semantic responsibility"
+            )
     return 0
 
 

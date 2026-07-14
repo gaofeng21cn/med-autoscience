@@ -1,266 +1,63 @@
 {
+  "surface_kind": "opl_domain_route_profile",
+  "version": "domain-route-profile.v2",
+  "schema_version": 2,
+  "profile_id": "mas.domain_route.v2",
+  "profile_role": "declarative_stage_route_registration",
   "agent_id": "mas",
-  "authority_boundary": {
-    "can_claim_domain_progress": false,
-    "can_claim_domain_ready": false,
-    "can_claim_provider_running": false,
-    "can_claim_quality_verdict": false,
-    "can_claim_runtime_enqueued": false,
-    "can_claim_runtime_ready": false,
-    "can_claim_stage_run_created": false,
-    "writes_artifact_body": false,
-    "writes_current_package": false,
-    "writes_domain_truth": false,
-    "writes_human_gate": false,
-    "writes_opl_event": false,
-    "writes_opl_outbox": false,
-    "writes_opl_stage_run": false,
-    "writes_owner_receipt": false,
-    "writes_provider_attempt": false,
-    "writes_quality_verdict": false,
-    "writes_runtime_queue": false,
-    "writes_typed_blocker": false
-  },
-  "authority_refs": [
-    "contracts/paper_mission_transaction_contract.json#/authority_boundary",
-    "contracts/owner_receipt_contract.json",
-    "contracts/domain_descriptor.json#/authority_boundary"
-  ],
-  "canonical_projection": "domain_route",
-  "canonical_task_kind": "domain_route/stage-route",
-  "canonical_task_kinds": [
-    "domain_autonomy/ai-reviewer-recheck",
-    "domain_autonomy/gate-replay",
-    "domain_autonomy/guarded-apply",
-    "domain_autonomy/repair-recheck",
-    "domain_autonomy/route-decision",
-    "domain_autonomy/supervisor-decision",
-    "domain_route/analysis-queue-progress",
-    "domain_route/consume-candidate",
-    "domain_route/drive",
-    "domain_route/inspect",
-    "domain_route/package-candidate",
-    "domain_route/reviewer-refresh",
-    "domain_route/stage-outcome",
-    "domain_route/stage-route",
-    "domain_route/start-or-resume",
-    "domain_route/terminalize-stage",
-    "domain_route/typed-blocker-resolution"
-  ],
-  "domain_id": "mas",
+  "domain_id": "medautoscience",
   "domain_truth_owner": "MedAutoScience",
-  "field_mapping": {
-    "attempt_identity.attempt_idempotency_key": "attempt_idempotency_key",
-    "command_kind": [
-      "route_command_kind",
-      "ai_route_context.command_kind"
+  "runtime_owner": "one-person-lab",
+  "stage_manifest_ref": "agent/stages/manifest.json",
+  "semantic_route_decision_owner": "decisive_codex_attempt",
+  "stage_transition_materialization_owner": "opl_stage_run_controller",
+  "decisive_attempt_policy": {
+    "primary_only_stage_run": "producer",
+    "formal_review_stage_run": [
+      "terminal_reviewer",
+      "terminal_re_reviewer"
     ],
-    "declarative_target_stage_id": [
-      "declarative_target_stage_id",
-      "ai_route_context.declarative_target_stage_id"
-    ],
-    "domain_route_command_ref": "ai_route_context_ref",
-    "domain_route_transaction_ref": "paper_mission_transaction_ref",
-    "route_identity.request_idempotency_key": "request_idempotency_key",
-    "route_identity.route_identity_key": "route_identity_key",
-    "route_target": [
-      "route_target",
-      "ai_route_context.target"
+    "non_decisive_roles": [
+      "repairer",
+      "nonterminal_reviewer",
+      "nonterminal_re_reviewer"
     ]
   },
-  "forbidden_claims": [
-    "can_claim_runtime_enqueued",
-    "can_claim_stage_run_created",
-    "can_claim_provider_running",
-    "can_claim_domain_progress",
-    "can_claim_domain_ready",
-    "can_claim_quality_verdict",
-    "can_claim_runtime_ready"
-  ],
-  "forbidden_writes": [
-    "writes_domain_truth",
-    "writes_quality_verdict",
-    "writes_owner_receipt",
-    "writes_typed_blocker",
-    "writes_human_gate",
-    "writes_current_package",
-    "writes_artifact_body",
-    "writes_runtime_queue",
-    "writes_opl_outbox",
-    "writes_opl_event",
-    "writes_opl_stage_run",
-    "writes_provider_attempt"
-  ],
-  "generic_field_contract": [
-    "agent_id",
-    "domain_id",
-    "domain_truth_owner",
-    "runtime_owner",
-    "canonical_task_kind",
-    "command_kind",
-    "route_target",
-    "declarative_target_stage_id",
-    "route_identity",
-    "attempt_identity",
-    "domain_route_handoff_ref",
-    "domain_route_transaction_ref",
-    "domain_route_command_ref",
-    "source_refs",
-    "authority_boundary",
-    "terminal_sync"
-  ],
-  "handoff_intake_surface_kind": "opl_domain_route_handoff_intake_readback",
-  "legacy_compatibility": {
-    "handoff_surface_kinds": [
-      "mas_paper_mission_opl_route_handoff_record",
-      "mas_ai_route_context"
-    ],
-    "normalization_owner": "MedAutoScience",
-    "profile_ids": [
-      "mas-paper-mission-route"
-    ],
-    "runtime_request_surface_kinds": [
-      "opl_mas_paper_mission_route_runtime_request"
-    ],
-    "task_kinds": [
-      "paper_autonomy/ai-reviewer-recheck",
-      "paper_autonomy/gate-replay",
-      "paper_autonomy/guarded-apply",
-      "paper_autonomy/repair-recheck",
-      "paper_autonomy/route-decision",
-      "paper_autonomy/supervisor-decision",
-      "paper_mission/consume_candidate",
-      "paper_mission/drive",
-      "paper_mission/inspect",
-      "paper_mission/package_candidate",
-      "paper_mission/stage-outcome",
-      "paper_mission/stage-route",
-      "paper_mission/start_or_resume",
-      "paper_mission/terminalize_stage",
-      "paper_mission/typed_blocker_resolution",
-      "publication_aftercare/analysis-queue-progress",
-      "publication_aftercare/reviewer-refresh"
-    ]
-  },
-  "legacy_domain_ids": [
-    "medautoscience",
-    "med-autoscience"
-  ],
-  "profile_id": "mas.domain_route.compatibility.v1",
-  "profile_role": "domain_owned_compatibility_profile",
-  "receipt_labels": {
-    "human_gate": [
-      "human_gate_ref",
-      "owner_decision_ref"
-    ],
-    "lineage": [
-      "owner_chain_ref",
-      "no_regression_ref"
-    ],
-    "owner_receipt": [
-      "domain_owner_receipt_ref",
-      "owner_receipt_ref"
-    ],
-    "quality_gate": [
-      "quality_gate_receipt_ref"
-    ],
-    "route_back": [
-      "route_back_evidence_ref"
-    ],
-    "typed_blocker": [
-      "domain_typed_blocker_ref",
-      "typed_blocker_ref"
-    ]
-  },
-  "runtime_command_kinds": [
-    "resume_stage",
+  "supported_route_kinds": [
+    "advance",
+    "skip",
+    "repeat",
+    "reverse",
     "route_back",
-    "start_next_stage"
-  ],
-  "runtime_request_kind": "domain_route_stage_route",
-  "runtime_request_surface_kind": "opl_domain_route_runtime_request",
-  "schema_version": 1,
-  "source_paths": [
-    "src/med_autoscience/domain_route_profile.py",
-    "src/med_autoscience/paper_mission_stage_run_context.py",
-    "src/med_autoscience/controllers/owner_route_handoff/task_kinds.py"
-  ],
-  "substrate_owner": "one-person-lab",
-  "supported_command_kinds": [
-    "start_next_stage",
-    "resume_stage",
-    "route_back",
-    "stop_with_typed_blocker",
     "wait_for_human",
+    "stop_with_typed_blocker",
     "complete_mission"
   ],
-  "surface_kind": "opl_domain_route_profile",
-  "task_kind_normalization": {
-    "paper_autonomy/ai-reviewer-recheck": "domain_autonomy/ai-reviewer-recheck",
-    "paper_autonomy/gate-replay": "domain_autonomy/gate-replay",
-    "paper_autonomy/guarded-apply": "domain_autonomy/guarded-apply",
-    "paper_autonomy/repair-recheck": "domain_autonomy/repair-recheck",
-    "paper_autonomy/route-decision": "domain_autonomy/route-decision",
-    "paper_autonomy/supervisor-decision": "domain_autonomy/supervisor-decision",
-    "paper_mission/consume_candidate": "domain_route/consume-candidate",
-    "paper_mission/drive": "domain_route/drive",
-    "paper_mission/inspect": "domain_route/inspect",
-    "paper_mission/package_candidate": "domain_route/package-candidate",
-    "paper_mission/stage-outcome": "domain_route/stage-outcome",
-    "paper_mission/stage-route": "domain_route/stage-route",
-    "paper_mission/start_or_resume": "domain_route/start-or-resume",
-    "paper_mission/terminalize_stage": "domain_route/terminalize-stage",
-    "paper_mission/typed_blocker_resolution": "domain_route/typed-blocker-resolution",
-    "publication_aftercare/analysis-queue-progress": "domain_route/analysis-queue-progress",
-    "publication_aftercare/reviewer-refresh": "domain_route/reviewer-refresh"
-  },
-  "terminal_sync_contract": {
-    "human_gate_wait": {
-      "command_kind": "wait_for_human",
-      "required_receipt_labels": [
-        "human_gate_ref",
-        "owner_decision_ref",
-        "owner_chain_ref"
-      ],
-      "status": "typed_wait",
-      "wait_kind": "human_gate_authority"
-    },
-    "primary_discriminator": "status",
-    "provider_projection": {
-      "command_kinds": [
-        "resume_stage",
-        "route_back",
-        "start_next_stage"
-      ],
-      "status": "accepted_for_provider_projection"
-    },
-    "rejected": {
-      "status": "rejected"
-    },
-    "secondary_discriminators": [
-      "wait_kind",
-      "command_kind"
-    ],
-    "terminal_no_runtime": {
-      "command_kind": "complete_mission",
-      "required_receipt_labels": [
-        "domain_owner_receipt_ref",
-        "owner_receipt_ref",
-        "owner_chain_ref"
-      ],
-      "status": "terminal_no_runtime",
-      "wait_kind": "mission_complete"
-    },
-    "typed_blocker_wait": {
-      "command_kind": "stop_with_typed_blocker",
-      "required_receipt_labels": [
-        "domain_typed_blocker_ref",
-        "typed_blocker_ref",
-        "owner_chain_ref",
-        "no_regression_ref"
-      ],
-      "status": "typed_wait",
-      "wait_kind": "typed_blocker_authority"
-    }
+  "required_route_fields": [
+    "stage_run_id",
+    "decisive_attempt_ref",
+    "target_stage_id",
+    "route_reason_ref",
+    "evidence_refs"
+  ],
+  "receipt_labels": [
+    "owner_receipt_ref",
+    "typed_blocker_ref",
+    "human_gate_ref",
+    "route_back_ref",
+    "quality_gate_receipt_ref"
+  ],
+  "authority_boundary": {
+    "opl_can_interpret_medical_route_semantics": false,
+    "opl_can_rewrite_decisive_route": false,
+    "opl_can_materialize_validated_transition": true,
+    "provider_completion_is_route_decision": false,
+    "read_model_is_route_decision": false,
+    "domain_repo_can_materialize_stage_transition": false,
+    "writes_domain_truth": false,
+    "writes_artifact_body": false,
+    "writes_owner_receipt": false,
+    "writes_typed_blocker": false,
+    "writes_human_gate": false
   }
 }

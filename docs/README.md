@@ -22,7 +22,7 @@ Machine boundary: 本文是人读导航。机器真相归 `agent/`、`contracts/
 
 ## 当前计划
 
-[MAS 理想目标态差距与完善计划](./active/mas-ideal-state-gap-plan.md) 是唯一结构完成度 owner。当前 OE-03、OE-11 与 legacy internal caller 物理退役仍为 `partial`；V2 public/default surface cutover 已落地，但不等于源码清零。Live evidence 独立后置。
+[MAS 理想目标态差距与完善计划](./active/mas-ideal-state-gap-plan.md) 是唯一结构完成度 owner。当前 repo/source/control-plane 已收敛为 declarative pack、OPL generated/hosted surfaces 与一个 registry-bound authority function；Live evidence 独立后置。
 
 [MAS 当前开发线路](./active/current-development-lines.md) 只做内容线索引，不维护第二 backlog。
 
@@ -38,7 +38,7 @@ Machine boundary: 本文是人读导航。机器真相归 `agent/`、`contracts/
 
 ## OPL 系列分层
 
-MAS 的 canonical id 是 `mas`，长期形态是：
+MAS 的 canonical agent id 是 `mas`，machine domain id 是 `medautoscience`，长期形态是：
 
 > `Declarative Medical Research Pack + OPL generated/hosted surfaces + minimal authority functions`
 

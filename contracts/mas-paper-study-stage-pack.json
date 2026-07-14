@@ -21,7 +21,7 @@
     "contract_ref": "contracts/opl-framework/stage-artifact-runtime-contract.json",
     "source_of_truth": "OPL physical Stage Folder Kernel",
     "locator": {
-      "domain_id": "med-autoscience",
+      "domain_id": "medautoscience",
       "program_id": "mas-paper-study",
       "topic_id_template": "{study_id}",
       "deliverable_id": "paper-study"

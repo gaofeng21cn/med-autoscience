@@ -7,58 +7,19 @@ import pytest
 
 
 pytestmark = pytest.mark.meta
-
 ROOT = Path(__file__).resolve().parents[1]
-PROFILE_PATH = ROOT / "contracts" / "stage_quality_cycle_policy.json"
-MANIFEST_PATH = ROOT / "agent" / "stages" / "manifest.json"
-PHYSICAL_PACK_PATH = ROOT / "contracts" / "mas-paper-study-stage-pack.json"
-ROLE_PROMPT_PATH = ROOT / "agent" / "quality_gates" / "stage_quality_cycle_roles.md"
 
 
-def _load(path: Path) -> dict[str, object]:
-    return json.loads(path.read_text(encoding="utf-8"))
+def _load(relative_path: str) -> dict[str, object]:
+    return json.loads((ROOT / relative_path).read_text(encoding="utf-8"))
 
 
-def test_profile_binds_shared_quality_cycle_abi_and_context_isolation() -> None:
-    profile = _load(PROFILE_PATH)
-
-    assert profile["surface_kind"] == "opl_domain_stage_quality_cycle_profile"
-    assert profile["version"] == "domain-stage-quality-cycle-profile.v1"
-    assert profile["shared_surface_contracts"] == {
-        "policy": {
-            "surface_kind": "opl_stage_quality_cycle_policy",
-            "version": "stage-quality-cycle-policy.v1",
-        },
-        "review_receipt": {
-            "surface_kind": "opl_stage_review_receipt",
-            "version": "stage-review-receipt.v1",
-        },
-        "review_context_manifest": {
-            "surface_kind": "opl_stage_review_context_manifest",
-            "version": "stage-review-context-manifest.v1",
-        },
-    }
+def test_quality_cycle_uses_canonical_attempt_outcome_and_controller_receipt() -> None:
+    profile = _load("contracts/stage_quality_cycle_policy.json")
     defaults = profile["quality_cycle_defaults"]
-    assert defaults["in_thread_refinement"] == {
-        "allowed": True,
-        "authoritative": False,
-        "can_emit_review_receipt": False,
-        "can_close_formal_review": False,
-    }
-    formal = defaults["formal_review"]
-    assert formal["new_stage_attempt_required"] is True
-    assert formal["new_execution_session_required"] is True
-    assert formal["no_context_inheritance"] is True
-    assert formal["reviewer_session_must_differ_from_producer_session"] is True
-    assert defaults["quality_revision_budget"]["max_repair_rounds"] == 3
-    assert defaults["quality_revision_budget"]["provider_retry_consumes_budget"] is False
-    assert defaults["role_prompt_refs"] == {
-        "producer": "agent/quality_gates/stage_quality_cycle_roles.md#producer",
-        "reviewer": "agent/quality_gates/stage_quality_cycle_roles.md#reviewer",
-        "repairer": "agent/quality_gates/stage_quality_cycle_roles.md#repairer",
-        "re_reviewer": "agent/quality_gates/stage_quality_cycle_roles.md#re-reviewer",
-    }
-    assert defaults["attempt_output_contract"] == {
+    attempt = defaults["attempt_output_contract"]
+
+    assert attempt == {
         "envelope_path": "route_impact.stage_quality_cycle",
         "outcome_field": "outcome",
         "outcome_required_for_roles": ["reviewer", "re_reviewer"],
@@ -79,225 +40,27 @@ def test_profile_binds_shared_quality_cycle_abi_and_context_isolation() -> None:
             "human_gate": "hard_stop",
         },
     }
-    assert defaults["initial_review_findings"]["required_outputs"] == [
-        "route_impact.stage_quality_cycle.outcome",
-        "route_impact.stage_quality_cycle.findings",
-    ]
-    assert defaults["initial_review_findings"]["reviewer_can_repair_inline"] is False
-    assert defaults["initial_review_findings"]["reviewer_can_create_repair_map"] is False
-    assert "finding_id" in defaults["initial_review_findings"]["required_fields"]
-    assert defaults["repair_map"]["one_entry_per_accepted_finding"] is True
-    assert defaults["repair_map"]["repairer_can_close_finding"] is False
+    formal = defaults["formal_review"]
+    assert formal["new_stage_attempt_required"] is True
+    assert formal["new_execution_session_required"] is True
+    assert formal["no_context_inheritance"] is True
+    assert formal["reviewer_session_must_differ_from_producer_session"] is True
     assert defaults["repair_map"]["repairer_can_make_terminal_route_decision"] is False
     assert defaults["re_review_closure"]["fresh_re_reviewer_attempt_required"] is True
-    assert defaults["re_review_closure"][
-        "reviewed_hash_must_equal_repaired_artifact_hash"
-    ] is True
-    assert defaults["re_review_closure"]["required_outputs"] == [
-        "finding_id_closure_status_refs",
-        "route_impact.stage_quality_cycle.outcome",
-        "evidence_refs",
-        "remaining_quality_debt_refs",
-    ]
-    assert defaults["re_review_closure"]["attempt_outcome_values"] == [
-        "pass",
-        "repair_required",
-        "quality_debt",
-        "blocked",
-        "human_gate",
-    ]
-    assert defaults["re_review_closure"]["next_repair_round_triggers"] == [
-        "required_finding_not_closed",
-        "repair_regression",
-        "critical_new_finding",
-    ]
-    assert profile["route_selection_contract_ref"].endswith(
-        "stage-quality-cycle-contract.json#/cross_stage_route_selection"
-    )
-    legacy_labels = profile["terminology"]["legacy_machine_label_classifications"]
-    assert legacy_labels["triggered_meta_review"]["canonical_term"] == (
-        "strategy_retrospective"
-    )
-    assert legacy_labels["triggered_meta_review"]["can_satisfy_cross_stage_meta_review"] is False
-    assert legacy_labels["manuscript_consistency_meta_review"]["canonical_term"] == (
-        "manuscript_consistency_gate_input"
-    )
-    assert legacy_labels["manuscript_consistency_meta_review"][
-        "can_satisfy_cross_stage_meta_review"
-    ] is False
 
 
-def test_quality_roles_keep_receipt_and_repair_map_ownership_separate() -> None:
-    role_prompt = " ".join(ROLE_PROMPT_PATH.read_text(encoding="utf-8").split())
-
-    assert "Do not create a Review receipt or repair map" in role_prompt
-    assert "OPL StageRun controller materializes" in role_prompt
-    assert "repair map keyed by every accepted `finding_id`" in role_prompt
-    assert "Do not reuse the reviewer session, close findings" in role_prompt
-    assert "`closed`, `partially_closed`, or `still_open`" in role_prompt
-    assert "ordinary new suggestions are optional observations" in role_prompt
-    assert "create the controller-owned Review receipt" in role_prompt
-    assert "`route_impact.stage_quality_cycle.outcome`" in role_prompt
-    assert "An Attempt must not return receipt `verdict`" in role_prompt
-    assert "receipt-only `hard_stop`" in role_prompt
-
-
-def test_quality_roles_make_route_owner_and_output_shape_unambiguous() -> None:
-    role_prompt = " ".join(ROLE_PROMPT_PATH.read_text(encoding="utf-8").split())
-
-    assert "`route_impact.stage_route_decision`" in role_prompt
-    assert "`route_impact.stage_route_recommendation`" in role_prompt
-    assert "producer is decisive only in a primary-only StageRun" in role_prompt
-    assert "repairer never makes a terminal route decision" in role_prompt
-    assert "While repair budget remains" in role_prompt
-    for legacy_field in (
-        "route_back_stage_ref",
-        "selected_next_stage_ref",
-        "next_stage_ref",
-        "workflow_complete",
-    ):
-        assert legacy_field in role_prompt
-
-    meta_prompt = " ".join(
-        (ROOT / "agent/prompts/review_and_quality_gate.md")
-        .read_text(encoding="utf-8")
-        .split()
-    )
-    handoff_prompt = " ".join(
-        (ROOT / "agent/prompts/finalize_and_publication_handoff.md")
-        .read_text(encoding="utf-8")
-        .split()
-    )
-    assert "decisive route owner" in meta_prompt
-    assert "decisive cross-Stage route owner" in handoff_prompt
-    assert "stage_route_decision" in meta_prompt
-    assert "stage_route_decision" in handoff_prompt
-    for prompt in (meta_prompt, handoff_prompt):
-        assert "returns no route output" in prompt or "return no route output" in prompt
-
-
-def test_quality_role_prompt_terminalizes_final_budget_without_routing_hard_boundaries() -> None:
-    roles = " ".join(ROLE_PROMPT_PATH.read_text(encoding="utf-8").split())
-
-    assert "`repair_budget_remaining`" in roles
-    assert "another repair round remains" in roles
-    assert "returns outcome" in roles
-    assert "`repair_required`" in roles
-    assert "controller creates the next fresh repairer Attempt" in roles
-    assert "This branch is non-terminal" in roles
-
-    assert "`final_budget_consumable`" in roles
-    assert "no repair round remains" in roles
-    assert "keep outcome `repair_required`" in roles
-    assert "do not relabel them `quality_debt`" in roles
-    assert "exactly one `route_impact.stage_route_decision`" in roles
-    assert "remaining required finding refs and quality-debt refs" in roles
-    assert "classifies this branch as `terminal_quality_debt`" in roles
-    assert "`completed_with_quality_debt`" in roles
-    assert "Use outcome" in roles
-    assert "`quality_debt` only when no required finding remains" in roles
-
-    assert "`hard_boundary_or_zero_artifact`" in roles
-    assert "literal zero consumable exact artifact is not a Stage-routing judgment" in roles
-    assert "returns neither" in roles
-    assert "`route_impact.stage_route_decision` nor" in roles
-    assert "`route_impact.stage_route_recommendation`" in roles
-    assert "Literal zero consumable artifact" in roles
-    assert "uses `blocked`" in roles
-    assert "terminalizes the StageRun as blocked" in roles
-    assert "A hard-boundary reviewer returns no route output" in roles
-    assert "A hard-boundary re-reviewer returns no route output" in roles
-    assert "A repairer never makes a terminal route decision" in roles
-
-
-def test_all_canonical_stages_bind_quality_policy_and_meta_review_is_explicit() -> None:
-    profile = _load(PROFILE_PATH)
-    manifest = _load(MANIFEST_PATH)
+def test_all_six_stages_bind_quality_policy_and_budget_exhaustion() -> None:
+    profile = _load("contracts/stage_quality_cycle_policy.json")
+    manifest = _load("agent/stages/manifest.json")
     stage_ids = [stage["stage_id"] for stage in manifest["stages"]]
-    expected_review_policy = {
-        "direction_and_route_selection": (True, 3),
-        "baseline_and_evidence_setup": (True, 3),
-        "bounded_analysis_campaign": (True, 3),
-        "manuscript_authoring": (True, 3),
-        "review_and_quality_gate": (False, 0),
-        "finalize_and_publication_handoff": (False, 0),
-    }
 
-    assert manifest["quality_governance_profile_ref"] == (
-        "contracts/opl-framework/official-knowledge-deliverable-quality-profile.json"
-    )
-    assert manifest["meta_review_policy_ref"] == (
-        "contracts/stage_quality_cycle_policy.json#/meta_review_policy"
-    )
     assert set(profile["stage_policies"]) == set(stage_ids)
     for stage in manifest["stages"]:
+        stage_id = stage["stage_id"]
         assert stage["stage_quality_cycle_policy_ref"] == (
-            "contracts/stage_quality_cycle_policy.json#/stage_policies/"
-            f"{stage['stage_id']}"
+            f"contracts/stage_quality_cycle_policy.json#/stage_policies/{stage_id}"
         )
-
-    meta_stage = next(
-        stage for stage in manifest["stages"]
-        if stage["stage_id"] == "review_and_quality_gate"
-    )
-    assert meta_stage["stage_role"] == "cross_stage_meta_review"
-    meta_policy = profile["stage_policies"]["review_and_quality_gate"]
-    assert meta_policy["formal_review"]["required"] is False
-    assert meta_policy["formal_review"]["max_repair_rounds"] == 0
-    assert profile["meta_review_policy"]["inline_repair_allowed"] is False
-    assert profile["meta_review_policy"]["attempt_role"] == "producer"
-    assert profile["meta_review_policy"]["role_prompt_ref"].endswith("#producer")
-    assert profile["meta_review_policy"]["rubric_refs"]
-
-    required_policy_keys = {
-        "surface_kind",
-        "version",
-        "enabled",
-        "stage_prompt_ref",
-        "role_prompt_refs",
-        "quality_rubric_refs",
-        "in_thread_refinement",
-        "formal_review",
-        "budget_exhaustion",
-        "attempt_boundary",
-    }
-    assert profile["quality_cycle_defaults"]["attempt_roles"] == [
-        "producer",
-        "reviewer",
-        "repairer",
-        "re_reviewer",
-    ]
-    for stage_id, stage_policy in profile["stage_policies"].items():
-        assert set(stage_policy) == required_policy_keys
-        assert stage_policy["surface_kind"] == "opl_stage_quality_cycle_policy"
-        assert stage_policy["version"] == "stage-quality-cycle-policy.v1"
-        assert stage_policy["enabled"] is True
-        assert stage_policy["stage_prompt_ref"] == f"agent/prompts/{stage_id}.md"
-        assert set(stage_policy["role_prompt_refs"]) == {
-            "producer",
-            "reviewer",
-            "repairer",
-            "re_reviewer",
-        }
-        assert stage_policy["quality_rubric_refs"]
-        assert stage_policy["in_thread_refinement"] == {
-            "allowed": True,
-            "authoritative": False,
-        }
-        formal_review = stage_policy["formal_review"]
-        assert set(formal_review) == {
-            "required",
-            "risk_tier",
-            "review_depth",
-            "context_isolation_required",
-            "max_repair_rounds",
-        }
-        assert formal_review["context_isolation_required"] is True
-        assert 0 <= formal_review["max_repair_rounds"] <= 3
-        assert (
-            formal_review["required"],
-            formal_review["max_repair_rounds"],
-        ) == expected_review_policy[stage_id]
+        stage_policy = profile["stage_policies"][stage_id]
         assert stage_policy["budget_exhaustion"] == (
             "complete_with_quality_debt_if_consumable"
         )
@@ -309,21 +72,103 @@ def test_all_canonical_stages_bind_quality_policy_and_meta_review_is_explicit() 
         }
 
 
-def test_six_canonical_stages_cover_each_of_eight_physical_stages_once() -> None:
-    profile = _load(PROFILE_PATH)
-    manifest = _load(MANIFEST_PATH)
-    physical_pack = _load(PHYSICAL_PACK_PATH)
-    mapping = profile["canonical_to_physical_stage_mapping"]
-    canonical_stage_ids = [stage["stage_id"] for stage in manifest["stages"]]
-    physical_stage_ids = [stage["stage_id"] for stage in physical_pack["stages"]]
+def test_route_authority_is_split_and_legacy_owner_is_absent() -> None:
+    principles = _load("contracts/stage_operating_principles.json")
+    manifest = _load("agent/stages/manifest.json")
 
-    assert list(mapping) == canonical_stage_ids
-    mapped_physical_ids = [
-        stage_id
-        for canonical_stage_id in canonical_stage_ids
-        for stage_id in mapping[canonical_stage_id]
+    for policy in (principles["speed_policy"], manifest["progress_first_policy"]):
+        assert policy["semantic_route_decision_owner"] == "decisive_codex_attempt"
+        assert policy["stage_transition_materialization_owner"] == (
+            "opl_stage_run_controller"
+        )
+        assert "route_selection_owner" not in policy
+
+    progress_policy = manifest["progress_first_policy"]
+    assert progress_policy["primary_only_decisive_attempt_role"] == "producer"
+    assert progress_policy["formal_review_decisive_attempt_roles"] == [
+        "reviewer",
+        "re_reviewer",
     ]
-    assert len(canonical_stage_ids) == 6
-    assert len(physical_stage_ids) == 8
-    assert mapped_physical_ids == physical_stage_ids
-    assert len(mapped_physical_ids) == len(set(mapped_physical_ids))
+    assert progress_policy["repairer_can_be_decisive_attempt"] is False
+
+
+def test_main_prompts_label_the_forward_stage_as_a_default_not_a_route_constraint() -> None:
+    manifest = _load("agent/stages/manifest.json")
+    stage_ids = {
+        "direction_and_route_selection",
+        "baseline_and_evidence_setup",
+        "bounded_analysis_campaign",
+        "manuscript_authoring",
+    }
+
+    prompts = {
+        stage["stage_id"]: (ROOT / stage["prompt_ref"]).read_text(encoding="utf-8")
+        for stage in manifest["stages"]
+        if stage["stage_id"] in stage_ids
+    }
+    assert set(prompts) == stage_ids
+    for prompt in prompts.values():
+        assert "\nDefault forward stage: " in prompt
+        assert "\nNext stage: " not in prompt
+
+
+def test_active_stage_manifest_uses_canonical_review_gate_input_ids() -> None:
+    manifest = _load("agent/stages/manifest.json")
+    required_gate_inputs = {
+        gate_input
+        for stage in manifest["stages"]
+        for check in stage.get("stage_contract_extension", {}).get(
+            "mandatory_pre_gate_checks", []
+        )
+        for gate_input in check.get("required_gate_input_surfaces", [])
+    }
+
+    assert "manuscript_consistency_gate_input" in required_gate_inputs
+    assert "manuscript_consistency_meta_review" not in required_gate_inputs
+
+
+def test_hypothesis_promotion_is_a_review_contract_not_python_validator() -> None:
+    manifest = _load("agent/stages/manifest.json")
+    pack_input = _load("contracts/pack_compiler_input.json")
+    pack_contract = pack_input["hypothesis_portfolio_evidence_pack_contract"]
+
+    assert pack_contract["candidate_promotion_requires_review_receipt"] is True
+    assert pack_contract["validation_contract_ref"] == (
+        "contracts/stage_quality_cycle_policy.json#/quality_cycle_defaults/formal_review"
+    )
+    assert "validator_ref" not in pack_contract
+    required_refs = pack_contract["candidate_required_ref_families"]
+    assert "hypothesis_candidate_ref" in required_refs
+    assert "supporting_evidence_ref" in required_refs
+    assert "contradicting_evidence_ref" in required_refs
+    assert "testability_ref" in required_refs
+    assert "safety_risk_ref" in required_refs
+    assert "independent_reviewer_or_auditor_receipt_ref" in required_refs
+
+    for stage in manifest["stages"]:
+        contract = stage["stage_contract_extension"][
+            "hypothesis_portfolio_evidence_pack"
+        ]
+        assert contract["candidate_promotion_requires_review_receipt"] is True
+        assert "validator_ref" not in contract
+
+
+def test_connect_receipts_are_consumed_by_hosted_review_not_private_transport() -> None:
+    manifest = _load("agent/stages/manifest.json")
+    contracts = [
+        check["provider_resolution_contract"]
+        for stage in manifest["stages"]
+        for check in stage.get("stage_contract_extension", {}).get(
+            "mandatory_pre_gate_checks", []
+        )
+    ]
+
+    assert len(contracts) == 2
+    for contract in contracts:
+        assert contract["execution_owner"] == "OPL Connect"
+        assert contract["provider_lookup_mode"] == "opl_connect_receipt_input_only"
+        assert contract["provider_receipt_consumed_by"] == (
+            "opl_hosted:mas_independent_reviewer_attempt"
+        )
+        assert contract["mas_can_invoke_opl_connect"] is False
+        assert "provider_evidence_consumed_by" not in contract

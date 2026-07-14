@@ -1,51 +1,27 @@
-# MAS Executor-First 重构计划
+# MAS Executor-First 重构边界
 
 Owner: `MedAutoScience`
-Purpose: `executor_first_boundary`
-State: `landed_reference`
-Machine boundary: 本文说明当前 executor/owner split；机器事实归 pack、action catalog、domain route contracts 与 OPL runtime readback。
+Purpose: `executor_first_no_resurrection_guard`
+State: `active_support`
+Machine boundary: 本文解释已落地的 executor/owner split；机器事实归 Stage/action/quality contracts、OPL StageRun ledger 与 MAS authority results。
 
-## 结论
+## 已落地形态
 
-Executor-first 已收敛为 OPL StageRun 内的执行策略，不再要求 MAS 维护 executor platform。
+Codex Attempt 是 Stage 内最小执行单位；OPL StageRun controller 持有 invocation、
+session isolation、retry、ledger 与 transition materialization。MAS 只声明 Stage goal、
+专业依赖、quality rubric、route target 与 domain authority boundary。
 
-- `Codex CLI` 是 stage 内第一公民 executor。
-- OPL 持有 scheduling、attempt、retry/dead-letter、resume、transport 与 executor adapter lifecycle。
-- MAS pack 为 executor 提供 goal、context、authority boundary、tool affordances、knowledge refs 与 quality gate。
-- MAS owner surface 只消费 stage outcome，并返回 receipt、typed blocker、human gate、route-back 或 domain refs。
+四角色固定为 producer、reviewer、repairer、re_reviewer。正式 Review 使用独立
+Attempt/session；repairer 不拥有终局 route authority。领域 route 由 decisive Codex
+Attempt 决定，controller 只校验并物化。
 
-## 当前执行链
+## 禁止复活
 
-```text
-OPL StageRun
-  -> executor reads MAS stage pack
-  -> executor produces stage artifacts/evidence
-  -> independent reviewer/auditor when required
-  -> MAS owner validates domain authority result
-  -> Codex CLI selected stage -> nonbinding route context
-  -> OPL transports the next attempt or gate
-```
+MAS 不得新增 repo-local runner、scheduler、queue、session store、attempt ledger、
+runtime lifecycle、workbench、CLI/MCP transport 或 route transition controller。
+其他 executor 只通过 OPL 显式 adapter 接入，不承诺与 Codex CLI 质量等价。
 
-Executor 可以在 stage 内选择读取顺序、工具、并行方式与候选比较；这些策略不应被硬编码成 MAS-local workflow engine。
+## Evidence boundary
 
-## 不再维护
-
-- repo-local executor scheduler/runner/session store；
-- CLI/MCP executor transport；
-- provider admission/current work unit/PaperRecovery next-action control plane；
-- repo-local workbench、queue、attempt ledger 与 lifecycle shell；
-- 同一 executor 自审并关闭 AI-first quality gate。
-
-## Quality gate
-
-需要质量裁决时，executor 与 reviewer/auditor 必须是独立 invocation、context/task record 与 receipt。OPL 可以运输这些 refs；MAS quality/publication owner 才能解释 verdict。
-
-## Live evidence
-
-结构链已落地。Provider running、真实 stage outcome、paper/artifact delta 与 quality/publication ready 仍需 fresh live evidence，当前不由本文声明。
-
-## 相关入口
-
-- [Architecture](../architecture.md)
-- [Stage outcome runbook](../runtime/control/progress_first_stage_outcome.md)
-- [Active truth plan](./mas-ideal-state-gap-plan.md)
+Contracts、focused tests 和 generated interface readback证明结构；真实 session isolation、
+StageRun replay、provider residency 与 paper outcome 仍需 OPL runtime/owner evidence。

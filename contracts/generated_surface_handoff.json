@@ -1,7 +1,7 @@
 {
   "agent_pack_ref_source": "contracts/pack_compiler_input.json#/required_domain_pack_paths",
   "consumes_agent_pack_refs": true,
-  "domain_id": "mas",
+  "domain_id": "medautoscience",
   "domain_repo_can_own_generated_surface": false,
   "generated_surface_owner": "one-person-lab",
   "generated_surface_policy": {
@@ -140,12 +140,12 @@
       },
       {
         "body_included": false,
-        "ref": "tests/test_opl_standard_pack_cases/test_generated_interface_cases.py",
+        "ref": "tests/test_standard_agent_boundary.py",
         "role": "standard_pack_contract_test_surface"
       },
       {
         "body_included": false,
-        "ref": "tests/test_mas_production_acceptance.py",
+        "ref": "tests/test_opl_standard_pack_cases/test_stage_contract_cases.py",
         "role": "agent_evidence_handoff_contract_test_surface"
       }
     ],

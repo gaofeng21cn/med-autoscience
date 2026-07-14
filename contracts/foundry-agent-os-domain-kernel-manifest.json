@@ -1,13 +1,13 @@
 {
   "surface_kind": "foundry_agent_os_domain_kernel_manifest",
   "version": "foundry-agent-os-domain-kernel-manifest.v1",
-  "domain_id": "med-autoscience",
+  "domain_id": "medautoscience",
   "domain_agent_id": "mas",
   "owner": "MedAutoScience",
   "state": "active_contract",
   "role": "w4_domain_kernel_manifest",
   "source_of_truth_refs": [
-    "docs/runtime/designs/mas_opl_agent_os_target_operating_architecture.md",
+    "docs/architecture.md",
     "contracts/foundry_agent_series.json",
     "contracts/private_functional_surface_policy.json",
     "contracts/functional_privatization_audit.json"
@@ -114,8 +114,8 @@
   },
   "verification": {
     "focused_tests": [
-      "tests/test_foundry_agent_os_domain_kernel_manifest_contract.py"
+      "tests/test_standard_agent_conformance_profile.py"
     ],
-    "docs_ref": "docs/runtime/designs/mas_opl_agent_os_target_operating_architecture.md"
+    "docs_ref": "docs/architecture.md"
   }
 }

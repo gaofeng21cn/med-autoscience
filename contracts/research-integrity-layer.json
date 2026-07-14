@@ -1,690 +1,108 @@
 {
-  "surface_kind": "research_integrity_layer_contract",
-  "schema_version": 1,
-  "state": "active_contract",
+  "surface_kind": "mas_research_integrity_layer",
+  "version": "mas-research-integrity-layer.v2",
+  "schema_version": 2,
   "owner": "MedAutoScience",
-  "purpose": "Bind OPL Connect provider receipt transport, reference authenticity, claim-citation support, and manuscript consistency review into one non-authoritative publication quality input layer.",
-  "paper_mission_subordination": {
-    "surface_kind": "mas_paper_mission_subordination",
-    "authority_owner": "MedAutoScience",
-    "mainline_route": [
-      "PaperMission",
-      "submission_authority",
-      "submission_authority_owner_gate_or_typed_blocker"
-    ],
-    "control_plane_role": "subordinate_input_or_advisory_only",
-    "can_start_parallel_mainline": false,
-    "can_bypass_submission_authority": false,
-    "can_close_without_owner_gate_or_typed_blocker": false
-  },
-  "target_state": {
-    "summary": "Review and publication gate stage launch/readback surfaces require the RI hook as a mandatory pre-gate input; the host resolves the declared OPL Connect action and injects its provider receipt, then MAS Research Integrity Gate consumes that evidence and emits gate input without invoking transport.",
-    "is_independent_professional_skill": false,
-    "provider_lookup_owner": "OPL Connect",
-    "provider_lookup_mode": "opl_connect_receipt_input_only",
-    "receipt_first": true,
-    "live_provider_authority_claimed": false,
-    "authoritative_provider_truth_owner": "external provider source systems",
-    "provider_receipt_transport": "OPL Connect performs provider invocation, normalization, retry, cache, and receipt transport; MAS consumes the receipts as medical gate input only.",
-    "stage_hook_consumers": [
-      "review gate",
-      "publication gate"
-    ],
-    "lookup_providers": [
-      "crossref",
-      "openalex",
-      "semantic_scholar",
-      "publisher",
-      "crossmark"
-    ]
-  },
+  "state": "declarative_domain_quality_contract",
+  "purpose": "Declare the medical reference, claim-support, and manuscript-consistency obligations consumed by independent Review without embedding provider transport or a private validator runtime.",
   "provider_lookup_boundary": {
-    "surface_kind": "mas_opl_connect_provider_receipt_boundary",
-    "schema_version": 1,
-    "provider_lookup_mode": "opl_connect_receipt_input_only",
-    "receipt_first": true,
-    "transition_only": false,
-    "live_provider_authority_claimed": false,
-    "authoritative_provider_truth_owner": "external provider source systems",
-    "provider_receipt_consumption_contexts": [
-      "research_integrity_gate_input"
+    "owner": "OPL Connect",
+    "request_action_id": "opl_connect_reference_verification",
+    "receipt_surface_kind": "opl_connect_reference_verification_receipt",
+    "receipt_role": "read_only_provider_evidence_candidate",
+    "required_receipt_fields": [
+      "surface_kind",
+      "request_id",
+      "provider_id",
+      "source_ref",
+      "content_sha256",
+      "observed_at",
+      "provider_status"
     ],
-    "missing_evidence_output_role": "provider_resolution_action_request_only",
-    "provider_evidence_input_only": true,
-    "forbidden_claims": [
-      "authoritative_live_citation_verification",
-      "Claude Science equivalent online verification",
-      "provider receipt materialized",
-      "live provider truth",
-      "publication_ready",
-      "submission_ready"
-    ],
-    "provider_lookup_owner": "OPL Connect",
-    "mas_can_call_external_provider": false,
-    "can_call_external_provider": false,
-    "can_invoke_opl_connect": false,
-    "can_claim_live_provider_truth": false,
-    "can_be_used_as_authoritative_provider_truth_without_owner_consumption": false,
-    "can_materialize_provider_receipt": false,
-    "can_write_provider_attempt": false,
-    "can_write_runtime_queue": false,
-    "can_write_provider_lookup_cache_or_receipt": false
+    "mas_role": "consume_exact_receipt_refs_and_apply_medical_judgment_in_independent_review",
+    "missing_receipt_effect": "return_request_only_provider_resolution_action",
+    "mas_can_invoke_provider": false,
+    "mas_can_persist_provider_transport_receipt": false,
+    "provider_receipt_is_reference_authenticity_verdict": false,
+    "provider_receipt_is_publication_or_owner_receipt": false
   },
-  "ideal_trigger_chain": {
-    "surface_kind": "research_integrity_ideal_trigger_chain",
-    "version": "research-integrity-trigger-chain.v1",
-    "chain": [
-      "Stage control plane launch packet for review_and_quality_gate or finalize_and_publication_handoff carries mandatory_pre_gate_checks for the RI hook",
-      "OPL Connect reference verification resolves external citation evidence for the hook request",
-      "MAS Research Integrity Gate consumes provider evidence with manuscript, claim, citation, and display refs",
-      "AI reviewer or publication gate consumer reads the RI gate input as evidence before MAS owner surface consumption"
-    ],
-    "stage_hook_target": "review_and_quality_gate or finalize_and_publication_handoff stage hook",
-    "provider_lookup_owner": "OPL Connect",
-    "mas_gate_owner": "MedAutoScience",
-    "consumer_owner": "MAS AI reviewer or publication gate owner surface",
-    "forbidden_writes": [
-      "publication_eval/latest.json",
-      "controller_decisions/latest.json",
-      "current_package",
-      "owner receipts",
-      "typed blockers",
-      "human gates",
-      "runtime queues",
-      "provider attempts",
-      "provider lookup cache or receipt"
-    ],
-    "completion_boundary": {
-      "contract_docs_or_meta_green_can_claim": [
-        "descriptor and contract sync",
-        "Research Integrity gate-input shape available",
-        "forbidden-write boundary documented and test-covered"
+  "quality_obligations": [
+    {
+      "obligation_id": "reference_authenticity",
+      "required_evidence_refs": [
+        "provider_receipt_refs",
+        "canonical_identifier_refs",
+        "source_refs"
       ],
-      "contract_docs_or_meta_green_cannot_claim": [
-        "live provider truth",
-        "owner receipt",
-        "publication-ready",
-        "submission-ready",
-        "typed blocker materialized",
-        "current_package freshness"
+      "judgment_owner": "independent_reviewer_or_re_reviewer"
+    },
+    {
+      "obligation_id": "claim_citation_support",
+      "required_evidence_refs": [
+        "claim_map_ref",
+        "evidence_ledger_ref",
+        "citation_support_ref"
       ],
-      "live_truth_requires": [
-        "external provider invocation/readback",
-        "MAS owner surface consumption",
-        "AI reviewer or publication gate receipt",
-        "runtime or artifact readback for the exact study work unit"
-      ]
+      "judgment_owner": "independent_reviewer_or_re_reviewer"
+    },
+    {
+      "obligation_id": "manuscript_consistency",
+      "required_evidence_refs": [
+        "reviewed_artifact_ref",
+        "analysis_result_refs",
+        "table_and_figure_refs"
+      ],
+      "judgment_owner": "independent_reviewer_or_re_reviewer"
     }
-  },
+  ],
   "stage_hook_obligation": {
-    "surface_kind": "research_integrity_stage_hook_obligation",
-    "schema_version": 1,
-    "hook_id": "research-integrity-review-publication-gate-stage-hook",
-    "stage_action_refs": [
-      "review_and_quality_gate",
-      "finalize_and_publication_handoff"
-    ],
-    "obligation_level": "mandatory",
-    "hook_role": "mandatory_review_publication_gate_input",
+    "contract_ref": "contracts/research-integrity-layer.json#/stage_hook_obligation",
     "target_stage_ids": [
       "review_and_quality_gate",
       "finalize_and_publication_handoff"
     ],
-    "trigger_points": [
-      "reference_list_entered",
-      "manuscript_closeout_entered",
-      "review_gate_entered",
-      "publication_gate_entered"
-    ],
+    "stage_policy_ref": "contracts/stage_quality_cycle_policy.json",
+    "hook_role": "required_domain_quality_input",
+    "hook_is_private_runtime": false
+  },
+  "stage_launch_required_input": {
     "provider_resolution_action": "opl_connect_reference_verification",
-    "provider_resolution_contract": {
-      "surface_kind": "opl_connect_reference_verification_contract",
-      "schema_version": 1,
-      "owner": "OPL Connect",
-      "triggered_by_hook_id": "research-integrity-review-publication-gate-stage-hook",
-      "provider_action_id": "opl_connect_reference_verification",
-      "lookup_providers": [
-        "crossref",
-        "openalex",
-        "semantic_scholar",
-        "publisher",
-        "crossmark"
-      ],
-      "provider_lookup_mode": "opl_connect_receipt_input_only",
-      "provider_evidence_consumed_by": "med_autoscience.research_integrity.reference_verification",
-      "request_only": true,
-      "execution_owner": "OPL Connect",
-      "mas_can_invoke_opl_connect": false,
-      "mandatory_gate_input_only": true,
-      "live_owner_consumption_claimed": false,
-      "can_write_provider_attempt": false,
-      "can_write_runtime_queue": false
-    },
-    "stage_launch_required_input": {
-      "surface_kind": "research_integrity_stage_launch_required_input",
-      "schema_version": 1,
-      "hook_id": "research-integrity-review-publication-gate-stage-hook",
-      "stage_action_refs": [
-        "review_and_quality_gate",
-        "finalize_and_publication_handoff"
-      ],
-      "target_stage_ids": [
-        "review_and_quality_gate",
-        "finalize_and_publication_handoff"
-      ],
-      "launch_surface": "stage_contract.mandatory_pre_gate_checks",
-      "readback_surface": "stage_contract.mandatory_pre_gate_checks",
-      "provider_resolution_action": "opl_connect_reference_verification",
-      "trigger_points": [
-        "reference_list_entered",
-        "manuscript_closeout_entered",
-        "review_gate_entered",
-        "publication_gate_entered"
-      ],
-      "required_gate_input_surfaces": [
-        "reference_verification_attestations",
-        "claim_citation_support_matrix_v2",
-        "manuscript_consistency_meta_review"
-      ],
-      "provider_resolution_contract": {
-        "surface_kind": "opl_connect_reference_verification_contract",
-        "schema_version": 1,
-        "owner": "OPL Connect",
-        "triggered_by_hook_id": "research-integrity-review-publication-gate-stage-hook",
-        "provider_action_id": "opl_connect_reference_verification",
-        "lookup_providers": [
-          "crossref",
-          "openalex",
-          "semantic_scholar",
-          "publisher",
-          "crossmark"
-        ],
-        "provider_lookup_mode": "opl_connect_receipt_input_only",
-        "provider_evidence_consumed_by": "med_autoscience.research_integrity.reference_verification",
-        "request_only": true,
-        "execution_owner": "OPL Connect",
-        "mas_can_invoke_opl_connect": false,
-        "mandatory_gate_input_only": true,
-        "live_owner_consumption_claimed": false,
-        "can_write_provider_attempt": false,
-        "can_write_runtime_queue": false
-      },
-      "mandatory_before_stage_completion": true,
-      "required_before_owner_receipt_or_typed_blocker": true,
-      "mandatory_gate_input": true,
-      "live_owner_consumption_claimed": false,
-      "paper_mission_subordination": {
-        "surface_kind": "mas_paper_mission_subordination",
-        "authority_owner": "MedAutoScience",
-        "mainline_route": [
-          "PaperMission",
-          "submission_authority",
-          "submission_authority_owner_gate_or_typed_blocker"
-        ],
-        "control_plane_role": "subordinate_input_or_advisory_only",
-        "can_start_parallel_mainline": false,
-        "can_bypass_submission_authority": false,
-        "can_close_without_owner_gate_or_typed_blocker": false
-      },
-      "authority_boundary": {
-        "outputs_are_gate_inputs": true,
-        "surface_authority": "mandatory_stage_hook_gate_input_only",
-        "can_declare_provider_resolution_requirement": true,
-        "can_invoke_opl_connect": false,
-        "can_write_mas_study_truth": false,
-        "can_write_publication_eval_latest": false,
-        "can_write_publication_eval": false,
-        "can_write_controller_decisions": false,
-        "can_mutate_current_package": false,
-        "can_write_current_package": false,
-        "can_sign_owner_receipt": false,
-        "can_write_owner_receipt": false,
-        "can_materialize_typed_blocker": false,
-        "can_write_typed_blocker": false,
-        "can_materialize_human_gate": false,
-        "can_write_runtime_queue_or_provider_attempt": false,
-        "can_authorize_publication_quality": false,
-        "can_authorize_publication_readiness": false,
-        "can_authorize_submission_readiness": false
-      }
-    },
-    "required_gate_input_surfaces": [
-      "reference_verification_attestations",
-      "claim_citation_support_matrix_v2",
-      "manuscript_consistency_meta_review"
+    "required_gate_input_ids": [
+      "reference_authenticity",
+      "claim_citation_support",
+      "manuscript_consistency"
     ],
-    "mandatory_gate_input": true,
-    "live_owner_consumption_claimed": false,
-    "paper_mission_subordination": {
-      "surface_kind": "mas_paper_mission_subordination",
-      "authority_owner": "MedAutoScience",
-      "mainline_route": [
-        "PaperMission",
-        "submission_authority",
-        "submission_authority_owner_gate_or_typed_blocker"
-      ],
-      "control_plane_role": "subordinate_input_or_advisory_only",
-      "can_start_parallel_mainline": false,
-      "can_bypass_submission_authority": false,
-      "can_close_without_owner_gate_or_typed_blocker": false
-    },
-    "authority_boundary": {
-      "outputs_are_gate_inputs": true,
-      "surface_authority": "mandatory_stage_hook_gate_input_only",
-      "can_declare_provider_resolution_requirement": true,
-      "can_invoke_opl_connect": false,
-      "can_write_mas_study_truth": false,
-      "can_write_publication_eval_latest": false,
-      "can_write_publication_eval": false,
-      "can_write_controller_decisions": false,
-      "can_mutate_current_package": false,
-      "can_write_current_package": false,
-      "can_sign_owner_receipt": false,
-      "can_write_owner_receipt": false,
-      "can_materialize_typed_blocker": false,
-      "can_write_typed_blocker": false,
-      "can_materialize_human_gate": false,
-      "can_write_runtime_queue_or_provider_attempt": false,
-      "can_authorize_publication_quality": false,
-      "can_authorize_publication_readiness": false,
-      "can_authorize_submission_readiness": false
-    },
-    "contract_ref": "contracts/research-integrity-layer.json#/stage_hook_obligation",
-    "completion_boundary": {
-      "non_live_callable_stage_obligation_can_claim": true,
-      "live_owner_consumption_claimed": false,
-      "live_truth_requires": [
-        "external provider invocation/readback",
-        "MAS owner surface consumption",
-        "AI reviewer or publication gate receipt",
-        "runtime or artifact readback for the exact study work unit"
-      ]
-    }
+    "required_before_publication_or_submission_claim": true,
+    "missing_input_blocks_ordinary_stage_progress": false,
+    "missing_input_blocks_quality_publication_or_submission_claim": true
   },
-  "entry_surfaces": [
-    {
-      "surface_kind": "reference_verification_attestation",
-      "producer": "MAS research_integrity.reference_authenticity pure builder",
-      "inputs": [
-        "reference metadata supplied by manuscript or reference manager",
-        "provider evidence payloads supplied by OPL Connect reference verification or explicit generic connector input",
-        "optional full-text or publisher provenance refs"
-      ],
-      "required_output_fields": [
-        "surface_kind",
-        "schema_version",
-        "reference_id",
-        "status",
-        "source_crosschecks",
-        "identifier_conflicts",
-        "metadata_mismatches",
-        "retraction_or_update_flags",
-        "authority_boundary"
-      ],
-      "status_values": [
-        "verified",
-        "needs_review",
-        "unresolved",
-        "contradicted",
-        "retracted"
-      ],
-      "hard_gate_status_values": [
-        "contradicted",
-        "retracted"
-      ],
-      "review_status_values": [
-        "needs_review",
-        "unresolved"
-      ]
-    },
-    {
-      "surface_kind": "claim_citation_support_matrix_v2",
-      "producer": "MAS research_integrity.claim_citation_support_v2 pure builder",
-      "inputs": [
-        "claim spans",
-        "citation refs",
-        "evidence refs",
-        "reference verification attestation refs and statuses"
-      ],
-      "required_output_fields": [
-        "surface_kind",
-        "schema_version",
-        "claims",
-        "citation_links",
-        "blocker_candidates",
-        "authority_boundary"
-      ],
-      "support_grade_values": [
-        "direct_support",
-        "partial_support",
-        "background_only",
-        "unsupported",
-        "contradicted"
-      ],
-      "hard_gate_grade_values": [
-        "unsupported",
-        "contradicted"
-      ],
-      "hard_gate_reference_status_values": [
-        "unresolved",
-        "contradicted",
-        "retracted"
-      ]
-    },
-    {
-      "surface_kind": "manuscript_consistency_meta_review",
-      "producer": "MAS research_integrity.manuscript_consistency pure builder",
-      "inputs": [
-        "manuscript section facts",
-        "numeric facts from abstract, results, tables, and figures",
-        "display-to-claim fact refs",
-        "reporting guideline checklist expectations"
-      ],
-      "required_output_fields": [
-        "surface_kind",
-        "schema_version",
-        "status",
-        "findings",
-        "blocker_candidates",
-        "authority_boundary"
-      ],
-      "status_values": [
-        "clear",
-        "needs_review",
-        "blocked"
-      ],
-      "finding_families": [
-        "numeric_fact_inconsistency",
-        "unit_population_window_mismatch",
-        "display_to_claim_mismatch",
-        "section_logic_contradiction",
-        "reporting_guideline_gap"
-      ]
-    },
-    {
-      "surface_kind": "research_integrity_gate_input_bundle",
-      "producer": "MAS research_integrity.gate_bundle pure builder",
-      "builder_ref": "med_autoscience.research_integrity.gate_bundle:build_research_integrity_gate_input_bundle",
-      "inputs": [
-        "reference_checks or reference/references with provider_evidence from OPL Connect reference verification",
-        "optional generic provider_receipts with provider_evidence at the receipt root, references[], or opl_connect_reference_verification",
-        "claim_spans or claim/claims with citation and evidence refs",
-        "citation_refs, evidence_refs, and reference_attestation_refs",
-        "manuscript_sections or manuscript payload",
-        "numeric_facts, display_facts, and reporting_checklist_expectations"
-      ],
-      "required_output_fields": [
-        "surface_kind",
-        "schema_version",
-        "status",
-        "surfaces",
-        "blocker_candidates",
-        "review_candidates",
-        "authority_boundary"
-      ],
-      "status_values": [
-        "clear",
-        "needs_review",
-        "blocked"
-      ],
-      "authority": "gate_input_only_no_publication_authority"
-    }
-  ],
-  "provider_crosscheck_catalog": [
-    {
-      "provider": "crossref",
-      "opl_owned_responsibility": "DOI metadata lookup, Crossmark update/retraction signal transport, cache, rate limit, and connector receipt",
-      "mas_owned_responsibility": "metadata comparison policy, medical relevance interpretation, publication gate consumption"
-    },
-    {
-      "provider": "pubmed",
-      "opl_owned_responsibility": "NCBI E-utilities transport, PMID/PMCID lookup, retry, cache, and connector receipt",
-      "mas_owned_responsibility": "clinical citation suitability, source tier interpretation, claim support consumption"
-    },
-    {
-      "provider": "openalex",
-      "opl_owned_responsibility": "works lookup, identifier graph transport, cache, and connector receipt",
-      "mas_owned_responsibility": "bibliographic conflict interpretation and review routing"
-    },
-    {
-      "provider": "semantic_scholar",
-      "opl_owned_responsibility": "paper graph lookup, citation graph transport, cache, and connector receipt",
-      "mas_owned_responsibility": "support relevance interpretation and claim restraint routing"
-    },
-    {
-      "provider": "publisher",
-      "opl_owned_responsibility": "publisher page/full-text locator transport and availability receipt",
-      "mas_owned_responsibility": "full-text evidence eligibility and publication gate use"
-    },
-    {
-      "provider": "crossmark",
-      "opl_owned_responsibility": "update/retraction signal transport and cache",
-      "mas_owned_responsibility": "retraction/update severity and owner route decision"
-    }
-  ],
-  "reference_resolution_policy": {
-    "minimum_current_capability": "every reference has at least one provider verified crosscheck or an explicit non-verified status",
-    "verified_requires_at_least_one_provider_crosscheck": true,
-    "allowed_explicit_non_verified_status_values": [
-      "unresolved",
-      "needs_review",
-      "contradicted",
-      "retracted"
+  "owner_split": {
+    "opl_connect_owns": [
+      "provider_invocation",
+      "credential_scope",
+      "retry_and_cache",
+      "provider_receipt_transport"
     ],
-    "lookup_absence_can_pass_silently": false,
-    "missing_lookup_result_route": "review_candidate_or_hard_gate_candidate_before MAS owner consumption"
-  },
-  "gate_trigger_policy": {
-    "default_trigger_points": [
-      "before AI reviewer-backed publication_eval materialization",
-      "before submission package closeout",
-      "when review or publication gate stage hook needs online citation proof",
-      "when manuscript or reference manager refs change",
-      "when display-to-claim map changes",
-      "when reviewer route-back requests claim, citation, or numeric consistency proof"
+    "mas_owns": [
+      "medical_reference_interpretation",
+      "claim_support_policy",
+      "manuscript_consistency_policy",
+      "publication_quality_consumption"
     ],
-    "hard_gate_candidate_conditions": [
-      "reference status is contradicted or retracted",
-      "claim support grade is unsupported or contradicted",
-      "citation support depends on unresolved, contradicted, or retracted reference attestation",
-      "manuscript meta review status is blocked"
-    ],
-    "review_candidate_conditions": [
-      "reference status is needs_review or unresolved",
-      "claim support grade is partial_support or background_only",
-      "manuscript meta review status is needs_review"
-    ],
-    "forbidden_closeout_claims": [
-      "publication_ready",
-      "submission_ready",
-      "owner_receipt_signed",
-      "typed_blocker_materialized",
-      "human_gate_materialized",
-      "current_package_updated"
+    "independent_review_owns": [
+      "quality_outcome",
+      "finding_classification",
+      "repair_or_route_recommendation"
     ]
   },
   "authority_boundary": {
-    "outputs_are_gate_inputs": true,
-    "can_write_mas_study_truth": false,
-    "can_write_publication_eval_latest": false,
-    "can_write_controller_decisions": false,
-    "can_mutate_current_package": false,
-    "can_sign_owner_receipt": false,
-    "can_materialize_typed_blocker": false,
-    "can_materialize_human_gate": false,
-    "can_write_runtime_queue_or_provider_attempt": false,
-    "can_write_provider_lookup_cache_or_receipt": false,
-    "can_run_independent_professional_skill": false,
-    "can_authorize_publication_readiness": false,
-    "can_authorize_submission_readiness": false
-  },
-  "owner_split": {
-    "opl_owns": [
-      "reference provider invocation, retry, cache, normalized metadata receipt, and source-ref transport",
-      "generated or hosted workbench projection",
-      "transport receipts and retry/dead-letter mechanics"
-    ],
-    "mas_owns": [
-      "medical reference interpretation",
-      "claim support policy",
-      "manuscript consistency policy",
-      "publication quality consumption",
-      "artifact authority and package freshness interpretation",
-      "owner receipt or typed blocker materialization after owner surface consumption"
-    ]
-  },
-  "implementation_contract": {
-    "provider_lookup_target": {
-      "owner": "OPL Connect",
-      "mas_role": "consume_provider_receipts_and_apply_medical_gate_judgment",
-      "provider_lookup_mode": "opl_connect_receipt_input_only",
-      "receipt_first": true,
-      "transition_only": false,
-      "live_provider_authority_claimed": false,
-      "authoritative_provider_truth_owner": "external provider source systems",
-      "provider_receipt_transport": "OPL Connect invokes configured reference providers and returns read-only receipt candidates; MAS does not own provider HTTP, credentials, retry, cache, or receipt persistence.",
-      "provider_evidence_consumption": "research-integrity-reference-verification accepts host-supplied provider receipts or evidence, normalizes provider_evidence from receipt root and references, and preserves provider_receipt_refs and source_refs; when evidence is absent it emits a request-only provider_resolution_action and never invokes OPL Connect itself",
-      "stage_hook": "review_and_quality_gate and finalize_and_publication_handoff consume the declarative Research Integrity obligation; OPL Connect resolves provider evidence and MAS pure builders return gate input",
-      "forbidden_side_effects": [
-        "publication_eval/latest.json write",
-        "controller_decisions/latest.json write",
-        "current_package mutation",
-        "owner receipt materialization",
-        "typed blocker materialization",
-        "human gate materialization",
-        "runtime queue write",
-        "provider attempt write"
-      ]
-    },
-    "pure_builder_modules": [
-      "src/med_autoscience/research_integrity/reference_authenticity.py",
-      "src/med_autoscience/research_integrity/claim_citation_support_v2.py",
-      "src/med_autoscience/research_integrity/manuscript_consistency.py",
-      "src/med_autoscience/research_integrity/gate_bundle.py",
-      "src/med_autoscience/research_integrity/provider_lookup.py",
-      "src/med_autoscience/research_integrity/stage_hooks.py"
-    ],
-    "pure_builder_surfaces": [
-      "med_autoscience.research_integrity.reference_authenticity",
-      "med_autoscience.research_integrity.claim_citation_support_v2",
-      "med_autoscience.research_integrity.manuscript_consistency",
-      "med_autoscience.research_integrity.gate_bundle",
-      "med_autoscience.research_integrity.provider_lookup",
-      "med_autoscience.research_integrity.stage_hooks"
-    ],
-    "expected_tests": [
-      "tests/test_research_integrity_gate_bundle.py",
-      "tests/test_research_integrity_domain_entry.py",
-      "tests/test_research_integrity_reference_authenticity.py",
-      "tests/test_research_integrity_claim_citation_support_v2.py",
-      "tests/test_research_integrity_manuscript_consistency.py",
-      "tests/test_research_integrity_provider_lookup.py",
-      "tests/test_research_integrity_reference_verification.py",
-      "tests/test_research_integrity_stage_hooks.py"
-    ],
-    "standard_verification": [
-      "rtk make test-paths -- tests/test_research_integrity_gate_bundle.py tests/test_research_integrity_domain_entry.py tests/test_research_integrity_reference_authenticity.py tests/test_research_integrity_claim_citation_support_v2.py tests/test_research_integrity_manuscript_consistency.py tests/test_citation_integrity_projection.py tests/test_paper_mainline_claim_support.py tests/test_ai_reviewer_publication_eval_workflow.py tests/medical_publication_surface_cases",
-      "rtk make test-meta",
-      "rtk scripts/verify.sh"
-    ]
-  },
-  "stage_launch_required_input": {
-    "surface_kind": "research_integrity_stage_launch_required_input",
-    "schema_version": 1,
-    "hook_id": "research-integrity-review-publication-gate-stage-hook",
-    "stage_action_refs": [
-      "review_and_quality_gate",
-      "finalize_and_publication_handoff"
-    ],
-    "target_stage_ids": [
-      "review_and_quality_gate",
-      "finalize_and_publication_handoff"
-    ],
-    "launch_surface": "stage_contract.mandatory_pre_gate_checks",
-    "readback_surface": "stage_contract.mandatory_pre_gate_checks",
-    "provider_resolution_action": "opl_connect_reference_verification",
-    "trigger_points": [
-      "reference_list_entered",
-      "manuscript_closeout_entered",
-      "review_gate_entered",
-      "publication_gate_entered"
-    ],
-    "required_gate_input_surfaces": [
-      "reference_verification_attestations",
-      "claim_citation_support_matrix_v2",
-      "manuscript_consistency_meta_review"
-    ],
-    "provider_resolution_contract": {
-      "surface_kind": "opl_connect_reference_verification_contract",
-      "schema_version": 1,
-      "owner": "OPL Connect",
-      "triggered_by_hook_id": "research-integrity-review-publication-gate-stage-hook",
-      "provider_action_id": "opl_connect_reference_verification",
-      "lookup_providers": [
-        "crossref",
-        "openalex",
-        "semantic_scholar",
-        "publisher",
-        "crossmark"
-      ],
-      "provider_lookup_mode": "opl_connect_receipt_input_only",
-      "provider_evidence_consumed_by": "med_autoscience.research_integrity.reference_verification",
-      "request_only": true,
-      "execution_owner": "OPL Connect",
-      "mas_can_invoke_opl_connect": false,
-      "mandatory_gate_input_only": true,
-      "live_owner_consumption_claimed": false,
-      "can_write_provider_attempt": false,
-      "can_write_runtime_queue": false
-    },
-    "mandatory_before_stage_completion": true,
-    "required_before_owner_receipt_or_typed_blocker": true,
-    "mandatory_gate_input": true,
-    "live_owner_consumption_claimed": false,
-    "paper_mission_subordination": {
-      "surface_kind": "mas_paper_mission_subordination",
-      "authority_owner": "MedAutoScience",
-      "mainline_route": [
-        "PaperMission",
-        "submission_authority",
-        "submission_authority_owner_gate_or_typed_blocker"
-      ],
-      "control_plane_role": "subordinate_input_or_advisory_only",
-      "can_start_parallel_mainline": false,
-      "can_bypass_submission_authority": false,
-      "can_close_without_owner_gate_or_typed_blocker": false
-    },
-    "authority_boundary": {
-      "outputs_are_gate_inputs": true,
-      "surface_authority": "mandatory_stage_hook_gate_input_only",
-      "can_declare_provider_resolution_requirement": true,
-      "can_invoke_opl_connect": false,
-      "can_write_mas_study_truth": false,
-      "can_write_publication_eval_latest": false,
-      "can_write_publication_eval": false,
-      "can_write_controller_decisions": false,
-      "can_mutate_current_package": false,
-      "can_write_current_package": false,
-      "can_sign_owner_receipt": false,
-      "can_write_owner_receipt": false,
-      "can_materialize_typed_blocker": false,
-      "can_write_typed_blocker": false,
-      "can_materialize_human_gate": false,
-      "can_write_runtime_queue_or_provider_attempt": false,
-      "can_authorize_publication_quality": false,
-      "can_authorize_publication_readiness": false,
-      "can_authorize_submission_readiness": false
-    }
-  },
-  "completion_boundary": {
-    "stage_launch_readback_surface": {
-      "launch_surface": "stage_contract.mandatory_pre_gate_checks",
-      "readback_surface": "stage_contract.mandatory_pre_gate_checks",
-      "target_stage_ids": [
-        "review_and_quality_gate",
-        "finalize_and_publication_handoff"
-      ],
-      "live_owner_consumption_claimed": false
-    }
+    "contract_can_create_quality_verdict": false,
+    "contract_can_create_owner_receipt": false,
+    "contract_can_create_typed_blocker": false,
+    "contract_can_create_human_gate": false,
+    "opl_can_interpret_medical_reference_quality": false,
+    "mas_can_own_provider_transport": false,
+    "mas_can_write_runtime_queue_or_attempt": false,
+    "provider_receipt_can_authorize_publication_or_submission": false
   }
 }

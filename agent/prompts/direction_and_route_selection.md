@@ -2,7 +2,7 @@
 
 Owner: MedAutoScience
 Stage id: direction_and_route_selection
-Next stage: baseline_and_evidence_setup
+Default forward stage: baseline_and_evidence_setup
 Machine boundary: this prompt directs medical route selection. Durable study truth,
 source readiness, quality verdicts, and route authority remain MAS-owned.
 

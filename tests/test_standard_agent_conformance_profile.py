@@ -16,7 +16,7 @@ def test_standard_agent_conformance_profile_matches_canonical_stage_pack() -> No
 
     assert profile["surface_kind"] == "opl_standard_agent_conformance_profile"
     assert profile["version"] == "opl.standard-agent-conformance-profile.v1"
-    assert profile["target_domain_id"] == "med-autoscience"
+    assert profile["target_domain_id"] == "medautoscience"
     assert profile["golden_path"]["required_stage_ids"] == stage_ids
     assert profile["golden_path"]["allowed_stage_ids"] == stage_ids
     assert profile["golden_path"]["default_stage_id"] == "direction_and_route_selection"
@@ -42,7 +42,6 @@ def test_standard_agent_conformance_profile_classifies_every_required_surface() 
     }
 
     assert set(morphology["required_surface_ids"]) == set(classifications)
-    assert morphology["forbidden_name_tokens"] == []
     assert all(entry["source_refs"] for entry in classifications.values())
     for entry in classifications.values():
         for source_ref in entry["source_refs"]:

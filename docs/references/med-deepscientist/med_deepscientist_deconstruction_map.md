@@ -102,7 +102,7 @@ Machine boundary: Human-readable upstream-learning reference only; current study
 - `docs/policies/repo-ops/merge_and_cutover_gates.md`
 - `docs/policies/runtime-governance/external_runtime_dependency_gate.md`
 - `tests/test_runtime_protocol_study_runtime.py`
-- `tests/test_study_runtime_router.py`
+- `tests/test_standard_agent_boundary.py`
 - `make test-meta`
 
 `merge_and_cutover_gates` 负责定义什么时候某个 tranche 可以吸收、什么时候运行面可以继续 cutover；这份文档负责定义新任务的默认主体和 `MedDeepScientist` 的历史/legacy 角色。两者一起使用，才能保持“目标主线明确”和“历史边界诚实”同时成立。

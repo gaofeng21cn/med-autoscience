@@ -45,7 +45,7 @@ Source of truth: `/tmp/scipilot-figure-skill` at commit `43098ddb9e6a6d142218540
 
 | MAS layer | What to learn | What not to import |
 | --- | --- | --- |
-| MAS base / runtime | 只保留 progress-first 与 no-authority 读法，并通过 `contracts/scipilot_figure_skill_learning_adoption.json` 记录 source commit、adoption / reject 边界。`figure_advisor_probe` 与 `figure_export_lint` 是 refs-only sidecar/tool shapes；缺 SciPilot advisory 不阻断 existing current owner action。 | 不新增 scheduler、默认 advisory scan、SciPilot Python plotting runtime、scripts import 或 dependency import。 |
+| MAS base / runtime | 只保留 progress-first 与 no-authority 读法；已采纳模式折入 `contracts/capability_map.json`、medical figure catalog 与 ScholarSkills，本文保存 source commit 和 adopt/reject provenance。 | 不新增 scheduler、默认 advisory scan、SciPilot Python plotting runtime、scripts import 或 dependency import。 |
 | MAS Stage | 在 `figure_evidence_contract_pack` 与 `scipilot_visualization_advisor_ref_floor` 中要求 figure question、variable/sample-size refs、plot-selection rationale、warning ref、deterministic QC ref、AI visual review ref。 | 不把 SciPilot 选图建议写成 owner route 或 hard gate。 |
 | Professional skill | `medical-figure-design` 已把“advisor-first、主动拦截、投稿形式 QA、AI 读图闭环”作为 refs-only 教学和 reviewer lens。 | 不复制 SciPilot Skill 正文，不把它变成第二套 ScholarSkills catalog。 |
 | Tool / pack | `figure_advisor_probe` 和 `figure_export_lint` 可以作为 MAS/OPL refs-only sidecar/tool-shape：只输出 advisory refs、warning refs、missing route-required refs 或 typed blocker candidate，不写 authority surface。 | 当前不接入 matplotlib / seaborn / plotly scripts，不修改 Display Pack source pack，不把 lint pass 写成 publication readiness。 |
@@ -81,8 +81,8 @@ SciPilot-derived checklist 是 acceleration layer，不是 admission layer。
 
 | Item | Pattern | Local owner surface | Target landing | Status | Completion | Fresh evidence | Missing refs | Next action |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- |
-| Source capture | Commit-bound upstream inspection | `contracts/scipilot_figure_skill_learning_adoption.json` + this reference | Record source commit and inspected files | `done` | `100%` | source contract and inspected files listed above | none | none |
-| Classification | adopt / adapt / watch / reject | `contracts/scipilot_figure_skill_learning_adoption.json` | Map each pattern to MAS base / Stage / professional skill / tool | `done` | `100%` | adoption contract rows and tests | none | none |
+| Source capture | Commit-bound upstream inspection | this reference | Record source commit and inspected files | `done` | `100%` | source refs listed above | none | none |
+| Classification | adopt / adapt / watch / reject | capability map + ScholarSkills | Map each pattern to MAS Stage / professional skill / hosted tool | `done` | `100%` | current capability refs | none | none |
 | MAS base owner surface | Plot-selection floor, bad-chart warnings, QA split | figure contract / workflow packet / QA gates | Expose consumable refs without authority | `done` | `100%` | `figure_contract_policy`, `build_figure_workflow_packet`, `qa_gates.json` | no worker/tool adapter by design | none |
 | Stage quality pack | Figure evidence ref floor | `stage_quality_contract/pack_data.py` | Add `scipilot_visualization_advisor_ref_floor` | `done` | `100%` | Stage contract tests | none | none |
 | Professional skill | Figure advisor discipline | `mas-scholar-skills/skills/medical-figure-design/SKILL.md` | refs-only critique and QA language | `done` | `100%` | ScholarSkills skill/contract checks | repo-wide ScholarSkills verify has unrelated display-pack descriptor residual | keep residual separate |

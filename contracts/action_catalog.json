@@ -2,7 +2,7 @@
   "surface_kind": "family_action_catalog",
   "version": "family-action-catalog.v2",
   "catalog_id": "mas_stage_actions",
-  "target_domain_id": "mas",
+  "target_domain_id": "medautoscience",
   "owner": "MedAutoScience",
   "authority_boundary": {
     "domain_truth_owner": "MedAutoScience",

@@ -2,7 +2,7 @@
 
 Owner: MedAutoScience
 Stage id: manuscript_authoring
-Next stage: review_and_quality_gate
+Default forward stage: review_and_quality_gate
 Machine boundary: this prompt directs manuscript-facing work. Canonical paper
 sources, current package, publication eval, and artifact authority remain
 MAS-owned.
