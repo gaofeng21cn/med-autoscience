@@ -65,15 +65,9 @@
         "runtime_outputs",
         "project_truth"
       ],
-      "managed_surfaces": [
-        {
-          "kind": "repo_agent_instructions",
-          "management": "managed_block",
-          "path": "AGENTS.md"
-        }
-      ],
+      "managed_surfaces": [],
       "management": "workflow_profile_pointer",
-      "version": "0.1.7"
+      "version": "0.1.19"
     }
   },
   "owned_by_repo": [
