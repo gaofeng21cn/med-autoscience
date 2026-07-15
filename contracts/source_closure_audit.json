@@ -5,7 +5,7 @@
     {
       "file": "scripts/repo_hygiene_audit.py",
       "symbol": "_default_repo_root",
-      "source_digest": "sha256:b2ba5424c2b7e08e18705843e8a11a0a3b866afa21c35fa8a1655315ab09cc87",
+      "source_digest": "sha256:2e6ac3c79d88b27dee6e7cca4c4e7dba62b36ccf7262b98f45fab847528643cc",
       "allowed_effects": [
         "process_spawn"
       ],
@@ -18,7 +18,7 @@
     {
       "file": "scripts/repo_hygiene_audit.py",
       "symbol": "_git_tracked_paths",
-      "source_digest": "sha256:b2ba5424c2b7e08e18705843e8a11a0a3b866afa21c35fa8a1655315ab09cc87",
+      "source_digest": "sha256:2e6ac3c79d88b27dee6e7cca4c4e7dba62b36ccf7262b98f45fab847528643cc",
       "allowed_effects": [
         "process_spawn"
       ],

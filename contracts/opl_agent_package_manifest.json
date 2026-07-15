@@ -11,27 +11,12 @@
   "schema_ref": "one-person-lab/contracts/opl-framework/agent-package-manifest.schema.json",
   "domain_descriptor_ref": "contracts/domain_descriptor.json",
   "machine_boundary": "This repo-local sidecar declares the MAS package and its required capability dependency. OPL owns dependency resolution, lock, lifecycle receipt, atomic update, rollback, and repair; MAS retains domain truth and authority.",
-  "distribution_payload": {
-    "payload_kind": "ghcr_oci_agent_package",
-    "payload_ref": "ghcr.io/gaofeng21cn/opl-agent-med-autoscience:latest",
-    "payload_digest_ref": "sha256:1111111111111111111111111111111111111111111111111111111111111111",
-    "required_skill_pack_lock_refs": [
-      "opl://agent-package-lock/mas-scholar-skills/0.2.3/managed-ghcr-capability-package"
-    ],
-    "proof_status": "non_live_contract_fixture",
-    "live_download_proof": false,
-    "installed_reload_proof": false,
-    "oci_ref": "ghcr.io/gaofeng21cn/opl-agent-med-autoscience:latest",
-    "oci_media_type": "application/vnd.oci.image.manifest.v1+json",
-    "immutable_tag": "0.2.9",
-    "rolling_tag": "latest",
-    "promotion_policy": "daily_candidate_gates_then_promote_latest",
-    "install_truth": "resolved_digest_lock"
-  },
   "codex_surface": {
     "plugin_id": "med-autoscience",
+    "carrier_source_commit": "d95b681bfd5d55ee2038456689927518caac0161",
+    "standalone_distribution": "repo_carrier_source",
     "required_skill_ids": [
-      "mas"
+      "med-autoscience"
     ],
     "required_capability_package_ids": [
       "mas-scholar-skills"
