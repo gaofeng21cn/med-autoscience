@@ -9,6 +9,14 @@
         "module": "med_autoscience.authority_handlers.paper_mission",
         "callable": "evaluate_paper_mission_authority"
       }
+    },
+    {
+      "handler_id": "mas.agent-lab-self-evolution-closeout",
+      "binding": {
+        "kind": "python_callable",
+        "module": "med_autoscience.authority_handlers.self_evolution_closeout",
+        "callable": "evaluate_agent_lab_self_evolution_closeout"
+      }
     }
   ]
 }

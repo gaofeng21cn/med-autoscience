@@ -5,7 +5,7 @@
   "agent_id": "mas",
   "owner": "MedAutoScience",
   "counts": {
-    "retained_function_count": 1,
+    "retained_function_count": 2,
     "generic_runtime_function_count": 0,
     "private_control_plane_function_count": 0
   },
@@ -34,6 +34,27 @@
         "stage_transition_materialization"
       ],
       "retirement_gate": "retire_only_if_another_MAS_owned_authority_surface_preserves_the_same_medical_judgment_and_owner_receipt_boundary"
+    },
+    {
+      "function_id": "mas.agent_lab_self_evolution_closeout",
+      "handler_id": "mas.agent-lab-self-evolution-closeout",
+      "implementation_ref": "src/med_autoscience/authority_handlers/self_evolution_closeout.py::evaluate_agent_lab_self_evolution_closeout",
+      "registry_ref": "contracts/domain_handler_registry.json#/handlers/1",
+      "active_caller": "opl_work_order_target_owner_closeout_hook",
+      "cannot_lift_to_opl_reason": "The callable signs the target-domain mechanism acceptance, waiver, or blocker; OPL may transport but cannot originate that owner answer.",
+      "allowed_outputs": [
+        "domain_receipt",
+        "no_regression_evidence",
+        "typed_blocker"
+      ],
+      "forbidden_effects": [
+        "domain_scorecard_mutation",
+        "publication_or_submission_authorization",
+        "artifact_or_memory_body_write",
+        "runtime_or_worktree_lifecycle_management",
+        "automatic_mechanism_promotion"
+      ],
+      "retirement_gate": "retire_only_if_another_MAS_owned_target-owner surface preserves the same mechanism-only closeout boundary"
     }
   ],
   "forbidden_domain_repo_roles": [

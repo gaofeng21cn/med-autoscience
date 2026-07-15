@@ -20,7 +20,7 @@ OPL generated and hosted surfaces
   runtime / StageRun / StateIndex / lifecycle / observability
                     |
                     v
-MAS registry-bound authority function
+MAS registry-bound authority functions
   medical truth / quality / publication / artifact / memory
   owner receipt / typed blocker / human gate / domain refs
 ```
@@ -137,8 +137,9 @@ canonical Stage 与既有八个 paper-study physical Stage 的唯一映射也由
 
 ## MAS 保留职责
 
-MAS 的专业能力由 declarative pack、ScholarSkills 与独立 Review 承载；唯一保留的
-非声明式 domain authority 是 registry-bound paper-mission evaluation：
+MAS 的专业能力由 declarative pack、ScholarSkills 与独立 Review 承载；仅保留两个
+registry-bound 最小 domain authority functions：paper-mission evaluation 与
+Agent Lab mechanism target-owner closeout：
 
 - study/source readiness 与医学研究语义；
 - AI reviewer/auditor 质量记录与 publication gate；
@@ -181,3 +182,18 @@ MAS 不再维护 repo-local wrapper parity。新增公开能力时优先绑定 c
 - [Runtime boundary](./runtime/contracts/runtime_boundary.md)
 - [Stage outcome runbook](./runtime/control/progress_first_stage_outcome.md)
 - [理想目标态差距与完善计划](./active/mas-ideal-state-gap-plan.md)
+
+## Agent Lab 自进化 owner closeout
+
+MAS 通过 `contracts/agent_lab_self_evolution_policy.json` 提供 OMA fresh Agent
+Lab re-evaluation 所需的声明式、SHA 绑定投影。该投影指回
+`agent/stages/stage_native_semantic_pack.yaml` 中 canonical `write` Stage
+completion policy，定义 high-risk、mechanism-only promotion gate，并声明
+target-owner hook command。
+
+`mas.agent-lab-self-evolution-closeout` 是 registry-bound 最小 authority
+function。它在 patch 已吸收、验证、清理且完成 fresh re-evaluation 后消费 OPL
+work-order execution receipt draft，只返回一个 refs-only outcome：
+`domain_receipt`、`no_regression_evidence` 或 `typed_blocker`。该 receipt 只覆盖
+target-agent mechanism change；它不改变医学 scorecard，也不能授权 domain、
+publication、submission、quality 或 export ready。

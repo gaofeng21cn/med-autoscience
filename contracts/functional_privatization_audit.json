@@ -36,6 +36,29 @@
         "route_back"
       ],
       "semantic_equivalence_status": "cleared_by_registry_bound_hosted_boundary"
+    },
+    {
+      "module_id": "mas.agent_lab_self_evolution_closeout",
+      "classification": "minimal_authority_function",
+      "standardization_layer": "authority_function_inventory",
+      "code_paths": [
+        "src/med_autoscience/authority_handlers/self_evolution_closeout.py",
+        "contracts/agent_lab_self_evolution_policy.json",
+        "contracts/domain_handler_registry.json"
+      ],
+      "active_callers": [
+        "OPL work-order target_owner_closeout_hook"
+      ],
+      "active_caller_status": "registry_bound_target_owner_authority_function",
+      "migration_action": "retain deterministic MAS mechanism closeout behind OPL-hosted work-order execution",
+      "retention_reason": "The function consumes an execution receipt draft and fresh Agent Lab result, then returns only a refs-only target-owner accepted, waived, or blocked shape.",
+      "cannot_absorb_reason": "OPL cannot sign the target-domain owner answer or convert mechanism evidence into medical publication authority.",
+      "retained_domain_authority": [
+        "target_agent_mechanism_acceptance",
+        "target_agent_mechanism_waiver",
+        "target_agent_mechanism_typed_blocker"
+      ],
+      "semantic_equivalence_status": "declarative_policy_and_registry_bound"
     }
   ],
   "retired_generated_surface_provenance": [

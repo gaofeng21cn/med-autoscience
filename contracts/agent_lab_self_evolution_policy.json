@@ -1,0 +1,147 @@
+{
+  "surface_kind": "mas_agent_lab_self_evolution_policy",
+  "version": "mas-agent-lab-self-evolution-policy.v1",
+  "policy_ref": "policy:mas/agent-lab-self-evolution/target-owner-closeout-v1",
+  "owner": "med-autoscience",
+  "target_domain_ids": [
+    "med-autoscience",
+    "medautoscience"
+  ],
+  "stage_completion_policy_projection": {
+    "projection_kind": "sha-bound-projection-of-canonical-mas-stage-policy",
+    "source_ref": "agent/stages/stage_native_semantic_pack.yaml#/stage_native_semantic_pack/stages/write/stage_completion_policy",
+    "source_file_sha256": "sha256:805b3d3655f5796d7ab4fa08353bf2fe165c52df91045c14eda7609420d87b3b",
+    "policy": {
+      "surface_kind": "domain_stage_completion_policy",
+      "version": "domain-stage-completion-policy.v1",
+      "owner": "one-person-lab",
+      "policy_ref": "stage-completion-policy:mas/write",
+      "stage_id": "write",
+      "target_domain_id": "medautoscience",
+      "standard_agent_requirement": "decisive_codex_attempt_recommends_any_declared_stage_from_consumable_progress_and_opl_controller_materializes_the_validated_transition",
+      "completion_judgment_owner": "domain_stage",
+      "closeout_packet_required": false,
+      "closeout_packet_required_for_progress": false,
+      "closeout_packet_required_for_quality_acceptance": true,
+      "raw_artifact_sufficient_for_progress": true,
+      "raw_or_partial_artifact_advances": true,
+      "framework_derives_minimal_progress_envelope": true,
+      "provider_completion_is_domain_completion": false,
+      "opl_content_judgment_allowed": false,
+      "semantic_route_decision_owner": "decisive_codex_attempt",
+      "stage_transition_materialization_owner": "opl_stage_run_controller",
+      "route_recommendation_transport_owner": "opl_runtime",
+      "required_closeout_outcomes": [
+        "completed_and_continue",
+        "completed_with_quality_debt",
+        "completed_and_wait_owner",
+        "route_back",
+        "blocked",
+        "rejected"
+      ],
+      "accepted_closeout_ref_fields": [
+        "owner_receipt_ref",
+        "progress_delta_receipt_ref",
+        "consumable_artifact_ref",
+        "quality_debt_ref",
+        "typed_blocker_ref",
+        "human_gate_ref",
+        "route_back_ref"
+      ],
+      "authority_boundary": {
+        "opl_can_decide_domain_completion": false,
+        "provider_completion_counts_as_stage_complete": false,
+        "readable_file_counts_as_stage_progress": true,
+        "framework_can_accept_reject_or_override_codex_route": false,
+        "suite_pass_counts_as_stage_complete": false,
+        "conformance_pass_counts_as_stage_complete": false,
+        "raw_or_partial_artifact_counts_as_stage_progress": true
+      }
+    }
+  },
+  "mechanism_promotion_gate": {
+    "scope": "target-agent-mechanism-only",
+    "gate_ref": "promotion-gate:mas/agent-lab-self-evolution/target-owner-manual-review",
+    "gate_status_after_absorbed_verified_patch": "passed",
+    "risk_tier": "high_risk",
+    "allowed_change_scope": "manual_review_required",
+    "failure_delta_refs": [
+      "failure-delta:mas/agent-lab-self-evolution/stage-policy-and-promotion-observation"
+    ],
+    "regression_suite_refs": [
+      "tests/test_agent_lab_self_evolution_closeout.py",
+      "tests/test_paper_mission_authority_handler_v2.py",
+      "scripts/verify.sh"
+    ],
+    "no_forbidden_write_proof_refs": [
+      "no-forbidden-write:mas/agent-lab-self-evolution/mechanism-only"
+    ],
+    "owner_or_human_gate_refs": [
+      "target-agent-owner:med-autoscience",
+      "owner-action:med-autoscience/agent-lab-self-evolution-closeout"
+    ],
+    "automatic_mechanism_promotion_ready": false,
+    "domain_scorecard_must_be_preserved": true
+  },
+  "target_owner_closeout_hook": {
+    "hook_kind": "command",
+    "owner": "med-autoscience",
+    "action_ref": "owner-action:med-autoscience/agent-lab-self-evolution-closeout",
+    "command": [
+      "env",
+      "PYTHONPATH=src",
+      "PYTHONDONTWRITEBYTECODE=1",
+      "python3",
+      "-m",
+      "med_autoscience.authority_handlers.self_evolution_closeout"
+    ],
+    "working_directory": "target_agent_repo_root",
+    "stdin_contract": "opl_agent_lab_codex_work_order_execution_receipt_draft",
+    "response_contract": "domain_owner_receipt_contract.allowed_return_shapes",
+    "accepted_return_shapes": [
+      "domain_receipt",
+      "no_regression_evidence",
+      "typed_blocker"
+    ]
+  },
+  "target_owner_acceptance": {
+    "required_fresh_observations": [
+      "domain_stage_completion_policies_observed",
+      "promotion_gates_observed"
+    ],
+    "required_promotion_safety_status": "owner_or_human_gate_required",
+    "required_failure_taxonomy": "domain_scorecard_blocked",
+    "accepted_result_status": "blocked",
+    "accepted_scorecard_passed": false,
+    "accepted_automatic_mechanism_promotion_ready": false,
+    "allowed_changed_file_prefixes": [
+      "agent/",
+      "contracts/",
+      "docs/",
+      "plugins/",
+      "src/",
+      "tests/"
+    ]
+  },
+  "terminal_outcome_mapping": {
+    "accepted": "domain_receipt",
+    "waived": "no_regression_evidence",
+    "blocked": "typed_blocker"
+  },
+  "forbidden_claims": [
+    "dm003_domain_ready",
+    "dm003_publication_ready",
+    "dm003_submission_ready",
+    "dm003_quality_gate_passed",
+    "automatic_mechanism_promotion_ready"
+  ],
+  "authority_boundary": {
+    "refs_only": true,
+    "writes_visual_truth": false,
+    "writes_artifact_body": false,
+    "writes_memory_body": false,
+    "authorizes_quality_or_export": false,
+    "authorizes_publication_or_submission": false,
+    "mechanism_closeout_is_not_domain_scorecard_acceptance": true
+  }
+}

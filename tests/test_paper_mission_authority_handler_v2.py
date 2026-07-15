@@ -246,7 +246,15 @@ def test_registry_schemas_and_functional_audit_bind_the_exact_handler() -> None:
                 "module": "med_autoscience.authority_handlers.paper_mission",
                 "callable": "evaluate_paper_mission_authority",
             },
-        }
+        },
+        {
+            "handler_id": "mas.agent-lab-self-evolution-closeout",
+            "binding": {
+                "kind": "python_callable",
+                "module": "med_autoscience.authority_handlers.self_evolution_closeout",
+                "callable": "evaluate_agent_lab_self_evolution_closeout",
+            },
+        },
     ]
     assert input_schema["additionalProperties"] is False
     assert set(output_schema["properties"]["status"]["enum"]) == {
@@ -258,7 +266,8 @@ def test_registry_schemas_and_functional_audit_bind_the_exact_handler() -> None:
         "invalid_host_input",
     }
     assert [module["module_id"] for module in audit["modules"]] == [
-        "mas.paper_mission_authority"
+        "mas.paper_mission_authority",
+        "mas.agent_lab_self_evolution_closeout",
     ]
     assert audit["modules"][0]["code_paths"][0] == (
         "src/med_autoscience/authority_handlers/paper_mission.py"

@@ -15,6 +15,7 @@ ALLOWED_MAS_SOURCE_REF_PREFIXES = (
 )
 ALLOWED_MAS_MODULE_REF_PREFIXES = (
     "med_autoscience.authority_handlers.paper_mission",
+    "med_autoscience.authority_handlers.self_evolution_closeout",
 )
 CANONICAL_RETIRED_DEFAULT_SURFACE_IDS = [
     "cli",
@@ -43,6 +44,7 @@ def test_python_source_morphology_is_exact_and_private_surfaces_are_absent() -> 
         "src/med_autoscience/__init__.py",
         "src/med_autoscience/authority_handlers/__init__.py",
         "src/med_autoscience/authority_handlers/paper_mission.py",
+        "src/med_autoscience/authority_handlers/self_evolution_closeout.py",
         "src/med_autoscience/styles/__init__.py",
         "src/med_autoscience/styles/american-chemical-society.csl",
         "src/med_autoscience/styles/american-medical-association.csl",
@@ -114,8 +116,11 @@ def test_generated_surfaces_are_opl_owned_and_private_surfaces_are_forbidden() -
     assert audit["status"] == (
         "standard_domain_pack_and_registry_bound_authority_function_only"
     )
-    assert len(audit["modules"]) == 1
-    assert audit["modules"][0]["classification"] == "minimal_authority_function"
+    assert len(audit["modules"]) == 2
+    assert all(
+        module["classification"] == "minimal_authority_function"
+        for module in audit["modules"]
+    )
     assert audit["retired_default_surface_ids"] == (
         CANONICAL_RETIRED_DEFAULT_SURFACE_IDS
     )
@@ -131,6 +136,10 @@ def test_generated_surfaces_are_opl_owned_and_private_surfaces_are_forbidden() -
     assert (ROOT / "agent/primary_skill/SKILL.md").is_file()
     assert (
         ROOT / "src/med_autoscience/authority_handlers/paper_mission.py"
+    ).is_file()
+    assert (
+        ROOT
+        / "src/med_autoscience/authority_handlers/self_evolution_closeout.py"
     ).is_file()
 
 
