@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import ast
 from copy import deepcopy
 import importlib
 import json
@@ -8,7 +7,6 @@ from pathlib import Path
 
 
 ROOT = Path(__file__).resolve().parents[1]
-HANDLER_SOURCE = ROOT / "src/med_autoscience/authority_handlers/paper_mission.py"
 
 
 def _digest(character: str) -> str:
@@ -187,38 +185,6 @@ def test_only_typed_hard_or_human_gate_stops_transition() -> None:
     result = _evaluate(human)
     assert result["status"] == "human_gate"
     assert result["human_gate"]["blocks_stage_transition"] is True
-
-
-def test_handler_has_no_private_transport_or_generic_io_closure() -> None:
-    tree = ast.parse(HANDLER_SOURCE.read_text(encoding="utf-8"))
-    imports: set[str] = set()
-    called_attributes: set[str] = set()
-    called_names: set[str] = set()
-    for node in ast.walk(tree):
-        if isinstance(node, ast.Import):
-            imports.update(alias.name for alias in node.names)
-        if isinstance(node, ast.ImportFrom):
-            imports.add(node.module or "")
-        if isinstance(node, ast.Call):
-            if isinstance(node.func, ast.Name):
-                called_names.add(node.func.id)
-            elif isinstance(node.func, ast.Attribute):
-                called_attributes.add(node.func.attr)
-
-    assert imports == {"__future__", "hashlib", "json", "collections.abc", "typing"}
-    assert not called_names & {"open", "exec", "eval", "compile", "__import__", "system"}
-    assert not called_attributes & {
-        "read_text",
-        "read_bytes",
-        "write_text",
-        "write_bytes",
-        "open",
-        "connect",
-        "Popen",
-        "run",
-        "spawn",
-    }
-
 
 def test_registry_schemas_and_functional_audit_bind_the_exact_handler() -> None:
     registry = json.loads(

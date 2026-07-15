@@ -22,7 +22,6 @@
   "source_refs": {
     "opl_projection_ref": "agent/principles/opl-standard-agent-principles.md",
     "domain_specialization_ref": "agent/principles/domain-specialization.md",
-    "legacy_mas_projection_ref": "agent/principles/standard_agent_principles.md",
     "stage_manifest_ref": "agent/stages/manifest.json",
     "stage_control_plane_ref": "opl-generated:family_stage_control_plane",
     "mas_paper_study_stage_pack_ref": "contracts/mas-paper-study-stage-pack.json",

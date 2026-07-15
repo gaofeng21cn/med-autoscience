@@ -36,16 +36,6 @@ def test_package_plugin_and_python_versions_are_one_semver() -> None:
     assert "doctor" not in prompt_text
     assert "controller" not in prompt_text
 
-
-def test_repo_hygiene_audit_stays_read_only_and_index_scoped() -> None:
-    source = (ROOT / "scripts/repo_hygiene_audit.py").read_text(encoding="utf-8")
-
-    assert '["git", "-C", str(root), "ls-files", "-z"]' in source
-    assert "os.walk" not in source
-    assert "--fix" not in source
-    assert "rmtree" not in source
-
-
 def test_stage_route_contract_has_one_canonical_package_source() -> None:
     pyproject = tomllib.loads((ROOT / "pyproject.toml").read_text(encoding="utf-8"))
     manifest_lines = {

@@ -156,7 +156,7 @@ functional monolith closeout 后，`MAS` 仍要持续学习如何把长期研究
 - `docs/active/`：方法论、阶段计划、maintainer 入口
 - `docs/runtime/`：控制语义、durable surface、治理 contract
 - `docs/status.md`：当前维护重点与阅读入口
-- `tests/` 与 `make test-meta`：守住 contract 的 fail-closed proof
+- `tests/` 与 `make test`：守住 contract 的 fail-closed proof
 - 真实 study evidence：证明 lesson 真正改善了质量或自治
 
 ## 7. 当前维护建议

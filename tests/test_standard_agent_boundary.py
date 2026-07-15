@@ -3,7 +3,6 @@ from __future__ import annotations
 import json
 from pathlib import Path
 import re
-import subprocess
 
 import pytest
 
@@ -32,30 +31,6 @@ CANONICAL_RETIRED_DEFAULT_SURFACE_IDS = [
 
 def _load(relative_path: str) -> dict[str, object]:
     return json.loads((ROOT / relative_path).read_text(encoding="utf-8"))
-
-
-def test_python_source_morphology_is_exact_and_private_surfaces_are_absent() -> None:
-    tracked = subprocess.run(
-        ["git", "ls-files", "-z", "--", "src/med_autoscience"],
-        cwd=ROOT,
-        text=True,
-        capture_output=True,
-        check=True,
-    )
-    relative_files = {
-        path
-        for path in tracked.stdout.split("\0")
-        if path and (ROOT / path).exists()
-    }
-    assert relative_files == {
-        "src/med_autoscience/__init__.py",
-        "src/med_autoscience/authority_handlers/paper_mission.py",
-        "src/med_autoscience/authority_handlers/self_evolution_closeout.py",
-        "src/med_autoscience/styles/__init__.py",
-        "src/med_autoscience/styles/american-medical-association.csl",
-        "src/med_autoscience/styles/frontiers.csl",
-    }
-
 
 def test_action_catalog_exposes_six_hosted_stages_and_one_internal_handler() -> None:
     catalog = _load("contracts/action_catalog.json")

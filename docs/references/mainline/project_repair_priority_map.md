@@ -21,7 +21,7 @@ Machine boundary: 本文是人读历史修补优先级参考，不是 current ex
 
 - MAS north-star 与 owner 边界读 [MAS 理想目标态](../positioning/mas_ideal_state.md)。
 - 当前功能/结构差距、测试/证据差距、物理源码形态差距和完善顺序读 [MAS 理想目标态差距与完善计划](../../active/mas-ideal-state-gap-plan.md)。
-- P0/P1/P2/P3 内容级 program 组合读 [Program Portfolio Consolidation](../../active/program_portfolio_consolidation.md) 和 [MAS 当前开发线路](../../active/current-development-lines.md)。
+- 当前 owner plan 与内容顺序统一读 [MAS 理想目标态差距与完善计划](../../active/mas-ideal-state-gap-plan.md)。
 - runtime owner truth 读 [Runtime boundary](../../runtime/contracts/runtime_boundary.md)、[OPL unique control plane tombstone history](../../history/runtime/opl_unique_control_plane_boundary_contract.md) 和相关 machine-readable contracts。
 
 以下旧 tranche 只能作为历史支撑参考，不能用来重开 MAS-owned generic runtime、Hermes/default scheduler、MDS default backend、monorepo cutover 或 compatibility shim。
@@ -124,7 +124,6 @@ Machine boundary: 本文是人读历史修补优先级参考，不是 current ex
 本文件保留为 `support_reference`，只用于理解旧修补顺序的来源。后续不得把本文件当作 active plan 更新，也不得继续追加 dated closeout。需要新增当前计划时，应归入：
 
 - `docs/active/mas-ideal-state-gap-plan.md`
-- `docs/active/current-development-lines.md`
-- `docs/active/program_portfolio_consolidation.md`
+- `docs/active/README.md`
 - 对应 runtime / policy / contract owner 文档
 - `docs/history/**` provenance 目录

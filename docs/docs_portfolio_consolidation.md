@@ -20,7 +20,6 @@ MAS 采用 OPL-family canonical docs taxonomy：
 
 - `docs/status.md` 只保留 current-state 摘要和最近一次已记录 live audit 的结论，不保存 same-day receipt/worklist ledger。
 - `docs/active/mas-ideal-state-gap-plan.md` 是唯一 active gap / completion plan，只维护功能/结构 gap、production evidence tail、近期完善顺序和禁止误写口径。
-- `docs/active/current-development-lines.md` 只维护内容线索引，不承担第二 backlog。
 - dated closeout、attempt id、receipt id、OPL worklist 数字、命令流水、旧 phase checklist、same-day follow-through 和 proof 过程归 `docs/history/**`、runtime ledger、真实 workspace receipt 或提交历史。
 - `docs/runtime/contracts/agent_runtime_interface.md` 只保留当前 agent-facing runtime contract、stable entry、owner boundary、禁止旧面复活口径和 history pointers；Hermes/MDS/local scheduler/Phase 旧叙事不得继续铺在 active contract 主体里。
 - 当前 docs lifecycle coverage 读 [MAS Docs Portfolio Coverage Ledger](./history/docs-portfolio-coverage-ledger/README.md) 与 [MAS broader docs portfolio SSOT closeout 2026-06-07](./history/program/mas_broader_docs_portfolio_ssot_closeout_2026_06_07.md)。05-20、06-03、06-05 等 dated closeout 只保留在 `docs/history/program/README.md` 历史索引中。
@@ -34,7 +33,7 @@ MAS 采用 OPL-family canonical docs taxonomy：
 - 已落地基础文档只有在仍承担 guard、provenance 分类、source intake 规则或 drift 判断时才留在 `docs/active/`；纯过程、旧 lane table、旧 activation package、旧 full record 和 dated closeout 必须放入 `docs/history/**`。
 - `docs/decisions.md` 保留决策日期日志；不要为了压缩过程流水而改写 decisions 的历史记录。
 - dated specs、dated closeout 和历史 full record 不能直接作为 current truth；当前 domain truth 必须由核心五件套、当前 owner doc、machine-readable contract、domain artifact 或 authority handler/owner answer 承载；通用执行状态由 OPL hosted StageRun/Attempt/readback 承载。
-- `docs/status.md` 只维护当前状态摘要，不承载 dated follow-up ledger；执行顺序只在 `docs/active/current-development-lines.md` 维护；program 文档组合只在 `docs/active/program_portfolio_consolidation.md` 维护。旧 docs lifecycle closeout 记录只按 `docs/history/program/README.md` 的历史索引读取。
+- `docs/status.md` 只维护当前状态摘要，不承载 dated follow-up ledger；执行顺序只在 `docs/active/mas-ideal-state-gap-plan.md` 维护，稳定入口由 `docs/active/README.md` 索引。旧 docs lifecycle closeout 记录只按 `docs/history/program/README.md` 的历史索引读取。
 - `docs/status.md` 允许记录“最近一次已记录 live audit”的 compact summary，但不得继续追加 dated receipt id、stage attempt id、OPL worklist 计数、record/verify URL 或长 follow-through 段落。需要保留过程证据时，写入 `docs/history/program/` 或对应 history 目录。
 - OPL doc doctor 只作为预检信号：它可以提示缺少 lifecycle header、旧词汇或 active/history 边界风险，但不能直接变成执行清单。每条 warning 都必须回到 live source、contracts、tests、CLI/read-model、runtime receipt/blocker 或 canonical docs 证明后，才决定是更新 current owner 文档、折回 history/tombstone，还是保留为历史/决策语境。
 
@@ -49,7 +48,7 @@ MAG、RCA、MDS 或 OPL-owned App/workbench 的并行 backlog 不写入 MAS acti
 | 目录 | 长期职责 | 当前 MAS 承载 |
 | --- | --- | --- |
 | `docs/` root | docs 入口、核心五件套、docs governance | `README.md`、核心五件套、本文件。 |
-| `docs/active/` | 当前执行、当前差距、active baton、当前 owner plan | current development lines、program portfolio、ideal-state gap plan、paper autonomy / OPL workbench / Temporal retirement / stage standardization 等 active owner docs。 |
+| `docs/active/` | 当前执行、当前差距、active baton、当前 owner plan | ideal-state gap plan、paper autonomy 与 stage standardization。 |
 | `docs/public/` | repo home 之后的公开叙事 | 当前较薄，保持 public narrative index；不承载 study truth。 |
 | `docs/whitepapers/` | 公开白皮书源文档 | 保存 MAS latest 白皮书 Markdown 源；生成 HTML/PDF 进入 `docs/site/latest/whitepapers/`，不承载 study truth。 |
 | `docs/product/` | MAS app skill、product-entry、operator/workbench-facing guidance | direct path / product entry / OPL App drilldown 指南。 |
@@ -96,18 +95,14 @@ MAG、RCA、MDS 或 OPL-owned App/workbench 的并行 backlog 不写入 MAS acti
 
 ## Path-Stable Active 文档收敛
 
-少数 `docs/active/*.md` 仍被 `human_doc:*`、contract、source projection 或测试 manifest 指向。它们可以暂留原路径，但必须收窄为单一职责：
+`docs/active/*.md` 只保留三个稳定职责：
 
 - `mas-ideal-state-gap-plan.md` 是唯一当前 gap / 完善计划。
-- `state_contract_thinning` 当前只作为 active guard 留在 gap plan 与 current-development-lines；已关闭折返记录位于 `docs/history/program/mas-state-contract-thinning-foldback-record-2026-05-29.md`。任何 durable 结论必须折回 gap plan、核心五件套、runtime docs、contracts 或 focused tests，不再恢复为 active 子计划。
-- `current-development-lines.md` 是唯一当前执行内容地图。
-- `program_portfolio_consolidation.md` 只解释旧 program 文档组合与生命周期，不维护第二 backlog。
 - `ai_first_paper_autonomy_closure_program.md` 只定义论文自治验收合同。
 - `stage_surface_standardization_program.md` 只维护 stage pack 形态。
-- `opl_app_mas_runtime_workbench_program.md` 只维护 MAS refs-only projection 到 OPL App/workbench 的边界。
 - `policies/runtime-governance/mas_mds_owner_boundary_contract.md`、`runtime/domain_authority_refs_index_guard.md` 与 `history/program/mas_single_project_mds_absorb_guard_2026_06_07.md` 持有 landed foundation guard、provenance 和 drift 判断；旧 active MDS absorb 路径不保留兼容入口。
 
-这些路径暂留不是兼容承诺。若后续 machine/human_doc caller 迁出，且当前结论已吸收到 gap plan、runtime/source/delivery/policy 或 history，文档应直接移动到 `docs/history/**` 或 tombstone；不新增重定向文档、兼容 alias 或平行索引。
+完成后的 guard 直接折入上述 owner 文档、runtime/source/delivery/policy 或 Git history；不新增重定向文档、兼容 alias 或平行索引。
 
 ## Coverage Ledger
 

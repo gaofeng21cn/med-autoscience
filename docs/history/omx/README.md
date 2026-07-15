@@ -20,6 +20,4 @@ Machine boundary: 人读 OMX-era 历史索引。当前项目规则、runtime tru
 - `../../runtime/contracts/agent_runtime_interface.md`
 - `../../runtime/contracts/runtime_handle_and_durable_surface_contract.md`
 
-保留为审计与迁移背景的 OMX 历史资料：
-
-- [OMX worktree 启动与收尾操作规约](./omx_worktree_startup_and_closeout.md)
+逐项 OMX 操作规约已从 tracked tree 退役；需要精确追溯时读取 Git history。

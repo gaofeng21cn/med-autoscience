@@ -24,8 +24,6 @@ Machine boundary: 本文是人读导航。机器真相归 `agent/`、`contracts/
 
 [MAS 理想目标态差距与完善计划](./active/mas-ideal-state-gap-plan.md) 是唯一结构完成度 owner。当前 repo/source/control-plane 已收敛为 declarative pack、OPL generated/hosted surfaces 与一个 registry-bound authority function；Live evidence 独立后置。
 
-[MAS 当前开发线路](./active/current-development-lines.md) 只做内容线索引，不维护第二 backlog。
-
 ## 当前架构入口
 
 - [Product surfaces](./product/README.md)：OPL generated/hosted interface 与 MAS authority boundary。

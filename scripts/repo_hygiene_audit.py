@@ -91,7 +91,6 @@ EXPECTED_STANDARD_AGENT_SOURCE_FILES = frozenset(
         "src/med_autoscience/authority_handlers/paper_mission.py",
         "src/med_autoscience/authority_handlers/self_evolution_closeout.py",
         "src/med_autoscience/styles/__init__.py",
-        "src/med_autoscience/styles/american-medical-association.csl",
         "src/med_autoscience/styles/frontiers.csl",
     }
 )

@@ -66,7 +66,6 @@ Machine boundary: Human-readable repository policy only; enforceable truth remai
 至少要有：
 
 - `scripts/verify.sh full`
-- `scripts/verify.sh structure`
 - `git diff --check`
 
 如果当前改动同时触及 OPL activation、Package lifecycle 或 hosted preflight，继续在
@@ -164,7 +163,7 @@ Machine boundary: Human-readable repository policy only; enforceable truth remai
 下面这些条件全部满足时，当前 MAS/OPL docs/runtime tranche 才算可以 absorb：
 
 1. 当前 runtime / docs / contracts / source / tests 的 owner 边界一致。
-2. repo-native verification 通过；触及 machine-readable contract、action metadata、schema 或 runtime semantics 时追加 `make test-meta`。
+2. repo-native `scripts/verify.sh full` 通过。
 3. `git diff --check` clean
 4. single Active Truth plan 已把 closed item、仍开放的功能/结构删除门和测试/证据 tail 分开表达。
 5. 不把 OPL provider completion、descriptor ready、refs-only ledger record 或 conformance proof 写成 MAS paper closure、publication-ready、artifact mutation authorization 或 domain-ready。

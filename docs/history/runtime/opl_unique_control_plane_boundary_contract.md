@@ -61,7 +61,7 @@ Local tombstone 必须满足：
 Retained refs:
 
 - `contracts/runtime/legacy-active-path-tombstones.json`
-- `docs/history/runtime/legacy_active_path_tombstones.md`
+- Git history 中的 legacy active-path tombstone prose
 
 ## Retired Hermes Provenance
 

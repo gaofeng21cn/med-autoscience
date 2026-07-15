@@ -13,12 +13,8 @@ private-control-plane、runtime implementation 和 dated proof 流水归 Git 或
 ## 当前入口
 
 - [MAS 理想目标态差距与完善计划](./mas-ideal-state-gap-plan.md)：唯一结构完成度矩阵与 Live Evidence tail。
-- [MAS Current Development Lines](./current-development-lines.md)：只列当前维护线，不维护第二 backlog。
-- [MAS Executor-First 重构边界](./mas_executor_first_rearchitecture_program.md)：完成后的 no-resurrection guard。
 - [MAS Stage Surface Standardization](./stage_surface_standardization_program.md)：declarative Stage/Review/route 形态。
 - [AI-first Paper Autonomy Closure](./ai_first_paper_autonomy_closure_program.md)：真实论文线验收合同。
-- [OPL App MAS Workbench Boundary](./opl_app_mas_runtime_workbench_program.md)：OPL-owned App 只读投影边界。
-- [Program Portfolio Consolidation](./program_portfolio_consolidation.md)：这些稳定路径的唯一职责。
 
 ## 当前层次
 

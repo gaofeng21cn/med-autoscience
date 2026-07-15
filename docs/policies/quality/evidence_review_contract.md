@@ -172,5 +172,5 @@ platform incident learning loop 现在显式覆盖 `no_live`、`stalled`、`stat
 ## 维护规则
 
 - evidence / review 合同统一维护在 canonical YAML，不在单个 route prose 里重复定义另一套规则。
-- 变更 evidence / review 合同属于 contract surface 变更，至少补跑 `tests/test_stage_quality_cycle_policy.py` 与 `scripts/verify.sh meta`。
+- 变更 evidence / review 合同属于 contract surface 变更，至少补跑 `tests/test_stage_quality_cycle_policy.py` 与 `scripts/verify.sh full`。
 - 任何新写作、finalize、review、submission readiness 规则，都应先回答它属于 `minimum_proof_package`、`reviewer_first_checks`、`claim_evidence_consistency_requirements`、`route_back_policy` 中的哪一类。

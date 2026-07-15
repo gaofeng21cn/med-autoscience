@@ -114,7 +114,3 @@ def test_stage_manifest_declares_domain_extensions_for_opl_generated_plane() -> 
         for stage in stages
         if stage["stage_id"] != "finalize_and_publication_handoff"
     )
-
-
-def test_legacy_static_stage_control_plane_is_physically_retired() -> None:
-    assert not (REPO_ROOT / "contracts/stage_control_plane.json").exists()

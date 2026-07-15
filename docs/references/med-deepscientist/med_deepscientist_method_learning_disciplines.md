@@ -114,7 +114,7 @@ Machine boundary: Human-readable upstream-learning reference only; current study
 
 - `docs/project.md`、`docs/architecture.md`、`docs/status.md` 这一层的 owner 与入口说明
 - `docs/active/`、`docs/runtime/` 这一层的 program truth 和 contract truth
-- 对应的 `tests/*`、`make test-meta`、必要的 targeted regression
+- 对应的 `tests/*`、`make test`、必要的 targeted regression
 - 至少一个真实 study 或真实维护场景的验证证据
 
 ### 4.3 按 owner 面吸收，避免把 MDS 再写成默认 authority

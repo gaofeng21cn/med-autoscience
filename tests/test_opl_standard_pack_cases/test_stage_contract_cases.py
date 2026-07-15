@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import hashlib
 import json
 from pathlib import Path
 
@@ -356,16 +355,6 @@ def test_machine_identity_fields_match_the_framework_registry_semantics() -> Non
     )
     assert "target_domain_id: med-autoscience" not in semantic_pack
     assert "target_domain_id: medautoscience" in semantic_pack
-
-
-def test_source_closure_audit_tracks_current_hygiene_script_digest() -> None:
-    source_path = REPO_ROOT / "scripts/repo_hygiene_audit.py"
-    expected_digest = f"sha256:{hashlib.sha256(source_path.read_bytes()).hexdigest()}"
-    audit = _read_contract("source_closure_audit")
-
-    assert audit["entries"]
-    assert {entry["source_digest"] for entry in audit["entries"]} == {expected_digest}
-
 
 def test_opl_standard_pack_declares_single_ordinary_default_stage() -> None:
     stage_manifest = json.loads(

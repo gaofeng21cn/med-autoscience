@@ -204,7 +204,7 @@ Write scope:
 
 - 生成合同与源码构建结果一致。
 - `generated_surface_owner=one-person-lab`、MAS authority invariant 不被放宽。
-- 修改 machine-readable contract 时跑 `make test-meta`。
+- 修改 machine-readable contract 时跑 `make test`。
 
 ### Lane C: Controller / Route Supervisor / Read Model
 
@@ -230,7 +230,6 @@ Write scope:
 Write scope:
 
 - `docs/active/mas-ideal-state-gap-plan.md`
-- `docs/active/current-development-lines.md`
 - `docs/active/stage_surface_standardization_program.md`
 - `docs/runtime/**`
 - `docs/project.md`、`docs/invariants.md`、`docs/status.md` 中必要 compact 更新。
@@ -273,7 +272,7 @@ Write scope:
 - 至少运行：
   - `rtk git diff --check`
   - `rtk rg -n "^(<<<<<<<|=======|>>>>>>>)" docs agent contracts src tests README.md README.zh-CN.md`
-  - `rtk scripts/verify.sh`，若触及 machine-readable contract / runtime semantics，追加 `rtk make test-meta`
+  - `rtk scripts/verify.sh full`
   - 根据触及面追加 focused pytest 或 contract generation check。
 
 若执行阶段只完成文档和 contract，但未完成 source/read-model/runtime 行为，不能关闭总目标；必须保留 open lane、typed blocker 或后续 owner。

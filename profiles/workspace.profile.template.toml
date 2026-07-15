@@ -19,7 +19,7 @@ hermes_agent_repo_root = "/ABS/PATH/TO/hermes-agent"
 # Hermes-Agent 的 state / config / gateway home，默认通常是 ~/.hermes。
 hermes_home_root = "~/.hermes"
 default_publication_profile = "general_medical_journal"
-default_citation_style = "AMA"
+default_citation_style = "frontiers_harvard_csl"
 research_route_bias_policy = "high_plasticity_medical"
 preferred_study_archetypes = ["clinical_classifier", "clinical_subtype_reconstruction", "external_validation_model_update", "gray_zone_triage", "llm_agent_clinical_task", "mechanistic_sidecar_extension"]
 [source_provenance]

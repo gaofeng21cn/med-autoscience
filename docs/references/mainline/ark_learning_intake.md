@@ -64,7 +64,7 @@ Minimum verification for this intake:
 - `rtk git diff --check`;
 - `rtk rg -n "^(<<<<<<<|=======|>>>>>>>)" docs contracts src tests`;
 - repo-native `scripts/verify.sh` after absorbing all lanes back to `main`;
-- `make test-meta` when generated machine-readable contract surfaces or test manifests are touched.
+- `make test` when generated machine-readable contract surfaces or test manifests are touched.
 
 ## Do Not Reintroduce
 

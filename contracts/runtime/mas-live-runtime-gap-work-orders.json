@@ -1,8 +1,0 @@
-{
-  "surface_kind": "mas_live_runtime_gap_work_orders_tombstone",
-  "version": "mas-live-runtime-gap-work-orders-tombstone.v2",
-  "state": "retired",
-  "replacement_ref": "opl:runtime-evidence-readback",
-  "work_orders": [],
-  "mas_can_generate_live_work_orders": false
-}

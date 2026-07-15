@@ -11,7 +11,7 @@ History 是只读语境，不拥有 active backlog、runtime truth、controller 
 
 NextAction supersession notice：history 中出现的 `current_executable_owner_action`、PaperRecovery、domain transition、provider admission、OPL queue / attempt、current-work-unit 或 current-execution-envelope 只能按 historical provenance、diagnostic、migration input 或 no-resurrection guard 读取。当前默认 next action authority 是 [Next Action Control Plane](../runtime/control/next_action_control_plane.md) 的 `StageOutcome -> NextActionEnvelope`；`OPL TransitionReceipt` 只作 transport receipt-only evidence 和 MAS owner-consumption input。缺 canonical envelope 时不得从历史 surface 补一个隐式 next action。
 
-MAS monolith closeout 之后，旧 MDS / DeepScientist / Hermes-first / 外部 runtime cutover / WebUI / daemon 文档若没有明确 active owner，只能在本目录或 `docs/references/` 中作为 provenance、parity、explicit archive import、backend audit 或历史决策材料保留。读者需要当前状态时，应回到 `docs/status.md`、`docs/architecture.md`、`docs/decisions.md`、`docs/active/program_portfolio_consolidation.md` 和 durable runtime/controller surfaces。
+MAS monolith closeout 之后，旧 MDS / DeepScientist / Hermes-first / 外部 runtime cutover / WebUI / daemon 文档若没有明确 active owner，只能在本目录或 `docs/references/` 中作为 provenance、parity、explicit archive import、backend audit 或历史决策材料保留。读者需要当前状态时，应回到 `docs/status.md`、`docs/architecture.md`、`docs/decisions.md`、`docs/active/mas-ideal-state-gap-plan.md` 和 durable runtime/controller surfaces。
 
 | archive | contents |
 | --- | --- |

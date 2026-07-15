@@ -22,10 +22,5 @@ Machine boundary: 本目录只保存旧定位、旧开放化讨论和旧 framewo
 - [架构概览](../../architecture.md)
 - [文档组合治理](../../docs_portfolio_consolidation.md)
 
-历史材料：
-
-- [Domain Harness OS positioning](./domain-harness-os-positioning.md)
-- [Open Harness OS architecture](./open_harness_os_architecture.md)
-- [Research Foundry positioning](./research_foundry_positioning.md)
-- [Research Foundry medical phase ladder](./research_foundry_medical_phase_ladder.md)
-- [Repository split between Research Foundry and Med Auto Science](./repo_split_between_research_foundry_and_med_autoscience.md)
+逐项 positioning 草案已从 tracked tree 退役；本页保留历史语境与当前 owner
+读法，精确旧正文读取 Git history。

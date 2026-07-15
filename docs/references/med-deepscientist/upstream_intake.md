@@ -222,4 +222,4 @@ PYTHONPATH=src pytest -q
 
 对应治理视角请看：
 
-- [`Program Portfolio Consolidation`](../../active/program_portfolio_consolidation.md)
+- [`MAS 理想目标态差距与完善计划`](../../active/mas-ideal-state-gap-plan.md)

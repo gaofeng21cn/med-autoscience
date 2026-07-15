@@ -7,7 +7,7 @@ Purpose: `mds_provenance_archive_parity_guard`
 State: `history_provenance`
 Machine boundary: 本文是人读历史 guard / provenance record。当前 MDS / DeepScientist owner boundary 归 `docs/policies/runtime-governance/mas_mds_owner_boundary_contract.md`、核心五件套、active gap plan、contracts、source、tests、runtime/controller surfaces、owner receipts 和 typed blockers。
 
-完整历史记录见 [2026-05-10 MAS/MDS absorb full record](./mas_single_project_mds_absorb_program_2026_05_10_full_record.md)。
+2026-05-10 MAS/MDS absorb 完整记录已从 tracked tree 退役；精确正文读取 Git history。
 
 ## Active-path retirement closeout 2026-06-07
 
@@ -18,9 +18,9 @@ Retired surface:
 Replacement owners:
 
 - `docs/policies/runtime-governance/mas_mds_owner_boundary_contract.md` 持有当前 MAS/MDS owner boundary policy。
-- `docs/active/mas-ideal-state-gap-plan.md` 和 `docs/active/current-development-lines.md` 持有当前 active truth / execution map。
+- `docs/active/mas-ideal-state-gap-plan.md` 持有当前 active truth / execution map。
 - `docs/runtime/domain_authority_refs_index_guard.md` 持有 domain authority refs / restore / archive drift guard。
-- 本文件和 `docs/history/program/mas_single_project_mds_absorb_program_2026_05_10_full_record.md` 只保留 history / provenance。
+- 本文件只保留 history / provenance；完整过程读取 Git history。
 
 Reviewed refs:
 
