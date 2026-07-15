@@ -54,4 +54,4 @@ K-Dense workflow/database/specialist 内容只作为 OPL Stagecraft、Atlas、Co
 
 ## 验证
 
-External-learning 变更至少运行 `scripts/verify.sh fast`、`scripts/verify.sh meta` 与 active-machine orphan-ref scan；跨仓继续读取冻结 Framework 的 interfaces/conformance/default-callers/residue/source-closure。Live provider、paper、publication 或 owner claim仍需 fresh receipt/artifact evidence。
+External-learning 变更至少运行 `scripts/verify.sh full` 与 active-machine orphan-ref scan；跨仓继续读取冻结 Framework 的 interfaces/conformance/default-callers/residue/source-closure。Live provider、paper、publication 或 owner claim仍需 fresh receipt/artifact evidence。

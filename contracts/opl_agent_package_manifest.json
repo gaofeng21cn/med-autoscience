@@ -4,7 +4,7 @@
   "package_id": "mas",
   "display_name": "Med Auto Science",
   "publisher": "one-person-lab",
-  "version": "0.2.7",
+  "version": "0.2.8",
   "source": "first_party_repo_local",
   "carrier_source_role": "codex_plugin_default_carrier_not_package_truth",
   "schema_ref": "one-person-lab/contracts/opl-framework/agent-package-manifest.schema.json",
@@ -22,7 +22,7 @@
     "installed_reload_proof": false,
     "oci_ref": "ghcr.io/gaofeng21cn/opl-agent-med-autoscience:latest",
     "oci_media_type": "application/vnd.oci.image.manifest.v1+json",
-    "immutable_tag": "0.2.7",
+    "immutable_tag": "0.2.8",
     "rolling_tag": "latest",
     "promotion_policy": "daily_candidate_gates_then_promote_latest",
     "install_truth": "resolved_digest_lock"

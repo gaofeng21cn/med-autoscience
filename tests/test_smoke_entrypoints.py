@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import importlib
+from importlib.metadata import PackageNotFoundError, version
 import json
 from pathlib import Path
 
@@ -13,10 +14,14 @@ ROOT = Path(__file__).resolve().parents[1]
 
 def test_package_import_and_authority_handler_entrypoint() -> None:
     package = importlib.import_module("med_autoscience")
-    handlers = importlib.import_module("med_autoscience.authority_handlers")
+    handler = importlib.import_module("med_autoscience.authority_handlers.paper_mission")
 
-    assert package.__version__ == "0.2.7"
-    assert callable(handlers.evaluate_paper_mission_authority)
+    try:
+        installed_version = version("med-autoscience")
+    except PackageNotFoundError:
+        installed_version = "0+unknown"
+    assert package.__version__ == installed_version
+    assert callable(handler.evaluate_paper_mission_authority)
 
 
 def test_direct_and_hosted_entry_sources_resolve() -> None:

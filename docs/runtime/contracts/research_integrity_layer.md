@@ -37,8 +37,7 @@ Reviewer / re-reviewer 只在 `route_impact.stage_quality_cycle.outcome` 返回 
 ## 验证
 
 ```bash
-scripts/verify.sh fast
-scripts/verify.sh meta
+scripts/verify.sh full
 ```
 
 跨仓还必须在冻结 OPL Framework 上读取单仓 `interfaces`、`conformance`、`default-callers`、`residue-decisions` 与 `source-closure`。这些结构证据不等于 live paper 或 publication ready。

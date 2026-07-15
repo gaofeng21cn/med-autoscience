@@ -26,7 +26,7 @@ def test_package_plugin_and_python_versions_are_one_semver() -> None:
     )
 
     assert package["version"] == pyproject["project"]["version"] == plugin["version"]
-    assert package["version"] == "0.2.7"
+    assert package["version"] == "0.2.8"
     assert package["distribution_payload"]["immutable_tag"] == package["version"]
     assert package["agent_id"] == package["package_id"] == "mas"
     assert package["codex_surface"]["plugin_id"] == "med-autoscience"
@@ -35,6 +35,15 @@ def test_package_plugin_and_python_versions_are_one_semver() -> None:
     prompt_text = json.dumps(plugin["interface"]["defaultPrompt"]).lower()
     assert "doctor" not in prompt_text
     assert "controller" not in prompt_text
+
+
+def test_repo_hygiene_audit_stays_read_only_and_index_scoped() -> None:
+    source = (ROOT / "scripts/repo_hygiene_audit.py").read_text(encoding="utf-8")
+
+    assert '["git", "-C", str(root), "ls-files", "-z"]' in source
+    assert "os.walk" not in source
+    assert "--fix" not in source
+    assert "rmtree" not in source
 
 
 def test_stage_route_contract_has_one_canonical_package_source() -> None:

@@ -3,7 +3,7 @@
 Owner: `MedAutoScience`
 Purpose: `medical_display_quality_boundary`
 State: `active_support`
-Machine boundary: 医学 display 能力注册归 `contracts/capability_map.json` 与 `contracts/medical-figure-family-catalog/index.json`；执行归 OPL hosted StageAttempt，专业方法归 MAS ScholarSkills，质量结果归独立 reviewer/re-reviewer。本文不是 validator 或 renderer。
+Machine boundary: MAS 只在 `contracts/capability_map.json` 声明 display capability refs；通用 figure/template catalog 归 MAS ScholarSkills `medical-display-core` canonical catalog。执行归 OPL hosted StageAttempt，质量结果归独立 reviewer/re-reviewer。本文不是 validator 或 renderer。
 
 医学图表交付必须保留 exact artifact/source/data refs、生成参数、content hash、panel/legend/label 语义与 visual-audit evidence。`medical-figure-design` 统筹图形设计，`medical-figure-style` 与 `medical-figure-composer` 提供专业候选与 QA；它们不写 MAS truth、不签 owner receipt，也不授权 publication/export readiness。
 

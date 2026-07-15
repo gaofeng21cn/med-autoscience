@@ -3,56 +3,49 @@
 Owner: `MedAutoScience`
 Purpose: `repository_ci_policy`
 State: `active_policy`
-Machine boundary: 本文解释 CI lane。可执行真相归 `.github/workflows/`、`scripts/verify.sh`、Makefile、tests与 CI receipts。
+Machine boundary: 本文解释 CI 入口。可执行真相归 `.github/workflows/`、`scripts/verify.sh`、Makefile、tests 与 CI receipts。
 
 ## 当前入口
 
-MAS repo验证不依赖已退役的 repo-local product CLI。统一入口是：
-
 ```bash
 scripts/verify.sh
-scripts/verify.sh ci-preflight <base-ref>
-scripts/verify.sh regression
+scripts/verify.sh smoke
 scripts/verify.sh meta
-scripts/verify.sh family
-scripts/verify.sh display
-scripts/verify.sh submission
+scripts/verify.sh regression
 scripts/verify.sh full
+scripts/verify.sh structure
 ```
+
+`scripts/verify.sh` 默认运行 `full`。所有 Python 入口通过当前 lockfile 的标准
+`uv run --frozen` 环境执行，不导出 requirements，也不维护第二套 isolated runner。
 
 ## CI topology
 
 | Workflow/lane | 用途 |
 | --- | --- |
-| `macOS CI` | push/PR change-aware `ci-preflight` 与 build |
-| `macOS Advisory` | regression、meta、family、submission、display 重 lane |
-| `Sentrux Advisory` | advisory structure analysis |
-| `full` | release/integration 前完整验证 |
-
-实际 trigger、runner与依赖安装以 `.github/workflows/*.yml` 为准。
+| `macOS CI` | push/PR 完整 repo verification、OPL hosted interface readback 与 `uv build` |
+| `macOS Advisory` | nightly `regression` 与 `meta` 分区诊断 |
+| `Sentrux Advisory` | advisory structure analysis 与 OPL quality details |
+| `full` | 本仓完整 pytest collection |
 
 ## Lane semantics
 
-- default：一次 repo hygiene、line-budget 与 Python compile sanity 后，执行 fast pytest 选集；不会再在 smoke/fast 中重复全仓 line-budget 扫描。
-- smoke：只验证最小入口，不证明 broader behavior 或结构预算。
-- `ci-preflight <base-ref>`：根据 checked-in change-aware policy选择本次触达面。
-- regression：普通行为回归，重型 display/submission/family/meta由独立 lane承担。
-- meta：machine contracts、generated interface/entry与 repo governance一致性。
-- display/submission/family：各 owner重型验证。
-- full：组合所有正式 lane。
+- `smoke`：最小 package/authority import 与 hosted entry source。
+- `meta`：machine contracts、package、workflow 与 repo boundary。
+- `regression`：所有非 meta authority-function behavior。
+- `full`：完整 pytest collection，是默认本地与 CI 行为 gate。
+- `structure`：Sentrux；失败时用 `opl quality details` 提供诊断。
 
-## Local policy
-
-- 纯 docs变更至少运行 `git diff --check`、conflict-marker scan与 docs link/path检查。
-- 触及 machine contract、action catalog、test entry或 runtime semantics时，按变更面追加 meta/focused/default/full。
-- Python/pytest必须经 clean runner，避免把 `.venv`、cache、bytecode或 egg-info写回 checkout。
-- Line budget是结构 signal，不替代行为验证，也不代表 runtime/paper readiness。
-- `family` 在同一隔离 pytest 进程中收集全部 family boundary case，避免为同一依赖环境重复导出、建环境和收集。
+Repo hygiene 只检查 Git tracked path、精确 MAS source morphology 与 retired active
+surface；它不会扫描或删除 ignored `.venv`、cache、egg-info 或用户本地环境。
 
 ## Evidence boundary
 
-CI/test green只证明对应 repo lane。它不证明 OPL runtime ready、provider running、paper progress、quality/publication ready、artifact mutation authorization或 production ready。这些 claim必须 fresh live/readback/artifact/owner receipt。
+CI/test green 只证明对应 repo lane。它不证明 OPL runtime ready、provider running、
+paper progress、quality/publication ready、artifact mutation authorization 或 production
+ready。这些 claim 必须由 fresh live readback、artifact 与 owner receipt 证明。
 
 ## 维护
 
-改 lane时同步 `.github/workflows/`、`scripts/verify.sh`、Makefile与 machine-readable test lane contract。不要为旧 CLI命令保留兼容 preflight wrapper。
+测试入口优先使用 pytest marker 或 direct path，不新增 lane manifest、strict alias、
+runner wrapper 或兼容 target。结构信号统一交给 Sentrux / OPL。

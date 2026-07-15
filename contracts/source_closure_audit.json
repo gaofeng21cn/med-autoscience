@@ -5,7 +5,7 @@
     {
       "file": "scripts/repo_hygiene_audit.py",
       "symbol": "_default_repo_root",
-      "source_digest": "sha256:7cb4d572fa048e02c75be50e0fd8d3a941ea190f4d16ca10ccc9a42b6aaf3ac7",
+      "source_digest": "sha256:3297250733176838dbb393c24834dfee1368f3ca06100f3cec6b51cd6bd12f10",
       "allowed_effects": [
         "process_spawn"
       ],
@@ -13,12 +13,12 @@
       "allowed_targets": [
         "git"
       ],
-      "reason": "Resolve the repository root for the explicit developer-only hygiene command."
+      "reason": "Resolve the repository root for the explicit developer-only tracked-path audit."
     },
     {
       "file": "scripts/repo_hygiene_audit.py",
-      "symbol": "audit_tracked_paths",
-      "source_digest": "sha256:7cb4d572fa048e02c75be50e0fd8d3a941ea190f4d16ca10ccc9a42b6aaf3ac7",
+      "symbol": "_git_tracked_paths",
+      "source_digest": "sha256:3297250733176838dbb393c24834dfee1368f3ca06100f3cec6b51cd6bd12f10",
       "allowed_effects": [
         "process_spawn"
       ],
@@ -26,44 +26,7 @@
       "allowed_targets": [
         "git"
       ],
-      "reason": "Inspect tracked paths without entering any Agent action or runtime surface."
-    },
-    {
-      "file": "scripts/repo_hygiene_audit.py",
-      "symbol": "audit_active_surface_residue",
-      "source_digest": "sha256:7cb4d572fa048e02c75be50e0fd8d3a941ea190f4d16ca10ccc9a42b6aaf3ac7",
-      "allowed_effects": [
-        "process_spawn"
-      ],
-      "role": "developer_tool",
-      "allowed_targets": [
-        "git"
-      ],
-      "reason": "Inspect source residue for the explicit developer-only repository gate."
-    },
-    {
-      "file": "scripts/repo_hygiene_audit.py",
-      "symbol": "_is_git_ignored",
-      "source_digest": "sha256:7cb4d572fa048e02c75be50e0fd8d3a941ea190f4d16ca10ccc9a42b6aaf3ac7",
-      "allowed_effects": [
-        "process_spawn"
-      ],
-      "role": "developer_tool",
-      "allowed_targets": [
-        "git"
-      ],
-      "reason": "Confirm cleanup candidates are ignored before the developer command removes them."
-    },
-    {
-      "file": "scripts/repo_hygiene_audit.py",
-      "symbol": "_remove_path",
-      "source_digest": "sha256:7cb4d572fa048e02c75be50e0fd8d3a941ea190f4d16ca10ccc9a42b6aaf3ac7",
-      "allowed_effects": [
-        "filesystem_write"
-      ],
-      "role": "developer_tool",
-      "allowed_targets": [],
-      "reason": "Remove only ignored bytecode, pytest cache, virtualenv, and egg-info residue during the explicit developer hygiene command."
+      "reason": "Read the Git index once without scanning or deleting ignored local environments."
     }
   ]
 }

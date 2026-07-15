@@ -65,10 +65,8 @@ Machine boundary: Human-readable repository policy only; enforceable truth remai
 
 至少要有：
 
-- `scripts/verify.sh fast`
-- `scripts/verify.sh meta`
-- `tests/test_standard_agent_boundary.py`
-- `tests/test_standard_agent_conformance_profile.py`
+- `scripts/verify.sh full`
+- `scripts/verify.sh structure`
 - `git diff --check`
 
 如果当前改动同时触及 OPL activation、Package lifecycle 或 hosted preflight，继续在
@@ -76,7 +74,6 @@ Machine boundary: Human-readable repository policy only; enforceable truth remai
 `default-callers`、`residue-decisions` 与 `source-closure` readback。
 
 纯 Markdown wording / integration-harness 文案变更只需要人工/Agent documentation review，不再通过 pytest 锁定具体措辞。
-- `tests/test_publication_gate.py`
 
 ### 4. wording / artifact / preflight audit 一致
 

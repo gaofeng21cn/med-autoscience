@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import argparse
-import os
 import re
 import subprocess
 import sys
@@ -23,8 +22,6 @@ BANNED_DIRECTORY_NAMES = frozenset(
 )
 BANNED_FILE_NAMES = frozenset({".DS_Store"})
 BANNED_SUFFIXES = (".egg-info",)
-ALLOWED_ROOT_DIRECTORIES = frozenset({".git", ".worktrees"})
-ALLOWED_ROOT_FILES = frozenset({"RTK.md"})
 ACTIVE_SURFACE_ROOTS = (
     "src/",
     "tests/",
@@ -91,11 +88,9 @@ ENTRYPOINT_TOKEN_DENYLIST = {
 EXPECTED_STANDARD_AGENT_SOURCE_FILES = frozenset(
     {
         "src/med_autoscience/__init__.py",
-        "src/med_autoscience/authority_handlers/__init__.py",
         "src/med_autoscience/authority_handlers/paper_mission.py",
         "src/med_autoscience/authority_handlers/self_evolution_closeout.py",
         "src/med_autoscience/styles/__init__.py",
-        "src/med_autoscience/styles/american-chemical-society.csl",
         "src/med_autoscience/styles/american-medical-association.csl",
         "src/med_autoscience/styles/frontiers.csl",
     }
@@ -112,8 +107,19 @@ def _default_repo_root() -> Path:
     return Path(result.stdout.strip()).resolve()
 
 
-def _relative(path: Path, root: Path) -> str:
-    return path.relative_to(root).as_posix()
+def _git_tracked_paths(root: Path) -> tuple[str, ...]:
+    result = subprocess.run(
+        ["git", "-C", str(root), "ls-files", "-z"],
+        text=True,
+        capture_output=True,
+        check=True,
+    )
+    tracked_paths: list[str] = []
+    for path in result.stdout.split("\0"):
+        candidate = root / path
+        if path and (candidate.exists() or candidate.is_symlink()):
+            tracked_paths.append(path)
+    return tuple(tracked_paths)
 
 
 def _is_banned_directory(name: str) -> bool:
@@ -124,189 +130,68 @@ def _is_banned_file(name: str) -> bool:
     return name in BANNED_FILE_NAMES or name.endswith(BANNED_SUFFIXES)
 
 
-def audit_filesystem(root: Path) -> list[str]:
+def audit_tracked_paths(tracked_paths: tuple[str, ...]) -> list[str]:
     violations: list[str] = []
-
-    for current_root, dirnames, filenames in os.walk(root, topdown=True):
-        current_path = Path(current_root)
-        is_repo_root = current_path == root
-        kept_dirnames: list[str] = []
-
-        for dirname in sorted(dirnames):
-            directory_path = current_path / dirname
-            if is_repo_root and dirname in ALLOWED_ROOT_DIRECTORIES:
-                continue
-            if _is_banned_directory(dirname):
-                violations.append(_relative(directory_path, root))
-                continue
-            kept_dirnames.append(dirname)
-        dirnames[:] = kept_dirnames
-
-        for filename in sorted(filenames):
-            if is_repo_root and filename in ALLOWED_ROOT_FILES:
-                continue
-            file_path = current_path / filename
-            if _is_banned_file(filename):
-                violations.append(_relative(file_path, root))
-
-    return violations
-
-
-def audit_tracked_paths(root: Path) -> list[str]:
-    result = subprocess.run(
-        ["git", "-C", str(root), "ls-files", "-z"],
-        text=True,
-        capture_output=True,
-        check=True,
-    )
-    violations: list[str] = []
-    for raw_path in result.stdout.split("\0"):
-        if not raw_path:
-            continue
+    for raw_path in tracked_paths:
         parts = Path(raw_path).parts
-        if not parts:
-            continue
-        if parts[0] in ALLOWED_ROOT_DIRECTORIES:
-            continue
         if any(_is_banned_directory(part) for part in parts[:-1]):
             violations.append(raw_path)
-            continue
-        if _is_banned_file(parts[-1]):
+        elif parts and _is_banned_file(parts[-1]):
             violations.append(raw_path)
     return violations
 
 
-def audit_active_surface_residue(root: Path) -> list[str]:
-    result = subprocess.run(
-        ["git", "-C", str(root), "ls-files", "-z"],
-        text=True,
-        capture_output=True,
-        check=True,
-    )
+def audit_active_surface_residue(
+    root: Path,
+    tracked_paths: tuple[str, ...],
+) -> list[str]:
     violations: list[str] = []
-    mas_source_root = root / "src" / "med_autoscience"
-    if mas_source_root.is_dir():
-        observed_source_files = {
-            _relative(path, root)
-            for path in mas_source_root.rglob("*")
-            if path.is_file()
-        }
-        for relative_path in sorted(
-            observed_source_files - EXPECTED_STANDARD_AGENT_SOURCE_FILES
-        ):
-            violations.append(
-                f"{relative_path}: nonstandard_mas_private_source_surface"
-            )
-        for relative_path in sorted(
-            EXPECTED_STANDARD_AGENT_SOURCE_FILES - observed_source_files
-        ):
-            violations.append(
-                f"{relative_path}: required_standard_agent_source_missing"
-            )
+    observed_source_files = {
+        path for path in tracked_paths if path.startswith("src/med_autoscience/")
+    }
+    for relative_path in sorted(
+        observed_source_files - EXPECTED_STANDARD_AGENT_SOURCE_FILES
+    ):
+        violations.append(f"{relative_path}: nonstandard_mas_private_source_surface")
+    for relative_path in sorted(
+        EXPECTED_STANDARD_AGENT_SOURCE_FILES - observed_source_files
+    ):
+        violations.append(f"{relative_path}: required_standard_agent_source_missing")
 
-    entrypoint_paths = ENTRYPOINT_PATHS | _discover_entrypoint_paths(root)
-    for raw_path in result.stdout.split("\0"):
-        if not raw_path:
-            continue
+    entrypoint_paths = ENTRYPOINT_PATHS | frozenset(
+        path
+        for path in tracked_paths
+        if path.startswith("src/med_autoscience/") and path.endswith("/parser.py")
+    )
+    for raw_path in tracked_paths:
         if not raw_path.startswith(ACTIVE_SURFACE_ROOTS):
             continue
         for pattern, reason in ACTIVE_PATH_DENYLIST:
             if pattern.search(raw_path):
                 violations.append(f"{raw_path}: {reason}")
                 break
-        if raw_path in entrypoint_paths:
-            path = root / raw_path
-            try:
-                text = path.read_text(encoding="utf-8")
-            except (OSError, UnicodeDecodeError):
-                continue
-            for token, reason in ENTRYPOINT_TOKEN_DENYLIST.items():
-                if token in text:
-                    violations.append(f"{raw_path}: {reason}")
+        if raw_path not in entrypoint_paths:
+            continue
+        path = root / raw_path
+        try:
+            text = path.read_text(encoding="utf-8")
+        except (OSError, UnicodeDecodeError):
+            continue
+        for token, reason in ENTRYPOINT_TOKEN_DENYLIST.items():
+            if token in text:
+                violations.append(f"{raw_path}: {reason}")
     return violations
 
 
-def _discover_entrypoint_paths(root: Path) -> frozenset[str]:
-    cli_root = root / "src" / "med_autoscience"
-    if not cli_root.is_dir():
-        return frozenset()
-    return frozenset(
-        _relative(path, root)
-        for path in cli_root.rglob("parser.py")
-        if path.is_file()
-    )
-
-
-def cleanup_ignored_artifacts(root: Path) -> list[str]:
-    removed: list[str] = []
-
-    for current_root, dirnames, filenames in os.walk(root, topdown=True):
-        current_path = Path(current_root)
-        is_repo_root = current_path == root
-        kept_dirnames: list[str] = []
-
-        for dirname in sorted(dirnames):
-            directory_path = current_path / dirname
-            if is_repo_root and dirname in ALLOWED_ROOT_DIRECTORIES:
-                continue
-            if _is_banned_directory(dirname):
-                relative_path = _relative(directory_path, root)
-                if _is_git_ignored(root, relative_path):
-                    _remove_path(directory_path)
-                    removed.append(relative_path)
-                    continue
-            kept_dirnames.append(dirname)
-        dirnames[:] = kept_dirnames
-
-        for filename in sorted(filenames):
-            if is_repo_root and filename in ALLOWED_ROOT_FILES:
-                continue
-            file_path = current_path / filename
-            if _is_banned_file(filename):
-                relative_path = _relative(file_path, root)
-                if _is_git_ignored(root, relative_path):
-                    _remove_path(file_path)
-                    removed.append(relative_path)
-
-    return removed
-
-
-def _is_git_ignored(root: Path, relative_path: str) -> bool:
-    result = subprocess.run(
-        ["git", "-C", str(root), "check-ignore", "-q", "--", relative_path],
-        text=True,
-        capture_output=True,
-        check=False,
-    )
-    return result.returncode == 0
-
-
-def _remove_path(path: Path) -> None:
-    if not path.exists() and not path.is_symlink():
-        return
-    if path.is_dir() and not path.is_symlink():
-        for child in path.iterdir():
-            _remove_path(child)
-        try:
-            path.rmdir()
-        except FileNotFoundError:
-            return
-        return
-    path.unlink(missing_ok=True)
-
-
 def parse_args(argv: list[str]) -> argparse.Namespace:
-    parser = argparse.ArgumentParser(description="Audit repo-local hygiene artifacts.")
+    parser = argparse.ArgumentParser(
+        description="Audit tracked repository paths and retired active surfaces."
+    )
     parser.add_argument(
         "--root",
         type=Path,
         default=None,
         help="Repository root to audit. Defaults to the current git root.",
-    )
-    parser.add_argument(
-        "--fix",
-        action="store_true",
-        help="Remove banned artifacts only when they are already ignored by git.",
     )
     return parser.parse_args(argv)
 
@@ -318,21 +203,16 @@ def main(argv: list[str] | None = None) -> int:
         print(f"repo hygiene audit: root is not a directory: {root}", file=sys.stderr)
         return 2
 
-    if args.fix:
-        removed = cleanup_ignored_artifacts(root)
-        for path in removed:
-            print(f"repo hygiene audit removed ignored artifact: {path}")
-
+    tracked_paths = _git_tracked_paths(root)
     violations = sorted(
         set(
-            audit_filesystem(root)
-            + audit_tracked_paths(root)
-            + audit_active_surface_residue(root)
+            audit_tracked_paths(tracked_paths)
+            + audit_active_surface_residue(root, tracked_paths)
         )
     )
     if violations:
         print(
-            "repo hygiene audit failed: banned checkout artifacts or retired active surfaces detected",
+            "repo hygiene audit failed: tracked residue or retired active surfaces detected",
             file=sys.stderr,
         )
         for violation in violations:

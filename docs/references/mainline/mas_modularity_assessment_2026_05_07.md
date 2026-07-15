@@ -29,7 +29,7 @@ MAS 当前已经从“文件被迫切小”推进到“主要 owner 与 projecti
 
 本评估基于 2026-05-08 当时 `main` 的 fresh read；今天只能作为 hotspot 和 guard 设计参考，不作为永久质量预算或当前完成性证明：
 
-2026-05-08 复核：模块化治理后的关键结构信号没有漂移。Sentrux fresh scan 仍为 `quality_signal=6076`，DSM `above_diagonal=0`、`propagation_cost=63`；`.sentrux/rules.toml` 尚未定义额外架构规则，因此当前 hard gate 继续以 repo guard、boundary fitness、line budget 和 DSM 方向性为准。
+2026-05-08 复核：模块化治理后的关键结构信号没有漂移。Sentrux fresh scan 仍为 `quality_signal=6076`，DSM `above_diagonal=0`、`propagation_cost=63`。这些是 dated evidence；当前结构检查统一读取 Sentrux、`opl quality details`、tracked-path hygiene 与 source-closure。
 
 | signal | current value | interpretation |
 | --- | ---: | --- |
@@ -38,7 +38,6 @@ MAS 当前已经从“文件被迫切小”推进到“主要 owner 与 projecti
 | Sentrux `propagation_cost` | `63` | 变更传播面仍偏大，说明 hub 模块仍多。 |
 | Sentrux root causes | acyclicity `10000`; redundancy `8431`; depth `5000`; modularity `4688`; equality `4188` | 没有循环是优势；模块均衡性和模块化仍是短板。 |
 | Boundary fitness | `0 blocking`, `0 advisory` | 原评估的 `31 advisory` 已通过 architecture fitness wave 清零。 |
-| Line budget | pass | 当前 repo guard 可运行，触碰过的 near-limit part 已降到 preferred range。 |
 | Mechanical split residue | no tracked `part_*` / `chunk_*` / `split_*` source file | 没有明显编号式机械拆分回流。 |
 | Direct test-gap heuristic | low direct ratio | 许多行为通过 public/facade tests 覆盖，后续高风险子域应补更贴近 natural boundary 的 focused tests。 |
 | 30-day churn | `product_entry`、`study_progress`、`cli`、`study_runtime_decision`、`domain_diagnostic_report`、display surfaces 最高 | 热点与 public entry / projection / display mainline 高度重合，说明结构风险集中在真实维护面。 |

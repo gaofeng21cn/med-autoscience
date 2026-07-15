@@ -127,7 +127,7 @@ Lifecycle note: this file is a dated closure snapshot for the `001/003` anchor-p
 
 ## Cross-Paper Regression Evidence
 
-- repo targeted regression：历史 171-pass receipt 由 Git provenance 保留；当前结构回归改读 `scripts/verify.sh fast`、Stage quality-cycle policy tests 与 OPL generated interface admission。
+- repo targeted regression：历史 171-pass receipt 由 Git provenance 保留；当前结构回归改读 `scripts/verify.sh full`、Stage quality-cycle policy tests 与 OPL generated interface admission。
 - cross-paper paper-root verification:
   - `001 paper root` closure-time `materialize-display-surface` clear
   - `003 paper root` closure-time `materialize-display-surface` clear

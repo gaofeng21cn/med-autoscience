@@ -79,7 +79,7 @@ Foundry 系列 canonical policy 只存在于 OPL Framework。MAS 不声明或安
 
 ## D-20 验证按证据类型去重
 
-Canonical `scripts/verify.sh` 默认只执行一次 line-budget，并把 fast pytest 选集收集一次；smoke/fast Make target 不重复全仓结构扫描。Family boundary case 在同一隔离 pytest invocation 中执行。Table-driven case 必须保留可读稳定 id，且不得合并或削弱 authority、fail-closed 与 zero-write 断言。
+Canonical `scripts/verify.sh` 默认运行一次只读 tracked-path/no-resurrection hygiene、Python compile sanity 和完整 pytest collection。行为子集只保留 `smoke`、`meta`、`regression`；结构分析统一交给 Sentrux 与 `opl quality details`，不在 MAS 维护第二份 line-budget。Table-driven case 必须保留可读稳定 id，且不得合并或削弱 authority、fail-closed 与 zero-write 断言。
 
 ## D-21 私有控制面物理退役
 

@@ -68,8 +68,8 @@ jobs:
           "$OPL_BIN" agents source-closure --agent "mas=$GITHUB_WORKSPACE" --json
           "$OPL_BIN" agents residue-decisions --agent "mas=$GITHUB_WORKSPACE" --json
 
-      - name: Build sdist and wheel outside checkout
-        run: scripts/run-build-clean.sh --outdir "${RUNNER_TEMP}/mas-dist"
+      - name: Build sdist and wheel
+        run: uv build --out-dir "${RUNNER_TEMP}/mas-dist"
 
       - name: Upload artifacts
         uses: actions/upload-artifact@v7

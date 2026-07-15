@@ -20,41 +20,11 @@ jobs:
         include:
           - lane: regression
             label: Run regression advisory tests
-            system_dependencies: none
-            prepare_analysis_bundle: false
           - lane: meta
             label: Run meta advisory tests
-            system_dependencies: none
-            prepare_analysis_bundle: false
-          - lane: family
-            label: Run OPL Framework advisory tests
-            system_dependencies: none
-            prepare_analysis_bundle: false
-          - lane: submission
-            label: Run submission-heavy advisory tests
-            system_dependencies: tex
-            prepare_analysis_bundle: false
-          - lane: display
-            label: Run display-heavy advisory tests
-            system_dependencies: display
-            prepare_analysis_bundle: true
     steps:
       - name: Checkout repository
         uses: actions/checkout@v6
-
-      - name: Set up Node.js 24 for OPL Framework lane
-        if: matrix.lane == 'family'
-        uses: actions/setup-node@v6
-        with:
-          node-version: '24'
-
-      - name: Checkout and build OPL Framework
-        if: matrix.lane == 'family'
-        run: |
-          git clone --depth=1 --filter=blob:none https://github.com/gaofeng21cn/one-person-lab.git ../one-person-lab
-          npm ci --prefix ../one-person-lab --ignore-scripts
-          npm run --prefix ../one-person-lab build
-          echo "OPL_BIN=$GITHUB_WORKSPACE/../one-person-lab/bin/opl" >> "$GITHUB_ENV"
 
       - name: Set up Python 3.12
         uses: actions/setup-python@v6
@@ -68,58 +38,6 @@ jobs:
           cache-dependency-glob: |
             uv.lock
             pyproject.toml
-
-      - name: Install pandoc and BasicTeX
-        if: matrix.system_dependencies == 'tex'
-        run: |
-          brew install pandoc
-          brew install --cask basictex
-
-      - name: Install display system dependencies
-        if: matrix.system_dependencies == 'display'
-        run: |
-          brew install pandoc graphviz pkg-config libxml2 r
-          brew install --cask basictex
-
-      - name: Configure TeX toolchain
-        if: matrix.system_dependencies != 'none'
-        run: |
-          echo "/Library/TeX/texbin" >> "${GITHUB_PATH}"
-          /Library/TeX/texbin/xelatex --version | head -n 1
-
-      - name: Configure display package build environment
-        if: matrix.system_dependencies == 'display'
-        run: |
-          echo "$(brew --prefix libxml2)/bin" >> "${GITHUB_PATH}"
-          echo "PKG_CONFIG_PATH=$(brew --prefix libxml2)/lib/pkgconfig:${PKG_CONFIG_PATH:-}" >> "${GITHUB_ENV}"
-          echo "XML_CONFIG=$(brew --prefix libxml2)/bin/xml2-config" >> "${GITHUB_ENV}"
-
-      - name: Export isolated test requirements
-        run: uv export --quiet --frozen --no-emit-project --group dev --format requirements-txt > "${RUNNER_TEMP}/mas-requirements.txt"
-
-      - name: Ensure study runtime analysis bundle
-        if: matrix.prepare_analysis_bundle
-        env:
-          PYTHONPATH: src
-          PYTHONDONTWRITEBYTECODE: "1"
-          PYTHONPYCACHEPREFIX: ${{ runner.temp }}/mas-pycache
-          PYTEST_ADDOPTS: -p no:cacheprovider -o cache_dir=${{ runner.temp }}/mas-pytest-cache
-        run: |
-          uv run --isolated --frozen --no-project --with-requirements "${RUNNER_TEMP}/mas-requirements.txt" python - <<'PY'
-          import json
-          import sys
-
-          from med_autoscience.study_runtime_analysis_bundle import ensure_study_runtime_analysis_bundle
-
-          result = ensure_study_runtime_analysis_bundle()
-          print(json.dumps(result, ensure_ascii=False, indent=2))
-          raise SystemExit(0 if result.get("ready") else 1)
-          PY
-
-      - name: Link OPL Framework
-        if: matrix.lane == 'family'
-        run: |
-          "$OPL_BIN" packages link-framework --agent-root "$GITHUB_WORKSPACE" --json
 
       - name: Run advisory lane
         run: scripts/verify.sh ${{ matrix.lane }}

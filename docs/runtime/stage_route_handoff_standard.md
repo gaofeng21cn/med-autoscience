@@ -41,4 +41,4 @@ Handoff 是 body-free refs 与 evidence 的交接，不是 MAS 私有 queue 或 
 
 ## 验证
 
-运行 `scripts/verify.sh fast`、`scripts/verify.sh meta`，并在冻结 Framework 读取单仓 interfaces/conformance/default-callers/residue/source-closure。结构绿不替代真实 StageRun、Review receipt、owner result 或 paper artifact evidence。
+运行 `scripts/verify.sh full`，并在冻结 Framework 读取单仓 interfaces/conformance/default-callers/residue/source-closure。结构绿不替代真实 StageRun、Review receipt、owner result 或 paper artifact evidence。

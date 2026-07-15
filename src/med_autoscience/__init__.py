@@ -1,3 +1,8 @@
-__all__ = ["__version__"]
+from importlib.metadata import PackageNotFoundError, version
 
-__version__ = "0.2.7"
+try:
+    __version__ = version("med-autoscience")
+except PackageNotFoundError:
+    __version__ = "0+unknown"
+
+__all__ = ["__version__"]

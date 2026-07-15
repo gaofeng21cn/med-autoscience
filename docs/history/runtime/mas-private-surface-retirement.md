@@ -3,7 +3,7 @@
 Owner: `MedAutoScience`
 Purpose: `mas_private_surface_retirement_tombstone`
 State: `history_tombstone_provenance`
-Machine boundary: 本文只为 `contracts/runtime/mas-runtime-surface-retirement-inventory.json` 提供人读 provenance anchor。当前机器真相仍归 inventory、源码、tests、contracts 和 fresh runtime/readback evidence；本文不得作为 runtime readiness、provider running、paper progress、owner receipt、typed blocker 或 publication-ready 证据。
+Machine boundary: 本文只提供人读 provenance anchor；逐项退役 inventory 已降回 Git history。当前机器真相归源码、tests、active contracts 和 fresh runtime/readback evidence；本文不得作为 runtime readiness、provider running、paper progress、owner receipt、typed blocker 或 publication-ready 证据。
 
 ## 读法
 
@@ -12,7 +12,7 @@ MAS 私有控制面退役现在采用两栏口径：
 - `repo-source retirement`: active callsites 已迁移或删除，旧 module / alias / wrapper / compat shim 已物理删除或降为合法最小 MAS adapter/projection，且 no-forbidden-authority guard、replacement parity、tombstone/provenance 和 focused/meta/default verification 通过后即可完成。
 - `live-runtime readiness`: OPL live readback、provider admission/running proof、DM002/DM003 live paper-line outcome、production soak 和 long-running operator evidence。它不再阻塞 repo-source 删除，但仍是 runtime ready / production ready / paper progress 声明的前置。
 
-以下条目是 tombstone，不是兼容入口。旧名称只能出现在 history、inventory、retired cleanup detector、negative tests 或 explicit provenance 语境；不得恢复 public CLI alias、workspace wrapper、fallback reader、compat shim 或 MAS-local queue/attempt/outbox/event/StageRun authority。
+以下条目是 tombstone，不是兼容入口。旧名称只能出现在 history、retired cleanup detector、negative tests 或 explicit provenance 语境；不得恢复 public CLI alias、workspace wrapper、fallback reader、compat shim 或 MAS-local queue/attempt/outbox/event/StageRun authority。
 
 ## live_runtime_evidence_intake_pollution_guard
 

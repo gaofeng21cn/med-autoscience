@@ -3,6 +3,7 @@ from __future__ import annotations
 import json
 from pathlib import Path
 import re
+import subprocess
 
 import pytest
 
@@ -34,19 +35,23 @@ def _load(relative_path: str) -> dict[str, object]:
 
 
 def test_python_source_morphology_is_exact_and_private_surfaces_are_absent() -> None:
-    source_root = ROOT / "src/med_autoscience"
+    tracked = subprocess.run(
+        ["git", "ls-files", "-z", "--", "src/med_autoscience"],
+        cwd=ROOT,
+        text=True,
+        capture_output=True,
+        check=True,
+    )
     relative_files = {
-        path.relative_to(ROOT).as_posix()
-        for path in source_root.rglob("*")
-        if path.is_file()
+        path
+        for path in tracked.stdout.split("\0")
+        if path and (ROOT / path).exists()
     }
     assert relative_files == {
         "src/med_autoscience/__init__.py",
-        "src/med_autoscience/authority_handlers/__init__.py",
         "src/med_autoscience/authority_handlers/paper_mission.py",
         "src/med_autoscience/authority_handlers/self_evolution_closeout.py",
         "src/med_autoscience/styles/__init__.py",
-        "src/med_autoscience/styles/american-chemical-society.csl",
         "src/med_autoscience/styles/american-medical-association.csl",
         "src/med_autoscience/styles/frontiers.csl",
     }

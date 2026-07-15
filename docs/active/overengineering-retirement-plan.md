@@ -16,7 +16,9 @@ next-action control plane 或相应兼容系统。
 - 能声明在 pack/action/schema 的能力不得新增 Python wrapper。
 - generic runtime/index/lifecycle/environment/provider/package/workbench需求直接路由 OPL。
 - 已删除 surface 不新增 compatibility shim、alias、facade、registry、rollup、currentness 或聚合测试。
-- line budget 只作独立 advisory，不依赖 MAS runtime/controller source。
+- 结构质量统一消费 Sentrux 与 `opl quality details`；MAS 不维护第二份 line-budget 或测试 lane manifest。
+- repo hygiene 只检查 tracked path 与 retired active surface，不扫描或删除 ignored 本地环境。
+- medical-display 通用 catalog 唯一 owner 是 ScholarSkills；MAS 只保留 capability refs、Stage quality policy 与 artifact authority。
 - history/provenance 不得重新进入 active import、entrypoint、contract caller 或 generated surface target。
 
 Live Evidence 继续独立为 `partial_deferred`；它不改变上述结构关闭结论。
