@@ -26,7 +26,7 @@ def test_package_plugin_and_python_versions_are_one_semver() -> None:
     )
 
     assert package["version"] == pyproject["project"]["version"] == plugin["version"]
-    assert package["version"] == "0.2.6"
+    assert package["version"] == "0.2.7"
     assert package["distribution_payload"]["immutable_tag"] == package["version"]
     assert package["agent_id"] == package["package_id"] == "mas"
     assert package["codex_surface"]["plugin_id"] == "med-autoscience"
