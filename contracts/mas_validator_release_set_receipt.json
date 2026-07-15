@@ -1,0 +1,46 @@
+{
+  "surface_kind": "mas_exact_byte_validator_release_set_receipt",
+  "schema_version": 1,
+  "release_set_id": "mas-validator-0.2.9",
+  "package_id": "mas",
+  "package_version": "0.2.9",
+  "source_ref": "refs/tags/v0.2.9",
+  "supported_scope": {
+    "kind": "exact_byte_domain_validator",
+    "generation_manifest_validation": true,
+    "candidate_admission_validation": true,
+    "paper_mission_validation": true,
+    "stage_scope_validation": true
+  },
+  "trust_boundary": {
+    "independent_trust_root": false,
+    "malicious_host_complete_self_consistent_forgery_resistance": false,
+    "self_consistent_hashes_authenticate_bytes_not_issuer": true,
+    "requires_managed_authority_attempt_provenance": true,
+    "requires_owner_ledger_provenance": true,
+    "provenance_gate_owner": "one-person-lab",
+    "missing_provenance_effect": "fail_closed"
+  },
+  "clearance": {
+    "package_validator_ready_after_release_readback": true,
+    "authoring_clearance": false,
+    "launch_clearance": false,
+    "publication_clearance": false,
+    "submission_clearance": false
+  },
+  "verification": {
+    "repo_gate_ref": "scripts/verify.sh full",
+    "focused_test_refs": [
+      "tests/test_candidate_admission_authority_handler.py",
+      "tests/test_paper_mission_authority_handler_v2.py"
+    ],
+    "schema_refs": [
+      "contracts/schemas/v2/mas-evidence-generation-manifest.schema.json",
+      "contracts/schemas/v2/mas-candidate-admission-authority.input.schema.json",
+      "contracts/schemas/v2/mas-candidate-admission-authority.output.schema.json",
+      "contracts/schemas/v2/mas-paper-mission-authority.input.schema.json",
+      "contracts/schemas/v2/mas-paper-mission-authority.output.schema.json"
+    ],
+    "exact_commit_and_artifact_binding": "annotated_tag_and_final_remote_readback"
+  }
+}

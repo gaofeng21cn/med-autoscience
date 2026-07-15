@@ -1,0 +1,384 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://one-person-lab.local/med-autoscience/mas-evidence-generation-manifest.schema.json",
+  "title": "MAS evidence generation manifest",
+  "description": "Canonical generation members plus byte-bound MAS review receipts. Cross-field fingerprints, required roles, scope and receipt inventories are recomputed by the MAS handler.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "surface_kind",
+    "schema_version",
+    "generation_id",
+    "manifest_scope",
+    "generation_manifest_sha256",
+    "artifacts",
+    "independent_review_receipts"
+  ],
+  "properties": {
+    "surface_kind": {
+      "const": "mas_evidence_generation_manifest"
+    },
+    "schema_version": {
+      "const": 1
+    },
+    "generation_id": {
+      "$ref": "#/$defs/non_empty_text"
+    },
+    "manifest_scope": {
+      "enum": [
+        "analysis_generation",
+        "manuscript_generation",
+        "publication_generation"
+      ]
+    },
+    "generation_manifest_sha256": {
+      "$ref": "#/$defs/sha256"
+    },
+    "artifacts": {
+      "type": "array",
+      "minItems": 5,
+      "uniqueItems": true,
+      "items": {
+        "$ref": "#/$defs/generation_artifact"
+      }
+    },
+    "independent_review_receipts": {
+      "type": "array",
+      "uniqueItems": true,
+      "items": {
+        "$ref": "#/$defs/review_receipt_wrapper"
+      }
+    }
+  },
+  "$defs": {
+    "non_empty_text": {
+      "type": "string",
+      "minLength": 1,
+      "pattern": ".*\\S.*"
+    },
+    "sha256": {
+      "type": "string",
+      "pattern": "^(?:sha256:)?[0-9a-fA-F]{64}$"
+    },
+    "artifact_role": {
+      "enum": [
+        "source_input_digest",
+        "data_release",
+        "denominator_definitions",
+        "analysis_script",
+        "analysis_output",
+        "candidate_admission_receipt",
+        "canonical_manuscript",
+        "claim_evidence_map",
+        "citation_ledger",
+        "numeric_trace",
+        "reference_library",
+        "table_catalog",
+        "table_file",
+        "figure_catalog",
+        "figure_file",
+        "render_environment_and_font_manifest",
+        "docx",
+        "pdf",
+        "supplementary_output",
+        "final_zip_allowlist",
+        "final_zip_member",
+        "candidate_artifact",
+        "evidence_record"
+      ]
+    },
+    "generation_artifact": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "role",
+        "ref",
+        "size_bytes",
+        "sha256"
+      ],
+      "properties": {
+        "role": {
+          "$ref": "#/$defs/artifact_role"
+        },
+        "ref": {
+          "$ref": "#/$defs/non_empty_text"
+        },
+        "size_bytes": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "sha256": {
+          "$ref": "#/$defs/sha256"
+        }
+      }
+    },
+    "typed_ref": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "kind",
+        "ref",
+        "sha256"
+      ],
+      "properties": {
+        "kind": {
+          "enum": [
+            "opl_stage_attempt",
+            "mas_quality_rubric",
+            "mas_review_defect"
+          ]
+        },
+        "ref": {
+          "$ref": "#/$defs/non_empty_text"
+        },
+        "sha256": {
+          "$ref": "#/$defs/sha256"
+        }
+      }
+    },
+    "exact_ref": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "kind",
+        "ref",
+        "size_bytes",
+        "sha256"
+      ],
+      "properties": {
+        "kind": {
+          "enum": [
+            "opl_action_output",
+            "mas_candidate_admission_receipt",
+            "mas_reviewer_receipt"
+          ]
+        },
+        "ref": {
+          "$ref": "#/$defs/non_empty_text"
+        },
+        "size_bytes": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "sha256": {
+          "$ref": "#/$defs/sha256"
+        }
+      }
+    },
+    "review_receipt_wrapper": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "receipt_ref",
+        "receipt"
+      ],
+      "properties": {
+        "receipt_ref": {
+          "allOf": [
+            {
+              "$ref": "#/$defs/exact_ref"
+            },
+            {
+              "properties": {
+                "kind": {
+                  "const": "mas_reviewer_receipt"
+                },
+                "ref": {
+                  "type": "string",
+                  "pattern": "^mas-independent-review-receipt:(medical|statistical|reference|display|publication|exact_byte_package):[0-9a-f]{64}$"
+                }
+              },
+              "type": "object"
+            }
+          ]
+        },
+        "receipt": {
+          "$ref": "#/$defs/review_receipt"
+        }
+      }
+    },
+    "review_receipt": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "receipt_kind",
+        "schema_version",
+        "issuer",
+        "authority_role",
+        "authority_epoch",
+        "review_lane",
+        "verdict",
+        "review_request_ref",
+        "producer_output_ref",
+        "reviewer_attempt_ref",
+        "rubric_ref",
+        "generation_id",
+        "generation_manifest_sha256",
+        "reviewed_members",
+        "accepted_candidate_receipt_refs",
+        "defect_refs",
+        "quality_debt_codes"
+      ],
+      "properties": {
+        "receipt_kind": {
+          "const": "mas_independent_review_receipt"
+        },
+        "schema_version": {
+          "const": 1
+        },
+        "issuer": {
+          "const": "MedAutoScience"
+        },
+        "authority_role": {
+          "enum": [
+            "mas_independent_medical_reviewer",
+            "mas_independent_statistical_reviewer",
+            "mas_independent_reference_reviewer",
+            "mas_independent_display_reviewer",
+            "mas_independent_publication_reviewer",
+            "mas_independent_exact_byte_package_reviewer"
+          ]
+        },
+        "authority_epoch": {
+          "$ref": "#/$defs/non_empty_text"
+        },
+        "review_lane": {
+          "enum": [
+            "medical",
+            "statistical",
+            "reference",
+            "display",
+            "publication",
+            "exact_byte_package"
+          ]
+        },
+        "verdict": {
+          "enum": [
+            "passed",
+            "revision_required",
+            "rejected"
+          ]
+        },
+        "review_request_ref": {
+          "allOf": [
+            {
+              "$ref": "#/$defs/exact_ref"
+            },
+            {
+              "properties": {
+                "kind": {
+                  "const": "opl_action_output"
+                }
+              },
+              "type": "object"
+            }
+          ]
+        },
+        "producer_output_ref": {
+          "allOf": [
+            {
+              "$ref": "#/$defs/exact_ref"
+            },
+            {
+              "properties": {
+                "kind": {
+                  "const": "opl_action_output"
+                }
+              },
+              "type": "object"
+            }
+          ]
+        },
+        "reviewer_attempt_ref": {
+          "allOf": [
+            {
+              "$ref": "#/$defs/typed_ref"
+            },
+            {
+              "properties": {
+                "kind": {
+                  "const": "opl_stage_attempt"
+                }
+              },
+              "type": "object"
+            }
+          ]
+        },
+        "rubric_ref": {
+          "allOf": [
+            {
+              "$ref": "#/$defs/typed_ref"
+            },
+            {
+              "properties": {
+                "kind": {
+                  "const": "mas_quality_rubric"
+                }
+              },
+              "type": "object"
+            }
+          ]
+        },
+        "generation_id": {
+          "$ref": "#/$defs/non_empty_text"
+        },
+        "generation_manifest_sha256": {
+          "$ref": "#/$defs/sha256"
+        },
+        "reviewed_members": {
+          "type": "array",
+          "minItems": 5,
+          "uniqueItems": true,
+          "items": {
+            "$ref": "#/$defs/generation_artifact"
+          }
+        },
+        "accepted_candidate_receipt_refs": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": {
+            "allOf": [
+              {
+                "$ref": "#/$defs/exact_ref"
+              },
+              {
+                "properties": {
+                  "kind": {
+                    "const": "mas_candidate_admission_receipt"
+                  }
+                },
+                "type": "object"
+              }
+            ]
+          }
+        },
+        "defect_refs": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": {
+            "allOf": [
+              {
+                "$ref": "#/$defs/typed_ref"
+              },
+              {
+                "properties": {
+                  "kind": {
+                    "const": "mas_review_defect"
+                  }
+                },
+                "type": "object"
+              }
+            ]
+          }
+        },
+        "quality_debt_codes": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": {
+            "$ref": "#/$defs/non_empty_text"
+          }
+        }
+      }
+    }
+  }
+}

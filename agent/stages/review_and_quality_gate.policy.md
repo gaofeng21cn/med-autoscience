@@ -12,6 +12,14 @@ defect-owner matrix and routes to the earliest canonical Stage that can close th
 root cause. The target Stage creates a new generation and passes fresh independent
 Review before this Meta Review runs again.
 
+Every review receipt names MedAutoScience, the lane-specific authority role and
+verdict, and binds the current authority epoch, exact review request, producer
+output, normalized generation-manifest fingerprint, accepted candidate receipts,
+and complete reviewed role/ref/size/hash inventory. Any source, manuscript,
+ledger, catalog, table, figure, render, package, request, or receipt drift is
+stale; review never carries forward across changed canonical bytes. Only exact
+lane receipt refs named by the current MAS review-currentness receipt count.
+
 Quality and ready claims fail closed when the independent record or current refs
 are missing. Stage transition does not fail closed for an ordinary repair gap: a
 consumable independent-review packet may close as

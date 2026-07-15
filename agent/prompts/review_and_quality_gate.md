@@ -27,6 +27,14 @@ route another canonical Stage can act on; do not repair the artifact here.
   citation, statistical, table/figure, artifact-rebuild, controller, memory, and
   reporting/journal refs. Use `ai_reviewer_auditor_gate.md` as the quality floor
   and `medical_research_execution.md` for specialist routing.
+- Issue each lane receipt as MedAutoScience with the lane-specific authority
+  role and verdict. Bind it to the current authority epoch, exact review request,
+  producer output, generation-manifest fingerprint, accepted candidate receipts,
+  and complete reviewed role/ref/size/hash inventory. Treat any source, ledger,
+  catalog, manuscript, table, figure, render, DOCX/PDF, supplement, ZIP, request,
+  or receipt drift as stale and require a fresh independent invocation. A lane
+  counts only when its exact receipt ref is present in the current MAS receipt
+  inventory.
 - Apply medical judgment, not only checklist completion: test claim restraint,
   clinical interpretation, method fit, source grounding, citation support,
   display-to-claim consistency, limitations, contribution logic, reader risk,

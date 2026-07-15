@@ -2,7 +2,7 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://one-person-lab.local/med-autoscience/mas-paper-mission-authority.input.schema.json",
   "title": "MAS paper mission authority request",
-  "description": "Exact typed refs and MAS medical records injected by the OPL v2 host. Paths, profiles, commands, queues, sessions, runtime ledgers and artifact bodies are intentionally absent.",
+  "description": "Exact generation, accepted candidate receipts and current independent review receipts required for MAS paper-mission authority.",
   "type": "object",
   "additionalProperties": false,
   "required": [
@@ -11,7 +11,10 @@
     "host_context",
     "mission",
     "medical_evidence",
-    "independent_review",
+    "generation_manifest",
+    "generation_manifest_ref",
+    "candidate_admissions",
+    "review_authority",
     "repair_state",
     "hard_gate"
   ],
@@ -20,387 +23,57 @@
       "const": "mas_paper_mission_authority_request"
     },
     "schema_version": {
-      "const": 1
+      "const": 2
     },
     "host_context": {
-      "type": "object",
-      "additionalProperties": false,
-      "required": [
-        "action_id",
-        "run_ref",
-        "producer_attempt_ref",
-        "output_ref",
-        "output_state"
-      ],
-      "properties": {
-        "action_id": {
-          "const": "paper_mission"
-        },
-        "run_ref": {
-          "allOf": [
-            {
-              "$ref": "#/$defs/typed_ref"
-            },
-            {
-              "properties": {
-                "kind": {
-                  "const": "opl_stage_run"
-                }
-              }
-            }
-          ]
-        },
-        "producer_attempt_ref": {
-          "allOf": [
-            {
-              "$ref": "#/$defs/typed_ref"
-            },
-            {
-              "properties": {
-                "kind": {
-                  "const": "opl_stage_attempt"
-                }
-              }
-            }
-          ]
-        },
-        "output_ref": {
-          "allOf": [
-            {
-              "$ref": "#/$defs/typed_ref"
-            },
-            {
-              "properties": {
-                "kind": {
-                  "const": "opl_action_output"
-                }
-              }
-            }
-          ]
-        },
-        "output_state": {
-          "enum": [
-            "consumable",
-            "no_output",
-            "damaged",
-            "failed"
-          ]
-        }
-      }
+      "$ref": "#/$defs/host_context"
     },
     "mission": {
-      "type": "object",
-      "additionalProperties": false,
-      "required": [
-        "program_id",
-        "study_id",
-        "mission_id",
-        "stage_id",
-        "stage_goal_ref"
-      ],
-      "properties": {
-        "program_id": {
-          "$ref": "#/$defs/non_empty_text"
-        },
-        "study_id": {
-          "$ref": "#/$defs/non_empty_text"
-        },
-        "mission_id": {
-          "$ref": "#/$defs/non_empty_text"
-        },
-        "stage_id": {
-          "$ref": "#/$defs/non_empty_text"
-        },
-        "stage_goal_ref": {
-          "allOf": [
-            {
-              "$ref": "#/$defs/typed_ref"
-            },
-            {
-              "properties": {
-                "kind": {
-                  "const": "mas_stage_goal"
-                }
-              }
-            }
-          ]
-        }
-      }
+      "$ref": "#/$defs/mission_identity"
     },
     "medical_evidence": {
-      "type": "object",
-      "additionalProperties": false,
-      "required": [
-        "source_readiness_status",
-        "source_readiness_receipt_ref",
-        "claim_evidence_status",
-        "claim_boundary_ref",
-        "candidate_artifact_refs",
-        "evidence_refs",
-        "negative_result_refs",
-        "failed_path_refs",
-        "artifact_lineage_refs",
-        "reproducibility_refs"
-      ],
-      "properties": {
-        "source_readiness_status": {
-          "enum": [
-            "ready",
-            "not_ready",
-            "unknown"
-          ]
-        },
-        "source_readiness_receipt_ref": {
-          "anyOf": [
-            {
-              "type": "null"
-            },
-            {
-              "allOf": [
-                {
-                  "$ref": "#/$defs/typed_ref"
-                },
-                {
-                  "properties": {
-                    "kind": {
-                      "const": "mas_source_readiness_receipt"
-                    }
-                  }
-                }
-              ]
-            }
-          ]
-        },
-        "claim_evidence_status": {
-          "enum": [
-            "aligned",
-            "revision_required",
-            "unsafe",
-            "unknown"
-          ]
-        },
-        "claim_boundary_ref": {
-          "allOf": [
-            {
-              "$ref": "#/$defs/typed_ref"
-            },
-            {
-              "properties": {
-                "kind": {
-                  "const": "mas_claim_boundary"
-                }
-              }
-            }
-          ]
-        },
-        "candidate_artifact_refs": {
-          "$ref": "#/$defs/mas_artifact_refs"
-        },
-        "evidence_refs": {
-          "$ref": "#/$defs/mas_evidence_refs"
-        },
-        "negative_result_refs": {
-          "$ref": "#/$defs/mas_negative_result_refs"
-        },
-        "failed_path_refs": {
-          "$ref": "#/$defs/mas_failed_path_refs"
-        },
-        "artifact_lineage_refs": {
-          "$ref": "#/$defs/mas_artifact_lineage_refs"
-        },
-        "reproducibility_refs": {
-          "$ref": "#/$defs/mas_reproducibility_refs"
-        }
-      }
+      "$ref": "#/$defs/medical_evidence"
     },
-    "independent_review": {
-      "type": "object",
-      "additionalProperties": false,
-      "required": [
-        "status",
-        "reviewer_attempt_ref",
-        "reviewer_receipt_ref",
-        "rubric_ref",
-        "reviewed_output_sha256",
-        "defect_refs",
-        "quality_debt_codes"
-      ],
-      "properties": {
-        "status": {
-          "enum": [
-            "passed",
-            "revision_required",
-            "rejected",
-            "not_run",
-            "unavailable"
-          ]
-        },
-        "reviewer_attempt_ref": {
-          "$ref": "#/$defs/nullable_opl_stage_attempt_ref"
-        },
-        "reviewer_receipt_ref": {
-          "$ref": "#/$defs/nullable_mas_reviewer_receipt_ref"
-        },
-        "rubric_ref": {
-          "$ref": "#/$defs/nullable_mas_quality_rubric_ref"
-        },
-        "reviewed_output_sha256": {
-          "anyOf": [
-            {
-              "type": "null"
-            },
-            {
-              "$ref": "#/$defs/sha256"
-            }
-          ]
-        },
-        "defect_refs": {
-          "$ref": "#/$defs/mas_review_defect_refs"
-        },
-        "quality_debt_codes": {
-          "$ref": "#/$defs/unique_text_array"
-        }
-      }
+    "generation_manifest": {
+      "$ref": "mas-evidence-generation-manifest.schema.json"
     },
-    "repair_state": {
-      "type": "object",
-      "additionalProperties": false,
-      "required": [
-        "status",
-        "attempts_used",
-        "max_attempts",
-        "repair_attempt_refs",
-        "latest_repair_output_ref"
-      ],
-      "properties": {
-        "status": {
-          "enum": [
-            "not_required",
-            "pending",
-            "completed",
-            "exhausted",
-            "failed"
-          ]
-        },
-        "attempts_used": {
-          "type": "integer",
-          "minimum": 0
-        },
-        "max_attempts": {
-          "type": "integer",
-          "minimum": 0
-        },
-        "repair_attempt_refs": {
-          "type": "array",
-          "uniqueItems": true,
-          "items": {
-            "allOf": [
-              {
-                "$ref": "#/$defs/typed_ref"
-              },
-              {
-                "properties": {
-                  "kind": {
-                    "const": "opl_stage_attempt"
-                  }
-                }
-              }
-            ]
-          }
-        },
-        "latest_repair_output_ref": {
-          "$ref": "#/$defs/nullable_opl_action_output_ref"
-        }
-      }
-    },
-    "hard_gate": {
-      "type": "object",
-      "additionalProperties": false,
-      "required": [
-        "kind",
-        "reason_code",
-        "evidence_refs",
-        "next_owner",
-        "resume_condition"
-      ],
-      "properties": {
-        "kind": {
-          "enum": [
-            "none",
-            "human_decision",
-            "medical_safety",
-            "source_identity",
-            "source_currentness",
-            "domain_authority",
-            "credential",
-            "irreversible_action"
-          ]
-        },
-        "reason_code": {
-          "$ref": "#/$defs/nullable_non_empty_text"
-        },
-        "evidence_refs": {
-          "$ref": "#/$defs/mas_gate_evidence_refs"
-        },
-        "next_owner": {
-          "$ref": "#/$defs/nullable_non_empty_text"
-        },
-        "resume_condition": {
-          "$ref": "#/$defs/nullable_non_empty_text"
-        }
-      },
+    "generation_manifest_ref": {
       "allOf": [
         {
-          "if": {
-            "properties": {
-              "kind": {
-                "const": "none"
-              }
-            },
-            "required": [
-              "kind"
-            ]
-          },
-          "then": {
-            "properties": {
-              "reason_code": {
-                "type": "null"
-              },
-              "evidence_refs": {
-                "maxItems": 0
-              },
-              "next_owner": {
-                "type": "null"
-              },
-              "resume_condition": {
-                "type": "null"
-              }
+          "$ref": "#/$defs/exact_ref"
+        },
+        {
+          "properties": {
+            "kind": {
+              "const": "mas_generation_manifest"
             }
           },
-          "else": {
-            "properties": {
-              "reason_code": {
-                "$ref": "#/$defs/non_empty_text"
-              },
-              "evidence_refs": {
-                "minItems": 1
-              },
-              "next_owner": {
-                "$ref": "#/$defs/non_empty_text"
-              },
-              "resume_condition": {
-                "$ref": "#/$defs/non_empty_text"
-              }
-            }
-          }
+          "type": "object"
         }
       ]
+    },
+    "candidate_admissions": {
+      "type": "array",
+      "uniqueItems": true,
+      "items": {
+        "$ref": "#/$defs/candidate_admission"
+      }
+    },
+    "review_authority": {
+      "$ref": "#/$defs/review_authority"
+    },
+    "repair_state": {
+      "$ref": "#/$defs/repair_state"
+    },
+    "hard_gate": {
+      "$ref": "#/$defs/hard_gate"
     }
   },
   "$defs": {
     "non_empty_text": {
       "type": "string",
-      "minLength": 1
+      "minLength": 1,
+      "pattern": ".*\\S.*"
     },
     "nullable_non_empty_text": {
       "anyOf": [
@@ -439,8 +112,6 @@
             "mas_reproducibility",
             "mas_source_readiness_receipt",
             "mas_claim_boundary",
-            "mas_reviewer_receipt",
-            "mas_quality_rubric",
             "mas_review_defect",
             "mas_gate_evidence"
           ]
@@ -453,19 +124,67 @@
         }
       }
     },
-    "unique_text_array": {
-      "type": "array",
-      "uniqueItems": true,
-      "items": {
-        "$ref": "#/$defs/non_empty_text"
+    "exact_ref": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "kind",
+        "ref",
+        "size_bytes",
+        "sha256"
+      ],
+      "properties": {
+        "kind": {
+          "enum": [
+            "opl_action_output",
+            "mas_candidate_admission_receipt",
+            "mas_generation_manifest",
+            "mas_review_currentness_receipt",
+            "mas_reviewer_receipt"
+          ]
+        },
+        "ref": {
+          "$ref": "#/$defs/non_empty_text"
+        },
+        "size_bytes": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "sha256": {
+          "$ref": "#/$defs/sha256"
+        }
       }
     },
-    "nullable_opl_stage_attempt_ref": {
-      "anyOf": [
-        {
-          "type": "null"
+    "host_context": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "action_id",
+        "run_ref",
+        "producer_attempt_ref",
+        "output_ref",
+        "output_state"
+      ],
+      "properties": {
+        "action_id": {
+          "const": "paper_mission"
         },
-        {
+        "run_ref": {
+          "allOf": [
+            {
+              "$ref": "#/$defs/typed_ref"
+            },
+            {
+              "properties": {
+                "kind": {
+                  "const": "opl_stage_run"
+                }
+              },
+              "type": "object"
+            }
+          ]
+        },
+        "producer_attempt_ref": {
           "allOf": [
             {
               "$ref": "#/$defs/typed_ref"
@@ -475,39 +194,67 @@
                 "kind": {
                   "const": "opl_stage_attempt"
                 }
-              }
+              },
+              "type": "object"
             }
           ]
-        }
-      ]
-    },
-    "nullable_opl_action_output_ref": {
-      "anyOf": [
-        {
-          "type": "null"
         },
-        {
+        "output_ref": {
           "allOf": [
             {
-              "$ref": "#/$defs/typed_ref"
+              "$ref": "#/$defs/exact_ref"
             },
             {
               "properties": {
                 "kind": {
                   "const": "opl_action_output"
                 }
-              }
+              },
+              "type": "object"
             }
           ]
-        }
-      ]
-    },
-    "nullable_mas_reviewer_receipt_ref": {
-      "anyOf": [
-        {
-          "type": "null"
         },
-        {
+        "output_state": {
+          "enum": [
+            "consumable",
+            "no_output",
+            "damaged",
+            "failed"
+          ]
+        }
+      }
+    },
+    "mission_identity": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "program_id",
+        "study_id",
+        "mission_id",
+        "stage_id",
+        "stage_goal_ref"
+      ],
+      "properties": {
+        "program_id": {
+          "$ref": "#/$defs/non_empty_text"
+        },
+        "study_id": {
+          "$ref": "#/$defs/non_empty_text"
+        },
+        "mission_id": {
+          "$ref": "#/$defs/non_empty_text"
+        },
+        "stage_id": {
+          "enum": [
+            "direction_and_route_selection",
+            "baseline_and_evidence_setup",
+            "bounded_analysis_campaign",
+            "manuscript_authoring",
+            "review_and_quality_gate",
+            "finalize_and_publication_handoff"
+          ]
+        },
+        "stage_goal_ref": {
           "allOf": [
             {
               "$ref": "#/$defs/typed_ref"
@@ -515,201 +262,293 @@
             {
               "properties": {
                 "kind": {
-                  "const": "mas_reviewer_receipt"
+                  "const": "mas_stage_goal"
                 }
-              }
+              },
+              "type": "object"
             }
           ]
         }
-      ]
+      }
     },
-    "nullable_mas_quality_rubric_ref": {
-      "anyOf": [
-        {
-          "type": "null"
+    "medical_evidence": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "source_readiness_status",
+        "source_readiness_receipt_ref",
+        "claim_evidence_status",
+        "claim_boundary_ref",
+        "candidate_artifact_refs",
+        "evidence_refs",
+        "negative_result_refs",
+        "failed_path_refs",
+        "artifact_lineage_refs",
+        "reproducibility_refs"
+      ],
+      "properties": {
+        "source_readiness_status": {
+          "enum": [
+            "ready",
+            "not_ready",
+            "unknown"
+          ]
         },
-        {
-          "allOf": [
+        "source_readiness_receipt_ref": {
+          "anyOf": [
+            {
+              "type": "null"
+            },
             {
               "$ref": "#/$defs/typed_ref"
+            }
+          ]
+        },
+        "claim_evidence_status": {
+          "enum": [
+            "aligned",
+            "revision_required",
+            "unsafe",
+            "unknown"
+          ]
+        },
+        "claim_boundary_ref": {
+          "$ref": "#/$defs/typed_ref"
+        },
+        "candidate_artifact_refs": {
+          "$ref": "#/$defs/typed_ref_array"
+        },
+        "evidence_refs": {
+          "$ref": "#/$defs/typed_ref_array"
+        },
+        "negative_result_refs": {
+          "$ref": "#/$defs/typed_ref_array"
+        },
+        "failed_path_refs": {
+          "$ref": "#/$defs/typed_ref_array"
+        },
+        "artifact_lineage_refs": {
+          "$ref": "#/$defs/typed_ref_array"
+        },
+        "reproducibility_refs": {
+          "$ref": "#/$defs/typed_ref_array"
+        }
+      }
+    },
+    "typed_ref_array": {
+      "type": "array",
+      "uniqueItems": true,
+      "items": {
+        "$ref": "#/$defs/typed_ref"
+      }
+    },
+    "exact_ref_array": {
+      "type": "array",
+      "uniqueItems": true,
+      "items": {
+        "$ref": "#/$defs/exact_ref"
+      }
+    },
+    "candidate_admission": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "receipt_ref",
+        "receipt"
+      ],
+      "properties": {
+        "receipt_ref": {
+          "allOf": [
+            {
+              "$ref": "#/$defs/exact_ref"
             },
             {
               "properties": {
                 "kind": {
-                  "const": "mas_quality_rubric"
+                  "const": "mas_candidate_admission_receipt"
                 }
-              }
+              },
+              "type": "object"
+            }
+          ]
+        },
+        "receipt": {
+          "$ref": "mas-candidate-admission-authority.output.schema.json#/$defs/accepted_receipt"
+        }
+      }
+    },
+    "review_authority": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "review_request_ref",
+        "currentness_receipt_ref",
+        "currentness_receipt"
+      ],
+      "properties": {
+        "review_request_ref": {
+          "$ref": "#/$defs/exact_ref"
+        },
+        "currentness_receipt_ref": {
+          "$ref": "#/$defs/exact_ref"
+        },
+        "currentness_receipt": {
+          "$ref": "#/$defs/review_currentness_receipt"
+        }
+      }
+    },
+    "review_currentness_receipt": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "receipt_kind",
+        "schema_version",
+        "owner",
+        "authority_role",
+        "authority_epoch",
+        "current_generation_id",
+        "current_generation_manifest_ref",
+        "current_review_request_ref",
+        "current_candidate_admission_receipt_refs",
+        "current_review_receipt_refs",
+        "superseded_generation_ids",
+        "superseded_review_request_refs",
+        "receipt_id",
+        "receipt_size_bytes",
+        "receipt_fingerprint"
+      ],
+      "properties": {
+        "receipt_kind": {
+          "const": "mas_review_currentness_receipt"
+        },
+        "schema_version": {
+          "const": 1
+        },
+        "owner": {
+          "const": "MedAutoScience"
+        },
+        "authority_role": {
+          "const": "review_currentness_owner"
+        },
+        "authority_epoch": {
+          "$ref": "#/$defs/non_empty_text"
+        },
+        "current_generation_id": {
+          "$ref": "#/$defs/non_empty_text"
+        },
+        "current_generation_manifest_ref": {
+          "$ref": "#/$defs/exact_ref"
+        },
+        "current_review_request_ref": {
+          "$ref": "#/$defs/exact_ref"
+        },
+        "current_candidate_admission_receipt_refs": {
+          "$ref": "#/$defs/exact_ref_array"
+        },
+        "current_review_receipt_refs": {
+          "$ref": "#/$defs/exact_ref_array"
+        },
+        "superseded_generation_ids": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": {
+            "$ref": "#/$defs/non_empty_text"
+          }
+        },
+        "superseded_review_request_refs": {
+          "$ref": "#/$defs/exact_ref_array"
+        },
+        "receipt_id": {
+          "type": "string",
+          "pattern": "^mas-review-currentness:[0-9a-f]{64}$"
+        },
+        "receipt_size_bytes": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "receipt_fingerprint": {
+          "$ref": "#/$defs/sha256"
+        }
+      }
+    },
+    "repair_state": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "status",
+        "attempts_used",
+        "max_attempts",
+        "repair_attempt_refs",
+        "latest_repair_output_ref"
+      ],
+      "properties": {
+        "status": {
+          "enum": [
+            "not_required",
+            "pending",
+            "completed",
+            "exhausted",
+            "failed"
+          ]
+        },
+        "attempts_used": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "max_attempts": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "repair_attempt_refs": {
+          "$ref": "#/$defs/typed_ref_array"
+        },
+        "latest_repair_output_ref": {
+          "anyOf": [
+            {
+              "type": "null"
+            },
+            {
+              "$ref": "#/$defs/typed_ref"
             }
           ]
         }
-      ]
-    },
-    "mas_artifact_refs": {
-      "$ref": "#/$defs/mas_artifact_ref_array"
-    },
-    "mas_artifact_ref_array": {
-      "type": "array",
-      "uniqueItems": true,
-      "items": {
-        "allOf": [
-          {
-            "$ref": "#/$defs/typed_ref"
-          },
-          {
-            "properties": {
-              "kind": {
-                "const": "mas_artifact"
-              }
-            }
-          }
-        ]
       }
     },
-    "mas_evidence_refs": {
-      "$ref": "#/$defs/mas_evidence_ref_array"
-    },
-    "mas_evidence_ref_array": {
-      "type": "array",
-      "uniqueItems": true,
-      "items": {
-        "allOf": [
-          {
-            "$ref": "#/$defs/typed_ref"
-          },
-          {
-            "properties": {
-              "kind": {
-                "const": "mas_evidence"
-              }
-            }
-          }
-        ]
-      }
-    },
-    "mas_negative_result_refs": {
-      "$ref": "#/$defs/mas_negative_result_ref_array"
-    },
-    "mas_negative_result_ref_array": {
-      "type": "array",
-      "uniqueItems": true,
-      "items": {
-        "allOf": [
-          {
-            "$ref": "#/$defs/typed_ref"
-          },
-          {
-            "properties": {
-              "kind": {
-                "const": "mas_negative_result"
-              }
-            }
-          }
-        ]
-      }
-    },
-    "mas_failed_path_refs": {
-      "$ref": "#/$defs/mas_failed_path_ref_array"
-    },
-    "mas_failed_path_ref_array": {
-      "type": "array",
-      "uniqueItems": true,
-      "items": {
-        "allOf": [
-          {
-            "$ref": "#/$defs/typed_ref"
-          },
-          {
-            "properties": {
-              "kind": {
-                "const": "mas_failed_path"
-              }
-            }
-          }
-        ]
-      }
-    },
-    "mas_artifact_lineage_refs": {
-      "$ref": "#/$defs/mas_artifact_lineage_ref_array"
-    },
-    "mas_artifact_lineage_ref_array": {
-      "type": "array",
-      "uniqueItems": true,
-      "items": {
-        "allOf": [
-          {
-            "$ref": "#/$defs/typed_ref"
-          },
-          {
-            "properties": {
-              "kind": {
-                "const": "mas_artifact_lineage"
-              }
-            }
-          }
-        ]
-      }
-    },
-    "mas_reproducibility_refs": {
-      "$ref": "#/$defs/mas_reproducibility_ref_array"
-    },
-    "mas_reproducibility_ref_array": {
-      "type": "array",
-      "uniqueItems": true,
-      "items": {
-        "allOf": [
-          {
-            "$ref": "#/$defs/typed_ref"
-          },
-          {
-            "properties": {
-              "kind": {
-                "const": "mas_reproducibility"
-              }
-            }
-          }
-        ]
-      }
-    },
-    "mas_review_defect_refs": {
-      "$ref": "#/$defs/mas_review_defect_ref_array"
-    },
-    "mas_review_defect_ref_array": {
-      "type": "array",
-      "uniqueItems": true,
-      "items": {
-        "allOf": [
-          {
-            "$ref": "#/$defs/typed_ref"
-          },
-          {
-            "properties": {
-              "kind": {
-                "const": "mas_review_defect"
-              }
-            }
-          }
-        ]
-      }
-    },
-    "mas_gate_evidence_refs": {
-      "$ref": "#/$defs/mas_gate_evidence_ref_array"
-    },
-    "mas_gate_evidence_ref_array": {
-      "type": "array",
-      "uniqueItems": true,
-      "items": {
-        "allOf": [
-          {
-            "$ref": "#/$defs/typed_ref"
-          },
-          {
-            "properties": {
-              "kind": {
-                "const": "mas_gate_evidence"
-              }
-            }
-          }
-        ]
+    "hard_gate": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "kind",
+        "reason_code",
+        "evidence_refs",
+        "next_owner",
+        "resume_condition"
+      ],
+      "properties": {
+        "kind": {
+          "enum": [
+            "none",
+            "human_decision",
+            "medical_safety",
+            "source_identity",
+            "source_currentness",
+            "domain_authority",
+            "credential",
+            "irreversible_action"
+          ]
+        },
+        "reason_code": {
+          "$ref": "#/$defs/nullable_non_empty_text"
+        },
+        "evidence_refs": {
+          "$ref": "#/$defs/typed_ref_array"
+        },
+        "next_owner": {
+          "$ref": "#/$defs/nullable_non_empty_text"
+        },
+        "resume_condition": {
+          "$ref": "#/$defs/nullable_non_empty_text"
+        }
       }
     }
   }

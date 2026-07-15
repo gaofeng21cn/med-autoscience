@@ -35,6 +35,10 @@ route output.
   citation repair inside this Handoff.
 - Produce only deterministic inspection packaging, manifests, hashes, and
   refs-only handoff receipts over those exact already-reviewed bytes.
+- Accept only a `publication_generation` manifest. It must contain exact DOCX,
+  PDF, supplementary output, ZIP allowlist, and ZIP member records, plus current
+  medical, statistical, reference, display, publication, and exact-byte-package
+  review receipts authorized by the same MAS review-currentness receipt.
 - When content, figure, table, analysis, citation, source, or current-package
   bytes need to change, route back to the earliest owning Stage. Any new bytes
   must complete that Stage's fresh Review and re-enter cross-Stage Meta Review
@@ -48,7 +52,8 @@ route output.
 
 This Stage never mutates canonical source, manuscript, figure, table, analysis,
 or `current_package` bytes and never rebuilds a changed publication artifact.
-It cannot inherit review from stale bytes. Generated bundles, upload readiness,
+It cannot downgrade to a manuscript-generation scope or inherit review from
+stale bytes. Generated bundles, upload readiness,
 specialist candidates, package freshness, provider completion, and tests cannot
 authorize publication, acceptance, or submission. An executor packet cannot
 write publication eval, controller decisions, owner receipts, blockers, human

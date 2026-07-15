@@ -35,6 +35,13 @@ policy; never claim a Review receipt from this conversation.
 - Mutate canonical source only through an authorized MAS path. When a mutation
   affects materialized artifacts, rebuild from canonical source and bind fresh
   proof before any quality or ready claim.
+- Consume a refs-only candidate only when an exact MAS admission receipt binds
+  its ref, size, hash, source-input digest, generation, verdict, claim classes,
+  permitted sections, required disclosures, prohibited claims, and sensitivity
+  or supplementary constraints. Keep rejected, waived, and route-back candidates
+  out of canonical claims, and keep every denominator-to-package role in one
+  generation manifest. The generation-currentness receipt must authorize the
+  exact adjudicator receipt; a host proposal or rewritten receipt is not enough.
 - Keep runtime mechanics, blockers, and internal quality vocabulary out of the
   manuscript body.
 

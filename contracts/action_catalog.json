@@ -451,9 +451,68 @@
       }
     },
     {
+      "action_id": "candidate_admission_authority_evaluate",
+      "title": "Candidate admission authority evaluation",
+      "summary": "Validate one exact current MAS adjudicator receipt and return a manifest-bound candidate admission result.",
+      "owner": "MedAutoScience",
+      "effect": "read_only",
+      "execution_binding": {
+        "kind": "handler_ref",
+        "handler_ref": "handler:mas.candidate-admission-authority-evaluate"
+      },
+      "input_schema_ref": "contracts/schemas/v2/mas-candidate-admission-authority.input.schema.json",
+      "output_schema_ref": "contracts/schemas/v2/mas-candidate-admission-authority.output.schema.json",
+      "required_fields": [
+        "surface_kind",
+        "schema_version",
+        "adjudicator_context",
+        "mission",
+        "generation_manifest",
+        "generation_manifest_ref",
+        "currentness_receipt",
+        "candidate",
+        "adjudicator_receipt",
+        "hard_gate"
+      ],
+      "optional_fields": [],
+      "workspace_locator_fields": [],
+      "human_gate_ids": [],
+      "supported_surfaces": {
+        "cli": null,
+        "mcp": null,
+        "skill": null,
+        "product_entry": null,
+        "openai": null,
+        "ai_sdk": null
+      },
+      "authority_boundary": {
+        "domain_truth_owner": "MedAutoScience",
+        "candidate_acceptance_owner": "MedAutoScience",
+        "handler_role": "validate_manifest_bound_mas_adjudicator_receipt_and_return_exact_authority_result",
+        "host_proposal_can_authorize_candidate": false,
+        "program_originates_medical_acceptance_verdict": false,
+        "performs_filesystem_io": false,
+        "performs_network_io": false,
+        "spawns_process_or_executor": false,
+        "owns_queue_session_dag_or_attempt_lifecycle": false,
+        "owns_runtime_ledger": false,
+        "persists_artifact_or_receipt": false,
+        "opl_can_write_domain_truth": false,
+        "opl_can_sign_owner_receipt": false,
+        "opl_can_create_typed_blocker": false,
+        "independent_trust_root": false,
+        "malicious_host_complete_self_consistent_forgery_resistance": false,
+        "requires_managed_authority_attempt_provenance": true,
+        "requires_owner_ledger_provenance": true,
+        "missing_provenance_effect": "fail_closed",
+        "authoring_or_launch_clearance": false,
+        "provider_completion_is_domain_completion": false
+      }
+    },
+    {
       "action_id": "paper_mission_authority_evaluate",
       "title": "Paper mission authority evaluation",
-      "summary": "Evaluate host-injected paper-mission refs and return a deterministic MAS authority result without transport or persistence.",
+      "summary": "Validate exact candidate, generation, currentness, and independent-review receipts before returning a MAS paper-mission result.",
       "owner": "MedAutoScience",
       "effect": "read_only",
       "execution_binding": {
@@ -468,7 +527,10 @@
         "host_context",
         "mission",
         "medical_evidence",
-        "independent_review",
+        "generation_manifest",
+        "generation_manifest_ref",
+        "candidate_admissions",
+        "review_authority",
         "repair_state",
         "hard_gate"
       ],
@@ -486,7 +548,7 @@
       "authority_boundary": {
         "domain_truth_owner": "MedAutoScience",
         "quality_verdict_owner": "MedAutoScience",
-        "handler_role": "pure_domain_authority_result",
+        "handler_role": "validate_exact_candidate_and_review_receipts_and_return_owner_result",
         "program_originates_medical_quality_verdict": false,
         "performs_filesystem_io": false,
         "performs_network_io": false,
@@ -497,13 +559,19 @@
         "opl_can_write_domain_truth": false,
         "opl_can_sign_owner_receipt": false,
         "opl_can_create_typed_blocker": false,
+        "independent_trust_root": false,
+        "malicious_host_complete_self_consistent_forgery_resistance": false,
+        "requires_managed_authority_attempt_provenance": true,
+        "requires_owner_ledger_provenance": true,
+        "missing_provenance_effect": "fail_closed",
+        "authoring_or_launch_clearance": false,
         "provider_completion_is_domain_completion": false
       }
     }
   ],
   "notes": [
     "The six public actions are canonical MAS stage actions hosted by OPL.",
-    "The paper-mission authority action is an internal read-only handler binding and is not exported as a user-facing generated surface.",
+    "The candidate-admission and paper-mission authority actions are internal read-only handler bindings and are not exported as user-facing generated surfaces.",
     "Legacy source_command metadata and repo-local CLI, MCP, product, status, workbench, queue, session, and lifecycle commands are not part of this catalog."
   ]
 }

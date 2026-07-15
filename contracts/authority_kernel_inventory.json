@@ -5,7 +5,7 @@
   "agent_id": "mas",
   "owner": "MedAutoScience",
   "counts": {
-    "retained_function_count": 2,
+    "retained_function_count": 3,
     "generic_runtime_function_count": 0,
     "private_control_plane_function_count": 0
   },
@@ -36,10 +36,36 @@
       "retirement_gate": "retire_only_if_another_MAS_owned_authority_surface_preserves_the_same_medical_judgment_and_owner_receipt_boundary"
     },
     {
+      "function_id": "mas.candidate_admission_authority",
+      "handler_id": "mas.candidate-admission-authority-evaluate",
+      "implementation_ref": "src/med_autoscience/authority_handlers/candidate_admission.py::evaluate_candidate_admission_authority",
+      "registry_ref": "contracts/domain_handler_registry.json#/handlers/1",
+      "active_caller": "opl_hosted_registry_binding",
+      "cannot_lift_to_opl_reason": "Validating the current independent medical adjudicator receipt and authorizing a bounded candidate claim scope is MAS domain judgment; OPL may verify and inject exact refs and persist the exact owner result only.",
+      "allowed_outputs": [
+        "accepted",
+        "rejected",
+        "route_back",
+        "waived",
+        "typed_blocker",
+        "human_gate",
+        "invalid_host_input"
+      ],
+      "forbidden_effects": [
+        "filesystem_io",
+        "network_io",
+        "process_spawn",
+        "runtime_or_session_management",
+        "package_or_environment_management",
+        "manuscript_or_artifact_body_mutation"
+      ],
+      "retirement_gate": "retire_only_if_another_MAS_owned_pre_authoring_surface_preserves_exact_candidate_disposition_and_claim_scope_authority"
+    },
+    {
       "function_id": "mas.agent_lab_self_evolution_closeout",
       "handler_id": "mas.agent-lab-self-evolution-closeout",
       "implementation_ref": "src/med_autoscience/authority_handlers/self_evolution_closeout.py::evaluate_agent_lab_self_evolution_closeout",
-      "registry_ref": "contracts/domain_handler_registry.json#/handlers/1",
+      "registry_ref": "contracts/domain_handler_registry.json#/handlers/2",
       "active_caller": "opl_work_order_target_owner_closeout_hook",
       "cannot_lift_to_opl_reason": "The callable signs the target-domain mechanism acceptance, waiver, or blocker; OPL may transport but cannot originate that owner answer.",
       "allowed_outputs": [

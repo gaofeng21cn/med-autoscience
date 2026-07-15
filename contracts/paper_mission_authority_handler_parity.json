@@ -18,7 +18,15 @@
   "parity_requirements": [
     "closed_registry_binding",
     "exact_hosted_ref_identity",
+    "single_generation_manifest_identity",
+    "accepted_candidate_receipt_identity",
+    "candidate_admission_currentness_and_supersession",
     "independent_reviewer_identity",
+    "independent_review_generation_invalidation",
+    "review_request_currentness_and_supersession",
+    "stage_minimum_generation_scope",
+    "status_discriminated_result_shape",
+    "catalog_and_receipt_currentness_fail_closed",
     "deterministic_zero_io_evaluation",
     "no_transport_or_lifecycle_authority",
     "no_stage_transition_materialization_authority"

@@ -26,7 +26,7 @@ def test_package_plugin_and_python_versions_are_one_semver() -> None:
     )
 
     assert package["version"] == pyproject["project"]["version"] == plugin["version"]
-    assert package["version"] == "0.2.8"
+    assert package["version"] == "0.2.9"
     assert package["distribution_payload"]["immutable_tag"] == package["version"]
     assert package["agent_id"] == package["package_id"] == "mas"
     assert package["codex_surface"]["plugin_id"] == "med-autoscience"
@@ -35,6 +35,66 @@ def test_package_plugin_and_python_versions_are_one_semver() -> None:
     prompt_text = json.dumps(plugin["interface"]["defaultPrompt"]).lower()
     assert "doctor" not in prompt_text
     assert "controller" not in prompt_text
+
+
+def test_validator_release_set_preserves_managed_provenance_gate() -> None:
+    package = json.loads(
+        (ROOT / "contracts/opl_agent_package_manifest.json").read_text(encoding="utf-8")
+    )
+    release = json.loads(
+        (ROOT / "contracts/mas_validator_release_set_receipt.json").read_text(
+            encoding="utf-8"
+        )
+    )
+    catalog = json.loads(
+        (ROOT / "contracts/action_catalog.json").read_text(encoding="utf-8")
+    )
+
+    assert release["package_version"] == package["version"] == "0.2.9"
+    assert package["release_set_receipt_ref"] == (
+        "contracts/mas_validator_release_set_receipt.json"
+    )
+    assert release["source_ref"] == "refs/tags/v0.2.9"
+    assert release["supported_scope"]["kind"] == "exact_byte_domain_validator"
+    assert release["trust_boundary"] == {
+        "independent_trust_root": False,
+        "malicious_host_complete_self_consistent_forgery_resistance": False,
+        "self_consistent_hashes_authenticate_bytes_not_issuer": True,
+        "requires_managed_authority_attempt_provenance": True,
+        "requires_owner_ledger_provenance": True,
+        "provenance_gate_owner": "one-person-lab",
+        "missing_provenance_effect": "fail_closed",
+    }
+    assert release["clearance"] == {
+        "package_validator_ready_after_release_readback": True,
+        "authoring_clearance": False,
+        "launch_clearance": False,
+        "publication_clearance": False,
+        "submission_clearance": False,
+    }
+
+    internal_actions = {
+        action["action_id"]: action
+        for action in catalog["actions"]
+        if action["action_id"]
+        in {
+            "candidate_admission_authority_evaluate",
+            "paper_mission_authority_evaluate",
+        }
+    }
+    assert len(internal_actions) == 2
+    for action in internal_actions.values():
+        boundary = action["authority_boundary"]
+        assert boundary["independent_trust_root"] is False
+        assert (
+            boundary["malicious_host_complete_self_consistent_forgery_resistance"]
+            is False
+        )
+        assert boundary["requires_managed_authority_attempt_provenance"] is True
+        assert boundary["requires_owner_ledger_provenance"] is True
+        assert boundary["missing_provenance_effect"] == "fail_closed"
+        assert boundary["authoring_or_launch_clearance"] is False
+
 
 def test_stage_route_contract_has_one_canonical_package_source() -> None:
     pyproject = tomllib.loads((ROOT / "pyproject.toml").read_text(encoding="utf-8"))

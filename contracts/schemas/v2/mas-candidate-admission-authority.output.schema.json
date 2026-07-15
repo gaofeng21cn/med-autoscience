@@ -1,0 +1,1038 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://one-person-lab.local/med-autoscience/mas-candidate-admission-authority.output.schema.json",
+  "title": "MAS candidate admission authority result",
+  "description": "Status-discriminated MAS candidate result with exact currentness, manifest, adjudicator, claim-scope, and receipt identity.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "surface_kind",
+    "schema_version",
+    "status",
+    "mission_identity",
+    "generation_context",
+    "candidate_ref",
+    "disposition_receipt",
+    "route_back",
+    "waiver",
+    "typed_blocker",
+    "human_gate",
+    "error",
+    "authority_boundary",
+    "decision_id",
+    "decision_fingerprint"
+  ],
+  "properties": {
+    "surface_kind": {
+      "const": "mas_candidate_admission_authority_result"
+    },
+    "schema_version": {
+      "const": 2
+    },
+    "status": {
+      "enum": [
+        "accepted",
+        "rejected",
+        "route_back",
+        "waived",
+        "typed_blocker",
+        "human_gate",
+        "invalid_host_input"
+      ]
+    },
+    "mission_identity": {
+      "anyOf": [
+        {
+          "type": "null"
+        },
+        {
+          "$ref": "#/$defs/mission_identity"
+        }
+      ]
+    },
+    "generation_context": {
+      "anyOf": [
+        {
+          "type": "null"
+        },
+        {
+          "$ref": "#/$defs/generation_context"
+        }
+      ]
+    },
+    "candidate_ref": {
+      "anyOf": [
+        {
+          "type": "null"
+        },
+        {
+          "$ref": "#/$defs/exact_ref"
+        }
+      ]
+    },
+    "disposition_receipt": {
+      "anyOf": [
+        {
+          "type": "null"
+        },
+        {
+          "$ref": "#/$defs/disposition_receipt"
+        }
+      ]
+    },
+    "route_back": {
+      "anyOf": [
+        {
+          "type": "null"
+        },
+        {
+          "$ref": "#/$defs/route_back"
+        }
+      ]
+    },
+    "waiver": {
+      "anyOf": [
+        {
+          "type": "null"
+        },
+        {
+          "$ref": "#/$defs/waiver_result"
+        }
+      ]
+    },
+    "typed_blocker": {
+      "anyOf": [
+        {
+          "type": "null"
+        },
+        {
+          "$ref": "#/$defs/gate_result"
+        }
+      ]
+    },
+    "human_gate": {
+      "anyOf": [
+        {
+          "type": "null"
+        },
+        {
+          "$ref": "#/$defs/gate_result"
+        }
+      ]
+    },
+    "error": {
+      "anyOf": [
+        {
+          "type": "null"
+        },
+        {
+          "$ref": "#/$defs/error"
+        }
+      ]
+    },
+    "authority_boundary": {
+      "$ref": "#/$defs/authority_boundary"
+    },
+    "decision_id": {
+      "type": "string",
+      "pattern": "^mas-candidate-admission:[0-9a-f]{64}$"
+    },
+    "decision_fingerprint": {
+      "$ref": "#/$defs/normalized_sha256"
+    }
+  },
+  "oneOf": [
+    {
+      "$ref": "#/$defs/accepted_result"
+    },
+    {
+      "$ref": "#/$defs/rejected_result"
+    },
+    {
+      "$ref": "#/$defs/route_back_result"
+    },
+    {
+      "$ref": "#/$defs/waived_result"
+    },
+    {
+      "$ref": "#/$defs/typed_blocker_result"
+    },
+    {
+      "$ref": "#/$defs/human_gate_result"
+    },
+    {
+      "$ref": "#/$defs/invalid_host_input_result"
+    }
+  ],
+  "$defs": {
+    "non_empty_text": {
+      "type": "string",
+      "minLength": 1,
+      "pattern": ".*\\S.*"
+    },
+    "normalized_sha256": {
+      "type": "string",
+      "pattern": "^sha256:[0-9a-f]{64}$"
+    },
+    "typed_ref": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "kind",
+        "ref",
+        "sha256"
+      ],
+      "properties": {
+        "kind": {
+          "$ref": "#/$defs/non_empty_text"
+        },
+        "ref": {
+          "$ref": "#/$defs/non_empty_text"
+        },
+        "sha256": {
+          "$ref": "#/$defs/normalized_sha256"
+        }
+      }
+    },
+    "exact_ref": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "kind",
+        "ref",
+        "size_bytes",
+        "sha256"
+      ],
+      "properties": {
+        "kind": {
+          "$ref": "#/$defs/non_empty_text"
+        },
+        "ref": {
+          "$ref": "#/$defs/non_empty_text"
+        },
+        "size_bytes": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "sha256": {
+          "$ref": "#/$defs/normalized_sha256"
+        }
+      }
+    },
+    "typed_ref_array": {
+      "type": "array",
+      "uniqueItems": true,
+      "items": {
+        "$ref": "#/$defs/typed_ref"
+      }
+    },
+    "exact_ref_array": {
+      "type": "array",
+      "uniqueItems": true,
+      "items": {
+        "$ref": "#/$defs/exact_ref"
+      }
+    },
+    "text_array": {
+      "type": "array",
+      "uniqueItems": true,
+      "items": {
+        "$ref": "#/$defs/non_empty_text"
+      }
+    },
+    "mission_identity": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "program_id",
+        "study_id",
+        "mission_id",
+        "stage_id",
+        "stage_goal_ref"
+      ],
+      "properties": {
+        "program_id": {
+          "$ref": "#/$defs/non_empty_text"
+        },
+        "study_id": {
+          "$ref": "#/$defs/non_empty_text"
+        },
+        "mission_id": {
+          "$ref": "#/$defs/non_empty_text"
+        },
+        "stage_id": {
+          "$ref": "#/$defs/non_empty_text"
+        },
+        "stage_goal_ref": {
+          "$ref": "#/$defs/typed_ref"
+        }
+      }
+    },
+    "manifest_member": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "kind",
+        "role",
+        "ref",
+        "size_bytes",
+        "sha256"
+      ],
+      "properties": {
+        "kind": {
+          "$ref": "#/$defs/non_empty_text"
+        },
+        "role": {
+          "$ref": "#/$defs/non_empty_text"
+        },
+        "ref": {
+          "$ref": "#/$defs/non_empty_text"
+        },
+        "size_bytes": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "sha256": {
+          "$ref": "#/$defs/normalized_sha256"
+        }
+      }
+    },
+    "generation_context": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "generation_id",
+        "generation_manifest_ref",
+        "source_input_digest",
+        "authority_epoch"
+      ],
+      "properties": {
+        "generation_id": {
+          "$ref": "#/$defs/non_empty_text"
+        },
+        "generation_manifest_ref": {
+          "$ref": "#/$defs/exact_ref"
+        },
+        "source_input_digest": {
+          "$ref": "#/$defs/manifest_member"
+        },
+        "authority_epoch": {
+          "$ref": "#/$defs/non_empty_text"
+        }
+      }
+    },
+    "claim_scope": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "claim_classes",
+        "claim_ids",
+        "permitted_sections",
+        "required_disclosures",
+        "prohibited_claims",
+        "sensitivity_only",
+        "supplementary_only",
+        "abstract_headline_allowed"
+      ],
+      "properties": {
+        "claim_classes": {
+          "$ref": "#/$defs/text_array"
+        },
+        "claim_ids": {
+          "$ref": "#/$defs/text_array"
+        },
+        "permitted_sections": {
+          "$ref": "#/$defs/text_array"
+        },
+        "required_disclosures": {
+          "$ref": "#/$defs/text_array"
+        },
+        "prohibited_claims": {
+          "$ref": "#/$defs/text_array"
+        },
+        "sensitivity_only": {
+          "type": "boolean"
+        },
+        "supplementary_only": {
+          "type": "boolean"
+        },
+        "abstract_headline_allowed": {
+          "type": "boolean"
+        }
+      }
+    },
+    "adjudicator_refs": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "producer_attempt_ref",
+        "adjudicator_attempt_ref",
+        "candidate_packet_ref",
+        "admission_request_ref",
+        "adjudicator_receipt_ref"
+      ],
+      "properties": {
+        "producer_attempt_ref": {
+          "$ref": "#/$defs/typed_ref"
+        },
+        "adjudicator_attempt_ref": {
+          "$ref": "#/$defs/typed_ref"
+        },
+        "candidate_packet_ref": {
+          "$ref": "#/$defs/exact_ref"
+        },
+        "admission_request_ref": {
+          "$ref": "#/$defs/exact_ref"
+        },
+        "adjudicator_receipt_ref": {
+          "$ref": "#/$defs/exact_ref"
+        }
+      }
+    },
+    "disposition_receipt": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "receipt_kind",
+        "schema_version",
+        "owner",
+        "mission_identity",
+        "adjudicator_refs",
+        "currentness_receipt_ref",
+        "authority_epoch",
+        "generation_id",
+        "generation_manifest_ref",
+        "source_input_digest",
+        "candidate_id",
+        "candidate_ref",
+        "candidate_size_bytes",
+        "evidence_refs",
+        "claim_scope",
+        "disposition",
+        "decision_code",
+        "authorizes_manuscript_consumption",
+        "authorizes_publication_or_submission",
+        "requires_host_exact_byte_persistence",
+        "receipt_id",
+        "receipt_size_bytes",
+        "receipt_fingerprint"
+      ],
+      "properties": {
+        "receipt_kind": {
+          "const": "mas_candidate_admission_receipt"
+        },
+        "schema_version": {
+          "const": 2
+        },
+        "owner": {
+          "const": "MedAutoScience"
+        },
+        "mission_identity": {
+          "$ref": "#/$defs/mission_identity"
+        },
+        "adjudicator_refs": {
+          "$ref": "#/$defs/adjudicator_refs"
+        },
+        "currentness_receipt_ref": {
+          "$ref": "#/$defs/exact_ref"
+        },
+        "authority_epoch": {
+          "$ref": "#/$defs/non_empty_text"
+        },
+        "generation_id": {
+          "$ref": "#/$defs/non_empty_text"
+        },
+        "generation_manifest_ref": {
+          "$ref": "#/$defs/exact_ref"
+        },
+        "source_input_digest": {
+          "$ref": "#/$defs/manifest_member"
+        },
+        "candidate_id": {
+          "$ref": "#/$defs/non_empty_text"
+        },
+        "candidate_ref": {
+          "$ref": "#/$defs/exact_ref"
+        },
+        "candidate_size_bytes": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "evidence_refs": {
+          "allOf": [
+            {
+              "$ref": "#/$defs/exact_ref_array"
+            },
+            {
+              "minItems": 1,
+              "type": "array"
+            }
+          ]
+        },
+        "claim_scope": {
+          "$ref": "#/$defs/claim_scope"
+        },
+        "disposition": {
+          "enum": [
+            "accepted",
+            "rejected"
+          ]
+        },
+        "decision_code": {
+          "$ref": "#/$defs/non_empty_text"
+        },
+        "authorizes_manuscript_consumption": {
+          "type": "boolean"
+        },
+        "authorizes_publication_or_submission": {
+          "const": false
+        },
+        "requires_host_exact_byte_persistence": {
+          "const": true
+        },
+        "receipt_id": {
+          "type": "string",
+          "pattern": "^mas-candidate-admission:[0-9a-f]{64}$"
+        },
+        "receipt_size_bytes": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "receipt_fingerprint": {
+          "$ref": "#/$defs/normalized_sha256"
+        }
+      }
+    },
+    "accepted_receipt": {
+      "allOf": [
+        {
+          "$ref": "#/$defs/disposition_receipt"
+        },
+        {
+          "properties": {
+            "disposition": {
+              "const": "accepted"
+            },
+            "decision_code": {
+              "enum": [
+                "accepted_for_exact_claim_scope",
+                "accepted_for_bounded_sensitivity_use"
+              ]
+            },
+            "authorizes_manuscript_consumption": {
+              "const": true
+            }
+          },
+          "type": "object"
+        }
+      ]
+    },
+    "rejected_receipt": {
+      "allOf": [
+        {
+          "$ref": "#/$defs/disposition_receipt"
+        },
+        {
+          "properties": {
+            "disposition": {
+              "const": "rejected"
+            },
+            "decision_code": {
+              "enum": [
+                "rejected_out_of_scope",
+                "rejected_unsupported_evidence",
+                "rejected_superseded_source",
+                "rejected_provenance_only"
+              ]
+            },
+            "authorizes_manuscript_consumption": {
+              "const": false
+            }
+          },
+          "type": "object"
+        }
+      ]
+    },
+    "route_back": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "route_code",
+        "candidate_id",
+        "candidate_ref",
+        "next_owner",
+        "resume_condition",
+        "authorizes_manuscript_consumption",
+        "requires_host_exact_byte_persistence"
+      ],
+      "properties": {
+        "route_code": {
+          "enum": [
+            "candidate_evidence_incomplete",
+            "candidate_manifest_membership_required",
+            "claim_scope_revision_required",
+            "source_input_currentness_required",
+            "adjudicator_receipt_revision_required"
+          ]
+        },
+        "candidate_id": {
+          "$ref": "#/$defs/non_empty_text"
+        },
+        "candidate_ref": {
+          "$ref": "#/$defs/exact_ref"
+        },
+        "next_owner": {
+          "$ref": "#/$defs/non_empty_text"
+        },
+        "resume_condition": {
+          "$ref": "#/$defs/non_empty_text"
+        },
+        "authorizes_manuscript_consumption": {
+          "const": false
+        },
+        "requires_host_exact_byte_persistence": {
+          "const": true
+        }
+      }
+    },
+    "waiver_result": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "waiver_kind",
+        "waiver_code",
+        "scope",
+        "evidence_refs",
+        "expires_on_generation_change",
+        "authorizes_manuscript_consumption",
+        "candidate_id",
+        "candidate_ref",
+        "requires_host_exact_byte_persistence"
+      ],
+      "properties": {
+        "waiver_kind": {
+          "const": "mas_candidate_admission_waiver"
+        },
+        "waiver_code": {
+          "enum": [
+            "waived_non_material_candidate_gap",
+            "waived_duplicate_evidence_record",
+            "waived_provenance_only"
+          ]
+        },
+        "scope": {
+          "$ref": "#/$defs/non_empty_text"
+        },
+        "evidence_refs": {
+          "allOf": [
+            {
+              "$ref": "#/$defs/typed_ref_array"
+            },
+            {
+              "minItems": 1,
+              "type": "array"
+            }
+          ]
+        },
+        "expires_on_generation_change": {
+          "const": true
+        },
+        "authorizes_manuscript_consumption": {
+          "const": false
+        },
+        "candidate_id": {
+          "$ref": "#/$defs/non_empty_text"
+        },
+        "candidate_ref": {
+          "$ref": "#/$defs/exact_ref"
+        },
+        "requires_host_exact_byte_persistence": {
+          "const": true
+        }
+      }
+    },
+    "gate_result": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "gate_kind",
+        "reason_code",
+        "evidence_refs",
+        "next_owner",
+        "resume_condition",
+        "authorizes_manuscript_consumption",
+        "requires_host_exact_byte_persistence"
+      ],
+      "properties": {
+        "gate_kind": {
+          "enum": [
+            "human_decision",
+            "medical_safety",
+            "source_identity",
+            "source_currentness",
+            "domain_authority",
+            "credential",
+            "irreversible_action"
+          ]
+        },
+        "reason_code": {
+          "$ref": "#/$defs/non_empty_text"
+        },
+        "evidence_refs": {
+          "allOf": [
+            {
+              "$ref": "#/$defs/typed_ref_array"
+            },
+            {
+              "minItems": 1,
+              "type": "array"
+            }
+          ]
+        },
+        "next_owner": {
+          "$ref": "#/$defs/non_empty_text"
+        },
+        "resume_condition": {
+          "$ref": "#/$defs/non_empty_text"
+        },
+        "authorizes_manuscript_consumption": {
+          "const": false
+        },
+        "requires_host_exact_byte_persistence": {
+          "const": true
+        }
+      }
+    },
+    "error": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "code",
+        "detail"
+      ],
+      "properties": {
+        "code": {
+          "const": "invalid_host_input"
+        },
+        "detail": {
+          "$ref": "#/$defs/non_empty_text"
+        }
+      }
+    },
+    "authority_boundary": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "owner",
+        "handler_role",
+        "opl_role",
+        "host_proposal_can_authorize_candidate",
+        "program_originates_medical_acceptance_verdict",
+        "provider_completion_counts_as_candidate_acceptance",
+        "performs_filesystem_io",
+        "performs_network_io",
+        "spawns_process_or_executor",
+        "owns_runtime_or_attempt_lifecycle",
+        "authorizes_publication_or_submission"
+      ],
+      "properties": {
+        "owner": {
+          "const": "MedAutoScience"
+        },
+        "handler_role": {
+          "const": "validate_manifest_bound_mas_adjudicator_receipt_and_return_exact_authority_result"
+        },
+        "opl_role": {
+          "const": "verify_exact_ref_bytes_inject_typed_records_and_persist_exact_result_bytes"
+        },
+        "host_proposal_can_authorize_candidate": {
+          "const": false
+        },
+        "program_originates_medical_acceptance_verdict": {
+          "const": false
+        },
+        "provider_completion_counts_as_candidate_acceptance": {
+          "const": false
+        },
+        "performs_filesystem_io": {
+          "const": false
+        },
+        "performs_network_io": {
+          "const": false
+        },
+        "spawns_process_or_executor": {
+          "const": false
+        },
+        "owns_runtime_or_attempt_lifecycle": {
+          "const": false
+        },
+        "authorizes_publication_or_submission": {
+          "const": false
+        }
+      }
+    },
+    "common_valid_result": {
+      "properties": {
+        "mission_identity": {
+          "$ref": "#/$defs/mission_identity"
+        },
+        "generation_context": {
+          "$ref": "#/$defs/generation_context"
+        },
+        "candidate_ref": {
+          "$ref": "#/$defs/exact_ref"
+        },
+        "error": {
+          "type": "null"
+        }
+      },
+      "type": "object"
+    },
+    "accepted_result": {
+      "allOf": [
+        {
+          "$ref": "#/$defs/common_valid_result"
+        },
+        {
+          "properties": {
+            "status": {
+              "const": "accepted"
+            },
+            "disposition_receipt": {
+              "$ref": "#/$defs/accepted_receipt"
+            },
+            "route_back": {
+              "type": "null"
+            },
+            "waiver": {
+              "type": "null"
+            },
+            "typed_blocker": {
+              "type": "null"
+            },
+            "human_gate": {
+              "type": "null"
+            }
+          },
+          "type": "object"
+        }
+      ]
+    },
+    "rejected_result": {
+      "allOf": [
+        {
+          "$ref": "#/$defs/common_valid_result"
+        },
+        {
+          "properties": {
+            "status": {
+              "const": "rejected"
+            },
+            "disposition_receipt": {
+              "$ref": "#/$defs/rejected_receipt"
+            },
+            "route_back": {
+              "type": "null"
+            },
+            "waiver": {
+              "type": "null"
+            },
+            "typed_blocker": {
+              "type": "null"
+            },
+            "human_gate": {
+              "type": "null"
+            }
+          },
+          "type": "object"
+        }
+      ]
+    },
+    "route_back_result": {
+      "allOf": [
+        {
+          "$ref": "#/$defs/common_valid_result"
+        },
+        {
+          "properties": {
+            "status": {
+              "const": "route_back"
+            },
+            "disposition_receipt": {
+              "type": "null"
+            },
+            "route_back": {
+              "$ref": "#/$defs/route_back"
+            },
+            "waiver": {
+              "type": "null"
+            },
+            "typed_blocker": {
+              "type": "null"
+            },
+            "human_gate": {
+              "type": "null"
+            }
+          },
+          "type": "object"
+        }
+      ]
+    },
+    "waived_result": {
+      "allOf": [
+        {
+          "$ref": "#/$defs/common_valid_result"
+        },
+        {
+          "properties": {
+            "status": {
+              "const": "waived"
+            },
+            "disposition_receipt": {
+              "type": "null"
+            },
+            "route_back": {
+              "type": "null"
+            },
+            "waiver": {
+              "$ref": "#/$defs/waiver_result"
+            },
+            "typed_blocker": {
+              "type": "null"
+            },
+            "human_gate": {
+              "type": "null"
+            }
+          },
+          "type": "object"
+        }
+      ]
+    },
+    "typed_blocker_result": {
+      "allOf": [
+        {
+          "$ref": "#/$defs/common_valid_result"
+        },
+        {
+          "properties": {
+            "status": {
+              "const": "typed_blocker"
+            },
+            "disposition_receipt": {
+              "type": "null"
+            },
+            "route_back": {
+              "type": "null"
+            },
+            "waiver": {
+              "type": "null"
+            },
+            "typed_blocker": {
+              "allOf": [
+                {
+                  "$ref": "#/$defs/gate_result"
+                },
+                {
+                  "properties": {
+                    "gate_kind": {
+                      "enum": [
+                        "medical_safety",
+                        "source_identity",
+                        "source_currentness",
+                        "domain_authority",
+                        "credential",
+                        "irreversible_action"
+                      ]
+                    }
+                  },
+                  "type": "object"
+                }
+              ]
+            },
+            "human_gate": {
+              "type": "null"
+            }
+          },
+          "type": "object"
+        }
+      ]
+    },
+    "human_gate_result": {
+      "allOf": [
+        {
+          "$ref": "#/$defs/common_valid_result"
+        },
+        {
+          "properties": {
+            "status": {
+              "const": "human_gate"
+            },
+            "disposition_receipt": {
+              "type": "null"
+            },
+            "route_back": {
+              "type": "null"
+            },
+            "waiver": {
+              "type": "null"
+            },
+            "typed_blocker": {
+              "type": "null"
+            },
+            "human_gate": {
+              "allOf": [
+                {
+                  "$ref": "#/$defs/gate_result"
+                },
+                {
+                  "properties": {
+                    "gate_kind": {
+                      "const": "human_decision"
+                    }
+                  },
+                  "type": "object"
+                }
+              ]
+            }
+          },
+          "type": "object"
+        }
+      ]
+    },
+    "invalid_host_input_result": {
+      "properties": {
+        "status": {
+          "const": "invalid_host_input"
+        },
+        "mission_identity": {
+          "type": "null"
+        },
+        "generation_context": {
+          "type": "null"
+        },
+        "candidate_ref": {
+          "type": "null"
+        },
+        "disposition_receipt": {
+          "type": "null"
+        },
+        "route_back": {
+          "type": "null"
+        },
+        "waiver": {
+          "type": "null"
+        },
+        "typed_blocker": {
+          "type": "null"
+        },
+        "human_gate": {
+          "type": "null"
+        },
+        "error": {
+          "$ref": "#/$defs/error"
+        }
+      },
+      "type": "object"
+    }
+  }
+}

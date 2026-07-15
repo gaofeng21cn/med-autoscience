@@ -1,0 +1,907 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://one-person-lab.local/med-autoscience/mas-candidate-admission-authority.input.schema.json",
+  "title": "MAS candidate admission authority request",
+  "description": "Current manifest, exact candidate members, MAS currentness receipt, and independent MAS adjudicator receipt required before candidate consumption.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "surface_kind",
+    "schema_version",
+    "adjudicator_context",
+    "mission",
+    "generation_manifest",
+    "generation_manifest_ref",
+    "currentness_receipt",
+    "candidate",
+    "adjudicator_receipt",
+    "hard_gate"
+  ],
+  "properties": {
+    "surface_kind": {
+      "const": "mas_candidate_admission_authority_request"
+    },
+    "schema_version": {
+      "const": 2
+    },
+    "adjudicator_context": {
+      "$ref": "#/$defs/adjudicator_context"
+    },
+    "mission": {
+      "$ref": "#/$defs/mission_identity"
+    },
+    "generation_manifest": {
+      "$ref": "mas-evidence-generation-manifest.schema.json"
+    },
+    "generation_manifest_ref": {
+      "$ref": "#/$defs/generation_manifest_ref"
+    },
+    "currentness_receipt": {
+      "$ref": "#/$defs/currentness_receipt"
+    },
+    "candidate": {
+      "$ref": "#/$defs/candidate_record"
+    },
+    "adjudicator_receipt": {
+      "$ref": "#/$defs/adjudicator_receipt"
+    },
+    "hard_gate": {
+      "$ref": "#/$defs/hard_gate"
+    }
+  },
+  "$defs": {
+    "non_empty_text": {
+      "type": "string",
+      "minLength": 1,
+      "pattern": ".*\\S.*"
+    },
+    "nullable_non_empty_text": {
+      "anyOf": [
+        {
+          "type": "null"
+        },
+        {
+          "$ref": "#/$defs/non_empty_text"
+        }
+      ]
+    },
+    "sha256": {
+      "type": "string",
+      "pattern": "^(?:sha256:)?[0-9a-fA-F]{64}$"
+    },
+    "typed_ref": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "kind",
+        "ref",
+        "sha256"
+      ],
+      "properties": {
+        "kind": {
+          "enum": [
+            "opl_stage_attempt",
+            "opl_action_output",
+            "mas_stage_goal",
+            "mas_artifact",
+            "mas_evidence",
+            "mas_gate_evidence",
+            "mas_generation_manifest",
+            "mas_candidate_adjudicator_receipt",
+            "mas_generation_currentness_receipt",
+            "mas_candidate_admission_receipt"
+          ]
+        },
+        "ref": {
+          "$ref": "#/$defs/non_empty_text"
+        },
+        "sha256": {
+          "$ref": "#/$defs/sha256"
+        }
+      }
+    },
+    "exact_ref": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "kind",
+        "ref",
+        "size_bytes",
+        "sha256"
+      ],
+      "properties": {
+        "kind": {
+          "$ref": "#/$defs/non_empty_text"
+        },
+        "ref": {
+          "$ref": "#/$defs/non_empty_text"
+        },
+        "size_bytes": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "sha256": {
+          "$ref": "#/$defs/sha256"
+        }
+      }
+    },
+    "generation_manifest_ref": {
+      "allOf": [
+        {
+          "$ref": "#/$defs/exact_ref"
+        },
+        {
+          "properties": {
+            "kind": {
+              "const": "mas_generation_manifest"
+            }
+          },
+          "type": "object"
+        }
+      ]
+    },
+    "unique_text_array": {
+      "type": "array",
+      "uniqueItems": true,
+      "items": {
+        "$ref": "#/$defs/non_empty_text"
+      }
+    },
+    "mission_identity": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "program_id",
+        "study_id",
+        "mission_id",
+        "stage_id",
+        "stage_goal_ref"
+      ],
+      "properties": {
+        "program_id": {
+          "$ref": "#/$defs/non_empty_text"
+        },
+        "study_id": {
+          "$ref": "#/$defs/non_empty_text"
+        },
+        "mission_id": {
+          "$ref": "#/$defs/non_empty_text"
+        },
+        "stage_id": {
+          "$ref": "#/$defs/non_empty_text"
+        },
+        "stage_goal_ref": {
+          "allOf": [
+            {
+              "$ref": "#/$defs/typed_ref"
+            },
+            {
+              "properties": {
+                "kind": {
+                  "const": "mas_stage_goal"
+                }
+              },
+              "type": "object"
+            }
+          ]
+        }
+      }
+    },
+    "adjudicator_context": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "producer_attempt_ref",
+        "adjudicator_attempt_ref",
+        "candidate_packet_ref",
+        "admission_request_ref",
+        "adjudicator_receipt_ref",
+        "currentness_receipt_ref"
+      ],
+      "properties": {
+        "producer_attempt_ref": {
+          "allOf": [
+            {
+              "$ref": "#/$defs/typed_ref"
+            },
+            {
+              "properties": {
+                "kind": {
+                  "const": "opl_stage_attempt"
+                }
+              },
+              "type": "object"
+            }
+          ]
+        },
+        "adjudicator_attempt_ref": {
+          "allOf": [
+            {
+              "$ref": "#/$defs/typed_ref"
+            },
+            {
+              "properties": {
+                "kind": {
+                  "const": "opl_stage_attempt"
+                }
+              },
+              "type": "object"
+            }
+          ]
+        },
+        "candidate_packet_ref": {
+          "allOf": [
+            {
+              "$ref": "#/$defs/exact_ref"
+            },
+            {
+              "properties": {
+                "kind": {
+                  "const": "opl_action_output"
+                }
+              },
+              "type": "object"
+            }
+          ]
+        },
+        "admission_request_ref": {
+          "allOf": [
+            {
+              "$ref": "#/$defs/exact_ref"
+            },
+            {
+              "properties": {
+                "kind": {
+                  "const": "opl_action_output"
+                }
+              },
+              "type": "object"
+            }
+          ]
+        },
+        "adjudicator_receipt_ref": {
+          "allOf": [
+            {
+              "$ref": "#/$defs/exact_ref"
+            },
+            {
+              "properties": {
+                "kind": {
+                  "const": "mas_candidate_adjudicator_receipt"
+                }
+              },
+              "type": "object"
+            }
+          ]
+        },
+        "currentness_receipt_ref": {
+          "allOf": [
+            {
+              "$ref": "#/$defs/exact_ref"
+            },
+            {
+              "properties": {
+                "kind": {
+                  "const": "mas_generation_currentness_receipt"
+                }
+              },
+              "type": "object"
+            }
+          ]
+        }
+      }
+    },
+    "manifest_member": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "kind",
+        "role",
+        "ref",
+        "size_bytes",
+        "sha256"
+      ],
+      "properties": {
+        "kind": {
+          "enum": [
+            "mas_artifact",
+            "mas_evidence"
+          ]
+        },
+        "role": {
+          "enum": [
+            "candidate_artifact",
+            "evidence_record"
+          ]
+        },
+        "ref": {
+          "$ref": "#/$defs/non_empty_text"
+        },
+        "size_bytes": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "sha256": {
+          "$ref": "#/$defs/sha256"
+        }
+      }
+    },
+    "claim_scope": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "claim_classes",
+        "claim_ids",
+        "permitted_sections",
+        "required_disclosures",
+        "prohibited_claims",
+        "sensitivity_only",
+        "supplementary_only",
+        "abstract_headline_allowed"
+      ],
+      "properties": {
+        "claim_classes": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": {
+            "enum": [
+              "primary",
+              "secondary",
+              "post_hoc",
+              "exploratory",
+              "descriptive",
+              "sensitivity",
+              "supplementary_only",
+              "provenance_only"
+            ]
+          }
+        },
+        "claim_ids": {
+          "$ref": "#/$defs/unique_text_array"
+        },
+        "permitted_sections": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": {
+            "enum": [
+              "abstract",
+              "methods",
+              "results",
+              "discussion",
+              "table",
+              "figure",
+              "supplement",
+              "citation_ledger",
+              "numeric_trace"
+            ]
+          }
+        },
+        "required_disclosures": {
+          "$ref": "#/$defs/unique_text_array"
+        },
+        "prohibited_claims": {
+          "$ref": "#/$defs/unique_text_array"
+        },
+        "sensitivity_only": {
+          "type": "boolean"
+        },
+        "supplementary_only": {
+          "type": "boolean"
+        },
+        "abstract_headline_allowed": {
+          "type": "boolean"
+        }
+      }
+    },
+    "candidate_record": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "candidate_id",
+        "candidate_member",
+        "evidence_members",
+        "claim_scope"
+      ],
+      "properties": {
+        "candidate_id": {
+          "$ref": "#/$defs/non_empty_text"
+        },
+        "candidate_member": {
+          "allOf": [
+            {
+              "$ref": "#/$defs/manifest_member"
+            },
+            {
+              "properties": {
+                "kind": {
+                  "const": "mas_artifact"
+                },
+                "role": {
+                  "const": "candidate_artifact"
+                }
+              },
+              "type": "object"
+            }
+          ]
+        },
+        "evidence_members": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": {
+            "allOf": [
+              {
+                "$ref": "#/$defs/manifest_member"
+              },
+              {
+                "properties": {
+                  "kind": {
+                    "const": "mas_evidence"
+                  },
+                  "role": {
+                    "const": "evidence_record"
+                  }
+                },
+                "type": "object"
+              }
+            ]
+          }
+        },
+        "claim_scope": {
+          "$ref": "#/$defs/claim_scope"
+        }
+      }
+    },
+    "currentness_receipt": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "receipt_kind",
+        "schema_version",
+        "owner",
+        "authority_role",
+        "authority_epoch",
+        "current_generation_id",
+        "current_generation_manifest_ref",
+        "current_admission_request_ref",
+        "current_adjudicator_receipt_ref",
+        "superseded_generation_ids",
+        "superseded_request_refs",
+        "receipt_id",
+        "receipt_size_bytes",
+        "receipt_fingerprint"
+      ],
+      "properties": {
+        "receipt_kind": {
+          "const": "mas_generation_currentness_receipt"
+        },
+        "schema_version": {
+          "const": 1
+        },
+        "owner": {
+          "const": "MedAutoScience"
+        },
+        "authority_role": {
+          "const": "generation_currentness_owner"
+        },
+        "authority_epoch": {
+          "$ref": "#/$defs/non_empty_text"
+        },
+        "current_generation_id": {
+          "$ref": "#/$defs/non_empty_text"
+        },
+        "current_generation_manifest_ref": {
+          "$ref": "#/$defs/generation_manifest_ref"
+        },
+        "current_admission_request_ref": {
+          "$ref": "#/$defs/exact_ref"
+        },
+        "current_adjudicator_receipt_ref": {
+          "allOf": [
+            {
+              "$ref": "#/$defs/exact_ref"
+            },
+            {
+              "properties": {
+                "kind": {
+                  "const": "mas_candidate_adjudicator_receipt"
+                }
+              },
+              "type": "object"
+            }
+          ]
+        },
+        "superseded_generation_ids": {
+          "$ref": "#/$defs/unique_text_array"
+        },
+        "superseded_request_refs": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": {
+            "$ref": "#/$defs/exact_ref"
+          }
+        },
+        "receipt_id": {
+          "type": "string",
+          "pattern": "^mas-generation-currentness:[0-9a-f]{64}$"
+        },
+        "receipt_size_bytes": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "receipt_fingerprint": {
+          "$ref": "#/$defs/sha256"
+        }
+      }
+    },
+    "waiver": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "waiver_kind",
+        "waiver_code",
+        "scope",
+        "evidence_refs",
+        "expires_on_generation_change",
+        "authorizes_manuscript_consumption"
+      ],
+      "properties": {
+        "waiver_kind": {
+          "const": "mas_candidate_admission_waiver"
+        },
+        "waiver_code": {
+          "enum": [
+            "waived_non_material_candidate_gap",
+            "waived_duplicate_evidence_record",
+            "waived_provenance_only"
+          ]
+        },
+        "scope": {
+          "enum": [
+            "candidate_record_only",
+            "provenance_only",
+            "quality_debt_only"
+          ]
+        },
+        "evidence_refs": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": {
+            "$ref": "#/$defs/typed_ref"
+          }
+        },
+        "expires_on_generation_change": {
+          "const": true
+        },
+        "authorizes_manuscript_consumption": {
+          "const": false
+        }
+      }
+    },
+    "adjudicator_receipt": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "receipt_kind",
+        "schema_version",
+        "owner",
+        "authority_role",
+        "authority_epoch",
+        "producer_attempt_ref",
+        "adjudicator_attempt_ref",
+        "candidate_packet_ref",
+        "admission_request_ref",
+        "generation_id",
+        "generation_manifest_ref",
+        "candidate_id",
+        "candidate_ref",
+        "evidence_refs",
+        "claim_scope",
+        "candidate_record_sha256",
+        "verdict",
+        "decision_code",
+        "next_owner",
+        "resume_condition",
+        "waiver",
+        "receipt_id",
+        "receipt_size_bytes",
+        "receipt_fingerprint"
+      ],
+      "properties": {
+        "receipt_kind": {
+          "const": "mas_candidate_adjudicator_receipt"
+        },
+        "schema_version": {
+          "const": 1
+        },
+        "owner": {
+          "const": "MedAutoScience"
+        },
+        "authority_role": {
+          "const": "independent_medical_adjudicator"
+        },
+        "authority_epoch": {
+          "$ref": "#/$defs/non_empty_text"
+        },
+        "producer_attempt_ref": {
+          "$ref": "#/$defs/typed_ref"
+        },
+        "adjudicator_attempt_ref": {
+          "$ref": "#/$defs/typed_ref"
+        },
+        "candidate_packet_ref": {
+          "allOf": [
+            {
+              "$ref": "#/$defs/exact_ref"
+            },
+            {
+              "properties": {
+                "kind": {
+                  "const": "opl_action_output"
+                }
+              },
+              "type": "object"
+            }
+          ]
+        },
+        "admission_request_ref": {
+          "$ref": "#/$defs/exact_ref"
+        },
+        "generation_id": {
+          "$ref": "#/$defs/non_empty_text"
+        },
+        "generation_manifest_ref": {
+          "$ref": "#/$defs/generation_manifest_ref"
+        },
+        "candidate_id": {
+          "$ref": "#/$defs/non_empty_text"
+        },
+        "candidate_ref": {
+          "allOf": [
+            {
+              "$ref": "#/$defs/exact_ref"
+            },
+            {
+              "properties": {
+                "kind": {
+                  "const": "mas_artifact"
+                }
+              },
+              "type": "object"
+            }
+          ]
+        },
+        "evidence_refs": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": {
+            "allOf": [
+              {
+                "$ref": "#/$defs/exact_ref"
+              },
+              {
+                "properties": {
+                  "kind": {
+                    "const": "mas_evidence"
+                  }
+                },
+                "type": "object"
+              }
+            ]
+          }
+        },
+        "claim_scope": {
+          "$ref": "#/$defs/claim_scope"
+        },
+        "candidate_record_sha256": {
+          "$ref": "#/$defs/sha256"
+        },
+        "verdict": {
+          "enum": [
+            "accepted",
+            "rejected",
+            "route_back",
+            "waived"
+          ]
+        },
+        "decision_code": {
+          "enum": [
+            "accepted_for_exact_claim_scope",
+            "accepted_for_bounded_sensitivity_use",
+            "rejected_out_of_scope",
+            "rejected_unsupported_evidence",
+            "rejected_superseded_source",
+            "rejected_provenance_only",
+            "candidate_evidence_incomplete",
+            "candidate_manifest_membership_required",
+            "claim_scope_revision_required",
+            "source_input_currentness_required",
+            "adjudicator_receipt_revision_required",
+            "waived_with_typed_scope"
+          ]
+        },
+        "next_owner": {
+          "$ref": "#/$defs/nullable_non_empty_text"
+        },
+        "resume_condition": {
+          "$ref": "#/$defs/nullable_non_empty_text"
+        },
+        "waiver": {
+          "anyOf": [
+            {
+              "type": "null"
+            },
+            {
+              "$ref": "#/$defs/waiver"
+            }
+          ]
+        },
+        "receipt_id": {
+          "type": "string",
+          "pattern": "^mas-candidate-adjudicator:[0-9a-f]{64}$"
+        },
+        "receipt_size_bytes": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "receipt_fingerprint": {
+          "$ref": "#/$defs/sha256"
+        }
+      },
+      "allOf": [
+        {
+          "if": {
+            "properties": {
+              "verdict": {
+                "const": "route_back"
+              }
+            },
+            "type": "object"
+          },
+          "then": {
+            "properties": {
+              "decision_code": {
+                "enum": [
+                  "candidate_evidence_incomplete",
+                  "candidate_manifest_membership_required",
+                  "claim_scope_revision_required",
+                  "source_input_currentness_required",
+                  "adjudicator_receipt_revision_required"
+                ]
+              },
+              "next_owner": {
+                "$ref": "#/$defs/non_empty_text"
+              },
+              "resume_condition": {
+                "$ref": "#/$defs/non_empty_text"
+              },
+              "waiver": {
+                "type": "null"
+              }
+            },
+            "type": "object"
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "verdict": {
+                "const": "waived"
+              }
+            },
+            "type": "object"
+          },
+          "then": {
+            "properties": {
+              "decision_code": {
+                "const": "waived_with_typed_scope"
+              },
+              "next_owner": {
+                "type": "null"
+              },
+              "resume_condition": {
+                "type": "null"
+              },
+              "waiver": {
+                "$ref": "#/$defs/waiver"
+              }
+            },
+            "type": "object"
+          }
+        }
+      ]
+    },
+    "hard_gate": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "kind",
+        "reason_code",
+        "evidence_refs",
+        "next_owner",
+        "resume_condition"
+      ],
+      "properties": {
+        "kind": {
+          "enum": [
+            "none",
+            "human_decision",
+            "medical_safety",
+            "source_identity",
+            "source_currentness",
+            "domain_authority",
+            "credential",
+            "irreversible_action"
+          ]
+        },
+        "reason_code": {
+          "$ref": "#/$defs/nullable_non_empty_text"
+        },
+        "evidence_refs": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": {
+            "$ref": "#/$defs/typed_ref"
+          }
+        },
+        "next_owner": {
+          "$ref": "#/$defs/nullable_non_empty_text"
+        },
+        "resume_condition": {
+          "$ref": "#/$defs/nullable_non_empty_text"
+        }
+      },
+      "allOf": [
+        {
+          "if": {
+            "properties": {
+              "kind": {
+                "const": "none"
+              }
+            },
+            "type": "object"
+          },
+          "then": {
+            "properties": {
+              "reason_code": {
+                "type": "null"
+              },
+              "evidence_refs": {
+                "maxItems": 0,
+                "type": "array"
+              },
+              "next_owner": {
+                "type": "null"
+              },
+              "resume_condition": {
+                "type": "null"
+              }
+            },
+            "type": "object"
+          },
+          "else": {
+            "properties": {
+              "reason_code": {
+                "$ref": "#/$defs/non_empty_text"
+              },
+              "evidence_refs": {
+                "minItems": 1,
+                "type": "array"
+              },
+              "next_owner": {
+                "$ref": "#/$defs/non_empty_text"
+              },
+              "resume_condition": {
+                "$ref": "#/$defs/non_empty_text"
+              }
+            },
+            "type": "object"
+          }
+        }
+      ]
+    }
+  }
+}

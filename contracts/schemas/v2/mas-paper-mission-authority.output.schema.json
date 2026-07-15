@@ -2,7 +2,7 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://one-person-lab.local/med-autoscience/mas-paper-mission-authority.output.schema.json",
   "title": "MAS paper mission authority result",
-  "description": "Deterministic MAS authority result returned to an OPL v2 host for exact-byte persistence.",
+  "description": "Status-discriminated MAS result over exact candidate, generation, review-currentness, and independent-review receipts.",
   "type": "object",
   "additionalProperties": false,
   "required": [
@@ -11,6 +11,7 @@
     "status",
     "mission_identity",
     "host_refs",
+    "generation_identity",
     "stage_outcome",
     "owner_receipt",
     "route_back",
@@ -27,7 +28,7 @@
       "const": "mas_paper_mission_authority_result"
     },
     "schema_version": {
-      "const": 1
+      "const": 2
     },
     "status": {
       "enum": [
@@ -56,6 +57,16 @@
         },
         {
           "$ref": "#/$defs/host_refs"
+        }
+      ]
+    },
+    "generation_identity": {
+      "anyOf": [
+        {
+          "type": "null"
+        },
+        {
+          "$ref": "#/$defs/generation_identity"
         }
       ]
     },
@@ -130,358 +141,45 @@
       "pattern": "^mas-paper-mission-authority:[0-9a-f]{64}$"
     },
     "decision_fingerprint": {
-      "$ref": "#/$defs/normalized_sha256"
+      "$ref": "#/$defs/sha256"
     }
   },
-  "allOf": [
+  "oneOf": [
     {
-      "if": {
-        "properties": {
-          "status": {
-            "const": "owner_receipt"
-          }
-        },
-        "required": [
-          "status"
-        ]
-      },
-      "then": {
-        "properties": {
-          "mission_identity": {
-            "$ref": "#/$defs/mission_identity"
-          },
-          "host_refs": {
-            "$ref": "#/$defs/host_refs"
-          },
-          "stage_outcome": {
-            "allOf": [
-              {
-                "$ref": "#/$defs/stage_outcome"
-              },
-              {
-                "properties": {
-                  "kind": {
-                    "const": "completed"
-                  },
-                  "stage_transition_allowed": {
-                    "const": true
-                  }
-                }
-              }
-            ]
-          },
-          "owner_receipt": {
-            "$ref": "#/$defs/owner_receipt"
-          },
-          "route_back": {
-            "type": "null"
-          },
-          "typed_blocker": {
-            "type": "null"
-          },
-          "human_gate": {
-            "type": "null"
-          },
-          "quality_debt": {
-            "type": "null"
-          },
-          "error": {
-            "type": "null"
-          }
-        }
-      }
+      "$ref": "#/$defs/owner_receipt_result"
     },
     {
-      "if": {
-        "properties": {
-          "status": {
-            "const": "route_back"
-          }
-        },
-        "required": [
-          "status"
-        ]
-      },
-      "then": {
-        "properties": {
-          "mission_identity": {
-            "$ref": "#/$defs/mission_identity"
-          },
-          "host_refs": {
-            "$ref": "#/$defs/host_refs"
-          },
-          "stage_outcome": {
-            "allOf": [
-              {
-                "$ref": "#/$defs/stage_outcome"
-              },
-              {
-                "properties": {
-                  "kind": {
-                    "const": "route_back"
-                  },
-                  "stage_transition_allowed": {
-                    "const": false
-                  }
-                }
-              }
-            ]
-          },
-          "owner_receipt": {
-            "type": "null"
-          },
-          "route_back": {
-            "$ref": "#/$defs/route_back"
-          },
-          "typed_blocker": {
-            "type": "null"
-          },
-          "human_gate": {
-            "type": "null"
-          },
-          "quality_debt": {
-            "type": "null"
-          },
-          "error": {
-            "type": "null"
-          }
-        }
-      }
+      "$ref": "#/$defs/route_back_result"
     },
     {
-      "if": {
-        "properties": {
-          "status": {
-            "const": "completed_with_quality_debt"
-          }
-        },
-        "required": [
-          "status"
-        ]
-      },
-      "then": {
-        "properties": {
-          "mission_identity": {
-            "$ref": "#/$defs/mission_identity"
-          },
-          "host_refs": {
-            "$ref": "#/$defs/host_refs"
-          },
-          "stage_outcome": {
-            "allOf": [
-              {
-                "$ref": "#/$defs/stage_outcome"
-              },
-              {
-                "properties": {
-                  "kind": {
-                    "const": "completed_with_quality_debt"
-                  },
-                  "stage_transition_allowed": {
-                    "const": true
-                  }
-                }
-              }
-            ]
-          },
-          "owner_receipt": {
-            "type": "null"
-          },
-          "typed_blocker": {
-            "type": "null"
-          },
-          "human_gate": {
-            "type": "null"
-          },
-          "quality_debt": {
-            "$ref": "#/$defs/quality_debt"
-          },
-          "error": {
-            "type": "null"
-          }
-        }
-      }
+      "$ref": "#/$defs/quality_debt_result"
     },
     {
-      "if": {
-        "properties": {
-          "status": {
-            "const": "typed_blocker"
-          }
-        },
-        "required": [
-          "status"
-        ]
-      },
-      "then": {
-        "properties": {
-          "mission_identity": {
-            "$ref": "#/$defs/mission_identity"
-          },
-          "host_refs": {
-            "$ref": "#/$defs/host_refs"
-          },
-          "stage_outcome": {
-            "allOf": [
-              {
-                "$ref": "#/$defs/stage_outcome"
-              },
-              {
-                "properties": {
-                  "kind": {
-                    "const": "typed_blocker"
-                  },
-                  "stage_transition_allowed": {
-                    "const": false
-                  }
-                }
-              }
-            ]
-          },
-          "owner_receipt": {
-            "type": "null"
-          },
-          "route_back": {
-            "type": "null"
-          },
-          "typed_blocker": {
-            "$ref": "#/$defs/typed_blocker"
-          },
-          "human_gate": {
-            "type": "null"
-          },
-          "quality_debt": {
-            "type": "null"
-          },
-          "error": {
-            "type": "null"
-          }
-        }
-      }
+      "$ref": "#/$defs/typed_blocker_result"
     },
     {
-      "if": {
-        "properties": {
-          "status": {
-            "const": "human_gate"
-          }
-        },
-        "required": [
-          "status"
-        ]
-      },
-      "then": {
-        "properties": {
-          "mission_identity": {
-            "$ref": "#/$defs/mission_identity"
-          },
-          "host_refs": {
-            "$ref": "#/$defs/host_refs"
-          },
-          "stage_outcome": {
-            "allOf": [
-              {
-                "$ref": "#/$defs/stage_outcome"
-              },
-              {
-                "properties": {
-                  "kind": {
-                    "const": "human_gate"
-                  },
-                  "stage_transition_allowed": {
-                    "const": false
-                  }
-                }
-              }
-            ]
-          },
-          "owner_receipt": {
-            "type": "null"
-          },
-          "route_back": {
-            "type": "null"
-          },
-          "typed_blocker": {
-            "type": "null"
-          },
-          "human_gate": {
-            "$ref": "#/$defs/human_gate"
-          },
-          "quality_debt": {
-            "type": "null"
-          },
-          "error": {
-            "type": "null"
-          }
-        }
-      }
+      "$ref": "#/$defs/human_gate_result"
     },
     {
-      "if": {
-        "properties": {
-          "status": {
-            "const": "invalid_host_input"
-          }
-        },
-        "required": [
-          "status"
-        ]
-      },
-      "then": {
-        "properties": {
-          "mission_identity": {
-            "type": "null"
-          },
-          "host_refs": {
-            "type": "null"
-          },
-          "stage_outcome": {
-            "allOf": [
-              {
-                "$ref": "#/$defs/stage_outcome"
-              },
-              {
-                "properties": {
-                  "kind": {
-                    "const": "invalid_host_input"
-                  },
-                  "stage_transition_allowed": {
-                    "const": false
-                  }
-                }
-              }
-            ]
-          },
-          "owner_receipt": {
-            "type": "null"
-          },
-          "route_back": {
-            "type": "null"
-          },
-          "typed_blocker": {
-            "type": "null"
-          },
-          "human_gate": {
-            "type": "null"
-          },
-          "quality_debt": {
-            "type": "null"
-          },
-          "error": {
-            "$ref": "#/$defs/error"
-          }
-        }
-      }
+      "$ref": "#/$defs/invalid_host_input_result"
     }
   ],
   "$defs": {
     "non_empty_text": {
       "type": "string",
-      "minLength": 1
+      "minLength": 1,
+      "pattern": ".*\\S.*"
     },
-    "normalized_sha256": {
+    "sha256": {
       "type": "string",
       "pattern": "^sha256:[0-9a-f]{64}$"
+    },
+    "text_array": {
+      "type": "array",
+      "uniqueItems": true,
+      "items": {
+        "$ref": "#/$defs/non_empty_text"
+      }
     },
     "typed_ref": {
       "type": "object",
@@ -493,31 +191,53 @@
       ],
       "properties": {
         "kind": {
-          "enum": [
-            "opl_stage_run",
-            "opl_stage_attempt",
-            "opl_action_output",
-            "mas_stage_goal",
-            "mas_artifact",
-            "mas_evidence",
-            "mas_negative_result",
-            "mas_failed_path",
-            "mas_artifact_lineage",
-            "mas_reproducibility",
-            "mas_source_readiness_receipt",
-            "mas_claim_boundary",
-            "mas_reviewer_receipt",
-            "mas_quality_rubric",
-            "mas_review_defect",
-            "mas_gate_evidence"
-          ]
+          "$ref": "#/$defs/non_empty_text"
         },
         "ref": {
           "$ref": "#/$defs/non_empty_text"
         },
         "sha256": {
-          "$ref": "#/$defs/normalized_sha256"
+          "$ref": "#/$defs/sha256"
         }
+      }
+    },
+    "exact_ref": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "kind",
+        "ref",
+        "size_bytes",
+        "sha256"
+      ],
+      "properties": {
+        "kind": {
+          "$ref": "#/$defs/non_empty_text"
+        },
+        "ref": {
+          "$ref": "#/$defs/non_empty_text"
+        },
+        "size_bytes": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "sha256": {
+          "$ref": "#/$defs/sha256"
+        }
+      }
+    },
+    "typed_ref_array": {
+      "type": "array",
+      "uniqueItems": true,
+      "items": {
+        "$ref": "#/$defs/typed_ref"
+      }
+    },
+    "exact_ref_array": {
+      "type": "array",
+      "uniqueItems": true,
+      "items": {
+        "$ref": "#/$defs/exact_ref"
       }
     },
     "mission_identity": {
@@ -564,7 +284,39 @@
           "$ref": "#/$defs/typed_ref"
         },
         "output_ref": {
-          "$ref": "#/$defs/typed_ref"
+          "$ref": "#/$defs/exact_ref"
+        }
+      }
+    },
+    "generation_identity": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "generation_id",
+        "manifest_scope",
+        "generation_manifest_ref",
+        "review_authority_epoch",
+        "review_request_ref"
+      ],
+      "properties": {
+        "generation_id": {
+          "$ref": "#/$defs/non_empty_text"
+        },
+        "manifest_scope": {
+          "enum": [
+            "analysis_generation",
+            "manuscript_generation",
+            "publication_generation"
+          ]
+        },
+        "generation_manifest_ref": {
+          "$ref": "#/$defs/exact_ref"
+        },
+        "review_authority_epoch": {
+          "$ref": "#/$defs/non_empty_text"
+        },
+        "review_request_ref": {
+          "$ref": "#/$defs/exact_ref"
         }
       }
     },
@@ -599,11 +351,96 @@
         }
       }
     },
-    "typed_ref_array": {
-      "type": "array",
-      "uniqueItems": true,
-      "items": {
-        "$ref": "#/$defs/typed_ref"
+    "claim_scope": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "claim_classes",
+        "claim_ids",
+        "permitted_sections",
+        "required_disclosures",
+        "prohibited_claims",
+        "sensitivity_only",
+        "supplementary_only",
+        "abstract_headline_allowed"
+      ],
+      "properties": {
+        "claim_classes": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": {
+            "enum": [
+              "primary",
+              "secondary",
+              "post_hoc",
+              "exploratory",
+              "descriptive",
+              "sensitivity",
+              "supplementary_only",
+              "provenance_only"
+            ]
+          }
+        },
+        "claim_ids": {
+          "$ref": "#/$defs/text_array"
+        },
+        "permitted_sections": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": {
+            "enum": [
+              "abstract",
+              "methods",
+              "results",
+              "discussion",
+              "table",
+              "figure",
+              "supplement",
+              "citation_ledger",
+              "numeric_trace"
+            ]
+          }
+        },
+        "required_disclosures": {
+          "$ref": "#/$defs/text_array"
+        },
+        "prohibited_claims": {
+          "$ref": "#/$defs/text_array"
+        },
+        "sensitivity_only": {
+          "type": "boolean"
+        },
+        "supplementary_only": {
+          "type": "boolean"
+        },
+        "abstract_headline_allowed": {
+          "type": "boolean"
+        }
+      }
+    },
+    "accepted_candidate_admission": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "candidate_id",
+        "candidate_ref",
+        "receipt_ref",
+        "claim_scope"
+      ],
+      "properties": {
+        "candidate_id": {
+          "$ref": "#/$defs/non_empty_text"
+        },
+        "candidate_ref": {
+          "$ref": "#/$defs/exact_ref"
+        },
+        "receipt_ref": {
+          "$ref": "#/$defs/exact_ref"
+        },
+        "claim_scope": {
+          "$ref": "#/$defs/claim_scope"
+        }
       }
     },
     "owner_receipt": {
@@ -615,7 +452,10 @@
         "owner",
         "mission_identity",
         "host_refs",
-        "candidate_artifact_refs",
+        "generation_identity",
+        "review_authority_epoch",
+        "review_currentness_receipt_ref",
+        "accepted_candidate_admissions",
         "medical_evidence_refs",
         "negative_result_refs",
         "failed_path_refs",
@@ -623,14 +463,13 @@
         "reproducibility_refs",
         "source_readiness_receipt_ref",
         "claim_boundary_ref",
-        "independent_reviewer_attempt_ref",
-        "independent_reviewer_receipt_ref",
-        "quality_rubric_ref",
+        "independent_review_receipt_refs",
         "verdict",
         "authorizes_stage_domain_completion",
         "authorizes_publication_or_submission",
         "requires_host_exact_byte_persistence",
         "receipt_id",
+        "receipt_size_bytes",
         "receipt_fingerprint"
       ],
       "properties": {
@@ -638,7 +477,7 @@
           "const": "mas_paper_mission_owner_receipt"
         },
         "schema_version": {
-          "const": 1
+          "const": 2
         },
         "owner": {
           "const": "MedAutoScience"
@@ -649,8 +488,22 @@
         "host_refs": {
           "$ref": "#/$defs/host_refs"
         },
-        "candidate_artifact_refs": {
-          "$ref": "#/$defs/typed_ref_array"
+        "generation_identity": {
+          "$ref": "#/$defs/generation_identity"
+        },
+        "review_authority_epoch": {
+          "$ref": "#/$defs/non_empty_text"
+        },
+        "review_currentness_receipt_ref": {
+          "$ref": "#/$defs/exact_ref"
+        },
+        "accepted_candidate_admissions": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": {
+            "$ref": "#/$defs/accepted_candidate_admission"
+          }
         },
         "medical_evidence_refs": {
           "$ref": "#/$defs/typed_ref_array"
@@ -673,14 +526,13 @@
         "claim_boundary_ref": {
           "$ref": "#/$defs/typed_ref"
         },
-        "independent_reviewer_attempt_ref": {
-          "$ref": "#/$defs/typed_ref"
-        },
-        "independent_reviewer_receipt_ref": {
-          "$ref": "#/$defs/typed_ref"
-        },
-        "quality_rubric_ref": {
-          "$ref": "#/$defs/typed_ref"
+        "independent_review_receipt_refs": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": {
+            "$ref": "#/$defs/exact_ref"
+          }
         },
         "verdict": {
           "const": "accepted_domain_delta"
@@ -698,8 +550,39 @@
           "type": "string",
           "pattern": "^mas-paper-mission-owner-receipt:[0-9a-f]{64}$"
         },
+        "receipt_size_bytes": {
+          "type": "integer",
+          "minimum": 1
+        },
         "receipt_fingerprint": {
-          "$ref": "#/$defs/normalized_sha256"
+          "$ref": "#/$defs/sha256"
+        }
+      }
+    },
+    "review_verdict": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "review_lane",
+        "verdict"
+      ],
+      "properties": {
+        "review_lane": {
+          "enum": [
+            "medical",
+            "statistical",
+            "reference",
+            "display",
+            "publication",
+            "exact_byte_package"
+          ]
+        },
+        "verdict": {
+          "enum": [
+            "passed",
+            "revision_required",
+            "rejected"
+          ]
         }
       }
     },
@@ -710,7 +593,8 @@
         "reason_code",
         "next_owner",
         "resume_condition",
-        "reviewer_verdict",
+        "review_verdicts",
+        "quality_debt_codes",
         "defect_refs",
         "repair_attempt_refs",
         "remaining_repair_attempts",
@@ -726,8 +610,15 @@
         "resume_condition": {
           "$ref": "#/$defs/non_empty_text"
         },
-        "reviewer_verdict": {
-          "$ref": "#/$defs/non_empty_text"
+        "review_verdicts": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": {
+            "$ref": "#/$defs/review_verdict"
+          }
+        },
+        "quality_debt_codes": {
+          "$ref": "#/$defs/text_array"
         },
         "defect_refs": {
           "$ref": "#/$defs/typed_ref_array"
@@ -775,7 +666,12 @@
           "$ref": "#/$defs/non_empty_text"
         },
         "evidence_refs": {
-          "$ref": "#/$defs/typed_ref_array"
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": {
+            "$ref": "#/$defs/typed_ref"
+          }
         },
         "next_owner": {
           "$ref": "#/$defs/non_empty_text"
@@ -811,7 +707,12 @@
           "$ref": "#/$defs/non_empty_text"
         },
         "evidence_refs": {
-          "$ref": "#/$defs/typed_ref_array"
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": {
+            "$ref": "#/$defs/typed_ref"
+          }
         },
         "next_owner": {
           "$ref": "#/$defs/non_empty_text"
@@ -832,7 +733,7 @@
       "additionalProperties": false,
       "required": [
         "reason_codes",
-        "reviewer_verdict",
+        "review_verdict",
         "defect_refs",
         "transition_allowed",
         "blocks_quality_publication_export_and_submission_claims",
@@ -847,8 +748,12 @@
             "$ref": "#/$defs/non_empty_text"
           }
         },
-        "reviewer_verdict": {
-          "$ref": "#/$defs/non_empty_text"
+        "review_verdict": {
+          "enum": [
+            "passed",
+            "revision_required",
+            "rejected"
+          ]
         },
         "defect_refs": {
           "$ref": "#/$defs/typed_ref_array"
@@ -905,10 +810,10 @@
           "const": "MedAutoScience"
         },
         "handler_role": {
-          "const": "validate_ai_first_domain_records_and_return_exact_authority_result"
+          "const": "validate_exact_candidate_and_review_receipts_and_return_owner_result"
         },
         "opl_role": {
-          "const": "inject_typed_refs_and_persist_exact_result_bytes"
+          "const": "verify_exact_ref_bytes_inject_typed_records_and_persist_exact_result_bytes"
         },
         "program_originates_medical_quality_verdict": {
           "const": false
@@ -947,6 +852,313 @@
           "const": false
         }
       }
+    },
+    "valid_result": {
+      "properties": {
+        "mission_identity": {
+          "$ref": "#/$defs/mission_identity"
+        },
+        "host_refs": {
+          "$ref": "#/$defs/host_refs"
+        },
+        "generation_identity": {
+          "$ref": "#/$defs/generation_identity"
+        },
+        "error": {
+          "type": "null"
+        }
+      },
+      "type": "object"
+    },
+    "owner_receipt_result": {
+      "allOf": [
+        {
+          "$ref": "#/$defs/valid_result"
+        },
+        {
+          "properties": {
+            "status": {
+              "const": "owner_receipt"
+            },
+            "stage_outcome": {
+              "allOf": [
+                {
+                  "$ref": "#/$defs/stage_outcome"
+                },
+                {
+                  "properties": {
+                    "kind": {
+                      "const": "completed"
+                    },
+                    "stage_transition_allowed": {
+                      "const": true
+                    }
+                  },
+                  "type": "object"
+                }
+              ]
+            },
+            "owner_receipt": {
+              "$ref": "#/$defs/owner_receipt"
+            },
+            "route_back": {
+              "type": "null"
+            },
+            "typed_blocker": {
+              "type": "null"
+            },
+            "human_gate": {
+              "type": "null"
+            },
+            "quality_debt": {
+              "type": "null"
+            }
+          },
+          "type": "object"
+        }
+      ]
+    },
+    "route_back_result": {
+      "allOf": [
+        {
+          "$ref": "#/$defs/valid_result"
+        },
+        {
+          "properties": {
+            "status": {
+              "const": "route_back"
+            },
+            "stage_outcome": {
+              "allOf": [
+                {
+                  "$ref": "#/$defs/stage_outcome"
+                },
+                {
+                  "properties": {
+                    "kind": {
+                      "const": "route_back"
+                    },
+                    "stage_transition_allowed": {
+                      "const": false
+                    }
+                  },
+                  "type": "object"
+                }
+              ]
+            },
+            "owner_receipt": {
+              "type": "null"
+            },
+            "route_back": {
+              "$ref": "#/$defs/route_back"
+            },
+            "typed_blocker": {
+              "type": "null"
+            },
+            "human_gate": {
+              "type": "null"
+            },
+            "quality_debt": {
+              "type": "null"
+            }
+          },
+          "type": "object"
+        }
+      ]
+    },
+    "quality_debt_result": {
+      "allOf": [
+        {
+          "$ref": "#/$defs/valid_result"
+        },
+        {
+          "properties": {
+            "status": {
+              "const": "completed_with_quality_debt"
+            },
+            "stage_outcome": {
+              "allOf": [
+                {
+                  "$ref": "#/$defs/stage_outcome"
+                },
+                {
+                  "properties": {
+                    "kind": {
+                      "const": "completed_with_quality_debt"
+                    },
+                    "stage_transition_allowed": {
+                      "const": true
+                    }
+                  },
+                  "type": "object"
+                }
+              ]
+            },
+            "owner_receipt": {
+              "type": "null"
+            },
+            "typed_blocker": {
+              "type": "null"
+            },
+            "human_gate": {
+              "type": "null"
+            },
+            "quality_debt": {
+              "$ref": "#/$defs/quality_debt"
+            }
+          },
+          "type": "object"
+        }
+      ]
+    },
+    "typed_blocker_result": {
+      "allOf": [
+        {
+          "$ref": "#/$defs/valid_result"
+        },
+        {
+          "properties": {
+            "status": {
+              "const": "typed_blocker"
+            },
+            "stage_outcome": {
+              "allOf": [
+                {
+                  "$ref": "#/$defs/stage_outcome"
+                },
+                {
+                  "properties": {
+                    "kind": {
+                      "const": "typed_blocker"
+                    },
+                    "stage_transition_allowed": {
+                      "const": false
+                    }
+                  },
+                  "type": "object"
+                }
+              ]
+            },
+            "owner_receipt": {
+              "type": "null"
+            },
+            "route_back": {
+              "type": "null"
+            },
+            "typed_blocker": {
+              "$ref": "#/$defs/typed_blocker"
+            },
+            "human_gate": {
+              "type": "null"
+            },
+            "quality_debt": {
+              "type": "null"
+            }
+          },
+          "type": "object"
+        }
+      ]
+    },
+    "human_gate_result": {
+      "allOf": [
+        {
+          "$ref": "#/$defs/valid_result"
+        },
+        {
+          "properties": {
+            "status": {
+              "const": "human_gate"
+            },
+            "stage_outcome": {
+              "allOf": [
+                {
+                  "$ref": "#/$defs/stage_outcome"
+                },
+                {
+                  "properties": {
+                    "kind": {
+                      "const": "human_gate"
+                    },
+                    "stage_transition_allowed": {
+                      "const": false
+                    }
+                  },
+                  "type": "object"
+                }
+              ]
+            },
+            "owner_receipt": {
+              "type": "null"
+            },
+            "route_back": {
+              "type": "null"
+            },
+            "typed_blocker": {
+              "type": "null"
+            },
+            "human_gate": {
+              "$ref": "#/$defs/human_gate"
+            },
+            "quality_debt": {
+              "type": "null"
+            }
+          },
+          "type": "object"
+        }
+      ]
+    },
+    "invalid_host_input_result": {
+      "properties": {
+        "status": {
+          "const": "invalid_host_input"
+        },
+        "mission_identity": {
+          "type": "null"
+        },
+        "host_refs": {
+          "type": "null"
+        },
+        "generation_identity": {
+          "type": "null"
+        },
+        "stage_outcome": {
+          "allOf": [
+            {
+              "$ref": "#/$defs/stage_outcome"
+            },
+            {
+              "properties": {
+                "kind": {
+                  "const": "invalid_host_input"
+                },
+                "stage_transition_allowed": {
+                  "const": false
+                }
+              },
+              "type": "object"
+            }
+          ]
+        },
+        "owner_receipt": {
+          "type": "null"
+        },
+        "route_back": {
+          "type": "null"
+        },
+        "typed_blocker": {
+          "type": "null"
+        },
+        "human_gate": {
+          "type": "null"
+        },
+        "quality_debt": {
+          "type": "null"
+        },
+        "error": {
+          "$ref": "#/$defs/error"
+        }
+      },
+      "type": "object"
     }
   }
 }

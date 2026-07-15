@@ -11,6 +11,14 @@
       }
     },
     {
+      "handler_id": "mas.candidate-admission-authority-evaluate",
+      "binding": {
+        "kind": "python_callable",
+        "module": "med_autoscience.authority_handlers.candidate_admission",
+        "callable": "evaluate_candidate_admission_authority"
+      }
+    },
+    {
       "handler_id": "mas.agent-lab-self-evolution-closeout",
       "binding": {
         "kind": "python_callable",

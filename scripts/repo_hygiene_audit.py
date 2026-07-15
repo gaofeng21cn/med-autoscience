@@ -88,6 +88,9 @@ ENTRYPOINT_TOKEN_DENYLIST = {
 EXPECTED_STANDARD_AGENT_SOURCE_FILES = frozenset(
     {
         "src/med_autoscience/__init__.py",
+        "src/med_autoscience/authority_handlers/_generation_manifest.py",
+        "src/med_autoscience/authority_handlers/_record_validation.py",
+        "src/med_autoscience/authority_handlers/candidate_admission.py",
         "src/med_autoscience/authority_handlers/paper_mission.py",
         "src/med_autoscience/authority_handlers/self_evolution_closeout.py",
         "src/med_autoscience/styles/__init__.py",

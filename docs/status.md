@@ -15,7 +15,7 @@ MAS 不再持有私有 scheduler、runner、queue、session store、lifecycle/SQ
 StateIndex、status/workbench、CLI/MCP/product wrapper、provider/package transport、
 NextAction、PaperRecovery、stage terminalizer 或私有 quality validator。通用能力由
 OPL Pack / Connect / Runway / Ledger / Workspace / Console 提供；医学专业能力由
-declarative pack、ScholarSkills、独立 Review 与两个最小 authority functions 提供，未作
+declarative pack、ScholarSkills、独立 Review 与三个最小 authority functions 提供，未作
 功能降级。
 
 这项结论只覆盖结构和 source closure，不等于 live runtime、paper progress、
@@ -26,15 +26,31 @@ publication/submission ready 或 production ready。
 | Surface | Current state |
 | --- | --- |
 | Identity | canonical agent/package id `mas`；machine domain id `medautoscience`；`med-autoscience` 只作 repo/package/plugin locator |
-| Package | immutable SemVer `0.2.8`；`mas-scholar-skills` exact lock `0.2.3`（range `>=0.2.0 <0.3.0`）为硬依赖，并提供 reference verification 与 scientific search adapter modules；生命周期统一归 `opl packages` |
+| Package | immutable SemVer `0.2.9`；`mas-scholar-skills` exact lock `0.2.3`（range `>=0.2.0 <0.3.0`）为硬依赖，并提供 reference verification 与 scientific search adapter modules；生命周期统一归 `opl packages` |
 | Declarative pack | `agent/` 持有 primary skill、六个 Stage、prompts、knowledge 与 quality gates；plugin skill 是字节一致的分发镜像 |
-| Action catalog | `family-action-catalog.v2`：六个公开 Stage action + 一个无用户 surface 的内部 authority action |
+| Action catalog | `family-action-catalog.v2`：六个公开 Stage action + 两个无用户 surface 的内部 authority actions |
 | Generated surfaces | CLI、MCP、Skill、product-entry、status、workbench 与 default domain-handler surface 全由 OPL 生成或托管 |
 | Runtime | StageRun、Attempt、Temporal、session、retry、StateIndex、storage/lifecycle、observability 与 transition materialization 全归 OPL |
 | Route owner | decisive Codex Attempt 决定领域 route；OPL StageRun controller 只校验并物化 transition |
 | Provider/resource | OPL Connect / Pack 生成 exact-path、digest-bound receipt；MAS 只消费 receipt 并作医学判断 |
-| Retained code | `evaluate_paper_mission_authority` 与 `evaluate_agent_lab_self_evolution_closeout` 是仅有的非声明式 authority functions；不持有 runtime、session、lifecycle 或 transition 权限 |
-| Source morphology | `src/med_autoscience/` 只保留 package init、authority handler、packaged route resource 与 CSL assets |
+| Retained code | `evaluate_candidate_admission_authority`、`evaluate_paper_mission_authority` 与 `evaluate_agent_lab_self_evolution_closeout` 是仅有的非声明式 authority functions；不持有 runtime、session、lifecycle 或 transition 权限 |
+| Source morphology | `src/med_autoscience/` 只保留 package init、三个 authority handlers、共享纯校验 helper 与 CSL assets |
+
+## 0.2.9 validator Release Set 边界
+
+`mas-validator-0.2.9` 只支持 exact-byte domain validation：generation manifest、
+candidate admission、paper mission 与 Stage minimum-scope 记录必须在 ref、size、SHA、
+generation、receipt inventory 和 typed verdict 上一致。机器 receipt 见
+`contracts/mas_validator_release_set_receipt.json`，canonical source ref 为
+`refs/tags/v0.2.9`。
+
+该 Release Set 不是独立 trust root。自洽 hash 只能证明输入记录内部字节一致，不能证明
+issuer 身份；若恶意 host 同时伪造完整 adjudicator、currentness、review 与 owner-ledger
+记录，repo-local validator 本身不能识别。正式消费必须由 OPL Framework 提供 managed
+authority-attempt 与 owner-ledger provenance gate，缺失时 fail closed。因此 package
+validator ready 不等于 authoring、launch、publication 或 submission clearance；DM003
+在 platform provenance gate 和 installed managed-source currentness 完成前仍不得启动
+authoring。
 
 ## 结构验收
 
@@ -73,6 +89,8 @@ State: `partial_deferred`
 - OPL StageRun/Attempt same-identity readback 与 provider long-soak；
 - 真实 paper line 的 owner receipt、stable typed blocker、human gate 或 artifact semantic delta；
 - independent reviewer/auditor receipt 与 publication owner verdict；
+- managed authority-attempt / owner-ledger provenance gate，证明 receipt issuer 不是
+  developer checkout 或 host 自行声明；
 - submission/current-package authority；
 - restart/retry/dead-letter 与 production no-forbidden-write evidence。
 

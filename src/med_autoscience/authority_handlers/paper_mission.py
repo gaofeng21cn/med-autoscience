@@ -1,16 +1,37 @@
-"""Consume an OPL-hosted paper-mission result without owning transport or I/O."""
+"""Evaluate exact MAS paper-mission records without transport or I/O."""
 
 from __future__ import annotations
 
-import hashlib
-import json
-from collections.abc import Mapping, Sequence
+from collections.abc import Mapping
 from typing import Any
+
+from ._generation_manifest import (
+    REVIEW_LANES_BY_SCOPE,
+    normalize_generation_manifest,
+    require_stage_scope,
+    source_input_digest,
+)
+from ._record_validation import (
+    RequestShapeError,
+    canonical_json_bytes,
+    dedupe,
+    enum_text,
+    exact_keys,
+    fingerprint,
+    integer,
+    mapping,
+    optional_text,
+    sequence,
+    sha256,
+    text,
+    text_list,
+)
+from .candidate_admission import normalize_candidate_admission_receipt
 
 
 REQUEST_KIND = "mas_paper_mission_authority_request"
 RESULT_KIND = "mas_paper_mission_authority_result"
-SCHEMA_VERSION = 1
+SCHEMA_VERSION = 2
 
 _REF_KINDS = frozenset(
     {
@@ -27,9 +48,11 @@ _REF_KINDS = frozenset(
         "mas_source_readiness_receipt",
         "mas_claim_boundary",
         "mas_reviewer_receipt",
-        "mas_quality_rubric",
         "mas_review_defect",
         "mas_gate_evidence",
+        "mas_candidate_admission_receipt",
+        "mas_generation_manifest",
+        "mas_review_currentness_receipt",
     }
 )
 _HARD_GATE_KINDS = frozenset(
@@ -44,8 +67,8 @@ _HARD_GATE_KINDS = frozenset(
 )
 _AUTHORITY_BOUNDARY = {
     "owner": "MedAutoScience",
-    "handler_role": "validate_ai_first_domain_records_and_return_exact_authority_result",
-    "opl_role": "inject_typed_refs_and_persist_exact_result_bytes",
+    "handler_role": "validate_exact_candidate_and_review_receipts_and_return_owner_result",
+    "opl_role": "verify_exact_ref_bytes_inject_typed_records_and_persist_exact_result_bytes",
     "program_originates_medical_quality_verdict": False,
     "host_completion_counts_as_domain_completion": False,
     "selects_next_stage": False,
@@ -61,12 +84,8 @@ _AUTHORITY_BOUNDARY = {
 }
 
 
-class RequestShapeError(ValueError):
-    """Raised when a host-injected authority request is not exact and typed."""
-
-
 def evaluate_paper_mission_authority(request: Mapping[str, Any]) -> dict[str, Any]:
-    """Return a deterministic MAS authority result over host-injected refs."""
+    """Return a deterministic owner result over host-injected exact records."""
 
     try:
         normalized = _normalize_request(request)
@@ -75,15 +94,14 @@ def evaluate_paper_mission_authority(request: Mapping[str, Any]) -> dict[str, An
         return _invalid_host_input(str(error))
 
     hard_gate = normalized["hard_gate"]
-    gate_kind = hard_gate["kind"]
-    if gate_kind == "human_decision":
+    if hard_gate["kind"] == "human_decision":
         return _finalize(
             normalized,
             status="human_gate",
             stage_outcome=_stage_outcome("human_gate", transition_allowed=False),
             human_gate=_human_gate(normalized),
         )
-    if gate_kind in _HARD_GATE_KINDS:
+    if hard_gate["kind"] in _HARD_GATE_KINDS:
         return _finalize(
             normalized,
             status="typed_blocker",
@@ -93,47 +111,46 @@ def evaluate_paper_mission_authority(request: Mapping[str, Any]) -> dict[str, An
 
     evidence = normalized["medical_evidence"]
     if evidence["source_readiness_status"] != "ready":
-        return _finalize(
+        return _route_result(
             normalized,
-            status="route_back",
-            stage_outcome=_stage_outcome("route_back", transition_allowed=False),
-            route_back=_route_back(
-                normalized,
-                reason_code="source_readiness_record_required",
-                next_owner="mas_source_readiness_owner",
-                resume_condition="provide a current MAS source-readiness receipt",
-            ),
+            reason_code="source_readiness_record_required",
+            next_owner="mas_source_readiness_owner",
+            resume_condition="provide a current MAS source-readiness receipt",
         )
     if evidence["claim_evidence_status"] != "aligned":
-        return _finalize(
+        return _route_result(
             normalized,
-            status="route_back",
-            stage_outcome=_stage_outcome("route_back", transition_allowed=False),
-            route_back=_route_back(
-                normalized,
-                reason_code="claim_evidence_alignment_required",
-                next_owner="mission_executor",
-                resume_condition="repair claim boundaries against the accepted medical evidence refs",
-            ),
+            reason_code="claim_evidence_alignment_required",
+            next_owner="mission_executor",
+            resume_condition="repair claim boundaries against accepted evidence",
         )
     if not evidence["evidence_refs"] and not evidence["negative_result_refs"]:
-        return _finalize(
+        return _route_result(
             normalized,
-            status="route_back",
-            stage_outcome=_stage_outcome("route_back", transition_allowed=False),
-            route_back=_route_back(
-                normalized,
-                reason_code="medical_evidence_record_required",
-                next_owner="mission_executor",
-                resume_condition=(
-                    "provide at least one accepted evidence or negative-result ref "
-                    "before requesting MAS owner acceptance"
-                ),
-            ),
+            reason_code="medical_evidence_record_required",
+            next_owner="mission_executor",
+            resume_condition="provide accepted evidence or a negative-result record",
+        )
+
+    # Admission is a pre-authoring gate and is evaluated before hosted output state.
+    candidate_issue = _candidate_admission_issue(normalized)
+    if candidate_issue is not None:
+        return _route_result(
+            normalized,
+            reason_code=candidate_issue[0],
+            next_owner="mas_candidate_admission_owner",
+            resume_condition=candidate_issue[1],
         )
 
     host = normalized["host_context"]
     if host["output_state"] != "consumable" or not evidence["candidate_artifact_refs"]:
+        if normalized["mission"]["stage_id"] == "finalize_and_publication_handoff":
+            return _route_result(
+                normalized,
+                reason_code="consumable_output_missing",
+                next_owner="mission_executor",
+                resume_condition="produce the complete publication-generation output",
+            )
         route_back = _route_back(
             normalized,
             reason_code="consumable_output_missing",
@@ -144,52 +161,41 @@ def evaluate_paper_mission_authority(request: Mapping[str, Any]) -> dict[str, An
             normalized,
             status="completed_with_quality_debt",
             stage_outcome=_stage_outcome(
-                "completed_with_quality_debt",
-                transition_allowed=True,
+                "completed_with_quality_debt", transition_allowed=True
             ),
             route_back=route_back,
             quality_debt=_quality_debt(
-                normalized,
-                reason_codes=["consumable_output_missing"],
+                normalized, reason_codes=["consumable_output_missing"]
             ),
         )
 
-    review = normalized["independent_review"]
-    repair = normalized["repair_state"]
-    if review["status"] in {"not_run", "unavailable"}:
-        route_back = _route_back(
+    review_issue = _review_currentness_issue(normalized)
+    if review_issue is not None:
+        return _route_result(
             normalized,
-            reason_code="independent_reviewer_record_required",
+            reason_code=review_issue[0],
             next_owner="independent_reviewer",
-            resume_condition="run an independent reviewer invocation over the exact output digest",
-        )
-        return _finalize(
-            normalized,
-            status="completed_with_quality_debt",
-            stage_outcome=_stage_outcome(
-                "completed_with_quality_debt",
-                transition_allowed=True,
-            ),
-            route_back=route_back,
-            quality_debt=_quality_debt(
-                normalized,
-                reason_codes=["independent_reviewer_record_required"],
-            ),
+            resume_condition=review_issue[1],
         )
 
-    if review["status"] in {"revision_required", "rejected"}:
+    review_status = _aggregate_review_status(normalized)
+    repair = normalized["repair_state"]
+    if review_status in {"revision_required", "rejected"}:
         reason_code = (
             "independent_review_rejected_output"
-            if review["status"] == "rejected"
+            if review_status == "rejected"
             else "independent_review_requires_repair"
         )
         route_back = _route_back(
             normalized,
             reason_code=reason_code,
             next_owner="mission_repairer",
-            resume_condition="repair the exact reviewed output and obtain a fresh independent review",
+            resume_condition="repair the exact manifest and obtain fresh review receipts",
         )
-        if repair["attempts_used"] < repair["max_attempts"]:
+        if (
+            repair["attempts_used"] < repair["max_attempts"]
+            or normalized["mission"]["stage_id"] == "finalize_and_publication_handoff"
+        ):
             return _finalize(
                 normalized,
                 status="route_back",
@@ -200,8 +206,7 @@ def evaluate_paper_mission_authority(request: Mapping[str, Any]) -> dict[str, An
             normalized,
             status="completed_with_quality_debt",
             stage_outcome=_stage_outcome(
-                "completed_with_quality_debt",
-                transition_allowed=True,
+                "completed_with_quality_debt", transition_allowed=True
             ),
             route_back=route_back,
             quality_debt=_quality_debt(
@@ -210,21 +215,25 @@ def evaluate_paper_mission_authority(request: Mapping[str, Any]) -> dict[str, An
             ),
         )
 
-    open_quality_debt = list(review["quality_debt_codes"])
-    if review["defect_refs"]:
-        open_quality_debt.append("independent_review_open_defects")
-    if open_quality_debt:
+    debt_codes, defect_refs = _review_quality_debt(normalized)
+    if debt_codes or defect_refs:
+        if normalized["mission"]["stage_id"] == "finalize_and_publication_handoff":
+            return _route_result(
+                normalized,
+                reason_code="independent_review_quality_debt_open",
+                next_owner="mission_repairer",
+                resume_condition="close every review defect and obtain fresh passed receipts",
+            )
+        reason_codes = [*debt_codes]
+        if defect_refs:
+            reason_codes.append("independent_review_open_defects")
         return _finalize(
             normalized,
             status="completed_with_quality_debt",
             stage_outcome=_stage_outcome(
-                "completed_with_quality_debt",
-                transition_allowed=True,
+                "completed_with_quality_debt", transition_allowed=True
             ),
-            quality_debt=_quality_debt(
-                normalized,
-                reason_codes=_dedupe(open_quality_debt),
-            ),
+            quality_debt=_quality_debt(normalized, reason_codes=dedupe(reason_codes)),
         )
 
     return _finalize(
@@ -236,8 +245,8 @@ def evaluate_paper_mission_authority(request: Mapping[str, Any]) -> dict[str, An
 
 
 def _normalize_request(request: Mapping[str, Any]) -> dict[str, Any]:
-    payload = _mapping(request, "request")
-    _exact_keys(
+    payload = mapping(request, "request")
+    exact_keys(
         payload,
         {
             "surface_kind",
@@ -245,7 +254,10 @@ def _normalize_request(request: Mapping[str, Any]) -> dict[str, Any]:
             "host_context",
             "mission",
             "medical_evidence",
-            "independent_review",
+            "generation_manifest",
+            "generation_manifest_ref",
+            "candidate_admissions",
+            "review_authority",
             "repair_state",
             "hard_gate",
         },
@@ -256,72 +268,104 @@ def _normalize_request(request: Mapping[str, Any]) -> dict[str, Any]:
     if payload.get("schema_version") != SCHEMA_VERSION or isinstance(
         payload.get("schema_version"), bool
     ):
-        raise RequestShapeError("schema_version must be integer 1")
-    return {
+        raise RequestShapeError("schema_version must be integer 2")
+
+    mission = _normalize_mission(payload.get("mission"))
+    manifest = normalize_generation_manifest(payload.get("generation_manifest"))
+    require_stage_scope(mission["stage_id"], manifest["manifest_scope"])
+    manifest_ref = _exact_ref(
+        payload.get("generation_manifest_ref"),
+        "generation_manifest_ref",
+        "mas_generation_manifest",
+    )
+    if (
+        manifest_ref["sha256"] != manifest["generation_manifest_sha256"]
+        or manifest_ref["size_bytes"] != manifest["generation_manifest_size_bytes"]
+    ):
+        raise RequestShapeError(
+            "generation_manifest_ref size/hash does not match canonical manifest"
+        )
+    normalized = {
         "surface_kind": REQUEST_KIND,
         "schema_version": SCHEMA_VERSION,
         "host_context": _normalize_host_context(payload.get("host_context")),
-        "mission": _normalize_mission(payload.get("mission")),
-        "medical_evidence": _normalize_medical_evidence(payload.get("medical_evidence")),
-        "independent_review": _normalize_review(payload.get("independent_review")),
+        "mission": mission,
+        "medical_evidence": _normalize_medical_evidence(
+            payload.get("medical_evidence")
+        ),
+        "generation_manifest": manifest,
+        "generation_manifest_ref": manifest_ref,
+        "candidate_admissions": _normalize_candidate_admissions(
+            payload.get("candidate_admissions")
+        ),
+        "review_authority": _normalize_review_authority(
+            payload.get("review_authority")
+        ),
         "repair_state": _normalize_repair(payload.get("repair_state")),
         "hard_gate": _normalize_hard_gate(payload.get("hard_gate")),
     }
+    _validate_review_currentness_receipt_ref(normalized)
+    return normalized
 
 
 def _normalize_host_context(value: Any) -> dict[str, Any]:
-    payload = _mapping(value, "host_context")
-    _exact_keys(
+    field = "host_context"
+    payload = mapping(value, field)
+    exact_keys(
         payload,
         {"action_id", "run_ref", "producer_attempt_ref", "output_ref", "output_state"},
-        "host_context",
+        field,
     )
     if payload.get("action_id") != "paper_mission":
         raise RequestShapeError("host_context.action_id must be paper_mission")
     return {
         "action_id": "paper_mission",
-        "run_ref": _typed_ref(payload.get("run_ref"), "host_context.run_ref", "opl_stage_run"),
+        "run_ref": _typed_ref(
+            payload.get("run_ref"), f"{field}.run_ref", "opl_stage_run"
+        ),
         "producer_attempt_ref": _typed_ref(
             payload.get("producer_attempt_ref"),
-            "host_context.producer_attempt_ref",
+            f"{field}.producer_attempt_ref",
             "opl_stage_attempt",
         ),
-        "output_ref": _typed_ref(
+        "output_ref": _exact_ref(
             payload.get("output_ref"),
-            "host_context.output_ref",
+            f"{field}.output_ref",
             "opl_action_output",
         ),
-        "output_state": _enum_text(
+        "output_state": enum_text(
             payload.get("output_state"),
-            "host_context.output_state",
+            f"{field}.output_state",
             {"consumable", "no_output", "damaged", "failed"},
         ),
     }
 
 
 def _normalize_mission(value: Any) -> dict[str, Any]:
-    payload = _mapping(value, "mission")
-    _exact_keys(
+    field = "mission"
+    payload = mapping(value, field)
+    exact_keys(
         payload,
         {"program_id", "study_id", "mission_id", "stage_id", "stage_goal_ref"},
-        "mission",
+        field,
     )
     return {
-        "program_id": _text(payload.get("program_id"), "mission.program_id"),
-        "study_id": _text(payload.get("study_id"), "mission.study_id"),
-        "mission_id": _text(payload.get("mission_id"), "mission.mission_id"),
-        "stage_id": _text(payload.get("stage_id"), "mission.stage_id"),
+        "program_id": text(payload.get("program_id"), f"{field}.program_id"),
+        "study_id": text(payload.get("study_id"), f"{field}.study_id"),
+        "mission_id": text(payload.get("mission_id"), f"{field}.mission_id"),
+        "stage_id": text(payload.get("stage_id"), f"{field}.stage_id"),
         "stage_goal_ref": _typed_ref(
             payload.get("stage_goal_ref"),
-            "mission.stage_goal_ref",
+            f"{field}.stage_goal_ref",
             "mas_stage_goal",
         ),
     }
 
 
 def _normalize_medical_evidence(value: Any) -> dict[str, Any]:
-    payload = _mapping(value, "medical_evidence")
-    _exact_keys(
+    field = "medical_evidence"
+    payload = mapping(value, field)
+    exact_keys(
         payload,
         {
             "source_readiness_status",
@@ -335,135 +379,240 @@ def _normalize_medical_evidence(value: Any) -> dict[str, Any]:
             "artifact_lineage_refs",
             "reproducibility_refs",
         },
-        "medical_evidence",
+        field,
     )
-    source_status = _enum_text(
+    source_status = enum_text(
         payload.get("source_readiness_status"),
-        "medical_evidence.source_readiness_status",
+        f"{field}.source_readiness_status",
         {"ready", "not_ready", "unknown"},
     )
     source_ref = _optional_typed_ref(
         payload.get("source_readiness_receipt_ref"),
-        "medical_evidence.source_readiness_receipt_ref",
+        f"{field}.source_readiness_receipt_ref",
         "mas_source_readiness_receipt",
     )
     if source_status == "ready" and source_ref is None:
-        raise RequestShapeError("ready source status requires source_readiness_receipt_ref")
+        raise RequestShapeError(
+            "ready source status requires source_readiness_receipt_ref"
+        )
     return {
         "source_readiness_status": source_status,
         "source_readiness_receipt_ref": source_ref,
-        "claim_evidence_status": _enum_text(
+        "claim_evidence_status": enum_text(
             payload.get("claim_evidence_status"),
-            "medical_evidence.claim_evidence_status",
+            f"{field}.claim_evidence_status",
             {"aligned", "revision_required", "unsafe", "unknown"},
         ),
         "claim_boundary_ref": _typed_ref(
             payload.get("claim_boundary_ref"),
-            "medical_evidence.claim_boundary_ref",
+            f"{field}.claim_boundary_ref",
             "mas_claim_boundary",
         ),
         "candidate_artifact_refs": _typed_ref_list(
             payload.get("candidate_artifact_refs"),
-            "medical_evidence.candidate_artifact_refs",
+            f"{field}.candidate_artifact_refs",
             "mas_artifact",
         ),
         "evidence_refs": _typed_ref_list(
-            payload.get("evidence_refs"),
-            "medical_evidence.evidence_refs",
-            "mas_evidence",
+            payload.get("evidence_refs"), f"{field}.evidence_refs", "mas_evidence"
         ),
         "negative_result_refs": _typed_ref_list(
             payload.get("negative_result_refs"),
-            "medical_evidence.negative_result_refs",
+            f"{field}.negative_result_refs",
             "mas_negative_result",
         ),
         "failed_path_refs": _typed_ref_list(
             payload.get("failed_path_refs"),
-            "medical_evidence.failed_path_refs",
+            f"{field}.failed_path_refs",
             "mas_failed_path",
         ),
         "artifact_lineage_refs": _typed_ref_list(
             payload.get("artifact_lineage_refs"),
-            "medical_evidence.artifact_lineage_refs",
+            f"{field}.artifact_lineage_refs",
             "mas_artifact_lineage",
         ),
         "reproducibility_refs": _typed_ref_list(
             payload.get("reproducibility_refs"),
-            "medical_evidence.reproducibility_refs",
+            f"{field}.reproducibility_refs",
             "mas_reproducibility",
         ),
     }
 
 
-def _normalize_review(value: Any) -> dict[str, Any]:
-    payload = _mapping(value, "independent_review")
-    _exact_keys(
+def _normalize_candidate_admissions(value: Any) -> list[dict[str, Any]]:
+    field = "candidate_admissions"
+    admissions: list[dict[str, Any]] = []
+    for index, item in enumerate(sequence(value, field)):
+        item_field = f"{field}[{index}]"
+        payload = mapping(item, item_field)
+        exact_keys(payload, {"receipt_ref", "receipt"}, item_field)
+        receipt_ref = _exact_ref(
+            payload.get("receipt_ref"),
+            f"{item_field}.receipt_ref",
+            "mas_candidate_admission_receipt",
+        )
+        receipt = normalize_candidate_admission_receipt(
+            payload.get("receipt"), f"{item_field}.receipt"
+        )
+        if (
+            receipt_ref["ref"] != receipt["receipt_id"]
+            or receipt_ref["size_bytes"] != receipt["receipt_size_bytes"]
+            or receipt_ref["sha256"] != receipt["receipt_fingerprint"]
+        ):
+            raise RequestShapeError(
+                f"{item_field}.receipt_ref does not match canonical receipt bytes"
+            )
+        admissions.append({"receipt_ref": receipt_ref, "receipt": receipt})
+    identities = [
+        (item["receipt_ref"]["ref"], item["receipt_ref"]["sha256"])
+        for item in admissions
+    ]
+    candidates = [item["receipt"]["candidate_id"] for item in admissions]
+    if len(identities) != len(set(identities)) or len(candidates) != len(
+        set(candidates)
+    ):
+        raise RequestShapeError("candidate_admissions contains duplicate receipts")
+    return admissions
+
+
+def _normalize_review_authority(value: Any) -> dict[str, Any]:
+    field = "review_authority"
+    payload = mapping(value, field)
+    exact_keys(
         payload,
-        {
-            "status",
-            "reviewer_attempt_ref",
-            "reviewer_receipt_ref",
-            "rubric_ref",
-            "reviewed_output_sha256",
-            "defect_refs",
-            "quality_debt_codes",
-        },
-        "independent_review",
+        {"review_request_ref", "currentness_receipt_ref", "currentness_receipt"},
+        field,
     )
-    status = _enum_text(
-        payload.get("status"),
-        "independent_review.status",
-        {"passed", "revision_required", "rejected", "not_run", "unavailable"},
-    )
-    review = {
-        "status": status,
-        "reviewer_attempt_ref": _optional_typed_ref(
-            payload.get("reviewer_attempt_ref"),
-            "independent_review.reviewer_attempt_ref",
-            "opl_stage_attempt",
+    return {
+        "review_request_ref": _exact_ref(
+            payload.get("review_request_ref"),
+            f"{field}.review_request_ref",
+            "opl_action_output",
         ),
-        "reviewer_receipt_ref": _optional_typed_ref(
-            payload.get("reviewer_receipt_ref"),
-            "independent_review.reviewer_receipt_ref",
-            "mas_reviewer_receipt",
+        "currentness_receipt_ref": _exact_ref(
+            payload.get("currentness_receipt_ref"),
+            f"{field}.currentness_receipt_ref",
+            "mas_review_currentness_receipt",
         ),
-        "rubric_ref": _optional_typed_ref(
-            payload.get("rubric_ref"),
-            "independent_review.rubric_ref",
-            "mas_quality_rubric",
-        ),
-        "reviewed_output_sha256": _optional_sha256(
-            payload.get("reviewed_output_sha256"),
-            "independent_review.reviewed_output_sha256",
-        ),
-        "defect_refs": _typed_ref_list(
-            payload.get("defect_refs"),
-            "independent_review.defect_refs",
-            "mas_review_defect",
-        ),
-        "quality_debt_codes": _text_list(
-            payload.get("quality_debt_codes"),
-            "independent_review.quality_debt_codes",
+        "currentness_receipt": _normalize_review_currentness_receipt(
+            payload.get("currentness_receipt")
         ),
     }
-    if status in {"passed", "revision_required", "rejected"}:
-        required = (
-            "reviewer_attempt_ref",
-            "reviewer_receipt_ref",
-            "rubric_ref",
-            "reviewed_output_sha256",
+
+
+def _normalize_review_currentness_receipt(value: Any) -> dict[str, Any]:
+    field = "review_authority.currentness_receipt"
+    payload = mapping(value, field)
+    exact_keys(
+        payload,
+        {
+            "receipt_kind",
+            "schema_version",
+            "owner",
+            "authority_role",
+            "authority_epoch",
+            "current_generation_id",
+            "current_generation_manifest_ref",
+            "current_review_request_ref",
+            "current_candidate_admission_receipt_refs",
+            "current_review_receipt_refs",
+            "superseded_generation_ids",
+            "superseded_review_request_refs",
+            "receipt_id",
+            "receipt_size_bytes",
+            "receipt_fingerprint",
+        },
+        field,
+    )
+    if payload.get("receipt_kind") != "mas_review_currentness_receipt":
+        raise RequestShapeError(
+            f"{field}.receipt_kind must be mas_review_currentness_receipt"
         )
-        missing = [field for field in required if review[field] is None]
-        if missing:
-            raise RequestShapeError(
-                "independent review record missing: " + ", ".join(missing)
-            )
-    return review
+    if payload.get("schema_version") != 1 or isinstance(
+        payload.get("schema_version"), bool
+    ):
+        raise RequestShapeError(f"{field}.schema_version must be integer 1")
+    if payload.get("owner") != "MedAutoScience":
+        raise RequestShapeError(f"{field}.owner must be MedAutoScience")
+    if payload.get("authority_role") != "review_currentness_owner":
+        raise RequestShapeError(
+            f"{field}.authority_role must be review_currentness_owner"
+        )
+    core = {
+        "receipt_kind": "mas_review_currentness_receipt",
+        "schema_version": 1,
+        "owner": "MedAutoScience",
+        "authority_role": "review_currentness_owner",
+        "authority_epoch": text(
+            payload.get("authority_epoch"), f"{field}.authority_epoch"
+        ),
+        "current_generation_id": text(
+            payload.get("current_generation_id"),
+            f"{field}.current_generation_id",
+        ),
+        "current_generation_manifest_ref": _exact_ref(
+            payload.get("current_generation_manifest_ref"),
+            f"{field}.current_generation_manifest_ref",
+            "mas_generation_manifest",
+        ),
+        "current_review_request_ref": _exact_ref(
+            payload.get("current_review_request_ref"),
+            f"{field}.current_review_request_ref",
+            "opl_action_output",
+        ),
+        "current_candidate_admission_receipt_refs": _exact_ref_list(
+            payload.get("current_candidate_admission_receipt_refs"),
+            f"{field}.current_candidate_admission_receipt_refs",
+            "mas_candidate_admission_receipt",
+        ),
+        "current_review_receipt_refs": _exact_ref_list(
+            payload.get("current_review_receipt_refs"),
+            f"{field}.current_review_receipt_refs",
+            "mas_reviewer_receipt",
+        ),
+        "superseded_generation_ids": text_list(
+            payload.get("superseded_generation_ids"),
+            f"{field}.superseded_generation_ids",
+        ),
+        "superseded_review_request_refs": _exact_ref_list(
+            payload.get("superseded_review_request_refs"),
+            f"{field}.superseded_review_request_refs",
+            "opl_action_output",
+        ),
+    }
+    expected_fingerprint = fingerprint(core)
+    expected_size = len(canonical_json_bytes(core))
+    expected_id = (
+        f"mas-review-currentness:{expected_fingerprint.removeprefix('sha256:')}"
+    )
+    if text(payload.get("receipt_id"), f"{field}.receipt_id") != expected_id:
+        raise RequestShapeError(f"{field}.receipt_id does not match canonical receipt")
+    if (
+        integer(payload.get("receipt_size_bytes"), f"{field}.receipt_size_bytes")
+        != expected_size
+    ):
+        raise RequestShapeError(
+            f"{field}.receipt_size_bytes does not match canonical receipt"
+        )
+    if (
+        sha256(payload.get("receipt_fingerprint"), f"{field}.receipt_fingerprint")
+        != expected_fingerprint
+    ):
+        raise RequestShapeError(
+            f"{field}.receipt_fingerprint does not match canonical receipt"
+        )
+    return {
+        **core,
+        "receipt_id": expected_id,
+        "receipt_size_bytes": expected_size,
+        "receipt_fingerprint": expected_fingerprint,
+    }
 
 
 def _normalize_repair(value: Any) -> dict[str, Any]:
-    payload = _mapping(value, "repair_state")
-    _exact_keys(
+    field = "repair_state"
+    payload = mapping(value, field)
+    exact_keys(
         payload,
         {
             "status",
@@ -472,23 +621,23 @@ def _normalize_repair(value: Any) -> dict[str, Any]:
             "repair_attempt_refs",
             "latest_repair_output_ref",
         },
-        "repair_state",
+        field,
     )
-    attempts_used = _integer(payload.get("attempts_used"), "repair_state.attempts_used")
-    max_attempts = _integer(payload.get("max_attempts"), "repair_state.max_attempts")
+    attempts_used = integer(payload.get("attempts_used"), f"{field}.attempts_used")
+    max_attempts = integer(payload.get("max_attempts"), f"{field}.max_attempts")
     if attempts_used > max_attempts:
         raise RequestShapeError("repair_state.attempts_used cannot exceed max_attempts")
     attempt_refs = _typed_ref_list(
         payload.get("repair_attempt_refs"),
-        "repair_state.repair_attempt_refs",
+        f"{field}.repair_attempt_refs",
         "opl_stage_attempt",
     )
     if len(attempt_refs) != attempts_used:
         raise RequestShapeError("repair_attempt_refs must exactly match attempts_used")
     return {
-        "status": _enum_text(
+        "status": enum_text(
             payload.get("status"),
-            "repair_state.status",
+            f"{field}.status",
             {"not_required", "pending", "completed", "exhausted", "failed"},
         ),
         "attempts_used": attempts_used,
@@ -496,85 +645,351 @@ def _normalize_repair(value: Any) -> dict[str, Any]:
         "repair_attempt_refs": attempt_refs,
         "latest_repair_output_ref": _optional_typed_ref(
             payload.get("latest_repair_output_ref"),
-            "repair_state.latest_repair_output_ref",
+            f"{field}.latest_repair_output_ref",
             "opl_action_output",
         ),
     }
 
 
 def _normalize_hard_gate(value: Any) -> dict[str, Any]:
-    payload = _mapping(value, "hard_gate")
-    _exact_keys(
+    field = "hard_gate"
+    payload = mapping(value, field)
+    exact_keys(
         payload,
         {"kind", "reason_code", "evidence_refs", "next_owner", "resume_condition"},
-        "hard_gate",
+        field,
     )
-    kind = _enum_text(
+    kind = enum_text(
         payload.get("kind"),
-        "hard_gate.kind",
+        f"{field}.kind",
         {"none", "human_decision", *_HARD_GATE_KINDS},
     )
     normalized = {
         "kind": kind,
-        "reason_code": _optional_text(payload.get("reason_code"), "hard_gate.reason_code"),
+        "reason_code": optional_text(
+            payload.get("reason_code"), f"{field}.reason_code"
+        ),
         "evidence_refs": _typed_ref_list(
             payload.get("evidence_refs"),
-            "hard_gate.evidence_refs",
+            f"{field}.evidence_refs",
             "mas_gate_evidence",
         ),
-        "next_owner": _optional_text(payload.get("next_owner"), "hard_gate.next_owner"),
-        "resume_condition": _optional_text(
-            payload.get("resume_condition"),
-            "hard_gate.resume_condition",
+        "next_owner": optional_text(payload.get("next_owner"), f"{field}.next_owner"),
+        "resume_condition": optional_text(
+            payload.get("resume_condition"), f"{field}.resume_condition"
         ),
     }
-    if kind != "none":
-        missing = [
-            field
-            for field in ("reason_code", "next_owner", "resume_condition")
-            if normalized[field] is None
-        ]
-        if not normalized["evidence_refs"]:
-            missing.append("evidence_refs")
-        if missing:
-            raise RequestShapeError("hard gate missing: " + ", ".join(missing))
-    elif any(
-        (
-            normalized["reason_code"] is not None,
-            bool(normalized["evidence_refs"]),
-            normalized["next_owner"] is not None,
-            normalized["resume_condition"] is not None,
-        )
-    ):
-        raise RequestShapeError("hard_gate.kind none requires an empty gate record")
+    if kind == "none":
+        if any(
+            (
+                normalized["reason_code"] is not None,
+                bool(normalized["evidence_refs"]),
+                normalized["next_owner"] is not None,
+                normalized["resume_condition"] is not None,
+            )
+        ):
+            raise RequestShapeError("hard_gate.kind none requires an empty gate record")
+        return normalized
+    missing = [
+        name
+        for name in ("reason_code", "next_owner", "resume_condition")
+        if normalized[name] is None
+    ]
+    if not normalized["evidence_refs"]:
+        missing.append("evidence_refs")
+    if missing:
+        raise RequestShapeError("hard gate missing: " + ", ".join(missing))
     return normalized
 
 
+def _validate_review_currentness_receipt_ref(request: Mapping[str, Any]) -> None:
+    authority = request["review_authority"]
+    receipt_ref = authority["currentness_receipt_ref"]
+    receipt = authority["currentness_receipt"]
+    if (
+        receipt_ref["ref"] != receipt["receipt_id"]
+        or receipt_ref["size_bytes"] != receipt["receipt_size_bytes"]
+        or receipt_ref["sha256"] != receipt["receipt_fingerprint"]
+    ):
+        raise RequestShapeError(
+            "review currentness receipt ref does not match canonical receipt bytes"
+        )
+
+
 def _validate_cross_record_lineage(request: Mapping[str, Any]) -> None:
-    host = request["host_context"]
-    review = request["independent_review"]
-    reviewer_attempt = review["reviewer_attempt_ref"]
-    if reviewer_attempt is not None:
-        producer_attempt = host["producer_attempt_ref"]
-        if reviewer_attempt["ref"] == producer_attempt["ref"]:
-            raise RequestShapeError("reviewer attempt must differ from producer attempt")
-        if reviewer_attempt["sha256"] == producer_attempt["sha256"]:
-            raise RequestShapeError("reviewer attempt digest must differ from producer attempt digest")
-    reviewed_output_sha256 = review["reviewed_output_sha256"]
-    if reviewed_output_sha256 is not None and reviewed_output_sha256 != host["output_ref"]["sha256"]:
-        raise RequestShapeError("reviewer receipt is not bound to the exact hosted output digest")
+    producer_attempt = request["host_context"]["producer_attempt_ref"]
+    output_ref = request["host_context"]["output_ref"]
+    reviewer_attempts: list[tuple[str, str]] = []
+    for wrapper in request["generation_manifest"]["independent_review_receipts"]:
+        receipt = wrapper["receipt"]
+        reviewer_attempt = receipt["reviewer_attempt_ref"]
+        if (
+            reviewer_attempt["ref"] == producer_attempt["ref"]
+            or reviewer_attempt["sha256"] == producer_attempt["sha256"]
+        ):
+            raise RequestShapeError(
+                "reviewer attempt must differ from producer attempt"
+            )
+        if receipt["producer_output_ref"] != output_ref:
+            raise RequestShapeError(
+                "review receipt is not bound to the exact hosted output record"
+            )
+        reviewer_attempts.append((reviewer_attempt["ref"], reviewer_attempt["sha256"]))
+    if len(reviewer_attempts) != len(set(reviewer_attempts)):
+        raise RequestShapeError("review lanes require separate reviewer attempts")
+
+
+def _candidate_admission_issue(
+    request: Mapping[str, Any],
+) -> tuple[str, str] | None:
+    evidence_candidates = {
+        (item["ref"], item["sha256"])
+        for item in request["medical_evidence"]["candidate_artifact_refs"]
+    }
+    admissions = request["candidate_admissions"]
+    admitted_candidates = {
+        (
+            item["receipt"]["candidate_ref"]["ref"],
+            item["receipt"]["candidate_ref"]["sha256"],
+        )
+        for item in admissions
+        if item["receipt"]["disposition"] == "accepted"
+        and item["receipt"]["authorizes_manuscript_consumption"] is True
+    }
+    if evidence_candidates != admitted_candidates:
+        return (
+            "candidate_admission_receipt_required",
+            "provide one exact current MAS acceptance receipt for every candidate",
+        )
+
+    manifest = request["generation_manifest"]
+    source = source_input_digest(manifest)
+    artifact_inventory = {
+        (item["role"], item["ref"], item["size_bytes"], item["sha256"])
+        for item in manifest["artifacts"]
+    }
+    mission = request["mission"]
+    authority_epoch = request["review_authority"]["currentness_receipt"][
+        "authority_epoch"
+    ]
+    supplied_receipts = {
+        (
+            item["receipt_ref"]["ref"],
+            item["receipt_ref"]["size_bytes"],
+            item["receipt_ref"]["sha256"],
+        )
+        for item in admissions
+    }
+    manifest_receipts = {
+        (item["ref"], item["size_bytes"], item["sha256"])
+        for item in manifest["artifacts"]
+        if item["role"] == "candidate_admission_receipt"
+    }
+    if supplied_receipts != manifest_receipts:
+        return (
+            "candidate_admission_receipt_required",
+            "embed every exact candidate admission receipt listed by the manifest",
+        )
+    for wrapper in admissions:
+        receipt_ref = wrapper["receipt_ref"]
+        receipt = wrapper["receipt"]
+        if (
+            receipt["disposition"] != "accepted"
+            or receipt["authorizes_manuscript_consumption"] is not True
+        ):
+            return (
+                "candidate_admission_receipt_required",
+                "replace rejected or non-authorizing candidate receipts",
+            )
+        receipt_mission = receipt["mission_identity"]
+        if any(
+            receipt_mission[name] != mission[name]
+            for name in ("program_id", "study_id", "mission_id")
+        ):
+            return (
+                "candidate_admission_stale_after_generation_change",
+                "re-adjudicate the candidate for the current mission",
+            )
+        candidate = receipt["candidate_ref"]
+        evidence = receipt["evidence_refs"]
+        source_receipt = receipt["source_input_digest"]
+        stale = any(
+            (
+                receipt["authority_epoch"] != authority_epoch,
+                receipt["generation_id"] != manifest["generation_id"],
+                (
+                    "source_input_digest",
+                    source_receipt["ref"],
+                    source_receipt["size_bytes"],
+                    source_receipt["sha256"],
+                )
+                not in artifact_inventory,
+                source_receipt["ref"] != source["ref"],
+                source_receipt["size_bytes"] != source["size_bytes"],
+                source_receipt["sha256"] != source["sha256"],
+                (
+                    "candidate_artifact",
+                    candidate["ref"],
+                    candidate["size_bytes"],
+                    candidate["sha256"],
+                )
+                not in artifact_inventory,
+                (
+                    "candidate_admission_receipt",
+                    receipt_ref["ref"],
+                    receipt_ref["size_bytes"],
+                    receipt_ref["sha256"],
+                )
+                not in artifact_inventory,
+                any(
+                    (
+                        "evidence_record",
+                        item["ref"],
+                        item["size_bytes"],
+                        item["sha256"],
+                    )
+                    not in artifact_inventory
+                    for item in evidence
+                ),
+            )
+        )
+        if stale:
+            return (
+                "candidate_admission_stale_after_generation_change",
+                "re-adjudicate exact candidate and evidence members for this generation",
+            )
+    return None
+
+
+def _review_currentness_issue(
+    request: Mapping[str, Any],
+) -> tuple[str, str] | None:
+    manifest = request["generation_manifest"]
+    manifest_ref = request["generation_manifest_ref"]
+    authority = request["review_authority"]
+    currentness = authority["currentness_receipt"]
+    review_request = authority["review_request_ref"]
+    supplied_admissions = {
+        (
+            item["receipt_ref"]["ref"],
+            item["receipt_ref"]["size_bytes"],
+            item["receipt_ref"]["sha256"],
+        )
+        for item in request["candidate_admissions"]
+    }
+    current_admissions = {
+        (item["ref"], item["size_bytes"], item["sha256"])
+        for item in currentness["current_candidate_admission_receipt_refs"]
+    }
+    supplied_reviews = {
+        (
+            item["receipt_ref"]["ref"],
+            item["receipt_ref"]["size_bytes"],
+            item["receipt_ref"]["sha256"],
+        )
+        for item in manifest["independent_review_receipts"]
+    }
+    current_reviews = {
+        (item["ref"], item["size_bytes"], item["sha256"])
+        for item in currentness["current_review_receipt_refs"]
+    }
+    review_identity = (
+        review_request["ref"],
+        review_request["size_bytes"],
+        review_request["sha256"],
+    )
+    superseded_reviews = {
+        (item["ref"], item["size_bytes"], item["sha256"])
+        for item in currentness["superseded_review_request_refs"]
+    }
+    if any(
+        (
+            currentness["current_generation_id"] != manifest["generation_id"],
+            currentness["current_generation_manifest_ref"] != manifest_ref,
+            currentness["current_review_request_ref"] != review_request,
+            supplied_admissions != current_admissions,
+            manifest["generation_id"] in currentness["superseded_generation_ids"],
+            review_identity in superseded_reviews,
+        )
+    ):
+        return (
+            "review_request_authority_stale",
+            "supply the current review request, generation, and candidate receipts",
+        )
+    reviews = manifest["independent_review_receipts"]
+    required_lanes = REVIEW_LANES_BY_SCOPE[manifest["manifest_scope"]]
+    review_lanes = {item["receipt"]["review_lane"] for item in reviews}
+    if not required_lanes <= review_lanes:
+        return (
+            "independent_reviewer_record_required",
+            "provide one exact current receipt for every required review lane",
+        )
+    if supplied_reviews != current_reviews:
+        return (
+            "independent_review_receipt_not_current",
+            "supply the exact review receipt inventory authorized by MAS currentness",
+        )
+    if any(
+        item["receipt"]["authority_epoch"] != currentness["authority_epoch"]
+        or item["receipt"]["review_request_ref"] != review_request
+        for item in reviews
+    ):
+        return (
+            "independent_review_stale_after_canonical_change",
+            "replace receipts issued for an older authority epoch or review request",
+        )
+    return None
+
+
+def _aggregate_review_status(request: Mapping[str, Any]) -> str:
+    verdicts = {
+        item["receipt"]["verdict"]
+        for item in request["generation_manifest"]["independent_review_receipts"]
+    }
+    if "rejected" in verdicts:
+        return "rejected"
+    if "revision_required" in verdicts:
+        return "revision_required"
+    return "passed"
+
+
+def _review_quality_debt(
+    request: Mapping[str, Any],
+) -> tuple[list[str], list[dict[str, str]]]:
+    codes: list[str] = []
+    refs: list[dict[str, str]] = []
+    for wrapper in request["generation_manifest"]["independent_review_receipts"]:
+        receipt = wrapper["receipt"]
+        codes.extend(receipt["quality_debt_codes"])
+        refs.extend(receipt["defect_refs"])
+    unique_refs = {(item["ref"], item["sha256"]): item for item in refs}
+    return dedupe(codes), list(unique_refs.values())
 
 
 def _owner_receipt(request: Mapping[str, Any]) -> dict[str, Any]:
     evidence = request["medical_evidence"]
-    review = request["independent_review"]
-    receipt = {
+    reviews = request["generation_manifest"]["independent_review_receipts"]
+    currentness = request["review_authority"]["currentness_receipt"]
+    core = {
         "receipt_kind": "mas_paper_mission_owner_receipt",
-        "schema_version": 1,
+        "schema_version": 2,
         "owner": "MedAutoScience",
         "mission_identity": dict(request["mission"]),
         "host_refs": _host_refs(request),
-        "candidate_artifact_refs": list(evidence["candidate_artifact_refs"]),
+        "generation_identity": _generation_identity(request),
+        "review_authority_epoch": currentness["authority_epoch"],
+        "review_currentness_receipt_ref": dict(
+            request["review_authority"]["currentness_receipt_ref"]
+        ),
+        "accepted_candidate_admissions": [
+            {
+                "candidate_id": item["receipt"]["candidate_id"],
+                "candidate_ref": dict(item["receipt"]["candidate_ref"]),
+                "receipt_ref": dict(item["receipt_ref"]),
+                "claim_scope": dict(item["receipt"]["claim_scope"]),
+            }
+            for item in request["candidate_admissions"]
+        ],
         "medical_evidence_refs": list(evidence["evidence_refs"]),
         "negative_result_refs": list(evidence["negative_result_refs"]),
         "failed_path_refs": list(evidence["failed_path_refs"]),
@@ -582,20 +997,44 @@ def _owner_receipt(request: Mapping[str, Any]) -> dict[str, Any]:
         "reproducibility_refs": list(evidence["reproducibility_refs"]),
         "source_readiness_receipt_ref": evidence["source_readiness_receipt_ref"],
         "claim_boundary_ref": evidence["claim_boundary_ref"],
-        "independent_reviewer_attempt_ref": review["reviewer_attempt_ref"],
-        "independent_reviewer_receipt_ref": review["reviewer_receipt_ref"],
-        "quality_rubric_ref": review["rubric_ref"],
+        "independent_review_receipt_refs": [
+            dict(item["receipt_ref"]) for item in reviews
+        ],
         "verdict": "accepted_domain_delta",
         "authorizes_stage_domain_completion": True,
         "authorizes_publication_or_submission": False,
         "requires_host_exact_byte_persistence": True,
     }
-    fingerprint = _fingerprint(receipt)
+    receipt_fingerprint = fingerprint(core)
     return {
-        **receipt,
-        "receipt_id": f"mas-paper-mission-owner-receipt:{fingerprint.removeprefix('sha256:')}",
-        "receipt_fingerprint": fingerprint,
+        **core,
+        "receipt_id": (
+            "mas-paper-mission-owner-receipt:"
+            f"{receipt_fingerprint.removeprefix('sha256:')}"
+        ),
+        "receipt_size_bytes": len(canonical_json_bytes(core)),
+        "receipt_fingerprint": receipt_fingerprint,
     }
+
+
+def _route_result(
+    request: Mapping[str, Any],
+    *,
+    reason_code: str,
+    next_owner: str,
+    resume_condition: str,
+) -> dict[str, Any]:
+    return _finalize(
+        request,
+        status="route_back",
+        stage_outcome=_stage_outcome("route_back", transition_allowed=False),
+        route_back=_route_back(
+            request,
+            reason_code=reason_code,
+            next_owner=next_owner,
+            resume_condition=resume_condition,
+        ),
+    )
 
 
 def _route_back(
@@ -605,18 +1044,24 @@ def _route_back(
     next_owner: str,
     resume_condition: str,
 ) -> dict[str, Any]:
-    review = request["independent_review"]
     repair = request["repair_state"]
+    debt_codes, defect_refs = _review_quality_debt(request)
     return {
         "reason_code": reason_code,
         "next_owner": next_owner,
         "resume_condition": resume_condition,
-        "reviewer_verdict": review["status"],
-        "defect_refs": list(review["defect_refs"]),
+        "review_verdicts": [
+            {
+                "review_lane": item["receipt"]["review_lane"],
+                "verdict": item["receipt"]["verdict"],
+            }
+            for item in request["generation_manifest"]["independent_review_receipts"]
+        ],
+        "quality_debt_codes": debt_codes,
+        "defect_refs": defect_refs,
         "repair_attempt_refs": list(repair["repair_attempt_refs"]),
         "remaining_repair_attempts": max(
-            repair["max_attempts"] - repair["attempts_used"],
-            0,
+            repair["max_attempts"] - repair["attempts_used"], 0
         ),
         "selects_next_stage": False,
     }
@@ -650,15 +1095,13 @@ def _human_gate(request: Mapping[str, Any]) -> dict[str, Any]:
 
 
 def _quality_debt(
-    request: Mapping[str, Any],
-    *,
-    reason_codes: list[str],
+    request: Mapping[str, Any], *, reason_codes: list[str]
 ) -> dict[str, Any]:
-    review = request["independent_review"]
+    _, defect_refs = _review_quality_debt(request)
     return {
         "reason_codes": reason_codes,
-        "reviewer_verdict": review["status"],
-        "defect_refs": list(review["defect_refs"]),
+        "review_verdict": _aggregate_review_status(request),
+        "defect_refs": defect_refs,
         "transition_allowed": True,
         "blocks_quality_publication_export_and_submission_claims": True,
         "counts_as_owner_acceptance": False,
@@ -691,6 +1134,7 @@ def _finalize(
         "status": status,
         "mission_identity": dict(request["mission"]),
         "host_refs": _host_refs(request),
+        "generation_identity": _generation_identity(request),
         "stage_outcome": dict(stage_outcome),
         "owner_receipt": dict(owner_receipt) if owner_receipt is not None else None,
         "route_back": dict(route_back) if route_back is not None else None,
@@ -700,11 +1144,14 @@ def _finalize(
         "error": None,
         "authority_boundary": dict(_AUTHORITY_BOUNDARY),
     }
-    fingerprint = _fingerprint(core)
+    decision_fingerprint = fingerprint(core)
     return {
         **core,
-        "decision_id": f"mas-paper-mission-authority:{fingerprint.removeprefix('sha256:')}",
-        "decision_fingerprint": fingerprint,
+        "decision_id": (
+            "mas-paper-mission-authority:"
+            f"{decision_fingerprint.removeprefix('sha256:')}"
+        ),
+        "decision_fingerprint": decision_fingerprint,
     }
 
 
@@ -715,6 +1162,7 @@ def _invalid_host_input(detail: str) -> dict[str, Any]:
         "status": "invalid_host_input",
         "mission_identity": None,
         "host_refs": None,
+        "generation_identity": None,
         "stage_outcome": _stage_outcome("invalid_host_input", transition_allowed=False),
         "owner_receipt": None,
         "route_back": None,
@@ -724,11 +1172,14 @@ def _invalid_host_input(detail: str) -> dict[str, Any]:
         "error": {"code": "invalid_host_input", "detail": detail},
         "authority_boundary": dict(_AUTHORITY_BOUNDARY),
     }
-    fingerprint = _fingerprint(core)
+    decision_fingerprint = fingerprint(core)
     return {
         **core,
-        "decision_id": f"mas-paper-mission-authority:{fingerprint.removeprefix('sha256:')}",
-        "decision_fingerprint": fingerprint,
+        "decision_id": (
+            "mas-paper-mission-authority:"
+            f"{decision_fingerprint.removeprefix('sha256:')}"
+        ),
+        "decision_fingerprint": decision_fingerprint,
     }
 
 
@@ -741,119 +1192,73 @@ def _host_refs(request: Mapping[str, Any]) -> dict[str, Any]:
     }
 
 
-def _typed_ref(value: Any, field: str, expected_kind: str) -> dict[str, str]:
-    payload = _mapping(value, field)
-    _exact_keys(payload, {"kind", "ref", "sha256"}, field)
-    kind = _text(payload.get("kind"), f"{field}.kind")
-    if kind not in _REF_KINDS:
-        raise RequestShapeError(f"{field}.kind is unsupported")
-    if kind != expected_kind:
-        raise RequestShapeError(f"{field}.kind must be {expected_kind}")
+def _generation_identity(request: Mapping[str, Any]) -> dict[str, Any]:
+    manifest = request["generation_manifest"]
+    authority = request["review_authority"]
     return {
-        "kind": kind,
-        "ref": _text(payload.get("ref"), f"{field}.ref"),
-        "sha256": _sha256(payload.get("sha256"), f"{field}.sha256"),
+        "generation_id": manifest["generation_id"],
+        "manifest_scope": manifest["manifest_scope"],
+        "generation_manifest_ref": dict(request["generation_manifest_ref"]),
+        "review_authority_epoch": authority["currentness_receipt"]["authority_epoch"],
+        "review_request_ref": dict(authority["review_request_ref"]),
     }
 
 
-def _optional_typed_ref(value: Any, field: str, expected_kind: str) -> dict[str, str] | None:
+def _typed_ref(value: Any, field: str, expected_kind: str) -> dict[str, str]:
+    payload = mapping(value, field)
+    exact_keys(payload, {"kind", "ref", "sha256"}, field)
+    kind = text(payload.get("kind"), f"{field}.kind")
+    if kind not in _REF_KINDS or kind != expected_kind:
+        raise RequestShapeError(f"{field}.kind must be {expected_kind}")
+    return {
+        "kind": kind,
+        "ref": text(payload.get("ref"), f"{field}.ref"),
+        "sha256": sha256(payload.get("sha256"), f"{field}.sha256"),
+    }
+
+
+def _exact_ref(value: Any, field: str, expected_kind: str) -> dict[str, Any]:
+    payload = mapping(value, field)
+    exact_keys(payload, {"kind", "ref", "size_bytes", "sha256"}, field)
+    kind = text(payload.get("kind"), f"{field}.kind")
+    if kind not in _REF_KINDS or kind != expected_kind:
+        raise RequestShapeError(f"{field}.kind must be {expected_kind}")
+    return {
+        "kind": kind,
+        "ref": text(payload.get("ref"), f"{field}.ref"),
+        "size_bytes": integer(payload.get("size_bytes"), f"{field}.size_bytes"),
+        "sha256": sha256(payload.get("sha256"), f"{field}.sha256"),
+    }
+
+
+def _optional_typed_ref(
+    value: Any, field: str, expected_kind: str
+) -> dict[str, str] | None:
     if value is None:
         return None
     return _typed_ref(value, field, expected_kind)
 
 
 def _typed_ref_list(value: Any, field: str, expected_kind: str) -> list[dict[str, str]]:
-    items = _sequence(value, field)
-    refs = [_typed_ref(item, f"{field}[{index}]", expected_kind) for index, item in enumerate(items)]
+    refs = [
+        _typed_ref(item, f"{field}[{index}]", expected_kind)
+        for index, item in enumerate(sequence(value, field))
+    ]
     identities = [(item["ref"], item["sha256"]) for item in refs]
     if len(identities) != len(set(identities)):
         raise RequestShapeError(f"{field} contains duplicate refs")
     return refs
 
 
-def _mapping(value: Any, field: str) -> dict[str, Any]:
-    if not isinstance(value, Mapping):
-        raise RequestShapeError(f"{field} must be an object")
-    return dict(value)
-
-
-def _sequence(value: Any, field: str) -> list[Any]:
-    if not isinstance(value, Sequence) or isinstance(value, (str, bytes, bytearray)):
-        raise RequestShapeError(f"{field} must be an array")
-    return list(value)
-
-
-def _exact_keys(payload: Mapping[str, Any], allowed: set[str], field: str) -> None:
-    missing = sorted(allowed - set(payload))
-    unknown = sorted(set(payload) - allowed)
-    if missing:
-        raise RequestShapeError(f"{field} missing fields: {', '.join(missing)}")
-    if unknown:
-        raise RequestShapeError(f"{field} contains unsupported fields: {', '.join(unknown)}")
-
-
-def _text(value: Any, field: str) -> str:
-    if not isinstance(value, str) or not value.strip():
-        raise RequestShapeError(f"{field} must be a non-empty string")
-    return value.strip()
-
-
-def _optional_text(value: Any, field: str) -> str | None:
-    if value is None:
-        return None
-    return _text(value, field)
-
-
-def _text_list(value: Any, field: str) -> list[str]:
-    return _dedupe([_text(item, f"{field}[{index}]") for index, item in enumerate(_sequence(value, field))])
-
-
-def _enum_text(value: Any, field: str, allowed: set[str]) -> str:
-    text = _text(value, field)
-    if text not in allowed:
-        raise RequestShapeError(f"{field} must be one of: {', '.join(sorted(allowed))}")
-    return text
-
-
-def _integer(value: Any, field: str) -> int:
-    if not isinstance(value, int) or isinstance(value, bool) or value < 0:
-        raise RequestShapeError(f"{field} must be a non-negative integer")
-    return value
-
-
-def _sha256(value: Any, field: str) -> str:
-    text = _text(value, field).lower()
-    digest = text.removeprefix("sha256:")
-    if len(digest) != 64 or any(char not in "0123456789abcdef" for char in digest):
-        raise RequestShapeError(f"{field} must be a SHA-256 digest")
-    return f"sha256:{digest}"
-
-
-def _optional_sha256(value: Any, field: str) -> str | None:
-    if value is None:
-        return None
-    return _sha256(value, field)
-
-
-def _dedupe(values: Sequence[str]) -> list[str]:
-    result: list[str] = []
-    seen: set[str] = set()
-    for value in values:
-        if value in seen:
-            continue
-        seen.add(value)
-        result.append(value)
-    return result
-
-
-def _fingerprint(payload: Mapping[str, Any]) -> str:
-    encoded = json.dumps(
-        payload,
-        ensure_ascii=True,
-        sort_keys=True,
-        separators=(",", ":"),
-    ).encode("utf-8")
-    return f"sha256:{hashlib.sha256(encoded).hexdigest()}"
+def _exact_ref_list(value: Any, field: str, expected_kind: str) -> list[dict[str, Any]]:
+    refs = [
+        _exact_ref(item, f"{field}[{index}]", expected_kind)
+        for index, item in enumerate(sequence(value, field))
+    ]
+    identities = [(item["ref"], item["size_bytes"], item["sha256"]) for item in refs]
+    if len(identities) != len(set(identities)):
+        raise RequestShapeError(f"{field} contains duplicate refs")
+    return refs
 
 
 __all__ = ["evaluate_paper_mission_authority"]

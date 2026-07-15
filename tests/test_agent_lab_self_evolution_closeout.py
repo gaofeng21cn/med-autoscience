@@ -4,7 +4,6 @@ import hashlib
 import json
 import subprocess
 import sys
-from copy import deepcopy
 from pathlib import Path
 
 from med_autoscience.authority_handlers.self_evolution_closeout import (

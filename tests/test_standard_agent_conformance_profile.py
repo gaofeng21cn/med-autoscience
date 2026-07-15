@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+import runpy
 from pathlib import Path
 
 
@@ -88,6 +89,28 @@ def test_standard_agent_conformance_profile_classifies_every_required_surface() 
     assert "medical_truth_quality_artifact_and_owner_receipt_remain_mas_owned" in morphology[
         "required_parity_gates"
     ]
+
+
+def test_medical_authority_source_refs_match_repo_hygiene_allowlist() -> None:
+    profile = json.loads(PROFILE.read_text(encoding="utf-8"))
+    classifications = {
+        entry["surface_id"]: entry
+        for entry in profile["physical_morphology"]["surface_classifications"]
+    }
+    medical_authority_refs = {
+        ref
+        for ref in classifications["medical_authority_functions"]["source_refs"]
+        if ref.startswith("src/med_autoscience/authority_handlers/")
+    }
+    hygiene_globals = runpy.run_path(str(ROOT / "scripts" / "repo_hygiene_audit.py"))
+    expected_source_files = hygiene_globals["EXPECTED_STANDARD_AGENT_SOURCE_FILES"]
+    expected_authority_refs = {
+        ref
+        for ref in expected_source_files
+        if ref.startswith("src/med_autoscience/authority_handlers/")
+    }
+
+    assert medical_authority_refs == expected_authority_refs
 
 
 def test_agent_lab_handoff_uses_the_generic_evolution_skill_ref() -> None:

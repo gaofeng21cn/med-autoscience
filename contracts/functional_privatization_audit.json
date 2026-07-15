@@ -30,12 +30,40 @@
       "retained_domain_authority": [
         "medical_evidence_acceptance",
         "claim_evidence_alignment",
+        "generation_manifest_currentness",
+        "independent_review_invalidation",
         "owner_receipt",
         "typed_blocker",
         "human_gate",
         "route_back"
       ],
       "semantic_equivalence_status": "cleared_by_registry_bound_hosted_boundary"
+    },
+    {
+      "module_id": "mas.candidate_admission_authority",
+      "classification": "minimal_authority_function",
+      "standardization_layer": "authority_function_inventory",
+      "code_paths": [
+        "src/med_autoscience/authority_handlers/candidate_admission.py",
+        "contracts/domain_handler_registry.json"
+      ],
+      "active_callers": [
+        "OPL-hosted candidate admission authority binding"
+      ],
+      "active_caller_status": "registry_bound_pure_domain_authority_function",
+      "migration_action": "retain deterministic pre-authoring candidate disposition behind OPL-hosted execution",
+      "retention_reason": "The function validates a current independent MAS adjudicator receipt and binds accept, reject, route-back, waiver, blocker, or human-gate disposition to exact candidate/evidence members, source digest, generation manifest, and structured claim constraints.",
+      "cannot_absorb_reason": "OPL and OMA may transport refs-only candidates but cannot accept medical candidates or authorize their manuscript use.",
+      "retained_domain_authority": [
+        "candidate_acceptance",
+        "candidate_rejection",
+        "candidate_route_back",
+        "candidate_typed_waiver",
+        "candidate_structured_claim_scope",
+        "typed_blocker",
+        "human_gate"
+      ],
+      "semantic_equivalence_status": "registry_bound_pre_authoring_authority"
     },
     {
       "module_id": "mas.agent_lab_self_evolution_closeout",

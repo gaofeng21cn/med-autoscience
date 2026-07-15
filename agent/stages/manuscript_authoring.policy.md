@@ -8,6 +8,14 @@ path; affected derived artifacts are rebuilt and bound to fresh proof before a
 quality or ready claim. A manuscript packet is required before such a claim,
 not as the first action of the stage.
 
+Refs-only candidates enter canonical claims only through an exact MAS candidate
+admission receipt. Candidate/evidence ref, size, hash, source-input digest,
+generation, verdict, claim classes, permitted sections, disclosures, prohibited
+claims, and sensitivity or supplementary constraints must match. Rejected,
+waived, or route-back candidates remain non-authorizing provenance and cannot
+leak into canonical outputs. The manuscript delta must extend one generation
+manifest rather than mix denominator, catalog, display, or receipt generations.
+
 A consumable manuscript delta may close as `completed_with_quality_debt`. Debt
 blocks quality/publication/submission claims. No consumable delta becomes a
 no-output/failure diagnostic and may route to any declared stage. Only an

@@ -15,6 +15,9 @@ ROOT = Path(__file__).resolve().parents[1]
 def test_package_import_and_authority_handler_entrypoint() -> None:
     package = importlib.import_module("med_autoscience")
     handler = importlib.import_module("med_autoscience.authority_handlers.paper_mission")
+    candidate_handler = importlib.import_module(
+        "med_autoscience.authority_handlers.candidate_admission"
+    )
 
     try:
         installed_version = version("med-autoscience")
@@ -22,6 +25,7 @@ def test_package_import_and_authority_handler_entrypoint() -> None:
         installed_version = "0+unknown"
     assert package.__version__ == installed_version
     assert callable(handler.evaluate_paper_mission_authority)
+    assert callable(candidate_handler.evaluate_candidate_admission_authority)
 
 
 def test_direct_and_hosted_entry_sources_resolve() -> None:
@@ -29,7 +33,7 @@ def test_direct_and_hosted_entry_sources_resolve() -> None:
         (ROOT / "contracts/action_catalog.json").read_text(encoding="utf-8")
     )
     assert (ROOT / "agent/primary_skill/SKILL.md").is_file()
-    assert len(catalog["actions"]) == 7
+    assert len(catalog["actions"]) == 8
     for action in catalog["actions"]:
         binding = action["execution_binding"]
         if binding["kind"] == "stage_binding":

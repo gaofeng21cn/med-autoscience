@@ -82,21 +82,25 @@
       {
         "surface_id": "medical_authority_functions",
         "classification": "minimal_authority_function",
-      "source_refs": [
-        "runtime/authority_functions/README.md",
-        "src/med_autoscience/authority_handlers/paper_mission.py",
-        "contracts/domain_handler_registry.json"
-      ]
+        "source_refs": [
+          "runtime/authority_functions/README.md",
+          "src/med_autoscience/authority_handlers/_generation_manifest.py",
+          "src/med_autoscience/authority_handlers/_record_validation.py",
+          "src/med_autoscience/authority_handlers/candidate_admission.py",
+          "src/med_autoscience/authority_handlers/paper_mission.py",
+          "src/med_autoscience/authority_handlers/self_evolution_closeout.py",
+          "contracts/domain_handler_registry.json"
+        ]
       },
       {
         "surface_id": "quality_and_artifact_authority",
         "classification": "domain_owned_truth_and_verdict",
-      "source_refs": [
-        "agent/quality_gates/",
-        "contracts/stage_quality_cycle_policy.json",
-        "contracts/artifact_locator_contract.json",
-        "contracts/owner_receipt_contract.json"
-      ]
+        "source_refs": [
+          "agent/quality_gates/",
+          "contracts/stage_quality_cycle_policy.json",
+          "contracts/artifact_locator_contract.json",
+          "contracts/owner_receipt_contract.json"
+        ]
       },
       {
         "surface_id": "backend_audit_and_historical_provenance",

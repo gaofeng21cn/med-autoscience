@@ -14,6 +14,7 @@ ALLOWED_MAS_SOURCE_REF_PREFIXES = (
     "src/med_autoscience/styles/",
 )
 ALLOWED_MAS_MODULE_REF_PREFIXES = (
+    "med_autoscience.authority_handlers.candidate_admission",
     "med_autoscience.authority_handlers.paper_mission",
     "med_autoscience.authority_handlers.self_evolution_closeout",
 )
@@ -32,7 +33,7 @@ CANONICAL_RETIRED_DEFAULT_SURFACE_IDS = [
 def _load(relative_path: str) -> dict[str, object]:
     return json.loads((ROOT / relative_path).read_text(encoding="utf-8"))
 
-def test_action_catalog_exposes_six_hosted_stages_and_one_internal_handler() -> None:
+def test_action_catalog_exposes_six_hosted_stages_and_two_internal_handlers() -> None:
     catalog = _load("contracts/action_catalog.json")
     registry = _load("contracts/domain_handler_registry.json")
     actions = catalog["actions"]
@@ -65,11 +66,20 @@ def test_action_catalog_exposes_six_hosted_stages_and_one_internal_handler() -> 
         for action in stage_actions
     )
     assert [action["action_id"] for action in authority_actions] == [
+        "candidate_admission_authority_evaluate",
         "paper_mission_authority_evaluate"
     ]
-    assert authority_actions[0]["execution_binding"]["handler_ref"] == (
-        f"handler:{registry['handlers'][0]['handler_id']}"
-    )
+    assert {
+        action["action_id"]: action["execution_binding"]["handler_ref"]
+        for action in authority_actions
+    } == {
+        "candidate_admission_authority_evaluate": (
+            "handler:mas.candidate-admission-authority-evaluate"
+        ),
+        "paper_mission_authority_evaluate": (
+            f"handler:{registry['handlers'][0]['handler_id']}"
+        ),
+    }
 
 
 def test_generated_surfaces_are_opl_owned_and_private_surfaces_are_forbidden() -> None:
@@ -96,7 +106,7 @@ def test_generated_surfaces_are_opl_owned_and_private_surfaces_are_forbidden() -
     assert audit["status"] == (
         "standard_domain_pack_and_registry_bound_authority_function_only"
     )
-    assert len(audit["modules"]) == 2
+    assert len(audit["modules"]) == 3
     assert all(
         module["classification"] == "minimal_authority_function"
         for module in audit["modules"]
@@ -116,6 +126,9 @@ def test_generated_surfaces_are_opl_owned_and_private_surfaces_are_forbidden() -
     assert (ROOT / "agent/primary_skill/SKILL.md").is_file()
     assert (
         ROOT / "src/med_autoscience/authority_handlers/paper_mission.py"
+    ).is_file()
+    assert (
+        ROOT / "src/med_autoscience/authority_handlers/candidate_admission.py"
     ).is_file()
     assert (
         ROOT

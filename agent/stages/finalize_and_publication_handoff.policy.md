@@ -7,6 +7,10 @@ This Stage has one primary Attempt under
 Attempt is `in_thread_refinement`, not Review. The Handoff consumes exact
 artifact hashes and existing independent Stage Review and cross-Stage Meta
 Review receipts; it creates no reviewer, repairer, or re-reviewer Attempt.
+Its authority input is a `publication_generation` manifest, never a weaker
+manuscript scope, and includes exact DOCX, PDF, supplement, ZIP allowlist, and
+ZIP member records. Medical, statistical, reference, display, publication, and
+exact-byte-package lane receipts must all be current and exact-byte bound.
 
 When any content or current-package byte must change, return a route-back to the
 earliest owning Stage instead of repairing here. The changed bytes must complete
