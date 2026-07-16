@@ -39,6 +39,17 @@ route output.
   PDF, supplementary output, ZIP allowlist, and ZIP member records, plus current
   medical, statistical, reference, display, publication, and exact-byte-package
   review receipts authorized by the same MAS review-currentness receipt.
+- Require that the same `publication_generation` also binds exactly one
+  `submission_status`, `publication_evaluation`, `next_action_envelope`, and
+  `submission_projection_manifest`. These are one generation of user-visible
+  state; a current package with stale status, evaluation, or next action is not
+  a consumable handoff.
+- After the MAS owner receipt authorizes artifact projection, publish the
+  complete owner-prepared submission tree only through
+  `opl_pack_materialize_artifact_projection`. The projection manifest must list
+  every file by path, size, and SHA-256 and include `STATUS.json` and
+  `audit/submission_manifest.json` as completion markers. Never populate the
+  preferred root incrementally.
 - When content, figure, table, analysis, citation, source, or current-package
   bytes need to change, route back to the earliest owning Stage. Any new bytes
   must complete that Stage's fresh Review and re-enter cross-Stage Meta Review
@@ -51,7 +62,10 @@ route output.
 ## Boundaries
 
 This Stage never mutates canonical source, manuscript, figure, table, analysis,
-or `current_package` bytes and never rebuilds a changed publication artifact.
+or already-reviewed `current_package` bytes and never rebuilds a changed
+publication artifact. MAS owner code may prepare generation-bound status,
+evaluation, next-action, and projection-manifest bytes; OPL may only transport
+those exact authorized bytes as one tree.
 It cannot downgrade to a manuscript-generation scope or inherit review from
 stale bytes. Generated bundles, upload readiness,
 specialist candidates, package freshness, provider completion, and tests cannot

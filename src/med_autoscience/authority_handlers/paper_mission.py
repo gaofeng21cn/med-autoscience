@@ -1005,6 +1005,10 @@ def _owner_receipt(request: Mapping[str, Any]) -> dict[str, Any]:
         "authorizes_publication_or_submission": False,
         "requires_host_exact_byte_persistence": True,
     }
+    if request["mission"]["stage_id"] == "finalize_and_publication_handoff":
+        core["artifact_projection_transport"] = _artifact_projection_transport(
+            request
+        )
     receipt_fingerprint = fingerprint(core)
     return {
         **core,
@@ -1014,6 +1018,64 @@ def _owner_receipt(request: Mapping[str, Any]) -> dict[str, Any]:
         ),
         "receipt_size_bytes": len(canonical_json_bytes(core)),
         "receipt_fingerprint": receipt_fingerprint,
+    }
+
+
+def _artifact_projection_transport(request: Mapping[str, Any]) -> dict[str, Any]:
+    manifest = request["generation_manifest"]
+    required_roles = (
+        "submission_status",
+        "publication_evaluation",
+        "next_action_envelope",
+        "submission_projection_manifest",
+    )
+    members = {
+        role: next(
+            item for item in manifest["artifacts"] if item["role"] == role
+        )
+        for role in required_roles
+    }
+    return {
+        "surface_kind": "mas_artifact_projection_transport_authorization",
+        "schema_version": 1,
+        "transport_owner": "One Person Lab",
+        "transport_action_id": "opl_pack_materialize_artifact_projection",
+        "request_contract_ref": (
+            "contracts/opl-framework/"
+            "artifact-projection-materialization-request.schema.json"
+        ),
+        "receipt_contract_ref": (
+            "contracts/opl-framework/"
+            "artifact-projection-materialization-receipt.schema.json"
+        ),
+        "generation_id": manifest["generation_id"],
+        "generation_manifest_ref": dict(request["generation_manifest_ref"]),
+        "projection_manifest_ref": dict(
+            members["submission_projection_manifest"]
+        ),
+        "generation_bound_truth_members": [
+            dict(members[role])
+            for role in (
+                "submission_status",
+                "publication_evaluation",
+                "next_action_envelope",
+            )
+        ],
+        "target_role": "study_submission_root",
+        "completion_marker_paths": [
+            "STATUS.json",
+            "audit/submission_manifest.json",
+        ],
+        "opl_request_domain_authorization": {
+            "owner": "MedAutoScience",
+            "ref_source": "owner_receipt.receipt_id",
+            "scope": "artifact_projection_only",
+            "artifact_body_write_authorized": True,
+            "authorizes_quality_publication_or_submission": False,
+        },
+        "source_tree_must_match_projection_manifest": True,
+        "atomic_tree_switch_required": True,
+        "transport_can_write_domain_truth": False,
     }
 
 

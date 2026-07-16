@@ -50,6 +50,18 @@ PUBLICATION_GENERATION_ROLES = MANUSCRIPT_GENERATION_ROLES | frozenset(
         "supplementary_output",
         "final_zip_allowlist",
         "final_zip_member",
+        "submission_status",
+        "publication_evaluation",
+        "next_action_envelope",
+        "submission_projection_manifest",
+    }
+)
+PUBLICATION_SINGLETON_ROLES = frozenset(
+    {
+        "submission_status",
+        "publication_evaluation",
+        "next_action_envelope",
+        "submission_projection_manifest",
     }
 )
 OPTIONAL_GENERATION_ROLES = frozenset({"candidate_artifact", "evidence_record"})
@@ -169,6 +181,11 @@ def normalize_generation_manifest(
         raise RequestShapeError(
             f"{field}.artifacts requires exactly one source_input_digest"
         )
+    for role in sorted(PUBLICATION_SINGLETON_ROLES & roles):
+        if sum(item["role"] == role for item in artifacts) != 1:
+            raise RequestShapeError(
+                f"{field}.artifacts requires exactly one {role}"
+            )
     artifacts.sort(key=lambda item: (item["role"], item["ref"], item["sha256"]))
 
     manifest_core = {

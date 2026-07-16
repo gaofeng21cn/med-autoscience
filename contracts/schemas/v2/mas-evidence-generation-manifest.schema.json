@@ -83,6 +83,10 @@
         "supplementary_output",
         "final_zip_allowlist",
         "final_zip_member",
+        "submission_status",
+        "publication_evaluation",
+        "next_action_envelope",
+        "submission_projection_manifest",
         "candidate_artifact",
         "evidence_record"
       ]

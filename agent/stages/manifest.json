@@ -2288,6 +2288,32 @@
         "issues_quality_export_publication_or_ready_claim": false,
         "downstream_owner_retains_acceptance": true
       },
+      "artifact_projection_transport": {
+        "surface_kind": "mas_stage_artifact_projection_transport_contract",
+        "version": "artifact-projection-transport.v1",
+        "domain_owner": "MedAutoScience",
+        "transport_owner": "One Person Lab",
+        "transport_action_id": "opl_pack_materialize_artifact_projection",
+        "request_contract_ref": "contracts/opl-framework/artifact-projection-materialization-request.schema.json",
+        "receipt_contract_ref": "contracts/opl-framework/artifact-projection-materialization-receipt.schema.json",
+        "owner_authorization_ref": "mas_paper_mission_owner_receipt.artifact_projection_transport",
+        "required_manifest_scope": "publication_generation",
+        "required_generation_artifact_roles": [
+          "submission_status",
+          "publication_evaluation",
+          "next_action_envelope",
+          "submission_projection_manifest"
+        ],
+        "target_role": "study_submission_root",
+        "completion_marker_paths": [
+          "STATUS.json",
+          "audit/submission_manifest.json"
+        ],
+        "same_generation_required": true,
+        "direct_incremental_preferred_root_write_forbidden": true,
+        "transport_can_write_domain_truth": false,
+        "transport_can_authorize_quality_publication_or_submission": false
+      },
       "trust_lane": "human_gate",
       "tool_refs": [
         {

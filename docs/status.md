@@ -33,6 +33,7 @@ publication/submission ready 或 production ready。
 | Runtime | StageRun、Attempt、Temporal、session、retry、StateIndex、storage/lifecycle、observability 与 transition materialization 全归 OPL |
 | Route owner | decisive Codex Attempt 决定领域 route；OPL StageRun controller 只校验并物化 transition |
 | Provider/resource | OPL Connect / Pack 生成 exact-path、digest-bound receipt；MAS 只消费 receipt 并作医学判断 |
+| Publication handoff | `publication_generation` 强制同代绑定 package、submission status、publication evaluation、next action 与 projection manifest；MAS owner receipt 授权 OPL Pack 原子投影完整 submission tree，但不授权 publication/submission ready |
 | Retained code | `evaluate_candidate_admission_authority`、`evaluate_paper_mission_authority` 与 `evaluate_agent_lab_self_evolution_closeout` 是仅有的非声明式 authority functions；不持有 runtime、session、lifecycle 或 transition 权限 |
 | Source morphology | `src/med_autoscience/` 只保留 package init、三个 authority handlers、共享纯校验 helper 与 CSL assets |
 

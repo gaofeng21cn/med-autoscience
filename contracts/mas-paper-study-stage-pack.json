@@ -415,6 +415,8 @@
           "AI reviewer-backed publication_eval/latest.json is current against the manuscript, evidence ledger, claim map, and review ledger refs",
           "publication gate receipt is current against the same AI reviewer eval and package manifest refs",
           "publication package manifest points to current package/source refs and carries freshness proof",
+          "submission package, STATUS.json, publication_eval/latest.json, and control/next_action.json are byte-bound to one publication generation",
+          "MAS owner authorization binds an OPL atomic artifact projection request whose completion markers are present in the exact file manifest",
           "handoff owner receipt records the terminal route and next owner without counting downstream-only bundle work as a current blocker"
         ],
         "valid_terminal_outcomes": [
@@ -427,12 +429,14 @@
           "AI reviewer request is still pending or stale",
           "publication gate was not rerun against the latest AI reviewer record",
           "package freshness/currentness proof is missing",
+          "submission status, publication evaluation, next action, or projection manifest belongs to another generation or is absent",
+          "the preferred submission root was populated incrementally instead of switched from a fully validated sibling staging tree",
           "handoff owner receipt is absent or names no concrete next owner/action"
         ]
       },
       "quality_gate": {
         "publication_ready_authority": "AI reviewer eval plus publication gate must both be current and agree that publication handoff is allowed",
-        "package_authority": "artifact package authority must expose refs, freshness proof, and handoff manifest without storing duplicate body copies in the stage index",
+        "package_authority": "artifact package authority must expose same-generation refs, freshness proof, handoff manifest, and a generation-bound OPL atomic projection authorization without storing duplicate body copies in the stage index",
         "failure_policy": "return typed blocker or route-back receipt; do not claim publication readiness from partial package refs"
       },
       "advance_gate": {
@@ -451,6 +455,23 @@
         ]
       },
       "next_stage_ids": [],
+      "artifact_projection_transport": {
+        "domain_owner": "MedAutoScience",
+        "transport_owner": "One Person Lab",
+        "transport_action_id": "opl_pack_materialize_artifact_projection",
+        "required_generation_roles": [
+          "submission_status",
+          "publication_evaluation",
+          "next_action_envelope",
+          "submission_projection_manifest"
+        ],
+        "completion_markers": [
+          "STATUS.json",
+          "audit/submission_manifest.json"
+        ],
+        "direct_incremental_preferred_root_write_forbidden": true,
+        "transport_authorizes_publication_or_submission": false
+      },
       "stable_artifact_roles": [
         {
           "role": "publication_package_manifest",
@@ -463,6 +484,26 @@
         {
           "role": "handoff_owner_receipt",
           "artifact_ref": "artifacts/publication_handoff/owner_receipt.json"
+        },
+        {
+          "role": "publication_generation_manifest",
+          "artifact_ref": "artifacts/stage_outputs/08-publication_package_handoff/publication_generation_manifest.json"
+        },
+        {
+          "role": "submission_status",
+          "artifact_ref": "submission/STATUS.json"
+        },
+        {
+          "role": "publication_evaluation",
+          "artifact_ref": "artifacts/publication_eval/latest.json"
+        },
+        {
+          "role": "next_action_envelope",
+          "artifact_ref": "control/next_action.json"
+        },
+        {
+          "role": "artifact_projection_transport_receipt",
+          "artifact_ref": "artifacts/stage_outputs/08-publication_package_handoff/artifact_projection_transport_receipt.json"
         }
       ]
     }

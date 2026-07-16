@@ -11,6 +11,19 @@ Its authority input is a `publication_generation` manifest, never a weaker
 manuscript scope, and includes exact DOCX, PDF, supplement, ZIP allowlist, and
 ZIP member records. Medical, statistical, reference, display, publication, and
 exact-byte-package lane receipts must all be current and exact-byte bound.
+The same generation must contain exactly one submission status, publication
+evaluation, next-action envelope, and submission projection manifest. The
+projection manifest binds the complete submission tree by relative path, byte
+size, and SHA-256 and names `STATUS.json` plus
+`audit/submission_manifest.json` as completion markers.
+
+After MAS returns a generation-bound artifact projection authorization, OPL
+must materialize the owner-prepared tree through
+`opl_pack_materialize_artifact_projection`. It validates a sibling staging tree
+before switching the canonical target and restores the prior target on
+failure. Neither OPL nor the transport receipt may create or reinterpret MAS
+status, publication evaluation, next action, quality, or submission authority.
+Direct incremental writes into a preferred submission root are forbidden.
 
 When any content or current-package byte must change, return a route-back to the
 earliest owning Stage instead of repairing here. The changed bytes must complete

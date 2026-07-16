@@ -34,6 +34,10 @@ PUBLICATION_ROLES = MANUSCRIPT_ROLES + (
     "supplementary_output",
     "final_zip_allowlist",
     "final_zip_member",
+    "submission_status",
+    "publication_evaluation",
+    "next_action_envelope",
+    "submission_projection_manifest",
 )
 ROLES_BY_SCOPE = {
     "analysis_generation": ANALYSIS_ROLES,

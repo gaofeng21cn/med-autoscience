@@ -264,7 +264,47 @@ def test_finalize_requires_publication_generation_six_lanes_and_package_roles(
         "supplementary_output",
         "final_zip_allowlist",
         "final_zip_member",
+        "submission_status",
+        "publication_evaluation",
+        "next_action_envelope",
+        "submission_projection_manifest",
     } <= roles
+    transport = result["owner_receipt"]["artifact_projection_transport"]
+    assert transport["transport_action_id"] == (
+        "opl_pack_materialize_artifact_projection"
+    )
+    assert transport["generation_id"] == publication["generation_manifest"][
+        "generation_id"
+    ]
+    assert transport["generation_manifest_ref"] == publication[
+        "generation_manifest_ref"
+    ]
+    assert transport["projection_manifest_ref"]["role"] == (
+        "submission_projection_manifest"
+    )
+    assert [
+        item["role"] for item in transport["generation_bound_truth_members"]
+    ] == [
+        "submission_status",
+        "publication_evaluation",
+        "next_action_envelope",
+    ]
+    assert transport["completion_marker_paths"] == [
+        "STATUS.json",
+        "audit/submission_manifest.json",
+    ]
+    assert transport["opl_request_domain_authorization"] == {
+        "owner": "MedAutoScience",
+        "ref_source": "owner_receipt.receipt_id",
+        "scope": "artifact_projection_only",
+        "artifact_body_write_authorized": True,
+        "authorizes_quality_publication_or_submission": False,
+    }
+    assert transport["transport_can_write_domain_truth"] is False
+
+    manuscript = authority_records.paper_request()
+    manuscript_result = _evaluate(manuscript)
+    assert "artifact_projection_transport" not in manuscript_result["owner_receipt"]
 
     missing_package_review = authority_records.paper_request(
         scope="publication_generation",
@@ -295,6 +335,52 @@ def test_finalize_requires_publication_generation_six_lanes_and_package_roles(
     result = _evaluate(missing_pdf)
     assert result["status"] == "invalid_host_input"
     assert "missing required roles: pdf" in result["error"]["detail"]
+
+    for required_role in (
+        "submission_status",
+        "publication_evaluation",
+        "next_action_envelope",
+        "submission_projection_manifest",
+    ):
+        missing_truth = authority_records.paper_request(
+            scope="publication_generation",
+            stage_id="finalize_and_publication_handoff",
+        )
+        missing_truth["generation_manifest"]["artifacts"] = [
+            item
+            for item in missing_truth["generation_manifest"]["artifacts"]
+            if item["role"] != required_role
+        ]
+        result = _evaluate(missing_truth)
+        assert result["status"] == "invalid_host_input"
+        assert f"missing required roles: {required_role}" in result["error"][
+            "detail"
+        ]
+
+
+def test_finalize_rejects_duplicate_generation_truth_members(
+    authority_records: Any,
+) -> None:
+    request = authority_records.paper_request(
+        scope="publication_generation",
+        stage_id="finalize_and_publication_handoff",
+    )
+    status = next(
+        item
+        for item in request["generation_manifest"]["artifacts"]
+        if item["role"] == "submission_status"
+    )
+    request["generation_manifest"]["artifacts"].append(
+        {
+            **status,
+            "ref": "workspace://study/publication_generation/second-status",
+            "sha256": authority_records.digest("second-status-bytes"),
+        }
+    )
+    result = _evaluate(request)
+
+    assert result["status"] == "invalid_host_input"
+    assert "requires exactly one submission_status" in result["error"]["detail"]
 
 
 def test_source_gap_output_debt_and_repair_budget_preserve_stage_semantics(
@@ -424,6 +510,22 @@ def test_paper_output_oneof_rejects_contradictory_status_and_receipts(
     incomplete_blocker = deepcopy(blocker)
     incomplete_blocker["typed_blocker"]["evidence_refs"] = []
     assert list(validator.iter_errors(incomplete_blocker))
+
+    finalize = _evaluate(
+        authority_records.paper_request(
+            scope="publication_generation",
+            stage_id="finalize_and_publication_handoff",
+        )
+    )
+    missing_transport = deepcopy(finalize)
+    del missing_transport["owner_receipt"]["artifact_projection_transport"]
+    assert list(validator.iter_errors(missing_transport))
+
+    widened_transport = deepcopy(finalize)
+    widened_transport["owner_receipt"]["artifact_projection_transport"][
+        "opl_request_domain_authorization"
+    ]["authorizes_quality_publication_or_submission"] = True
+    assert list(validator.iter_errors(widened_transport))
 
 
 def test_draft202012_input_schemas_accept_exact_records_and_reject_old_abi(

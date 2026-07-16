@@ -443,6 +443,202 @@
         }
       }
     },
+    "generation_artifact_identity": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "role",
+        "ref",
+        "size_bytes",
+        "sha256"
+      ],
+      "properties": {
+        "role": {
+          "enum": [
+            "submission_status",
+            "publication_evaluation",
+            "next_action_envelope",
+            "submission_projection_manifest"
+          ]
+        },
+        "ref": {
+          "$ref": "#/$defs/non_empty_text"
+        },
+        "size_bytes": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "sha256": {
+          "$ref": "#/$defs/sha256"
+        }
+      }
+    },
+    "artifact_projection_transport": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "surface_kind",
+        "schema_version",
+        "transport_owner",
+        "transport_action_id",
+        "request_contract_ref",
+        "receipt_contract_ref",
+        "generation_id",
+        "generation_manifest_ref",
+        "projection_manifest_ref",
+        "generation_bound_truth_members",
+        "target_role",
+        "completion_marker_paths",
+        "opl_request_domain_authorization",
+        "source_tree_must_match_projection_manifest",
+        "atomic_tree_switch_required",
+        "transport_can_write_domain_truth"
+      ],
+      "properties": {
+        "surface_kind": {
+          "const": "mas_artifact_projection_transport_authorization"
+        },
+        "schema_version": {
+          "const": 1
+        },
+        "transport_owner": {
+          "const": "One Person Lab"
+        },
+        "transport_action_id": {
+          "const": "opl_pack_materialize_artifact_projection"
+        },
+        "request_contract_ref": {
+          "const": "contracts/opl-framework/artifact-projection-materialization-request.schema.json"
+        },
+        "receipt_contract_ref": {
+          "const": "contracts/opl-framework/artifact-projection-materialization-receipt.schema.json"
+        },
+        "generation_id": {
+          "$ref": "#/$defs/non_empty_text"
+        },
+        "generation_manifest_ref": {
+          "$ref": "#/$defs/exact_ref"
+        },
+        "projection_manifest_ref": {
+          "allOf": [
+            {
+              "$ref": "#/$defs/generation_artifact_identity"
+            },
+            {
+              "properties": {
+                "role": {
+                  "const": "submission_projection_manifest"
+                }
+              }
+            }
+          ]
+        },
+        "generation_bound_truth_members": {
+          "type": "array",
+          "prefixItems": [
+            {
+              "allOf": [
+                {
+                  "$ref": "#/$defs/generation_artifact_identity"
+                },
+                {
+                  "properties": {
+                    "role": {
+                      "const": "submission_status"
+                    }
+                  }
+                }
+              ]
+            },
+            {
+              "allOf": [
+                {
+                  "$ref": "#/$defs/generation_artifact_identity"
+                },
+                {
+                  "properties": {
+                    "role": {
+                      "const": "publication_evaluation"
+                    }
+                  }
+                }
+              ]
+            },
+            {
+              "allOf": [
+                {
+                  "$ref": "#/$defs/generation_artifact_identity"
+                },
+                {
+                  "properties": {
+                    "role": {
+                      "const": "next_action_envelope"
+                    }
+                  }
+                }
+              ]
+            }
+          ],
+          "items": false,
+          "minItems": 3,
+          "maxItems": 3
+        },
+        "target_role": {
+          "const": "study_submission_root"
+        },
+        "completion_marker_paths": {
+          "type": "array",
+          "prefixItems": [
+            {
+              "const": "STATUS.json"
+            },
+            {
+              "const": "audit/submission_manifest.json"
+            }
+          ],
+          "items": false,
+          "minItems": 2,
+          "maxItems": 2
+        },
+        "opl_request_domain_authorization": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "owner",
+            "ref_source",
+            "scope",
+            "artifact_body_write_authorized",
+            "authorizes_quality_publication_or_submission"
+          ],
+          "properties": {
+            "owner": {
+              "const": "MedAutoScience"
+            },
+            "ref_source": {
+              "const": "owner_receipt.receipt_id"
+            },
+            "scope": {
+              "const": "artifact_projection_only"
+            },
+            "artifact_body_write_authorized": {
+              "const": true
+            },
+            "authorizes_quality_publication_or_submission": {
+              "const": false
+            }
+          }
+        },
+        "source_tree_must_match_projection_manifest": {
+          "const": true
+        },
+        "atomic_tree_switch_required": {
+          "const": true
+        },
+        "transport_can_write_domain_truth": {
+          "const": false
+        }
+      }
+    },
     "owner_receipt": {
       "type": "object",
       "additionalProperties": false,
@@ -546,6 +742,9 @@
         "requires_host_exact_byte_persistence": {
           "const": true
         },
+        "artifact_projection_transport": {
+          "$ref": "#/$defs/artifact_projection_transport"
+        },
         "receipt_id": {
           "type": "string",
           "pattern": "^mas-paper-mission-owner-receipt:[0-9a-f]{64}$"
@@ -557,7 +756,41 @@
         "receipt_fingerprint": {
           "$ref": "#/$defs/sha256"
         }
-      }
+      },
+      "allOf": [
+        {
+          "if": {
+            "properties": {
+              "mission_identity": {
+                "type": "object",
+                "properties": {
+                  "stage_id": {
+                    "const": "finalize_and_publication_handoff"
+                  }
+                },
+                "required": [
+                  "stage_id"
+                ]
+              }
+            },
+            "required": [
+              "mission_identity"
+            ]
+          },
+          "then": {
+            "required": [
+              "artifact_projection_transport"
+            ]
+          },
+          "else": {
+            "not": {
+              "required": [
+                "artifact_projection_transport"
+              ]
+            }
+          }
+        }
+      ]
     },
     "review_verdict": {
       "type": "object",

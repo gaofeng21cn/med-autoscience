@@ -66,6 +66,12 @@ HANDOFF_REVIEW_BOUNDARY = {
     "issues_quality_export_publication_or_ready_claim": False,
     "downstream_owner_retains_acceptance": True,
 }
+HANDOFF_PROJECTION_ROLES = [
+    "submission_status",
+    "publication_evaluation",
+    "next_action_envelope",
+    "submission_projection_manifest",
+]
 
 
 def _stage_manifest() -> dict[str, object]:
@@ -109,6 +115,27 @@ def test_stage_manifest_declares_domain_extensions_for_opl_generated_plane() -> 
     )
     assert handoff_stage["stage_kind"] == "packaging"
     assert handoff_stage["handoff_review_boundary"] == HANDOFF_REVIEW_BOUNDARY
+    transport = handoff_stage["artifact_projection_transport"]
+    assert transport["domain_owner"] == "MedAutoScience"
+    assert transport["transport_owner"] == "One Person Lab"
+    assert transport["transport_action_id"] == (
+        "opl_pack_materialize_artifact_projection"
+    )
+    assert transport["required_manifest_scope"] == "publication_generation"
+    assert transport["required_generation_artifact_roles"] == (
+        HANDOFF_PROJECTION_ROLES
+    )
+    assert transport["completion_marker_paths"] == [
+        "STATUS.json",
+        "audit/submission_manifest.json",
+    ]
+    assert transport["same_generation_required"] is True
+    assert transport["direct_incremental_preferred_root_write_forbidden"] is True
+    assert transport["transport_can_write_domain_truth"] is False
+    assert (
+        transport["transport_can_authorize_quality_publication_or_submission"]
+        is False
+    )
     assert all(
         "handoff_review_boundary" not in stage
         for stage in stages
