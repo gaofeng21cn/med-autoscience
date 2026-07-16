@@ -26,10 +26,13 @@ status, publication evaluation, next action, quality, or submission authority.
 Direct incremental writes into a preferred submission root are forbidden.
 
 When any content or current-package byte must change, return a route-back to the
-earliest owning Stage instead of repairing here. The changed bytes must complete
-that Stage's fresh Review and re-enter cross-Stage Meta Review before returning
-to this Handoff. A handoff packet only transports the resulting exact refs; it
-cannot authorize acceptance or a quality/ready claim.
+earliest owning Stage instead of repairing here. The new generation refreshes
+every affected v2 lane; an unchanged lane carries forward only through a
+MAS-owned currentness receipt with identical scope policy, rubric, identity, and
+origin provenance. The resulting current cross-Stage Meta Review must return
+before this Handoff consumes the generation. A handoff packet only transports
+the resulting exact refs; it cannot authorize acceptance or a quality/ready
+claim.
 
 A consumable internal handoff may close as `completed_with_quality_debt`; debt
 blocks publication/submission-ready claims. External submission, credentials,

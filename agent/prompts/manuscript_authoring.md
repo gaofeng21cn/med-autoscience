@@ -35,6 +35,24 @@ policy; never claim a Review receipt from this conversation.
 - Mutate canonical source only through an authorized MAS path. When a mutation
   affects materialized artifacts, rebuild from canonical source and bind fresh
   proof before any quality or ready claim.
+- Follow `contracts/artifact_iteration_efficiency_policy.json` for derived
+  artifacts. Before a heavyweight renderer starts, classify the change and use
+  the descriptor-declared component graph when it exists. For a legacy
+  descriptor, materialize a bounded impact plan from exact inputs and the
+  canonical MAS role policy; missing graph metadata never blocks the hosted
+  action, but it forbids claiming a cache hit until the code, tool, input, and
+  configuration closure is explicit.
+- During iteration, rebuild and preview only affected components, changed pages,
+  and declared high-risk members. A no-change run starts no heavyweight tool; a
+  layout-only run does not restart analysis or source generation; a
+  manuscript-only run does not rebuild independent displays, workbooks, or
+  supplements unless the impact plan makes them reachable.
+- Freeze a candidate only after targeted checks pass and no canonical mutation is
+  pending. For that candidate identity, run one complete delivery export, one
+  complete page/sheet render check, one exact-byte member manifest, and one
+  parallel review wave for all affected lanes. A bounded same-identity retry is
+  allowed only for a recorded failed action; otherwise retry requires changed
+  input, code, toolchain, or configuration identity.
 - Consume a refs-only candidate only when an exact MAS admission receipt binds
   its ref, size, hash, source-input digest, generation, verdict, claim classes,
   permitted sections, required disclosures, prohibited claims, and sensitivity

@@ -28,13 +28,18 @@ route another canonical Stage can act on; do not repair the artifact here.
   reporting/journal refs. Use `ai_reviewer_auditor_gate.md` as the quality floor
   and `medical_research_execution.md` for specialist routing.
 - Issue each lane receipt as MedAutoScience with the lane-specific authority
-  role and verdict. Bind it to the current authority epoch, exact review request,
-  producer output, generation-manifest fingerprint, accepted candidate receipts,
-  and complete reviewed role/ref/size/hash inventory. Treat any source, ledger,
-  catalog, manuscript, table, figure, render, DOCX/PDF, supplement, ZIP, request,
-  or receipt drift as stale and require a fresh independent invocation. A lane
-  counts only when its exact receipt ref is present in the current MAS receipt
-  inventory.
+  role and verdict. Generation manifest v2 binds it to the MAS-owned lane scope
+  and complete reviewed member inventory. The currentness receipt may mark a lane
+  `reused_unchanged_scope` only when scope policy, professional rubric, and scope
+  identity are unchanged and complete origin provenance is retained; only a
+  changed lane requires a fresh independent invocation. V1 remains
+  whole-generation exact currentness, and `exact_byte_package` always reviews the
+  complete root inventory including locators. A lane counts only when its exact
+  receipt ref is present in the current MAS receipt inventory.
+- Start candidate-level review only after candidate freeze. Dispatch all affected
+  lanes in one wave, run independent lanes in parallel, and aggregate findings
+  once before routing repair. Do not serialize one generation change into
+  repeated display, publication, package, or scientific review cycles.
 - Apply medical judgment, not only checklist completion: test claim restraint,
   clinical interpretation, method fit, source grounding, citation support,
   display-to-claim consistency, limitations, contribution logic, reader risk,

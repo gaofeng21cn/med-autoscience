@@ -727,6 +727,7 @@ def _normalize_lane_currentness(value: Any, field: str) -> dict[str, Any]:
             "review_lane",
             "review_authority_epoch",
             "currentness_status",
+            "current_rubric_ref",
             "review_scope_sha256",
             "review_receipt_issued_generation_id",
             "review_receipt_issued_generation_manifest_sha256",
@@ -762,6 +763,11 @@ def _normalize_lane_currentness(value: Any, field: str) -> dict[str, Any]:
             f"{field}.review_authority_epoch",
         ),
         "currentness_status": status,
+        "current_rubric_ref": _typed_ref(
+            payload.get("current_rubric_ref"),
+            f"{field}.current_rubric_ref",
+            "mas_quality_rubric",
+        ),
         "review_scope_sha256": sha256(
             payload.get("review_scope_sha256"),
             f"{field}.review_scope_sha256",
@@ -1252,6 +1258,7 @@ def _review_currentness_issue_v2(
             (
                 lane_state["review_scope_sha256"]
                 != scope["review_scope_sha256"],
+                lane_state["current_rubric_ref"] != receipt["rubric_ref"],
                 receipt["review_scope_sha256"]
                 != lane_state["review_scope_sha256"],
                 lane_state["current_review_receipt_ref"]

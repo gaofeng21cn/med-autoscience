@@ -611,6 +611,9 @@ class AuthorityRecordFactory:
                     "review_lane": wrapper["receipt"]["review_lane"],
                     "review_authority_epoch": wrapper["receipt"]["authority_epoch"],
                     "currentness_status": "fresh",
+                    "current_rubric_ref": deepcopy(
+                        wrapper["receipt"]["rubric_ref"]
+                    ),
                     "review_scope_sha256": wrapper["receipt"][
                         "review_scope_sha256"
                     ],

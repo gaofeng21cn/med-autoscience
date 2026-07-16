@@ -45,6 +45,110 @@ def test_quality_cycle_uses_canonical_attempt_outcome_and_controller_receipt() -
     assert defaults["re_review_closure"]["fresh_re_reviewer_attempt_required"] is True
 
 
+def test_artifact_iteration_separates_preview_freeze_and_projection() -> None:
+    policy = _load("contracts/artifact_iteration_efficiency_policy.json")
+    plan = policy["impact_plan"]
+    fallback = plan["legacy_descriptor_fallback"]
+    preview = policy["iterative_preview"]
+    freeze = policy["candidate_freeze"]
+    change_classes = policy["change_classes"]
+
+    assert plan["required_before_heavyweight_side_effects"] is True
+    assert plan["changed_inputs_select_only_reachable_components"] is True
+    assert plan["host_may_infer_undeclared_dependencies"] is False
+    assert fallback["owner"] == "mas_executor"
+    assert fallback[
+        "materialize_bounded_plan_from_exact_inputs_and_canonical_role_policy"
+    ] is True
+    assert fallback[
+        "cache_hit_allowed_without_complete_code_tool_and_configuration_closure"
+    ] is False
+    assert fallback["missing_graph_blocks_hosted_action_liveness"] is False
+    assert change_classes["no_change"] == {
+        "allowed_work": "currentness_and_cache_receipt_only",
+        "heavyweight_external_invocations": 0,
+        "projection_rewrites": 0,
+    }
+    assert change_classes["layout_only"]["analysis_or_source_generation_allowed"] is False
+    assert change_classes["manuscript_only"][
+        "analysis_display_workbook_or_supplement_rebuild_by_default"
+    ] is False
+    assert "generation_descriptor_sha256" not in preview["required_cache_key_fields"]
+    assert preview[
+        "whole_descriptor_sha256_is_provenance_not_component_cache_identity"
+    ] is True
+    assert preview["build_scope"] == "affected_components_only"
+    assert preview["full_package_export_allowed"] is False
+    assert preview["full_page_raster_allowed"] is False
+    assert preview["formal_review_allowed"] is False
+    assert freeze["required_actions"] == [
+        "one_full_delivery_export",
+        "one_complete_page_and_sheet_render_check",
+        "one_complete_exact_byte_member_manifest",
+        "one_archive_build_per_unique_tree",
+        "one_parallel_review_wave_for_all_affected_lanes",
+    ]
+    assert freeze["projection_switch_is_outside_candidate_freeze"] is True
+
+
+def test_artifact_iteration_preserves_currentness_and_owner_boundaries() -> None:
+    policy = _load("contracts/artifact_iteration_efficiency_policy.json")
+    review = policy["review_dispatch"]
+    archive = policy["archive_and_projection"]
+    observability = policy["observability"]
+
+    assert review["dispatch_only_affected_lanes"] is True
+    assert review["dispatch_affected_lanes_in_one_wave"] is True
+    assert review["parallelize_independent_lanes"] is True
+    assert review["reuse_requires_mas_owned_currentness_receipt"] is True
+    assert review[
+        "reuse_requires_identical_scope_policy_and_professional_rubric"
+    ] is True
+    assert review["reuse_requires_complete_origin_provenance"] is True
+    assert archive["one_compression_per_unique_tree"] is True
+    assert archive["projection_requires_current_mas_owner_result"] is True
+    assert archive["unchanged_projection_tree_is_no_op"] is True
+    assert observability["same_identity_retry_budget_per_failed_action"] == 1
+    assert observability[
+        "budget_exhaustion_routes_to_owner_instead_of_silent_retry"
+    ] is True
+
+
+def test_artifact_iteration_policy_is_packaged_and_used_by_stage_prompts() -> None:
+    pack_input = _load("contracts/pack_compiler_input.json")
+    policy_ref = "contracts/artifact_iteration_efficiency_policy.json"
+    manuscript = (ROOT / "agent/prompts/manuscript_authoring.md").read_text(
+        encoding="utf-8"
+    )
+    review = (ROOT / "agent/prompts/review_and_quality_gate.md").read_text(
+        encoding="utf-8"
+    )
+    finalize = (ROOT / "agent/prompts/finalize_and_publication_handoff.md").read_text(
+        encoding="utf-8"
+    )
+    execution = (ROOT / "agent/skills/medical_research_execution.md").read_text(
+        encoding="utf-8"
+    )
+    normalized_manuscript = " ".join(manuscript.split())
+    normalized_execution = " ".join(execution.split())
+
+    assert policy_ref in pack_input["required_domain_pack_paths"]
+    assert policy_ref in pack_input["source_refs"]["required_domain_pack_paths"]
+    assert pack_input["source_refs"]["artifact_iteration_efficiency_policy_ref"] == (
+        policy_ref
+    )
+    assert policy_ref in manuscript
+    assert "missing graph metadata never blocks the hosted action" in normalized_manuscript
+    assert "`reused_unchanged_scope`" in review
+    assert "Dispatch all affected" in review
+    assert "Treat any source, ledger" not in review
+    assert "Any new bytes" not in finalize
+    assert "every affected v2 review lane" in finalize
+    assert policy_ref in execution
+    assert "mtime alone is never currentness proof" in normalized_execution
+    assert "Projection happens only after a current MAS owner" in normalized_execution
+
+
 def test_all_six_stages_bind_quality_policy_and_budget_exhaustion() -> None:
     profile = _load("contracts/stage_quality_cycle_policy.json")
     manifest = _load("agent/stages/manifest.json")

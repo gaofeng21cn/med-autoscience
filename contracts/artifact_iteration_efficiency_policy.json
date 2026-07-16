@@ -1,0 +1,141 @@
+{
+  "surface_kind": "mas_artifact_iteration_efficiency_policy",
+  "schema_version": 1,
+  "owner": "MedAutoScience",
+  "purpose": "separate_fast_component_iteration_from_one_exact_final_candidate_freeze",
+  "authority_boundary": {
+    "policy_can_authorize_medical_quality": false,
+    "preview_can_emit_review_receipt": false,
+    "cache_hit_can_emit_review_receipt": false,
+    "final_checks_replace_independent_review": false,
+    "external_submission_remains_human_authorized": true
+  },
+  "impact_plan": {
+    "required_before_heavyweight_side_effects": true,
+    "preferred_source": "generation_descriptor_declared_input_component_output_role_graph",
+    "legacy_descriptor_fallback": {
+      "owner": "mas_executor",
+      "materialize_bounded_plan_from_exact_inputs_and_canonical_role_policy": true,
+      "cache_hit_allowed_without_complete_code_tool_and_configuration_closure": false,
+      "missing_graph_blocks_hosted_action_liveness": false
+    },
+    "required_nodes": [
+      "input_digest",
+      "builder_code_digest",
+      "toolchain_fingerprint",
+      "component_configuration_digest",
+      "component_id",
+      "output_member_id",
+      "output_role",
+      "review_lane"
+    ],
+    "host_may_infer_undeclared_dependencies": false,
+    "changed_inputs_select_only_reachable_components": true
+  },
+  "change_classes": {
+    "no_change": {
+      "allowed_work": "currentness_and_cache_receipt_only",
+      "heavyweight_external_invocations": 0,
+      "projection_rewrites": 0
+    },
+    "layout_only": {
+      "rebuild_scope": "affected_delivery_components_only",
+      "analysis_or_source_generation_allowed": false,
+      "scientific_review_replay_allowed_for_unchanged_scope": false
+    },
+    "manuscript_only": {
+      "rebuild_scope": "manuscript_and_reachable_delivery_components_only",
+      "analysis_display_workbook_or_supplement_rebuild_by_default": false
+    },
+    "source_or_science": {
+      "rebuild_scope": "all_reachable_components_from_changed_semantic_inputs",
+      "review_scope_policy_ref": "docs/runtime/control/progress_first_quality_loop.md#review-scope-currentness"
+    },
+    "package_metadata_only": {
+      "rebuild_scope": "manifest_archive_and_projection_components_only",
+      "professional_review_replay_allowed_for_unchanged_scope": false
+    }
+  },
+  "iterative_preview": {
+    "phase_id": "iterative_preview",
+    "purpose": "find_component_defects_before_candidate_freeze",
+    "required_cache_key_fields": [
+      "input_digests",
+      "builder_code_sha256",
+      "toolchain_fingerprint",
+      "component_configuration_sha256"
+    ],
+    "whole_descriptor_sha256_is_provenance_not_component_cache_identity": true,
+    "cache_hit_requires_output_hash_match": true,
+    "build_scope": "affected_components_only",
+    "preview_scope": "changed_members_changed_pages_and_declared_high_risk_members",
+    "full_package_export_allowed": false,
+    "full_page_raster_allowed": false,
+    "full_exact_byte_manifest_allowed": false,
+    "formal_review_allowed": false,
+    "candidate_freeze_allowed": false
+  },
+  "candidate_freeze": {
+    "phase_id": "candidate_freeze",
+    "entry_conditions": [
+      "targeted_component_checks_passed",
+      "no_pending_canonical_mutation",
+      "impact_plan_current",
+      "all_reused_outputs_match_cache_key_and_output_hash"
+    ],
+    "one_freeze_per_candidate_identity": true,
+    "required_actions": [
+      "one_full_delivery_export",
+      "one_complete_page_and_sheet_render_check",
+      "one_complete_exact_byte_member_manifest",
+      "one_archive_build_per_unique_tree",
+      "one_parallel_review_wave_for_all_affected_lanes"
+    ],
+    "projection_switch_is_outside_candidate_freeze": true,
+    "complete_member_inventory_required": true,
+    "exact_byte_package_scope_may_be_narrowed": false
+  },
+  "review_dispatch": {
+    "currentness_policy_ref": "docs/runtime/control/progress_first_quality_loop.md#review-scope-currentness",
+    "unchanged_lane_status": "reused_unchanged_scope",
+    "reuse_requires_mas_owned_currentness_receipt": true,
+    "reuse_requires_identical_scope_policy_and_professional_rubric": true,
+    "reuse_requires_complete_origin_provenance": true,
+    "dispatch_only_affected_lanes": true,
+    "dispatch_affected_lanes_in_one_wave": true,
+    "parallelize_independent_lanes": true,
+    "aggregate_defects_before_repair": true,
+    "exact_byte_package_always_reviews_complete_root_inventory": true
+  },
+  "archive_and_projection": {
+    "one_compression_per_unique_tree": true,
+    "byte_identical_aliases_use_verified_copy_or_clone": true,
+    "projection_requires_current_mas_owner_result": true,
+    "unchanged_projection_tree_is_no_op": true,
+    "changed_projection_uses_atomic_staging_and_switch": true,
+    "every_final_alias_and_target_hash_verified": true
+  },
+  "observability": {
+    "required_receipt_fields": [
+      "phase_id",
+      "change_class",
+      "input_identity",
+      "elapsed_ms",
+      "cache_hit",
+      "rebuilt_outputs",
+      "reused_outputs",
+      "external_invocation_count",
+      "bytes_hashed",
+      "bytes_copied",
+      "failure_reason"
+    ],
+    "retry_without_changed_identity_or_recorded_failure_forbidden": true,
+    "same_identity_retry_budget_per_failed_action": 1,
+    "budget_exhaustion_routes_to_owner_instead_of_silent_retry": true
+  },
+  "performance_targets": {
+    "enforcement": "telemetry_target_not_quality_or_liveness_gate",
+    "unchanged_elapsed_fraction_of_cold_full_max": 0.1,
+    "profile_override_allowed": true
+  }
+}

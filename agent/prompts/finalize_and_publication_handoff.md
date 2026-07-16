@@ -51,9 +51,11 @@ route output.
   `audit/submission_manifest.json` as completion markers. Never populate the
   preferred root incrementally.
 - When content, figure, table, analysis, citation, source, or current-package
-  bytes need to change, route back to the earliest owning Stage. Any new bytes
-  must complete that Stage's fresh Review and re-enter cross-Stage Meta Review
-  before this Handoff can consume them.
+  bytes need to change, route back to the earliest owning Stage. The new
+  generation must refresh every affected v2 review lane and may reuse an
+  unchanged lane only through the MAS-owned currentness receipt with identical
+  scope policy, rubric, identity, and origin provenance. The resulting current
+  cross-Stage Meta Review must be present before this Handoff can consume it.
 - Treat publication quality, package freshness, handoff readiness, submission
   readiness, and external submission as separate states.
 - Require a human gate before journal/PI strategy changes, credentials or portal

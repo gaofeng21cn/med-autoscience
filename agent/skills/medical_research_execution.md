@@ -51,6 +51,38 @@ The executor must treat all medical research work as claim-boundary work. A coho
   MAS owner path; they never become source, quality, artifact, or submission
   authority by installation or execution alone.
 
+## Artifact Iteration Efficiency
+
+- Apply `contracts/artifact_iteration_efficiency_policy.json` whenever work
+  builds, renders, reviews, archives, or projects a manuscript package. Use a
+  descriptor-declared component graph when available. For legacy descriptors,
+  the MAS executor materializes a bounded impact plan from exact inputs and the
+  canonical role policy; a host does not infer dependencies, and missing graph
+  metadata does not block hosted-action liveness.
+- Use content-addressed component reuse only when input, builder-code, toolchain,
+  configuration, and output hashes all match. Whole-descriptor identity is
+  provenance, not a component cache key, and mtime alone is never currentness
+  proof. An unchanged run starts no heavyweight renderer and rewrites no
+  projection.
+- Keep iterative preview separate from candidate freeze. Preview only affected
+  components, changed pages, and declared high-risk members. Layout-only and
+  manuscript-only changes cannot trigger unrelated analysis, source, display,
+  workbook, or supplement work.
+- After targeted checks pass, freeze one candidate identity and perform one
+  complete export, complete render inspection, exact-byte inventory, archive,
+  and affected-lane review wave. Independent lanes may run in parallel; aggregate
+  their findings before repair. Projection happens only after a current MAS owner
+  result and stays outside candidate freeze.
+- Reuse a v2 review receipt only through MAS-owned
+  `reused_unchanged_scope` currentness with identical scope policy and rubric plus
+  complete origin provenance. Dispatch all changed lanes together; never replay
+  unchanged scientific lanes merely because delivery layout, archive, locator,
+  or package-governance bytes changed.
+- Record phase, change class, elapsed time, cache hits, rebuilt/reused outputs,
+  external invocation count, bytes hashed/copied, and failure reason. Allow at
+  most one same-identity retry for a recorded failed action; then change the
+  relevant identity or route to the owner instead of silently looping.
+
 ## Medical Judgment Requirements
 
 - Keep claims tied to evidence, source, and citation refs.

@@ -542,6 +542,51 @@ def test_v2_currentness_reuses_only_exact_unchanged_lane_scopes(
     )
 
 
+def test_v2_rubric_change_invalidates_only_the_affected_reused_lane(
+    authority_records: Any,
+) -> None:
+    origin = authority_records.paper_request(
+        scope="publication_generation",
+        stage_id="finalize_and_publication_handoff",
+        manifest_version=2,
+        generation_id="study-generation-before-rubric-change",
+    )
+    current = authority_records.paper_request(
+        scope="publication_generation",
+        stage_id="finalize_and_publication_handoff",
+        manifest_version=2,
+        generation_id="study-generation-after-rubric-change",
+    )
+    _authorize_reused_lane(current, origin, "medical", authority_records)
+    medical_currentness = next(
+        item
+        for item in current["review_authority"]["currentness_receipt"][
+            "lane_currentness"
+        ]
+        if item["review_lane"] == "medical"
+    )
+    medical_currentness["current_rubric_ref"] = authority_records.typed_ref(
+        "mas_quality_rubric", "medical-rubric-v2"
+    )
+    authority_records.reseal_review_currentness(current)
+
+    result = _evaluate(current)
+
+    assert result["status"] == "route_back"
+    assert result["route_back"]["reason_code"] == (
+        "independent_review_receipt_not_current"
+    )
+    assert result["route_back"]["affected_review_lanes"] == [
+        {
+            "review_lane": "medical",
+            "reason_code": "independent_review_receipt_not_current",
+            "resume_condition": (
+                "replace stale medical lane currentness and receipt bindings"
+            ),
+        }
+    ]
+
+
 def test_v2_currentness_returns_all_affected_review_lanes_in_one_route_back(
     authority_records: Any,
 ) -> None:

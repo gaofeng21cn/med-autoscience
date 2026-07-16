@@ -87,6 +87,15 @@ boundaries. Preserve ordered dependencies that protect scientific validity,
 evidence currentness, authority, or irreversible actions; do not turn a tool
 catalog or CLI recipe into the research method.
 
+Artifact-producing work follows
+`contracts/artifact_iteration_efficiency_policy.json`: use bounded,
+component-scoped previews while iterating, then freeze one candidate and run the
+complete export, exact-byte inventory, and affected independent review lanes once.
+Content-addressed reuse is allowed only when the full input, code, tool, and
+configuration closure is known. Unchanged review scopes may be reused only
+through the MAS-owned currentness receipt; preview or cache evidence never
+substitutes for review authority.
+
 Use the installed `mas-scholar-skills` capability package for ordinary medical
 paper work. Acquire a new external Skill only for a named or demonstrated
 coverage gap. Before syncing any new external Skill, inspect its identity,

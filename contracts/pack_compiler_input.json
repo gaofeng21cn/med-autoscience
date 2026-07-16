@@ -212,6 +212,7 @@
   "minimal_authority_semantic_model": "registry_bound_pure_authority_function_plus_declarative_decisive_reviewer_contracts",
   "program_output_policy": "the_registry_bound_authority_function_validates_exact_host_injected_records; decisive_reviewer_attempts_make_medical_judgments",
   "required_domain_pack_paths": [
+    "contracts/artifact_iteration_efficiency_policy.json",
     "agent/knowledge/hypothesis_portfolio_evidence_pack.md",
     "agent/knowledge/medical_research_truth.md",
     "agent/knowledge/publication_route_memory.md",
@@ -244,6 +245,7 @@
   "schema_version": 1,
   "source_refs": {
     "action_catalog": "contracts/action_catalog.json",
+    "artifact_iteration_efficiency_policy_ref": "contracts/artifact_iteration_efficiency_policy.json",
     "authority_functions_source_ref": "runtime/authority_functions/README.md",
     "canonical_agent_pack_root": "agent/",
     "capability_map_source_ref": "contracts/capability_map.json",
@@ -261,6 +263,7 @@
     "source_closure_audit": "contracts/source_closure_audit.json",
     "submission_resource_requirements": "contracts/submission-resource-requirements.json",
     "required_domain_pack_paths": [
+      "contracts/artifact_iteration_efficiency_policy.json",
       "agent/stages/stage_route_contract.yaml",
       "agent/stages/stage_native_semantic_pack.yaml",
       "contracts/stage_quality_cycle_policy.json",

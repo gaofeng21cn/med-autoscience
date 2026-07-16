@@ -194,6 +194,7 @@
             "mas_reproducibility",
             "mas_source_readiness_receipt",
             "mas_claim_boundary",
+            "mas_quality_rubric",
             "mas_review_defect",
             "mas_gate_evidence"
           ]
@@ -637,6 +638,7 @@
         "review_lane",
         "review_authority_epoch",
         "currentness_status",
+        "current_rubric_ref",
         "review_scope_sha256",
         "review_receipt_issued_generation_id",
         "review_receipt_issued_generation_manifest_sha256",
@@ -663,6 +665,21 @@
           "enum": [
             "fresh",
             "reused_unchanged_scope"
+          ]
+        },
+        "current_rubric_ref": {
+          "allOf": [
+            {
+              "$ref": "#/$defs/typed_ref"
+            },
+            {
+              "properties": {
+                "kind": {
+                  "const": "mas_quality_rubric"
+                }
+              },
+              "type": "object"
+            }
           ]
         },
         "review_scope_sha256": {
