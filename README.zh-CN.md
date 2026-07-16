@@ -36,7 +36,7 @@ Machine boundary: Human-readable public entry only. Machine truth remains in age
 </table>
 
 <p align="center">
-  <img src="assets/branding/medautoscience-overview-v2.png" alt="Med Auto Science 主示意图" width="100%" />
+  <img src="assets/branding/medautoscience-overview-v3.png" alt="Med Auto Science 从研究问题到发表交接的用户旅程" width="100%" />
 </p>
 
 > `Med Auto Science` 面向已经进入真实研究阶段的团队。它把选题、数据、分析、证据、草稿和交付文件收在同一条研究线上，让课题可以持续推进、回看和审阅。

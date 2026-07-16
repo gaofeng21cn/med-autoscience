@@ -36,7 +36,7 @@ Machine boundary: Human-readable public entry only. Machine truth remains in age
 </table>
 
 <p align="center">
-  <img src="assets/branding/medautoscience-overview-v2.png" alt="Med Auto Science overview" width="100%" />
+  <img src="assets/branding/medautoscience-overview-v3.png" alt="Med Auto Science journey from research question to publication handoff" width="100%" />
 </p>
 
 > `Med Auto Science` is for teams already doing real medical research. It keeps study questions, data, analyses, evidence, drafts, and delivery files connected on one governed study line so the work can keep moving and stay reviewable.
