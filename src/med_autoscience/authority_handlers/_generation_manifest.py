@@ -225,38 +225,12 @@ def normalize_generation_manifest(
         f"{field}.manifest_scope",
         set(REQUIRED_ROLES_BY_SCOPE),
     )
-    artifacts = [
-        _normalize_artifact(
-            item,
-            f"{field}.artifacts[{index}]",
-            allowed_roles=ALLOWED_ROLES_BY_SCOPE[scope],
-            schema_version=schema_version,
-        )
-        for index, item in enumerate(
-            sequence(payload.get("artifacts"), f"{field}.artifacts")
-        )
-    ]
-    identities = [(item["role"], item["ref"]) for item in artifacts]
-    if len(identities) != len(set(identities)):
-        raise RequestShapeError(f"{field}.artifacts contains duplicate role refs")
-    if schema_version == 2:
-        _require_unique_member_ids(artifacts, f"{field}.artifacts")
-    roles = {item["role"] for item in artifacts}
-    missing_roles = sorted(REQUIRED_ROLES_BY_SCOPE[scope] - roles)
-    if missing_roles:
-        raise RequestShapeError(
-            f"{field}.artifacts missing required roles: " + ", ".join(missing_roles)
-        )
-    if sum(item["role"] == "source_input_digest" for item in artifacts) != 1:
-        raise RequestShapeError(
-            f"{field}.artifacts requires exactly one source_input_digest"
-        )
-    for role in sorted(PUBLICATION_SINGLETON_ROLES & roles):
-        if sum(item["role"] == role for item in artifacts) != 1:
-            raise RequestShapeError(
-                f"{field}.artifacts requires exactly one {role}"
-            )
-    artifacts.sort(key=lambda item: (item["role"], item["ref"], item["sha256"]))
+    artifacts = _normalize_generation_artifact_inventory(
+        payload.get("artifacts"),
+        f"{field}.artifacts",
+        manifest_scope=scope,
+        schema_version=schema_version,
+    )
 
     manifest_core: dict[str, Any] = {
         "surface_kind": "mas_evidence_generation_manifest",
@@ -328,6 +302,87 @@ def normalize_generation_manifest(
         "independent_review_receipts": reviews,
     }
     return normalized
+
+
+def _normalize_generation_artifact_inventory(
+    value: Any,
+    field: str,
+    *,
+    manifest_scope: str,
+    schema_version: int,
+) -> list[dict[str, Any]]:
+    artifacts = [
+        _normalize_artifact(
+            item,
+            f"{field}[{index}]",
+            allowed_roles=ALLOWED_ROLES_BY_SCOPE[manifest_scope],
+            schema_version=schema_version,
+        )
+        for index, item in enumerate(
+            sequence(value, field)
+        )
+    ]
+    identities = [(item["role"], item["ref"]) for item in artifacts]
+    if len(identities) != len(set(identities)):
+        raise RequestShapeError(f"{field} contains duplicate role refs")
+    if schema_version == 2:
+        _require_unique_member_ids(artifacts, field)
+    roles = {item["role"] for item in artifacts}
+    missing_roles = sorted(REQUIRED_ROLES_BY_SCOPE[manifest_scope] - roles)
+    if missing_roles:
+        raise RequestShapeError(
+            f"{field} missing required roles: " + ", ".join(missing_roles)
+        )
+    if sum(item["role"] == "source_input_digest" for item in artifacts) != 1:
+        raise RequestShapeError(
+            f"{field} requires exactly one source_input_digest"
+        )
+    for role in sorted(PUBLICATION_SINGLETON_ROLES & roles):
+        if sum(item["role"] == role for item in artifacts) != 1:
+            raise RequestShapeError(
+                f"{field} requires exactly one {role}"
+            )
+    artifacts.sort(key=lambda item: (item["role"], item["ref"], item["sha256"]))
+    return artifacts
+
+
+def build_generation_manifest_v2(
+    *,
+    artifacts: list[dict[str, Any]],
+    generation_id: str,
+    manifest_scope: str,
+) -> dict[str, Any]:
+    """Build a canonical receipt-free v2 manifest from exact artifact records."""
+
+    normalized_scope = enum_text(
+        manifest_scope,
+        "generation_manifest.manifest_scope",
+        set(REQUIRED_ROLES_BY_SCOPE),
+    )
+    normalized_artifacts = _normalize_generation_artifact_inventory(
+        artifacts,
+        "generation_manifest.artifacts",
+        manifest_scope=normalized_scope,
+        schema_version=2,
+    )
+    core = {
+        "surface_kind": "mas_evidence_generation_manifest",
+        "schema_version": 2,
+        "generation_id": text(generation_id, "generation_manifest.generation_id"),
+        "manifest_scope": normalized_scope,
+        "artifacts": normalized_artifacts,
+        "review_scopes": build_review_scopes(
+            normalized_artifacts,
+            normalized_scope,
+        ),
+    }
+    manifest = {
+        **core,
+        "generation_manifest_sha256": fingerprint(core),
+        "independent_review_receipts": [],
+    }
+    normalize_generation_manifest(manifest)
+    return manifest
 
 
 def require_stage_scope(stage_id: str, manifest_scope: str) -> None:
@@ -949,6 +1004,7 @@ __all__ = [
     "REVIEW_SCOPE_POLICY_ID",
     "REVIEW_SCOPE_POLICY_VERSION",
     "STAGE_MINIMUM_SCOPE",
+    "build_generation_manifest_v2",
     "build_review_scopes",
     "normalize_generation_manifest",
     "require_stage_scope",

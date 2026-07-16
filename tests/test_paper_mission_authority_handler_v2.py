@@ -5,11 +5,16 @@ import json
 from pathlib import Path
 from typing import Any
 
+import pytest
 from jsonschema import Draft202012Validator
 from referencing import Registry, Resource
 
 from med_autoscience.authority_handlers.paper_mission import (
     evaluate_paper_mission_authority,
+)
+from med_autoscience.authority_handlers._generation_manifest import (
+    build_generation_manifest_v2,
+    normalize_generation_manifest,
 )
 
 
@@ -327,6 +332,66 @@ def test_v2_review_scopes_are_mas_owned_generation_independent_and_exact_byte_fu
     result = _evaluate(forged)
     assert result["status"] == "invalid_host_input"
     assert "MAS-owned lane inventory" in result["error"]["detail"]
+
+
+def test_v2_public_manifest_builder_is_canonical_receipt_free_and_fail_closed(
+    authority_records: Any,
+) -> None:
+    request = authority_records.paper_request(
+        scope="publication_generation",
+        stage_id="finalize_and_publication_handoff",
+        manifest_version=2,
+    )
+    artifacts = request["generation_manifest"]["artifacts"]
+    built = build_generation_manifest_v2(
+        artifacts=list(reversed(artifacts)),
+        generation_id="public-builder-generation",
+        manifest_scope="publication_generation",
+    )
+    rebuilt = build_generation_manifest_v2(
+        artifacts=artifacts,
+        generation_id="public-builder-generation",
+        manifest_scope=" publication_generation ",
+    )
+
+    assert built == rebuilt
+    assert built["independent_review_receipts"] == []
+    assert [
+        item["review_lane"] for item in built["review_scopes"]
+    ] == sorted(
+        {
+            "medical",
+            "statistical",
+            "reference",
+            "display",
+            "publication",
+            "exact_byte_package",
+        }
+    )
+    assert normalize_generation_manifest(built)[
+        "generation_manifest_sha256"
+    ] == built["generation_manifest_sha256"]
+
+    duplicate = deepcopy(artifacts)
+    duplicate[1]["member_id"] = duplicate[0]["member_id"]
+    with pytest.raises(ValueError, match="duplicate member_id"):
+        build_generation_manifest_v2(
+            artifacts=duplicate,
+            generation_id="duplicate-member-generation",
+            manifest_scope="publication_generation",
+        )
+    with pytest.raises(ValueError, match="must be one of"):
+        build_generation_manifest_v2(
+            artifacts=artifacts,
+            generation_id="invalid-scope-generation",
+            manifest_scope="not_a_manifest_scope",
+        )
+    with pytest.raises(ValueError, match="must be a non-empty string"):
+        build_generation_manifest_v2(
+            artifacts=artifacts,
+            generation_id="unhashable-scope-generation",
+            manifest_scope=[],  # type: ignore[arg-type]
+        )
 
 
 def test_v2_scope_dependency_map_selectively_invalidates_only_affected_lanes(

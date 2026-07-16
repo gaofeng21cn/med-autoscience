@@ -45,7 +45,7 @@ Budget exhaustion 的错误路径包括：重复同一 work unit repair、把 qu
 
 ## Review Scope Currentness
 
-Generation manifest v2 保留完整 root generation ledger，同时用 MAS-owned review scope policy 为 medical、statistical、reference、display、publication 和 exact-byte-package lane 生成确定性成员清单。每个 v2 generation/review member 必须带 MAS owner 分配的稳定 `member_id`；它是 opaque identity，不得从 `ref`、path 或 locator 推导，也不得仅因移动或改名而变化，root inventory 和 review member inventory 内不得重复。`build_review_scopes(...)` 是 workspace/materializer 可调用的 canonical 纯函数；host 不得自选、删减、重写 identity 或解释成员。
+Generation manifest v2 保留完整 root generation ledger，同时用 MAS-owned review scope policy 为 medical、statistical、reference、display、publication 和 exact-byte-package lane 生成确定性成员清单。每个 v2 generation/review member 必须带 MAS owner 分配的稳定 `member_id`；它是 opaque identity，不得从 `ref`、path 或 locator 推导，也不得仅因移动或改名而变化，root inventory 和 review member inventory 内不得重复。`build_generation_manifest_v2(...)` 从 host 注入的 exact artifact records 构造 receipt-free canonical manifest，`build_review_scopes(...)` 构造其 lane scopes；两者都是 workspace/materializer 可调用的无 I/O 纯函数，不生成 review receipt、不写 artifact 或 projection。host 不得自选、删减、重写 identity 或解释成员。
 
 medical、statistical、reference、display 和 publication 的 scope identity 只绑定 policy id/version、lane 以及 canonical `member_id`、`role`、`sha256`、`size_bytes`，保留 `ref` 作为 inventory/provenance，但不把 locator 算入专业复审 identity。因此仅 generation id、root governance receipt 重签或内容不变的 locator rename 不会让科学/专业 lane 失效；`member_id`、内容 hash、byte size 或 lane membership 改变仍会准确失效。`exact_byte_package` 继续绑定完整 root inventory，包括 `ref`，所以最终包路径/identity 变化仍必须经过 exact-byte 复核。
 
