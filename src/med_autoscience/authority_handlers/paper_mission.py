@@ -10,6 +10,7 @@ from ._generation_manifest import (
     REVIEW_LANES_BY_SCOPE,
     normalize_generation_manifest,
     require_stage_scope,
+    review_scope_member_projection,
     source_input_digest,
 )
 from ._record_validation import (
@@ -155,6 +156,41 @@ def evaluate_paper_mission_authority(request: Mapping[str, Any]) -> dict[str, An
 
     review_issue = _review_currentness_issue(normalized)
     if review_issue is not None:
+        affected_lanes = review_issue[2]
+        snapshot_only_issue = bool(affected_lanes) and all(
+            item["reason_code"]
+            in {
+                "review_input_snapshot_binding_required",
+                "review_input_snapshot_binding_not_current",
+            }
+            for item in affected_lanes
+        )
+        if (
+            snapshot_only_issue
+            and normalized["mission"]["stage_id"]
+            != "finalize_and_publication_handoff"
+        ):
+            route_back = _route_back(
+                normalized,
+                reason_code=review_issue[0],
+                next_owner="independent_reviewer",
+                resume_condition=review_issue[1],
+                affected_review_lanes=affected_lanes,
+            )
+            return _finalize(
+                normalized,
+                status="completed_with_quality_debt",
+                stage_outcome=_stage_outcome(
+                    "completed_with_quality_debt", transition_allowed=True
+                ),
+                route_back=route_back,
+                quality_debt=_quality_debt(
+                    normalized,
+                    reason_codes=dedupe(
+                        [item["reason_code"] for item in affected_lanes]
+                    ),
+                ),
+            )
         return _route_result(
             normalized,
             reason_code=review_issue[0],
@@ -1289,6 +1325,35 @@ def _review_currentness_issue_v2(
                 _exact_ref_identity(item)
                 for item in receipt["accepted_candidate_receipt_refs"]
             }
+            snapshot_binding = receipt.get("review_input_snapshot_binding")
+            if snapshot_binding is None:
+                if lane_state["currentness_status"] == "fresh":
+                    lane_issue = (
+                        "review_input_snapshot_binding_required",
+                        f"obtain a fresh {lane} review over the immutable input snapshot",
+                    )
+            elif any(
+                (
+                    snapshot_binding["review_lane"] != lane,
+                    snapshot_binding["review_scope_sha256"]
+                    != receipt["review_scope_sha256"],
+                    snapshot_binding["members"]
+                    != review_scope_member_projection(receipt["reviewed_members"]),
+                )
+            ):
+                lane_issue = (
+                    "review_input_snapshot_binding_not_current",
+                    f"refresh {lane} review against the complete immutable snapshot inventory",
+                )
+            if lane_issue is not None:
+                affected_review_lanes.append(
+                    {
+                        "review_lane": lane,
+                        "reason_code": lane_issue[0],
+                        "resume_condition": lane_issue[1],
+                    }
+                )
+                continue
             if lane_state["currentness_status"] == "fresh":
                 if any(
                     (

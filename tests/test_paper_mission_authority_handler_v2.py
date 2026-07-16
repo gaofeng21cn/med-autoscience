@@ -418,6 +418,7 @@ def test_v2_scope_dependency_map_selectively_invalidates_only_affected_lanes(
         },
         "analysis_output": {"medical", "statistical", "exact_byte_package"},
         "reference_library": {"reference", "publication", "exact_byte_package"},
+        "render_environment_and_font_manifest": {"exact_byte_package"},
         "final_zip_member": {"exact_byte_package"},
     }
     for role, expected_changed_lanes in cases.items():
@@ -605,6 +606,102 @@ def test_v2_currentness_reuses_only_exact_unchanged_lane_scopes(
     assert result["route_back"]["reason_code"] == (
         "independent_review_receipt_not_current"
     )
+
+
+def test_v2_fresh_review_without_snapshot_binding_is_lane_quality_debt(
+    authority_records: Any,
+) -> None:
+    request = authority_records.paper_request(
+        scope="manuscript_generation",
+        stage_id="review_and_quality_gate",
+        manifest_version=2,
+    )
+    wrapper = next(
+        item
+        for item in request["generation_manifest"]["independent_review_receipts"]
+        if item["receipt"]["review_lane"] == "medical"
+    )
+    wrapper["receipt"].pop("review_input_snapshot_binding")
+    authority_records.reseal_review_wrapper(wrapper)
+    lane_state = next(
+        item
+        for item in request["review_authority"]["currentness_receipt"][
+            "lane_currentness"
+        ]
+        if item["review_lane"] == "medical"
+    )
+    lane_state["current_review_receipt_ref"] = deepcopy(wrapper["receipt_ref"])
+    authority_records.reseal_review_currentness(request)
+
+    result = _evaluate(request)
+
+    assert result["status"] == "completed_with_quality_debt"
+    assert result["stage_outcome"]["stage_transition_allowed"] is True
+    assert result["typed_blocker"] is None
+    assert result["route_back"]["affected_review_lanes"] == [
+        {
+            "review_lane": "medical",
+            "reason_code": "review_input_snapshot_binding_required",
+            "resume_condition": (
+                "obtain a fresh medical review over the immutable input snapshot"
+            ),
+        }
+    ]
+
+
+def test_v2_legacy_origin_receipt_without_snapshot_binding_can_reuse_unchanged_scope(
+    authority_records: Any,
+) -> None:
+    origin = authority_records.paper_request(
+        manifest_version=2,
+        generation_id="legacy-origin-generation",
+    )
+    origin_wrapper = next(
+        item
+        for item in origin["generation_manifest"]["independent_review_receipts"]
+        if item["receipt"]["review_lane"] == "medical"
+    )
+    origin_wrapper["receipt"].pop("review_input_snapshot_binding")
+    authority_records.reseal_review_wrapper(origin_wrapper)
+    current = authority_records.paper_request(
+        manifest_version=2,
+        generation_id="current-generation-after-snapshot-contract",
+    )
+    _authorize_reused_lane(current, origin, "medical", authority_records)
+
+    result = _evaluate(current)
+
+    assert result["status"] == "owner_receipt"
+
+
+@pytest.mark.parametrize(
+    ("field", "replacement"),
+    [
+        ("review_scope_sha256", "sha256:" + "0" * 64),
+        ("member_sha256", "sha256:" + "1" * 64),
+        ("member_size_bytes", 999999),
+    ],
+)
+def test_v2_snapshot_binding_must_match_complete_receipt_inventory(
+    authority_records: Any,
+    field: str,
+    replacement: object,
+) -> None:
+    request = authority_records.paper_request(manifest_version=2)
+    wrapper = request["generation_manifest"]["independent_review_receipts"][0]
+    binding = wrapper["receipt"]["review_input_snapshot_binding"]
+    if field == "review_scope_sha256":
+        binding[field] = replacement
+    elif field == "member_sha256":
+        binding["members"][0]["sha256"] = replacement
+    else:
+        binding["members"][0]["size_bytes"] = replacement
+    authority_records.reseal_review_wrapper(wrapper)
+
+    result = _evaluate(request)
+
+    assert result["status"] == "invalid_host_input"
+    assert "review_input_snapshot_binding" in result["error"]["detail"]
 
 
 def test_v2_rubric_change_invalidates_only_the_affected_reused_lane(

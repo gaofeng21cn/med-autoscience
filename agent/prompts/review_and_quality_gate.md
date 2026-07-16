@@ -29,10 +29,16 @@ route another canonical Stage can act on; do not repair the artifact here.
   and `medical_research_execution.md` for specialist routing.
 - Issue each lane receipt as MedAutoScience with the lane-specific authority
   role and verdict. Generation manifest v2 binds it to the MAS-owned lane scope
-  and complete reviewed member inventory. The currentness receipt may mark a lane
+  and complete reviewed member inventory. A fresh v2 receipt also binds the exact
+  OPL immutable reviewer-input snapshot manifest and its path-independent
+  `member_id` / role / hash / size inventory. The reviewer reads that snapshot,
+  not live workspace locators. The currentness receipt may mark a lane
   `reused_unchanged_scope` only when scope policy, professional rubric, and scope
   identity are unchanged and complete origin provenance is retained; only a
-  changed lane requires a fresh independent invocation. V1 remains
+  changed lane requires a fresh independent invocation. A legacy origin receipt
+  without the newer snapshot binding remains reusable only under that unchanged
+  scope rule. A fresh missing binding is lane quality debt, never a hosted-action
+  liveness rejection. V1 remains
   whole-generation exact currentness, and `exact_byte_package` always reviews the
   complete root inventory including locators. A lane counts only when its exact
   receipt ref is present in the current MAS receipt inventory.
@@ -40,6 +46,10 @@ route another canonical Stage can act on; do not repair the artifact here.
   lanes in one wave, run independent lanes in parallel, and aggregate findings
   once before routing repair. Do not serialize one generation change into
   repeated display, publication, package, or scientific review cycles.
+- A page-pixel cache hit may reuse only refs-only evidence candidates bound to an
+  origin reviewer invocation and evidence record. It never skips the fresh
+  reviewer invocation or MAS receipt/judgment. Path, checkout, host, timestamp,
+  model, skill, runtime, and version strings are provenance, not cache identity.
 - Apply medical judgment, not only checklist completion: test claim restraint,
   clinical interpretation, method fit, source grounding, citation support,
   display-to-claim consistency, limitations, contribution logic, reader risk,

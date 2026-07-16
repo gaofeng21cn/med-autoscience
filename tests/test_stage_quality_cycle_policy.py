@@ -105,6 +105,24 @@ def test_artifact_iteration_preserves_currentness_and_owner_boundaries() -> None
         "reuse_requires_identical_scope_policy_and_professional_rubric"
     ] is True
     assert review["reuse_requires_complete_origin_provenance"] is True
+    assert review["fresh_receipt_requires_opl_immutable_snapshot_binding"] is True
+    assert review[
+        "legacy_origin_receipt_without_snapshot_binding_may_reuse_unchanged_scope"
+    ] is True
+    assert review[
+        "fresh_missing_snapshot_binding_is_lane_quality_debt_not_host_liveness_failure"
+    ] is True
+    page_cache = policy["page_hash_evidence_cache"]
+    assert page_cache["persistent_store_owner"] == "one-person-lab"
+    assert page_cache["cache_key_fields"] == [
+        "ordered_page_pixel_hashes",
+        "raster_contract",
+        "review_scope_sha256",
+        "rubric_sha256",
+    ]
+    assert page_cache["cache_hit_can_skip_fresh_reviewer_invocation"] is False
+    assert page_cache["cache_hit_can_emit_mas_receipt_or_verdict"] is False
+    assert page_cache["cache_hit_requires_fresh_mas_judgment"] is True
     assert archive["one_compression_per_unique_tree"] is True
     assert archive["projection_requires_current_mas_owner_result"] is True
     assert archive["unchanged_projection_tree_is_no_op"] is True

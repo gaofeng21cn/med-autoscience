@@ -251,6 +251,88 @@
         }
       }
     },
+    "review_input_snapshot_member": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "member_id",
+        "role",
+        "sha256",
+        "size_bytes"
+      ],
+      "properties": {
+        "member_id": {
+          "$ref": "#/$defs/non_empty_text"
+        },
+        "role": {
+          "$ref": "#/$defs/artifact_role"
+        },
+        "sha256": {
+          "$ref": "#/$defs/sha256"
+        },
+        "size_bytes": {
+          "type": "integer",
+          "minimum": 0
+        }
+      }
+    },
+    "review_input_snapshot_binding": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "surface_kind",
+        "schema_version",
+        "snapshot_manifest_ref",
+        "review_lane",
+        "review_scope_sha256",
+        "members"
+      ],
+      "properties": {
+        "surface_kind": {
+          "const": "mas_review_input_snapshot_binding"
+        },
+        "schema_version": {
+          "const": 1
+        },
+        "snapshot_manifest_ref": {
+          "allOf": [
+            {
+              "$ref": "#/$defs/exact_ref"
+            },
+            {
+              "properties": {
+                "kind": {
+                  "const": "opl_reviewer_input_snapshot_manifest"
+                }
+              },
+              "type": "object"
+            }
+          ]
+        },
+        "review_lane": {
+          "enum": [
+            "medical",
+            "statistical",
+            "reference",
+            "display",
+            "publication",
+            "exact_byte_package"
+          ]
+        },
+        "review_scope_sha256": {
+          "$ref": "#/$defs/sha256"
+        },
+        "members": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": {
+            "$ref": "#/$defs/review_input_snapshot_member"
+          }
+        }
+      },
+      "description": "Optional only for byte compatibility with legacy v2 receipts. A fresh v2 receipt without this immutable OPL snapshot binding is lane-specific quality debt, not a hosted-action liveness error."
+    },
     "typed_ref": {
       "type": "object",
       "additionalProperties": false,
@@ -288,6 +370,7 @@
         "kind": {
           "enum": [
             "opl_action_output",
+            "opl_reviewer_input_snapshot_manifest",
             "mas_candidate_admission_receipt",
             "mas_reviewer_receipt"
           ]
@@ -676,6 +759,9 @@
           "items": {
             "$ref": "#/$defs/generation_artifact_v2"
           }
+        },
+        "review_input_snapshot_binding": {
+          "$ref": "#/$defs/review_input_snapshot_binding"
         },
         "accepted_candidate_receipt_refs": {
           "type": "array",

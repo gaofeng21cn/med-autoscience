@@ -482,6 +482,10 @@ class AuthorityRecordFactory:
         else:
             if scope is None:
                 raise AssertionError(f"missing review scope for {lane}")
+            from med_autoscience.authority_handlers._generation_manifest import (
+                review_scope_member_projection,
+            )
+
             core.update(
                 {
                     "issued_generation_id": manifest["generation_id"],
@@ -492,6 +496,19 @@ class AuthorityRecordFactory:
                     "scope_policy_version": scope["scope_policy_version"],
                     "review_scope_sha256": scope["review_scope_sha256"],
                     "reviewed_members": deepcopy(scope["reviewed_members"]),
+                    "review_input_snapshot_binding": {
+                        "surface_kind": "mas_review_input_snapshot_binding",
+                        "schema_version": 1,
+                        "snapshot_manifest_ref": cls.exact_ref(
+                            "opl_reviewer_input_snapshot_manifest",
+                            f"{manifest['generation_id']}-{lane}-review-input-snapshot",
+                        ),
+                        "review_lane": lane,
+                        "review_scope_sha256": scope["review_scope_sha256"],
+                        "members": review_scope_member_projection(
+                            scope["reviewed_members"]
+                        ),
+                    },
                 }
             )
         receipt_fingerprint = cls.fingerprint(core)
