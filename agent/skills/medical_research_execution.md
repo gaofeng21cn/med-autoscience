@@ -67,6 +67,14 @@ The executor must treat all medical research work as claim-boundary work. A coho
   professional skills instead of expanding MAS stage policy into parallel
   checklists. The pack-to-skill foldback is owned by
   `mas-scholar-skills/references/professional-quality-ref-templates.md#mas-journal-family-pack-foldback`.
+- For registry, phenotype-atlas, or treatment-gap signals, route refs-only pack
+  production and integrated professional judgment through MAS ScholarSkills'
+  `medical-statistical-review`, then consume the canonical
+  `ehr_registry_signal_validity_ref` in its `registry_signal_validity_pack`.
+  `medical-registry-atlas-story-architect` may contribute optional framing refs
+  but cannot produce or own the pack alone. Keep the professional checklist in
+  ScholarSkills; MAS only freezes signal identity, consumes refs, applies claim
+  boundaries, and emits the owner outcome.
 - MAS execution only requires consumed pack refs, candidate output refs,
   route-back or owner-gate handoff refs, and the owner receipt / typed blocker /
   reviewer record / human gate that consumes them. Reviewer-response,
@@ -101,6 +109,12 @@ the ScholarSkills specialist route, produced candidate refs or route-back refs,
 and the MAS owner receipt, reviewer record, typed blocker, or human gate that
 consumes them. The output should not restate the specialist checklist; it should
 link to the foldback route and preserve the authority boundary.
+
+When a registry signal is in scope, the output must name the consumed
+`registry_signal_validity_pack`, its `ehr_registry_signal_validity_ref`, its
+frozen `clinical-gap` or `data-audit` identity, the executed validation and
+sensitivity refs, explicit waiver ref, or claim-downgrade ref that governs
+interpretation, and the MAS owner or reviewer outcome that consumes those refs.
 
 When no consumable scientific delta exists, emit a no-output/failure diagnostic,
 preserve failed-path lineage, and let Codex select advance, repeat, reverse, or

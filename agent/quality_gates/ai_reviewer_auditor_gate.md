@@ -54,6 +54,26 @@ The journal-family floor must be explicitly consumed when the route touches manu
 
 These packs are quality floors and reviewer rubrics absorbed from nature-skills as MAS-native patterns. They are not publication authority, submission authorization, artifact authority, or a replacement for reviewer/auditor judgment.
 
+## Registry Signal Validity Floor
+
+When a manuscript gives a registry signal clinical interpretation, the
+independent reviewer/auditor must resolve the signal through one of these
+evidence-bearing paths:
+
+- a current `registry_signal_validity_pack` whose
+  `ehr_registry_signal_validity_ref` binds refs to executed validation and
+  sensitivity evidence for the interpreted signal;
+- an explicit current MAS owner or human waiver ref that names the omitted
+  validation, reason, residual risk, allowed claim boundary, and waiver scope;
+- a current manuscript/review ref that downgrades the signal to `unvalidated
+  data-audit` or `exploratory` and removes clinical-gap, care-quality,
+  guideline-nonadherence, undertreatment, or equivalent implications.
+
+A validity plan, protocol, skeleton, candidate pack, or pack-presence check is
+not executed validation evidence. The ScholarSkills producer remains refs-only;
+the independent reviewer/auditor judges whether the consumed refs support the
+claim boundary.
+
 ## Gate Outcomes
 
 Valid gate outputs are:
@@ -76,6 +96,7 @@ Do not issue a quality, publication, export, or submission-ready claim when:
 - required source, evidence, manuscript, review, memory, or artifact refs are stale or missing.
 - hypothesis portfolio refs are used for route selection but lack assumption/sub-assumption decomposition, supporting and contradicting evidence refs, novelty/source provenance refs, testability/safety refs, negative failed-path refs, or required reviewer/human gate receipt refs.
 - required journal-family pack refs, output refs, typed blocker refs, or owner receipts are missing for an in-scope route.
+- a registry signal is interpreted as a clinical gap or equivalent care claim without executed validation evidence in the current `registry_signal_validity_pack`, an explicit current owner/human waiver, or a documented downgrade to unvalidated data-audit or exploratory status.
 - publication eval says ready but reviewer operating-system trace or manuscript refs are not current.
 - only mechanical checks, test pass, provider completion, generated interface readiness, package presence, prose completeness, template completion, or pack presence support the ready claim.
 - next-delta tournament, micro-candidate generation, critique-as-repair-hint, reusable lesson extraction, strategy retrospective, or opportunistic prefetch is used to admit a route, close this gate, promote a stage, or authorize publication/submission readiness.
@@ -92,3 +113,8 @@ human-decision requirements prevent safe progress.
 ## Receipt Requirements
 
 A passing gate must cite the independent record, quality pack evidence refs, journal-family pack refs when in scope, review ledger refs, publication eval refs if updated, output refs reviewed, owner receipt, and any explicitly requested JIT affordance refs consumed as non-authoritative context. A debt result must cite the consumable packet, unresolved findings, blocked claim classes, and next owner. A blocking gate must cite the typed blocker, route-back owner, missing refs, stale refs, forbidden shortcut avoided, and required repair condition.
+
+When registry-signal interpretation is in scope, the receipt must also cite the
+current `registry_signal_validity_pack`, its `ehr_registry_signal_validity_ref`,
+and the executed validation/sensitivity, explicit waiver, or claim-downgrade
+refs used to resolve the validity floor.

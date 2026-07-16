@@ -639,6 +639,47 @@ route_contracts:
       - exporter_constraint_lesson
       - blocked_profile_decision
       - reporting_guideline_delta
+registry_signal_validity_pack_consumption:
+  pack_id: registry_signal_validity_pack
+  specialist_package: mas-scholar-skills
+  owner_route: medical-statistical-review
+  pack_producer_skill: medical-statistical-review
+  optional_framing_input_skill: medical-registry-atlas-story-architect
+  aggregate_ref_family: ehr_registry_signal_validity_ref
+  applies_to_routes:
+    - scout
+    - idea
+    - baseline
+    - analysis-campaign
+    - write
+    - review
+  signal_identities:
+    - clinical-gap
+    - data-audit
+  authority_boundary:
+    specialist_output_role: refs_only_candidate_pack
+    identity_and_claim_owner: MedAutoScience
+    pack_presence_is_validation: false
+    optional_framing_input_can_produce_or_own_pack_alone: false
+    specialist_can_authorize_clinical_interpretation: false
+    specialist_can_sign_owner_or_reviewer_receipt: false
+  route_obligations:
+    scout:
+      - classify the proposed registry signal as clinical-gap or data-audit and record the evidence boundary supporting that identity
+    idea:
+      - freeze clinical-gap or data-audit as the selected signal identity before baseline work and route conflicting or unresolved identity evidence back to scout or decision
+    baseline:
+      - consume the selected signal identity and build a validity_plan_ref with the validation target, executable evidence route, sensitivity scope, stop condition, and unavailable-validation owner
+      - keep a plan-only registry_signal_validity_pack explicitly unvalidated
+    analysis-campaign:
+      - execute the bounded validity plan, produce validation and sensitivity evidence refs, and bind them through the applicable ehr_registry_signal_validity_ref members; otherwise preserve validation_unavailable_ref with an explicit waiver_ref or route-back ref
+      - preserve negative or unstable validation results as evidence and narrow the signal identity or claim boundary instead of harvesting a positive interpretation
+    write:
+      - consume the current registry_signal_validity_pack and its executed validation, sensitivity, waiver, or downgrade refs before writing clinical interpretation
+      - without executed validation evidence or an explicit waiver, describe the signal only as unvalidated data-audit or exploratory and do not imply a clinical gap
+    review:
+      - verify that registry-signal claims consume the current pack and resolve to executed validation evidence, an explicit waiver, or an unvalidated data-audit or exploratory downgrade
+      - reject plan-only, skeleton, or pack-presence evidence as proof of clinical validity
 evidence_review_contract:
   minimum_proof_package:
     - active study charter boundary, current route recommendation, and cited evidence refs must be readable together
