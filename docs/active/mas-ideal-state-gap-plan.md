@@ -76,8 +76,9 @@ MAS 不为这些能力保留 wrapper、facade、compatibility alias、diagnostic
 - 三个 registry-bound minimal authority functions：candidate admission、paper mission 与 self-evolution closeout。
 
 新增非声明式实现必须先证明无法由 OPL primitive 或 declarative pack表达，并进入
-`contracts/authority_kernel_inventory.json`，写清 active caller、allowed/forbidden
-writes、不能上收原因、receipt/blocker/ref 输出和 retirement gate。
+closed handler registry、standard conformance profile 与 functional privatization audit，
+写清 active caller、allowed/forbidden writes、不能上收原因、receipt/blocker/ref 输出
+和 retirement gate。
 
 ## Live evidence tail
 

@@ -19,7 +19,6 @@ Machine boundary: 人读索引。Source truth 继续归 study workspaces、exter
 - [Data Asset Storage Retention Runbook](../runtime/data_asset_storage_retention.md)
 - [References](../references/README.md)
 - [Workspace Knowledge And Literature Contract](../runtime/contracts/workspace_knowledge_and_literature_contract.md)
-- [Standard Domain Agent Skeleton](../runtime/contracts/standard_domain_agent_skeleton.md)
 
 ## Medical Data Asset Boundary
 

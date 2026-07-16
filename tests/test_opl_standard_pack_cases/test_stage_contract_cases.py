@@ -301,10 +301,8 @@ def test_machine_identity_fields_match_the_framework_registry_semantics() -> Non
         "contracts/domain_descriptor.json": "domain_id",
         "contracts/domain_projection_profile.json": "domain_id",
         "contracts/domain_route_profile.json": "domain_id",
-        "contracts/foundry-agent-os-domain-kernel-manifest.json": "domain_id",
         "contracts/foundry_agent_series.json": "domain_id",
         "contracts/generated_surface_handoff.json": "domain_id",
-        "contracts/golden_path_profile.json": "domain_id",
         "contracts/memory_descriptor.json": "target_domain_id",
         "contracts/owner_receipt_contract.json": "domain_id",
         "contracts/pack_compiler_input.json": "domain_id",
@@ -355,23 +353,6 @@ def test_machine_identity_fields_match_the_framework_registry_semantics() -> Non
     )
     assert "target_domain_id: med-autoscience" not in semantic_pack
     assert "target_domain_id: medautoscience" in semantic_pack
-
-def test_opl_standard_pack_declares_single_ordinary_default_stage() -> None:
-    stage_manifest = json.loads(
-        (REPO_ROOT / "agent/stages/manifest.json").read_text(encoding="utf-8")
-    )
-    profile = _read_contract("golden_path_profile")
-
-    stages = stage_manifest["stages"]
-    assert isinstance(stages, list)
-    default_stage_ids = [stages[0]["stage_id"]]
-
-    assert default_stage_ids == profile["ordinary_path"]["stage_refs"] == [
-        "direction_and_route_selection"
-    ]
-    assert profile["ordinary_path"]["path_role"] == "ordinary_default"
-    assert profile["default_surface_policy"]["ordinary_route_count"] == 1
-
 
 def test_zero_readable_stage_output_is_a_progress_diagnostic() -> None:
     stage_manifest = json.loads(

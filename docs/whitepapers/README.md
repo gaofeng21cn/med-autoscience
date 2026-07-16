@@ -15,7 +15,28 @@ MAS 白皮书采用 OPL-family 统一本地生成路径：
 - 只有从 `main` 手动运行 `MAS Whitepaper` workflow 并选择 `publish=true` 才发布同一 bundle，随后执行公开 HTML/PDF exact-byte readback。
 - 发布回读生成 `publication-receipt.json` Actions artifact；不在仓库跟踪第二份 verification 或 receipt。
 
-验证和发布证据边界见 [白皮书验证与发布回执](../delivery/whitepapers/README.md)。
+## 证据边界
+
+OPL renderer 从同一份 Markdown 与 Profile 生成 HTML、PDF、v2 verification 和
+rendered pages。它们在本地是 ignored output，在 CI 是 source SHA 绑定的候选
+artifact；Profile、测试通过或候选 artifact 都不能单独证明已发布。
+
+`push main` 只构建候选。维护者从 `main` 手动运行 `MAS Whitepaper` workflow 并
+选择 `publish=true` 后，publish job 才使用 build job 的同一 bundle 更新
+`gh-pages`，对公开 HTML/PDF 做 exact-byte readback，并把
+`publication-receipt.json` 保存为 Actions artifact。仓库不跟踪手工刷新的
+verification 或 publication receipt。
+
+本地复核从 OPL checkout 调用唯一 runner：
+
+```bash
+node --experimental-strip-types scripts/run-domain-whitepaper.ts \
+  --repo-root <MAS repo> \
+  --profile contracts/whitepaper_profile.json
+```
+
+不要提交 `docs/site/latest/whitepapers/` 或 `tmp/pdfs/mas-whitepaper/rendered/`
+中的派生产物。
 
 当前源文档：
 

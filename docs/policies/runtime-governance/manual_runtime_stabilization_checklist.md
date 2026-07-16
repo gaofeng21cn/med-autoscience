@@ -57,6 +57,6 @@ MDS / DeepScientist 只作为 historical fixture、explicit archive import、bac
 - [Agent runtime interface](../../runtime/contracts/agent_runtime_interface.md)
 - [Controllers](../../runtime/control/controllers.md)
 - [Study runtime orchestration](../../runtime/control/study_runtime_orchestration.md)
-- [Study progress projection](../../runtime/projections/study_progress_projection.md)
+- [Study truth kernel](../../runtime/projections/study_truth_kernel.md)
 - [External runtime dependency gate](./external_runtime_dependency_gate.md)
 - [MDS owner boundary](./mas_mds_owner_boundary_contract.md)

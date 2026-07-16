@@ -132,6 +132,7 @@ Review；Meta Review Stage 不递归 Review 自身，机械封装且保留下游
 - `contracts/pack_compiler_input.json`
 - `contracts/generated_surface_handoff.json`
 - `contracts/action_catalog.json`
-- `contracts/authority_kernel_inventory.json`
+- `contracts/domain_handler_registry.json`
+- `contracts/standard_agent_conformance_profile.json`
 - `contracts/runtime_environment_requirements.json`
 - `contracts/opl_agent_package_manifest.json`

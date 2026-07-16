@@ -11,9 +11,8 @@ Machine boundary: Human-readable delivery catalog only; medical-display machine 
 
 它不是当前 active execution surface。
 
-当前 active round 与当前 phase 一律以 [medical_display_active_board.md](../board/medical_display_active_board.md) 为准。
-
-外部 exemplar intake 只作为只读候选证据保留，不自动进入 active backlog。当前 PaperPlotHub gallery 全量枚举见 [paperplothub_exemplar_intake.md](../../../history/capabilities/medical-display/paperplothub_exemplar_intake.md)，第二轮学习穷尽账本见 [paperplothub_exemplar_exhaustion_ledger.md](../../../history/capabilities/medical-display/paperplothub_exemplar_exhaustion_ledger.md)。
+当前没有单独的 display owner-round board。真实需求从 Stage owner delta 进入；外部
+exemplar 只作为只读候选证据，不自动进入 backlog。
 
 本文记录的是 current candidate pool 和已出队 provenance。它不保存当前 round 执行流水、commit 指令或吸收状态；已落地模板是否属于当前 audited inventory，以 audit guide、ScholarSkills canonical catalog、registry/source 和 focused tests 为准。
 
@@ -21,12 +20,10 @@ Machine boundary: Human-readable delivery catalog only; medical-display machine 
 
 - `../contracts/medical_display_audit_guide.md`
 - ScholarSkills source pack `canonical_template_catalog.json`
-- `../provenance/medical_display_anchor_paper_audit.md`
-- `../board/medical_display_active_board.md`
 
 ## Current Audited Inventory Snapshot
 
-当前数量不再在 backlog 手写维护。请读取生成的 ScholarSkills compact gallery review package 和 [medical_display_arsenal.md](./medical_display_arsenal.md)：
+当前数量不再在 backlog 手写维护。请读取 ScholarSkills canonical catalog 和 compact gallery review package：
 
 - Gallery evidence figures 是当前默认 R/ggplot2 数据证据图；
 - current canonical templates 是 agent discover / figure plan 默认推荐面；

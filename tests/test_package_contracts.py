@@ -1,13 +1,11 @@
 from __future__ import annotations
 
+import importlib
+from importlib.metadata import PackageNotFoundError, version
 import json
 from pathlib import Path
 import tomllib
 
-import pytest
-
-
-pytestmark = pytest.mark.meta
 ROOT = Path(__file__).resolve().parents[1]
 
 
@@ -31,10 +29,52 @@ def test_package_plugin_and_python_versions_are_one_semver() -> None:
     assert package["agent_id"] == package["package_id"] == "mas"
     assert package["codex_surface"]["plugin_id"] == "med-autoscience"
     assert "scripts" not in pyproject["project"]
+    assert plugin["name"] == "med-autoscience"
+    assert plugin["repository"] == "https://github.com/gaofeng21cn/med-autoscience"
+    assert plugin["skills"] == "./skills/"
+    assert "mcpServers" not in plugin
+    assert plugin["interface"]["displayName"] == "Med Auto Science"
+    assert plugin["interface"]["composerIcon"] == plugin["interface"]["logo"]
+    plugin_root = ROOT / "plugins/med-autoscience"
+    assert (plugin_root / plugin["interface"]["composerIcon"]).is_file()
+    assert (plugin_root / "skills/med-autoscience/agents/openai.yaml").is_file()
+    assert not (plugin_root / "bin/medautosci-mcp").exists()
+    assert not (ROOT / "plugins/mas").exists()
+    assert not (ROOT / ".agents/plugins/marketplace.json").exists()
+    assert not any((ROOT / "src/med_autoscience/cli").glob("*.py"))
+    assert not (ROOT / "scripts/install-codex-plugin.sh").exists()
 
     prompt_text = json.dumps(plugin["interface"]["defaultPrompt"]).lower()
     assert "doctor" not in prompt_text
     assert "controller" not in prompt_text
+
+
+def test_package_import_and_hosted_entry_sources_resolve() -> None:
+    package = importlib.import_module("med_autoscience")
+    paper_handler = importlib.import_module(
+        "med_autoscience.authority_handlers.paper_mission"
+    )
+    candidate_handler = importlib.import_module(
+        "med_autoscience.authority_handlers.candidate_admission"
+    )
+    try:
+        installed_version = version("med-autoscience")
+    except PackageNotFoundError:
+        installed_version = "0+unknown"
+
+    assert package.__version__ == installed_version
+    assert callable(paper_handler.evaluate_paper_mission_authority)
+    assert callable(candidate_handler.evaluate_candidate_admission_authority)
+    assert (ROOT / "agent/primary_skill/SKILL.md").is_file()
+
+    catalog = json.loads(
+        (ROOT / "contracts/action_catalog.json").read_text(encoding="utf-8")
+    )
+    assert len(catalog["actions"]) == 8
+    for action in catalog["actions"]:
+        binding = action["execution_binding"]
+        if binding["kind"] == "stage_binding":
+            assert (ROOT / binding["stage_manifest_ref"]).is_file()
 
 
 def test_validator_release_set_preserves_managed_provenance_gate() -> None:

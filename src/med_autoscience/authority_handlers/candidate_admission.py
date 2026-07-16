@@ -13,6 +13,8 @@ from ._record_validation import (
     RequestShapeError,
     canonical_json_bytes,
     enum_text,
+    exact_ref as _exact_ref,
+    exact_ref_list as _exact_ref_list,
     exact_keys,
     fingerprint,
     integer,
@@ -22,6 +24,8 @@ from ._record_validation import (
     sha256,
     text,
     text_list,
+    typed_ref as _typed_ref,
+    typed_ref_list as _typed_ref_list,
 )
 
 
@@ -29,20 +33,6 @@ REQUEST_KIND = "mas_candidate_admission_authority_request"
 RESULT_KIND = "mas_candidate_admission_authority_result"
 SCHEMA_VERSION = 2
 
-_REF_KINDS = frozenset(
-    {
-        "opl_stage_attempt",
-        "opl_action_output",
-        "mas_stage_goal",
-        "mas_artifact",
-        "mas_evidence",
-        "mas_gate_evidence",
-        "mas_generation_manifest",
-        "mas_candidate_adjudicator_receipt",
-        "mas_generation_currentness_receipt",
-        "mas_candidate_admission_receipt",
-    }
-)
 _HARD_GATE_KINDS = frozenset(
     {
         "medical_safety",
@@ -282,6 +272,7 @@ def normalize_candidate_admission_receipt(
             payload.get("evidence_refs"),
             f"{field}.evidence_refs",
             "mas_evidence",
+            dedupe_size=False,
         ),
         "claim_scope": _normalize_claim_scope(
             payload.get("claim_scope"), f"{field}.claim_scope"
@@ -657,6 +648,7 @@ def _normalize_currentness_receipt(value: Any) -> dict[str, Any]:
         payload.get("superseded_request_refs"),
         "currentness_receipt.superseded_request_refs",
         "opl_action_output",
+        dedupe_size=False,
     )
     core = {
         "receipt_kind": "mas_generation_currentness_receipt",
@@ -840,6 +832,7 @@ def _normalize_adjudicator_receipt(value: Any) -> dict[str, Any]:
             payload.get("evidence_refs"),
             "adjudicator_receipt.evidence_refs",
             "mas_evidence",
+            dedupe_size=False,
         ),
         "claim_scope": _normalize_claim_scope(
             payload.get("claim_scope"), "adjudicator_receipt.claim_scope"
@@ -1391,55 +1384,6 @@ def _normalize_hard_gate(value: Any) -> dict[str, Any]:
     if missing:
         raise RequestShapeError("hard gate missing: " + ", ".join(missing))
     return normalized
-
-
-def _typed_ref(value: Any, field: str, expected_kind: str) -> dict[str, str]:
-    payload = mapping(value, field)
-    exact_keys(payload, {"kind", "ref", "sha256"}, field)
-    kind = text(payload.get("kind"), f"{field}.kind")
-    if kind not in _REF_KINDS or kind != expected_kind:
-        raise RequestShapeError(f"{field}.kind must be {expected_kind}")
-    return {
-        "kind": kind,
-        "ref": text(payload.get("ref"), f"{field}.ref"),
-        "sha256": sha256(payload.get("sha256"), f"{field}.sha256"),
-    }
-
-
-def _exact_ref(value: Any, field: str, expected_kind: str) -> dict[str, Any]:
-    payload = mapping(value, field)
-    exact_keys(payload, {"kind", "ref", "size_bytes", "sha256"}, field)
-    kind = text(payload.get("kind"), f"{field}.kind")
-    if kind not in _REF_KINDS or kind != expected_kind:
-        raise RequestShapeError(f"{field}.kind must be {expected_kind}")
-    return {
-        "kind": kind,
-        "ref": text(payload.get("ref"), f"{field}.ref"),
-        "size_bytes": integer(payload.get("size_bytes"), f"{field}.size_bytes"),
-        "sha256": sha256(payload.get("sha256"), f"{field}.sha256"),
-    }
-
-
-def _typed_ref_list(value: Any, field: str, expected_kind: str) -> list[dict[str, str]]:
-    refs = [
-        _typed_ref(item, f"{field}[{index}]", expected_kind)
-        for index, item in enumerate(sequence(value, field))
-    ]
-    identities = [(item["ref"], item["sha256"]) for item in refs]
-    if len(identities) != len(set(identities)):
-        raise RequestShapeError(f"{field} contains duplicate refs")
-    return refs
-
-
-def _exact_ref_list(value: Any, field: str, expected_kind: str) -> list[dict[str, Any]]:
-    refs = [
-        _exact_ref(item, f"{field}[{index}]", expected_kind)
-        for index, item in enumerate(sequence(value, field))
-    ]
-    identities = [(item["ref"], item["sha256"]) for item in refs]
-    if len(identities) != len(set(identities)):
-        raise RequestShapeError(f"{field} contains duplicate refs")
-    return refs
 
 
 __all__ = [

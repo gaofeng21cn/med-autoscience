@@ -17,17 +17,16 @@ MAS declarative pack
   -> MAS owner consumes domain result
 ```
 
-`src/med_autoscience/` 只保留 package init、一个 registry-bound authority handler、route resource 与 CSL assets。旧 scheduler、runner、queue、session store、lifecycle/SQLite、StateIndex、status/workbench、provider/package transport、NextAction、PaperRecovery 与 private validator只在 Git/history provenance 中读取。
+`src/med_autoscience/` 只保留 package init、三个 registry-bound authority handler 与 CSL assets。旧 scheduler、runner、queue、session store、lifecycle/SQLite、StateIndex、status/workbench、provider/package transport、NextAction、PaperRecovery 与 private validator只在 Git/history provenance 中读取。
 
 ## 当前入口
 
 - [Runtime boundary](./contracts/runtime_boundary.md)：OPL runtime 与 MAS authority 的总边界。
 - [Research Integrity Layer](./contracts/research_integrity_layer.md)：OPL Connect receipt、declarative gate 与 independent Review 的输入链。
 - [Stage / Route / Handoff](./stage_route_handoff_standard.md)：六 Stage、decisive Attempt 与 controller materialization。
-- [Route decision owner](./control/next_action_control_plane.md)：语义 route decision 与 transition materialization 拆分。
 - [External learning closure](./control/external_learning_adoption_closure.md)：外部模式只能进入 refs、Skill、OPL hosted surface 或 owner consumption。
 - [Domain Authority Refs / StateIndex boundary](./domain_authority_refs_index_guard.md)：禁止 MAS-local index/lifecycle 复活。
-- [Study progress projection](./projections/study_progress_projection.md)：只读 body-free projection 与 false-authority 边界。
+- [Study truth kernel](./projections/study_truth_kernel.md)：body-free projection 与 false-authority 边界。
 
 ## 目录职责
 

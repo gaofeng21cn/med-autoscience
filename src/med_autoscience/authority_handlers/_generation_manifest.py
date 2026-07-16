@@ -8,6 +8,8 @@ from ._record_validation import (
     RequestShapeError,
     canonical_json_bytes,
     enum_text,
+    exact_ref as _exact_ref,
+    exact_ref_list as _exact_ref_list,
     exact_keys,
     fingerprint,
     integer,
@@ -16,6 +18,8 @@ from ._record_validation import (
     sha256,
     text,
     text_list,
+    typed_ref as _typed_ref,
+    typed_ref_list as _typed_ref_list,
 )
 
 
@@ -111,18 +115,6 @@ _SCOPE_RANK = {
     "manuscript_generation": 1,
     "publication_generation": 2,
 }
-_REF_KINDS = frozenset(
-    {
-        "opl_action_output",
-        "opl_stage_attempt",
-        "mas_candidate_admission_receipt",
-        "mas_quality_rubric",
-        "mas_review_defect",
-        "mas_reviewer_receipt",
-    }
-)
-
-
 def normalize_generation_manifest(
     value: Any,
     field: str = "generation_manifest",
@@ -442,55 +434,6 @@ def _normalize_review_receipt(
             f"{field}.receipt_ref identity/size/hash does not match canonical receipt bytes"
         )
     return {"receipt_ref": receipt_ref, "receipt": core}
-
-
-def _typed_ref(value: Any, field: str, expected_kind: str) -> dict[str, str]:
-    payload = mapping(value, field)
-    exact_keys(payload, {"kind", "ref", "sha256"}, field)
-    kind = text(payload.get("kind"), f"{field}.kind")
-    if kind not in _REF_KINDS or kind != expected_kind:
-        raise RequestShapeError(f"{field}.kind must be {expected_kind}")
-    return {
-        "kind": kind,
-        "ref": text(payload.get("ref"), f"{field}.ref"),
-        "sha256": sha256(payload.get("sha256"), f"{field}.sha256"),
-    }
-
-
-def _exact_ref(value: Any, field: str, expected_kind: str) -> dict[str, Any]:
-    payload = mapping(value, field)
-    exact_keys(payload, {"kind", "ref", "size_bytes", "sha256"}, field)
-    kind = text(payload.get("kind"), f"{field}.kind")
-    if kind not in _REF_KINDS or kind != expected_kind:
-        raise RequestShapeError(f"{field}.kind must be {expected_kind}")
-    return {
-        "kind": kind,
-        "ref": text(payload.get("ref"), f"{field}.ref"),
-        "size_bytes": integer(payload.get("size_bytes"), f"{field}.size_bytes"),
-        "sha256": sha256(payload.get("sha256"), f"{field}.sha256"),
-    }
-
-
-def _typed_ref_list(value: Any, field: str, expected_kind: str) -> list[dict[str, str]]:
-    refs = [
-        _typed_ref(item, f"{field}[{index}]", expected_kind)
-        for index, item in enumerate(sequence(value, field))
-    ]
-    identities = [(item["ref"], item["sha256"]) for item in refs]
-    if len(identities) != len(set(identities)):
-        raise RequestShapeError(f"{field} contains duplicate refs")
-    return refs
-
-
-def _exact_ref_list(value: Any, field: str, expected_kind: str) -> list[dict[str, Any]]:
-    refs = [
-        _exact_ref(item, f"{field}[{index}]", expected_kind)
-        for index, item in enumerate(sequence(value, field))
-    ]
-    identities = [(item["ref"], item["size_bytes"], item["sha256"]) for item in refs]
-    if len(identities) != len(set(identities)):
-        raise RequestShapeError(f"{field} contains duplicate refs")
-    return refs
 
 
 __all__ = [

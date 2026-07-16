@@ -30,6 +30,3 @@ include = ["med_autoscience*"]
 testpaths = ["tests"]
 cache_dir = "/tmp/mas-pytest-cache"
 addopts = ["--import-mode=importlib"]
-markers = [
-  "meta: repo-tracked docs, workflow, packaging, and command-surface checks",
-]

@@ -16,15 +16,20 @@ from ._record_validation import (
     canonical_json_bytes,
     dedupe,
     enum_text,
+    exact_ref as _exact_ref,
+    exact_ref_list as _exact_ref_list,
     exact_keys,
     fingerprint,
     integer,
     mapping,
     optional_text,
+    optional_typed_ref as _optional_typed_ref,
     sequence,
     sha256,
     text,
     text_list,
+    typed_ref as _typed_ref,
+    typed_ref_list as _typed_ref_list,
 )
 from .candidate_admission import normalize_candidate_admission_receipt
 
@@ -33,28 +38,6 @@ REQUEST_KIND = "mas_paper_mission_authority_request"
 RESULT_KIND = "mas_paper_mission_authority_result"
 SCHEMA_VERSION = 2
 
-_REF_KINDS = frozenset(
-    {
-        "opl_stage_run",
-        "opl_stage_attempt",
-        "opl_action_output",
-        "mas_stage_goal",
-        "mas_artifact",
-        "mas_evidence",
-        "mas_negative_result",
-        "mas_failed_path",
-        "mas_artifact_lineage",
-        "mas_reproducibility",
-        "mas_source_readiness_receipt",
-        "mas_claim_boundary",
-        "mas_reviewer_receipt",
-        "mas_review_defect",
-        "mas_gate_evidence",
-        "mas_candidate_admission_receipt",
-        "mas_generation_manifest",
-        "mas_review_currentness_receipt",
-    }
-)
 _HARD_GATE_KINDS = frozenset(
     {
         "medical_safety",
@@ -1264,63 +1247,6 @@ def _generation_identity(request: Mapping[str, Any]) -> dict[str, Any]:
         "review_authority_epoch": authority["currentness_receipt"]["authority_epoch"],
         "review_request_ref": dict(authority["review_request_ref"]),
     }
-
-
-def _typed_ref(value: Any, field: str, expected_kind: str) -> dict[str, str]:
-    payload = mapping(value, field)
-    exact_keys(payload, {"kind", "ref", "sha256"}, field)
-    kind = text(payload.get("kind"), f"{field}.kind")
-    if kind not in _REF_KINDS or kind != expected_kind:
-        raise RequestShapeError(f"{field}.kind must be {expected_kind}")
-    return {
-        "kind": kind,
-        "ref": text(payload.get("ref"), f"{field}.ref"),
-        "sha256": sha256(payload.get("sha256"), f"{field}.sha256"),
-    }
-
-
-def _exact_ref(value: Any, field: str, expected_kind: str) -> dict[str, Any]:
-    payload = mapping(value, field)
-    exact_keys(payload, {"kind", "ref", "size_bytes", "sha256"}, field)
-    kind = text(payload.get("kind"), f"{field}.kind")
-    if kind not in _REF_KINDS or kind != expected_kind:
-        raise RequestShapeError(f"{field}.kind must be {expected_kind}")
-    return {
-        "kind": kind,
-        "ref": text(payload.get("ref"), f"{field}.ref"),
-        "size_bytes": integer(payload.get("size_bytes"), f"{field}.size_bytes"),
-        "sha256": sha256(payload.get("sha256"), f"{field}.sha256"),
-    }
-
-
-def _optional_typed_ref(
-    value: Any, field: str, expected_kind: str
-) -> dict[str, str] | None:
-    if value is None:
-        return None
-    return _typed_ref(value, field, expected_kind)
-
-
-def _typed_ref_list(value: Any, field: str, expected_kind: str) -> list[dict[str, str]]:
-    refs = [
-        _typed_ref(item, f"{field}[{index}]", expected_kind)
-        for index, item in enumerate(sequence(value, field))
-    ]
-    identities = [(item["ref"], item["sha256"]) for item in refs]
-    if len(identities) != len(set(identities)):
-        raise RequestShapeError(f"{field} contains duplicate refs")
-    return refs
-
-
-def _exact_ref_list(value: Any, field: str, expected_kind: str) -> list[dict[str, Any]]:
-    refs = [
-        _exact_ref(item, f"{field}[{index}]", expected_kind)
-        for index, item in enumerate(sequence(value, field))
-    ]
-    identities = [(item["ref"], item["size_bytes"], item["sha256"]) for item in refs]
-    if len(identities) != len(set(identities)):
-        raise RequestShapeError(f"{field} contains duplicate refs")
-    return refs
 
 
 __all__ = ["evaluate_paper_mission_authority"]

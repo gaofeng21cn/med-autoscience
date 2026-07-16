@@ -13,8 +13,6 @@ Use this file when the question is:
 - How should the original `A-H` display families relate to the current audited engineering taxonomy?
 - What should count as platform progress after the anchor-paper recovery line has moved to provenance?
 
-For the absorbed baseline program that established first-baseline coverage across `A-H`, see [medical_display_family_baseline_program.md](../../../history/capabilities/medical-display/medical_display_family_baseline_program.md).
-
 For the strict engineering truth of what is already audited today, see [medical_display_audit_guide.md](../contracts/medical_display_audit_guide.md).
 
 For the inventory of registered templates, renderers, schemas, and QC profiles, see [medical_display_audit_guide.md](../contracts/medical_display_audit_guide.md) and the ScholarSkills source pack canonical catalog.
@@ -643,7 +641,7 @@ The platform should report progress on three separate axes:
 ### 3. Inventory progress
 
 - How many audited templates, shells, and tables are registered today?
-- Current strict audited inventory is read from ScholarSkills canonical catalog and compact gallery review package plus [medical_display_arsenal.md](../catalogs/medical_display_arsenal.md). This roadmap does not hand-maintain counts.
+- Current strict audited inventory is read from the ScholarSkills canonical catalog and compact gallery review package. This roadmap does not hand-maintain counts.
 
 No single count should be used as a substitute for all three.
 
@@ -673,7 +671,7 @@ Roadmap progress does not authorize source readiness, publication quality, submi
 If these docs appear to disagree:
 
 1. this roadmap defines the **top-level platform target**;
-2. ScholarSkills compact gallery review package and [medical_display_arsenal.md](../catalogs/medical_display_arsenal.md) define the compact current user-facing inventory;
+2. ScholarSkills canonical catalog and compact gallery review package define the current user-facing inventory;
 3. The ScholarSkills source pack `canonical_template_catalog.json` defines the full descriptor inventory; Markdown snapshots are generated on demand.
 
 That division of responsibility is intentional and should be preserved.

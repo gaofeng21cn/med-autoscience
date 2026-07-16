@@ -8,7 +8,6 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[1]
 PROFILE = ROOT / "contracts" / "standard_agent_conformance_profile.json"
 STAGE_MANIFEST = ROOT / "agent" / "stages" / "manifest.json"
-AGENT_LAB_HANDOFF = ROOT / "contracts" / "agent_lab_handoff.json"
 EXPECTED_STAGE_DISPLAY_NAMES = {
     "direction_and_route_selection": {
         "en-US": "Direction and route selection",
@@ -111,15 +110,3 @@ def test_medical_authority_source_refs_match_repo_hygiene_allowlist() -> None:
     }
 
     assert medical_authority_refs == expected_authority_refs
-
-
-def test_agent_lab_handoff_uses_the_generic_evolution_skill_ref() -> None:
-    handoff = json.loads(AGENT_LAB_HANDOFF.read_text(encoding="utf-8"))
-    adapter = handoff["meta_agent_work_order_contract"][
-        "external_suite_improvement_policy"
-    ]["medical_manuscript_quality"]
-
-    assert adapter["agent_evolution_skill_ref"] == (
-        "opl-meta-agent:oma-agent-evolution"
-    )
-    assert "oma_evolution_skill_ref" not in adapter

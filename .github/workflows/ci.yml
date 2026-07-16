@@ -4,11 +4,9 @@ on:
   pull_request:
     branches:
       - main
-      - development
   push:
     branches:
       - main
-      - development
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
@@ -70,10 +68,3 @@ jobs:
 
       - name: Build sdist and wheel
         run: uv build --out-dir "${RUNNER_TEMP}/mas-dist"
-
-      - name: Upload artifacts
-        uses: actions/upload-artifact@v7
-        with:
-          name: mas-standard-agent-package
-          path: ${{ runner.temp }}/mas-dist
-          retention-days: 7

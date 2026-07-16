@@ -8,8 +8,7 @@
   "acceptance_status": "not_claimed_by_structural_conformance",
   "structural_evidence_refs": [
     "contracts/functional_privatization_audit.json",
-    "contracts/standard_agent_conformance_profile.json",
-    "contracts/paper_mission_authority_handler_parity.json"
+    "contracts/standard_agent_conformance_profile.json"
   ],
   "live_acceptance_requirements": [
     "exact_release_install_readback",

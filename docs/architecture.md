@@ -147,9 +147,9 @@ canonical Stage 与既有八个 paper-study physical Stage 的唯一映射也由
 
 ## MAS 保留职责
 
-MAS 的专业能力由 declarative pack、ScholarSkills 与独立 Review 承载；仅保留两个
-registry-bound 最小 domain authority functions：paper-mission evaluation 与
-Agent Lab mechanism target-owner closeout：
+MAS 的专业能力由 declarative pack、ScholarSkills 与独立 Review 承载；仅保留三个
+registry-bound 最小 domain authority functions：candidate admission、paper-mission
+evaluation 与 Agent Lab mechanism target-owner closeout：
 
 - study/source readiness 与医学研究语义；
 - AI reviewer/auditor 质量记录与 publication gate；
@@ -157,7 +157,8 @@ Agent Lab mechanism target-owner closeout：
 - owner receipt、typed blocker、human gate 与 route-back decision；
 - exact host-input validation 与医学 owner answer materialization，且不得获得通用 runtime authority。
 
-Retained surface 的机器 inventory 是 `contracts/authority_kernel_inventory.json`。inventory presence 只证明分类存在，不证明 live ready。
+Retained surface 的机器入口是 closed handler registry、standard conformance profile 与
+functional privatization audit；重复 inventory presence 不构成 live-ready 证据。
 
 ## Progress control
 

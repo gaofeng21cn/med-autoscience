@@ -97,8 +97,7 @@ Machine boundary: Human-readable upstream-learning reference only; current study
 
 - `docs/project.md`
 - `docs/architecture.md`
-- `docs/runtime/contracts/runtime_backend_interface_contract.md`
-- `docs/runtime/contracts/runtime_handle_and_durable_surface_contract.md`
+- `docs/runtime/contracts/runtime_boundary.md`
 - `docs/policies/repo-ops/merge_and_cutover_gates.md`
 - `docs/policies/runtime-governance/external_runtime_dependency_gate.md`
 - `tests/test_runtime_protocol_study_runtime.py`

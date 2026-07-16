@@ -4,10 +4,6 @@ import json
 from pathlib import Path
 import re
 
-import pytest
-
-
-pytestmark = pytest.mark.meta
 ROOT = Path(__file__).resolve().parents[1]
 ALLOWED_MAS_SOURCE_REF_PREFIXES = (
     "src/med_autoscience/authority_handlers/",

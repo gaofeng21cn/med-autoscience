@@ -36,7 +36,10 @@ OPL hosted workbench 可以显示：
 
 ## Inspection package
 
-[Inspection package](./inspection_package.md) 是 human-inspection-only artifact。它不是 submission authorization、publication quality verdict、current package 或 workbench replacement。
+Inspection package 是 human-inspection-only artifact：OPL 可以运输和展示它的 locator、
+freshness、blocked context 与 feedback route，MAS owner chain 决定如何修订 canonical
+paper。它不能授权 publication/submission、清除 quality gate、写 controller decision、
+替代 canonical/current package，或用 materialized/export success 声明 ready。
 
 ## Live evidence
 
@@ -47,5 +50,4 @@ Product interface resolved、action schema valid、workbench visible 或 read mo
 - [Project](../project.md)
 - [Status](../status.md)
 - [Architecture](../architecture.md)
-- [Inspection package](./inspection_package.md)
 - [Runtime boundary](../runtime/contracts/runtime_boundary.md)

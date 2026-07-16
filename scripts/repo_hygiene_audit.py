@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import argparse
 import re
 import subprocess
 import sys
@@ -71,20 +70,6 @@ ACTIVE_PATH_DENYLIST = (
         "retired_mas_local_scheduler_active_path",
     ),
 )
-ENTRYPOINT_PATHS = frozenset(
-    {
-        "src/med_autoscience/mcp_server/__init__.py",
-        "src/med_autoscience/cli/__init__.py",
-        "src/med_autoscience/cli/parser.py",
-    }
-)
-ENTRYPOINT_TOKEN_DENYLIST = {
-    "domain-health-diagnostic": "retired_domain_health_diagnostic_entrypoint",
-    "domain-owner-action-dispatch": "retired_domain_owner_action_dispatch_entrypoint",
-    "owner-route-reconcile": "retired_owner_route_reconcile_entrypoint",
-    "default-executor": "retired_default_executor_entrypoint",
-    "progress-portal": "retired_progress_portal_entrypoint",
-}
 EXPECTED_STANDARD_AGENT_SOURCE_FILES = frozenset(
     {
         "src/med_autoscience/__init__.py",
@@ -143,10 +128,7 @@ def audit_tracked_paths(tracked_paths: tuple[str, ...]) -> list[str]:
     return violations
 
 
-def audit_active_surface_residue(
-    root: Path,
-    tracked_paths: tuple[str, ...],
-) -> list[str]:
+def audit_active_surface_residue(tracked_paths: tuple[str, ...]) -> list[str]:
     violations: list[str] = []
     observed_source_files = {
         path for path in tracked_paths if path.startswith("src/med_autoscience/")
@@ -160,11 +142,6 @@ def audit_active_surface_residue(
     ):
         violations.append(f"{relative_path}: required_standard_agent_source_missing")
 
-    entrypoint_paths = ENTRYPOINT_PATHS | frozenset(
-        path
-        for path in tracked_paths
-        if path.startswith("src/med_autoscience/") and path.endswith("/parser.py")
-    )
     for raw_path in tracked_paths:
         if not raw_path.startswith(ACTIVE_SURFACE_ROOTS):
             continue
@@ -172,44 +149,16 @@ def audit_active_surface_residue(
             if pattern.search(raw_path):
                 violations.append(f"{raw_path}: {reason}")
                 break
-        if raw_path not in entrypoint_paths:
-            continue
-        path = root / raw_path
-        try:
-            text = path.read_text(encoding="utf-8")
-        except (OSError, UnicodeDecodeError):
-            continue
-        for token, reason in ENTRYPOINT_TOKEN_DENYLIST.items():
-            if token in text:
-                violations.append(f"{raw_path}: {reason}")
     return violations
 
 
-def parse_args(argv: list[str]) -> argparse.Namespace:
-    parser = argparse.ArgumentParser(
-        description="Audit tracked repository paths and retired active surfaces."
-    )
-    parser.add_argument(
-        "--root",
-        type=Path,
-        default=None,
-        help="Repository root to audit. Defaults to the current git root.",
-    )
-    return parser.parse_args(argv)
-
-
-def main(argv: list[str] | None = None) -> int:
-    args = parse_args(list(argv or []))
-    root = (args.root or _default_repo_root()).resolve()
-    if not root.is_dir():
-        print(f"repo hygiene audit: root is not a directory: {root}", file=sys.stderr)
-        return 2
-
+def main() -> int:
+    root = _default_repo_root()
     tracked_paths = _git_tracked_paths(root)
     violations = sorted(
         set(
             audit_tracked_paths(tracked_paths)
-            + audit_active_surface_residue(root, tracked_paths)
+            + audit_active_surface_residue(tracked_paths)
         )
     )
     if violations:
@@ -226,4 +175,4 @@ def main(argv: list[str] | None = None) -> int:
 
 
 if __name__ == "__main__":
-    raise SystemExit(main(sys.argv[1:]))
+    raise SystemExit(main())

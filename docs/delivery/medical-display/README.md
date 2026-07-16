@@ -23,7 +23,7 @@ Display 不再形成独立 public action family。普通执行由六个 OPL-host
 - `review_and_quality_gate` 消费 layout/visual/claim QC 与 independent review refs；
 - `finalize_and_publication_handoff` 绑定 final display refs、package refs 与 owner authority。
 
-OPL 通过 Stage Tool Affordance Boundary 发现 ScholarSkills/display pack、准备环境、执行 renderer 并运输 refs；MAS pure/domain authority functions只处理 figure intent、医学质量/authority boundary 与结果 refs。旧 `display_pack_*` handlers 是仍待迁移 caller 的内部 residue，不是 generated CLI/MCP/Skill/product surface。
+OPL 通过 Stage Tool Affordance Boundary 发现 ScholarSkills/display pack、准备环境、执行 renderer 并运输 refs；MAS 只保留 figure intent、医学质量/artifact authority 与结果 refs，不维护 display handler、installer、catalog generator 或 renderer 副本。
 
 ## Current flow
 
@@ -45,8 +45,11 @@ Template resolved、render success、golden match、layout QC、workbench visibl
 
 ## 导航
 
-- [Display Pack v2 status](./contracts/display_pack_v2_landing_status.md)
-- [Display Agent OS target](./contracts/display_pack_agent_os_target.md)
+- [Audit guide](./contracts/medical_display_audit_guide.md)
 - [Visual audit protocol](./contracts/medical_display_visual_audit_protocol.md)
+- [Figure route cookbook](./catalogs/medical_figure_route_cookbook.md)
+- [Template backlog](./catalogs/medical_display_template_backlog.md)
+- [Family roadmap](./portfolio/medical_display_family_roadmap.md)
+- [Dependency environment boundary](./contracts/display_dependency_environment_os_target.md)
 - [Architecture](../../architecture.md)
 - [Runtime boundary](../../runtime/contracts/runtime_boundary.md)

@@ -1,6 +1,5 @@
 stage_native_semantic_pack:
   pack_id: coscientist_stage_route_lane_a
-  source_design: docs/runtime/designs/coscientist_stage_route_restructure.md
   state: semantic_pack_contract_source
   machine_boundary: agent semantic pack only; runtime authority still requires MAS contracts, controller surfaces, owner receipts, typed blockers, and repo-native verification
   required_stage_fields:

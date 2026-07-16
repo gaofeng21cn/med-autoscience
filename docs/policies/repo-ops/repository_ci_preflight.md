@@ -20,13 +20,13 @@ scripts/verify.sh full
 | Workflow/lane | 用途 |
 | --- | --- |
 | `macOS CI` | push/PR 完整 repo verification、OPL hosted interface readback 与 `uv build` |
-| `OPL Quality Advisory` | OPL quality details |
 | `full` | 本仓完整 pytest collection |
 
 ## Lane semantics
 
 - `full` 是唯一 repo verification lane；全套足够小，不再维护行为不清晰的子集。
-- 结构 drilldown 由 OPL `quality details` 提供，不安装第二个结构分析工具。
+- 结构 drilldown 需要时直接使用 OPL `quality details`；MAS CI 不维护 advisory
+  workflow 或重复上传诊断 artifact。
 
 Repo hygiene 只检查 Git tracked path、精确 MAS source morphology 与 retired active
 surface；它不会扫描或删除 ignored `.venv`、cache、egg-info 或用户本地环境。
