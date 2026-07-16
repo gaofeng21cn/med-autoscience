@@ -44,6 +44,65 @@ def _schema_validator(filename: str) -> Draft202012Validator:
     return Draft202012Validator(schema, registry=registry)
 
 
+def _authorize_reused_lane(
+    current: dict[str, Any],
+    origin: dict[str, Any],
+    lane: str,
+    authority_records: Any,
+) -> None:
+    origin_wrapper = next(
+        item
+        for item in origin["generation_manifest"]["independent_review_receipts"]
+        if item["receipt"]["review_lane"] == lane
+    )
+    current["generation_manifest"]["independent_review_receipts"] = [
+        deepcopy(origin_wrapper)
+        if item["receipt"]["review_lane"] == lane
+        else item
+        for item in current["generation_manifest"]["independent_review_receipts"]
+    ]
+    lane_state = next(
+        item
+        for item in current["review_authority"]["currentness_receipt"][
+            "lane_currentness"
+        ]
+        if item["review_lane"] == lane
+    )
+    receipt = origin_wrapper["receipt"]
+    lane_state.update(
+        {
+            "review_authority_epoch": receipt["authority_epoch"],
+            "currentness_status": "reused_unchanged_scope",
+            "review_scope_sha256": next(
+                item["review_scope_sha256"]
+                for item in current["generation_manifest"]["review_scopes"]
+                if item["review_lane"] == lane
+            ),
+            "review_receipt_issued_generation_id": receipt[
+                "issued_generation_id"
+            ],
+            "review_receipt_issued_generation_manifest_sha256": receipt[
+                "issued_generation_manifest_sha256"
+            ],
+            "current_review_request_ref": deepcopy(receipt["review_request_ref"]),
+            "current_review_receipt_ref": deepcopy(origin_wrapper["receipt_ref"]),
+            "reuse_provenance": {
+                "origin_generation_id": origin["generation_manifest"]["generation_id"],
+                "origin_generation_manifest_ref": deepcopy(
+                    origin["generation_manifest_ref"]
+                ),
+                "origin_review_request_ref": deepcopy(receipt["review_request_ref"]),
+                "origin_review_receipt_ref": deepcopy(origin_wrapper["receipt_ref"]),
+                "origin_review_scope_sha256": receipt["review_scope_sha256"],
+                "origin_candidate_admission_receipt_refs": deepcopy(
+                    receipt["accepted_candidate_receipt_refs"]
+                ),
+            },
+        }
+    )
+    authority_records.reseal_review_currentness(current)
+
+
 def test_exact_current_reviews_return_deterministic_owner_receipt(
     authority_records: Any,
 ) -> None:
@@ -206,6 +265,393 @@ def test_stale_review_bytes_and_metadata_only_rewrite_cannot_be_reused(
     result = _evaluate(metadata_rewrite)
     assert result["status"] == "invalid_host_input"
     assert "identity/size/hash" in result["error"]["detail"]
+
+
+def test_v2_review_scopes_are_mas_owned_generation_independent_and_exact_byte_full(
+    authority_records: Any,
+) -> None:
+    first = authority_records.paper_request(
+        scope="publication_generation",
+        stage_id="finalize_and_publication_handoff",
+        manifest_version=2,
+        generation_id="study-generation-003",
+    )
+    second = authority_records.paper_request(
+        scope="publication_generation",
+        stage_id="finalize_and_publication_handoff",
+        manifest_version=2,
+        generation_id="study-generation-004",
+    )
+
+    first_result = _evaluate(first)
+    assert first_result["status"] == "owner_receipt"
+    assert _evaluate(second)["status"] == "owner_receipt"
+    _output_validator().validate(first_result)
+    transport = first_result["owner_receipt"]["artifact_projection_transport"]
+    assert "member_id" not in transport["projection_manifest_ref"]
+    assert all(
+        "member_id" not in item
+        for item in transport["generation_bound_truth_members"]
+    )
+    first_scopes = {
+        item["review_lane"]: item for item in first["generation_manifest"]["review_scopes"]
+    }
+    second_scopes = {
+        item["review_lane"]: item
+        for item in second["generation_manifest"]["review_scopes"]
+    }
+    for lane in {"medical", "statistical", "reference", "display", "publication"}:
+        assert (
+            first_scopes[lane]["review_scope_sha256"]
+            == second_scopes[lane]["review_scope_sha256"]
+        )
+        roles = {item["role"] for item in first_scopes[lane]["reviewed_members"]}
+        assert "source_input_digest" not in roles
+        assert "candidate_admission_receipt" not in roles
+    assert (
+        first_scopes["exact_byte_package"]["reviewed_members"]
+        == first["generation_manifest"]["artifacts"]
+    )
+    assert (
+        first_scopes["exact_byte_package"]["review_scope_sha256"]
+        != second_scopes["exact_byte_package"]["review_scope_sha256"]
+    )
+
+    forged = deepcopy(first)
+    medical = next(
+        item
+        for item in forged["generation_manifest"]["review_scopes"]
+        if item["review_lane"] == "medical"
+    )
+    medical["reviewed_members"] = medical["reviewed_members"][:-1]
+    result = _evaluate(forged)
+    assert result["status"] == "invalid_host_input"
+    assert "MAS-owned lane inventory" in result["error"]["detail"]
+
+
+def test_v2_scope_dependency_map_selectively_invalidates_only_affected_lanes(
+    authority_records: Any,
+) -> None:
+    baseline = authority_records.paper_request(
+        scope="publication_generation",
+        stage_id="finalize_and_publication_handoff",
+        manifest_version=2,
+        generation_id="study-generation-003",
+    )
+    baseline_scopes = {
+        item["review_lane"]: item["review_scope_sha256"]
+        for item in baseline["generation_manifest"]["review_scopes"]
+    }
+    cases = {
+        "figure_file": {"display", "publication", "exact_byte_package"},
+        "canonical_manuscript": {
+            "medical",
+            "statistical",
+            "reference",
+            "publication",
+            "exact_byte_package",
+        },
+        "analysis_output": {"medical", "statistical", "exact_byte_package"},
+        "reference_library": {"reference", "publication", "exact_byte_package"},
+        "final_zip_member": {"exact_byte_package"},
+    }
+    for role, expected_changed_lanes in cases.items():
+        changed = authority_records.paper_request(
+            scope="publication_generation",
+            stage_id="finalize_and_publication_handoff",
+            manifest_version=2,
+            generation_id=f"study-generation-changed-{role}",
+            artifact_sha_overrides={
+                role: authority_records.digest(f"changed-{role}-bytes")
+            },
+        )
+        changed_scopes = {
+            item["review_lane"]: item["review_scope_sha256"]
+            for item in changed["generation_manifest"]["review_scopes"]
+        }
+        assert {
+            lane
+            for lane, digest in changed_scopes.items()
+            if digest != baseline_scopes[lane]
+        } == expected_changed_lanes
+
+
+def test_v2_professional_scope_is_locator_invariant_but_member_identity_sensitive(
+    authority_records: Any,
+) -> None:
+    baseline = authority_records.paper_request(
+        scope="publication_generation",
+        stage_id="finalize_and_publication_handoff",
+        manifest_version=2,
+        generation_id="study-generation-scope-baseline",
+    )
+    renamed = authority_records.paper_request(
+        scope="publication_generation",
+        stage_id="finalize_and_publication_handoff",
+        manifest_version=2,
+        generation_id="study-generation-scope-renamed",
+        artifact_ref_overrides={
+            "figure_file": "workspace://study/figures/renamed-figure"
+        },
+    )
+    replaced_identity = authority_records.paper_request(
+        scope="publication_generation",
+        stage_id="finalize_and_publication_handoff",
+        manifest_version=2,
+        generation_id="study-generation-scope-replaced-identity",
+        artifact_member_id_overrides={
+            "figure_file": "mas-member:figure_file:replacement"
+        },
+    )
+
+    def scope_digests(request: dict[str, Any]) -> dict[str, str]:
+        return {
+            item["review_lane"]: item["review_scope_sha256"]
+            for item in request["generation_manifest"]["review_scopes"]
+        }
+
+    baseline_digests = scope_digests(baseline)
+    renamed_digests = scope_digests(renamed)
+    replacement_digests = scope_digests(replaced_identity)
+    for lane in {"medical", "statistical", "reference", "display", "publication"}:
+        assert renamed_digests[lane] == baseline_digests[lane]
+    assert (
+        renamed_digests["exact_byte_package"]
+        != baseline_digests["exact_byte_package"]
+    )
+    for lane in {"display", "publication", "exact_byte_package"}:
+        assert replacement_digests[lane] != baseline_digests[lane]
+    assert _evaluate(renamed)["status"] == "owner_receipt"
+    assert _evaluate(replaced_identity)["status"] == "owner_receipt"
+
+
+def test_v2_member_order_is_canonical_and_member_id_is_required_unique(
+    authority_records: Any,
+) -> None:
+    request = authority_records.paper_request(
+        scope="publication_generation",
+        stage_id="finalize_and_publication_handoff",
+        manifest_version=2,
+    )
+    reordered = deepcopy(request)
+    manifest = reordered["generation_manifest"]
+    manifest["artifacts"].reverse()
+    manifest["review_scopes"].reverse()
+    for scope in manifest["review_scopes"]:
+        scope["reviewed_members"].reverse()
+    manifest["independent_review_receipts"].reverse()
+    for wrapper in manifest["independent_review_receipts"]:
+        wrapper["receipt"]["reviewed_members"].reverse()
+    reordered["review_authority"]["currentness_receipt"][
+        "lane_currentness"
+    ].reverse()
+    assert _evaluate(reordered) == _evaluate(request)
+
+    missing = deepcopy(request)
+    missing["generation_manifest"]["artifacts"][0].pop("member_id")
+    result = _evaluate(missing)
+    assert result["status"] == "invalid_host_input"
+    assert "missing fields: member_id" in result["error"]["detail"]
+
+    duplicate_root = deepcopy(request)
+    root_members = duplicate_root["generation_manifest"]["artifacts"]
+    root_members[1]["member_id"] = root_members[0]["member_id"]
+    result = _evaluate(duplicate_root)
+    assert result["status"] == "invalid_host_input"
+    assert "duplicate member_id" in result["error"]["detail"]
+
+    duplicate_review = deepcopy(request)
+    exact_scope = next(
+        item
+        for item in duplicate_review["generation_manifest"]["review_scopes"]
+        if item["review_lane"] == "exact_byte_package"
+    )
+    exact_scope["reviewed_members"][1]["member_id"] = exact_scope[
+        "reviewed_members"
+    ][0]["member_id"]
+    result = _evaluate(duplicate_review)
+    assert result["status"] == "invalid_host_input"
+    assert "duplicate member_id" in result["error"]["detail"]
+
+
+def test_v2_currentness_reuses_only_exact_unchanged_lane_scopes(
+    authority_records: Any,
+) -> None:
+    origin = authority_records.paper_request(
+        scope="publication_generation",
+        stage_id="finalize_and_publication_handoff",
+        manifest_version=2,
+        generation_id="study-generation-003",
+    )
+    current = authority_records.paper_request(
+        scope="publication_generation",
+        stage_id="finalize_and_publication_handoff",
+        manifest_version=2,
+        generation_id="study-generation-004",
+        artifact_sha_overrides={
+            "figure_file": authority_records.digest("changed-figure-bytes")
+        },
+    )
+    origin_reviews = {
+        item["receipt"]["review_lane"]: item
+        for item in origin["generation_manifest"]["independent_review_receipts"]
+    }
+    for lane in ("medical", "statistical", "reference"):
+        _authorize_reused_lane(current, origin, lane, authority_records)
+    assert _evaluate(current)["status"] == "owner_receipt"
+
+    forged = deepcopy(current)
+    forged_reviews = {
+        item["receipt"]["review_lane"]: item
+        for item in forged["generation_manifest"]["independent_review_receipts"]
+    }
+    forged_reviews["display"] = deepcopy(origin_reviews["display"])
+    forged["generation_manifest"]["independent_review_receipts"] = list(
+        forged_reviews.values()
+    )
+    forged_display = next(
+        item
+        for item in forged["review_authority"]["currentness_receipt"][
+            "lane_currentness"
+        ]
+        if item["review_lane"] == "display"
+    )
+    old_display_receipt = origin_reviews["display"]["receipt"]
+    forged_display.update(
+        {
+            "review_authority_epoch": old_display_receipt["authority_epoch"],
+            "current_review_request_ref": deepcopy(
+                old_display_receipt["review_request_ref"]
+            ),
+            "current_review_receipt_ref": deepcopy(
+                origin_reviews["display"]["receipt_ref"]
+            ),
+            "review_receipt_issued_generation_id": old_display_receipt[
+                "issued_generation_id"
+            ],
+            "review_receipt_issued_generation_manifest_sha256": old_display_receipt[
+                "issued_generation_manifest_sha256"
+            ],
+        }
+    )
+    authority_records.reseal_review_currentness(forged)
+    result = _evaluate(forged)
+    assert result["status"] == "route_back"
+    assert result["route_back"]["reason_code"] == (
+        "independent_review_receipt_not_current"
+    )
+
+
+def test_v2_currentness_returns_all_affected_review_lanes_in_one_route_back(
+    authority_records: Any,
+) -> None:
+    origin = authority_records.paper_request(
+        scope="publication_generation",
+        stage_id="finalize_and_publication_handoff",
+        manifest_version=2,
+        generation_id="study-generation-before-figure-change",
+    )
+    current = authority_records.paper_request(
+        scope="publication_generation",
+        stage_id="finalize_and_publication_handoff",
+        manifest_version=2,
+        generation_id="study-generation-after-figure-change",
+        artifact_sha_overrides={
+            "figure_file": authority_records.digest("changed-figure-bytes")
+        },
+    )
+    for lane in ("display", "publication", "exact_byte_package"):
+        _authorize_reused_lane(current, origin, lane, authority_records)
+
+    result = _evaluate(current)
+
+    assert result["status"] == "route_back"
+    assert result["route_back"]["reason_code"] == (
+        "independent_review_receipt_not_current"
+    )
+    assert result["route_back"]["resume_condition"] == (
+        "refresh all affected review lanes in one pass: "
+        "display, publication, exact_byte_package"
+    )
+    assert [
+        item["review_lane"]
+        for item in result["route_back"]["affected_review_lanes"]
+    ] == ["display", "publication", "exact_byte_package"]
+    assert {
+        item["reason_code"]
+        for item in result["route_back"]["affected_review_lanes"]
+    } == {"independent_review_receipt_not_current"}
+    _output_validator().validate(result)
+
+
+def test_v2_old_receipt_with_removed_optional_member_routes_by_lane(
+    authority_records: Any,
+) -> None:
+    extra_evidence = {
+        "member_id": "mas-member:evidence_record:retired-secondary",
+        "role": "evidence_record",
+        "ref": "mas-evidence://retired-secondary-evidence",
+        "size_bytes": 811,
+        "sha256": authority_records.digest("retired-secondary-evidence-bytes"),
+    }
+    origin = authority_records.paper_request(
+        manifest_version=2,
+        generation_id="study-generation-with-extra-evidence",
+        extra_artifacts=[extra_evidence],
+    )
+    current = authority_records.paper_request(
+        manifest_version=2,
+        generation_id="study-generation-without-extra-evidence",
+    )
+    _authorize_reused_lane(current, origin, "reference", authority_records)
+
+    result = _evaluate(current)
+
+    assert result["status"] == "route_back"
+    assert result["route_back"]["reason_code"] == (
+        "independent_review_receipt_not_current"
+    )
+
+
+def test_manifest_and_review_currentness_versions_cannot_be_mixed(
+    authority_records: Any,
+) -> None:
+    v1 = authority_records.paper_request()
+    v2 = authority_records.paper_request(manifest_version=2)
+    assert _evaluate(v1)["status"] == "owner_receipt"
+    assert _evaluate(v2)["status"] == "owner_receipt"
+
+    v2_manifest_v1_currentness = deepcopy(v2)
+    old_currentness = deepcopy(v1["review_authority"]["currentness_receipt"])
+    old_currentness.update(
+        {
+            "current_generation_id": v2["generation_manifest"]["generation_id"],
+            "current_generation_manifest_ref": deepcopy(v2["generation_manifest_ref"]),
+            "current_review_request_ref": deepcopy(
+                v2["review_authority"]["review_request_ref"]
+            ),
+            "current_candidate_admission_receipt_refs": [
+                deepcopy(v2["candidate_admissions"][0]["receipt_ref"])
+            ],
+            "current_review_receipt_refs": [
+                deepcopy(item["receipt_ref"])
+                for item in v2["generation_manifest"]["independent_review_receipts"]
+            ],
+        }
+    )
+    v2_manifest_v1_currentness["review_authority"]["currentness_receipt"] = (
+        old_currentness
+    )
+    authority_records.reseal_review_currentness(v2_manifest_v1_currentness)
+    result = _evaluate(v2_manifest_v1_currentness)
+    assert result["status"] == "invalid_host_input"
+    assert "schema versions must match" in result["error"]["detail"]
+
+    v1_manifest_v2_currentness = deepcopy(v1)
+    v1_manifest_v2_currentness["review_authority"] = deepcopy(v2["review_authority"])
+    result = _evaluate(v1_manifest_v2_currentness)
+    assert result["status"] == "invalid_host_input"
+    assert "schema versions must match" in result["error"]["detail"]
 
 
 def test_superseded_review_request_replay_routes_back_but_current_retry_passes(
@@ -545,6 +991,33 @@ def test_draft202012_input_schemas_accept_exact_records_and_reject_old_abi(
             stage_id="finalize_and_publication_handoff",
         )
     )
+    candidate_validator.validate(
+        authority_records.candidate_request(manifest_version=2)
+    )
+    paper_validator.validate(
+        authority_records.paper_request(manifest_version=2)
+    )
+    paper_validator.validate(
+        authority_records.paper_request(
+            scope="publication_generation",
+            stage_id="finalize_and_publication_handoff",
+            manifest_version=2,
+        )
+    )
+
+    v1_paper = authority_records.paper_request()
+    v2_paper = authority_records.paper_request(manifest_version=2)
+    v1_manifest_v2_currentness = deepcopy(v1_paper)
+    v1_manifest_v2_currentness["review_authority"] = deepcopy(
+        v2_paper["review_authority"]
+    )
+    assert list(paper_validator.iter_errors(v1_manifest_v2_currentness))
+
+    v2_manifest_v1_currentness = deepcopy(v2_paper)
+    v2_manifest_v1_currentness["review_authority"] = deepcopy(
+        v1_paper["review_authority"]
+    )
+    assert list(paper_validator.iter_errors(v2_manifest_v1_currentness))
 
     old_candidate_abi = deepcopy(candidate)
     old_candidate_abi["candidate"]["proposed_disposition"] = "accepted"

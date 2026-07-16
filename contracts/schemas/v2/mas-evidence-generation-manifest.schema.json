@@ -5,6 +5,52 @@
   "description": "Canonical generation members plus byte-bound MAS review receipts. Cross-field fingerprints, required roles, scope and receipt inventories are recomputed by the MAS handler.",
   "type": "object",
   "additionalProperties": false,
+  "allOf": [
+    {
+      "if": {
+        "properties": {
+          "schema_version": {
+            "const": 1
+          }
+        }
+      },
+      "then": {
+        "not": {
+          "required": [
+            "review_scopes"
+          ]
+        },
+        "properties": {
+          "artifacts": {
+            "items": {
+              "$ref": "#/$defs/generation_artifact_v1"
+            }
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "schema_version": {
+            "const": 2
+          }
+        }
+      },
+      "then": {
+        "required": [
+          "review_scopes"
+        ],
+        "properties": {
+          "artifacts": {
+            "items": {
+              "$ref": "#/$defs/generation_artifact_v2"
+            }
+          }
+        }
+      }
+    }
+  ],
   "required": [
     "surface_kind",
     "schema_version",
@@ -19,7 +65,10 @@
       "const": "mas_evidence_generation_manifest"
     },
     "schema_version": {
-      "const": 1
+      "enum": [
+        1,
+        2
+      ]
     },
     "generation_id": {
       "$ref": "#/$defs/non_empty_text"
@@ -39,7 +88,22 @@
       "minItems": 5,
       "uniqueItems": true,
       "items": {
-        "$ref": "#/$defs/generation_artifact"
+        "oneOf": [
+          {
+            "$ref": "#/$defs/generation_artifact_v1"
+          },
+          {
+            "$ref": "#/$defs/generation_artifact_v2"
+          }
+        ]
+      }
+    },
+    "review_scopes": {
+      "type": "array",
+      "minItems": 1,
+      "uniqueItems": true,
+      "items": {
+        "$ref": "#/$defs/review_scope"
       }
     },
     "independent_review_receipts": {
@@ -91,7 +155,7 @@
         "evidence_record"
       ]
     },
-    "generation_artifact": {
+    "generation_artifact_v1": {
       "type": "object",
       "additionalProperties": false,
       "required": [
@@ -113,6 +177,77 @@
         },
         "sha256": {
           "$ref": "#/$defs/sha256"
+        }
+      }
+    },
+    "generation_artifact_v2": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "member_id",
+        "role",
+        "ref",
+        "size_bytes",
+        "sha256"
+      ],
+      "properties": {
+        "member_id": {
+          "$ref": "#/$defs/non_empty_text",
+          "description": "Opaque stable identity assigned by the MAS owner. It MUST NOT be derived from, or changed solely because of, ref/path/locator values. The MAS handler rejects duplicate member_id values across a v2 root inventory and within review members."
+        },
+        "role": {
+          "$ref": "#/$defs/artifact_role"
+        },
+        "ref": {
+          "$ref": "#/$defs/non_empty_text",
+          "description": "Current locator retained for inventory and provenance. Professional review-lane scope identity excludes this locator; exact_byte_package includes it."
+        },
+        "size_bytes": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "sha256": {
+          "$ref": "#/$defs/sha256"
+        }
+      }
+    },
+    "review_scope": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "scope_policy_id",
+        "scope_policy_version",
+        "review_lane",
+        "review_scope_sha256",
+        "reviewed_members"
+      ],
+      "properties": {
+        "scope_policy_id": {
+          "const": "mas_review_scope_dependency_map"
+        },
+        "scope_policy_version": {
+          "const": 1
+        },
+        "review_lane": {
+          "enum": [
+            "medical",
+            "statistical",
+            "reference",
+            "display",
+            "publication",
+            "exact_byte_package"
+          ]
+        },
+        "review_scope_sha256": {
+          "$ref": "#/$defs/sha256"
+        },
+        "reviewed_members": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": {
+            "$ref": "#/$defs/generation_artifact_v2"
+          }
         }
       }
     },
@@ -202,6 +337,16 @@
       }
     },
     "review_receipt": {
+      "oneOf": [
+        {
+          "$ref": "#/$defs/review_receipt_v1"
+        },
+        {
+          "$ref": "#/$defs/review_receipt_v2"
+        }
+      ]
+    },
+    "review_receipt_v1": {
       "type": "object",
       "additionalProperties": false,
       "required": [
@@ -334,7 +479,202 @@
           "minItems": 5,
           "uniqueItems": true,
           "items": {
-            "$ref": "#/$defs/generation_artifact"
+            "$ref": "#/$defs/generation_artifact_v1"
+          }
+        },
+        "accepted_candidate_receipt_refs": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": {
+            "allOf": [
+              {
+                "$ref": "#/$defs/exact_ref"
+              },
+              {
+                "properties": {
+                  "kind": {
+                    "const": "mas_candidate_admission_receipt"
+                  }
+                },
+                "type": "object"
+              }
+            ]
+          }
+        },
+        "defect_refs": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": {
+            "allOf": [
+              {
+                "$ref": "#/$defs/typed_ref"
+              },
+              {
+                "properties": {
+                  "kind": {
+                    "const": "mas_review_defect"
+                  }
+                },
+                "type": "object"
+              }
+            ]
+          }
+        },
+        "quality_debt_codes": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": {
+            "$ref": "#/$defs/non_empty_text"
+          }
+        }
+      }
+    },
+    "review_receipt_v2": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "receipt_kind",
+        "schema_version",
+        "issuer",
+        "authority_role",
+        "authority_epoch",
+        "review_lane",
+        "verdict",
+        "review_request_ref",
+        "producer_output_ref",
+        "reviewer_attempt_ref",
+        "rubric_ref",
+        "issued_generation_id",
+        "issued_generation_manifest_sha256",
+        "scope_policy_id",
+        "scope_policy_version",
+        "review_scope_sha256",
+        "reviewed_members",
+        "accepted_candidate_receipt_refs",
+        "defect_refs",
+        "quality_debt_codes"
+      ],
+      "properties": {
+        "receipt_kind": {
+          "const": "mas_independent_review_receipt"
+        },
+        "schema_version": {
+          "const": 2
+        },
+        "issuer": {
+          "const": "MedAutoScience"
+        },
+        "authority_role": {
+          "enum": [
+            "mas_independent_medical_reviewer",
+            "mas_independent_statistical_reviewer",
+            "mas_independent_reference_reviewer",
+            "mas_independent_display_reviewer",
+            "mas_independent_publication_reviewer",
+            "mas_independent_exact_byte_package_reviewer"
+          ]
+        },
+        "authority_epoch": {
+          "$ref": "#/$defs/non_empty_text"
+        },
+        "review_lane": {
+          "enum": [
+            "medical",
+            "statistical",
+            "reference",
+            "display",
+            "publication",
+            "exact_byte_package"
+          ]
+        },
+        "verdict": {
+          "enum": [
+            "passed",
+            "revision_required",
+            "rejected"
+          ]
+        },
+        "review_request_ref": {
+          "allOf": [
+            {
+              "$ref": "#/$defs/exact_ref"
+            },
+            {
+              "properties": {
+                "kind": {
+                  "const": "opl_action_output"
+                }
+              },
+              "type": "object"
+            }
+          ]
+        },
+        "producer_output_ref": {
+          "allOf": [
+            {
+              "$ref": "#/$defs/exact_ref"
+            },
+            {
+              "properties": {
+                "kind": {
+                  "const": "opl_action_output"
+                }
+              },
+              "type": "object"
+            }
+          ]
+        },
+        "reviewer_attempt_ref": {
+          "allOf": [
+            {
+              "$ref": "#/$defs/typed_ref"
+            },
+            {
+              "properties": {
+                "kind": {
+                  "const": "opl_stage_attempt"
+                }
+              },
+              "type": "object"
+            }
+          ]
+        },
+        "rubric_ref": {
+          "allOf": [
+            {
+              "$ref": "#/$defs/typed_ref"
+            },
+            {
+              "properties": {
+                "kind": {
+                  "const": "mas_quality_rubric"
+                }
+              },
+              "type": "object"
+            }
+          ]
+        },
+        "issued_generation_id": {
+          "$ref": "#/$defs/non_empty_text"
+        },
+        "issued_generation_manifest_sha256": {
+          "$ref": "#/$defs/sha256"
+        },
+        "scope_policy_id": {
+          "const": "mas_review_scope_dependency_map"
+        },
+        "scope_policy_version": {
+          "const": 1
+        },
+        "review_scope_sha256": {
+          "$ref": "#/$defs/sha256"
+        },
+        "reviewed_members": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": {
+            "$ref": "#/$defs/generation_artifact_v2"
           }
         },
         "accepted_candidate_receipt_refs": {

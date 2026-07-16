@@ -182,48 +182,83 @@ class AuthorityRecordFactory:
         cls,
         scope: str,
         *,
+        schema_version: int = 1,
+        generation_id: str | None = None,
+        artifact_sha_overrides: dict[str, str] | None = None,
+        artifact_ref_overrides: dict[str, str] | None = None,
+        artifact_member_id_overrides: dict[str, str] | None = None,
+        extra_artifacts: list[dict[str, Any]] | None = None,
         candidate_receipt: dict[str, Any] | None = None,
         review_receipts: list[dict[str, Any]] | None = None,
     ) -> tuple[dict[str, Any], dict[str, Any]]:
+        generation_id = generation_id or cls.generation_id
+        artifact_sha_overrides = artifact_sha_overrides or {}
+        artifact_ref_overrides = artifact_ref_overrides or {}
+        artifact_member_id_overrides = artifact_member_id_overrides or {}
         artifacts: list[dict[str, Any]] = []
         for index, role in enumerate(ROLES_BY_SCOPE[scope]):
             if role == "candidate_admission_receipt" and candidate_receipt is not None:
-                artifacts.append(
-                    {
-                        "role": role,
-                        "ref": candidate_receipt["receipt_id"],
-                        "size_bytes": candidate_receipt["receipt_size_bytes"],
-                        "sha256": candidate_receipt["receipt_fingerprint"],
-                    }
-                )
+                artifact = {
+                    "role": role,
+                    "ref": candidate_receipt["receipt_id"],
+                    "size_bytes": candidate_receipt["receipt_size_bytes"],
+                    "sha256": candidate_receipt["receipt_fingerprint"],
+                }
+                if schema_version == 2:
+                    artifact["member_id"] = artifact_member_id_overrides.get(
+                        role, f"mas-member:{role}:primary"
+                    )
+                artifacts.append(artifact)
                 continue
             role_scope = "analysis_generation" if role in ANALYSIS_ROLES else scope
-            artifacts.append(
-                {
-                    "role": role,
-                    "ref": f"workspace://study/{role_scope}/{role}",
-                    "size_bytes": 1000 + index,
-                    "sha256": cls.digest(
-                        f"{cls.generation_id}:{role_scope}:{role}:bytes"
-                    ),
-                }
-            )
+            artifact = {
+                "role": role,
+                "ref": artifact_ref_overrides.get(
+                    role, f"workspace://study/{role_scope}/{role}"
+                ),
+                "size_bytes": 1000 + index,
+                "sha256": artifact_sha_overrides.get(role)
+                or cls.digest(
+                    f"{generation_id if schema_version == 1 else 'stable'}:"
+                    f"{role_scope}:{role}:bytes"
+                ),
+            }
+            if schema_version == 2:
+                artifact["member_id"] = artifact_member_id_overrides.get(
+                    role, f"mas-member:{role}:primary"
+                )
+            artifacts.append(artifact)
         candidate = cls.candidate_member()
         evidence = cls.evidence_member()
-        artifacts.extend(
-            [
-                {name: value for name, value in candidate.items() if name != "kind"},
-                {name: value for name, value in evidence.items() if name != "kind"},
-            ]
-        )
+        candidate_artifact = {
+            name: value for name, value in candidate.items() if name != "kind"
+        }
+        evidence_artifact = {
+            name: value for name, value in evidence.items() if name != "kind"
+        }
+        if schema_version == 2:
+            candidate_artifact["member_id"] = artifact_member_id_overrides.get(
+                "candidate_artifact", "mas-member:candidate_artifact:primary"
+            )
+            evidence_artifact["member_id"] = artifact_member_id_overrides.get(
+                "evidence_record", "mas-member:evidence_record:primary"
+            )
+        artifacts.extend([candidate_artifact, evidence_artifact])
+        artifacts.extend(deepcopy(extra_artifacts or []))
         artifacts.sort(key=lambda item: (item["role"], item["ref"], item["sha256"]))
         core = {
             "surface_kind": "mas_evidence_generation_manifest",
-            "schema_version": 1,
-            "generation_id": cls.generation_id,
+            "schema_version": schema_version,
+            "generation_id": generation_id,
             "manifest_scope": scope,
             "artifacts": artifacts,
         }
+        if schema_version == 2:
+            from med_autoscience.authority_handlers._generation_manifest import (
+                build_review_scopes,
+            )
+
+            core["review_scopes"] = build_review_scopes(artifacts, scope)
         manifest_sha256 = cls.fingerprint(core)
         manifest = {
             **core,
@@ -233,7 +268,7 @@ class AuthorityRecordFactory:
         manifest_ref = {
             "kind": "mas_generation_manifest",
             "ref": (
-                f"mas-generation-manifest:{cls.generation_id}:{scope}:"
+                f"mas-generation-manifest:{generation_id}:{scope}:"
                 f"{manifest_sha256.removeprefix('sha256:')}"
             ),
             "size_bytes": len(cls.canonical_bytes(core)),
@@ -251,8 +286,15 @@ class AuthorityRecordFactory:
         superseded_request_names: tuple[str, ...] = (),
         sensitivity_only: bool = False,
         abstract_headline_allowed: bool = False,
+        manifest_version: int = 1,
+        generation_id: str | None = None,
     ) -> dict[str, Any]:
-        manifest, manifest_ref = cls.generation_manifest("analysis_generation")
+        generation_id = generation_id or cls.generation_id
+        manifest, manifest_ref = cls.generation_manifest(
+            "analysis_generation",
+            schema_version=manifest_version,
+            generation_id=generation_id,
+        )
         candidate = {
             "candidate_id": "bounded-candidate",
             "candidate_member": cls.candidate_member(),
@@ -318,7 +360,7 @@ class AuthorityRecordFactory:
             "adjudicator_attempt_ref": adjudicator_attempt,
             "candidate_packet_ref": candidate_packet,
             "admission_request_ref": admission_request,
-            "generation_id": cls.generation_id,
+            "generation_id": generation_id,
             "generation_manifest_ref": manifest_ref,
             "candidate_id": candidate["candidate_id"],
             "candidate_ref": candidate_ref,
@@ -341,7 +383,7 @@ class AuthorityRecordFactory:
             "owner": "MedAutoScience",
             "authority_role": "generation_currentness_owner",
             "authority_epoch": cls.authority_epoch,
-            "current_generation_id": cls.generation_id,
+            "current_generation_id": generation_id,
             "current_generation_manifest_ref": manifest_ref,
             "current_admission_request_ref": current_admission_request,
             "current_adjudicator_receipt_ref": adjudicator_ref,
@@ -401,9 +443,17 @@ class AuthorityRecordFactory:
         quality_debt_codes: list[str] | None = None,
     ) -> dict[str, Any]:
         del manifest_ref
+        scope = next(
+            (
+                item
+                for item in manifest.get("review_scopes", [])
+                if item["review_lane"] == lane
+            ),
+            None,
+        )
         core = {
             "receipt_kind": "mas_independent_review_receipt",
-            "schema_version": 1,
+            "schema_version": manifest["schema_version"],
             "issuer": "MedAutoScience",
             "authority_role": AUTHORITY_ROLE_BY_LANE[lane],
             "authority_epoch": cls.authority_epoch,
@@ -415,13 +465,35 @@ class AuthorityRecordFactory:
                 "opl_stage_attempt", f"independent-{lane}-reviewer"
             ),
             "rubric_ref": cls.typed_ref("mas_quality_rubric", f"{lane}-rubric"),
-            "generation_id": manifest["generation_id"],
-            "generation_manifest_sha256": manifest["generation_manifest_sha256"],
-            "reviewed_members": deepcopy(manifest["artifacts"]),
             "accepted_candidate_receipt_refs": [candidate_receipt_ref],
             "defect_refs": deepcopy(defect_refs or []),
             "quality_debt_codes": list(quality_debt_codes or []),
         }
+        if manifest["schema_version"] == 1:
+            core.update(
+                {
+                    "generation_id": manifest["generation_id"],
+                    "generation_manifest_sha256": manifest[
+                        "generation_manifest_sha256"
+                    ],
+                    "reviewed_members": deepcopy(manifest["artifacts"]),
+                }
+            )
+        else:
+            if scope is None:
+                raise AssertionError(f"missing review scope for {lane}")
+            core.update(
+                {
+                    "issued_generation_id": manifest["generation_id"],
+                    "issued_generation_manifest_sha256": manifest[
+                        "generation_manifest_sha256"
+                    ],
+                    "scope_policy_id": scope["scope_policy_id"],
+                    "scope_policy_version": scope["scope_policy_version"],
+                    "review_scope_sha256": scope["review_scope_sha256"],
+                    "reviewed_members": deepcopy(scope["reviewed_members"]),
+                }
+            )
         receipt_fingerprint = cls.fingerprint(core)
         receipt_ref = {
             "kind": "mas_reviewer_receipt",
@@ -446,6 +518,12 @@ class AuthorityRecordFactory:
         current_review_request_name: str | None = None,
         superseded_review_request_names: tuple[str, ...] = (),
         review_verdicts: dict[str, str] | None = None,
+        manifest_version: int = 1,
+        generation_id: str | None = None,
+        artifact_sha_overrides: dict[str, str] | None = None,
+        artifact_ref_overrides: dict[str, str] | None = None,
+        artifact_member_id_overrides: dict[str, str] | None = None,
+        extra_artifacts: list[dict[str, Any]] | None = None,
     ) -> dict[str, Any]:
         from med_autoscience.authority_handlers.candidate_admission import (
             evaluate_candidate_admission_authority,
@@ -454,6 +532,8 @@ class AuthorityRecordFactory:
         candidate_request = cls.candidate_request(
             verdict=candidate_verdict,
             sensitivity_only=candidate_sensitivity_only,
+            manifest_version=manifest_version,
+            generation_id=generation_id,
         )
         candidate_result = evaluate_candidate_admission_authority(candidate_request)
         if candidate_result["status"] not in {"accepted", "rejected"}:
@@ -463,7 +543,14 @@ class AuthorityRecordFactory:
             "mas_candidate_admission_receipt", candidate_receipt
         )
         manifest, manifest_ref = cls.generation_manifest(
-            scope, candidate_receipt=candidate_receipt
+            scope,
+            schema_version=manifest_version,
+            generation_id=generation_id,
+            artifact_sha_overrides=artifact_sha_overrides,
+            artifact_ref_overrides=artifact_ref_overrides,
+            artifact_member_id_overrides=artifact_member_id_overrides,
+            extra_artifacts=extra_artifacts,
+            candidate_receipt=candidate_receipt,
         )
         producer_output_ref = cls.exact_ref(
             "opl_action_output", f"paper-output-{scope}"
@@ -497,22 +584,54 @@ class AuthorityRecordFactory:
             cls.exact_ref("opl_action_output", name)
             for name in superseded_review_request_names
         ]
-        currentness_core = {
+        currentness_core: dict[str, Any] = {
             "receipt_kind": "mas_review_currentness_receipt",
-            "schema_version": 1,
+            "schema_version": manifest_version,
             "owner": "MedAutoScience",
             "authority_role": "review_currentness_owner",
             "authority_epoch": cls.authority_epoch,
-            "current_generation_id": cls.generation_id,
+            "current_generation_id": manifest["generation_id"],
             "current_generation_manifest_ref": manifest_ref,
             "current_review_request_ref": current_review_request,
             "current_candidate_admission_receipt_refs": [candidate_receipt_ref],
-            "current_review_receipt_refs": [
-                deepcopy(wrapper["receipt_ref"]) for wrapper in wrappers
-            ],
-            "superseded_generation_ids": [],
-            "superseded_review_request_refs": superseded_review_requests,
         }
+        if manifest_version == 1:
+            currentness_core.update(
+                {
+                    "current_review_receipt_refs": [
+                        deepcopy(wrapper["receipt_ref"]) for wrapper in wrappers
+                    ],
+                    "superseded_generation_ids": [],
+                    "superseded_review_request_refs": superseded_review_requests,
+                }
+            )
+        else:
+            currentness_core["lane_currentness"] = [
+                {
+                    "review_lane": wrapper["receipt"]["review_lane"],
+                    "review_authority_epoch": wrapper["receipt"]["authority_epoch"],
+                    "currentness_status": "fresh",
+                    "review_scope_sha256": wrapper["receipt"][
+                        "review_scope_sha256"
+                    ],
+                    "review_receipt_issued_generation_id": wrapper["receipt"][
+                        "issued_generation_id"
+                    ],
+                    "review_receipt_issued_generation_manifest_sha256": wrapper[
+                        "receipt"
+                    ]["issued_generation_manifest_sha256"],
+                    "current_review_request_ref": deepcopy(
+                        wrapper["receipt"]["review_request_ref"]
+                    ),
+                    "current_review_receipt_ref": deepcopy(wrapper["receipt_ref"]),
+                    "superseded_review_request_refs": [],
+                    "reuse_provenance": None,
+                }
+                for wrapper in wrappers
+            ]
+            currentness_core["lane_currentness"].sort(
+                key=lambda item: item["review_lane"]
+            )
         currentness_receipt = cls.seal(currentness_core, "mas-review-currentness")
         currentness_ref = cls.receipt_ref(
             "mas_review_currentness_receipt", currentness_receipt
@@ -602,6 +721,8 @@ class AuthorityRecordFactory:
     @classmethod
     def reseal_review_currentness(cls, request: dict[str, Any]) -> None:
         receipt = request["review_authority"]["currentness_receipt"]
+        if receipt["schema_version"] == 2:
+            receipt["lane_currentness"].sort(key=lambda item: item["review_lane"])
         core = {
             name: deepcopy(value)
             for name, value in receipt.items()
@@ -641,6 +762,15 @@ class AuthorityRecordFactory:
             "manifest_scope": manifest["manifest_scope"],
             "artifacts": manifest["artifacts"],
         }
+        if manifest["schema_version"] == 2:
+            from med_autoscience.authority_handlers._generation_manifest import (
+                build_review_scopes,
+            )
+
+            manifest["review_scopes"] = build_review_scopes(
+                manifest["artifacts"], manifest["manifest_scope"]
+            )
+            core["review_scopes"] = manifest["review_scopes"]
         fingerprint = cls.fingerprint(core)
         manifest["generation_manifest_sha256"] = fingerprint
         manifest_ref = {

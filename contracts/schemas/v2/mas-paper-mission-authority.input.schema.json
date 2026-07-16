@@ -5,6 +5,88 @@
   "description": "Exact generation, accepted candidate receipts and current independent review receipts required for MAS paper-mission authority.",
   "type": "object",
   "additionalProperties": false,
+  "allOf": [
+    {
+      "if": {
+        "required": [
+          "generation_manifest"
+        ],
+        "properties": {
+          "generation_manifest": {
+            "required": [
+              "schema_version"
+            ],
+            "properties": {
+              "schema_version": {
+                "const": 1
+              }
+            }
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "review_authority": {
+            "required": [
+              "currentness_receipt"
+            ],
+            "properties": {
+              "currentness_receipt": {
+                "required": [
+                  "schema_version"
+                ],
+                "properties": {
+                  "schema_version": {
+                    "const": 1
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "required": [
+          "generation_manifest"
+        ],
+        "properties": {
+          "generation_manifest": {
+            "required": [
+              "schema_version"
+            ],
+            "properties": {
+              "schema_version": {
+                "const": 2
+              }
+            }
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "review_authority": {
+            "required": [
+              "currentness_receipt"
+            ],
+            "properties": {
+              "currentness_receipt": {
+                "required": [
+                  "schema_version"
+                ],
+                "properties": {
+                  "schema_version": {
+                    "const": 2
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  ],
   "required": [
     "surface_kind",
     "schema_version",
@@ -398,6 +480,16 @@
       }
     },
     "review_currentness_receipt": {
+      "oneOf": [
+        {
+          "$ref": "#/$defs/review_currentness_receipt_v1"
+        },
+        {
+          "$ref": "#/$defs/review_currentness_receipt_v2"
+        }
+      ]
+    },
+    "review_currentness_receipt_v1": {
       "type": "object",
       "additionalProperties": false,
       "required": [
@@ -468,6 +560,170 @@
         },
         "receipt_fingerprint": {
           "$ref": "#/$defs/sha256"
+        }
+      }
+    },
+    "review_currentness_receipt_v2": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "receipt_kind",
+        "schema_version",
+        "owner",
+        "authority_role",
+        "authority_epoch",
+        "current_generation_id",
+        "current_generation_manifest_ref",
+        "current_review_request_ref",
+        "current_candidate_admission_receipt_refs",
+        "lane_currentness",
+        "receipt_id",
+        "receipt_size_bytes",
+        "receipt_fingerprint"
+      ],
+      "properties": {
+        "receipt_kind": {
+          "const": "mas_review_currentness_receipt"
+        },
+        "schema_version": {
+          "const": 2
+        },
+        "owner": {
+          "const": "MedAutoScience"
+        },
+        "authority_role": {
+          "const": "review_currentness_owner"
+        },
+        "authority_epoch": {
+          "$ref": "#/$defs/non_empty_text"
+        },
+        "current_generation_id": {
+          "$ref": "#/$defs/non_empty_text"
+        },
+        "current_generation_manifest_ref": {
+          "$ref": "#/$defs/exact_ref"
+        },
+        "current_review_request_ref": {
+          "$ref": "#/$defs/exact_ref"
+        },
+        "current_candidate_admission_receipt_refs": {
+          "$ref": "#/$defs/exact_ref_array"
+        },
+        "lane_currentness": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": {
+            "$ref": "#/$defs/lane_currentness"
+          }
+        },
+        "receipt_id": {
+          "type": "string",
+          "pattern": "^mas-review-currentness:[0-9a-f]{64}$"
+        },
+        "receipt_size_bytes": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "receipt_fingerprint": {
+          "$ref": "#/$defs/sha256"
+        }
+      }
+    },
+    "lane_currentness": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "review_lane",
+        "review_authority_epoch",
+        "currentness_status",
+        "review_scope_sha256",
+        "review_receipt_issued_generation_id",
+        "review_receipt_issued_generation_manifest_sha256",
+        "current_review_request_ref",
+        "current_review_receipt_ref",
+        "superseded_review_request_refs",
+        "reuse_provenance"
+      ],
+      "properties": {
+        "review_lane": {
+          "enum": [
+            "medical",
+            "statistical",
+            "reference",
+            "display",
+            "publication",
+            "exact_byte_package"
+          ]
+        },
+        "review_authority_epoch": {
+          "$ref": "#/$defs/non_empty_text"
+        },
+        "currentness_status": {
+          "enum": [
+            "fresh",
+            "reused_unchanged_scope"
+          ]
+        },
+        "review_scope_sha256": {
+          "$ref": "#/$defs/sha256"
+        },
+        "review_receipt_issued_generation_id": {
+          "$ref": "#/$defs/non_empty_text"
+        },
+        "review_receipt_issued_generation_manifest_sha256": {
+          "$ref": "#/$defs/sha256"
+        },
+        "current_review_request_ref": {
+          "$ref": "#/$defs/exact_ref"
+        },
+        "current_review_receipt_ref": {
+          "$ref": "#/$defs/exact_ref"
+        },
+        "superseded_review_request_refs": {
+          "$ref": "#/$defs/exact_ref_array"
+        },
+        "reuse_provenance": {
+          "oneOf": [
+            {
+              "type": "null"
+            },
+            {
+              "$ref": "#/$defs/review_reuse_provenance"
+            }
+          ]
+        }
+      }
+    },
+    "review_reuse_provenance": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "origin_generation_id",
+        "origin_generation_manifest_ref",
+        "origin_review_request_ref",
+        "origin_review_receipt_ref",
+        "origin_review_scope_sha256",
+        "origin_candidate_admission_receipt_refs"
+      ],
+      "properties": {
+        "origin_generation_id": {
+          "$ref": "#/$defs/non_empty_text"
+        },
+        "origin_generation_manifest_ref": {
+          "$ref": "#/$defs/exact_ref"
+        },
+        "origin_review_request_ref": {
+          "$ref": "#/$defs/exact_ref"
+        },
+        "origin_review_receipt_ref": {
+          "$ref": "#/$defs/exact_ref"
+        },
+        "origin_review_scope_sha256": {
+          "$ref": "#/$defs/sha256"
+        },
+        "origin_candidate_admission_receipt_refs": {
+          "$ref": "#/$defs/exact_ref_array"
         }
       }
     },

@@ -43,6 +43,16 @@ Review / repair 是 Progress-first 的有界质量循环，不是默认安全截
 
 Budget exhaustion 的错误路径包括：重复同一 work unit repair、把 queue empty 写成安全截停、把 focused tests / docs clean 写成质量闭环、把 OPL loop-risk signal 写成 MAS medical severity、把非 fatal reviewer concern 升级成默认 provider block，或把 carry-forward receipt 写成 publication readiness。
 
+## Review Scope Currentness
+
+Generation manifest v2 保留完整 root generation ledger，同时用 MAS-owned review scope policy 为 medical、statistical、reference、display、publication 和 exact-byte-package lane 生成确定性成员清单。每个 v2 generation/review member 必须带 MAS owner 分配的稳定 `member_id`；它是 opaque identity，不得从 `ref`、path 或 locator 推导，也不得仅因移动或改名而变化，root inventory 和 review member inventory 内不得重复。`build_review_scopes(...)` 是 workspace/materializer 可调用的 canonical 纯函数；host 不得自选、删减、重写 identity 或解释成员。
+
+medical、statistical、reference、display 和 publication 的 scope identity 只绑定 policy id/version、lane 以及 canonical `member_id`、`role`、`sha256`、`size_bytes`，保留 `ref` 作为 inventory/provenance，但不把 locator 算入专业复审 identity。因此仅 generation id、root governance receipt 重签或内容不变的 locator rename 不会让科学/专业 lane 失效；`member_id`、内容 hash、byte size 或 lane membership 改变仍会准确失效。`exact_byte_package` 继续绑定完整 root inventory，包括 `ref`，所以最终包路径/identity 变化仍必须经过 exact-byte 复核。
+
+Review currentness v2 逐 lane 记录 `fresh` 或 `reused_unchanged_scope`。fresh receipt 必须绑定当前 generation、manifest 和 candidate admissions；reuse 只能在 receipt 自身 scope identity 与当前 MAS scope identity 完全一致时成立，并保留 origin generation、manifest、review request、review receipt 和 origin candidate receipt provenance。scope 改变只让受影响 lane route back；MAS 在一次判定中聚合全部受影响 lane，并通过稳定排序的 `affected_review_lanes` 给出每个 lane 的 reason 和 resume condition，避免 display、publication、exact-byte-package 等依赖同一变化的 lane 被拆成多轮串行复审。`exact_byte_package` 始终覆盖完整 root inventory，不能缩窄。
+
+OPL 只透明物化通用 stage review transport 及 MAS receipt 的 ref/hash/size。OPL 不解释 scope policy、`member_id` 或 `affected_review_lanes`，也不得因 checkout、generation、locator 或 scope digest 不同而拒绝启动 hosted action。host 应把 exact records 注入 MAS handler并持久化返回结果：伪造或损坏的 receipt bytes 由 MAS 返回 `invalid_host_input`，合法旧 receipt 对当前 scope 不再适用时由 MAS 一次返回聚合的 lane-specific route back。这是 quality/currentness 判定，不是 provider 或 hosted-action liveness gate。
+
 ## CarryForwardRiskReceipt
 
 `CarryForwardRiskReceipt` 是 refs-only ordinary-progress handoff。它允许 MAS 带着非 fatal 风险继续推进下一 owner；它不关闭 publication/submission readiness，不签 artifact/package authority，不替代 independent reviewer / auditor verdict，也不授权 paper body 或 package body mutation。

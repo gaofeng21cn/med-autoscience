@@ -6,6 +6,7 @@ from collections.abc import Mapping
 from typing import Any
 
 from ._generation_manifest import (
+    REVIEW_LANE_ORDER,
     REVIEW_LANES_BY_SCOPE,
     normalize_generation_manifest,
     require_stage_scope,
@@ -159,6 +160,7 @@ def evaluate_paper_mission_authority(request: Mapping[str, Any]) -> dict[str, An
             reason_code=review_issue[0],
             next_owner="independent_reviewer",
             resume_condition=review_issue[1],
+            affected_review_lanes=review_issue[2],
         )
 
     review_status = _aggregate_review_status(normalized)
@@ -287,6 +289,13 @@ def _normalize_request(request: Mapping[str, Any]) -> dict[str, Any]:
         "repair_state": _normalize_repair(payload.get("repair_state")),
         "hard_gate": _normalize_hard_gate(payload.get("hard_gate")),
     }
+    currentness_version = normalized["review_authority"]["currentness_receipt"][
+        "schema_version"
+    ]
+    if manifest["schema_version"] != currentness_version:
+        raise RequestShapeError(
+            "generation manifest and review currentness schema versions must match"
+        )
     _validate_review_currentness_receipt_ref(normalized)
     return normalized
 
@@ -486,6 +495,17 @@ def _normalize_review_authority(value: Any) -> dict[str, Any]:
 def _normalize_review_currentness_receipt(value: Any) -> dict[str, Any]:
     field = "review_authority.currentness_receipt"
     payload = mapping(value, field)
+    schema_version = integer(payload.get("schema_version"), f"{field}.schema_version")
+    if schema_version == 1:
+        return _normalize_review_currentness_receipt_v1(value)
+    if schema_version == 2:
+        return _normalize_review_currentness_receipt_v2(value)
+    raise RequestShapeError(f"{field}.schema_version must be integer 1 or 2")
+
+
+def _normalize_review_currentness_receipt_v1(value: Any) -> dict[str, Any]:
+    field = "review_authority.currentness_receipt"
+    payload = mapping(value, field)
     exact_keys(
         payload,
         {
@@ -589,6 +609,232 @@ def _normalize_review_currentness_receipt(value: Any) -> dict[str, Any]:
         "receipt_id": expected_id,
         "receipt_size_bytes": expected_size,
         "receipt_fingerprint": expected_fingerprint,
+    }
+
+
+def _normalize_review_currentness_receipt_v2(value: Any) -> dict[str, Any]:
+    field = "review_authority.currentness_receipt"
+    payload = mapping(value, field)
+    exact_keys(
+        payload,
+        {
+            "receipt_kind",
+            "schema_version",
+            "owner",
+            "authority_role",
+            "authority_epoch",
+            "current_generation_id",
+            "current_generation_manifest_ref",
+            "current_review_request_ref",
+            "current_candidate_admission_receipt_refs",
+            "lane_currentness",
+            "receipt_id",
+            "receipt_size_bytes",
+            "receipt_fingerprint",
+        },
+        field,
+    )
+    if payload.get("receipt_kind") != "mas_review_currentness_receipt":
+        raise RequestShapeError(
+            f"{field}.receipt_kind must be mas_review_currentness_receipt"
+        )
+    if payload.get("schema_version") != 2 or isinstance(
+        payload.get("schema_version"), bool
+    ):
+        raise RequestShapeError(f"{field}.schema_version must be integer 2")
+    if payload.get("owner") != "MedAutoScience":
+        raise RequestShapeError(f"{field}.owner must be MedAutoScience")
+    if payload.get("authority_role") != "review_currentness_owner":
+        raise RequestShapeError(
+            f"{field}.authority_role must be review_currentness_owner"
+        )
+    lanes = [
+        _normalize_lane_currentness(
+            item,
+            f"{field}.lane_currentness[{index}]",
+        )
+        for index, item in enumerate(
+            sequence(payload.get("lane_currentness"), f"{field}.lane_currentness")
+        )
+    ]
+    lane_ids = [item["review_lane"] for item in lanes]
+    if len(lane_ids) != len(set(lane_ids)):
+        raise RequestShapeError(f"{field}.lane_currentness contains duplicate lanes")
+    lanes.sort(key=lambda item: item["review_lane"])
+    core = {
+        "receipt_kind": "mas_review_currentness_receipt",
+        "schema_version": 2,
+        "owner": "MedAutoScience",
+        "authority_role": "review_currentness_owner",
+        "authority_epoch": text(
+            payload.get("authority_epoch"), f"{field}.authority_epoch"
+        ),
+        "current_generation_id": text(
+            payload.get("current_generation_id"),
+            f"{field}.current_generation_id",
+        ),
+        "current_generation_manifest_ref": _exact_ref(
+            payload.get("current_generation_manifest_ref"),
+            f"{field}.current_generation_manifest_ref",
+            "mas_generation_manifest",
+        ),
+        "current_review_request_ref": _exact_ref(
+            payload.get("current_review_request_ref"),
+            f"{field}.current_review_request_ref",
+            "opl_action_output",
+        ),
+        "current_candidate_admission_receipt_refs": _exact_ref_list(
+            payload.get("current_candidate_admission_receipt_refs"),
+            f"{field}.current_candidate_admission_receipt_refs",
+            "mas_candidate_admission_receipt",
+        ),
+        "lane_currentness": lanes,
+    }
+    expected_fingerprint = fingerprint(core)
+    expected_size = len(canonical_json_bytes(core))
+    expected_id = (
+        f"mas-review-currentness:{expected_fingerprint.removeprefix('sha256:')}"
+    )
+    if text(payload.get("receipt_id"), f"{field}.receipt_id") != expected_id:
+        raise RequestShapeError(f"{field}.receipt_id does not match canonical receipt")
+    if (
+        integer(payload.get("receipt_size_bytes"), f"{field}.receipt_size_bytes")
+        != expected_size
+    ):
+        raise RequestShapeError(
+            f"{field}.receipt_size_bytes does not match canonical receipt"
+        )
+    if (
+        sha256(payload.get("receipt_fingerprint"), f"{field}.receipt_fingerprint")
+        != expected_fingerprint
+    ):
+        raise RequestShapeError(
+            f"{field}.receipt_fingerprint does not match canonical receipt"
+        )
+    return {
+        **core,
+        "receipt_id": expected_id,
+        "receipt_size_bytes": expected_size,
+        "receipt_fingerprint": expected_fingerprint,
+    }
+
+
+def _normalize_lane_currentness(value: Any, field: str) -> dict[str, Any]:
+    payload = mapping(value, field)
+    exact_keys(
+        payload,
+        {
+            "review_lane",
+            "review_authority_epoch",
+            "currentness_status",
+            "review_scope_sha256",
+            "review_receipt_issued_generation_id",
+            "review_receipt_issued_generation_manifest_sha256",
+            "current_review_request_ref",
+            "current_review_receipt_ref",
+            "superseded_review_request_refs",
+            "reuse_provenance",
+        },
+        field,
+    )
+    status = enum_text(
+        payload.get("currentness_status"),
+        f"{field}.currentness_status",
+        {"fresh", "reused_unchanged_scope"},
+    )
+    reuse_value = payload.get("reuse_provenance")
+    reuse = None
+    if status == "fresh":
+        if reuse_value is not None:
+            raise RequestShapeError(
+                f"{field}.reuse_provenance must be null for fresh review"
+            )
+    else:
+        reuse = _normalize_reuse_provenance(reuse_value, f"{field}.reuse_provenance")
+    return {
+        "review_lane": enum_text(
+            payload.get("review_lane"),
+            f"{field}.review_lane",
+            set().union(*REVIEW_LANES_BY_SCOPE.values()),
+        ),
+        "review_authority_epoch": text(
+            payload.get("review_authority_epoch"),
+            f"{field}.review_authority_epoch",
+        ),
+        "currentness_status": status,
+        "review_scope_sha256": sha256(
+            payload.get("review_scope_sha256"),
+            f"{field}.review_scope_sha256",
+        ),
+        "review_receipt_issued_generation_id": text(
+            payload.get("review_receipt_issued_generation_id"),
+            f"{field}.review_receipt_issued_generation_id",
+        ),
+        "review_receipt_issued_generation_manifest_sha256": sha256(
+            payload.get("review_receipt_issued_generation_manifest_sha256"),
+            f"{field}.review_receipt_issued_generation_manifest_sha256",
+        ),
+        "current_review_request_ref": _exact_ref(
+            payload.get("current_review_request_ref"),
+            f"{field}.current_review_request_ref",
+            "opl_action_output",
+        ),
+        "current_review_receipt_ref": _exact_ref(
+            payload.get("current_review_receipt_ref"),
+            f"{field}.current_review_receipt_ref",
+            "mas_reviewer_receipt",
+        ),
+        "superseded_review_request_refs": _exact_ref_list(
+            payload.get("superseded_review_request_refs"),
+            f"{field}.superseded_review_request_refs",
+            "opl_action_output",
+        ),
+        "reuse_provenance": reuse,
+    }
+
+
+def _normalize_reuse_provenance(value: Any, field: str) -> dict[str, Any]:
+    payload = mapping(value, field)
+    exact_keys(
+        payload,
+        {
+            "origin_generation_id",
+            "origin_generation_manifest_ref",
+            "origin_review_request_ref",
+            "origin_review_receipt_ref",
+            "origin_review_scope_sha256",
+            "origin_candidate_admission_receipt_refs",
+        },
+        field,
+    )
+    return {
+        "origin_generation_id": text(
+            payload.get("origin_generation_id"), f"{field}.origin_generation_id"
+        ),
+        "origin_generation_manifest_ref": _exact_ref(
+            payload.get("origin_generation_manifest_ref"),
+            f"{field}.origin_generation_manifest_ref",
+            "mas_generation_manifest",
+        ),
+        "origin_review_request_ref": _exact_ref(
+            payload.get("origin_review_request_ref"),
+            f"{field}.origin_review_request_ref",
+            "opl_action_output",
+        ),
+        "origin_review_receipt_ref": _exact_ref(
+            payload.get("origin_review_receipt_ref"),
+            f"{field}.origin_review_receipt_ref",
+            "mas_reviewer_receipt",
+        ),
+        "origin_review_scope_sha256": sha256(
+            payload.get("origin_review_scope_sha256"),
+            f"{field}.origin_review_scope_sha256",
+        ),
+        "origin_candidate_admission_receipt_refs": _exact_ref_list(
+            payload.get("origin_candidate_admission_receipt_refs"),
+            f"{field}.origin_candidate_admission_receipt_refs",
+            "mas_candidate_admission_receipt",
+        ),
     }
 
 
@@ -702,6 +948,11 @@ def _validate_review_currentness_receipt_ref(request: Mapping[str, Any]) -> None
 def _validate_cross_record_lineage(request: Mapping[str, Any]) -> None:
     producer_attempt = request["host_context"]["producer_attempt_ref"]
     output_ref = request["host_context"]["output_ref"]
+    currentness = request["review_authority"]["currentness_receipt"]
+    lane_currentness = {
+        item["review_lane"]: item
+        for item in currentness.get("lane_currentness", [])
+    }
     reviewer_attempts: list[tuple[str, str]] = []
     for wrapper in request["generation_manifest"]["independent_review_receipts"]:
         receipt = wrapper["receipt"]
@@ -713,7 +964,10 @@ def _validate_cross_record_lineage(request: Mapping[str, Any]) -> None:
             raise RequestShapeError(
                 "reviewer attempt must differ from producer attempt"
             )
-        if receipt["producer_output_ref"] != output_ref:
+        lane_status = lane_currentness.get(receipt["review_lane"], {}).get(
+            "currentness_status", "fresh"
+        )
+        if lane_status == "fresh" and receipt["producer_output_ref"] != output_ref:
             raise RequestShapeError(
                 "review receipt is not bound to the exact hosted output record"
             )
@@ -752,9 +1006,8 @@ def _candidate_admission_issue(
         for item in manifest["artifacts"]
     }
     mission = request["mission"]
-    authority_epoch = request["review_authority"]["currentness_receipt"][
-        "authority_epoch"
-    ]
+    currentness = request["review_authority"]["currentness_receipt"]
+    authority_epoch = currentness["authority_epoch"]
     supplied_receipts = {
         (
             item["receipt_ref"]["ref"],
@@ -798,7 +1051,8 @@ def _candidate_admission_issue(
         source_receipt = receipt["source_input_digest"]
         stale = any(
             (
-                receipt["authority_epoch"] != authority_epoch,
+                currentness["schema_version"] == 1
+                and receipt["authority_epoch"] != authority_epoch,
                 receipt["generation_id"] != manifest["generation_id"],
                 (
                     "source_input_digest",
@@ -846,7 +1100,11 @@ def _candidate_admission_issue(
 
 def _review_currentness_issue(
     request: Mapping[str, Any],
-) -> tuple[str, str] | None:
+) -> tuple[str, str, list[dict[str, str]] | None] | None:
+    currentness = request["review_authority"]["currentness_receipt"]
+    if currentness["schema_version"] == 2:
+        return _review_currentness_issue_v2(request)
+
     manifest = request["generation_manifest"]
     manifest_ref = request["generation_manifest_ref"]
     authority = request["review_authority"]
@@ -898,6 +1156,7 @@ def _review_currentness_issue(
         return (
             "review_request_authority_stale",
             "supply the current review request, generation, and candidate receipts",
+            None,
         )
     reviews = manifest["independent_review_receipts"]
     required_lanes = REVIEW_LANES_BY_SCOPE[manifest["manifest_scope"]]
@@ -906,11 +1165,13 @@ def _review_currentness_issue(
         return (
             "independent_reviewer_record_required",
             "provide one exact current receipt for every required review lane",
+            None,
         )
     if supplied_reviews != current_reviews:
         return (
             "independent_review_receipt_not_current",
             "supply the exact review receipt inventory authorized by MAS currentness",
+            None,
         )
     if any(
         item["receipt"]["authority_epoch"] != currentness["authority_epoch"]
@@ -920,8 +1181,177 @@ def _review_currentness_issue(
         return (
             "independent_review_stale_after_canonical_change",
             "replace receipts issued for an older authority epoch or review request",
+            None,
         )
     return None
+
+
+def _review_currentness_issue_v2(
+    request: Mapping[str, Any],
+) -> tuple[str, str, list[dict[str, str]] | None] | None:
+    manifest = request["generation_manifest"]
+    manifest_ref = request["generation_manifest_ref"]
+    authority = request["review_authority"]
+    currentness = authority["currentness_receipt"]
+    review_request = authority["review_request_ref"]
+    supplied_admissions = {
+        _exact_ref_identity(item["receipt_ref"])
+        for item in request["candidate_admissions"]
+    }
+    current_admissions = {
+        _exact_ref_identity(item)
+        for item in currentness["current_candidate_admission_receipt_refs"]
+    }
+    if any(
+        (
+            manifest["schema_version"] != 2,
+            currentness["current_generation_id"] != manifest["generation_id"],
+            currentness["current_generation_manifest_ref"] != manifest_ref,
+            currentness["current_review_request_ref"] != review_request,
+            supplied_admissions != current_admissions,
+        )
+    ):
+        return (
+            "review_request_authority_stale",
+            "supply the current generation, review request, and candidate receipts",
+            None,
+        )
+
+    required_lanes = REVIEW_LANES_BY_SCOPE[manifest["manifest_scope"]]
+    reviews = {
+        item["receipt"]["review_lane"]: item
+        for item in manifest["independent_review_receipts"]
+    }
+    lane_currentness = {
+        item["review_lane"]: item for item in currentness["lane_currentness"]
+    }
+    scopes = {item["review_lane"]: item for item in manifest["review_scopes"]}
+    if not required_lanes <= set(reviews):
+        return (
+            "independent_reviewer_record_required",
+            "provide one exact current receipt for every required review lane",
+            None,
+        )
+    if set(lane_currentness) != required_lanes:
+        return (
+            "independent_review_receipt_not_current",
+            "supply one lane currentness record for every required review lane",
+            None,
+        )
+
+    affected_review_lanes: list[dict[str, str]] = []
+    for lane in REVIEW_LANE_ORDER:
+        if lane not in required_lanes:
+            continue
+        wrapper = reviews[lane]
+        receipt = wrapper["receipt"]
+        lane_state = lane_currentness[lane]
+        scope = scopes[lane]
+        lane_issue: tuple[str, str] | None = None
+        if any(
+            (
+                lane_state["review_scope_sha256"]
+                != scope["review_scope_sha256"],
+                receipt["review_scope_sha256"]
+                != lane_state["review_scope_sha256"],
+                lane_state["current_review_receipt_ref"]
+                != wrapper["receipt_ref"],
+                lane_state["current_review_request_ref"]
+                != receipt["review_request_ref"],
+                lane_state["review_authority_epoch"]
+                != receipt["authority_epoch"],
+                lane_state["review_receipt_issued_generation_id"]
+                != receipt["issued_generation_id"],
+                lane_state[
+                    "review_receipt_issued_generation_manifest_sha256"
+                ]
+                != receipt["issued_generation_manifest_sha256"],
+                _exact_ref_identity(lane_state["current_review_request_ref"])
+                in {
+                    _exact_ref_identity(item)
+                    for item in lane_state["superseded_review_request_refs"]
+                },
+            )
+        ):
+            lane_issue = (
+                "independent_review_receipt_not_current",
+                f"replace stale {lane} lane currentness and receipt bindings",
+            )
+        else:
+            receipt_admissions = {
+                _exact_ref_identity(item)
+                for item in receipt["accepted_candidate_receipt_refs"]
+            }
+            if lane_state["currentness_status"] == "fresh":
+                if any(
+                    (
+                        receipt["issued_generation_id"] != manifest["generation_id"],
+                        receipt["issued_generation_manifest_sha256"]
+                        != manifest["generation_manifest_sha256"],
+                        receipt_admissions != current_admissions,
+                    )
+                ):
+                    lane_issue = (
+                        "independent_review_stale_after_canonical_change",
+                        f"refresh {lane} review against current candidate admissions",
+                    )
+            else:
+                provenance = lane_state["reuse_provenance"]
+                if provenance is None or any(
+                    (
+                        provenance["origin_generation_id"]
+                        == manifest["generation_id"],
+                        provenance["origin_generation_manifest_ref"] == manifest_ref,
+                        provenance["origin_generation_id"]
+                        != receipt["issued_generation_id"],
+                        provenance["origin_generation_manifest_ref"]["sha256"]
+                        != receipt["issued_generation_manifest_sha256"],
+                        provenance["origin_review_request_ref"]
+                        != receipt["review_request_ref"],
+                        provenance["origin_review_receipt_ref"]
+                        != wrapper["receipt_ref"],
+                        provenance["origin_review_scope_sha256"]
+                        != scope["review_scope_sha256"],
+                        receipt_admissions
+                        != {
+                            _exact_ref_identity(item)
+                            for item in provenance[
+                                "origin_candidate_admission_receipt_refs"
+                            ]
+                        },
+                    )
+                ):
+                    lane_issue = (
+                        "independent_review_stale_after_scope_change",
+                        f"obtain a fresh {lane} review because exact scope reuse is unproven",
+                    )
+        if lane_issue is not None:
+            affected_review_lanes.append(
+                {
+                    "review_lane": lane,
+                    "reason_code": lane_issue[0],
+                    "resume_condition": lane_issue[1],
+                }
+            )
+    if affected_review_lanes:
+        reason_codes = {item["reason_code"] for item in affected_review_lanes}
+        reason_code = (
+            affected_review_lanes[0]["reason_code"]
+            if len(reason_codes) == 1
+            else "independent_review_receipt_not_current"
+        )
+        resume_condition = (
+            affected_review_lanes[0]["resume_condition"]
+            if len(affected_review_lanes) == 1
+            else "refresh all affected review lanes in one pass: "
+            + ", ".join(item["review_lane"] for item in affected_review_lanes)
+        )
+        return reason_code, resume_condition, affected_review_lanes
+    return None
+
+
+def _exact_ref_identity(value: Mapping[str, Any]) -> tuple[str, int, str]:
+    return (value["ref"], value["size_bytes"], value["sha256"])
 
 
 def _aggregate_review_status(request: Mapping[str, Any]) -> str:
@@ -1033,11 +1463,11 @@ def _artifact_projection_transport(request: Mapping[str, Any]) -> dict[str, Any]
         ),
         "generation_id": manifest["generation_id"],
         "generation_manifest_ref": dict(request["generation_manifest_ref"]),
-        "projection_manifest_ref": dict(
+        "projection_manifest_ref": _generation_artifact_identity(
             members["submission_projection_manifest"]
         ),
         "generation_bound_truth_members": [
-            dict(members[role])
+            _generation_artifact_identity(members[role])
             for role in (
                 "submission_status",
                 "publication_evaluation",
@@ -1062,12 +1492,22 @@ def _artifact_projection_transport(request: Mapping[str, Any]) -> dict[str, Any]
     }
 
 
+def _generation_artifact_identity(member: Mapping[str, Any]) -> dict[str, Any]:
+    """Project a manifest member onto the stable transport-v1 artifact ABI."""
+
+    return {
+        name: member[name]
+        for name in ("role", "ref", "size_bytes", "sha256")
+    }
+
+
 def _route_result(
     request: Mapping[str, Any],
     *,
     reason_code: str,
     next_owner: str,
     resume_condition: str,
+    affected_review_lanes: list[dict[str, str]] | None = None,
 ) -> dict[str, Any]:
     return _finalize(
         request,
@@ -1078,6 +1518,7 @@ def _route_result(
             reason_code=reason_code,
             next_owner=next_owner,
             resume_condition=resume_condition,
+            affected_review_lanes=affected_review_lanes,
         ),
     )
 
@@ -1088,10 +1529,11 @@ def _route_back(
     reason_code: str,
     next_owner: str,
     resume_condition: str,
+    affected_review_lanes: list[dict[str, str]] | None = None,
 ) -> dict[str, Any]:
     repair = request["repair_state"]
     debt_codes, defect_refs = _review_quality_debt(request)
-    return {
+    route_back = {
         "reason_code": reason_code,
         "next_owner": next_owner,
         "resume_condition": resume_condition,
@@ -1110,6 +1552,11 @@ def _route_back(
         ),
         "selects_next_stage": False,
     }
+    if affected_review_lanes is not None:
+        route_back["affected_review_lanes"] = [
+            dict(item) for item in affected_review_lanes
+        ]
+    return route_back
 
 
 def _typed_blocker(request: Mapping[str, Any]) -> dict[str, Any]:

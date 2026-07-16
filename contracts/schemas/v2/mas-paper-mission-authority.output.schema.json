@@ -819,6 +819,33 @@
         }
       }
     },
+    "affected_review_lane": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "review_lane",
+        "reason_code",
+        "resume_condition"
+      ],
+      "properties": {
+        "review_lane": {
+          "enum": [
+            "medical",
+            "statistical",
+            "reference",
+            "display",
+            "publication",
+            "exact_byte_package"
+          ]
+        },
+        "reason_code": {
+          "$ref": "#/$defs/non_empty_text"
+        },
+        "resume_condition": {
+          "$ref": "#/$defs/non_empty_text"
+        }
+      }
+    },
     "route_back": {
       "type": "object",
       "additionalProperties": false,
@@ -848,6 +875,14 @@
           "uniqueItems": true,
           "items": {
             "$ref": "#/$defs/review_verdict"
+          }
+        },
+        "affected_review_lanes": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": {
+            "$ref": "#/$defs/affected_review_lane"
           }
         },
         "quality_debt_codes": {
