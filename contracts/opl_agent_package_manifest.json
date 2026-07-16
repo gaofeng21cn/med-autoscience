@@ -4,7 +4,7 @@
   "package_id": "mas",
   "display_name": "Med Auto Science",
   "publisher": "one-person-lab",
-  "version": "0.2.9",
+  "version": "0.2.10",
   "release_set_receipt_ref": "contracts/mas_validator_release_set_receipt.json",
   "source": "first_party_repo_local",
   "carrier_source_role": "codex_plugin_default_carrier_not_package_truth",
@@ -13,7 +13,6 @@
   "machine_boundary": "This repo-local sidecar declares the MAS package and its required capability dependency. OPL owns dependency resolution, lock, lifecycle receipt, atomic update, rollback, and repair; MAS retains domain truth and authority.",
   "codex_surface": {
     "plugin_id": "med-autoscience",
-    "carrier_source_commit": "d95b681bfd5d55ee2038456689927518caac0161",
     "standalone_distribution": "repo_carrier_source",
     "required_skill_ids": [
       "med-autoscience"
