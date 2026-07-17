@@ -105,13 +105,17 @@ def test_artifact_iteration_preserves_currentness_and_owner_boundaries() -> None
         "reuse_requires_identical_scope_policy_and_professional_rubric"
     ] is True
     assert review["reuse_requires_complete_origin_provenance"] is True
+    assert review[
+        "reuse_requires_origin_candidate_semantic_scope_for_professional_lanes"
+    ] is True
     assert review["fresh_receipt_requires_opl_immutable_snapshot_binding"] is True
     assert review[
         "legacy_origin_receipt_without_snapshot_binding_may_reuse_unchanged_scope"
-    ] is True
+    ] is False
     assert review[
         "fresh_missing_snapshot_binding_is_lane_quality_debt_not_host_liveness_failure"
     ] is True
+    assert review["missing_or_stale_review_currentness_blocks_hosted_action"] is False
     page_cache = policy["page_hash_evidence_cache"]
     assert page_cache["persistent_store_owner"] == "one-person-lab"
     assert page_cache["cache_key_fields"] == [

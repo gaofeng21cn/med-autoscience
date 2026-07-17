@@ -31,14 +31,18 @@ route another canonical Stage can act on; do not repair the artifact here.
   role and verdict. Generation manifest v2 binds it to the MAS-owned lane scope
   and complete reviewed member inventory. A fresh v2 receipt also binds the exact
   OPL immutable reviewer-input snapshot manifest and its path-independent
-  `member_id` / role / hash / size inventory. The reviewer reads that snapshot,
-  not live workspace locators. The currentness receipt may mark a lane
+  `member_id` / role / hash / size inventory, the Framework materialization
+  owner, and its explicit non-authority boundary. The reviewer reads that
+  snapshot, not live workspace locators. The currentness receipt may mark a lane
   `reused_unchanged_scope` only when scope policy, professional rubric, and scope
-  identity are unchanged and complete origin provenance is retained; only a
-  changed lane requires a fresh independent invocation. A legacy origin receipt
-  without the newer snapshot binding remains reusable only under that unchanged
-  scope rule. A fresh missing binding is lane quality debt, never a hosted-action
-  liveness rejection. V1 remains
+  identity are unchanged and complete origin provenance is retained. Medical,
+  statistical, reference, and publication reuse also binds the origin candidate
+  semantic scope, so a claim/evidence/disposition change invalidates reuse even
+  when manuscript bytes are unchanged. Only a changed lane requires a fresh
+  independent invocation. A legacy origin receipt without the snapshot binding,
+  or with incomplete materialization-owner metadata, is lane quality debt and
+  cannot produce an owner receipt. Missing or stale review currentness is never a
+  hosted-action liveness rejection, including at finalization. V1 remains
   whole-generation exact currentness, and `exact_byte_package` always reviews the
   complete root inventory including locators. A lane counts only when its exact
   receipt ref is present in the current MAS receipt inventory.

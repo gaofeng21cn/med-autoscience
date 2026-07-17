@@ -132,6 +132,28 @@ class AuthorityRecordFactory:
         }
 
     @classmethod
+    def candidate_semantic_scope_sha256(cls, request: dict[str, Any]) -> str:
+        candidates = []
+        for wrapper in request["candidate_admissions"]:
+            receipt = wrapper["receipt"]
+            candidates.append(
+                {
+                    "candidate_id": receipt["candidate_id"],
+                    "candidate_ref": deepcopy(receipt["candidate_ref"]),
+                    "evidence_refs": deepcopy(receipt["evidence_refs"]),
+                    "claim_scope": deepcopy(receipt["claim_scope"]),
+                    "decision_code": receipt["decision_code"],
+                }
+            )
+        candidates.sort(
+            key=lambda item: (
+                item["candidate_id"],
+                item["candidate_ref"]["sha256"],
+            )
+        )
+        return cls.fingerprint({"candidate_semantic_scope": candidates})
+
+    @classmethod
     def claim_scope(
         cls,
         *,
@@ -499,6 +521,7 @@ class AuthorityRecordFactory:
                     "review_input_snapshot_binding": {
                         "surface_kind": "mas_review_input_snapshot_binding",
                         "schema_version": 1,
+                        "materialization_owner": "one-person-lab",
                         "snapshot_manifest_ref": cls.exact_ref(
                             "opl_reviewer_input_snapshot_manifest",
                             f"{manifest['generation_id']}-{lane}-review-input-snapshot",
@@ -508,6 +531,19 @@ class AuthorityRecordFactory:
                         "members": review_scope_member_projection(
                             scope["reviewed_members"]
                         ),
+                        "authority_boundary": {
+                            "storage_role": "immutable_reviewer_input_transport",
+                            "mas_selects_review_lane_scope_and_members": True,
+                            "framework_can_select_or_narrow_members": False,
+                            "framework_can_interpret_member_roles": False,
+                            "framework_can_write_domain_truth": False,
+                            "framework_can_sign_reviewer_receipt": False,
+                            "framework_can_sign_owner_receipt": False,
+                            "framework_can_create_typed_blocker": False,
+                            "framework_can_claim_quality_readiness": False,
+                            "framework_can_claim_publication_readiness": False,
+                            "framework_can_claim_artifact_authority": False,
+                        },
                     },
                 }
             )
@@ -535,7 +571,7 @@ class AuthorityRecordFactory:
         current_review_request_name: str | None = None,
         superseded_review_request_names: tuple[str, ...] = (),
         review_verdicts: dict[str, str] | None = None,
-        manifest_version: int = 1,
+        manifest_version: int = 2,
         generation_id: str | None = None,
         artifact_sha_overrides: dict[str, str] | None = None,
         artifact_ref_overrides: dict[str, str] | None = None,
@@ -658,22 +694,56 @@ class AuthorityRecordFactory:
         )
         candidate_ref = candidate_receipt["candidate_ref"]
         evidence_ref = candidate_receipt["evidence_refs"][0]
+        producer_attempt_ref = cls.typed_ref("opl_stage_attempt", "paper-producer")
+        mission_identity = {
+            "program_id": "program-dm",
+            "study_id": "study-003",
+            "mission_id": "paper-mission-study-003",
+        }
+        revision_core = {
+            "receipt_kind": "mas_revision_consumption_receipt",
+            "schema_version": 1,
+            "owner": "MedAutoScience",
+            "authority_role": "revision_consumption_owner",
+            "mission_identity": mission_identity,
+            "generation_id": manifest["generation_id"],
+            "producer_attempt_ref": producer_attempt_ref,
+            "producer_output_ref": producer_output_ref,
+            "applicability": "not_applicable",
+            "revision_intake_refs": [],
+            "opl_review_receipt_ref": None,
+            "opl_finding_lineage": None,
+            "finding_closures": [],
+            "consumed_revision_refs": [],
+            "authority_boundary": {
+                "receipt_can_authorize_review_verdict": False,
+                "receipt_can_authorize_owner_receipt": False,
+                "receipt_can_authorize_publication": False,
+                "receipt_can_authorize_submission": False,
+                "receipt_can_create_typed_blocker": False,
+            },
+        }
+        revision_receipt = cls.seal(revision_core, "mas-revision-consumption")
+        revision_consumption = {
+            "surface_kind": "mas_revision_consumption_binding",
+            "schema_version": 1,
+            "consumption_receipt_ref": cls.receipt_ref(
+                "mas_revision_consumption_receipt", revision_receipt
+            ),
+            "consumption_receipt": revision_receipt,
+        }
         return {
             "surface_kind": "mas_paper_mission_authority_request",
             "schema_version": 2,
             "host_context": {
                 "action_id": "paper_mission",
                 "run_ref": cls.typed_ref("opl_stage_run", "paper-run"),
-                "producer_attempt_ref": cls.typed_ref(
-                    "opl_stage_attempt", "paper-producer"
-                ),
+                "producer_attempt_ref": producer_attempt_ref,
                 "output_ref": producer_output_ref,
                 "output_state": "consumable",
             },
             "mission": {
-                "program_id": "program-dm",
-                "study_id": "study-003",
-                "mission_id": "paper-mission-study-003",
+                **mission_identity,
                 "stage_id": stage_id,
                 "stage_goal_ref": cls.typed_ref("mas_stage_goal", stage_id),
             },
@@ -722,6 +792,7 @@ class AuthorityRecordFactory:
                 "currentness_receipt_ref": currentness_ref,
                 "currentness_receipt": currentness_receipt,
             },
+            "revision_consumption": revision_consumption,
             "repair_state": {
                 "status": "not_required",
                 "attempts_used": 0,
@@ -737,6 +808,102 @@ class AuthorityRecordFactory:
                 "resume_condition": None,
             },
         }
+
+    @classmethod
+    def bind_revision_consumption(
+        cls,
+        request: dict[str, Any],
+        *,
+        finding_statuses: dict[str, str] | None = None,
+        revision_intake_names: tuple[str, ...] = ("revision-intake-current",),
+    ) -> None:
+        finding_statuses = finding_statuses or {"OPL-REV-001": "closed"}
+        revision_intake_refs = [
+            cls.exact_ref("opl_revision_intake", name)
+            for name in revision_intake_names
+        ]
+        revision_intake_refs.sort(
+            key=lambda item: (item["ref"], item["size_bytes"], item["sha256"])
+        )
+        opl_review_receipt_ref = cls.exact_ref(
+            "opl_stage_review_receipt", "revision-review-current"
+        )
+        finding_ids = sorted(finding_statuses)
+        finding_lineage = {
+            "review_kind": "finding_closure_review",
+            "finding_ids": finding_ids,
+            "findings_sha256": cls.digest("revision-findings-current"),
+            "repair_map_sha256": cls.digest("revision-repair-map-current"),
+            "re_review_result_sha256": cls.digest("revision-re-review-current"),
+        }
+        finding_closures = [
+            {
+                "finding_id": finding_id,
+                "status": status,
+                "evidence_refs": [f"mas-revision-evidence://{finding_id}"],
+            }
+            for finding_id, status in sorted(finding_statuses.items())
+        ]
+        consumed_revision_refs = [*revision_intake_refs, opl_review_receipt_ref]
+        consumed_revision_refs.sort(
+            key=lambda item: (
+                item["kind"],
+                item["ref"],
+                item["size_bytes"],
+                item["sha256"],
+            )
+        )
+        revision_core = {
+            "receipt_kind": "mas_revision_consumption_receipt",
+            "schema_version": 1,
+            "owner": "MedAutoScience",
+            "authority_role": "revision_consumption_owner",
+            "mission_identity": {
+                name: request["mission"][name]
+                for name in ("program_id", "study_id", "mission_id")
+            },
+            "generation_id": request["generation_manifest"]["generation_id"],
+            "producer_attempt_ref": deepcopy(
+                request["host_context"]["producer_attempt_ref"]
+            ),
+            "producer_output_ref": deepcopy(request["host_context"]["output_ref"]),
+            "applicability": "revision_consumed",
+            "revision_intake_refs": revision_intake_refs,
+            "opl_review_receipt_ref": opl_review_receipt_ref,
+            "opl_finding_lineage": finding_lineage,
+            "finding_closures": finding_closures,
+            "consumed_revision_refs": consumed_revision_refs,
+            "authority_boundary": {
+                "receipt_can_authorize_review_verdict": False,
+                "receipt_can_authorize_owner_receipt": False,
+                "receipt_can_authorize_publication": False,
+                "receipt_can_authorize_submission": False,
+                "receipt_can_create_typed_blocker": False,
+            },
+        }
+        revision_receipt = cls.seal(revision_core, "mas-revision-consumption")
+        request["revision_consumption"] = {
+            "surface_kind": "mas_revision_consumption_binding",
+            "schema_version": 1,
+            "consumption_receipt_ref": cls.receipt_ref(
+                "mas_revision_consumption_receipt", revision_receipt
+            ),
+            "consumption_receipt": revision_receipt,
+        }
+
+    @classmethod
+    def reseal_revision_consumption(cls, request: dict[str, Any]) -> None:
+        receipt = request["revision_consumption"]["consumption_receipt"]
+        core = {
+            name: deepcopy(value)
+            for name, value in receipt.items()
+            if name not in {"receipt_id", "receipt_size_bytes", "receipt_fingerprint"}
+        }
+        sealed = cls.seal(core, "mas-revision-consumption")
+        request["revision_consumption"]["consumption_receipt"] = sealed
+        request["revision_consumption"]["consumption_receipt_ref"] = cls.receipt_ref(
+            "mas_revision_consumption_receipt", sealed
+        )
 
     @classmethod
     def reseal_review_currentness(cls, request: dict[str, Any]) -> None:

@@ -294,6 +294,9 @@
         "schema_version": {
           "const": 1
         },
+        "materialization_owner": {
+          "const": "one-person-lab"
+        },
         "snapshot_manifest_ref": {
           "allOf": [
             {
@@ -329,9 +332,72 @@
           "items": {
             "$ref": "#/$defs/review_input_snapshot_member"
           }
+        },
+        "authority_boundary": {
+          "$ref": "#/$defs/review_input_snapshot_authority_boundary"
         }
       },
-      "description": "Optional only for byte compatibility with legacy v2 receipts. A fresh v2 receipt without this immutable OPL snapshot binding is lane-specific quality debt, not a hosted-action liveness error."
+      "dependentRequired": {
+        "materialization_owner": [
+          "authority_boundary"
+        ],
+        "authority_boundary": [
+          "materialization_owner"
+        ]
+      },
+      "description": "Optional only for byte compatibility with legacy v2 receipts. A v2 receipt without the immutable OPL snapshot binding, or with a legacy binding that omits materialization owner metadata, is lane-specific quality debt and cannot produce an owner receipt."
+    },
+    "review_input_snapshot_authority_boundary": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "storage_role",
+        "mas_selects_review_lane_scope_and_members",
+        "framework_can_select_or_narrow_members",
+        "framework_can_interpret_member_roles",
+        "framework_can_write_domain_truth",
+        "framework_can_sign_reviewer_receipt",
+        "framework_can_sign_owner_receipt",
+        "framework_can_create_typed_blocker",
+        "framework_can_claim_quality_readiness",
+        "framework_can_claim_publication_readiness",
+        "framework_can_claim_artifact_authority"
+      ],
+      "properties": {
+        "storage_role": {
+          "const": "immutable_reviewer_input_transport"
+        },
+        "mas_selects_review_lane_scope_and_members": {
+          "const": true
+        },
+        "framework_can_select_or_narrow_members": {
+          "const": false
+        },
+        "framework_can_interpret_member_roles": {
+          "const": false
+        },
+        "framework_can_write_domain_truth": {
+          "const": false
+        },
+        "framework_can_sign_reviewer_receipt": {
+          "const": false
+        },
+        "framework_can_sign_owner_receipt": {
+          "const": false
+        },
+        "framework_can_create_typed_blocker": {
+          "const": false
+        },
+        "framework_can_claim_quality_readiness": {
+          "const": false
+        },
+        "framework_can_claim_publication_readiness": {
+          "const": false
+        },
+        "framework_can_claim_artifact_authority": {
+          "const": false
+        }
+      }
     },
     "typed_ref": {
       "type": "object",

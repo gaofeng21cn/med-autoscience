@@ -1046,16 +1046,19 @@ def _normalize_review_input_snapshot_binding(
     field: str,
 ) -> dict[str, Any]:
     payload = mapping(value, field)
+    binding_keys = {
+        "surface_kind",
+        "schema_version",
+        "snapshot_manifest_ref",
+        "review_lane",
+        "review_scope_sha256",
+        "members",
+    }
+    if "materialization_owner" in payload or "authority_boundary" in payload:
+        binding_keys.update({"materialization_owner", "authority_boundary"})
     exact_keys(
         payload,
-        {
-            "surface_kind",
-            "schema_version",
-            "snapshot_manifest_ref",
-            "review_lane",
-            "review_scope_sha256",
-            "members",
-        },
+        binding_keys,
         field,
     )
     if payload.get("surface_kind") != "mas_review_input_snapshot_binding":
@@ -1108,7 +1111,44 @@ def _normalize_review_input_snapshot_binding(
             item["size_bytes"],
         )
     )
-    return {
+    materialization_owner = None
+    authority_boundary = None
+    has_owner = "materialization_owner" in payload
+    has_boundary = "authority_boundary" in payload
+    if has_owner != has_boundary:
+        raise RequestShapeError(
+            f"{field}.materialization_owner and authority_boundary must appear together"
+        )
+    if has_owner:
+        materialization_owner = text(
+            payload.get("materialization_owner"), f"{field}.materialization_owner"
+        )
+        if materialization_owner != "one-person-lab":
+            raise RequestShapeError(
+                f"{field}.materialization_owner must be one-person-lab"
+            )
+        authority_field = f"{field}.authority_boundary"
+        supplied_authority = mapping(payload.get("authority_boundary"), authority_field)
+        expected_authority = {
+            "storage_role": "immutable_reviewer_input_transport",
+            "mas_selects_review_lane_scope_and_members": True,
+            "framework_can_select_or_narrow_members": False,
+            "framework_can_interpret_member_roles": False,
+            "framework_can_write_domain_truth": False,
+            "framework_can_sign_reviewer_receipt": False,
+            "framework_can_sign_owner_receipt": False,
+            "framework_can_create_typed_blocker": False,
+            "framework_can_claim_quality_readiness": False,
+            "framework_can_claim_publication_readiness": False,
+            "framework_can_claim_artifact_authority": False,
+        }
+        exact_keys(supplied_authority, set(expected_authority), authority_field)
+        if supplied_authority != expected_authority:
+            raise RequestShapeError(
+                f"{authority_field} must preserve the immutable transport-only boundary"
+            )
+        authority_boundary = dict(expected_authority)
+    normalized = {
         "surface_kind": "mas_review_input_snapshot_binding",
         "schema_version": 1,
         "snapshot_manifest_ref": _exact_ref(
@@ -1122,6 +1162,10 @@ def _normalize_review_input_snapshot_binding(
         ),
         "members": members,
     }
+    if materialization_owner is not None:
+        normalized["materialization_owner"] = materialization_owner
+        normalized["authority_boundary"] = authority_boundary
+    return normalized
 
 
 __all__ = [

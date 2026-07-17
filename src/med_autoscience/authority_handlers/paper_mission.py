@@ -24,6 +24,7 @@ from ._record_validation import (
     fingerprint,
     integer,
     mapping,
+    optional_sha256,
     optional_text,
     optional_typed_ref as _optional_typed_ref,
     sequence,
@@ -66,6 +67,26 @@ _AUTHORITY_BOUNDARY = {
     "spawns_process_or_executor": False,
     "invokes_opl_or_codex": False,
     "authorizes_publication_or_submission": False,
+}
+_SNAPSHOT_AUTHORITY_BOUNDARY = {
+    "storage_role": "immutable_reviewer_input_transport",
+    "mas_selects_review_lane_scope_and_members": True,
+    "framework_can_select_or_narrow_members": False,
+    "framework_can_interpret_member_roles": False,
+    "framework_can_write_domain_truth": False,
+    "framework_can_sign_reviewer_receipt": False,
+    "framework_can_sign_owner_receipt": False,
+    "framework_can_create_typed_blocker": False,
+    "framework_can_claim_quality_readiness": False,
+    "framework_can_claim_publication_readiness": False,
+    "framework_can_claim_artifact_authority": False,
+}
+_REVISION_CONSUMPTION_AUTHORITY_BOUNDARY = {
+    "receipt_can_authorize_review_verdict": False,
+    "receipt_can_authorize_owner_receipt": False,
+    "receipt_can_authorize_publication": False,
+    "receipt_can_authorize_submission": False,
+    "receipt_can_create_typed_blocker": False,
 }
 
 
@@ -157,46 +178,50 @@ def evaluate_paper_mission_authority(request: Mapping[str, Any]) -> dict[str, An
     review_issue = _review_currentness_issue(normalized)
     if review_issue is not None:
         affected_lanes = review_issue[2]
-        snapshot_only_issue = bool(affected_lanes) and all(
-            item["reason_code"]
-            in {
-                "review_input_snapshot_binding_required",
-                "review_input_snapshot_binding_not_current",
-            }
-            for item in affected_lanes
+        reason_codes = (
+            dedupe([item["reason_code"] for item in affected_lanes])
+            if affected_lanes
+            else [review_issue[0]]
         )
-        if (
-            snapshot_only_issue
-            and normalized["mission"]["stage_id"]
-            != "finalize_and_publication_handoff"
-        ):
-            route_back = _route_back(
-                normalized,
-                reason_code=review_issue[0],
-                next_owner="independent_reviewer",
-                resume_condition=review_issue[1],
-                affected_review_lanes=affected_lanes,
-            )
-            return _finalize(
-                normalized,
-                status="completed_with_quality_debt",
-                stage_outcome=_stage_outcome(
-                    "completed_with_quality_debt", transition_allowed=True
-                ),
-                route_back=route_back,
-                quality_debt=_quality_debt(
-                    normalized,
-                    reason_codes=dedupe(
-                        [item["reason_code"] for item in affected_lanes]
-                    ),
-                ),
-            )
-        return _route_result(
+        route_back = _route_back(
             normalized,
             reason_code=review_issue[0],
             next_owner="independent_reviewer",
             resume_condition=review_issue[1],
-            affected_review_lanes=review_issue[2],
+            affected_review_lanes=affected_lanes,
+        )
+        return _finalize(
+            normalized,
+            status="completed_with_quality_debt",
+            stage_outcome=_stage_outcome(
+                "completed_with_quality_debt", transition_allowed=True
+            ),
+            route_back=route_back,
+            quality_debt=_quality_debt(
+                normalized,
+                reason_codes=reason_codes,
+            ),
+        )
+
+    revision_issue = _revision_consumption_issue(normalized)
+    if revision_issue is not None:
+        route_back = _route_back(
+            normalized,
+            reason_code=revision_issue[0],
+            next_owner="mas_revision_consumption_owner",
+            resume_condition=revision_issue[1],
+        )
+        return _finalize(
+            normalized,
+            status="completed_with_quality_debt",
+            stage_outcome=_stage_outcome(
+                "completed_with_quality_debt", transition_allowed=True
+            ),
+            route_back=route_back,
+            quality_debt=_quality_debt(
+                normalized,
+                reason_codes=[revision_issue[0]],
+            ),
         )
 
     review_status = _aggregate_review_status(normalized)
@@ -267,21 +292,24 @@ def evaluate_paper_mission_authority(request: Mapping[str, Any]) -> dict[str, An
 
 def _normalize_request(request: Mapping[str, Any]) -> dict[str, Any]:
     payload = mapping(request, "request")
+    request_keys = {
+        "surface_kind",
+        "schema_version",
+        "host_context",
+        "mission",
+        "medical_evidence",
+        "generation_manifest",
+        "generation_manifest_ref",
+        "candidate_admissions",
+        "review_authority",
+        "repair_state",
+        "hard_gate",
+    }
+    if "revision_consumption" in payload:
+        request_keys.add("revision_consumption")
     exact_keys(
         payload,
-        {
-            "surface_kind",
-            "schema_version",
-            "host_context",
-            "mission",
-            "medical_evidence",
-            "generation_manifest",
-            "generation_manifest_ref",
-            "candidate_admissions",
-            "review_authority",
-            "repair_state",
-            "hard_gate",
-        },
+        request_keys,
         "request",
     )
     if payload.get("surface_kind") != REQUEST_KIND:
@@ -306,6 +334,8 @@ def _normalize_request(request: Mapping[str, Any]) -> dict[str, Any]:
         raise RequestShapeError(
             "generation_manifest_ref size/hash does not match canonical manifest"
         )
+    if "revision_consumption" in payload and payload["revision_consumption"] is None:
+        raise RequestShapeError("revision_consumption must be an object when supplied")
     normalized = {
         "surface_kind": REQUEST_KIND,
         "schema_version": SCHEMA_VERSION,
@@ -321,6 +351,9 @@ def _normalize_request(request: Mapping[str, Any]) -> dict[str, Any]:
         ),
         "review_authority": _normalize_review_authority(
             payload.get("review_authority")
+        ),
+        "revision_consumption": _normalize_revision_consumption(
+            payload.get("revision_consumption")
         ),
         "repair_state": _normalize_repair(payload.get("repair_state")),
         "hard_gate": _normalize_hard_gate(payload.get("hard_gate")),
@@ -501,6 +534,368 @@ def _normalize_candidate_admissions(value: Any) -> list[dict[str, Any]]:
     ):
         raise RequestShapeError("candidate_admissions contains duplicate receipts")
     return admissions
+
+
+def _normalize_revision_consumption(value: Any) -> dict[str, Any]:
+    field = "revision_consumption"
+    if value is None:
+        return {
+            "binding_status": "legacy_unbound",
+            "consumption_receipt_ref": None,
+            "consumption_receipt": None,
+        }
+    payload = mapping(value, field)
+    exact_keys(
+        payload,
+        {
+            "surface_kind",
+            "schema_version",
+            "consumption_receipt_ref",
+            "consumption_receipt",
+        },
+        field,
+    )
+    if payload.get("surface_kind") != "mas_revision_consumption_binding":
+        raise RequestShapeError(
+            f"{field}.surface_kind must be mas_revision_consumption_binding"
+        )
+    if payload.get("schema_version") != 1 or isinstance(
+        payload.get("schema_version"), bool
+    ):
+        raise RequestShapeError(f"{field}.schema_version must be integer 1")
+    receipt_ref = _exact_ref(
+        payload.get("consumption_receipt_ref"),
+        f"{field}.consumption_receipt_ref",
+        "mas_revision_consumption_receipt",
+    )
+    receipt = _normalize_revision_consumption_receipt(
+        payload.get("consumption_receipt"),
+        f"{field}.consumption_receipt",
+    )
+    if (
+        receipt_ref["ref"] != receipt["receipt_id"]
+        or receipt_ref["size_bytes"] != receipt["receipt_size_bytes"]
+        or receipt_ref["sha256"] != receipt["receipt_fingerprint"]
+    ):
+        raise RequestShapeError(
+            f"{field}.consumption_receipt_ref does not match canonical receipt bytes"
+        )
+    return {
+        "binding_status": "bound",
+        "surface_kind": "mas_revision_consumption_binding",
+        "schema_version": 1,
+        "consumption_receipt_ref": receipt_ref,
+        "consumption_receipt": receipt,
+    }
+
+
+def _normalize_revision_consumption_receipt(
+    value: Any,
+    field: str,
+) -> dict[str, Any]:
+    payload = mapping(value, field)
+    exact_keys(
+        payload,
+        {
+            "receipt_kind",
+            "schema_version",
+            "owner",
+            "authority_role",
+            "mission_identity",
+            "generation_id",
+            "producer_attempt_ref",
+            "producer_output_ref",
+            "applicability",
+            "revision_intake_refs",
+            "opl_review_receipt_ref",
+            "opl_finding_lineage",
+            "finding_closures",
+            "consumed_revision_refs",
+            "authority_boundary",
+            "receipt_id",
+            "receipt_size_bytes",
+            "receipt_fingerprint",
+        },
+        field,
+    )
+    if payload.get("receipt_kind") != "mas_revision_consumption_receipt":
+        raise RequestShapeError(
+            f"{field}.receipt_kind must be mas_revision_consumption_receipt"
+        )
+    if payload.get("schema_version") != 1 or isinstance(
+        payload.get("schema_version"), bool
+    ):
+        raise RequestShapeError(f"{field}.schema_version must be integer 1")
+    if payload.get("owner") != "MedAutoScience":
+        raise RequestShapeError(f"{field}.owner must be MedAutoScience")
+    if payload.get("authority_role") != "revision_consumption_owner":
+        raise RequestShapeError(
+            f"{field}.authority_role must be revision_consumption_owner"
+        )
+    mission_field = f"{field}.mission_identity"
+    mission_payload = mapping(payload.get("mission_identity"), mission_field)
+    exact_keys(
+        mission_payload,
+        {"program_id", "study_id", "mission_id"},
+        mission_field,
+    )
+    mission_identity = {
+        name: text(mission_payload.get(name), f"{mission_field}.{name}")
+        for name in ("program_id", "study_id", "mission_id")
+    }
+    applicability = enum_text(
+        payload.get("applicability"),
+        f"{field}.applicability",
+        {"not_applicable", "revision_consumed"},
+    )
+    revision_intake_refs = _exact_ref_list(
+        payload.get("revision_intake_refs"),
+        f"{field}.revision_intake_refs",
+        "opl_revision_intake",
+    )
+    revision_intake_refs.sort(key=_exact_ref_identity)
+    opl_review_receipt_ref = None
+    if payload.get("opl_review_receipt_ref") is not None:
+        opl_review_receipt_ref = _exact_ref(
+            payload.get("opl_review_receipt_ref"),
+            f"{field}.opl_review_receipt_ref",
+            "opl_stage_review_receipt",
+        )
+    finding_lineage = _normalize_opl_finding_lineage(
+        payload.get("opl_finding_lineage"),
+        f"{field}.opl_finding_lineage",
+    )
+    finding_closures = _normalize_revision_finding_closures(
+        payload.get("finding_closures"),
+        f"{field}.finding_closures",
+    )
+    consumed_revision_refs = _normalize_consumed_revision_refs(
+        payload.get("consumed_revision_refs"),
+        f"{field}.consumed_revision_refs",
+    )
+    authority_boundary = mapping(
+        payload.get("authority_boundary"), f"{field}.authority_boundary"
+    )
+    exact_keys(
+        authority_boundary,
+        set(_REVISION_CONSUMPTION_AUTHORITY_BOUNDARY),
+        f"{field}.authority_boundary",
+    )
+    if authority_boundary != _REVISION_CONSUMPTION_AUTHORITY_BOUNDARY:
+        raise RequestShapeError(
+            f"{field}.authority_boundary must preserve the non-authoritative receipt boundary"
+        )
+
+    if applicability == "not_applicable":
+        if any(
+            (
+                revision_intake_refs,
+                opl_review_receipt_ref is not None,
+                finding_lineage is not None,
+                finding_closures,
+                consumed_revision_refs,
+            )
+        ):
+            raise RequestShapeError(
+                f"{field} not_applicable receipt cannot carry revision inputs or findings"
+            )
+    else:
+        if not revision_intake_refs:
+            raise RequestShapeError(
+                f"{field}.revision_intake_refs must not be empty when revision is consumed"
+            )
+        if opl_review_receipt_ref is None or finding_lineage is None:
+            raise RequestShapeError(
+                f"{field}.opl_review_receipt_ref and opl_finding_lineage are required "
+                "when revision is consumed"
+            )
+        expected_consumed_refs = list(revision_intake_refs)
+        if opl_review_receipt_ref is not None:
+            expected_consumed_refs.append(opl_review_receipt_ref)
+        expected_consumed_refs.sort(key=lambda item: (item["kind"], *_exact_ref_identity(item)))
+        if consumed_revision_refs != expected_consumed_refs:
+            raise RequestShapeError(
+                f"{field}.consumed_revision_refs must exactly equal revision intake "
+                "and review receipt refs"
+            )
+        if finding_lineage["review_kind"] != "finding_closure_review":
+            raise RequestShapeError(
+                f"{field}.opl_finding_lineage must be a finding_closure_review"
+            )
+        finding_ids = set(finding_lineage["finding_ids"])
+        closure_ids = {item["finding_id"] for item in finding_closures}
+        if finding_ids != closure_ids:
+            raise RequestShapeError(
+                f"{field}.finding_closures must cover every OPL finding_lineage id "
+                "exactly once"
+            )
+
+    core = {
+        "receipt_kind": "mas_revision_consumption_receipt",
+        "schema_version": 1,
+        "owner": "MedAutoScience",
+        "authority_role": "revision_consumption_owner",
+        "mission_identity": mission_identity,
+        "generation_id": text(
+            payload.get("generation_id"), f"{field}.generation_id"
+        ),
+        "producer_attempt_ref": _typed_ref(
+            payload.get("producer_attempt_ref"),
+            f"{field}.producer_attempt_ref",
+            "opl_stage_attempt",
+        ),
+        "producer_output_ref": _exact_ref(
+            payload.get("producer_output_ref"),
+            f"{field}.producer_output_ref",
+            "opl_action_output",
+        ),
+        "applicability": applicability,
+        "revision_intake_refs": revision_intake_refs,
+        "opl_review_receipt_ref": opl_review_receipt_ref,
+        "opl_finding_lineage": finding_lineage,
+        "finding_closures": finding_closures,
+        "consumed_revision_refs": consumed_revision_refs,
+        "authority_boundary": dict(_REVISION_CONSUMPTION_AUTHORITY_BOUNDARY),
+    }
+    expected_fingerprint = fingerprint(core)
+    expected_size = len(canonical_json_bytes(core))
+    expected_id = (
+        "mas-revision-consumption:"
+        f"{expected_fingerprint.removeprefix('sha256:')}"
+    )
+    if text(payload.get("receipt_id"), f"{field}.receipt_id") != expected_id:
+        raise RequestShapeError(f"{field}.receipt_id does not match canonical receipt")
+    if integer(payload.get("receipt_size_bytes"), f"{field}.receipt_size_bytes") != expected_size:
+        raise RequestShapeError(
+            f"{field}.receipt_size_bytes does not match canonical receipt"
+        )
+    supplied_fingerprint = sha256(
+        payload.get("receipt_fingerprint"), f"{field}.receipt_fingerprint"
+    )
+    if supplied_fingerprint != expected_fingerprint:
+        raise RequestShapeError(
+            f"{field}.receipt_fingerprint does not match canonical receipt"
+        )
+    return {
+        **core,
+        "receipt_id": expected_id,
+        "receipt_size_bytes": expected_size,
+        "receipt_fingerprint": expected_fingerprint,
+    }
+
+
+def _normalize_opl_finding_lineage(
+    value: Any,
+    field: str,
+) -> dict[str, Any] | None:
+    if value is None:
+        return None
+    payload = mapping(value, field)
+    exact_keys(
+        payload,
+        {
+            "review_kind",
+            "finding_ids",
+            "findings_sha256",
+            "repair_map_sha256",
+            "re_review_result_sha256",
+        },
+        field,
+    )
+    finding_ids = text_list(payload.get("finding_ids"), f"{field}.finding_ids")
+    if not finding_ids:
+        raise RequestShapeError(f"{field}.finding_ids must not be empty")
+    finding_ids.sort()
+    review_kind = enum_text(
+        payload.get("review_kind"),
+        f"{field}.review_kind",
+        {"initial_review", "finding_closure_review"},
+    )
+    repair_map_sha256 = optional_sha256(
+        payload.get("repair_map_sha256"), f"{field}.repair_map_sha256"
+    )
+    re_review_result_sha256 = optional_sha256(
+        payload.get("re_review_result_sha256"),
+        f"{field}.re_review_result_sha256",
+    )
+    if review_kind == "initial_review" and (
+        repair_map_sha256 is not None or re_review_result_sha256 is not None
+    ):
+        raise RequestShapeError(
+            f"{field} initial_review must not carry repair or re-review hashes"
+        )
+    if review_kind == "finding_closure_review" and (
+        repair_map_sha256 is None or re_review_result_sha256 is None
+    ):
+        raise RequestShapeError(
+            f"{field} finding_closure_review requires repair_map_sha256 and "
+            "re_review_result_sha256"
+        )
+    return {
+        "review_kind": review_kind,
+        "finding_ids": finding_ids,
+        "findings_sha256": sha256(
+            payload.get("findings_sha256"), f"{field}.findings_sha256"
+        ),
+        "repair_map_sha256": repair_map_sha256,
+        "re_review_result_sha256": re_review_result_sha256,
+    }
+
+
+def _normalize_revision_finding_closures(
+    value: Any,
+    field: str,
+) -> list[dict[str, Any]]:
+    closures: list[dict[str, Any]] = []
+    for index, item in enumerate(sequence(value, field)):
+        item_field = f"{field}[{index}]"
+        payload = mapping(item, item_field)
+        exact_keys(payload, {"finding_id", "status", "evidence_refs"}, item_field)
+        evidence_refs = text_list(
+            payload.get("evidence_refs"), f"{item_field}.evidence_refs"
+        )
+        if not evidence_refs:
+            raise RequestShapeError(f"{item_field}.evidence_refs must not be empty")
+        evidence_refs.sort()
+        closures.append(
+            {
+                "finding_id": text(
+                    payload.get("finding_id"), f"{item_field}.finding_id"
+                ),
+                "status": enum_text(
+                    payload.get("status"),
+                    f"{item_field}.status",
+                    {"closed", "partially_closed", "still_open"},
+                ),
+                "evidence_refs": evidence_refs,
+            }
+        )
+    finding_ids = [item["finding_id"] for item in closures]
+    if len(finding_ids) != len(set(finding_ids)):
+        raise RequestShapeError(f"{field} contains duplicate finding_id values")
+    closures.sort(key=lambda item: item["finding_id"])
+    return closures
+
+
+def _normalize_consumed_revision_refs(
+    value: Any,
+    field: str,
+) -> list[dict[str, Any]]:
+    refs = []
+    for index, item in enumerate(sequence(value, field)):
+        item_field = f"{field}[{index}]"
+        payload = mapping(item, item_field)
+        kind = text(payload.get("kind"), f"{item_field}.kind")
+        if kind not in {"opl_revision_intake", "opl_stage_review_receipt"}:
+            raise RequestShapeError(
+                f"{item_field}.kind must be opl_revision_intake or opl_stage_review_receipt"
+            )
+        refs.append(_exact_ref(payload, item_field, kind))
+    identities = [(item["kind"], *_exact_ref_identity(item)) for item in refs]
+    if len(identities) != len(set(identities)):
+        raise RequestShapeError(f"{field} contains duplicate refs")
+    refs.sort(key=lambda item: (item["kind"], *_exact_ref_identity(item)))
+    return refs
 
 
 def _normalize_review_authority(value: Any) -> dict[str, Any]:
@@ -846,6 +1241,7 @@ def _normalize_reuse_provenance(value: Any, field: str) -> dict[str, Any]:
             "origin_review_receipt_ref",
             "origin_review_scope_sha256",
             "origin_candidate_admission_receipt_refs",
+            "origin_candidate_scope_sha256",
         },
         field,
     )
@@ -876,6 +1272,14 @@ def _normalize_reuse_provenance(value: Any, field: str) -> dict[str, Any]:
             payload.get("origin_candidate_admission_receipt_refs"),
             f"{field}.origin_candidate_admission_receipt_refs",
             "mas_candidate_admission_receipt",
+        ),
+        "origin_candidate_scope_sha256": (
+            sha256(
+                payload.get("origin_candidate_scope_sha256"),
+                f"{field}.origin_candidate_scope_sha256",
+            )
+            if "origin_candidate_scope_sha256" in payload
+            else None
         ),
     }
 
@@ -1016,6 +1420,29 @@ def _validate_cross_record_lineage(request: Mapping[str, Any]) -> None:
         reviewer_attempts.append((reviewer_attempt["ref"], reviewer_attempt["sha256"]))
     if len(reviewer_attempts) != len(set(reviewer_attempts)):
         raise RequestShapeError("review lanes require separate reviewer attempts")
+    revision_binding = request["revision_consumption"]
+    if revision_binding["binding_status"] == "bound":
+        revision_receipt = revision_binding["consumption_receipt"]
+        mission = request["mission"]
+        if any(
+            revision_receipt["mission_identity"][name] != mission[name]
+            for name in ("program_id", "study_id", "mission_id")
+        ):
+            raise RequestShapeError(
+                "revision consumption receipt mission_identity does not match the request"
+            )
+        if revision_receipt["generation_id"] != request["generation_manifest"]["generation_id"]:
+            raise RequestShapeError(
+                "revision consumption receipt generation_id does not match the manifest"
+            )
+        if revision_receipt["producer_attempt_ref"] != producer_attempt:
+            raise RequestShapeError(
+                "revision consumption receipt producer_attempt_ref does not match the host"
+            )
+        if revision_receipt["producer_output_ref"] != output_ref:
+            raise RequestShapeError(
+                "revision consumption receipt producer_output_ref does not match the host"
+            )
 
 
 def _candidate_admission_issue(
@@ -1225,7 +1652,22 @@ def _review_currentness_issue(
             "replace receipts issued for an older authority epoch or review request",
             None,
         )
-    return None
+    affected = [
+        {
+            "review_lane": lane,
+            "reason_code": "review_input_snapshot_binding_required",
+            "resume_condition": (
+                f"obtain a fresh {lane} review over the immutable input snapshot"
+            ),
+        }
+        for lane in REVIEW_LANE_ORDER
+        if lane in required_lanes
+    ]
+    return (
+        "review_input_snapshot_binding_required",
+        "replace legacy review receipts with immutable snapshot-bound receipts",
+        affected,
+    )
 
 
 def _review_currentness_issue_v2(
@@ -1327,11 +1769,20 @@ def _review_currentness_issue_v2(
             }
             snapshot_binding = receipt.get("review_input_snapshot_binding")
             if snapshot_binding is None:
-                if lane_state["currentness_status"] == "fresh":
-                    lane_issue = (
-                        "review_input_snapshot_binding_required",
-                        f"obtain a fresh {lane} review over the immutable input snapshot",
-                    )
+                lane_issue = (
+                    "review_input_snapshot_binding_required",
+                    f"obtain a fresh {lane} review over the immutable input snapshot",
+                )
+            elif (
+                snapshot_binding.get("materialization_owner") != "one-person-lab"
+                or snapshot_binding.get("authority_boundary")
+                != _SNAPSHOT_AUTHORITY_BOUNDARY
+            ):
+                lane_issue = (
+                    "review_input_snapshot_binding_owner_metadata_required",
+                    f"refresh {lane} snapshot binding with its transport owner and "
+                    "false-authority boundary",
+                )
             elif any(
                 (
                     snapshot_binding["review_lane"] != lane,
@@ -1391,6 +1842,12 @@ def _review_currentness_issue_v2(
                                 "origin_candidate_admission_receipt_refs"
                             ]
                         },
+                        (
+                            lane
+                            in {"medical", "statistical", "reference", "publication"}
+                            and provenance["origin_candidate_scope_sha256"]
+                            != _candidate_semantic_scope_sha256(request)
+                        ),
                     )
                 ):
                     lane_issue = (
@@ -1422,8 +1879,46 @@ def _review_currentness_issue_v2(
     return None
 
 
+def _revision_consumption_issue(
+    request: Mapping[str, Any],
+) -> tuple[str, str] | None:
+    binding = request["revision_consumption"]
+    if binding["binding_status"] != "bound":
+        return (
+            "revision_consumption_binding_required",
+            "bind this generation to an explicit no-revision or consumed-revision receipt",
+        )
+    receipt = binding["consumption_receipt"]
+    if receipt["applicability"] == "revision_consumed" and any(
+        item["status"] != "closed" for item in receipt["finding_closures"]
+    ):
+        return (
+            "revision_finding_closure_incomplete",
+            "close or explicitly carry forward every consumed OPL finding before "
+            "quality acceptance",
+        )
+    return None
+
+
 def _exact_ref_identity(value: Mapping[str, Any]) -> tuple[str, int, str]:
     return (value["ref"], value["size_bytes"], value["sha256"])
+
+
+def _candidate_semantic_scope_sha256(request: Mapping[str, Any]) -> str:
+    candidates = []
+    for wrapper in request["candidate_admissions"]:
+        receipt = wrapper["receipt"]
+        candidates.append(
+            {
+                "candidate_id": receipt["candidate_id"],
+                "candidate_ref": dict(receipt["candidate_ref"]),
+                "evidence_refs": [dict(item) for item in receipt["evidence_refs"]],
+                "claim_scope": dict(receipt["claim_scope"]),
+                "decision_code": receipt["decision_code"],
+            }
+        )
+    candidates.sort(key=lambda item: (item["candidate_id"], item["candidate_ref"]["sha256"]))
+    return fingerprint({"candidate_semantic_scope": candidates})
 
 
 def _aggregate_review_status(request: Mapping[str, Any]) -> str:
@@ -1485,6 +1980,7 @@ def _owner_receipt(request: Mapping[str, Any]) -> dict[str, Any]:
         "independent_review_receipt_refs": [
             dict(item["receipt_ref"]) for item in reviews
         ],
+        "revision_consumption": _revision_consumption_projection(request),
         "verdict": "accepted_domain_delta",
         "authorizes_stage_domain_completion": True,
         "authorizes_publication_or_submission": False,
@@ -1503,6 +1999,33 @@ def _owner_receipt(request: Mapping[str, Any]) -> dict[str, Any]:
         ),
         "receipt_size_bytes": len(canonical_json_bytes(core)),
         "receipt_fingerprint": receipt_fingerprint,
+    }
+
+
+def _revision_consumption_projection(request: Mapping[str, Any]) -> dict[str, Any]:
+    binding = request["revision_consumption"]
+    receipt = binding["consumption_receipt"]
+    return {
+        "surface_kind": "mas_revision_consumption_owner_projection",
+        "schema_version": 1,
+        "consumption_receipt_ref": dict(binding["consumption_receipt_ref"]),
+        "applicability": receipt["applicability"],
+        "revision_intake_refs": [dict(item) for item in receipt["revision_intake_refs"]],
+        "opl_review_receipt_ref": (
+            dict(receipt["opl_review_receipt_ref"])
+            if receipt["opl_review_receipt_ref"] is not None
+            else None
+        ),
+        "opl_finding_lineage": (
+            dict(receipt["opl_finding_lineage"])
+            if receipt["opl_finding_lineage"] is not None
+            else None
+        ),
+        "finding_closures": [dict(item) for item in receipt["finding_closures"]],
+        "consumed_revision_refs": [
+            dict(item) for item in receipt["consumed_revision_refs"]
+        ],
+        "authority_boundary": dict(receipt["authority_boundary"]),
     }
 
 

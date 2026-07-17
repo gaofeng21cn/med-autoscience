@@ -25,6 +25,18 @@ def _evaluate(request: dict[str, Any]) -> dict[str, Any]:
     return evaluate_paper_mission_authority(request)
 
 
+def _assert_progress_debt(
+    result: dict[str, Any],
+    reason_code: str,
+) -> dict[str, Any]:
+    assert result["status"] == "completed_with_quality_debt"
+    assert result["stage_outcome"]["stage_transition_allowed"] is True
+    assert result["typed_blocker"] is None
+    assert reason_code in result["quality_debt"]["reason_codes"]
+    assert result["owner_receipt"] is None
+    return result["route_back"]
+
+
 def _output_validator() -> Draft202012Validator:
     schema = json.loads(
         (
@@ -102,6 +114,9 @@ def _authorize_reused_lane(
                 "origin_candidate_admission_receipt_refs": deepcopy(
                     receipt["accepted_candidate_receipt_refs"]
                 ),
+                "origin_candidate_scope_sha256": (
+                    authority_records.candidate_semantic_scope_sha256(origin)
+                ),
             },
         }
     )
@@ -139,6 +154,188 @@ def test_exact_current_reviews_return_deterministic_owner_receipt(
         == request["candidate_admissions"][0]["receipt"]["claim_scope"]
     )
     assert len(receipt["independent_review_receipt_refs"]) == 4
+
+
+def test_missing_revision_consumption_binding_is_progress_first_quality_debt(
+    authority_records: Any,
+) -> None:
+    request = authority_records.paper_request()
+    request.pop("revision_consumption")
+
+    result = _evaluate(request)
+
+    route_back = _assert_progress_debt(
+        result, "revision_consumption_binding_required"
+    )
+    assert route_back["next_owner"] == "mas_revision_consumption_owner"
+    _output_validator().validate(result)
+
+
+def test_explicit_null_revision_consumption_binding_is_invalid(
+    authority_records: Any,
+) -> None:
+    request = authority_records.paper_request()
+    request["revision_consumption"] = None
+
+    result = _evaluate(request)
+
+    assert result["status"] == "invalid_host_input"
+    assert "must be an object when supplied" in result["error"]["detail"]
+
+
+def test_consumed_revision_closure_is_projected_into_owner_receipt(
+    authority_records: Any,
+) -> None:
+    request = authority_records.paper_request()
+    authority_records.bind_revision_consumption(
+        request,
+        finding_statuses={"OPL-REV-001": "closed", "OPL-REV-002": "closed"},
+        revision_intake_names=("reviewer-round-1", "reviewer-round-2"),
+    )
+
+    result = _evaluate(request)
+
+    assert result["status"] == "owner_receipt"
+    projection = result["owner_receipt"]["revision_consumption"]
+    receipt = request["revision_consumption"]["consumption_receipt"]
+    assert projection == {
+        "surface_kind": "mas_revision_consumption_owner_projection",
+        "schema_version": 1,
+        "consumption_receipt_ref": request["revision_consumption"][
+            "consumption_receipt_ref"
+        ],
+        "applicability": "revision_consumed",
+        "revision_intake_refs": receipt["revision_intake_refs"],
+        "opl_review_receipt_ref": receipt["opl_review_receipt_ref"],
+        "opl_finding_lineage": receipt["opl_finding_lineage"],
+        "finding_closures": receipt["finding_closures"],
+        "consumed_revision_refs": receipt["consumed_revision_refs"],
+        "authority_boundary": {
+            "receipt_can_authorize_review_verdict": False,
+            "receipt_can_authorize_owner_receipt": False,
+            "receipt_can_authorize_publication": False,
+            "receipt_can_authorize_submission": False,
+            "receipt_can_create_typed_blocker": False,
+        },
+    }
+    validator = _output_validator()
+    validator.validate(result)
+    forged_open_projection = deepcopy(result)
+    forged_open_projection["owner_receipt"]["revision_consumption"][
+        "finding_closures"
+    ][0]["status"] = "partially_closed"
+    assert list(validator.iter_errors(forged_open_projection))
+
+
+def test_partial_revision_finding_closure_is_quality_debt(
+    authority_records: Any,
+) -> None:
+    request = authority_records.paper_request()
+    authority_records.bind_revision_consumption(
+        request,
+        finding_statuses={
+            "OPL-REV-001": "closed",
+            "OPL-REV-002": "partially_closed",
+        },
+    )
+
+    result = _evaluate(request)
+
+    route_back = _assert_progress_debt(
+        result, "revision_finding_closure_incomplete"
+    )
+    assert route_back["next_owner"] == "mas_revision_consumption_owner"
+
+
+def test_revision_consumption_rejects_incomplete_or_unbound_exact_refs(
+    authority_records: Any,
+) -> None:
+    incomplete = authority_records.paper_request()
+    authority_records.bind_revision_consumption(incomplete)
+    incomplete_receipt = incomplete["revision_consumption"]["consumption_receipt"]
+    incomplete_receipt["consumed_revision_refs"].pop()
+    authority_records.reseal_revision_consumption(incomplete)
+    result = _evaluate(incomplete)
+    assert result["status"] == "invalid_host_input"
+    assert "must exactly equal revision intake" in result["error"]["detail"]
+
+    missing_lineage = authority_records.paper_request()
+    authority_records.bind_revision_consumption(missing_lineage)
+    missing_receipt = missing_lineage["revision_consumption"]["consumption_receipt"]
+    missing_receipt["opl_finding_lineage"] = None
+    missing_receipt["finding_closures"] = []
+    authority_records.reseal_revision_consumption(missing_lineage)
+    result = _evaluate(missing_lineage)
+    assert result["status"] == "invalid_host_input"
+    assert "opl_finding_lineage are required" in result["error"]["detail"]
+
+    missing_closure_hash = authority_records.paper_request()
+    authority_records.bind_revision_consumption(missing_closure_hash)
+    missing_hash_receipt = missing_closure_hash["revision_consumption"][
+        "consumption_receipt"
+    ]
+    missing_hash_receipt["opl_finding_lineage"]["repair_map_sha256"] = None
+    authority_records.reseal_revision_consumption(missing_closure_hash)
+    result = _evaluate(missing_closure_hash)
+    assert result["status"] == "invalid_host_input"
+    assert "requires repair_map_sha256" in result["error"]["detail"]
+
+
+@pytest.mark.parametrize(
+    ("field", "replacement", "detail"),
+    [
+        ("generation_id", "other-generation", "generation_id does not match"),
+        (
+            "producer_attempt_ref",
+            {
+                "kind": "opl_stage_attempt",
+                "ref": "opl_stage_attempt://other-attempt",
+                "sha256": "sha256:" + "1" * 64,
+            },
+            "producer_attempt_ref does not match",
+        ),
+        (
+            "producer_output_ref",
+            {
+                "kind": "opl_action_output",
+                "ref": "opl_action_output://other-output",
+                "size_bytes": 321,
+                "sha256": "sha256:" + "2" * 64,
+            },
+            "producer_output_ref does not match",
+        ),
+    ],
+)
+def test_revision_consumption_rejects_cross_record_identity_tampering(
+    authority_records: Any,
+    field: str,
+    replacement: object,
+    detail: str,
+) -> None:
+    request = authority_records.paper_request()
+    authority_records.bind_revision_consumption(request)
+    request["revision_consumption"]["consumption_receipt"][field] = replacement
+    authority_records.reseal_revision_consumption(request)
+
+    result = _evaluate(request)
+
+    assert result["status"] == "invalid_host_input"
+    assert detail in result["error"]["detail"]
+
+
+def test_revision_consumption_rejects_receipt_ref_hash_tampering(
+    authority_records: Any,
+) -> None:
+    request = authority_records.paper_request()
+    authority_records.bind_revision_consumption(request)
+    request["revision_consumption"]["consumption_receipt_ref"]["sha256"] = (
+        "sha256:" + "0" * 64
+    )
+
+    result = _evaluate(request)
+
+    assert result["status"] == "invalid_host_input"
+    assert "does not match canonical receipt bytes" in result["error"]["detail"]
 
 
 def test_candidate_receipt_inventory_verdict_and_constraints_fail_closed(
@@ -209,10 +406,10 @@ def test_review_receipt_requires_mas_issuer_role_verdict_and_independence(
     wrapper["receipt"]["defect_refs"] = []
     authority_records.reseal_review_wrapper(wrapper)
     result = _evaluate(forged_verdict)
-    assert result["status"] == "route_back"
-    assert result["route_back"]["reason_code"] == (
-        "independent_review_receipt_not_current"
+    route_back = _assert_progress_debt(
+        result, "independent_review_receipt_not_current"
     )
+    assert route_back["reason_code"] == "independent_review_receipt_not_current"
 
     producer_as_reviewer = authority_records.paper_request()
     wrapper = producer_as_reviewer["generation_manifest"][
@@ -249,8 +446,7 @@ def test_stale_review_bytes_and_metadata_only_rewrite_cannot_be_reused(
     table["sha256"] = authority_records.digest("changed-table-bytes")
     authority_records.refresh_paper_manifest_identity(stale)
     result = _evaluate(stale)
-    assert result["status"] == "invalid_host_input"
-    assert "generation_manifest_sha256 is stale" in result["error"]["detail"]
+    _assert_progress_debt(result, "independent_review_receipt_not_current")
 
     metadata_rewrite = authority_records.paper_request()
     table = next(
@@ -262,10 +458,9 @@ def test_stale_review_bytes_and_metadata_only_rewrite_cannot_be_reused(
     authority_records.refresh_paper_manifest_identity(metadata_rewrite)
     manifest = metadata_rewrite["generation_manifest"]
     for wrapper in manifest["independent_review_receipts"]:
-        wrapper["receipt"]["generation_manifest_sha256"] = manifest[
+        wrapper["receipt"]["issued_generation_manifest_sha256"] = manifest[
             "generation_manifest_sha256"
         ]
-        wrapper["receipt"]["reviewed_members"] = deepcopy(manifest["artifacts"])
         # Deliberately retain the old wrapper ref/hash to model metadata-only reuse.
     result = _evaluate(metadata_rewrite)
     assert result["status"] == "invalid_host_input"
@@ -602,10 +797,61 @@ def test_v2_currentness_reuses_only_exact_unchanged_lane_scopes(
     )
     authority_records.reseal_review_currentness(forged)
     result = _evaluate(forged)
-    assert result["status"] == "route_back"
-    assert result["route_back"]["reason_code"] == (
-        "independent_review_receipt_not_current"
+    route_back = _assert_progress_debt(
+        result, "independent_review_receipt_not_current"
     )
+    assert route_back["reason_code"] == "independent_review_receipt_not_current"
+
+
+def test_v2_candidate_semantic_scope_controls_professional_lane_reuse(
+    authority_records: Any,
+) -> None:
+    origin = authority_records.paper_request(
+        scope="publication_generation",
+        stage_id="finalize_and_publication_handoff",
+        generation_id="candidate-scope-origin",
+    )
+    unchanged = authority_records.paper_request(
+        scope="publication_generation",
+        stage_id="finalize_and_publication_handoff",
+        generation_id="candidate-scope-unchanged",
+    )
+    professional_lanes = ("medical", "statistical", "reference", "publication")
+    for lane in professional_lanes:
+        _authorize_reused_lane(unchanged, origin, lane, authority_records)
+    assert _evaluate(unchanged)["status"] == "owner_receipt"
+
+    changed = authority_records.paper_request(
+        scope="publication_generation",
+        stage_id="finalize_and_publication_handoff",
+        generation_id="candidate-scope-changed",
+        candidate_sensitivity_only=True,
+    )
+    origin_manuscript = next(
+        item
+        for item in origin["generation_manifest"]["artifacts"]
+        if item["role"] == "canonical_manuscript"
+    )
+    changed_manuscript = next(
+        item
+        for item in changed["generation_manifest"]["artifacts"]
+        if item["role"] == "canonical_manuscript"
+    )
+    assert changed_manuscript["sha256"] == origin_manuscript["sha256"]
+    for lane in professional_lanes:
+        _authorize_reused_lane(changed, origin, lane, authority_records)
+
+    result = _evaluate(changed)
+
+    route_back = _assert_progress_debt(
+        result, "independent_review_stale_after_scope_change"
+    )
+    assert [
+        item["review_lane"] for item in route_back["affected_review_lanes"]
+    ] == list(professional_lanes)
+    assert {
+        item["reason_code"] for item in route_back["affected_review_lanes"]
+    } == {"independent_review_stale_after_scope_change"}
 
 
 def test_v2_fresh_review_without_snapshot_binding_is_lane_quality_debt(
@@ -649,7 +895,50 @@ def test_v2_fresh_review_without_snapshot_binding_is_lane_quality_debt(
     ]
 
 
-def test_v2_legacy_origin_receipt_without_snapshot_binding_can_reuse_unchanged_scope(
+def test_v2_snapshot_owner_metadata_is_debt_but_false_authority_is_strict(
+    authority_records: Any,
+) -> None:
+    missing_metadata = authority_records.paper_request()
+    wrapper = missing_metadata["generation_manifest"]["independent_review_receipts"][0]
+    binding = wrapper["receipt"]["review_input_snapshot_binding"]
+    binding.pop("materialization_owner")
+    binding.pop("authority_boundary")
+    authority_records.reseal_review_wrapper(wrapper)
+    lane_state = next(
+        item
+        for item in missing_metadata["review_authority"]["currentness_receipt"][
+            "lane_currentness"
+        ]
+        if item["review_lane"] == wrapper["receipt"]["review_lane"]
+    )
+    lane_state["current_review_receipt_ref"] = deepcopy(wrapper["receipt_ref"])
+    authority_records.reseal_review_currentness(missing_metadata)
+
+    result = _evaluate(missing_metadata)
+
+    route_back = _assert_progress_debt(
+        result, "review_input_snapshot_binding_owner_metadata_required"
+    )
+    assert route_back["affected_review_lanes"][0]["review_lane"] == wrapper[
+        "receipt"
+    ]["review_lane"]
+
+    forged_authority = authority_records.paper_request()
+    forged_wrapper = forged_authority["generation_manifest"][
+        "independent_review_receipts"
+    ][0]
+    forged_wrapper["receipt"]["review_input_snapshot_binding"][
+        "authority_boundary"
+    ]["framework_can_sign_owner_receipt"] = True
+    authority_records.reseal_review_wrapper(forged_wrapper)
+
+    result = _evaluate(forged_authority)
+
+    assert result["status"] == "invalid_host_input"
+    assert "immutable transport-only boundary" in result["error"]["detail"]
+
+
+def test_v2_legacy_origin_receipt_without_snapshot_binding_is_quality_debt(
     authority_records: Any,
 ) -> None:
     origin = authority_records.paper_request(
@@ -671,7 +960,18 @@ def test_v2_legacy_origin_receipt_without_snapshot_binding_can_reuse_unchanged_s
 
     result = _evaluate(current)
 
-    assert result["status"] == "owner_receipt"
+    route_back = _assert_progress_debt(
+        result, "review_input_snapshot_binding_required"
+    )
+    assert route_back["affected_review_lanes"] == [
+        {
+            "review_lane": "medical",
+            "reason_code": "review_input_snapshot_binding_required",
+            "resume_condition": (
+                "obtain a fresh medical review over the immutable input snapshot"
+            ),
+        }
+    ]
 
 
 @pytest.mark.parametrize(
@@ -734,11 +1034,11 @@ def test_v2_rubric_change_invalidates_only_the_affected_reused_lane(
 
     result = _evaluate(current)
 
-    assert result["status"] == "route_back"
-    assert result["route_back"]["reason_code"] == (
-        "independent_review_receipt_not_current"
+    route_back = _assert_progress_debt(
+        result, "independent_review_receipt_not_current"
     )
-    assert result["route_back"]["affected_review_lanes"] == [
+    assert route_back["reason_code"] == "independent_review_receipt_not_current"
+    assert route_back["affected_review_lanes"] == [
         {
             "review_lane": "medical",
             "reason_code": "independent_review_receipt_not_current",
@@ -772,21 +1072,21 @@ def test_v2_currentness_returns_all_affected_review_lanes_in_one_route_back(
 
     result = _evaluate(current)
 
-    assert result["status"] == "route_back"
-    assert result["route_back"]["reason_code"] == (
-        "independent_review_receipt_not_current"
+    route_back = _assert_progress_debt(
+        result, "independent_review_receipt_not_current"
     )
-    assert result["route_back"]["resume_condition"] == (
+    assert route_back["reason_code"] == "independent_review_receipt_not_current"
+    assert route_back["resume_condition"] == (
         "refresh all affected review lanes in one pass: "
         "display, publication, exact_byte_package"
     )
     assert [
         item["review_lane"]
-        for item in result["route_back"]["affected_review_lanes"]
+        for item in route_back["affected_review_lanes"]
     ] == ["display", "publication", "exact_byte_package"]
     assert {
         item["reason_code"]
-        for item in result["route_back"]["affected_review_lanes"]
+        for item in route_back["affected_review_lanes"]
     } == {"independent_review_receipt_not_current"}
     _output_validator().validate(result)
 
@@ -814,18 +1114,18 @@ def test_v2_old_receipt_with_removed_optional_member_routes_by_lane(
 
     result = _evaluate(current)
 
-    assert result["status"] == "route_back"
-    assert result["route_back"]["reason_code"] == (
-        "independent_review_receipt_not_current"
+    route_back = _assert_progress_debt(
+        result, "independent_review_receipt_not_current"
     )
+    assert route_back["reason_code"] == "independent_review_receipt_not_current"
 
 
 def test_manifest_and_review_currentness_versions_cannot_be_mixed(
     authority_records: Any,
 ) -> None:
-    v1 = authority_records.paper_request()
+    v1 = authority_records.paper_request(manifest_version=1)
     v2 = authority_records.paper_request(manifest_version=2)
-    assert _evaluate(v1)["status"] == "owner_receipt"
+    assert _evaluate(v1)["status"] == "completed_with_quality_debt"
     assert _evaluate(v2)["status"] == "owner_receipt"
 
     v2_manifest_v1_currentness = deepcopy(v2)
@@ -876,9 +1176,8 @@ def test_superseded_review_request_replay_routes_back_but_current_retry_passes(
         superseded_review_request_names=("review-request-old",),
     )
     result = _evaluate(old)
-    assert result["status"] == "route_back"
-    assert result["route_back"]["reason_code"] == "review_request_authority_stale"
-    assert result["stage_outcome"]["stage_transition_allowed"] is False
+    route_back = _assert_progress_debt(result, "review_request_authority_stale")
+    assert route_back["reason_code"] == "review_request_authority_stale"
 
 
 def test_finalize_requires_publication_generation_six_lanes_and_package_roles(
@@ -971,10 +1270,10 @@ def test_finalize_requires_publication_generation_six_lanes_and_package_roles(
         if wrapper["receipt"]["review_lane"] != "exact_byte_package"
     ]
     result = _evaluate(missing_package_review)
-    assert result["status"] == "route_back"
-    assert result["route_back"]["reason_code"] == (
-        "independent_reviewer_record_required"
+    route_back = _assert_progress_debt(
+        result, "independent_reviewer_record_required"
     )
+    assert route_back["reason_code"] == "independent_reviewer_record_required"
 
     missing_pdf = authority_records.paper_request(
         scope="publication_generation",
@@ -1026,6 +1325,7 @@ def test_finalize_rejects_duplicate_generation_truth_members(
     request["generation_manifest"]["artifacts"].append(
         {
             **status,
+            "member_id": "mas-member:submission_status:secondary",
             "ref": "workspace://study/publication_generation/second-status",
             "sha256": authority_records.digest("second-status-bytes"),
         }
@@ -1211,8 +1511,19 @@ def test_draft202012_input_schemas_accept_exact_records_and_reject_old_abi(
             manifest_version=2,
         )
     )
+    no_revision_binding = authority_records.paper_request()
+    no_revision_binding.pop("revision_consumption")
+    paper_validator.validate(no_revision_binding)
+    consumed_revision = authority_records.paper_request()
+    authority_records.bind_revision_consumption(consumed_revision)
+    paper_validator.validate(consumed_revision)
+    invalid_consumed_revision = deepcopy(consumed_revision)
+    invalid_consumed_revision["revision_consumption"]["consumption_receipt"][
+        "opl_finding_lineage"
+    ]["repair_map_sha256"] = None
+    assert list(paper_validator.iter_errors(invalid_consumed_revision))
 
-    v1_paper = authority_records.paper_request()
+    v1_paper = authority_records.paper_request(manifest_version=1)
     v2_paper = authority_records.paper_request(manifest_version=2)
     v1_manifest_v2_currentness = deepcopy(v1_paper)
     v1_manifest_v2_currentness["review_authority"] = deepcopy(

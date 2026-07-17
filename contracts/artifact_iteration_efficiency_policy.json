@@ -101,6 +101,7 @@
     "reuse_requires_mas_owned_currentness_receipt": true,
     "reuse_requires_identical_scope_policy_and_professional_rubric": true,
     "reuse_requires_complete_origin_provenance": true,
+    "reuse_requires_origin_candidate_semantic_scope_for_professional_lanes": true,
     "fresh_receipt_requires_opl_immutable_snapshot_binding": true,
     "snapshot_binding_surface_kind": "mas_review_input_snapshot_binding",
     "snapshot_manifest_ref_kind": "opl_reviewer_input_snapshot_manifest",
@@ -110,8 +111,9 @@
       "sha256",
       "size_bytes"
     ],
-    "legacy_origin_receipt_without_snapshot_binding_may_reuse_unchanged_scope": true,
+    "legacy_origin_receipt_without_snapshot_binding_may_reuse_unchanged_scope": false,
     "fresh_missing_snapshot_binding_is_lane_quality_debt_not_host_liveness_failure": true,
+    "missing_or_stale_review_currentness_blocks_hosted_action": false,
     "dispatch_only_affected_lanes": true,
     "dispatch_affected_lanes_in_one_wave": true,
     "parallelize_independent_lanes": true,

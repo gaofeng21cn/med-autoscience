@@ -144,6 +144,10 @@
     "review_authority": {
       "$ref": "#/$defs/review_authority"
     },
+    "revision_consumption": {
+      "$ref": "#/$defs/revision_consumption_binding",
+      "description": "Optional only for schema evolution. When absent, MAS returns progress-first quality debt and cannot emit an owner receipt."
+    },
     "repair_state": {
       "$ref": "#/$defs/repair_state"
     },
@@ -223,7 +227,10 @@
             "mas_candidate_admission_receipt",
             "mas_generation_manifest",
             "mas_review_currentness_receipt",
-            "mas_reviewer_receipt"
+            "mas_reviewer_receipt",
+            "mas_revision_consumption_receipt",
+            "opl_revision_intake",
+            "opl_stage_review_receipt"
           ]
         },
         "ref": {
@@ -562,7 +569,89 @@
         "receipt_fingerprint": {
           "$ref": "#/$defs/sha256"
         }
-      }
+      },
+      "allOf": [
+        {
+          "if": {
+            "properties": {
+              "applicability": {
+                "const": "not_applicable"
+              }
+            }
+          },
+          "then": {
+            "properties": {
+              "revision_intake_refs": {
+                "maxItems": 0
+              },
+              "opl_review_receipt_ref": {
+                "type": "null"
+              },
+              "opl_finding_lineage": {
+                "type": "null"
+              },
+              "finding_closures": {
+                "maxItems": 0
+              },
+              "consumed_revision_refs": {
+                "maxItems": 0
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "applicability": {
+                "const": "revision_consumed"
+              }
+            }
+          },
+          "then": {
+            "properties": {
+              "revision_intake_refs": {
+                "minItems": 1
+              },
+              "opl_review_receipt_ref": {
+                "allOf": [
+                  {
+                    "$ref": "#/$defs/exact_ref"
+                  },
+                  {
+                    "type": "object",
+                    "properties": {
+                      "kind": {
+                        "const": "opl_stage_review_receipt"
+                      }
+                    }
+                  }
+                ]
+              },
+              "opl_finding_lineage": {
+                "allOf": [
+                  {
+                    "$ref": "#/$defs/opl_finding_lineage"
+                  },
+                  {
+                    "type": "object",
+                    "properties": {
+                      "review_kind": {
+                        "const": "finding_closure_review"
+                      }
+                    }
+                  }
+                ]
+              },
+              "finding_closures": {
+                "minItems": 1
+              },
+              "consumed_revision_refs": {
+                "minItems": 2
+              }
+            }
+          }
+        }
+      ]
     },
     "review_currentness_receipt_v2": {
       "type": "object",
@@ -741,6 +830,387 @@
         },
         "origin_candidate_admission_receipt_refs": {
           "$ref": "#/$defs/exact_ref_array"
+        },
+        "origin_candidate_scope_sha256": {
+          "$ref": "#/$defs/sha256",
+          "description": "Optional only for legacy read compatibility. Candidate-dependent lanes without this MAS semantic-scope digest cannot be reused for owner acceptance."
+        }
+      }
+    },
+    "revision_consumption_binding": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "surface_kind",
+        "schema_version",
+        "consumption_receipt_ref",
+        "consumption_receipt"
+      ],
+      "properties": {
+        "surface_kind": {
+          "const": "mas_revision_consumption_binding"
+        },
+        "schema_version": {
+          "const": 1
+        },
+        "consumption_receipt_ref": {
+          "allOf": [
+            {
+              "$ref": "#/$defs/exact_ref"
+            },
+            {
+              "type": "object",
+              "properties": {
+                "kind": {
+                  "const": "mas_revision_consumption_receipt"
+                }
+              }
+            }
+          ]
+        },
+        "consumption_receipt": {
+          "$ref": "#/$defs/revision_consumption_receipt"
+        }
+      }
+    },
+    "revision_consumption_receipt": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "receipt_kind",
+        "schema_version",
+        "owner",
+        "authority_role",
+        "mission_identity",
+        "generation_id",
+        "producer_attempt_ref",
+        "producer_output_ref",
+        "applicability",
+        "revision_intake_refs",
+        "opl_review_receipt_ref",
+        "opl_finding_lineage",
+        "finding_closures",
+        "consumed_revision_refs",
+        "authority_boundary",
+        "receipt_id",
+        "receipt_size_bytes",
+        "receipt_fingerprint"
+      ],
+      "properties": {
+        "receipt_kind": {
+          "const": "mas_revision_consumption_receipt"
+        },
+        "schema_version": {
+          "const": 1
+        },
+        "owner": {
+          "const": "MedAutoScience"
+        },
+        "authority_role": {
+          "const": "revision_consumption_owner"
+        },
+        "mission_identity": {
+          "$ref": "#/$defs/revision_mission_identity"
+        },
+        "generation_id": {
+          "$ref": "#/$defs/non_empty_text"
+        },
+        "producer_attempt_ref": {
+          "allOf": [
+            {
+              "$ref": "#/$defs/typed_ref"
+            },
+            {
+              "type": "object",
+              "properties": {
+                "kind": {
+                  "const": "opl_stage_attempt"
+                }
+              }
+            }
+          ]
+        },
+        "producer_output_ref": {
+          "allOf": [
+            {
+              "$ref": "#/$defs/exact_ref"
+            },
+            {
+              "type": "object",
+              "properties": {
+                "kind": {
+                  "const": "opl_action_output"
+                }
+              }
+            }
+          ]
+        },
+        "applicability": {
+          "enum": [
+            "not_applicable",
+            "revision_consumed"
+          ]
+        },
+        "revision_intake_refs": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": {
+            "allOf": [
+              {
+                "$ref": "#/$defs/exact_ref"
+              },
+              {
+                "type": "object",
+                "properties": {
+                  "kind": {
+                    "const": "opl_revision_intake"
+                  }
+                }
+              }
+            ]
+          }
+        },
+        "opl_review_receipt_ref": {
+          "oneOf": [
+            {
+              "type": "null"
+            },
+            {
+              "allOf": [
+                {
+                  "$ref": "#/$defs/exact_ref"
+                },
+                {
+                  "type": "object",
+                  "properties": {
+                    "kind": {
+                      "const": "opl_stage_review_receipt"
+                    }
+                  }
+                }
+              ]
+            }
+          ]
+        },
+        "opl_finding_lineage": {
+          "oneOf": [
+            {
+              "type": "null"
+            },
+            {
+              "$ref": "#/$defs/opl_finding_lineage"
+            }
+          ]
+        },
+        "finding_closures": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": {
+            "$ref": "#/$defs/revision_finding_closure"
+          }
+        },
+        "consumed_revision_refs": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": {
+            "allOf": [
+              {
+                "$ref": "#/$defs/exact_ref"
+              },
+              {
+                "type": "object",
+                "properties": {
+                  "kind": {
+                    "enum": [
+                      "opl_revision_intake",
+                      "opl_stage_review_receipt"
+                    ]
+                  }
+                }
+              }
+            ]
+          }
+        },
+        "authority_boundary": {
+          "$ref": "#/$defs/revision_consumption_authority_boundary"
+        },
+        "receipt_id": {
+          "type": "string",
+          "pattern": "^mas-revision-consumption:[0-9a-f]{64}$"
+        },
+        "receipt_size_bytes": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "receipt_fingerprint": {
+          "$ref": "#/$defs/sha256"
+        }
+      }
+    },
+    "revision_mission_identity": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "program_id",
+        "study_id",
+        "mission_id"
+      ],
+      "properties": {
+        "program_id": {
+          "$ref": "#/$defs/non_empty_text"
+        },
+        "study_id": {
+          "$ref": "#/$defs/non_empty_text"
+        },
+        "mission_id": {
+          "$ref": "#/$defs/non_empty_text"
+        }
+      }
+    },
+    "opl_finding_lineage": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "review_kind",
+        "finding_ids",
+        "findings_sha256",
+        "repair_map_sha256",
+        "re_review_result_sha256"
+      ],
+      "properties": {
+        "review_kind": {
+          "enum": [
+            "initial_review",
+            "finding_closure_review"
+          ]
+        },
+        "finding_ids": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": {
+            "$ref": "#/$defs/non_empty_text"
+          }
+        },
+        "findings_sha256": {
+          "$ref": "#/$defs/sha256"
+        },
+        "repair_map_sha256": {
+          "oneOf": [
+            {
+              "type": "null"
+            },
+            {
+              "$ref": "#/$defs/sha256"
+            }
+          ]
+        },
+        "re_review_result_sha256": {
+          "oneOf": [
+            {
+              "type": "null"
+            },
+            {
+              "$ref": "#/$defs/sha256"
+            }
+          ]
+        }
+      },
+      "allOf": [
+        {
+          "if": {
+            "properties": {
+              "review_kind": {
+                "const": "initial_review"
+              }
+            }
+          },
+          "then": {
+            "properties": {
+              "repair_map_sha256": {
+                "type": "null"
+              },
+              "re_review_result_sha256": {
+                "type": "null"
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "review_kind": {
+                "const": "finding_closure_review"
+              }
+            }
+          },
+          "then": {
+            "properties": {
+              "repair_map_sha256": {
+                "$ref": "#/$defs/sha256"
+              },
+              "re_review_result_sha256": {
+                "$ref": "#/$defs/sha256"
+              }
+            }
+          }
+        }
+      ]
+    },
+    "revision_finding_closure": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "finding_id",
+        "status",
+        "evidence_refs"
+      ],
+      "properties": {
+        "finding_id": {
+          "$ref": "#/$defs/non_empty_text"
+        },
+        "status": {
+          "enum": [
+            "closed",
+            "partially_closed",
+            "still_open"
+          ]
+        },
+        "evidence_refs": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": {
+            "$ref": "#/$defs/non_empty_text"
+          }
+        }
+      }
+    },
+    "revision_consumption_authority_boundary": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "receipt_can_authorize_review_verdict",
+        "receipt_can_authorize_owner_receipt",
+        "receipt_can_authorize_publication",
+        "receipt_can_authorize_submission",
+        "receipt_can_create_typed_blocker"
+      ],
+      "properties": {
+        "receipt_can_authorize_review_verdict": {
+          "const": false
+        },
+        "receipt_can_authorize_owner_receipt": {
+          "const": false
+        },
+        "receipt_can_authorize_publication": {
+          "const": false
+        },
+        "receipt_can_authorize_submission": {
+          "const": false
+        },
+        "receipt_can_create_typed_blocker": {
+          "const": false
         }
       }
     },
