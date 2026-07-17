@@ -57,6 +57,10 @@
     "file_presence_as_source_readiness_verdict"
   ],
   "stage_quality_receipt_contract_ref": "contracts/stage_quality_cycle_policy.json#/shared_surface_contracts/review_receipt",
+  "stage_quality_transport_contract_refs": {
+    "review_input_snapshot_materialization_request": "contracts/stage_quality_cycle_policy.json#/review_transport_contracts/review_input_snapshot_materialization_request",
+    "page_hash_evidence_candidate": "contracts/stage_quality_cycle_policy.json#/review_transport_contracts/page_hash_evidence_candidate"
+  },
   "generated_surface_owner": "one-person-lab",
   "implementation_profile": {
     "profile_id": "opl.standard_domain_agent.v1",
@@ -258,6 +262,9 @@
     "runtime_environment_requirement_profile": "contracts/runtime_environment_requirements.json",
     "owner_receipt_schema_source_ref": "contracts/owner_receipt_contract.json",
     "quality_gate_source_ref": "agent/quality_gates/ai_reviewer_auditor_gate.md",
+    "review_input_snapshot_request_builder_ref": "src/med_autoscience/authority_handlers/_generation_manifest.py#build_review_input_snapshot_materialization_request",
+    "review_input_snapshot_materialization_request_schema_ref": "external_repo:one-person-lab/contracts/opl-framework/reviewer-input-snapshot-materialization-request.schema.json",
+    "scholarskills_page_hash_evidence_candidate_schema_ref": "external_repo:one-person-lab/contracts/opl-framework/scholarskills-page-hash-evidence-candidate.schema.json",
     "stage_quality_cycle_policy_ref": "contracts/stage_quality_cycle_policy.json",
     "stage_run_kernel_profile_ref": "contracts/stage_run_kernel_profile.json",
     "source_closure_audit": "contracts/source_closure_audit.json",

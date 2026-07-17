@@ -61,6 +61,31 @@ controller materializes `opl_stage_review_receipt.verdict`, mapping the first
 three values directly and mapping `blocked` or `human_gate` to receipt-only
 `hard_stop`.
 
+Review transport uses that same quality-cycle envelope. A producer or repairer
+with a normalized v2 generation manifest, one controller-bound MAS review lane,
+and an explicit `source_refs_by_member_id` map covering exactly that lane's
+MAS-owned scope returns
+`route_impact.stage_quality_cycle.review_input_snapshot_materialization_request`.
+Build it with
+`build_review_input_snapshot_materialization_request(...)`; never infer the map
+from generic artifact refs or choose a different lane. Each member keeps the
+MAS-owned artifact identity as `owner_ref` and the explicit transport locator
+as `source_ref`; moving the locator does not rewrite owner identity. If the
+exact map is unavailable, do not invent a request: record lane quality debt and
+continue the hosted action without a quality, publication, export, submission,
+or ready claim. Every present request embeds the canonical MAS authority record
+and its exact-byte ref; changing only a transport `source_ref` cannot change
+that owner identity. Once you return a request, every scope, member identity,
+`owner_ref`, locator, hash, and size is an exact claim. An invalid,
+out-of-workspace, mismatched, or unmaterializable present request fails closed
+as a transport contract error; never relabel it as ordinary quality debt or
+forge a MAS typed blocker. A reviewer or re-reviewer that receives a
+`scholarskills_page_hash_evidence_candidate` returns it unchanged at
+`route_impact.stage_quality_cycle.page_hash_evidence_candidate`. The candidate
+and any Framework cache hit remain refs-only evidence: they never emit a
+verdict or authority and never replace the fresh reviewer invocation, fresh
+review receipt, or fresh MAS judgment.
+
 ## Producer
 
 Use the Stage goal, policy, sources, and quality definition to produce the best
@@ -83,6 +108,10 @@ criteria, and the narrowest canonical defect-owner Stage. Do not create a
 Review receipt or repair map. The OPL StageRun controller materializes the
 `opl_stage_review_receipt` from this Attempt's identity, session, exact reviewed
 hashes, rubric, and outcome.
+
+When ScholarSkills returns a page-hash evidence candidate, pass the exact
+candidate through at the declared quality-cycle path without rewriting it or
+turning it into a finding, verdict, receipt, blocker, or readiness claim.
 
 While repair budget remains and the repair belongs to this Stage, an outcome of
 `repair_required` is non-terminal and returns at most a route recommendation.
@@ -116,6 +145,10 @@ unclosed required finding, repair regression, or critical new finding may
 trigger another repair round; ordinary new suggestions are optional observations
 or quality debt and cannot reopen the loop. Never inherit the repairer
 conversation or create the controller-owned Review receipt.
+
+When ScholarSkills returns a page-hash evidence candidate, pass the exact
+candidate through at the declared quality-cycle path under the same
+non-authority and fresh-review requirements as the initial reviewer.
 
 When another repair round is required, remains available, and belongs to this
 Stage, return only a route recommendation. This is

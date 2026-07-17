@@ -45,6 +45,100 @@ def test_quality_cycle_uses_canonical_attempt_outcome_and_controller_receipt() -
     assert defaults["re_review_closure"]["fresh_re_reviewer_attempt_required"] is True
 
 
+def test_quality_cycle_declares_role_bound_review_transport_production_path() -> None:
+    profile = _load("contracts/stage_quality_cycle_policy.json")
+    pack_input = _load("contracts/pack_compiler_input.json")
+    transport = profile["review_transport_contracts"]
+    snapshot = transport["review_input_snapshot_materialization_request"]
+    page_candidate = transport["page_hash_evidence_candidate"]
+
+    assert snapshot["envelope_path"] == (
+        "route_impact.stage_quality_cycle."
+        "review_input_snapshot_materialization_request"
+    )
+    assert snapshot["allowed_attempt_roles"] == ["producer", "repairer"]
+    assert snapshot["forbidden_attempt_roles"] == ["reviewer", "re_reviewer"]
+    assert snapshot["requires_generation_manifest_schema_version"] == 2
+    assert snapshot[
+        "source_refs_by_member_id_must_exactly_match_review_scope"
+    ] is True
+    assert snapshot["owner_ref_source"] == (
+        "mas_owned_generation_manifest_review_scope_member_ref"
+    )
+    assert snapshot["source_ref_source"] == "explicit_host_transport_locator_mapping"
+    assert snapshot["source_ref_is_review_scope_identity"] is False
+    assert snapshot["mas_authority_record_required"] is True
+    assert snapshot["mas_authority_record_ref_binds_canonical_exact_bytes"] is True
+    assert snapshot["exact_byte_package_scope_identity_includes_owner_ref"] is True
+    assert snapshot["other_lane_scope_identity_is_path_independent"] is True
+    assert snapshot["host_may_infer_from_generic_artifact_refs"] is False
+    assert snapshot["missing_request_blocks_hosted_action_liveness"] is False
+    assert snapshot["missing_request_policy"] == (
+        "lane_quality_debt_without_quality_or_readiness_claim"
+    )
+    assert snapshot[
+        "present_invalid_or_unmaterializable_request_fails_closed"
+    ] is True
+    assert snapshot["transport_failure_may_forge_domain_typed_blocker"] is False
+    assert snapshot["schema_ref"].endswith(
+        "/reviewer-input-snapshot-materialization-request.schema.json"
+    )
+
+    assert page_candidate["envelope_path"] == (
+        "route_impact.stage_quality_cycle.page_hash_evidence_candidate"
+    )
+    assert page_candidate["allowed_attempt_roles"] == ["reviewer", "re_reviewer"]
+    assert page_candidate["forbidden_attempt_roles"] == ["producer", "repairer"]
+    assert page_candidate["pass_through_unchanged"] is True
+    assert page_candidate["candidate_or_cache_can_emit_verdict_or_authority"] is False
+    assert page_candidate["fresh_reviewer_invocation_still_required"] is True
+    assert page_candidate["fresh_reviewer_receipt_still_required"] is True
+    assert page_candidate["fresh_mas_judgment_still_required"] is True
+
+    assert pack_input["stage_quality_transport_contract_refs"] == {
+        "review_input_snapshot_materialization_request": (
+            "contracts/stage_quality_cycle_policy.json#/review_transport_contracts/"
+            "review_input_snapshot_materialization_request"
+        ),
+        "page_hash_evidence_candidate": (
+            "contracts/stage_quality_cycle_policy.json#/review_transport_contracts/"
+            "page_hash_evidence_candidate"
+        ),
+    }
+    assert pack_input["source_refs"][
+        "review_input_snapshot_request_builder_ref"
+    ].endswith("#build_review_input_snapshot_materialization_request")
+    assert pack_input["source_refs"][
+        "review_input_snapshot_materialization_request_schema_ref"
+    ] == snapshot["schema_ref"]
+    assert pack_input["source_refs"][
+        "scholarskills_page_hash_evidence_candidate_schema_ref"
+    ] == page_candidate["schema_ref"]
+
+    roles = (ROOT / "agent/quality_gates/stage_quality_cycle_roles.md").read_text(
+        encoding="utf-8"
+    )
+    normalized_roles = " ".join(roles.split())
+    producer = roles.split("## Producer", 1)[1].split("## Reviewer", 1)[0]
+    reviewer = roles.split("## Reviewer", 1)[1].split("## Repairer", 1)[0]
+    repairer = roles.split("## Repairer", 1)[1].split("## Re Reviewer", 1)[0]
+    re_reviewer = roles.split("## Re Reviewer", 1)[1]
+    assert "review_input_snapshot_materialization_request" in roles
+    assert "never infer the map from generic artifact refs" in normalized_roles
+    assert "record lane quality debt and continue" in normalized_roles
+    assert "present request fails closed as a transport contract error" in (
+        normalized_roles
+    )
+    assert "never relabel it as ordinary quality debt" in normalized_roles
+    assert "forge a MAS typed blocker" in normalized_roles
+    assert "page_hash_evidence_candidate" in roles
+    assert "returns it unchanged" in roles
+    assert "page-hash evidence candidate" not in producer
+    assert "page-hash evidence candidate" not in repairer
+    assert "page-hash evidence candidate" in reviewer
+    assert "page-hash evidence candidate" in re_reviewer
+
+
 def test_artifact_iteration_separates_preview_freeze_and_projection() -> None:
     policy = _load("contracts/artifact_iteration_efficiency_policy.json")
     plan = policy["impact_plan"]

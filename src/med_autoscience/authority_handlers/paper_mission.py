@@ -1767,6 +1767,16 @@ def _review_currentness_issue_v2(
                 _exact_ref_identity(item)
                 for item in receipt["accepted_candidate_receipt_refs"]
             }
+            reuse_provenance = lane_state["reuse_provenance"]
+            expected_snapshot_generation_ref = (
+                manifest_ref["ref"]
+                if lane_state["currentness_status"] == "fresh"
+                else (
+                    reuse_provenance["origin_generation_manifest_ref"]["ref"]
+                    if reuse_provenance is not None
+                    else None
+                )
+            )
             snapshot_binding = receipt.get("review_input_snapshot_binding")
             if snapshot_binding is None:
                 lane_issue = (
@@ -1774,17 +1784,24 @@ def _review_currentness_issue_v2(
                     f"obtain a fresh {lane} review over the immutable input snapshot",
                 )
             elif (
-                snapshot_binding.get("materialization_owner") != "one-person-lab"
+                snapshot_binding.get("generation_ref") is None
+                or snapshot_binding.get("mas_authority_record_ref") is None
+                or snapshot_binding.get("materialization_owner") != "one-person-lab"
                 or snapshot_binding.get("authority_boundary")
                 != _SNAPSHOT_AUTHORITY_BOUNDARY
             ):
                 lane_issue = (
                     "review_input_snapshot_binding_owner_metadata_required",
-                    f"refresh {lane} snapshot binding with its transport owner and "
-                    "false-authority boundary",
+                    f"refresh {lane} snapshot binding with its generation/authority "
+                    "identity, transport owner, and false-authority boundary",
                 )
             elif any(
                 (
+                    (
+                        expected_snapshot_generation_ref is not None
+                        and snapshot_binding["generation_ref"]
+                        != expected_snapshot_generation_ref
+                    ),
                     snapshot_binding["review_lane"] != lane,
                     snapshot_binding["review_scope_sha256"]
                     != receipt["review_scope_sha256"],
@@ -1819,7 +1836,7 @@ def _review_currentness_issue_v2(
                         f"refresh {lane} review against current candidate admissions",
                     )
             else:
-                provenance = lane_state["reuse_provenance"]
+                provenance = reuse_provenance
                 if provenance is None or any(
                     (
                         provenance["origin_generation_id"]

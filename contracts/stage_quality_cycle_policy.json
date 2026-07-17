@@ -20,6 +20,60 @@
       "version": "stage-review-context-manifest.v1"
     }
   },
+  "review_transport_contracts": {
+    "review_input_snapshot_materialization_request": {
+      "surface_kind": "opl_reviewer_input_snapshot_materialization_request",
+      "schema_version": 1,
+      "schema_owner": "one-person-lab",
+      "schema_ref": "external_repo:one-person-lab/contracts/opl-framework/reviewer-input-snapshot-materialization-request.schema.json",
+      "envelope_path": "route_impact.stage_quality_cycle.review_input_snapshot_materialization_request",
+      "allowed_attempt_roles": [
+        "producer",
+        "repairer"
+      ],
+      "forbidden_attempt_roles": [
+        "reviewer",
+        "re_reviewer"
+      ],
+      "requires_generation_manifest_schema_version": 2,
+      "review_lane_source": "controller_bound_mas_owned_review_scope",
+      "source_refs_by_member_id_must_exactly_match_review_scope": true,
+      "owner_ref_source": "mas_owned_generation_manifest_review_scope_member_ref",
+      "source_ref_source": "explicit_host_transport_locator_mapping",
+      "source_ref_is_review_scope_identity": false,
+      "mas_authority_record_required": true,
+      "mas_authority_record_ref_binds_canonical_exact_bytes": true,
+      "exact_byte_package_scope_identity_includes_owner_ref": true,
+      "other_lane_scope_identity_is_path_independent": true,
+      "host_may_infer_from_generic_artifact_refs": false,
+      "missing_request_blocks_hosted_action_liveness": false,
+      "missing_request_policy": "lane_quality_debt_without_quality_or_readiness_claim",
+      "present_invalid_or_unmaterializable_request_fails_closed": true,
+      "transport_failure_may_forge_domain_typed_blocker": false
+    },
+    "page_hash_evidence_candidate": {
+      "surface_kind": "scholarskills_page_hash_evidence_candidate",
+      "schema_version": 1,
+      "schema_owner": "one-person-lab",
+      "schema_ref": "external_repo:one-person-lab/contracts/opl-framework/scholarskills-page-hash-evidence-candidate.schema.json",
+      "envelope_path": "route_impact.stage_quality_cycle.page_hash_evidence_candidate",
+      "allowed_attempt_roles": [
+        "reviewer",
+        "re_reviewer"
+      ],
+      "forbidden_attempt_roles": [
+        "producer",
+        "repairer"
+      ],
+      "candidate_owner": "mas-scholar-skills",
+      "pass_through_unchanged": true,
+      "cache_persistence_owner": "one-person-lab",
+      "candidate_or_cache_can_emit_verdict_or_authority": false,
+      "fresh_reviewer_invocation_still_required": true,
+      "fresh_reviewer_receipt_still_required": true,
+      "fresh_mas_judgment_still_required": true
+    }
+  },
   "cross_stage_route_selection": {
     "semantic_route_decision_owner": "decisive_codex_attempt",
     "stage_transition_materialization_owner": "opl_stage_run_controller",

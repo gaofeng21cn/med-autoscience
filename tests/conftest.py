@@ -464,7 +464,6 @@ class AuthorityRecordFactory:
         defect_refs: list[dict[str, Any]] | None = None,
         quality_debt_codes: list[str] | None = None,
     ) -> dict[str, Any]:
-        del manifest_ref
         scope = next(
             (
                 item
@@ -508,6 +507,28 @@ class AuthorityRecordFactory:
                 review_scope_member_projection,
             )
 
+            binding_members = review_scope_member_projection(
+                scope["reviewed_members"]
+            )
+            owner_refs_by_member_id = {
+                item["member_id"]: item["ref"]
+                for item in scope["reviewed_members"]
+            }
+            authority_record = {
+                "surface_kind": "mas_review_input_snapshot_authority",
+                "schema_version": 1,
+                "generation_ref": manifest_ref["ref"],
+                "review_lane": lane,
+                "review_scope_sha256": scope["review_scope_sha256"],
+                "members": [
+                    {
+                        **item,
+                        "owner_ref": owner_refs_by_member_id[item["member_id"]],
+                    }
+                    for item in binding_members
+                ],
+            }
+            authority_sha256 = cls.fingerprint(authority_record)
             core.update(
                 {
                     "issued_generation_id": manifest["generation_id"],
@@ -521,6 +542,16 @@ class AuthorityRecordFactory:
                     "review_input_snapshot_binding": {
                         "surface_kind": "mas_review_input_snapshot_binding",
                         "schema_version": 1,
+                        "generation_ref": manifest_ref["ref"],
+                        "mas_authority_record_ref": {
+                            "kind": "mas_review_input_snapshot_authority",
+                            "ref": (
+                                "mas-review-input-snapshot-authority:"
+                                f"{authority_sha256.removeprefix('sha256:')}"
+                            ),
+                            "size_bytes": len(cls.canonical_bytes(authority_record)),
+                            "sha256": authority_sha256,
+                        },
                         "materialization_owner": "one-person-lab",
                         "snapshot_manifest_ref": cls.exact_ref(
                             "opl_reviewer_input_snapshot_manifest",
@@ -528,9 +559,7 @@ class AuthorityRecordFactory:
                         ),
                         "review_lane": lane,
                         "review_scope_sha256": scope["review_scope_sha256"],
-                        "members": review_scope_member_projection(
-                            scope["reviewed_members"]
-                        ),
+                        "members": binding_members,
                         "authority_boundary": {
                             "storage_role": "immutable_reviewer_input_transport",
                             "mas_selects_review_lane_scope_and_members": True,

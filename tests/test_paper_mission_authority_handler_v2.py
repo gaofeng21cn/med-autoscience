@@ -938,6 +938,140 @@ def test_v2_snapshot_owner_metadata_is_debt_but_false_authority_is_strict(
     assert "immutable transport-only boundary" in result["error"]["detail"]
 
 
+def test_v2_snapshot_authority_identity_is_debt_when_missing_and_strict_when_forged(
+    authority_records: Any,
+) -> None:
+    missing_identity = authority_records.paper_request()
+    wrapper = missing_identity["generation_manifest"][
+        "independent_review_receipts"
+    ][0]
+    binding = wrapper["receipt"]["review_input_snapshot_binding"]
+    binding.pop("generation_ref")
+    binding.pop("mas_authority_record_ref")
+    authority_records.reseal_review_wrapper(wrapper)
+    lane_state = next(
+        item
+        for item in missing_identity["review_authority"]["currentness_receipt"][
+            "lane_currentness"
+        ]
+        if item["review_lane"] == wrapper["receipt"]["review_lane"]
+    )
+    lane_state["current_review_receipt_ref"] = deepcopy(wrapper["receipt_ref"])
+    authority_records.reseal_review_currentness(missing_identity)
+
+    result = _evaluate(missing_identity)
+
+    route_back = _assert_progress_debt(
+        result, "review_input_snapshot_binding_owner_metadata_required"
+    )
+    assert route_back["affected_review_lanes"][0]["review_lane"] == wrapper[
+        "receipt"
+    ]["review_lane"]
+
+    forged_identity = authority_records.paper_request()
+    forged_wrapper = forged_identity["generation_manifest"][
+        "independent_review_receipts"
+    ][0]
+    forged_receipt = forged_wrapper["receipt"]
+    forged_binding = forged_receipt["review_input_snapshot_binding"]
+    owner_refs_by_member_id = {
+        item["member_id"]: item["ref"]
+        for item in forged_receipt["reviewed_members"]
+    }
+    wrong_authority_record = {
+        "surface_kind": "mas_review_input_snapshot_authority",
+        "schema_version": 1,
+        "generation_ref": forged_binding["generation_ref"],
+        "review_lane": forged_receipt["review_lane"],
+        "review_scope_sha256": forged_receipt["review_scope_sha256"],
+        "members": [
+            {
+                **item,
+                "owner_ref": (
+                    "workspace://forged-owner"
+                    if index == 0
+                    else owner_refs_by_member_id[item["member_id"]]
+                ),
+            }
+            for index, item in enumerate(forged_binding["members"])
+        ],
+    }
+    wrong_authority_sha256 = authority_records.fingerprint(wrong_authority_record)
+    forged_binding["mas_authority_record_ref"] = {
+        "kind": "mas_review_input_snapshot_authority",
+        "ref": (
+            "mas-review-input-snapshot-authority:"
+            f"{wrong_authority_sha256.removeprefix('sha256:')}"
+        ),
+        "size_bytes": len(
+            authority_records.canonical_bytes(wrong_authority_record)
+        ),
+        "sha256": wrong_authority_sha256,
+    }
+    authority_records.reseal_review_wrapper(forged_wrapper)
+
+    result = _evaluate(forged_identity)
+
+    assert result["status"] == "invalid_host_input"
+    assert "must bind the complete MAS-owned scope" in result["error"]["detail"]
+
+
+def test_v2_snapshot_binding_rejects_self_consistent_stale_generation_as_debt(
+    authority_records: Any,
+) -> None:
+    request = authority_records.paper_request()
+    wrapper = request["generation_manifest"]["independent_review_receipts"][0]
+    receipt = wrapper["receipt"]
+    binding = receipt["review_input_snapshot_binding"]
+    binding["generation_ref"] = "mas-generation-manifest:stale"
+    owner_refs_by_member_id = {
+        item["member_id"]: item["ref"] for item in receipt["reviewed_members"]
+    }
+    authority_record = {
+        "surface_kind": "mas_review_input_snapshot_authority",
+        "schema_version": 1,
+        "generation_ref": binding["generation_ref"],
+        "review_lane": receipt["review_lane"],
+        "review_scope_sha256": receipt["review_scope_sha256"],
+        "members": [
+            {
+                **item,
+                "owner_ref": owner_refs_by_member_id[item["member_id"]],
+            }
+            for item in binding["members"]
+        ],
+    }
+    authority_sha256 = authority_records.fingerprint(authority_record)
+    binding["mas_authority_record_ref"] = {
+        "kind": "mas_review_input_snapshot_authority",
+        "ref": (
+            "mas-review-input-snapshot-authority:"
+            f"{authority_sha256.removeprefix('sha256:')}"
+        ),
+        "size_bytes": len(authority_records.canonical_bytes(authority_record)),
+        "sha256": authority_sha256,
+    }
+    authority_records.reseal_review_wrapper(wrapper)
+    lane_state = next(
+        item
+        for item in request["review_authority"]["currentness_receipt"][
+            "lane_currentness"
+        ]
+        if item["review_lane"] == receipt["review_lane"]
+    )
+    lane_state["current_review_receipt_ref"] = deepcopy(wrapper["receipt_ref"])
+    authority_records.reseal_review_currentness(request)
+
+    result = _evaluate(request)
+
+    route_back = _assert_progress_debt(
+        result, "review_input_snapshot_binding_not_current"
+    )
+    assert route_back["affected_review_lanes"][0]["review_lane"] == receipt[
+        "review_lane"
+    ]
+
+
 def test_v2_legacy_origin_receipt_without_snapshot_binding_is_quality_debt(
     authority_records: Any,
 ) -> None:
