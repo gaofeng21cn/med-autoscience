@@ -4,7 +4,7 @@
   "package_id": "mas",
   "display_name": "Med Auto Science",
   "publisher": "one-person-lab",
-  "version": "0.2.12",
+  "version": "0.2.13",
   "release_set_receipt_ref": "contracts/mas_validator_release_set_receipt.json",
   "source": "first_party_repo_local",
   "carrier_source_role": "codex_plugin_default_carrier_not_package_truth",
