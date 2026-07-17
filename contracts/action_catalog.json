@@ -534,7 +534,9 @@
         "repair_state",
         "hard_gate"
       ],
-      "optional_fields": [],
+      "optional_fields": [
+        "revision_consumption"
+      ],
       "workspace_locator_fields": [],
       "human_gate_ids": [],
       "supported_surfaces": {

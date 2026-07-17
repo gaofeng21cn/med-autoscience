@@ -1721,6 +1721,11 @@ def test_registry_catalog_schemas_and_audit_bind_exact_handlers() -> None:
         if item["action_id"] == "paper_mission_authority_evaluate"
     )
     assert action["required_fields"] == input_schema["required"]
+    assert action["optional_fields"] == [
+        field
+        for field in input_schema["properties"]
+        if field not in input_schema["required"]
+    ]
     assert input_schema["additionalProperties"] is False
     assert input_schema["properties"]["schema_version"] == {"const": 2}
     assert input_schema["properties"]["generation_manifest"] == {
