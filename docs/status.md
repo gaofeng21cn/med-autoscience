@@ -26,7 +26,7 @@ publication/submission ready 或 production ready。
 | Surface | Current state |
 | --- | --- |
 | Identity | canonical agent/package id `mas`；machine domain id `medautoscience`；`med-autoscience` 只作 repo/package/plugin locator |
-| Package | immutable SemVer `0.2.11`；`mas-scholar-skills` exact lock `0.2.3`（range `>=0.2.0 <0.3.0`）为硬依赖，并提供 reference verification 与 scientific search adapter modules；生命周期统一归 `opl packages` |
+| Package | immutable SemVer `0.2.12`；`mas-scholar-skills` exact lock `0.2.3`（range `>=0.2.0 <0.3.0`）为硬依赖，并提供 reference verification 与 scientific search adapter modules；生命周期统一归 `opl packages` |
 | Declarative pack | `agent/` 持有 primary skill、六个 Stage、prompts、knowledge 与 quality gates；plugin skill 是字节一致的分发镜像 |
 | Action catalog | `family-action-catalog.v2`：六个公开 Stage action + 两个无用户 surface 的内部 authority actions |
 | Generated surfaces | CLI、MCP、Skill、product-entry、status、workbench 与 default domain-handler surface 全由 OPL 生成或托管 |
@@ -37,13 +37,13 @@ publication/submission ready 或 production ready。
 | Retained code | `evaluate_candidate_admission_authority`、`evaluate_paper_mission_authority` 与 `evaluate_agent_lab_self_evolution_closeout` 是仅有的非声明式 authority functions；不持有 runtime、session、lifecycle 或 transition 权限 |
 | Source morphology | `src/med_autoscience/` 只保留 package init、三个 authority handlers、共享纯校验 helper 与 CSL assets |
 
-## 0.2.11 validator Release Set 边界
+## 0.2.12 validator Release Set 边界
 
-`mas-validator-0.2.11` 只支持 exact-byte domain validation：generation manifest、
+`mas-validator-0.2.12` 只支持 exact-byte domain validation：generation manifest、
 candidate admission、paper mission 与 Stage minimum-scope 记录必须在 ref、size、SHA、
 generation、receipt inventory 和 typed verdict 上一致。机器 receipt 见
 `contracts/mas_validator_release_set_receipt.json`，canonical source ref 为
-`refs/tags/v0.2.11`。
+`refs/tags/v0.2.12`。
 
 该 Release Set 不是独立 trust root。自洽 hash 只能证明输入记录内部字节一致，不能证明
 issuer 身份；若恶意 host 同时伪造完整 adjudicator、currentness、review 与 owner-ledger
