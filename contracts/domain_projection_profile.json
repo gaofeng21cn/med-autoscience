@@ -13,7 +13,8 @@
     "contracts/opl-framework/standard-agent-hosted-action-runtime-contract.json",
     "contracts/opl-framework/owner-answer.schema.json",
     "contracts/stage_run_kernel_profile.json",
-    "contracts/action_catalog.json"
+    "contracts/action_catalog.json",
+    "contracts/research_trajectory_contract.json"
   ],
   "generic_fields": [
     "domain_id",
@@ -30,6 +31,29 @@
     "field": "domain_display",
     "interpretation": "opaque_domain_owned_display_payload",
     "opl_may_probe_fields": false
+  },
+  "domain_detail_view_projection": {
+    "descriptor_ref": "contracts/domain_descriptor.json#/standard_agent_interface/domain_detail_views/0",
+    "source_contract_ref": "contracts/research_trajectory_contract.json",
+    "raw_detail_view_kind": "research_trajectory",
+    "view_id": "scientific-reasoning",
+    "view_kind": "scientific_reasoning_map",
+    "schema_version": "scientific-reasoning-map.v1",
+    "fast_projection_field": "domain_detail_views",
+    "full_payload_transport": "lazy_item_scoped_readback",
+    "full_payload_fields": [
+      "study_id",
+      "status",
+      "summary",
+      "current_focus",
+      "active_branch",
+      "nodes",
+      "edges",
+      "source_refs",
+      "conditions"
+    ],
+    "framework_must_copy_mas_authored_display_text_without_inference": true,
+    "shell_reads_raw_mas_events": false
   },
   "authority_boundary": {
     "projection_is_authority": false,

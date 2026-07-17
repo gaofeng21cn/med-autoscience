@@ -80,6 +80,17 @@ controller hard stop: return the typed blocker or human gate evidence and neithe
 `route_impact.stage_route_decision` nor
 `route_impact.stage_route_recommendation`.
 
+## Research Trajectory
+
+Follow `research_trajectory_medical_narrative.md`. Emit a candidate
+`research_trajectory_delta_ref` when the independent decisive review establishes
+an evidence interpretation, identifies a limitation that changes the claim, or
+accepts a continue, refine, narrow, pivot, stop, or route-back decision. The
+reviewer must distinguish non-supportive, inconclusive, and design-invalid
+findings. Same-thread checking cannot accept a trajectory event; canonical entry
+requires the exact decisive reviewer or MAS owner receipt. Return `null` if the
+review changes no scientific interpretation or route.
+
 ## Handoff
 
 Before any quality or ready claim, return an `independent_review_packet` binding

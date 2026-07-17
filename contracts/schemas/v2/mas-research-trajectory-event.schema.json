@@ -1,0 +1,833 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://opl.onepersonlab/contracts/mas-research-trajectory-event.schema.json",
+  "title": "MAS research trajectory event",
+  "description": "MAS-owned hypothesis, validation, evidence-interpretation, and route-decision event. Candidate events remain Stage artifacts; only receipt-bound accepted exact bytes may enter the canonical event set.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "surface_kind",
+    "version",
+    "event_id",
+    "study_id",
+    "study_ref",
+    "event_type",
+    "occurred_at",
+    "lifecycle_status",
+    "base_revision",
+    "base_snapshot_sha256",
+    "node",
+    "edges",
+    "execution_outcome",
+    "evidence_interpretation",
+    "route_decision",
+    "projection_hints",
+    "medical_narrative",
+    "source_refs",
+    "caused_by_event_refs",
+    "supersedes_event_refs",
+    "provenance",
+    "acceptance"
+  ],
+  "properties": {
+    "surface_kind": {
+      "const": "mas_research_trajectory_event"
+    },
+    "version": {
+      "const": "mas-research-trajectory-event.v1"
+    },
+    "event_id": {
+      "$ref": "#/$defs/stable_id"
+    },
+    "study_id": {
+      "$ref": "#/$defs/stable_id"
+    },
+    "study_ref": {
+      "$ref": "#/$defs/typed_ref"
+    },
+    "event_type": {
+      "enum": [
+        "hypothesis_proposed",
+        "hypothesis_refined",
+        "test_planned",
+        "result_observed",
+        "evidence_interpreted",
+        "route_continued",
+        "route_narrowed",
+        "route_pivoted",
+        "route_stopped",
+        "human_gate_requested",
+        "artifact_produced"
+      ]
+    },
+    "occurred_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "lifecycle_status": {
+      "enum": [
+        "candidate",
+        "accepted"
+      ]
+    },
+    "base_revision": {
+      "oneOf": [
+        {
+          "type": "integer",
+          "minimum": 1
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "base_snapshot_sha256": {
+      "$ref": "#/$defs/nullable_sha256"
+    },
+    "node": {
+      "$ref": "#/$defs/trajectory_node"
+    },
+    "edges": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/trajectory_edge"
+      },
+      "uniqueItems": true
+    },
+    "execution_outcome": {
+      "oneOf": [
+        {
+          "$ref": "#/$defs/execution_outcome"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "evidence_interpretation": {
+      "oneOf": [
+        {
+          "$ref": "#/$defs/evidence_interpretation"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "route_decision": {
+      "oneOf": [
+        {
+          "$ref": "#/$defs/route_decision"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "projection_hints": {
+      "$ref": "#/$defs/projection_hints",
+      "description": "MAS-authored current focus and active branch. Empty arrays explicitly clear prior hints; the projector must not infer them from route status."
+    },
+    "medical_narrative": {
+      "$ref": "mas-medical-narrative.schema.json"
+    },
+    "source_refs": {
+      "$ref": "#/$defs/typed_refs"
+    },
+    "caused_by_event_refs": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/stable_id"
+      },
+      "uniqueItems": true
+    },
+    "supersedes_event_refs": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/stable_id"
+      },
+      "uniqueItems": true
+    },
+    "provenance": {
+      "$ref": "#/$defs/provenance"
+    },
+    "acceptance": {
+      "$ref": "#/$defs/acceptance"
+    }
+  },
+  "allOf": [
+    {
+      "if": {
+        "properties": {
+          "lifecycle_status": {
+            "const": "candidate"
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "acceptance": {
+            "$ref": "#/$defs/candidate_acceptance"
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "lifecycle_status": {
+            "const": "accepted"
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "acceptance": {
+            "$ref": "#/$defs/accepted_acceptance"
+          }
+        }
+      }
+    }
+  ],
+  "$defs": {
+    "stable_id": {
+      "type": "string",
+      "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]{2,127}$"
+    },
+    "sha256": {
+      "type": "string",
+      "pattern": "^sha256:[a-f0-9]{64}$"
+    },
+    "nullable_sha256": {
+      "oneOf": [
+        {
+          "$ref": "#/$defs/sha256"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "typed_ref": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "kind",
+        "ref"
+      ],
+      "properties": {
+        "kind": {
+          "type": "string",
+          "minLength": 1
+        },
+        "ref": {
+          "type": "string",
+          "minLength": 1
+        },
+        "sha256": {
+          "$ref": "#/$defs/sha256"
+        }
+      }
+    },
+    "nullable_typed_ref": {
+      "oneOf": [
+        {
+          "$ref": "#/$defs/typed_ref"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "exact_typed_ref": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "kind",
+        "ref",
+        "sha256"
+      ],
+      "properties": {
+        "kind": {
+          "type": "string",
+          "minLength": 1
+        },
+        "ref": {
+          "type": "string",
+          "minLength": 1
+        },
+        "sha256": {
+          "$ref": "#/$defs/sha256"
+        }
+      }
+    },
+    "typed_refs": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/typed_ref"
+      },
+      "uniqueItems": true
+    },
+    "trajectory_node": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "node_id",
+        "node_type",
+        "status",
+        "branch_id",
+        "occurred_at",
+        "display_label",
+        "medical_summary",
+        "medical_narrative",
+        "source_refs"
+      ],
+      "properties": {
+        "node_id": {
+          "$ref": "#/$defs/stable_id"
+        },
+        "node_type": {
+          "enum": [
+            "hypothesis",
+            "test",
+            "finding",
+            "decision",
+            "route",
+            "artifact",
+            "human_gate"
+          ]
+        },
+        "status": {
+          "enum": [
+            "proposed",
+            "planned",
+            "active",
+            "completed",
+            "supported",
+            "does_not_support",
+            "inconclusive",
+            "design_invalid",
+            "refined",
+            "superseded",
+            "continued",
+            "narrowed",
+            "pivoted",
+            "stopped",
+            "human_review_required",
+            "produced"
+          ]
+        },
+        "branch_id": {
+          "oneOf": [
+            {
+              "$ref": "#/$defs/stable_id"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "occurred_at": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "display_label": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 240,
+          "description": "MAS-authored medical wording shown on the map. The renderer must not derive it from node_type or status."
+        },
+        "medical_summary": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 1200,
+          "description": "MAS-authored medical summary shown in node detail."
+        },
+        "medical_narrative": {
+          "$ref": "mas-medical-narrative.schema.json"
+        },
+        "source_refs": {
+          "$ref": "#/$defs/typed_refs"
+        }
+      }
+    },
+    "trajectory_edge": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "edge_id",
+        "source_node_id",
+        "target_node_id",
+        "relation",
+        "display_label",
+        "status",
+        "source_refs"
+      ],
+      "properties": {
+        "edge_id": {
+          "$ref": "#/$defs/stable_id"
+        },
+        "source_node_id": {
+          "$ref": "#/$defs/stable_id"
+        },
+        "target_node_id": {
+          "$ref": "#/$defs/stable_id"
+        },
+        "relation": {
+          "enum": [
+            "tests",
+            "supports",
+            "does_not_support",
+            "inconclusive",
+            "revises",
+            "supersedes",
+            "routes_to",
+            "produces",
+            "requires"
+          ]
+        },
+        "display_label": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 500,
+          "description": "MAS-authored, user-visible relationship statement. Framework and App must never infer medical wording from relation."
+        },
+        "status": {
+          "enum": [
+            "active",
+            "historical",
+            "blocked"
+          ]
+        },
+        "source_refs": {
+          "$ref": "#/$defs/typed_refs"
+        }
+      }
+    },
+    "execution_outcome": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "status",
+        "medical_summary",
+        "diagnostic_refs"
+      ],
+      "properties": {
+        "status": {
+          "enum": [
+            "planned",
+            "running",
+            "completed",
+            "failed",
+            "cancelled",
+            "not_run",
+            "not_applicable"
+          ]
+        },
+        "medical_summary": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 1200
+        },
+        "diagnostic_refs": {
+          "$ref": "#/$defs/typed_refs"
+        }
+      }
+    },
+    "evidence_interpretation": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "status",
+        "finding_kind",
+        "medical_summary",
+        "evidence_refs"
+      ],
+      "properties": {
+        "status": {
+          "enum": [
+            "supports_current_hypothesis",
+            "does_not_support_current_hypothesis",
+            "inconclusive",
+            "design_invalid",
+            "not_assessed"
+          ]
+        },
+        "finding_kind": {
+          "enum": [
+            "positive",
+            "negative",
+            "null",
+            "mixed",
+            "not_applicable"
+          ]
+        },
+        "medical_summary": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 1600
+        },
+        "evidence_refs": {
+          "$ref": "#/$defs/typed_refs"
+        }
+      }
+    },
+    "route_decision": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "status",
+        "medical_summary",
+        "target_node_refs",
+        "evidence_refs"
+      ],
+      "properties": {
+        "status": {
+          "enum": [
+            "continue",
+            "refine",
+            "narrow",
+            "pivot",
+            "stop",
+            "human_gate",
+            "no_change"
+          ]
+        },
+        "medical_summary": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 1600
+        },
+        "target_node_refs": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/stable_id"
+          },
+          "uniqueItems": true
+        },
+        "evidence_refs": {
+          "$ref": "#/$defs/typed_refs"
+        }
+      }
+    },
+    "projection_hints": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "status",
+        "summary",
+        "current_focus",
+        "active_branch",
+        "conditions",
+        "current_focus_node_refs",
+        "active_branch_node_refs"
+      ],
+      "properties": {
+        "status": {
+          "enum": [
+            "empty",
+            "active",
+            "awaiting_evidence",
+            "route_reconsideration",
+            "human_review_required",
+            "stopped",
+            "completed"
+          ]
+        },
+        "summary": {
+          "$ref": "#/$defs/map_summary"
+        },
+        "current_focus": {
+          "$ref": "#/$defs/current_focus"
+        },
+        "active_branch": {
+          "$ref": "#/$defs/active_branch"
+        },
+        "conditions": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/research_condition"
+          },
+          "uniqueItems": true
+        },
+        "current_focus_node_refs": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/stable_id"
+          },
+          "uniqueItems": true
+        },
+        "active_branch_node_refs": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/stable_id"
+          },
+          "uniqueItems": true
+        }
+      }
+    },
+    "map_summary": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "primary_hypothesis",
+        "latest_finding",
+        "current_judgment",
+        "next_research_step",
+        "updated_at"
+      ],
+      "properties": {
+        "primary_hypothesis": {
+          "$ref": "#/$defs/nullable_display_text"
+        },
+        "latest_finding": {
+          "$ref": "#/$defs/nullable_display_text"
+        },
+        "current_judgment": {
+          "$ref": "#/$defs/nullable_display_text"
+        },
+        "next_research_step": {
+          "$ref": "#/$defs/nullable_display_text"
+        },
+        "updated_at": {
+          "oneOf": [
+            {
+              "type": "string",
+              "format": "date-time"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      }
+    },
+    "current_focus": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "node_id",
+        "primary_hypothesis"
+      ],
+      "properties": {
+        "node_id": {
+          "oneOf": [
+            {
+              "$ref": "#/$defs/stable_id"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "primary_hypothesis": {
+          "$ref": "#/$defs/nullable_display_text"
+        }
+      }
+    },
+    "active_branch": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "branch_id",
+        "label"
+      ],
+      "properties": {
+        "branch_id": {
+          "oneOf": [
+            {
+              "$ref": "#/$defs/stable_id"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "label": {
+          "$ref": "#/$defs/nullable_display_text"
+        }
+      }
+    },
+    "research_condition": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "type",
+        "status",
+        "reason",
+        "message",
+        "source_refs"
+      ],
+      "properties": {
+        "type": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 100
+        },
+        "status": {
+          "enum": [
+            "True",
+            "False",
+            "Unknown"
+          ]
+        },
+        "reason": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 500
+        },
+        "message": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 1200
+        },
+        "source_refs": {
+          "$ref": "#/$defs/typed_refs"
+        }
+      }
+    },
+    "nullable_display_text": {
+      "oneOf": [
+        {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 1600
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "provenance": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "stage_id",
+        "stage_run_ref",
+        "attempt_ref",
+        "local_event_key",
+        "semantic_payload_sha256"
+      ],
+      "properties": {
+        "stage_id": {
+          "enum": [
+            "direction_and_route_selection",
+            "baseline_and_evidence_setup",
+            "bounded_analysis_campaign",
+            "manuscript_authoring",
+            "review_and_quality_gate",
+            "finalize_and_publication_handoff"
+          ]
+        },
+        "stage_run_ref": {
+          "$ref": "#/$defs/nullable_typed_ref"
+        },
+        "attempt_ref": {
+          "$ref": "#/$defs/nullable_typed_ref"
+        },
+        "local_event_key": {
+          "$ref": "#/$defs/stable_id"
+        },
+        "semantic_payload_sha256": {
+          "$ref": "#/$defs/sha256"
+        }
+      }
+    },
+    "candidate_acceptance": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "status",
+        "basis",
+        "acceptance_ref"
+      ],
+      "properties": {
+        "status": {
+          "const": "candidate"
+        },
+        "basis": {
+          "type": "null"
+        },
+        "acceptance_ref": {
+          "type": "null"
+        }
+      }
+    },
+    "accepted_acceptance": {
+      "oneOf": [
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "status",
+            "basis",
+            "acceptance_ref"
+          ],
+          "properties": {
+            "status": {
+              "const": "accepted"
+            },
+            "basis": {
+              "const": "owner_receipt"
+            },
+            "acceptance_ref": {
+              "allOf": [
+                {
+                  "$ref": "#/$defs/exact_typed_ref"
+                },
+                {
+                  "properties": {
+                    "kind": {
+                      "const": "owner_receipt"
+                    }
+                  }
+                }
+              ]
+            }
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "status",
+            "basis",
+            "acceptance_ref"
+          ],
+          "properties": {
+            "status": {
+              "const": "accepted"
+            },
+            "basis": {
+              "const": "decisive_reviewer_receipt"
+            },
+            "acceptance_ref": {
+              "allOf": [
+                {
+                  "$ref": "#/$defs/exact_typed_ref"
+                },
+                {
+                  "properties": {
+                    "kind": {
+                      "const": "mas_reviewer_receipt"
+                    }
+                  }
+                }
+              ]
+            }
+          }
+        }
+      ]
+    },
+    "acceptance": {
+      "oneOf": [
+        {
+          "$ref": "#/$defs/candidate_acceptance"
+        },
+        {
+          "$ref": "#/$defs/accepted_acceptance"
+        }
+      ]
+    }
+  }
+}

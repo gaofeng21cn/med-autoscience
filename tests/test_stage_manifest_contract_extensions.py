@@ -20,6 +20,7 @@ COMMON_DOMAIN_EXTENSION_FIELDS = {
     "minimum_forward_delta",
     "monitor_refs",
     "route_obligation_lens",
+    "research_trajectory",
     "source_scope_refs",
     "trigger_refs",
 }

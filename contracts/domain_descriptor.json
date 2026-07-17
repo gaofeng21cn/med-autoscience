@@ -56,6 +56,15 @@
         "stage_index_ref": "stage_index_ref"
       }
     },
+    "domain_detail_views": [
+      {
+        "view_id": "scientific-reasoning",
+        "view_kind": "scientific_reasoning_map",
+        "schema_version": "scientific-reasoning-map.v1",
+        "source_kind": "work_item_relative_json",
+        "relative_path": "artifacts/research_trajectory/snapshot.json"
+      }
+    ],
     "stage_catalog": {
       "source_kind": "agent_repo_relative_json",
       "relative_path": "contracts/mas-paper-study-stage-pack.json",

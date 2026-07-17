@@ -44,6 +44,17 @@ output do not establish source readiness. Do not replace canonical source refs
 with prose summaries or advance a changed claim boundary without decision or
 human authority.
 
+## Research Trajectory
+
+Follow `research_trajectory_medical_narrative.md`. Emit a candidate
+`research_trajectory_delta_ref` when the cohort, endpoint, comparator, source
+boundary, feasibility finding, validation method, or principal hypothesis changes
+materially. Preserve negative or null baselines, data insufficiency, and findings
+that the current design cannot interpret. Describe the validation method,
+finding, evidence judgment, limitation, and justified next step for medical
+readers. When no scientific semantic checkpoint occurred, return the field as
+`null`.
+
 ## Handoff
 
 Return `baseline_evidence_ready` with current baseline, source, comparator,

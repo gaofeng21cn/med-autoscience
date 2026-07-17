@@ -13,6 +13,7 @@ stage_native_semantic_pack:
     - stage_completion_policy
     - closeout
     - memory_writeback
+    - research_trajectory
     - opl_projection
   standard_stage_completion_policy: &standard_stage_completion_policy
     surface_kind: domain_stage_completion_policy
@@ -46,6 +47,7 @@ stage_native_semantic_pack:
       - typed_blocker_ref
       - human_gate_ref
       - route_back_ref
+      - research_trajectory_delta_ref
     authority_boundary:
       opl_can_decide_domain_completion: false
       provider_completion_counts_as_stage_complete: false
@@ -61,6 +63,29 @@ stage_native_semantic_pack:
     repeated_stage_attempt_is_valid_progress: true
     negative_result_policy: preserve_result_and_failed_path_refs_then_route_to_idea_baseline_or_other_ai_selected_stage
     static_transition_table_can_reject_ai_route_back: false
+  research_trajectory_output_policy: &research_trajectory_output_policy
+    surface_kind: mas_stage_research_trajectory_obligation
+    version: mas-stage-research-trajectory-obligation.v1
+    contract_ref: contracts/research_trajectory_contract.json
+    knowledge_ref: agent/knowledge/research_trajectory_medical_narrative.md
+    output_ref_field: research_trajectory_delta_ref
+    emit_at:
+      - hypothesis_proposal_refinement_selection_supersession_or_retirement
+      - validation_plan_or_material_design_change
+      - positive_negative_null_mixed_failed_inconclusive_or_design_invalid_result
+      - evidence_interpretation
+      - continue_refine_narrow_pivot_stop_or_researcher_judgment_route_decision
+      - artifact_that_materially_changes_the_accepted_scientific_story
+    three_axis_separation_required:
+      - execution_outcome
+      - evidence_interpretation
+      - route_decision
+    no_scientific_semantic_delta_value: null
+    candidate_location: stage_artifact_or_closeout_packet_only
+    canonical_acceptance_requires: owner_receipt_or_decisive_reviewer_receipt
+    accepted_event_contract_ref: contracts/schemas/v2/mas-research-trajectory-event.schema.json
+    user_projection_policy: mas_authored_medical_manuscript_narrative_only
+    framework_can_infer_medical_wording: false
   global_authority_boundary:
     mas_authority:
       - study_truth
@@ -558,6 +583,7 @@ stage_native_semantic_pack:
           - topic_landscape_lesson_ref
           - literature_gap_ref
           - route_recommendation_lesson_ref
+      research_trajectory: *research_trajectory_output_policy
       opl_projection: *refs_only_opl_projection
     idea:
       stage_objective: Generate and select the strongest study line while preserving rejected alternatives and stop rules.
@@ -630,6 +656,7 @@ stage_native_semantic_pack:
           - selected_line_lesson_ref
           - rejected_alternative_lesson_ref
           - stop_rule_lesson_ref
+      research_trajectory: *research_trajectory_output_policy
       opl_projection: *refs_only_opl_projection
     baseline:
       stage_objective: Establish reproducible cohort, endpoint, comparator, source readiness, and baseline support for the active claim boundary.
@@ -703,6 +730,7 @@ stage_native_semantic_pack:
           - baseline_cohort_endpoint_comparator_snapshot_ref
           - failed_comparator_lesson_ref
           - source_readiness_lesson_ref
+      research_trajectory: *research_trajectory_output_policy
       opl_projection: *refs_only_opl_projection
     experiment:
       stage_objective: Produce the primary managed result that answers the current study question or yields a route-safe blocker.
@@ -776,6 +804,7 @@ stage_native_semantic_pack:
           - primary_result_lineage_lesson_ref
           - endpoint_or_comparator_deviation_lesson_ref
           - negative_result_lesson_ref
+      research_trajectory: *research_trajectory_output_policy
       opl_projection: *refs_only_opl_projection
     analysis-campaign:
       stage_objective: Close bounded evidence gaps through controlled exploration, robustness, sensitivity, subgroup, debug, or stop decisions.
@@ -852,6 +881,7 @@ stage_native_semantic_pack:
           - evidence_gap_resolution_lesson_ref
           - negative_or_weak_result_lesson_ref
           - route_impact_lesson_ref
+      research_trajectory: *research_trajectory_output_policy
       opl_projection: *refs_only_opl_projection
     write:
       stage_objective: Convert the current portfolio/evidence candidate into canonical manuscript narrative with claim-evidence traceability.
@@ -927,6 +957,7 @@ stage_native_semantic_pack:
           - writing_lesson_ref
           - claim_wording_boundary_decision_ref
           - reporting_or_display_gap_ref
+      research_trajectory: *research_trajectory_output_policy
       opl_projection: *refs_only_opl_projection
     review:
       stage_objective: Independently review current manuscript, evidence, source, artifact, and route memory, then return route-safe repair, blocker, or gate record.
@@ -1002,6 +1033,7 @@ stage_native_semantic_pack:
           - reusable_critique_lesson_ref
           - memory_accept_reject_receipt_ref
           - reviewer_action_matrix_ref
+      research_trajectory: *research_trajectory_output_policy
       opl_projection: *refs_only_opl_projection
     finalize:
       stage_objective: Produce package authority handoff only after quality, source, artifact, controller, and human-gate refs are current.
@@ -1077,6 +1109,7 @@ stage_native_semantic_pack:
           - package_freshness_lesson_ref
           - declaration_or_ethics_blocker_ref
           - human_gate_lesson_ref
+      research_trajectory: *research_trajectory_output_policy
       opl_projection: *refs_only_opl_projection
     decision:
       stage_objective: Arbitrate continue, route-back, review, repair, human gate, stop-loss, or finalize using current evidence and receipt refs.
@@ -1151,6 +1184,7 @@ stage_native_semantic_pack:
           - stop_or_pivot_lesson_ref
           - route_impact_lesson_ref
           - rejected_alternative_lesson_ref
+      research_trajectory: *research_trajectory_output_policy
       opl_projection: *refs_only_opl_projection
     journal-resolution:
       stage_objective: Resolve outlet, export, response, data/citation/figure package constraints without changing the active claim boundary.
@@ -1226,4 +1260,5 @@ stage_native_semantic_pack:
           - outlet_fit_lesson_ref
           - exporter_constraint_lesson_ref
           - reporting_guideline_delta_ref
+      research_trajectory: *research_trajectory_output_policy
       opl_projection: *refs_only_opl_projection

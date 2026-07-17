@@ -1,0 +1,977 @@
+{
+  "fixture_kind": "mas_research_trajectory_medical_fixture",
+  "study_id": "DM-CVD-TRAJECTORY-001",
+  "events": [
+    {
+      "surface_kind": "mas_research_trajectory_event",
+      "version": "mas-research-trajectory-event.v1",
+      "event_id": "trajectory-event-001",
+      "study_id": "DM-CVD-TRAJECTORY-001",
+      "study_ref": {
+        "kind": "mas_study",
+        "ref": "mas-study:DM-CVD-TRAJECTORY-001"
+      },
+      "event_type": "hypothesis_proposed",
+      "occurred_at": "2026-07-17T01:00:00Z",
+      "lifecycle_status": "accepted",
+      "base_revision": null,
+      "base_snapshot_sha256": null,
+      "node": {
+        "node_id": "hypothesis-primary-v1",
+        "node_type": "hypothesis",
+        "status": "proposed",
+        "branch_id": "branch-primary",
+        "occurred_at": "2026-07-17T01:00:00Z",
+        "display_label": "主要假设：糖尿病患者的长期血糖波动与心血管死亡风险升高相关",
+        "medical_summary": "基于既往队列证据和临床合理性，提出长期血糖波动可能独立增加糖尿病患者心血管死亡风险的主要假设。",
+        "medical_narrative": {
+          "surface_kind": "mas_medical_research_narrative",
+          "version": "mas-medical-narrative.v1",
+          "audience": "clinical_and_scientific_readers",
+          "style": "medical_manuscript",
+          "language": "zh-CN",
+          "title": "长期血糖波动与心血管死亡风险的研究假设",
+          "research_question": "在糖尿病患者中，长期血糖波动是否与心血管死亡风险独立相关？",
+          "current_hypothesis": "较高的长期血糖波动与更高的心血管死亡风险相关，且该关联不能完全由平均血糖水平及传统危险因素解释。",
+          "validation_method": "拟在预设队列中采用时间至事件分析，并对平均血糖水平、年龄、性别及主要心血管危险因素进行调整。",
+          "main_findings": null,
+          "evidence_judgment": "尚未形成验证结果，当前不作证据判断。",
+          "route_adjustment": "继续进入预设队列和分析方案的验证阶段。",
+          "next_research_step": "锁定研究人群、暴露定义、结局和主要混杂因素，随后实施主要分析。",
+          "limitations": [
+            "现阶段为待验证假设，关联强度、亚组异质性和潜在残余混杂仍不明确。"
+          ],
+          "sources_and_basis": [
+            "研究方案中的临床问题与预设结局定义",
+            "既往糖尿病心血管风险队列研究及指南证据综述"
+          ]
+        },
+        "source_refs": [
+          {
+            "kind": "study_protocol",
+            "ref": "mas-study:DM-CVD-TRAJECTORY-001/protocol"
+          }
+        ]
+      },
+      "edges": [],
+      "execution_outcome": null,
+      "evidence_interpretation": null,
+      "route_decision": {
+        "status": "continue",
+        "medical_summary": "该假设具有临床意义和可检验性，进入预设队列与分析方案验证。",
+        "target_node_refs": [
+          "hypothesis-primary-v1"
+        ],
+        "evidence_refs": [
+          {
+            "kind": "evidence_review",
+            "ref": "mas-study:DM-CVD-TRAJECTORY-001/evidence-review"
+          }
+        ]
+      },
+      "projection_hints": {
+        "status": "active",
+        "summary": {
+          "primary_hypothesis": "较高的长期血糖波动与更高的心血管死亡风险相关。",
+          "latest_finding": null,
+          "current_judgment": "该假设具有临床意义和可检验性，尚待队列分析验证。",
+          "next_research_step": "锁定研究人群、暴露、结局和主要混杂因素。",
+          "updated_at": "2026-07-17T01:00:00Z"
+        },
+        "current_focus": {
+          "node_id": "hypothesis-primary-v1",
+          "primary_hypothesis": "较高的长期血糖波动与更高的心血管死亡风险相关。"
+        },
+        "active_branch": {
+          "branch_id": "branch-primary",
+          "label": "全队列主要分析路线"
+        },
+        "conditions": [],
+        "current_focus_node_refs": [
+          "hypothesis-primary-v1"
+        ],
+        "active_branch_node_refs": [
+          "hypothesis-primary-v1"
+        ]
+      },
+      "medical_narrative": {
+        "surface_kind": "mas_medical_research_narrative",
+        "version": "mas-medical-narrative.v1",
+        "audience": "clinical_and_scientific_readers",
+        "style": "medical_manuscript",
+        "language": "zh-CN",
+        "title": "长期血糖波动与心血管死亡风险的研究假设",
+        "research_question": "在糖尿病患者中，长期血糖波动是否与心血管死亡风险独立相关？",
+        "current_hypothesis": "较高的长期血糖波动与更高的心血管死亡风险相关，且该关联不能完全由平均血糖水平及传统危险因素解释。",
+        "validation_method": "拟在预设队列中采用时间至事件分析，并对平均血糖水平、年龄、性别及主要心血管危险因素进行调整。",
+        "main_findings": null,
+        "evidence_judgment": "尚未形成验证结果，当前不作证据判断。",
+        "route_adjustment": "继续进入预设队列和分析方案的验证阶段。",
+        "next_research_step": "锁定研究人群、暴露定义、结局和主要混杂因素，随后实施主要分析。",
+        "limitations": [
+          "现阶段为待验证假设，关联强度、亚组异质性和潜在残余混杂仍不明确。"
+        ],
+        "sources_and_basis": [
+          "研究方案中的临床问题与预设结局定义",
+          "既往糖尿病心血管风险队列研究及指南证据综述"
+        ]
+      },
+      "source_refs": [
+        {
+          "kind": "study_protocol",
+          "ref": "mas-study:DM-CVD-TRAJECTORY-001/protocol"
+        },
+        {
+          "kind": "evidence_review",
+          "ref": "mas-study:DM-CVD-TRAJECTORY-001/evidence-review"
+        }
+      ],
+      "caused_by_event_refs": [],
+      "supersedes_event_refs": [],
+      "provenance": {
+        "stage_id": "direction_and_route_selection",
+        "stage_run_ref": {
+          "kind": "stage_run",
+          "ref": "opl-stage-run:trajectory-001"
+        },
+        "attempt_ref": {
+          "kind": "stage_attempt",
+          "ref": "opl-stage-attempt:trajectory-001"
+        },
+        "local_event_key": "hypothesis-proposal-v1",
+        "semantic_payload_sha256": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+      },
+      "acceptance": {
+        "status": "accepted",
+        "basis": "owner_receipt",
+        "acceptance_ref": {
+          "kind": "owner_receipt",
+          "ref": "mas-owner-receipt:trajectory-001",
+          "sha256": "sha256:0000000000000000000000000000000000000000000000000000000000000000"
+        }
+      }
+    },
+    {
+      "surface_kind": "mas_research_trajectory_event",
+      "version": "mas-research-trajectory-event.v1",
+      "event_id": "trajectory-event-002",
+      "study_id": "DM-CVD-TRAJECTORY-001",
+      "study_ref": {
+        "kind": "mas_study",
+        "ref": "mas-study:DM-CVD-TRAJECTORY-001"
+      },
+      "event_type": "test_planned",
+      "occurred_at": "2026-07-17T02:00:00Z",
+      "lifecycle_status": "accepted",
+      "base_revision": 1,
+      "base_snapshot_sha256": "sha256:1111111111111111111111111111111111111111111111111111111111111111",
+      "node": {
+        "node_id": "test-primary-cox-v1",
+        "node_type": "test",
+        "status": "planned",
+        "branch_id": "branch-primary",
+        "occurred_at": "2026-07-17T02:00:00Z",
+        "display_label": "验证方法：在预设队列中评估长期血糖波动与心血管死亡的关联",
+        "medical_summary": "采用预设时间至事件模型估计长期血糖波动与心血管死亡的关联，并通过敏感性分析评估结果稳健性。",
+        "medical_narrative": {
+          "surface_kind": "mas_medical_research_narrative",
+          "version": "mas-medical-narrative.v1",
+          "audience": "clinical_and_scientific_readers",
+          "style": "medical_manuscript",
+          "language": "zh-CN",
+          "title": "长期血糖波动假设的主要验证方案",
+          "research_question": "长期血糖波动是否独立预测糖尿病患者的心血管死亡？",
+          "current_hypothesis": "较高的长期血糖波动与更高的心血管死亡风险相关。",
+          "validation_method": "在预设队列中采用多变量时间至事件模型，以心血管死亡为结局，并实施暴露替代定义和完整病例敏感性分析。",
+          "main_findings": null,
+          "evidence_judgment": "分析尚未完成，当前不作证据判断。",
+          "route_adjustment": "维持全队列主要分析路线。",
+          "next_research_step": "完成主要模型及预设敏感性分析，并比较效应估计与不确定性。",
+          "limitations": [
+            "观察性研究设计可能受到残余混杂影响。",
+            "长期血糖波动的测量频率差异可能影响暴露估计。"
+          ],
+          "sources_and_basis": [
+            "统计分析计划中的主要模型与敏感性分析",
+            "队列定义及心血管死亡结局判定方案"
+          ]
+        },
+        "source_refs": [
+          {
+            "kind": "statistical_analysis_plan",
+            "ref": "mas-study:DM-CVD-TRAJECTORY-001/sap"
+          }
+        ]
+      },
+      "edges": [
+        {
+          "edge_id": "edge-test-primary-hypothesis",
+          "source_node_id": "test-primary-cox-v1",
+          "target_node_id": "hypothesis-primary-v1",
+          "relation": "tests",
+          "display_label": "该分析用于检验长期血糖波动是否与心血管死亡风险独立相关。",
+          "status": "active",
+          "source_refs": [
+            {
+              "kind": "statistical_analysis_plan",
+              "ref": "mas-study:DM-CVD-TRAJECTORY-001/sap"
+            }
+          ]
+        }
+      ],
+      "execution_outcome": {
+        "status": "planned",
+        "medical_summary": "主要模型和敏感性分析均已预设，尚未形成分析结果。",
+        "diagnostic_refs": []
+      },
+      "evidence_interpretation": null,
+      "route_decision": null,
+      "projection_hints": {
+        "status": "awaiting_evidence",
+        "summary": {
+          "primary_hypothesis": "较高的长期血糖波动与更高的心血管死亡风险相关。",
+          "latest_finding": null,
+          "current_judgment": "主要验证方案已确定，尚待分析结果。",
+          "next_research_step": "完成主要模型及预设敏感性分析。",
+          "updated_at": "2026-07-17T02:00:00Z"
+        },
+        "current_focus": {
+          "node_id": "test-primary-cox-v1",
+          "primary_hypothesis": "较高的长期血糖波动与更高的心血管死亡风险相关。"
+        },
+        "active_branch": {
+          "branch_id": "branch-primary",
+          "label": "全队列主要分析路线"
+        },
+        "conditions": [],
+        "current_focus_node_refs": [
+          "test-primary-cox-v1"
+        ],
+        "active_branch_node_refs": [
+          "hypothesis-primary-v1",
+          "test-primary-cox-v1"
+        ]
+      },
+      "medical_narrative": {
+        "surface_kind": "mas_medical_research_narrative",
+        "version": "mas-medical-narrative.v1",
+        "audience": "clinical_and_scientific_readers",
+        "style": "medical_manuscript",
+        "language": "zh-CN",
+        "title": "长期血糖波动假设的主要验证方案",
+        "research_question": "长期血糖波动是否独立预测糖尿病患者的心血管死亡？",
+        "current_hypothesis": "较高的长期血糖波动与更高的心血管死亡风险相关。",
+        "validation_method": "在预设队列中采用多变量时间至事件模型，以心血管死亡为结局，并实施暴露替代定义和完整病例敏感性分析。",
+        "main_findings": null,
+        "evidence_judgment": "分析尚未完成，当前不作证据判断。",
+        "route_adjustment": "维持全队列主要分析路线。",
+        "next_research_step": "完成主要模型及预设敏感性分析，并比较效应估计与不确定性。",
+        "limitations": [
+          "观察性研究设计可能受到残余混杂影响。",
+          "长期血糖波动的测量频率差异可能影响暴露估计。"
+        ],
+        "sources_and_basis": [
+          "统计分析计划中的主要模型与敏感性分析",
+          "队列定义及心血管死亡结局判定方案"
+        ]
+      },
+      "source_refs": [
+        {
+          "kind": "statistical_analysis_plan",
+          "ref": "mas-study:DM-CVD-TRAJECTORY-001/sap"
+        }
+      ],
+      "caused_by_event_refs": [
+        "trajectory-event-001"
+      ],
+      "supersedes_event_refs": [],
+      "provenance": {
+        "stage_id": "baseline_and_evidence_setup",
+        "stage_run_ref": {
+          "kind": "stage_run",
+          "ref": "opl-stage-run:trajectory-002"
+        },
+        "attempt_ref": {
+          "kind": "stage_attempt",
+          "ref": "opl-stage-attempt:trajectory-002"
+        },
+        "local_event_key": "primary-test-plan-v1",
+        "semantic_payload_sha256": "sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+      },
+      "acceptance": {
+        "status": "accepted",
+        "basis": "owner_receipt",
+        "acceptance_ref": {
+          "kind": "owner_receipt",
+          "ref": "mas-owner-receipt:trajectory-002",
+          "sha256": "sha256:1111111111111111111111111111111111111111111111111111111111111111"
+        }
+      }
+    },
+    {
+      "surface_kind": "mas_research_trajectory_event",
+      "version": "mas-research-trajectory-event.v1",
+      "event_id": "trajectory-event-003",
+      "study_id": "DM-CVD-TRAJECTORY-001",
+      "study_ref": {
+        "kind": "mas_study",
+        "ref": "mas-study:DM-CVD-TRAJECTORY-001"
+      },
+      "event_type": "result_observed",
+      "occurred_at": "2026-07-17T03:00:00Z",
+      "lifecycle_status": "accepted",
+      "base_revision": 2,
+      "base_snapshot_sha256": "sha256:2222222222222222222222222222222222222222222222222222222222222222",
+      "node": {
+        "node_id": "finding-primary-null-v1",
+        "node_type": "finding",
+        "status": "inconclusive",
+        "branch_id": "branch-primary",
+        "occurred_at": "2026-07-17T03:00:00Z",
+        "display_label": "主要发现：关联估计接近无效值，但不确定性仍较大",
+        "medical_summary": "主要分析未观察到明确关联，效应估计接近无效值，但置信区间仍包含具有临床意义的风险升高或降低。",
+        "medical_narrative": {
+          "surface_kind": "mas_medical_research_narrative",
+          "version": "mas-medical-narrative.v1",
+          "audience": "clinical_and_scientific_readers",
+          "style": "medical_manuscript",
+          "language": "zh-CN",
+          "title": "全队列主要分析未观察到明确关联",
+          "research_question": "长期血糖波动是否独立预测糖尿病患者的心血管死亡？",
+          "current_hypothesis": "较高的长期血糖波动与更高的心血管死亡风险相关。",
+          "validation_method": "采用预设多变量时间至事件模型，并实施暴露替代定义和完整病例敏感性分析。",
+          "main_findings": "主要分析的效应估计接近无效值，各敏感性分析方向基本一致，但置信区间较宽。",
+          "evidence_judgment": "现有证据尚不足以确定长期血糖波动与心血管死亡之间是否存在临床重要关联。",
+          "route_adjustment": "返回并修订研究假设或研究设计，重点评估高危亚组和更能反映持续暴露的指标。",
+          "next_research_step": "在预设临床高危亚组中评估效应异质性，并采用持续性血糖波动定义进行验证。",
+          "limitations": [
+            "心血管死亡事件数有限，导致效应估计不够精确。",
+            "全队列平均效应可能掩盖临床高危亚组中的异质性。"
+          ],
+          "sources_and_basis": [
+            "主要分析结果表",
+            "预设敏感性分析结果",
+            "统计分析计划中的效应异质性评估方案"
+          ]
+        },
+        "source_refs": [
+          {
+            "kind": "primary_analysis_result",
+            "ref": "mas-study:DM-CVD-TRAJECTORY-001/primary-result"
+          }
+        ]
+      },
+      "edges": [
+        {
+          "edge_id": "edge-finding-inconclusive-hypothesis",
+          "source_node_id": "finding-primary-null-v1",
+          "target_node_id": "hypothesis-primary-v1",
+          "relation": "inconclusive",
+          "display_label": "现有结果尚不足以确定该假设是否成立。",
+          "status": "active",
+          "source_refs": [
+            {
+              "kind": "primary_analysis_result",
+              "ref": "mas-study:DM-CVD-TRAJECTORY-001/primary-result"
+            }
+          ]
+        }
+      ],
+      "execution_outcome": {
+        "status": "completed",
+        "medical_summary": "主要模型及预设敏感性分析均已完成，并形成可解释的效应估计和不确定性范围。",
+        "diagnostic_refs": []
+      },
+      "evidence_interpretation": {
+        "status": "inconclusive",
+        "finding_kind": "null",
+        "medical_summary": "效应估计接近无效值，但统计不确定性仍不足以排除临床重要关联，因此不能据此确认或否定当前假设。",
+        "evidence_refs": [
+          {
+            "kind": "primary_analysis_result",
+            "ref": "mas-study:DM-CVD-TRAJECTORY-001/primary-result"
+          }
+        ]
+      },
+      "route_decision": {
+        "status": "refine",
+        "medical_summary": "返回并修订研究假设与暴露定义，优先评估高危亚组和持续性血糖波动。",
+        "target_node_refs": [
+          "hypothesis-primary-v1"
+        ],
+        "evidence_refs": [
+          {
+            "kind": "primary_analysis_result",
+            "ref": "mas-study:DM-CVD-TRAJECTORY-001/primary-result"
+          }
+        ]
+      },
+      "projection_hints": {
+        "status": "route_reconsideration",
+        "summary": {
+          "primary_hypothesis": "较高的长期血糖波动与更高的心血管死亡风险相关。",
+          "latest_finding": "全队列主要分析的效应估计接近无效值，但置信区间仍较宽。",
+          "current_judgment": "证据尚不确定，现有结果不能确认或否定当前假设。",
+          "next_research_step": "评估高危亚组和持续性血糖波动定义。",
+          "updated_at": "2026-07-17T03:00:00Z"
+        },
+        "current_focus": {
+          "node_id": "finding-primary-null-v1",
+          "primary_hypothesis": "较高的长期血糖波动与更高的心血管死亡风险相关。"
+        },
+        "active_branch": {
+          "branch_id": "branch-primary",
+          "label": "全队列主要分析路线"
+        },
+        "conditions": [],
+        "current_focus_node_refs": [
+          "finding-primary-null-v1"
+        ],
+        "active_branch_node_refs": [
+          "hypothesis-primary-v1",
+          "test-primary-cox-v1",
+          "finding-primary-null-v1"
+        ]
+      },
+      "medical_narrative": {
+        "surface_kind": "mas_medical_research_narrative",
+        "version": "mas-medical-narrative.v1",
+        "audience": "clinical_and_scientific_readers",
+        "style": "medical_manuscript",
+        "language": "zh-CN",
+        "title": "全队列主要分析未观察到明确关联",
+        "research_question": "长期血糖波动是否独立预测糖尿病患者的心血管死亡？",
+        "current_hypothesis": "较高的长期血糖波动与更高的心血管死亡风险相关。",
+        "validation_method": "采用预设多变量时间至事件模型，并实施暴露替代定义和完整病例敏感性分析。",
+        "main_findings": "主要分析的效应估计接近无效值，各敏感性分析方向基本一致，但置信区间较宽。",
+        "evidence_judgment": "现有证据尚不足以确定长期血糖波动与心血管死亡之间是否存在临床重要关联。",
+        "route_adjustment": "返回并修订研究假设或研究设计，重点评估高危亚组和更能反映持续暴露的指标。",
+        "next_research_step": "在预设临床高危亚组中评估效应异质性，并采用持续性血糖波动定义进行验证。",
+        "limitations": [
+          "心血管死亡事件数有限，导致效应估计不够精确。",
+          "全队列平均效应可能掩盖临床高危亚组中的异质性。"
+        ],
+        "sources_and_basis": [
+          "主要分析结果表",
+          "预设敏感性分析结果",
+          "统计分析计划中的效应异质性评估方案"
+        ]
+      },
+      "source_refs": [
+        {
+          "kind": "primary_analysis_result",
+          "ref": "mas-study:DM-CVD-TRAJECTORY-001/primary-result"
+        }
+      ],
+      "caused_by_event_refs": [
+        "trajectory-event-002"
+      ],
+      "supersedes_event_refs": [],
+      "provenance": {
+        "stage_id": "bounded_analysis_campaign",
+        "stage_run_ref": {
+          "kind": "stage_run",
+          "ref": "opl-stage-run:trajectory-003"
+        },
+        "attempt_ref": {
+          "kind": "stage_attempt",
+          "ref": "opl-stage-attempt:trajectory-003"
+        },
+        "local_event_key": "primary-null-finding-v1",
+        "semantic_payload_sha256": "sha256:cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc"
+      },
+      "acceptance": {
+        "status": "accepted",
+        "basis": "decisive_reviewer_receipt",
+        "acceptance_ref": {
+          "kind": "mas_reviewer_receipt",
+          "ref": "mas-reviewer-receipt:trajectory-003",
+          "sha256": "sha256:2222222222222222222222222222222222222222222222222222222222222222"
+        }
+      }
+    },
+    {
+      "surface_kind": "mas_research_trajectory_event",
+      "version": "mas-research-trajectory-event.v1",
+      "event_id": "trajectory-event-004",
+      "study_id": "DM-CVD-TRAJECTORY-001",
+      "study_ref": {
+        "kind": "mas_study",
+        "ref": "mas-study:DM-CVD-TRAJECTORY-001"
+      },
+      "event_type": "hypothesis_refined",
+      "occurred_at": "2026-07-17T04:00:00Z",
+      "lifecycle_status": "accepted",
+      "base_revision": 3,
+      "base_snapshot_sha256": "sha256:3333333333333333333333333333333333333333333333333333333333333333",
+      "node": {
+        "node_id": "hypothesis-high-risk-v2",
+        "node_type": "hypothesis",
+        "status": "refined",
+        "branch_id": "branch-high-risk",
+        "occurred_at": "2026-07-17T04:00:00Z",
+        "display_label": "修订假设：持续性血糖波动可能主要影响心血管高危患者",
+        "medical_summary": "鉴于全队列结果不确定，将研究重点调整为心血管高危亚组，并采用更能反映持续暴露的血糖波动定义。",
+        "medical_narrative": {
+          "surface_kind": "mas_medical_research_narrative",
+          "version": "mas-medical-narrative.v1",
+          "audience": "clinical_and_scientific_readers",
+          "style": "medical_manuscript",
+          "language": "zh-CN",
+          "title": "高危亚组及持续性血糖波动的修订研究假设",
+          "research_question": "持续性血糖波动是否与心血管高危糖尿病患者的心血管死亡风险相关？",
+          "current_hypothesis": "持续性血糖波动可能主要增加既往心血管疾病或高风险特征患者的心血管死亡风险。",
+          "validation_method": "在预设高危亚组中采用与主要分析一致的时间至事件框架，并以持续性血糖波动定义重复验证。",
+          "main_findings": "全队列主要分析未观察到明确关联，但结果不确定性及潜在效应异质性支持进一步收窄研究问题。",
+          "evidence_judgment": "原主要假设尚未得到明确支持；现有结果支持开展边界更清晰的修订验证，而不支持直接作出无关联结论。",
+          "route_adjustment": "调整研究路线至心血管高危亚组及持续性暴露定义。",
+          "next_research_step": "完成高危亚组和持续性血糖波动分析，并检验效应方向、精确性和亚组一致性。",
+          "limitations": [
+            "亚组分析的事件数可能进一步减少，应预先限定解释边界。",
+            "修订路线用于解释异质性，不能替代对多重比较和选择性报告风险的控制。"
+          ],
+          "sources_and_basis": [
+            "全队列主要分析及敏感性分析",
+            "统计分析计划中的高危亚组定义",
+            "糖尿病心血管风险分层的临床依据"
+          ]
+        },
+        "source_refs": [
+          {
+            "kind": "route_decision",
+            "ref": "mas-study:DM-CVD-TRAJECTORY-001/high-risk-route"
+          }
+        ]
+      },
+      "edges": [
+        {
+          "edge_id": "edge-revised-hypothesis-primary",
+          "source_node_id": "hypothesis-high-risk-v2",
+          "target_node_id": "hypothesis-primary-v1",
+          "relation": "revises",
+          "display_label": "依据全队列结果的不确定性，将研究问题收窄至高危亚组和持续性暴露。",
+          "status": "active",
+          "source_refs": [
+            {
+              "kind": "route_decision",
+              "ref": "mas-study:DM-CVD-TRAJECTORY-001/high-risk-route"
+            }
+          ]
+        }
+      ],
+      "execution_outcome": null,
+      "evidence_interpretation": {
+        "status": "inconclusive",
+        "finding_kind": "null",
+        "medical_summary": "全队列结果仍属证据不确定，不能直接推广为不存在临床重要关联。",
+        "evidence_refs": [
+          {
+            "kind": "primary_analysis_result",
+            "ref": "mas-study:DM-CVD-TRAJECTORY-001/primary-result"
+          }
+        ]
+      },
+      "route_decision": {
+        "status": "pivot",
+        "medical_summary": "调整研究路线至心血管高危亚组和持续性血糖波动定义，同时保留全队列结果作为边界证据。",
+        "target_node_refs": [
+          "hypothesis-high-risk-v2"
+        ],
+        "evidence_refs": [
+          {
+            "kind": "primary_analysis_result",
+            "ref": "mas-study:DM-CVD-TRAJECTORY-001/primary-result"
+          },
+          {
+            "kind": "route_decision",
+            "ref": "mas-study:DM-CVD-TRAJECTORY-001/high-risk-route"
+          }
+        ]
+      },
+      "projection_hints": {
+        "status": "active",
+        "summary": {
+          "primary_hypothesis": "持续性血糖波动可能主要增加心血管高危糖尿病患者的心血管死亡风险。",
+          "latest_finding": "全队列主要分析未观察到明确关联，但结果不确定性仍较大。",
+          "current_judgment": "原主要假设尚未得到明确支持，研究问题已收窄并转向高危亚组验证。",
+          "next_research_step": "完成高危亚组和持续性血糖波动分析。",
+          "updated_at": "2026-07-17T04:00:00Z"
+        },
+        "current_focus": {
+          "node_id": "hypothesis-high-risk-v2",
+          "primary_hypothesis": "持续性血糖波动可能主要增加心血管高危糖尿病患者的心血管死亡风险。"
+        },
+        "active_branch": {
+          "branch_id": "branch-high-risk",
+          "label": "高危亚组与持续性暴露路线"
+        },
+        "conditions": [],
+        "current_focus_node_refs": [
+          "hypothesis-high-risk-v2"
+        ],
+        "active_branch_node_refs": [
+          "hypothesis-high-risk-v2"
+        ]
+      },
+      "medical_narrative": {
+        "surface_kind": "mas_medical_research_narrative",
+        "version": "mas-medical-narrative.v1",
+        "audience": "clinical_and_scientific_readers",
+        "style": "medical_manuscript",
+        "language": "zh-CN",
+        "title": "高危亚组及持续性血糖波动的修订研究假设",
+        "research_question": "持续性血糖波动是否与心血管高危糖尿病患者的心血管死亡风险相关？",
+        "current_hypothesis": "持续性血糖波动可能主要增加既往心血管疾病或高风险特征患者的心血管死亡风险。",
+        "validation_method": "在预设高危亚组中采用与主要分析一致的时间至事件框架，并以持续性血糖波动定义重复验证。",
+        "main_findings": "全队列主要分析未观察到明确关联，但结果不确定性及潜在效应异质性支持进一步收窄研究问题。",
+        "evidence_judgment": "原主要假设尚未得到明确支持；现有结果支持开展边界更清晰的修订验证，而不支持直接作出无关联结论。",
+        "route_adjustment": "调整研究路线至心血管高危亚组及持续性暴露定义。",
+        "next_research_step": "完成高危亚组和持续性血糖波动分析，并检验效应方向、精确性和亚组一致性。",
+        "limitations": [
+          "亚组分析的事件数可能进一步减少，应预先限定解释边界。",
+          "修订路线用于解释异质性，不能替代对多重比较和选择性报告风险的控制。"
+        ],
+        "sources_and_basis": [
+          "全队列主要分析及敏感性分析",
+          "统计分析计划中的高危亚组定义",
+          "糖尿病心血管风险分层的临床依据"
+        ]
+      },
+      "source_refs": [
+        {
+          "kind": "primary_analysis_result",
+          "ref": "mas-study:DM-CVD-TRAJECTORY-001/primary-result"
+        },
+        {
+          "kind": "route_decision",
+          "ref": "mas-study:DM-CVD-TRAJECTORY-001/high-risk-route"
+        }
+      ],
+      "caused_by_event_refs": [
+        "trajectory-event-003"
+      ],
+      "supersedes_event_refs": [
+        "trajectory-event-001"
+      ],
+      "provenance": {
+        "stage_id": "direction_and_route_selection",
+        "stage_run_ref": {
+          "kind": "stage_run",
+          "ref": "opl-stage-run:trajectory-004"
+        },
+        "attempt_ref": {
+          "kind": "stage_attempt",
+          "ref": "opl-stage-attempt:trajectory-004"
+        },
+        "local_event_key": "high-risk-hypothesis-v2",
+        "semantic_payload_sha256": "sha256:dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd"
+      },
+      "acceptance": {
+        "status": "accepted",
+        "basis": "owner_receipt",
+        "acceptance_ref": {
+          "kind": "owner_receipt",
+          "ref": "mas-owner-receipt:trajectory-004",
+          "sha256": "sha256:3333333333333333333333333333333333333333333333333333333333333333"
+        }
+      }
+    }
+  ],
+  "snapshot": {
+    "surface_kind": "mas_research_trajectory_snapshot",
+    "version": "mas-research-trajectory-snapshot.v1",
+    "study_id": "DM-CVD-TRAJECTORY-001",
+    "study_ref": {
+      "kind": "mas_study",
+      "ref": "mas-study:DM-CVD-TRAJECTORY-001"
+    },
+    "revision": 4,
+    "status": "active",
+    "summary": {
+      "primary_hypothesis": "持续性血糖波动可能主要增加心血管高危糖尿病患者的心血管死亡风险。",
+      "latest_finding": "全队列主要分析未观察到明确关联，但结果不确定性仍较大。",
+      "current_judgment": "原主要假设尚未得到明确支持，研究问题已收窄并转向高危亚组验证。",
+      "next_research_step": "完成高危亚组和持续性血糖波动分析。",
+      "updated_at": "2026-07-17T04:00:00Z"
+    },
+    "current_focus": {
+      "node_id": "hypothesis-high-risk-v2",
+      "primary_hypothesis": "持续性血糖波动可能主要增加心血管高危糖尿病患者的心血管死亡风险。"
+    },
+    "active_branch": {
+      "branch_id": "branch-high-risk",
+      "label": "高危亚组与持续性暴露路线"
+    },
+    "accepted_event_count": 4,
+    "event_set_sha256": "sha256:eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+    "latest_event_id": "trajectory-event-004",
+    "updated_at": "2026-07-17T04:00:00Z",
+    "projector_version": "mas-research-trajectory-projector.v1",
+    "nodes": [
+      {
+        "id": "hypothesis-primary-v1",
+        "kind": "hypothesis",
+        "label": "主要假设：糖尿病患者的长期血糖波动与心血管死亡风险升高相关",
+        "status": "proposed",
+        "summary": "基于既往队列证据和临床合理性，提出长期血糖波动可能独立增加糖尿病患者心血管死亡风险的主要假设。",
+        "branch_id": "branch-primary",
+        "occurred_at": "2026-07-17T01:00:00Z",
+        "details": {
+          "surface_kind": "mas_medical_research_narrative",
+          "version": "mas-medical-narrative.v1",
+          "audience": "clinical_and_scientific_readers",
+          "style": "medical_manuscript",
+          "language": "zh-CN",
+          "title": "长期血糖波动与心血管死亡风险的研究假设",
+          "research_question": "在糖尿病患者中，长期血糖波动是否与心血管死亡风险独立相关？",
+          "current_hypothesis": "较高的长期血糖波动与更高的心血管死亡风险相关，且该关联不能完全由平均血糖水平及传统危险因素解释。",
+          "validation_method": "拟在预设队列中采用时间至事件分析，并对平均血糖水平、年龄、性别及主要心血管危险因素进行调整。",
+          "main_findings": null,
+          "evidence_judgment": "尚未形成验证结果，当前不作证据判断。",
+          "route_adjustment": "继续进入预设队列和分析方案的验证阶段。",
+          "next_research_step": "锁定研究人群、暴露定义、结局和主要混杂因素，随后实施主要分析。",
+          "limitations": [
+            "现阶段为待验证假设，关联强度、亚组异质性和潜在残余混杂仍不明确。"
+          ],
+          "sources_and_basis": [
+            "研究方案中的临床问题与预设结局定义",
+            "既往糖尿病心血管风险队列研究及指南证据综述"
+          ]
+        },
+        "source_refs": [
+          {
+            "kind": "study_protocol",
+            "ref": "mas-study:DM-CVD-TRAJECTORY-001/protocol"
+          }
+        ]
+      },
+      {
+        "id": "test-primary-cox-v1",
+        "kind": "test",
+        "label": "验证方法：在预设队列中评估长期血糖波动与心血管死亡的关联",
+        "status": "planned",
+        "summary": "采用预设时间至事件模型估计长期血糖波动与心血管死亡的关联，并通过敏感性分析评估结果稳健性。",
+        "branch_id": "branch-primary",
+        "occurred_at": "2026-07-17T02:00:00Z",
+        "details": {
+          "surface_kind": "mas_medical_research_narrative",
+          "version": "mas-medical-narrative.v1",
+          "audience": "clinical_and_scientific_readers",
+          "style": "medical_manuscript",
+          "language": "zh-CN",
+          "title": "长期血糖波动假设的主要验证方案",
+          "research_question": "长期血糖波动是否独立预测糖尿病患者的心血管死亡？",
+          "current_hypothesis": "较高的长期血糖波动与更高的心血管死亡风险相关。",
+          "validation_method": "在预设队列中采用多变量时间至事件模型，以心血管死亡为结局，并实施暴露替代定义和完整病例敏感性分析。",
+          "main_findings": null,
+          "evidence_judgment": "分析尚未完成，当前不作证据判断。",
+          "route_adjustment": "维持全队列主要分析路线。",
+          "next_research_step": "完成主要模型及预设敏感性分析，并比较效应估计与不确定性。",
+          "limitations": [
+            "观察性研究设计可能受到残余混杂影响。",
+            "长期血糖波动的测量频率差异可能影响暴露估计。"
+          ],
+          "sources_and_basis": [
+            "统计分析计划中的主要模型与敏感性分析",
+            "队列定义及心血管死亡结局判定方案"
+          ]
+        },
+        "source_refs": [
+          {
+            "kind": "statistical_analysis_plan",
+            "ref": "mas-study:DM-CVD-TRAJECTORY-001/sap"
+          }
+        ]
+      },
+      {
+        "id": "finding-primary-null-v1",
+        "kind": "finding",
+        "label": "主要发现：关联估计接近无效值，但不确定性仍较大",
+        "status": "inconclusive",
+        "summary": "主要分析未观察到明确关联，效应估计接近无效值，但置信区间仍包含具有临床意义的风险升高或降低。",
+        "branch_id": "branch-primary",
+        "occurred_at": "2026-07-17T03:00:00Z",
+        "details": {
+          "surface_kind": "mas_medical_research_narrative",
+          "version": "mas-medical-narrative.v1",
+          "audience": "clinical_and_scientific_readers",
+          "style": "medical_manuscript",
+          "language": "zh-CN",
+          "title": "全队列主要分析未观察到明确关联",
+          "research_question": "长期血糖波动是否独立预测糖尿病患者的心血管死亡？",
+          "current_hypothesis": "较高的长期血糖波动与更高的心血管死亡风险相关。",
+          "validation_method": "采用预设多变量时间至事件模型，并实施暴露替代定义和完整病例敏感性分析。",
+          "main_findings": "主要分析的效应估计接近无效值，各敏感性分析方向基本一致，但置信区间较宽。",
+          "evidence_judgment": "现有证据尚不足以确定长期血糖波动与心血管死亡之间是否存在临床重要关联。",
+          "route_adjustment": "返回并修订研究假设或研究设计，重点评估高危亚组和更能反映持续暴露的指标。",
+          "next_research_step": "在预设临床高危亚组中评估效应异质性，并采用持续性血糖波动定义进行验证。",
+          "limitations": [
+            "心血管死亡事件数有限，导致效应估计不够精确。",
+            "全队列平均效应可能掩盖临床高危亚组中的异质性。"
+          ],
+          "sources_and_basis": [
+            "主要分析结果表",
+            "预设敏感性分析结果",
+            "统计分析计划中的效应异质性评估方案"
+          ]
+        },
+        "source_refs": [
+          {
+            "kind": "primary_analysis_result",
+            "ref": "mas-study:DM-CVD-TRAJECTORY-001/primary-result"
+          }
+        ]
+      },
+      {
+        "id": "hypothesis-high-risk-v2",
+        "kind": "hypothesis",
+        "label": "修订假设：持续性血糖波动可能主要影响心血管高危患者",
+        "status": "refined",
+        "summary": "鉴于全队列结果不确定，将研究重点调整为心血管高危亚组，并采用更能反映持续暴露的血糖波动定义。",
+        "branch_id": "branch-high-risk",
+        "occurred_at": "2026-07-17T04:00:00Z",
+        "details": {
+          "surface_kind": "mas_medical_research_narrative",
+          "version": "mas-medical-narrative.v1",
+          "audience": "clinical_and_scientific_readers",
+          "style": "medical_manuscript",
+          "language": "zh-CN",
+          "title": "高危亚组及持续性血糖波动的修订研究假设",
+          "research_question": "持续性血糖波动是否与心血管高危糖尿病患者的心血管死亡风险相关？",
+          "current_hypothesis": "持续性血糖波动可能主要增加既往心血管疾病或高风险特征患者的心血管死亡风险。",
+          "validation_method": "在预设高危亚组中采用与主要分析一致的时间至事件框架，并以持续性血糖波动定义重复验证。",
+          "main_findings": "全队列主要分析未观察到明确关联，但结果不确定性及潜在效应异质性支持进一步收窄研究问题。",
+          "evidence_judgment": "原主要假设尚未得到明确支持；现有结果支持开展边界更清晰的修订验证，而不支持直接作出无关联结论。",
+          "route_adjustment": "调整研究路线至心血管高危亚组及持续性暴露定义。",
+          "next_research_step": "完成高危亚组和持续性血糖波动分析，并检验效应方向、精确性和亚组一致性。",
+          "limitations": [
+            "亚组分析的事件数可能进一步减少，应预先限定解释边界。",
+            "修订路线用于解释异质性，不能替代对多重比较和选择性报告风险的控制。"
+          ],
+          "sources_and_basis": [
+            "全队列主要分析及敏感性分析",
+            "统计分析计划中的高危亚组定义",
+            "糖尿病心血管风险分层的临床依据"
+          ]
+        },
+        "source_refs": [
+          {
+            "kind": "route_decision",
+            "ref": "mas-study:DM-CVD-TRAJECTORY-001/high-risk-route"
+          }
+        ]
+      }
+    ],
+    "edges": [
+      {
+        "id": "edge-test-primary-hypothesis",
+        "source": "test-primary-cox-v1",
+        "target": "hypothesis-primary-v1",
+        "kind": "tests",
+        "label": "该分析用于检验长期血糖波动是否与心血管死亡风险独立相关。",
+        "status": "active",
+        "source_refs": [
+          {
+            "kind": "statistical_analysis_plan",
+            "ref": "mas-study:DM-CVD-TRAJECTORY-001/sap"
+          }
+        ]
+      },
+      {
+        "id": "edge-finding-inconclusive-hypothesis",
+        "source": "finding-primary-null-v1",
+        "target": "hypothesis-primary-v1",
+        "kind": "inconclusive",
+        "label": "现有结果尚不足以确定该假设是否成立。",
+        "status": "active",
+        "source_refs": [
+          {
+            "kind": "primary_analysis_result",
+            "ref": "mas-study:DM-CVD-TRAJECTORY-001/primary-result"
+          }
+        ]
+      },
+      {
+        "id": "edge-revised-hypothesis-primary",
+        "source": "hypothesis-high-risk-v2",
+        "target": "hypothesis-primary-v1",
+        "kind": "revises",
+        "label": "依据全队列结果的不确定性，将研究问题收窄至高危亚组和持续性暴露。",
+        "status": "active",
+        "source_refs": [
+          {
+            "kind": "route_decision",
+            "ref": "mas-study:DM-CVD-TRAJECTORY-001/high-risk-route"
+          }
+        ]
+      }
+    ],
+    "source_refs": [
+      {
+        "kind": "study_protocol",
+        "ref": "mas-study:DM-CVD-TRAJECTORY-001/protocol"
+      },
+      {
+        "kind": "statistical_analysis_plan",
+        "ref": "mas-study:DM-CVD-TRAJECTORY-001/sap"
+      },
+      {
+        "kind": "primary_analysis_result",
+        "ref": "mas-study:DM-CVD-TRAJECTORY-001/primary-result"
+      }
+    ],
+    "conditions": [],
+    "current_focus_node_refs": [
+      "hypothesis-high-risk-v2"
+    ],
+    "active_branch_node_refs": [
+      "hypothesis-high-risk-v2"
+    ],
+    "medical_narrative": {
+      "surface_kind": "mas_medical_research_narrative",
+      "version": "mas-medical-narrative.v1",
+      "audience": "clinical_and_scientific_readers",
+      "style": "medical_manuscript",
+      "language": "zh-CN",
+      "title": "高危亚组及持续性血糖波动的修订研究路线",
+      "research_question": "持续性血糖波动是否与心血管高危糖尿病患者的心血管死亡风险相关？",
+      "current_hypothesis": "持续性血糖波动可能主要增加既往心血管疾病或高风险特征患者的心血管死亡风险。",
+      "validation_method": "在预设高危亚组中采用与主要分析一致的时间至事件框架，并以持续性血糖波动定义重复验证。",
+      "main_findings": "全队列主要分析未观察到明确关联，但结果不确定性及潜在效应异质性支持进一步收窄研究问题。",
+      "evidence_judgment": "原主要假设尚未得到明确支持；现有结果支持开展边界更清晰的修订验证，而不支持直接作出无关联结论。",
+      "route_adjustment": "调整研究路线至心血管高危亚组及持续性暴露定义。",
+      "next_research_step": "完成高危亚组和持续性血糖波动分析，并检验效应方向、精确性和亚组一致性。",
+      "limitations": [
+        "亚组分析的事件数可能进一步减少，应预先限定解释边界。",
+        "修订路线用于解释异质性，不能替代对多重比较和选择性报告风险的控制。"
+      ],
+      "sources_and_basis": [
+        "全队列主要分析及敏感性分析",
+        "统计分析计划中的高危亚组定义",
+        "糖尿病心血管风险分层的临床依据"
+      ]
+    },
+    "accepted_event_refs": [
+      {
+        "kind": "mas_research_trajectory_event",
+        "ref": "artifacts/research_trajectory/events/trajectory-event-001.json",
+        "sha256": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+      },
+      {
+        "kind": "mas_research_trajectory_event",
+        "ref": "artifacts/research_trajectory/events/trajectory-event-002.json",
+        "sha256": "sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+      },
+      {
+        "kind": "mas_research_trajectory_event",
+        "ref": "artifacts/research_trajectory/events/trajectory-event-003.json",
+        "sha256": "sha256:cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc"
+      },
+      {
+        "kind": "mas_research_trajectory_event",
+        "ref": "artifacts/research_trajectory/events/trajectory-event-004.json",
+        "sha256": "sha256:dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd"
+      }
+    ]
+  }
+}

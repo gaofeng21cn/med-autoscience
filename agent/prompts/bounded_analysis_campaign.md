@@ -43,6 +43,17 @@ methodology route without decision or human authority. Compute completion,
 specialist candidates, prose, package freshness, and tests cannot close source,
 methodology, evidence, or quality gates.
 
+## Research Trajectory
+
+Follow `research_trajectory_medical_narrative.md`. Emit a candidate
+`research_trajectory_delta_ref` for every claim-relevant planned test, completed
+or failed validation, positive, negative, null, or mixed result, evidence
+interpretation, or resulting continue, refine, narrow, pivot, stop, or researcher
+decision route. Keep execution outcome, evidence interpretation, and route
+decision separate; a technical failure does not negate the hypothesis. Use
+medical Results and Discussion wording. Return `null` only when the work made no
+scientific semantic delta.
+
 ## Handoff
 
 Return `bounded_analysis_evidence_ready` with result, evidence-ledger,

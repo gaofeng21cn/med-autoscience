@@ -10,6 +10,7 @@
     "stage_id",
     "status",
     "artifact_refs",
+    "research_trajectory_delta_ref",
     "quality_debt_refs",
     "negative_result_refs",
     "failed_path_refs",
@@ -48,6 +49,10 @@
     },
     "artifact_refs": {
       "$ref": "#/$defs/typed_refs"
+    },
+    "research_trajectory_delta_ref": {
+      "$ref": "#/$defs/nullable_research_trajectory_delta_ref",
+      "description": "Candidate MAS research trajectory delta emitted at a scientific semantic checkpoint, or null when the Stage produced no hypothesis, validation, evidence-interpretation, or route-decision delta."
     },
     "owner_receipt_ref": {
       "$ref": "#/$defs/nullable_typed_ref"
@@ -123,6 +128,38 @@
       "oneOf": [
         {
           "$ref": "#/$defs/typed_ref"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "research_trajectory_delta_ref": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "kind",
+        "ref",
+        "sha256"
+      ],
+      "properties": {
+        "kind": {
+          "const": "mas_research_trajectory_delta"
+        },
+        "ref": {
+          "type": "string",
+          "minLength": 1
+        },
+        "sha256": {
+          "type": "string",
+          "pattern": "^sha256:[a-f0-9]{64}$"
+        }
+      }
+    },
+    "nullable_research_trajectory_delta_ref": {
+      "oneOf": [
+        {
+          "$ref": "#/$defs/research_trajectory_delta_ref"
         },
         {
           "type": "null"

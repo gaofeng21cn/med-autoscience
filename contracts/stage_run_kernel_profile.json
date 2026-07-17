@@ -100,7 +100,11 @@
     "projection_contract": {
       "projection_directory_is_authority": false,
       "projection_rebuild_source": "stage_run_event_log_and_manifest_receipt_refs",
-      "current_owner_delta_ref_allowed": true
+      "current_owner_delta_ref_allowed": true,
+      "research_trajectory_delta_ref_allowed": true,
+      "research_trajectory_contract_ref": "contracts/research_trajectory_contract.json",
+      "accepted_trajectory_requires_mas_owner_or_decisive_reviewer_receipt": true,
+      "framework_can_infer_medical_narrative": false
     }
   },
   "stage_run_state_machine": {

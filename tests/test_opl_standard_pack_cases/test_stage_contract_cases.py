@@ -196,6 +196,7 @@ def test_owner_answer_uses_the_hosted_stage_run_contract_without_private_dispatc
         "contracts/opl-framework/owner-answer.schema.json",
         "contracts/stage_run_kernel_profile.json",
         "contracts/action_catalog.json",
+        "contracts/research_trajectory_contract.json",
     ]
     assert state_index["projection_source_refs"] == [
         "contracts/domain_descriptor.json",

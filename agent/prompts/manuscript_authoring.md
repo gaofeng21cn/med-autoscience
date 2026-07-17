@@ -70,6 +70,17 @@ package is derived output, not an editing authority. Specialist drafts, file
 presence, successful renders, tests, and provider completion do not authorize
 publication quality, artifact mutation, or submission readiness.
 
+## Research Trajectory
+
+Follow `research_trajectory_medical_narrative.md`. Emit a candidate
+`research_trajectory_delta_ref` only when manuscript work reveals and records a
+material change in the principal hypothesis, evidence interpretation, limitation,
+or research route. Ordinary prose, citation-formatting, rendering, and layout
+changes do not create trajectory events. Any user-visible summary must use
+medical-paper language and cite recognizable study evidence rather than runtime
+mechanics. Return the field as `null` when no scientific interpretation or route
+changed.
+
 ## Handoff
 
 Produce the best consumable manuscript delta first. Before a quality or ready

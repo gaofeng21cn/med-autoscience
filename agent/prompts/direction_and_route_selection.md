@@ -42,6 +42,16 @@ completion, tests, memory, or specialist output are context, not route or qualit
 authority. Any quality or readiness decision requiring review must come from a
 separate reviewer/auditor invocation.
 
+## Research Trajectory
+
+Follow `research_trajectory_medical_narrative.md`. Emit a candidate
+`research_trajectory_delta_ref` when this Stage proposes or refines the principal
+hypothesis, selects or rejects a scientific route, changes a stop condition, or
+decides to continue, narrow, pivot, stop, or request researcher judgment. State
+the research question, current hypothesis, evidence basis, route rationale, and
+next research step in medical-paper language. When no such scientific delta was
+made, return the field as `null`.
+
 ## Handoff
 
 Return a `direction_route_selected` receipt with the selected route, current

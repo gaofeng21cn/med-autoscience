@@ -1411,27 +1411,41 @@
           "ref_kind": "contract_ref",
           "ref": "contracts/domain_descriptor.json",
           "role": "domain_descriptor"
+        },
+        {
+          "ref_kind": "contract_ref",
+          "ref": "contracts/research_trajectory_contract.json",
+          "role": "research_trajectory_and_medical_narrative_contract"
         }
       ],
       "sync_policy": "repo_local_default",
-      "externalization_reason": "Medical research truth, source readiness, hypothesis portfolio, and publication memory are MAS knowledge refs.",
+      "externalization_reason": "Medical research truth, source readiness, hypothesis portfolio, research trajectory, medical narrative, and publication memory are MAS knowledge refs.",
       "improvement_tokens": [
         "knowledge_pack",
         "medical_research_truth",
-        "source_readiness"
+        "source_readiness",
+        "research_trajectory",
+        "medical_narrative"
       ],
       "failure_tokens": [
         "knowledge_pack",
         "medical_research_truth",
-        "source_readiness"
+        "source_readiness",
+        "research_trajectory",
+        "medical_narrative"
       ],
       "canonical_paths": [
         "agent/knowledge/",
-        "contracts/domain_descriptor.json"
+        "contracts/domain_descriptor.json",
+        "contracts/research_trajectory_contract.json",
+        "contracts/schemas/v2/mas-research-trajectory-event.schema.json",
+        "contracts/schemas/v2/mas-research-trajectory-snapshot.schema.json",
+        "contracts/schemas/v2/mas-medical-narrative.schema.json"
       ],
       "target_repo_file_hints": [
         "agent/knowledge/",
-        "contracts/domain_descriptor.json"
+        "contracts/domain_descriptor.json",
+        "contracts/research_trajectory_contract.json"
       ],
       "authority_boundary": {
         "can_write_domain_truth": false,
@@ -1445,10 +1459,15 @@
       },
       "canonical_target_paths": [
         "agent/knowledge/",
-        "contracts/domain_descriptor.json"
+        "contracts/domain_descriptor.json",
+        "contracts/research_trajectory_contract.json",
+        "contracts/schemas/v2/mas-research-trajectory-event.schema.json",
+        "contracts/schemas/v2/mas-research-trajectory-snapshot.schema.json",
+        "contracts/schemas/v2/mas-medical-narrative.schema.json"
       ],
       "verification_refs": [
-        "tests/test_stage_quality_cycle_policy.py"
+        "tests/test_stage_quality_cycle_policy.py",
+        "tests/test_research_trajectory_contract.py"
       ],
       "forbidden_surfaces": [
         "Yang authority/current_package/publication_eval/controller_decisions",

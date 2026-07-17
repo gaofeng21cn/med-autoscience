@@ -75,6 +75,16 @@ authorize publication, acceptance, or submission. An executor packet cannot
 write publication eval, controller decisions, owner receipts, blockers, human
 gates, or artifact authority.
 
+## Research Trajectory
+
+Follow `research_trajectory_medical_narrative.md`. Emit a candidate
+`research_trajectory_delta_ref` only for a terminal research or publication-route
+decision, or for an accepted artifact that materially changes the scientific
+story exposed to readers. Exact-byte packaging, hashing, transport, and ordinary
+handoff mechanics alone return `research_trajectory_delta_ref: null`. The
+reader-facing account describes the medical conclusion, limitations, route, and
+next research step without exposing packaging internals.
+
 ## Handoff
 
 Produce the best consumable inspection handoff delta. Return a

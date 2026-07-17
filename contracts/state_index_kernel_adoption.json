@@ -32,7 +32,8 @@
   "domain_ref_sources": [
     "contracts/stage_run_kernel_profile.json",
     "contracts/generated_surface_handoff.json",
-    "contracts/action_catalog.json"
+    "contracts/action_catalog.json",
+    "contracts/research_trajectory_contract.json"
   ],
   "projection_source_refs": [
     "contracts/domain_descriptor.json",
@@ -46,7 +47,9 @@
     "owner_receipt_refs",
     "typed_blocker_refs",
     "human_gate_refs",
-    "route_decision_refs"
+    "route_decision_refs",
+    "research_trajectory_event_refs",
+    "research_trajectory_snapshot_refs"
   ],
   "compaction_policy": {
     "small_file_runtime_refs_may_be_indexed": true,

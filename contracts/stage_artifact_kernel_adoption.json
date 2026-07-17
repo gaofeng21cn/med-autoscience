@@ -36,7 +36,8 @@
   "domain_pack_binding": {
     "accepted_source_refs": [
       "agent/stages/manifest.json",
-      "contracts/stage_run_kernel_profile.json"
+      "contracts/stage_run_kernel_profile.json",
+      "contracts/research_trajectory_contract.json"
     ],
     "domain_output_roles_are_interface": true,
     "file_name_is_not_interface": true
@@ -45,7 +46,8 @@
     "derived_projection_refs": [
       "opl_current_control_state_handoff",
       "family_runtime_stage_attempt_query",
-      "stage_run_current_owner_delta"
+      "stage_run_current_owner_delta",
+      "scientific_reasoning_map"
     ],
     "file_presence_only_counts_as": "orphan_or_historical",
     "provider_completion_counts_as_progress": false

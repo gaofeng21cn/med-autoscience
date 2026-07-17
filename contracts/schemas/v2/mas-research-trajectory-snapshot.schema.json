@@ -1,0 +1,299 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://opl.onepersonlab/contracts/mas-research-trajectory-snapshot.schema.json",
+  "title": "MAS research trajectory snapshot",
+  "description": "Deterministic, rebuildable projection of receipt-bound MAS research trajectory events.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "surface_kind",
+    "version",
+    "study_id",
+    "study_ref",
+    "revision",
+    "status",
+    "summary",
+    "current_focus",
+    "active_branch",
+    "accepted_event_count",
+    "event_set_sha256",
+    "latest_event_id",
+    "updated_at",
+    "projector_version",
+    "nodes",
+    "edges",
+    "source_refs",
+    "conditions",
+    "current_focus_node_refs",
+    "active_branch_node_refs",
+    "medical_narrative",
+    "accepted_event_refs"
+  ],
+  "properties": {
+    "surface_kind": {
+      "const": "mas_research_trajectory_snapshot"
+    },
+    "version": {
+      "const": "mas-research-trajectory-snapshot.v1"
+    },
+    "study_id": {
+      "$ref": "mas-research-trajectory-event.schema.json#/$defs/stable_id"
+    },
+    "study_ref": {
+      "$ref": "mas-research-trajectory-event.schema.json#/$defs/typed_ref"
+    },
+    "revision": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "status": {
+      "enum": [
+        "empty",
+        "active",
+        "awaiting_evidence",
+        "route_reconsideration",
+        "human_review_required",
+        "stopped",
+        "completed"
+      ]
+    },
+    "summary": {
+      "$ref": "mas-research-trajectory-event.schema.json#/$defs/map_summary"
+    },
+    "current_focus": {
+      "$ref": "mas-research-trajectory-event.schema.json#/$defs/current_focus"
+    },
+    "active_branch": {
+      "$ref": "mas-research-trajectory-event.schema.json#/$defs/active_branch"
+    },
+    "accepted_event_count": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "event_set_sha256": {
+      "$ref": "mas-research-trajectory-event.schema.json#/$defs/sha256"
+    },
+    "latest_event_id": {
+      "oneOf": [
+        {
+          "$ref": "mas-research-trajectory-event.schema.json#/$defs/stable_id"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "updated_at": {
+      "oneOf": [
+        {
+          "type": "string",
+          "format": "date-time"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "description": "Maximum occurred_at from the accepted event set; never wall-clock build time."
+    },
+    "projector_version": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 100
+    },
+    "nodes": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/map_node"
+      },
+      "uniqueItems": true
+    },
+    "edges": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/map_edge"
+      },
+      "uniqueItems": true
+    },
+    "source_refs": {
+      "type": "array",
+      "items": {
+        "$ref": "mas-research-trajectory-event.schema.json#/$defs/typed_ref"
+      },
+      "uniqueItems": true
+    },
+    "conditions": {
+      "type": "array",
+      "items": {
+        "$ref": "mas-research-trajectory-event.schema.json#/$defs/research_condition"
+      },
+      "uniqueItems": true
+    },
+    "current_focus_node_refs": {
+      "type": "array",
+      "items": {
+        "$ref": "mas-research-trajectory-event.schema.json#/$defs/stable_id"
+      },
+      "uniqueItems": true
+    },
+    "active_branch_node_refs": {
+      "type": "array",
+      "items": {
+        "$ref": "mas-research-trajectory-event.schema.json#/$defs/stable_id"
+      },
+      "uniqueItems": true
+    },
+    "medical_narrative": {
+      "$ref": "mas-medical-narrative.schema.json"
+    },
+    "accepted_event_refs": {
+      "type": "array",
+      "items": {
+        "$ref": "mas-research-trajectory-event.schema.json#/$defs/exact_typed_ref"
+      },
+      "uniqueItems": true
+    }
+  },
+  "$defs": {
+    "map_node": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "kind",
+        "label",
+        "status",
+        "summary",
+        "branch_id",
+        "occurred_at",
+        "details",
+        "source_refs"
+      ],
+      "properties": {
+        "id": {
+          "$ref": "mas-research-trajectory-event.schema.json#/$defs/stable_id"
+        },
+        "kind": {
+          "enum": [
+            "hypothesis",
+            "test",
+            "finding",
+            "decision",
+            "route",
+            "artifact",
+            "human_gate"
+          ]
+        },
+        "label": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 240
+        },
+        "status": {
+          "enum": [
+            "proposed",
+            "planned",
+            "active",
+            "completed",
+            "supported",
+            "does_not_support",
+            "inconclusive",
+            "design_invalid",
+            "refined",
+            "superseded",
+            "continued",
+            "narrowed",
+            "pivoted",
+            "stopped",
+            "human_review_required",
+            "produced"
+          ]
+        },
+        "summary": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 1200
+        },
+        "branch_id": {
+          "oneOf": [
+            {
+              "$ref": "mas-research-trajectory-event.schema.json#/$defs/stable_id"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "occurred_at": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "details": {
+          "$ref": "mas-medical-narrative.schema.json"
+        },
+        "source_refs": {
+          "type": "array",
+          "items": {
+            "$ref": "mas-research-trajectory-event.schema.json#/$defs/typed_ref"
+          },
+          "uniqueItems": true
+        }
+      }
+    },
+    "map_edge": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "source",
+        "target",
+        "kind",
+        "label",
+        "status",
+        "source_refs"
+      ],
+      "properties": {
+        "id": {
+          "$ref": "mas-research-trajectory-event.schema.json#/$defs/stable_id"
+        },
+        "source": {
+          "$ref": "mas-research-trajectory-event.schema.json#/$defs/stable_id"
+        },
+        "target": {
+          "$ref": "mas-research-trajectory-event.schema.json#/$defs/stable_id"
+        },
+        "kind": {
+          "enum": [
+            "tests",
+            "supports",
+            "does_not_support",
+            "inconclusive",
+            "revises",
+            "supersedes",
+            "routes_to",
+            "produces",
+            "requires"
+          ]
+        },
+        "label": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 500
+        },
+        "status": {
+          "enum": [
+            "active",
+            "historical",
+            "blocked"
+          ]
+        },
+        "source_refs": {
+          "type": "array",
+          "items": {
+            "$ref": "mas-research-trajectory-event.schema.json#/$defs/typed_ref"
+          },
+          "uniqueItems": true
+        }
+      }
+    }
+  }
+}
