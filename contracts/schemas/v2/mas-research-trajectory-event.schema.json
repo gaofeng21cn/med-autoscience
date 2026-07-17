@@ -182,6 +182,9 @@
       },
       "then": {
         "properties": {
+          "provenance": {
+            "$ref": "#/$defs/accepted_provenance"
+          },
           "acceptance": {
             "$ref": "#/$defs/accepted_acceptance"
           }
@@ -732,6 +735,24 @@
           "$ref": "#/$defs/sha256"
         }
       }
+    },
+    "accepted_provenance": {
+      "allOf": [
+        {
+          "$ref": "#/$defs/provenance"
+        },
+        {
+          "properties": {
+            "stage_run_ref": {
+              "$ref": "#/$defs/typed_ref"
+            },
+            "attempt_ref": {
+              "$ref": "#/$defs/typed_ref"
+            }
+          }
+        }
+      ],
+      "description": "Accepted events require non-null StageRun and Attempt refs copied from the trusted decisive Stage context. Locator syntax remains Framework-owned."
     },
     "candidate_acceptance": {
       "type": "object",

@@ -54,6 +54,17 @@
     },
     "accepted_event_requires_exact_acceptance_ref": true,
     "acceptance_ref_must_match_trusted_stage_context": true,
+    "accepted_event_requires_trusted_provenance": true,
+    "accepted_provenance_context_fields": [
+      "provenance.stage_id",
+      "provenance.stage_run_ref",
+      "provenance.attempt_ref"
+    ],
+    "accepted_provenance_must_exactly_match_host_injected_decisive_stage_context": true,
+    "candidate_stage_run_and_attempt_refs_may_be_null": true,
+    "accepted_stage_run_and_attempt_refs_must_be_non_null": true,
+    "mas_must_not_construct_infer_or_normalize_stage_run_or_attempt_refs": true,
+    "stage_run_and_attempt_ref_locator_format_owner": "OPL Framework",
     "provider_completion_can_accept_event": false,
     "file_presence_can_accept_event": false,
     "framework_can_accept_or_rewrite_medical_judgment": false,

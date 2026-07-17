@@ -83,7 +83,9 @@ decision, or for an accepted artifact that materially changes the scientific
 story exposed to readers. Exact-byte packaging, hashing, transport, and ordinary
 handoff mechanics alone return `research_trajectory_delta_ref: null`. The
 reader-facing account describes the medical conclusion, limitations, route, and
-next research step without exposing packaging internals.
+next research step without exposing packaging internals. Copy provenance Stage,
+StageRun, and Attempt refs only from the host-injected Stage context; never
+construct, infer, or normalize them.
 
 ## Handoff
 

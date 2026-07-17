@@ -132,6 +132,33 @@ def test_acceptance_is_exact_and_basis_kind_coherent() -> None:
     assert list(validator.iter_errors(wrong_reviewer_kind))
 
 
+def test_accepted_provenance_requires_host_refs_while_candidate_may_defer() -> None:
+    validator = _validator("mas-research-trajectory-event.schema.json")
+
+    missing_stage_run = deepcopy(_fixture()["events"][0])
+    missing_stage_run["provenance"]["stage_run_ref"] = None
+    assert list(validator.iter_errors(missing_stage_run))
+
+    missing_attempt = deepcopy(_fixture()["events"][0])
+    missing_attempt["provenance"]["attempt_ref"] = None
+    assert list(validator.iter_errors(missing_attempt))
+
+    missing_stage = deepcopy(_fixture()["events"][0])
+    missing_stage["provenance"]["stage_id"] = None
+    assert list(validator.iter_errors(missing_stage))
+
+    candidate = deepcopy(_fixture()["events"][0])
+    candidate["lifecycle_status"] = "candidate"
+    candidate["provenance"]["stage_run_ref"] = None
+    candidate["provenance"]["attempt_ref"] = None
+    candidate["acceptance"] = {
+        "status": "candidate",
+        "basis": None,
+        "acceptance_ref": None,
+    }
+    validator.validate(candidate)
+
+
 def test_fixture_preserves_inconclusive_null_result_and_route_evolution() -> None:
     events = _fixture()["events"]
     assert [event["event_type"] for event in events] == [
@@ -201,6 +228,18 @@ def test_contract_fixes_paths_projection_and_no_inference_boundary() -> None:
     assert contract["medical_presentation_policy"][
         "framework_must_not_generate_or_infer_medical_wording"
     ] is True
+    acceptance_gate = contract["acceptance_gate"]
+    assert acceptance_gate["accepted_provenance_context_fields"] == [
+        "provenance.stage_id",
+        "provenance.stage_run_ref",
+        "provenance.attempt_ref",
+    ]
+    assert acceptance_gate[
+        "accepted_provenance_must_exactly_match_host_injected_decisive_stage_context"
+    ] is True
+    assert acceptance_gate[
+        "mas_must_not_construct_infer_or_normalize_stage_run_or_attempt_refs"
+    ] is True
     assert contract["authority_boundary"][
         "private_mas_runtime_controller_or_cli_allowed"
     ] is False
@@ -239,8 +278,11 @@ def test_six_stages_declare_trajectory_delta_and_medical_narrative_policy() -> N
         ]
 
         prompt = (ROOT / stage["prompt_ref"]).read_text(encoding="utf-8")
+        normalized_prompt = " ".join(prompt.split())
         assert "## Research Trajectory" in prompt
         assert "research_trajectory_delta_ref" in prompt
+        assert "host-injected Stage context" in normalized_prompt
+        assert "never construct, infer, or normalize" in normalized_prompt
 
     semantic_pack = (
         ROOT / "agent/stages/stage_native_semantic_pack.yaml"

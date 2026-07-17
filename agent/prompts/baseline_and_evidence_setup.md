@@ -53,7 +53,8 @@ materially. Preserve negative or null baselines, data insufficiency, and finding
 that the current design cannot interpret. Describe the validation method,
 finding, evidence judgment, limitation, and justified next step for medical
 readers. When no scientific semantic checkpoint occurred, return the field as
-`null`.
+`null`. Copy provenance Stage, StageRun, and Attempt refs only from the
+host-injected Stage context; never construct, infer, or normalize them.
 
 ## Handoff
 

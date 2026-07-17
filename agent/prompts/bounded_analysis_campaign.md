@@ -52,7 +52,8 @@ interpretation, or resulting continue, refine, narrow, pivot, stop, or researche
 decision route. Keep execution outcome, evidence interpretation, and route
 decision separate; a technical failure does not negate the hypothesis. Use
 medical Results and Discussion wording. Return `null` only when the work made no
-scientific semantic delta.
+scientific semantic delta. Copy provenance Stage, StageRun, and Attempt refs only
+from the host-injected Stage context; never construct, infer, or normalize them.
 
 ## Handoff
 

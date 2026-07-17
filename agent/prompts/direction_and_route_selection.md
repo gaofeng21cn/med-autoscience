@@ -50,7 +50,9 @@ hypothesis, selects or rejects a scientific route, changes a stop condition, or
 decides to continue, narrow, pivot, stop, or request researcher judgment. State
 the research question, current hypothesis, evidence basis, route rationale, and
 next research step in medical-paper language. When no such scientific delta was
-made, return the field as `null`.
+made, return the field as `null`. Copy provenance Stage, StageRun, and Attempt
+refs only from the host-injected Stage context; never construct, infer, or
+normalize them.
 
 ## Handoff
 

@@ -63,6 +63,12 @@ closeout packet until an exact MAS owner receipt or decisive independent reviewe
 receipt accepts it. A candidate, provider completion, readable file, test pass,
 ranking, or generated projection is not accepted study truth.
 
+Candidate provenance may leave the StageRun and Attempt refs null. Before an
+event is accepted, copy `stage_id`, `stage_run_ref`, and `attempt_ref` exactly
+from the host-injected trusted decisive Stage context. Never construct, infer,
+normalize, or repair these refs inside MAS; OPL Framework owns their locator
+format. Missing or mismatched accepted provenance fails closed.
+
 Only receipt-bound accepted exact bytes may be materialized at:
 
 ```text

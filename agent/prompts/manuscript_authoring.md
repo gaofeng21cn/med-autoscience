@@ -79,7 +79,8 @@ or research route. Ordinary prose, citation-formatting, rendering, and layout
 changes do not create trajectory events. Any user-visible summary must use
 medical-paper language and cite recognizable study evidence rather than runtime
 mechanics. Return the field as `null` when no scientific interpretation or route
-changed.
+changed. Copy provenance Stage, StageRun, and Attempt refs only from the
+host-injected Stage context; never construct, infer, or normalize them.
 
 ## Handoff
 

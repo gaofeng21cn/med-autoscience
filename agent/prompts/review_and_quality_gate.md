@@ -89,7 +89,9 @@ accepts a continue, refine, narrow, pivot, stop, or route-back decision. The
 reviewer must distinguish non-supportive, inconclusive, and design-invalid
 findings. Same-thread checking cannot accept a trajectory event; canonical entry
 requires the exact decisive reviewer or MAS owner receipt. Return `null` if the
-review changes no scientific interpretation or route.
+review changes no scientific interpretation or route. Copy provenance Stage,
+StageRun, and Attempt refs only from the host-injected Stage context; never
+construct, infer, or normalize them.
 
 ## Handoff
 
