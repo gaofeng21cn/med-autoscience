@@ -1,18 +1,19 @@
 # 活跃文档
 
 Owner: `MedAutoScience`
-Purpose: `active_execution_and_gap_index`
+Purpose: `active_truth_and_acceptance_index`
 State: `active_support`
-Machine boundary: 人读索引。机器真相归 declarative pack、contracts、唯一 authority function、OPL runtime ledgers、study workspaces、publication artifacts 与 owner receipts。
+Machine boundary: 人读索引。机器真相归 declarative pack、contracts、三个 registry-bound authority functions、OPL runtime ledgers、study workspaces、publication artifacts 与 owner receipts。
 
-本目录只承接当前执行、当前差距与仍有效的验收边界。唯一结构完成度 owner 是
+本目录只承接唯一 Active Truth 与仍有效的验收边界。当前摘要、开放差距和下一轮
+Agent prompt 的唯一 owner 是
 [MAS 理想目标态差距与完善计划](./mas-ideal-state-gap-plan.md)。旧 migration、
 private-control-plane、runtime implementation 和 dated proof 流水归 Git 或
 `docs/history/**`，不得从 active 文档恢复实现。
 
 ## 当前入口
 
-- [MAS 理想目标态差距与完善计划](./mas-ideal-state-gap-plan.md)：唯一结构完成度矩阵与 Live Evidence tail。
+- [MAS 理想目标态差距与完善计划](./mas-ideal-state-gap-plan.md)：唯一 Active Truth、Live Evidence tail 与下一轮 Agent prompt。
 - [MAS Stage Surface Standardization](./stage_surface_standardization_program.md)：declarative Stage/Review/route 形态。
 - [AI-first Paper Autonomy Closure](./ai_first_paper_autonomy_closure_program.md)：真实论文线验收合同。
 
@@ -20,7 +21,7 @@ private-control-plane、runtime implementation 和 dated proof 流水归 Git 或
 
 | 层次 | Owner | 当前作用 |
 | --- | --- | --- |
-| Repo/source 结构 | MAS maintainers | 保持 declarative pack + one authority function，阻止 private runtime/wrapper 复活 |
+| Repo/source 结构 | MAS maintainers | 保持 declarative pack + three minimal authority functions，阻止 private runtime/wrapper 复活 |
 | Generated/runtime platform | OPL | CLI/MCP/Skill/status/workbench、StageRun/Attempt、StateIndex、lifecycle、provider/package transport |
 | Domain authority | MAS | 医学 truth、quality/publication/artifact/memory 判断与 owner answer |
 | Live Evidence | MAS + OPL owner surfaces | 真实 StageRun、paper artifact、independent Review、publication/release readback |

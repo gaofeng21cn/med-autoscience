@@ -8,7 +8,7 @@ Machine boundary: 本文是人读约束；机器事实以 contracts、source、r
 ## 身份与 owner
 
 - canonical agent/package id 是 `mas`；machine `domain_id` / `target_domain_id` 是 `medautoscience`；repo/package/plugin locator 是 `med-autoscience`。
-- MAS 是 `Declarative Medical Research Pack + one registry-bound authority function`；OPL 持有 generated/hosted platform surfaces。
+- MAS 是 `Declarative Medical Research Pack + minimal registry-bound authority functions`；OPL 持有 generated/hosted platform surfaces。
 - OPL 不得写 MAS study truth、quality/publication verdict、canonical artifact body、memory body 或 owner receipt。
 - MAS 不得重新拥有 generic runtime、queue、attempt ledger、StateIndex、lifecycle/storage、observability、installer、CLI/MCP transport 或 workbench shell。
 - MAS 只输出 typed runtime request / route handoff并消费 OPL host 注入的 canonical payload；不得解析 OPL binary、spawn CLI、主动 probe runtime 或把缺失 host receipt 解释为 submission success。
@@ -16,7 +16,7 @@ Machine boundary: 本文是人读约束；机器事实以 contracts、source、r
 ## Pack 与 generated surfaces
 
 - `agent/` 是 canonical rich pack source；plugin carrier mirror 是分发要求，不是重复实现。
-- V2 action catalog 当前包含六个公开 Stage action，以及一个无用户 surface 的内部 authority action。普通 interface 从 catalog/schema 生成，不在 MAS 新增手写 parser、JSON-RPC glue 或 duplicate descriptor。
+- V2 action catalog 当前包含六个公开 Stage action，以及 candidate admission、paper mission 两个无用户 surface 的内部 authority actions。closed handler registry 另绑定 self-evolution closeout。普通 interface 从 catalog/schema 生成，不在 MAS 新增手写 parser、JSON-RPC glue 或 duplicate descriptor。
 - V2 generated/default interface 只绑定 Stage manifest 与 closed handler registry。旧 `domain_entry` 及其 status/read-model/queue caller 已物理退役，不得以 compatibility、diagnostic 或 test fixture 名义恢复为 active source。
 - Foundry 系列 policy 归唯一 OPL Framework；MAS 只保留 canonical refs、policy fingerprint、domain delta 与 false-authority envelope，不复制 policy body，也不安装 Framework policy carrier。
 - 环境依赖在 `contracts/runtime_environment_requirements.json` 声明；prepare/run 归 OPL。MAS 可保留 `mas_provisioning_allowed=false` 的只读环境检查/投影，但不在 import、workspace 或 installer 中安装、修复环境，也不授权 ready。

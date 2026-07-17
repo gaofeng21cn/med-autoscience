@@ -4,7 +4,7 @@ Status: `active_docs_governance`
 Owner: `MedAutoScience`
 Purpose: `docs_lifecycle_governance`
 State: `active_support`
-Machine boundary: 本文是人读治理入口。MAS 机器真相归 declarative pack/contracts、唯一 registry-bound authority handler、study workspace domain artifacts 与 MAS owner answers；OPL hosted StageRun/Attempt/readback 和 generated surfaces 持有通用运行与展示事实。语义化 `human_doc:*` id 只作人读关联。
+Machine boundary: 本文是人读治理入口。MAS 机器真相归 declarative pack/contracts、三个 registry-bound authority handlers、study workspace domain artifacts 与 MAS owner answers；OPL hosted StageRun/Attempt/readback 和 generated surfaces 持有通用运行与展示事实。语义化 `human_doc:*` id 只作人读关联。
 
 ## 当前结论
 

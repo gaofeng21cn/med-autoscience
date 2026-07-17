@@ -3,20 +3,20 @@
 Owner: `MedAutoScience`
 Purpose: `project_current_truth`
 State: `active_current_truth`
-Machine boundary: 本文是人读概览。机器真相归 `agent/`、`contracts/`、唯一 registry-bound authority function、OPL runtime durable surfaces、真实 workspace artifact 与 owner receipts。
+Machine boundary: 本文是人读概览。机器真相归 `agent/`、`contracts/`、registry-bound authority functions、OPL runtime durable surfaces、真实 workspace artifact 与 owner receipts。
 
 `Med Auto Science`（canonical agent id：`mas`；machine domain id：`medautoscience`）是 OPL family 中的医学研究 domain agent。当前目标形态固定为：
 
-> `Declarative Medical Research Pack + OPL generated/hosted surfaces + one registry-bound authority function`
+> `Declarative Medical Research Pack + OPL generated/hosted surfaces + minimal registry-bound authority functions`
 
 MAS 描述医学研究阶段、知识、质量门、六个公开 Stage action、内部 authority handler binding 与环境需求，并保留无法声明化的医学 authority。OPL 根据这些声明生成或托管 CLI、MCP、Skill、product-entry、status、workbench、runtime lifecycle、StateIndex 和环境准备等通用平台面。
 
 ## 当前可交付形态
 
 - `agent/` 是 MAS declarative pack：primary skill、stages、knowledge、prompts 与 quality gates。
-- `contracts/action_catalog.json` 是 closed V2 catalog：六个公开 action 与六个 canonical Stage 一一对应；`paper_mission_authority_evaluate` 仅作为无用户 surface 的内部 authority action。
-- `contracts/domain_handler_registry.json` 只绑定纯 `evaluate_paper_mission_authority` callable；旧 domain entry、status/read-model、queue 和 transport caller 已从 active source 物理退役。
-- 唯一非声明式实现只校验 host 注入的 exact refs，并返回医学 owner receipt、route-back、quality debt、typed blocker 或 human gate；它不持有文件、网络、进程、session、lifecycle 或 transition authority。
+- `contracts/action_catalog.json` 是 closed V2 catalog：六个公开 action 与六个 canonical Stage 一一对应；candidate admission 与 paper mission 作为两个无用户 surface 的内部 authority actions。
+- `contracts/domain_handler_registry.json` 绑定 candidate admission、paper mission 与 self-evolution closeout 三个纯 callable；旧 domain entry、status/read-model、queue 和 transport caller 已从 active source 物理退役。
+- 三个最小非声明式实现只校验 host 注入的 exact refs，并返回对应医学 authority result；它们不持有文件、网络、进程、session、lifecycle 或 transition authority。
 - `contracts/runtime_environment_requirements.json` 只声明 MAS 的运行环境需求；环境解析、安装和运行归 OPL `env prepare/run`。
 - OPL 持有通用 runtime、queue、attempt ledger、retry/dead-letter、StateIndex、lifecycle/storage、observability 和 hosted workbench。
 

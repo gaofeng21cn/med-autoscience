@@ -31,7 +31,7 @@ canonical agent/package id 固定为 `mas`；machine `domain_id` / `target_domai
 
 `agent/` 与机器 contracts 描述：
 
-- 六个与 canonical Stage 一一对应的公开 action、一个无用户 surface 的内部 authority action，以及各自 input/output schema；
+- 六个与 canonical Stage 一一对应的公开 action、两个无用户 surface 的内部 authority actions，以及各自 input/output schema；
 - stage manifest、prompt、knowledge refs 和 quality gate；
 - domain route/profile、projection 与 forbidden-write boundary；
 - `analysis-display` 环境需求，包括 R/Bioconductor 依赖声明；

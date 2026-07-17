@@ -22,7 +22,7 @@ Machine boundary: 本文是人读导航。机器真相归 `agent/`、`contracts/
 
 ## 当前计划
 
-[MAS 理想目标态差距与完善计划](./active/mas-ideal-state-gap-plan.md) 是唯一结构完成度 owner。当前 repo/source/control-plane 已收敛为 declarative pack、OPL generated/hosted surfaces 与一个 registry-bound authority function；Live evidence 独立后置。
+[MAS 理想目标态差距与完善计划](./active/mas-ideal-state-gap-plan.md) 是唯一 Active Truth owner，持有当前结构摘要、开放差距与下一轮 Agent prompt。当前机器形态是 declarative pack、OPL generated/hosted surfaces 与三个 registry-bound minimal authority functions；Live evidence 独立后置。
 
 ## 当前架构入口
 

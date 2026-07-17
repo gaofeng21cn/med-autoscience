@@ -7,7 +7,7 @@ Machine boundary: 本文只记录退役分类和替代 owner，不是 runtime、
 
 ## 退役结论
 
-MAS 已收敛为 `Declarative Medical Research Pack + OPL generated/hosted surfaces + one registry-bound authority function`。旧私有 CLI、MCP、product wrapper、scheduler、runner、queue、session store、lifecycle/SQLite、StateIndex、status/workbench、provider transport、package/environment provisioner、NextAction、PaperRecovery、stage terminalizer 和 callable validator 已从 active source 与 machine contracts 物理删除。
+本记录保存 MAS 私有控制面退役时的 owner 迁移与 no-resurrection 边界。当前结构摘要不由本历史文档持有；请读 [当前状态](../status.md) 与 [Active Truth](../active/mas-ideal-state-gap-plan.md)。旧私有 CLI、MCP、product wrapper、scheduler、runner、queue、session store、lifecycle/SQLite、StateIndex、status/workbench、provider transport、package/environment provisioner、NextAction、PaperRecovery、stage terminalizer 和 callable validator 已从 active source 与 machine contracts 物理删除。
 
 替代 owner 如下：
 
@@ -20,18 +20,22 @@ MAS 已收敛为 `Declarative Medical Research Pack + OPL generated/hosted surfa
 | package、environment 与 submission resource materialization | OPL Pack / environment substrate |
 | 语义 route decision | decisive Codex Attempt |
 | transition materialization | OPL StageRun controller |
-| 医学 truth、quality、artifact、publication 与 owner answer | MAS declarative policy + independent Review + registry-bound authority function |
+| 医学 truth、quality、artifact、publication 与 owner answer | MAS declarative policy + independent Review + registry-bound authority functions |
 
 `skill` 与 `domain_handler` 出现在默认 surface 退役清单中，指的是 MAS
 repo-local wrapper / default caller 已退役，不是删除领域输入。Canonical primary
-skill 继续作为 declarative pack source 并由 OPL 生成/托管；
-`evaluate_paper_mission_authority` 继续作为 registry-bound 医学 authority function
-被 OPL host 调用。两者都不拥有 CLI、MCP、session、lifecycle、transport 或
-transition materialization。
+skill 继续作为 declarative pack source 并由 OPL 生成/托管；closed registry 当前绑定
+candidate admission、paper mission 与 self-evolution closeout 三个医学 authority
+functions。它们都不拥有 CLI、MCP、session、lifecycle、transport 或 transition
+materialization。
 
-## 唯一保留实现
+## 保留实现边界
 
-`src/med_autoscience/authority_handlers/paper_mission.py::evaluate_paper_mission_authority` 是唯一保留的非声明式 authority function。它只消费 host 注入的 exact refs，执行确定性医学 authority evaluation，并返回 owner receipt、route-back、quality debt、typed blocker、human gate 或 invalid-host-input；它不做文件、网络、进程、runtime、package、session 或 transition 操作。
+三个 authority handlers 只消费 host 注入的 exact refs，执行确定性医学 authority
+evaluation，并返回 contract-bound result；共享 helper 只做纯校验。它们不做文件、
+网络、进程、runtime、package、session 或 transition 操作。精确 callable 与 schema
+以 `contracts/domain_handler_registry.json`、`contracts/action_catalog.json` 和当前 source
+为准，本历史文档不复制第二份 handler catalog。
 
 ## Receipt 边界
 
