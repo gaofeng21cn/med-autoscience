@@ -68,11 +68,28 @@ HANDOFF_PROJECTION_ROLES = [
     "next_action_envelope",
     "submission_projection_manifest",
 ]
+PACKAGE_CURRENTNESS_PHASES = [
+    "source_review",
+    "descriptor_freeze",
+    "deterministic_build_a",
+    "deterministic_build_b",
+    "exact_byte_delivery_review",
+    "publish",
+    "domain_status_and_publication_eval_reconciliation",
+]
 
 
 def _stage_manifest() -> dict[str, object]:
     return json.loads(
         (REPO_ROOT / "agent/stages/manifest.json").read_text(encoding="utf-8")
+    )
+
+
+def _paper_stage_pack() -> dict[str, object]:
+    return json.loads(
+        (REPO_ROOT / "contracts/mas-paper-study-stage-pack.json").read_text(
+            encoding="utf-8"
+        )
     )
 
 
@@ -136,4 +153,25 @@ def test_stage_manifest_declares_domain_extensions_for_opl_generated_plane() -> 
         "handoff_review_boundary" not in stage
         for stage in stages
         if stage["stage_id"] != "finalize_and_publication_handoff"
+    )
+
+
+def test_publication_handoff_requires_one_exact_generation_package_sequence() -> None:
+    stage_pack = _paper_stage_pack()
+    handoff = next(
+        stage
+        for stage in stage_pack["stages"]
+        if stage["stage_id"] == "08-publication_package_handoff"
+    )
+    currentness = handoff["done_definition"][
+        "same_generation_package_currentness_contract"
+    ]
+
+    assert currentness["ordered_phases"] == PACKAGE_CURRENTNESS_PHASES
+    assert currentness["single_generation_required"] is True
+    assert currentness["exact_source_and_package_bytes_required"] is True
+    assert currentness["stale_owner_sidecar_rejected"] is True
+    assert (
+        currentness["phase_completion_is_not_publication_or_submission_authority"]
+        is True
     )

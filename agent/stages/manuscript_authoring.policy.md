@@ -8,6 +8,15 @@ path; affected derived artifacts are rebuilt and bound to fresh proof before a
 quality or ready claim. A manuscript packet is required before such a claim,
 not as the first action of the stage.
 
+First-draft authoring consumes `medical-manuscript-writing`. Registry, phenotype-
+atlas, or treatment-gap studies also consume
+`medical-registry-atlas-story-architect`; quantitative, table, and figure work
+routes to matching specialist Skills. Templates may inform implementation but
+never replace professional Skill consumption. The generation's existing medical,
+statistical, reference, and display lanes are the cross-domain pre-review.
+Missing or stale receipts are quality debt in Authoring and Review, and fail
+closed only for quality/export/finalize/publication/submission claims.
+
 Derived-artifact iteration follows
 `contracts/artifact_iteration_efficiency_policy.json`. The executor classifies
 the change and computes a bounded impact plan before heavyweight side effects,

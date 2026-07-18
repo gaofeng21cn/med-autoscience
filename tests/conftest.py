@@ -280,9 +280,61 @@ class AuthorityRecordFactory:
                     "invocation_id": (
                         f"invocation:{figure_id}:medical-figure-composer"
                     ),
-                    "consumed_rule_refs": [
-                        "medical-figure-composer#workflow"
-                    ],
+                    "consumed_rule_refs": ["medical-figure-composer#workflow"],
+                }
+            )
+        return invocations
+
+    @classmethod
+    def professional_manuscript_skill_invocations(
+        cls,
+        artifacts: list[dict[str, Any]],
+    ) -> list[dict[str, Any]]:
+        role_sets = {
+            "medical-manuscript-writing": {"canonical_manuscript"},
+            "medical-registry-atlas-story-architect": {
+                "canonical_manuscript",
+                "claim_evidence_map",
+            },
+            "medical-statistical-review": {"analysis_output", "numeric_trace"},
+            "medical-table-design": {"table_catalog", "table_file"},
+        }
+        invocations = []
+        for skill_id, roles in role_sets.items():
+            bindings = [
+                {
+                    key: artifact[key]
+                    for key in ("member_id", "role", "ref", "size_bytes", "sha256")
+                }
+                for artifact in artifacts
+                if artifact["role"] in roles
+            ]
+            invocations.append(
+                {
+                    "surface_kind": (
+                        "mas_professional_manuscript_skill_invocation_candidate"
+                    ),
+                    "schema_version": 1,
+                    "receipt_id": f"mas-professional-manuscript-skill:{skill_id}",
+                    "skill_id": skill_id,
+                    "package_id": "mas-scholar-skills",
+                    "package_version": "test-version",
+                    "package_source_ref": "git:mas-scholar-skills@test",
+                    "package_source_sha256": cls.digest(
+                        "mas-scholar-skills:test-source"
+                    ),
+                    "skill_source_ref": f"skills/{skill_id}/SKILL.md",
+                    "skill_source_sha256": cls.digest(f"skill-source:{skill_id}"),
+                    "invocation_id": f"invocation:first-draft:{skill_id}",
+                    "input_contract_ref": "mas-manuscript-contract://first-draft",
+                    "input_sha256": cls.digest("manuscript-contract:first-draft"),
+                    "consumed_rule_refs": [f"{skill_id}#workflow"],
+                    "output_artifact_bindings": bindings,
+                    "template_substitution": False,
+                    "status": "completed",
+                    "refs_only": True,
+                    "authority": False,
+                    "publication_ready": False,
                 }
             )
         return invocations
@@ -302,7 +354,6 @@ class AuthorityRecordFactory:
         include_professional_skill_invocations: bool = True,
         omit_professional_skill_ids: tuple[str, ...] = (),
         professional_figure_composition_mode: str = "single_canvas_direct",
-        professional_skill_binding_sha_override: str | None = None,
         candidate_receipt: dict[str, Any] | None = None,
         review_receipts: list[dict[str, Any]] | None = None,
     ) -> tuple[dict[str, Any], dict[str, Any]]:
@@ -374,24 +425,33 @@ class AuthorityRecordFactory:
             )
 
             core["review_scopes"] = build_review_scopes(artifacts, scope)
-            if include_professional_skill_invocations and scope != "analysis_generation":
+            if (
+                include_professional_skill_invocations
+                and scope != "analysis_generation"
+            ):
                 generated_invocations = deepcopy(
                     professional_skill_invocations
                     if professional_skill_invocations is not None
-                    else cls.professional_figure_skill_invocations(
-                        artifacts,
-                        composition_mode=professional_figure_composition_mode,
-                    )
+                    else [
+                        *cls.professional_manuscript_skill_invocations(artifacts),
+                        *cls.professional_figure_skill_invocations(
+                            artifacts,
+                            composition_mode=professional_figure_composition_mode,
+                        ),
+                    ]
                 )
                 generated_invocations = [
                     item
                     for item in generated_invocations
                     if item["skill_id"] not in set(omit_professional_skill_ids)
                 ]
-                if professional_skill_binding_sha_override is not None:
-                    for item in generated_invocations:
-                        for binding in item["output_artifact_bindings"]:
-                            binding["sha256"] = professional_skill_binding_sha_override
+                generated_invocations.sort(
+                    key=lambda item: (
+                        item["surface_kind"],
+                        item.get("figure_id", ""),
+                        item["skill_id"],
+                    )
+                )
                 core["professional_skill_invocations"] = generated_invocations
         manifest_sha256 = cls.fingerprint(core)
         manifest = {
@@ -619,12 +679,9 @@ class AuthorityRecordFactory:
                 review_scope_member_projection,
             )
 
-            binding_members = review_scope_member_projection(
-                scope["reviewed_members"]
-            )
+            binding_members = review_scope_member_projection(scope["reviewed_members"])
             owner_refs_by_member_id = {
-                item["member_id"]: item["ref"]
-                for item in scope["reviewed_members"]
+                item["member_id"]: item["ref"] for item in scope["reviewed_members"]
             }
             authority_record = {
                 "surface_kind": "mas_review_input_snapshot_authority",
@@ -722,7 +779,6 @@ class AuthorityRecordFactory:
         include_professional_skill_invocations: bool = True,
         omit_professional_skill_ids: tuple[str, ...] = (),
         professional_figure_composition_mode: str = "single_canvas_direct",
-        professional_skill_binding_sha_override: str | None = None,
     ) -> dict[str, Any]:
         from med_autoscience.authority_handlers.candidate_admission import (
             evaluate_candidate_admission_authority,
@@ -755,12 +811,7 @@ class AuthorityRecordFactory:
                 include_professional_skill_invocations
             ),
             omit_professional_skill_ids=omit_professional_skill_ids,
-            professional_figure_composition_mode=(
-                professional_figure_composition_mode
-            ),
-            professional_skill_binding_sha_override=(
-                professional_skill_binding_sha_override
-            ),
+            professional_figure_composition_mode=(professional_figure_composition_mode),
         )
         producer_output_ref = cls.exact_ref(
             "opl_action_output", f"paper-output-{scope}"
@@ -821,12 +872,8 @@ class AuthorityRecordFactory:
                     "review_lane": wrapper["receipt"]["review_lane"],
                     "review_authority_epoch": wrapper["receipt"]["authority_epoch"],
                     "currentness_status": "fresh",
-                    "current_rubric_ref": deepcopy(
-                        wrapper["receipt"]["rubric_ref"]
-                    ),
-                    "review_scope_sha256": wrapper["receipt"][
-                        "review_scope_sha256"
-                    ],
+                    "current_rubric_ref": deepcopy(wrapper["receipt"]["rubric_ref"]),
+                    "review_scope_sha256": wrapper["receipt"]["review_scope_sha256"],
                     "review_receipt_issued_generation_id": wrapper["receipt"][
                         "issued_generation_id"
                     ],
@@ -976,8 +1023,7 @@ class AuthorityRecordFactory:
     ) -> None:
         finding_statuses = finding_statuses or {"OPL-REV-001": "closed"}
         revision_intake_refs = [
-            cls.exact_ref("opl_revision_intake", name)
-            for name in revision_intake_names
+            cls.exact_ref("opl_revision_intake", name) for name in revision_intake_names
         ]
         revision_intake_refs.sort(
             key=lambda item: (item["ref"], item["size_bytes"], item["sha256"])

@@ -107,11 +107,18 @@
       }
     },
     "professional_skill_invocations": {
-      "description": "Optional on legacy v2 manifests. New manuscript/publication generations with figure_file members carry exact professional Figure Skill candidate receipts. Missing receipts remain quality debt rather than an invalid legacy manifest.",
+      "description": "Optional on legacy v2 manifests. Current manuscript/publication generations carry exact manuscript and Figure Skill candidate receipts. Missing receipts remain quality debt rather than an invalid legacy manifest.",
       "type": "array",
       "uniqueItems": true,
       "items": {
-        "$ref": "#/$defs/professional_figure_skill_invocation"
+        "oneOf": [
+          {
+            "$ref": "#/$defs/professional_figure_skill_invocation"
+          },
+          {
+            "$ref": "#/$defs/professional_manuscript_skill_invocation"
+          }
+        ]
       }
     },
     "independent_review_receipts": {
@@ -494,6 +501,109 @@
           }
         }
       ]
+    },
+    "professional_manuscript_skill_invocation": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "surface_kind",
+        "schema_version",
+        "receipt_id",
+        "skill_id",
+        "package_id",
+        "package_version",
+        "package_source_ref",
+        "package_source_sha256",
+        "skill_source_ref",
+        "skill_source_sha256",
+        "invocation_id",
+        "input_contract_ref",
+        "input_sha256",
+        "consumed_rule_refs",
+        "output_artifact_bindings",
+        "template_substitution",
+        "status",
+        "refs_only",
+        "authority",
+        "publication_ready"
+      ],
+      "properties": {
+        "surface_kind": {
+          "const": "mas_professional_manuscript_skill_invocation_candidate"
+        },
+        "schema_version": {
+          "const": 1
+        },
+        "receipt_id": {
+          "$ref": "#/$defs/non_empty_text"
+        },
+        "skill_id": {
+          "enum": [
+            "medical-manuscript-writing",
+            "medical-registry-atlas-story-architect",
+            "medical-statistical-review",
+            "medical-table-design"
+          ]
+        },
+        "package_id": {
+          "const": "mas-scholar-skills"
+        },
+        "package_version": {
+          "$ref": "#/$defs/non_empty_text"
+        },
+        "package_source_ref": {
+          "$ref": "#/$defs/non_empty_text"
+        },
+        "package_source_sha256": {
+          "$ref": "#/$defs/sha256"
+        },
+        "skill_source_ref": {
+          "$ref": "#/$defs/non_empty_text"
+        },
+        "skill_source_sha256": {
+          "$ref": "#/$defs/sha256"
+        },
+        "invocation_id": {
+          "$ref": "#/$defs/non_empty_text"
+        },
+        "input_contract_ref": {
+          "$ref": "#/$defs/non_empty_text"
+        },
+        "input_sha256": {
+          "$ref": "#/$defs/sha256"
+        },
+        "consumed_rule_refs": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": {
+            "$ref": "#/$defs/non_empty_text"
+          }
+        },
+        "output_artifact_bindings": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": {
+            "$ref": "#/$defs/generation_artifact_v2"
+          }
+        },
+        "template_substitution": {
+          "const": false
+        },
+        "status": {
+          "const": "completed"
+        },
+        "refs_only": {
+          "const": true
+        },
+        "authority": {
+          "const": false
+        },
+        "publication_ready": {
+          "const": false
+        }
+      }
     },
     "review_scope": {
       "type": "object",

@@ -114,6 +114,7 @@
       "must_preserve_professional_skill_invocation_refs": true,
       "professional_skill_ref_families": [
         "medical-manuscript-writing",
+        "medical-registry-atlas-story-architect",
         "medical-manuscript-review",
         "medical-statistical-review",
         "medical-table-design",
@@ -137,6 +138,34 @@
         "missing_or_stale_receipt_creates_quality_debt": true,
         "quality_debt_blocks_quality_export_publication_and_submission_claims": true
       },
+      "first_draft_professional_skill_routing": {
+        "base_required_skill": "medical-manuscript-writing",
+        "study_type_specialists": {
+          "registry_or_atlas": "medical-registry-atlas-story-architect"
+        },
+        "conditional_routes": {
+          "quantitative_analysis_or_numeric_trace": "medical-statistical-review",
+          "paper_facing_table": "medical-table-design",
+          "paper_facing_figure": [
+            "medical-figure-design",
+            "medical-figure-style"
+          ],
+          "assembled_figure_panels": "medical-figure-composer"
+        },
+        "professional_skill_consumption_may_be_replaced_by_template": false,
+        "pre_review_contract": {
+          "reuse_existing_manifest_review_scopes": true,
+          "required_lanes": [
+            "medical",
+            "statistical",
+            "reference",
+            "display"
+          ],
+          "missing_or_stale_receipt_outcome_for_manuscript_or_review": "completed_with_quality_debt",
+          "ordinary_stage_transition_allowed": true,
+          "blocks_quality_export_finalize_publication_and_submission_ready_claims": true
+        }
+      },
       "required_observability_fields": [
         "duration",
         "token_usage",
@@ -155,6 +184,7 @@
       "target_source_of_truth": "external_repo:mas-scholar-skills",
       "target_skill_ref_families": [
         "medical-manuscript-writing",
+        "medical-registry-atlas-story-architect",
         "medical-manuscript-review",
         "medical-statistical-review",
         "medical-table-design",
@@ -430,6 +460,21 @@
       },
       "purpose": "Turn the reviewed manuscript, evidence, package, and gate refs into a publication handoff decision: ready-for-human-submission, human-gate, route-back, or typed blocker.",
       "done_definition": {
+        "same_generation_package_currentness_contract": {
+          "ordered_phases": [
+            "source_review",
+            "descriptor_freeze",
+            "deterministic_build_a",
+            "deterministic_build_b",
+            "exact_byte_delivery_review",
+            "publish",
+            "domain_status_and_publication_eval_reconciliation"
+          ],
+          "single_generation_required": true,
+          "exact_source_and_package_bytes_required": true,
+          "stale_owner_sidecar_rejected": true,
+          "phase_completion_is_not_publication_or_submission_authority": true
+        },
         "publication_ready_claim_requires": [
           "AI reviewer-backed publication_eval/latest.json is current against the manuscript, evidence ledger, claim map, and review ledger refs",
           "publication gate receipt is current against the same AI reviewer eval and package manifest refs",

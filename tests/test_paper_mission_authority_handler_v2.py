@@ -37,6 +37,15 @@ def _assert_progress_debt(
     return result["route_back"]
 
 
+def _assert_finalize_route_back(
+    result: dict[str, Any], reason_code: str
+) -> dict[str, Any]:
+    assert result["status"] == "route_back"
+    assert result["stage_outcome"]["stage_transition_allowed"] is False
+    assert result["route_back"]["reason_code"] == reason_code
+    return result["route_back"]
+
+
 def _output_validator() -> Draft202012Validator:
     schema = json.loads(
         (
@@ -73,9 +82,7 @@ def _authorize_reused_lane(
         if item["receipt"]["review_lane"] == lane
     )
     current["generation_manifest"]["independent_review_receipts"] = [
-        deepcopy(origin_wrapper)
-        if item["receipt"]["review_lane"] == lane
-        else item
+        deepcopy(origin_wrapper) if item["receipt"]["review_lane"] == lane else item
         for item in current["generation_manifest"]["independent_review_receipts"]
     ]
     lane_state = next(
@@ -95,9 +102,7 @@ def _authorize_reused_lane(
                 for item in current["generation_manifest"]["review_scopes"]
                 if item["review_lane"] == lane
             ),
-            "review_receipt_issued_generation_id": receipt[
-                "issued_generation_id"
-            ],
+            "review_receipt_issued_generation_id": receipt["issued_generation_id"],
             "review_receipt_issued_generation_manifest_sha256": receipt[
                 "issued_generation_manifest_sha256"
             ],
@@ -160,7 +165,10 @@ def test_missing_professional_figure_skill_receipts_are_progress_first_quality_d
     authority_records: Any,
 ) -> None:
     request = authority_records.paper_request(
-        include_professional_skill_invocations=False
+        omit_professional_skill_ids=(
+            "medical-figure-design",
+            "medical-figure-style",
+        )
     )
 
     result = _evaluate(request)
@@ -169,9 +177,12 @@ def test_missing_professional_figure_skill_receipts_are_progress_first_quality_d
         result, "professional_figure_skill_consumption_evidence_missing"
     )
     assert route_back["next_owner"] == "mission_executor"
-    assert result["quality_debt"][
-        "blocks_quality_publication_export_and_submission_claims"
-    ] is True
+    assert (
+        result["quality_debt"][
+            "blocks_quality_publication_export_and_submission_claims"
+        ]
+        is True
+    )
     _output_validator().validate(result)
 
 
@@ -205,11 +216,16 @@ def test_assembled_panels_require_composer_receipt_without_blocking_liveness(
 def test_stale_professional_skill_output_binding_is_quality_debt(
     authority_records: Any,
 ) -> None:
-    request = authority_records.paper_request(
-        professional_skill_binding_sha_override=authority_records.digest(
-            "stale-figure-output"
-        )
+    request = authority_records.paper_request()
+    figure_invocation = next(
+        item
+        for item in request["generation_manifest"]["professional_skill_invocations"]
+        if item["skill_id"] == "medical-figure-design"
     )
+    figure_invocation["output_artifact_bindings"][0]["sha256"] = (
+        authority_records.digest("stale-figure-output")
+    )
+    authority_records.refresh_paper_manifest_identity(request)
 
     result = _evaluate(request)
 
@@ -223,7 +239,10 @@ def test_finalize_routes_back_when_professional_figure_receipts_are_missing(
     request = authority_records.paper_request(
         scope="publication_generation",
         stage_id="finalize_and_publication_handoff",
-        include_professional_skill_invocations=False,
+        omit_professional_skill_ids=(
+            "medical-figure-design",
+            "medical-figure-style",
+        ),
     )
 
     result = _evaluate(request)
@@ -234,6 +253,90 @@ def test_finalize_routes_back_when_professional_figure_receipts_are_missing(
         "professional_figure_skill_consumption_evidence_missing"
     )
     _output_validator().validate(result)
+
+
+def test_missing_manuscript_writing_skill_is_fail_open_until_finalize(
+    authority_records: Any,
+) -> None:
+    authoring = authority_records.paper_request(
+        omit_professional_skill_ids=("medical-manuscript-writing",)
+    )
+    result = _evaluate(authoring)
+    _assert_progress_debt(result, "professional_manuscript_writing_consumption_missing")
+
+    finalize = authority_records.paper_request(
+        scope="publication_generation",
+        stage_id="finalize_and_publication_handoff",
+        omit_professional_skill_ids=("medical-manuscript-writing",),
+    )
+    result = _evaluate(finalize)
+    assert result["status"] == "route_back"
+    assert result["stage_outcome"]["stage_transition_allowed"] is False
+    assert result["route_back"]["reason_code"] == (
+        "professional_manuscript_writing_consumption_missing"
+    )
+
+
+def test_host_cannot_turn_manuscript_skill_candidate_into_authority(
+    authority_records: Any,
+) -> None:
+    request = authority_records.paper_request()
+    invocation = next(
+        item
+        for item in request["generation_manifest"]["professional_skill_invocations"]
+        if item["skill_id"] == "medical-manuscript-writing"
+    )
+    invocation["authority"] = True
+
+    result = _evaluate(request)
+
+    assert result["status"] == "invalid_host_input"
+    assert "cannot grant authority" in result["error"]["detail"]
+
+
+def test_first_draft_cross_domain_pre_review_missing_is_progress_first_debt(
+    authority_records: Any,
+) -> None:
+    request = authority_records.paper_request(stage_id="review_and_quality_gate")
+    request["generation_manifest"]["independent_review_receipts"] = [
+        wrapper
+        for wrapper in request["generation_manifest"]["independent_review_receipts"]
+        if wrapper["receipt"]["review_lane"] != "medical"
+    ]
+
+    result = _evaluate(request)
+
+    assert result["status"] == "completed_with_quality_debt"
+    assert result["stage_outcome"]["stage_transition_allowed"] is True
+    assert (
+        "first_draft_cross_domain_pre_review_missing_or_stale"
+        in result["quality_debt"]["reason_codes"]
+    )
+
+
+def test_finalize_rejects_stale_exact_byte_package_after_package_change(
+    authority_records: Any,
+) -> None:
+    request = authority_records.paper_request(
+        scope="publication_generation",
+        stage_id="finalize_and_publication_handoff",
+    )
+    package_member = next(
+        item
+        for item in request["generation_manifest"]["artifacts"]
+        if item["role"] == "final_zip_member"
+    )
+    package_member["sha256"] = authority_records.digest("dm003-new-package-bytes")
+    authority_records.refresh_paper_manifest_identity(request)
+
+    result = _evaluate(request)
+
+    assert result["status"] == "route_back"
+    assert result["stage_outcome"]["stage_transition_allowed"] is False
+    assert result["route_back"]["reason_code"] in {
+        "independent_review_receipt_not_current",
+        "review_currentness_scope_mismatch",
+    }
 
 
 def test_invalid_present_professional_skill_package_identity_fails_closed(
@@ -269,9 +372,7 @@ def test_missing_revision_consumption_binding_is_progress_first_quality_debt(
 
     result = _evaluate(request)
 
-    route_back = _assert_progress_debt(
-        result, "revision_consumption_binding_required"
-    )
+    route_back = _assert_progress_debt(result, "revision_consumption_binding_required")
     assert route_back["next_owner"] == "mas_revision_consumption_owner"
     _output_validator().validate(result)
 
@@ -326,9 +427,9 @@ def test_consumed_revision_closure_is_projected_into_owner_receipt(
     validator = _output_validator()
     validator.validate(result)
     forged_open_projection = deepcopy(result)
-    forged_open_projection["owner_receipt"]["revision_consumption"][
-        "finding_closures"
-    ][0]["status"] = "partially_closed"
+    forged_open_projection["owner_receipt"]["revision_consumption"]["finding_closures"][
+        0
+    ]["status"] = "partially_closed"
     assert list(validator.iter_errors(forged_open_projection))
 
 
@@ -346,9 +447,7 @@ def test_partial_revision_finding_closure_is_quality_debt(
 
     result = _evaluate(request)
 
-    route_back = _assert_progress_debt(
-        result, "revision_finding_closure_incomplete"
-    )
+    route_back = _assert_progress_debt(result, "revision_finding_closure_incomplete")
     assert route_back["next_owner"] == "mas_revision_consumption_owner"
 
 
@@ -511,9 +610,7 @@ def test_review_receipt_requires_mas_issuer_role_verdict_and_independence(
     wrapper["receipt"]["defect_refs"] = []
     authority_records.reseal_review_wrapper(wrapper)
     result = _evaluate(forged_verdict)
-    route_back = _assert_progress_debt(
-        result, "independent_review_receipt_not_current"
-    )
+    route_back = _assert_progress_debt(result, "independent_review_receipt_not_current")
     assert route_back["reason_code"] == "independent_review_receipt_not_current"
 
     producer_as_reviewer = authority_records.paper_request()
@@ -549,6 +646,13 @@ def test_stale_review_bytes_and_metadata_only_rewrite_cannot_be_reused(
         if item["role"] == "table_file"
     )
     table["sha256"] = authority_records.digest("changed-table-bytes")
+    table_binding = next(
+        binding
+        for invocation in stale["generation_manifest"]["professional_skill_invocations"]
+        for binding in invocation["output_artifact_bindings"]
+        if binding["member_id"] == table["member_id"]
+    )
+    table_binding["sha256"] = table["sha256"]
     authority_records.refresh_paper_manifest_identity(stale)
     result = _evaluate(stale)
     _assert_progress_debt(result, "independent_review_receipt_not_current")
@@ -595,11 +699,11 @@ def test_v2_review_scopes_are_mas_owned_generation_independent_and_exact_byte_fu
     transport = first_result["owner_receipt"]["artifact_projection_transport"]
     assert "member_id" not in transport["projection_manifest_ref"]
     assert all(
-        "member_id" not in item
-        for item in transport["generation_bound_truth_members"]
+        "member_id" not in item for item in transport["generation_bound_truth_members"]
     )
     first_scopes = {
-        item["review_lane"]: item for item in first["generation_manifest"]["review_scopes"]
+        item["review_lane"]: item
+        for item in first["generation_manifest"]["review_scopes"]
     }
     second_scopes = {
         item["review_lane"]: item
@@ -656,9 +760,7 @@ def test_v2_public_manifest_builder_is_canonical_receipt_free_and_fail_closed(
 
     assert built == rebuilt
     assert built["independent_review_receipts"] == []
-    assert [
-        item["review_lane"] for item in built["review_scopes"]
-    ] == sorted(
+    assert [item["review_lane"] for item in built["review_scopes"]] == sorted(
         {
             "medical",
             "statistical",
@@ -668,9 +770,10 @@ def test_v2_public_manifest_builder_is_canonical_receipt_free_and_fail_closed(
             "exact_byte_package",
         }
     )
-    assert normalize_generation_manifest(built)[
-        "generation_manifest_sha256"
-    ] == built["generation_manifest_sha256"]
+    assert (
+        normalize_generation_manifest(built)["generation_manifest_sha256"]
+        == built["generation_manifest_sha256"]
+    )
 
     duplicate = deepcopy(artifacts)
     duplicate[1]["member_id"] = duplicate[0]["member_id"]
@@ -782,8 +885,7 @@ def test_v2_professional_scope_is_locator_invariant_but_member_identity_sensitiv
     for lane in {"medical", "statistical", "reference", "display", "publication"}:
         assert renamed_digests[lane] == baseline_digests[lane]
     assert (
-        renamed_digests["exact_byte_package"]
-        != baseline_digests["exact_byte_package"]
+        renamed_digests["exact_byte_package"] != baseline_digests["exact_byte_package"]
     )
     for lane in {"display", "publication", "exact_byte_package"}:
         assert replacement_digests[lane] != baseline_digests[lane]
@@ -808,9 +910,7 @@ def test_v2_member_order_is_canonical_and_member_id_is_required_unique(
     manifest["independent_review_receipts"].reverse()
     for wrapper in manifest["independent_review_receipts"]:
         wrapper["receipt"]["reviewed_members"].reverse()
-    reordered["review_authority"]["currentness_receipt"][
-        "lane_currentness"
-    ].reverse()
+    reordered["review_authority"]["currentness_receipt"]["lane_currentness"].reverse()
     assert _evaluate(reordered) == _evaluate(request)
 
     missing = deepcopy(request)
@@ -832,9 +932,9 @@ def test_v2_member_order_is_canonical_and_member_id_is_required_unique(
         for item in duplicate_review["generation_manifest"]["review_scopes"]
         if item["review_lane"] == "exact_byte_package"
     )
-    exact_scope["reviewed_members"][1]["member_id"] = exact_scope[
-        "reviewed_members"
-    ][0]["member_id"]
+    exact_scope["reviewed_members"][1]["member_id"] = exact_scope["reviewed_members"][
+        0
+    ]["member_id"]
     result = _evaluate(duplicate_review)
     assert result["status"] == "invalid_host_input"
     assert "duplicate member_id" in result["error"]["detail"]
@@ -902,7 +1002,7 @@ def test_v2_currentness_reuses_only_exact_unchanged_lane_scopes(
     )
     authority_records.reseal_review_currentness(forged)
     result = _evaluate(forged)
-    route_back = _assert_progress_debt(
+    route_back = _assert_finalize_route_back(
         result, "independent_review_receipt_not_current"
     )
     assert route_back["reason_code"] == "independent_review_receipt_not_current"
@@ -948,15 +1048,15 @@ def test_v2_candidate_semantic_scope_controls_professional_lane_reuse(
 
     result = _evaluate(changed)
 
-    route_back = _assert_progress_debt(
+    route_back = _assert_finalize_route_back(
         result, "independent_review_stale_after_scope_change"
     )
     assert [
         item["review_lane"] for item in route_back["affected_review_lanes"]
     ] == list(professional_lanes)
-    assert {
-        item["reason_code"] for item in route_back["affected_review_lanes"]
-    } == {"independent_review_stale_after_scope_change"}
+    assert {item["reason_code"] for item in route_back["affected_review_lanes"]} == {
+        "independent_review_stale_after_scope_change"
+    }
 
 
 def test_v2_fresh_review_without_snapshot_binding_is_lane_quality_debt(
@@ -1024,17 +1124,18 @@ def test_v2_snapshot_owner_metadata_is_debt_but_false_authority_is_strict(
     route_back = _assert_progress_debt(
         result, "review_input_snapshot_binding_owner_metadata_required"
     )
-    assert route_back["affected_review_lanes"][0]["review_lane"] == wrapper[
-        "receipt"
-    ]["review_lane"]
+    assert (
+        route_back["affected_review_lanes"][0]["review_lane"]
+        == wrapper["receipt"]["review_lane"]
+    )
 
     forged_authority = authority_records.paper_request()
     forged_wrapper = forged_authority["generation_manifest"][
         "independent_review_receipts"
     ][0]
-    forged_wrapper["receipt"]["review_input_snapshot_binding"][
-        "authority_boundary"
-    ]["framework_can_sign_owner_receipt"] = True
+    forged_wrapper["receipt"]["review_input_snapshot_binding"]["authority_boundary"][
+        "framework_can_sign_owner_receipt"
+    ] = True
     authority_records.reseal_review_wrapper(forged_wrapper)
 
     result = _evaluate(forged_authority)
@@ -1047,9 +1148,7 @@ def test_v2_snapshot_authority_identity_is_debt_when_missing_and_strict_when_for
     authority_records: Any,
 ) -> None:
     missing_identity = authority_records.paper_request()
-    wrapper = missing_identity["generation_manifest"][
-        "independent_review_receipts"
-    ][0]
+    wrapper = missing_identity["generation_manifest"]["independent_review_receipts"][0]
     binding = wrapper["receipt"]["review_input_snapshot_binding"]
     binding.pop("generation_ref")
     binding.pop("mas_authority_record_ref")
@@ -1069,9 +1168,10 @@ def test_v2_snapshot_authority_identity_is_debt_when_missing_and_strict_when_for
     route_back = _assert_progress_debt(
         result, "review_input_snapshot_binding_owner_metadata_required"
     )
-    assert route_back["affected_review_lanes"][0]["review_lane"] == wrapper[
-        "receipt"
-    ]["review_lane"]
+    assert (
+        route_back["affected_review_lanes"][0]["review_lane"]
+        == wrapper["receipt"]["review_lane"]
+    )
 
     forged_identity = authority_records.paper_request()
     forged_wrapper = forged_identity["generation_manifest"][
@@ -1080,8 +1180,7 @@ def test_v2_snapshot_authority_identity_is_debt_when_missing_and_strict_when_for
     forged_receipt = forged_wrapper["receipt"]
     forged_binding = forged_receipt["review_input_snapshot_binding"]
     owner_refs_by_member_id = {
-        item["member_id"]: item["ref"]
-        for item in forged_receipt["reviewed_members"]
+        item["member_id"]: item["ref"] for item in forged_receipt["reviewed_members"]
     }
     wrong_authority_record = {
         "surface_kind": "mas_review_input_snapshot_authority",
@@ -1108,9 +1207,7 @@ def test_v2_snapshot_authority_identity_is_debt_when_missing_and_strict_when_for
             "mas-review-input-snapshot-authority:"
             f"{wrong_authority_sha256.removeprefix('sha256:')}"
         ),
-        "size_bytes": len(
-            authority_records.canonical_bytes(wrong_authority_record)
-        ),
+        "size_bytes": len(authority_records.canonical_bytes(wrong_authority_record)),
         "sha256": wrong_authority_sha256,
     }
     authority_records.reseal_review_wrapper(forged_wrapper)
@@ -1172,9 +1269,9 @@ def test_v2_snapshot_binding_rejects_self_consistent_stale_generation_as_debt(
     route_back = _assert_progress_debt(
         result, "review_input_snapshot_binding_not_current"
     )
-    assert route_back["affected_review_lanes"][0]["review_lane"] == receipt[
-        "review_lane"
-    ]
+    assert (
+        route_back["affected_review_lanes"][0]["review_lane"] == receipt["review_lane"]
+    )
 
 
 def test_v2_legacy_origin_receipt_without_snapshot_binding_is_quality_debt(
@@ -1199,9 +1296,7 @@ def test_v2_legacy_origin_receipt_without_snapshot_binding_is_quality_debt(
 
     result = _evaluate(current)
 
-    route_back = _assert_progress_debt(
-        result, "review_input_snapshot_binding_required"
-    )
+    route_back = _assert_progress_debt(result, "review_input_snapshot_binding_required")
     assert route_back["affected_review_lanes"] == [
         {
             "review_lane": "medical",
@@ -1273,7 +1368,7 @@ def test_v2_rubric_change_invalidates_only_the_affected_reused_lane(
 
     result = _evaluate(current)
 
-    route_back = _assert_progress_debt(
+    route_back = _assert_finalize_route_back(
         result, "independent_review_receipt_not_current"
     )
     assert route_back["reason_code"] == "independent_review_receipt_not_current"
@@ -1311,7 +1406,7 @@ def test_v2_currentness_returns_all_affected_review_lanes_in_one_route_back(
 
     result = _evaluate(current)
 
-    route_back = _assert_progress_debt(
+    route_back = _assert_finalize_route_back(
         result, "independent_review_receipt_not_current"
     )
     assert route_back["reason_code"] == "independent_review_receipt_not_current"
@@ -1319,14 +1414,14 @@ def test_v2_currentness_returns_all_affected_review_lanes_in_one_route_back(
         "refresh all affected review lanes in one pass: "
         "display, publication, exact_byte_package"
     )
-    assert [
-        item["review_lane"]
-        for item in route_back["affected_review_lanes"]
-    ] == ["display", "publication", "exact_byte_package"]
-    assert {
-        item["reason_code"]
-        for item in route_back["affected_review_lanes"]
-    } == {"independent_review_receipt_not_current"}
+    assert [item["review_lane"] for item in route_back["affected_review_lanes"]] == [
+        "display",
+        "publication",
+        "exact_byte_package",
+    ]
+    assert {item["reason_code"] for item in route_back["affected_review_lanes"]} == {
+        "independent_review_receipt_not_current"
+    }
     _output_validator().validate(result)
 
 
@@ -1353,9 +1448,7 @@ def test_v2_old_receipt_with_removed_optional_member_routes_by_lane(
 
     result = _evaluate(current)
 
-    route_back = _assert_progress_debt(
-        result, "independent_review_receipt_not_current"
-    )
+    route_back = _assert_progress_debt(result, "independent_review_receipt_not_current")
     assert route_back["reason_code"] == "independent_review_receipt_not_current"
 
 
@@ -1464,18 +1557,17 @@ def test_finalize_requires_publication_generation_six_lanes_and_package_roles(
     assert transport["transport_action_id"] == (
         "opl_pack_materialize_artifact_projection"
     )
-    assert transport["generation_id"] == publication["generation_manifest"][
-        "generation_id"
-    ]
-    assert transport["generation_manifest_ref"] == publication[
-        "generation_manifest_ref"
-    ]
+    assert (
+        transport["generation_id"]
+        == publication["generation_manifest"]["generation_id"]
+    )
+    assert (
+        transport["generation_manifest_ref"] == publication["generation_manifest_ref"]
+    )
     assert transport["projection_manifest_ref"]["role"] == (
         "submission_projection_manifest"
     )
-    assert [
-        item["role"] for item in transport["generation_bound_truth_members"]
-    ] == [
+    assert [item["role"] for item in transport["generation_bound_truth_members"]] == [
         "submission_status",
         "publication_evaluation",
         "next_action_envelope",
@@ -1509,10 +1601,11 @@ def test_finalize_requires_publication_generation_six_lanes_and_package_roles(
         if wrapper["receipt"]["review_lane"] != "exact_byte_package"
     ]
     result = _evaluate(missing_package_review)
-    route_back = _assert_progress_debt(
-        result, "independent_reviewer_record_required"
+    assert result["status"] == "route_back"
+    assert result["stage_outcome"]["stage_transition_allowed"] is False
+    assert result["route_back"]["reason_code"] == (
+        "independent_reviewer_record_required"
     )
-    assert route_back["reason_code"] == "independent_reviewer_record_required"
 
     missing_pdf = authority_records.paper_request(
         scope="publication_generation",
@@ -1544,9 +1637,7 @@ def test_finalize_requires_publication_generation_six_lanes_and_package_roles(
         ]
         result = _evaluate(missing_truth)
         assert result["status"] == "invalid_host_input"
-        assert f"missing required roles: {required_role}" in result["error"][
-            "detail"
-        ]
+        assert f"missing required roles: {required_role}" in result["error"]["detail"]
 
 
 def test_finalize_rejects_duplicate_generation_truth_members(
@@ -1740,9 +1831,7 @@ def test_draft202012_input_schemas_accept_exact_records_and_reject_old_abi(
     candidate_validator.validate(
         authority_records.candidate_request(manifest_version=2)
     )
-    paper_validator.validate(
-        authority_records.paper_request(manifest_version=2)
-    )
+    paper_validator.validate(authority_records.paper_request(manifest_version=2))
     paper_validator.validate(
         authority_records.paper_request(
             scope="publication_generation",

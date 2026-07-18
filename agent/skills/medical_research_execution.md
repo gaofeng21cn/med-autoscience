@@ -103,8 +103,9 @@ The executor must treat all medical research work as claim-boundary work. A coho
   production and integrated professional judgment through MAS ScholarSkills'
   `medical-statistical-review`, then consume the canonical
   `ehr_registry_signal_validity_ref` in its `registry_signal_validity_pack`.
-  `medical-registry-atlas-story-architect` may contribute optional framing refs
-  but cannot produce or own the pack alone. Keep the professional checklist in
+  `medical-registry-atlas-story-architect` is also required during first-draft
+  authoring for these study types, but cannot produce or own the pack alone.
+  Keep the professional checklist in
   ScholarSkills; MAS only freezes signal identity, consumes refs, applies claim
   boundaries, and emits the owner outcome.
 - MAS execution only requires consumed pack refs, candidate output refs,

@@ -6,6 +6,7 @@ from collections.abc import Mapping
 from typing import Any
 
 from ._generation_manifest import (
+    PROFESSIONAL_MANUSCRIPT_SKILL_ROLES,
     REVIEW_LANE_ORDER,
     REVIEW_LANES_BY_SCOPE,
     normalize_generation_manifest,
@@ -175,38 +176,24 @@ def evaluate_paper_mission_authority(request: Mapping[str, Any]) -> dict[str, An
             ),
         )
 
+    professional_debt = _professional_manuscript_skill_quality_debt(normalized)
+    if professional_debt:
+        return _professional_skill_debt_result(
+            normalized,
+            reason_codes=professional_debt,
+            resume_condition=(
+                "consume medical-manuscript-writing and every routed specialist Skill "
+                "and bind them to the exact manuscript generation"
+            ),
+        )
     professional_figure_debt = _professional_figure_skill_quality_debt(normalized)
     if professional_figure_debt:
-        reason_code = professional_figure_debt[0]
-        if normalized["mission"]["stage_id"] == "finalize_and_publication_handoff":
-            return _route_result(
-                normalized,
-                reason_code=reason_code,
-                next_owner="mission_executor",
-                resume_condition=(
-                    "consume the required professional Figure Skills and bind their "
-                    "receipts to the exact final figure bytes"
-                ),
-            )
-        route_back = _route_back(
+        return _professional_skill_debt_result(
             normalized,
-            reason_code=reason_code,
-            next_owner="mission_executor",
+            reason_codes=professional_figure_debt,
             resume_condition=(
                 "consume the required professional Figure Skills and bind their "
                 "receipts to the exact final figure bytes"
-            ),
-        )
-        return _finalize(
-            normalized,
-            status="completed_with_quality_debt",
-            stage_outcome=_stage_outcome(
-                "completed_with_quality_debt", transition_allowed=True
-            ),
-            route_back=route_back,
-            quality_debt=_quality_debt(
-                normalized,
-                reason_codes=professional_figure_debt,
             ),
         )
 
@@ -218,6 +205,20 @@ def evaluate_paper_mission_authority(request: Mapping[str, Any]) -> dict[str, An
             if affected_lanes
             else [review_issue[0]]
         )
+        if normalized["mission"]["stage_id"] == "finalize_and_publication_handoff":
+            return _route_result(
+                normalized,
+                reason_code=review_issue[0],
+                next_owner="independent_reviewer",
+                resume_condition=review_issue[1],
+                affected_review_lanes=affected_lanes,
+            )
+        if normalized["generation_manifest"]["manifest_scope"] == (
+            "manuscript_generation"
+        ):
+            reason_codes = dedupe(
+                ["first_draft_cross_domain_pre_review_missing_or_stale", *reason_codes]
+            )
         route_back = _route_back(
             normalized,
             reason_code=review_issue[0],
@@ -747,7 +748,9 @@ def _normalize_revision_consumption_receipt(
         expected_consumed_refs = list(revision_intake_refs)
         if opl_review_receipt_ref is not None:
             expected_consumed_refs.append(opl_review_receipt_ref)
-        expected_consumed_refs.sort(key=lambda item: (item["kind"], *_exact_ref_identity(item)))
+        expected_consumed_refs.sort(
+            key=lambda item: (item["kind"], *_exact_ref_identity(item))
+        )
         if consumed_revision_refs != expected_consumed_refs:
             raise RequestShapeError(
                 f"{field}.consumed_revision_refs must exactly equal revision intake "
@@ -771,9 +774,7 @@ def _normalize_revision_consumption_receipt(
         "owner": "MedAutoScience",
         "authority_role": "revision_consumption_owner",
         "mission_identity": mission_identity,
-        "generation_id": text(
-            payload.get("generation_id"), f"{field}.generation_id"
-        ),
+        "generation_id": text(payload.get("generation_id"), f"{field}.generation_id"),
         "producer_attempt_ref": _typed_ref(
             payload.get("producer_attempt_ref"),
             f"{field}.producer_attempt_ref",
@@ -795,12 +796,14 @@ def _normalize_revision_consumption_receipt(
     expected_fingerprint = fingerprint(core)
     expected_size = len(canonical_json_bytes(core))
     expected_id = (
-        "mas-revision-consumption:"
-        f"{expected_fingerprint.removeprefix('sha256:')}"
+        f"mas-revision-consumption:{expected_fingerprint.removeprefix('sha256:')}"
     )
     if text(payload.get("receipt_id"), f"{field}.receipt_id") != expected_id:
         raise RequestShapeError(f"{field}.receipt_id does not match canonical receipt")
-    if integer(payload.get("receipt_size_bytes"), f"{field}.receipt_size_bytes") != expected_size:
+    if (
+        integer(payload.get("receipt_size_bytes"), f"{field}.receipt_size_bytes")
+        != expected_size
+    ):
         raise RequestShapeError(
             f"{field}.receipt_size_bytes does not match canonical receipt"
         )
@@ -1431,8 +1434,7 @@ def _validate_cross_record_lineage(request: Mapping[str, Any]) -> None:
     output_ref = request["host_context"]["output_ref"]
     currentness = request["review_authority"]["currentness_receipt"]
     lane_currentness = {
-        item["review_lane"]: item
-        for item in currentness.get("lane_currentness", [])
+        item["review_lane"]: item for item in currentness.get("lane_currentness", [])
     }
     reviewer_attempts: list[tuple[str, str]] = []
     for wrapper in request["generation_manifest"]["independent_review_receipts"]:
@@ -1466,7 +1468,10 @@ def _validate_cross_record_lineage(request: Mapping[str, Any]) -> None:
             raise RequestShapeError(
                 "revision consumption receipt mission_identity does not match the request"
             )
-        if revision_receipt["generation_id"] != request["generation_manifest"]["generation_id"]:
+        if (
+            revision_receipt["generation_id"]
+            != request["generation_manifest"]["generation_id"]
+        ):
             raise RequestShapeError(
                 "revision consumption receipt generation_id does not match the manifest"
             )
@@ -1769,22 +1774,16 @@ def _review_currentness_issue_v2(
         lane_issue: tuple[str, str] | None = None
         if any(
             (
-                lane_state["review_scope_sha256"]
-                != scope["review_scope_sha256"],
+                lane_state["review_scope_sha256"] != scope["review_scope_sha256"],
                 lane_state["current_rubric_ref"] != receipt["rubric_ref"],
-                receipt["review_scope_sha256"]
-                != lane_state["review_scope_sha256"],
-                lane_state["current_review_receipt_ref"]
-                != wrapper["receipt_ref"],
+                receipt["review_scope_sha256"] != lane_state["review_scope_sha256"],
+                lane_state["current_review_receipt_ref"] != wrapper["receipt_ref"],
                 lane_state["current_review_request_ref"]
                 != receipt["review_request_ref"],
-                lane_state["review_authority_epoch"]
-                != receipt["authority_epoch"],
+                lane_state["review_authority_epoch"] != receipt["authority_epoch"],
                 lane_state["review_receipt_issued_generation_id"]
                 != receipt["issued_generation_id"],
-                lane_state[
-                    "review_receipt_issued_generation_manifest_sha256"
-                ]
+                lane_state["review_receipt_issued_generation_manifest_sha256"]
                 != receipt["issued_generation_manifest_sha256"],
                 _exact_ref_identity(lane_state["current_review_request_ref"])
                 in {
@@ -1874,8 +1873,7 @@ def _review_currentness_issue_v2(
                 provenance = reuse_provenance
                 if provenance is None or any(
                     (
-                        provenance["origin_generation_id"]
-                        == manifest["generation_id"],
+                        provenance["origin_generation_id"] == manifest["generation_id"],
                         provenance["origin_generation_manifest_ref"] == manifest_ref,
                         provenance["origin_generation_id"]
                         != receipt["issued_generation_id"],
@@ -1969,7 +1967,9 @@ def _candidate_semantic_scope_sha256(request: Mapping[str, Any]) -> str:
                 "decision_code": receipt["decision_code"],
             }
         )
-    candidates.sort(key=lambda item: (item["candidate_id"], item["candidate_ref"]["sha256"]))
+    candidates.sort(
+        key=lambda item: (item["candidate_id"], item["candidate_ref"]["sha256"])
+    )
     return fingerprint({"candidate_semantic_scope": candidates})
 
 
@@ -2010,7 +2010,11 @@ def _professional_figure_skill_quality_debt(
     if not figure_artifacts:
         return []
 
-    invocations = manifest.get("professional_skill_invocations") or []
+    invocations = [
+        item
+        for item in manifest.get("professional_skill_invocations", [])
+        if item["surface_kind"] == "mas_professional_figure_skill_invocation_candidate"
+    ]
     if not invocations:
         return ["professional_figure_skill_consumption_evidence_missing"]
 
@@ -2047,8 +2051,7 @@ def _professional_figure_skill_quality_debt(
         output_sets = {
             tuple(
                 sorted(
-                    binding["member_id"]
-                    for binding in item["output_artifact_bindings"]
+                    binding["member_id"] for binding in item["output_artifact_bindings"]
                 )
             )
             for item in group
@@ -2077,6 +2080,74 @@ def _professional_figure_skill_quality_debt(
     if covered_members != set(figure_artifacts):
         codes.append("professional_figure_skill_output_coverage_incomplete")
     return dedupe(codes)
+
+
+def _professional_manuscript_skill_quality_debt(
+    request: Mapping[str, Any],
+) -> list[str]:
+    manifest = request["generation_manifest"]
+    if manifest["schema_version"] != 2 or manifest["manifest_scope"] == (
+        "analysis_generation"
+    ):
+        return []
+    artifacts = {
+        item["member_id"]: item for item in manifest["artifacts"] if "member_id" in item
+    }
+    invocations = [
+        item
+        for item in manifest.get("professional_skill_invocations", [])
+        if item["surface_kind"]
+        == ("mas_professional_manuscript_skill_invocation_candidate")
+    ]
+    skills = {item["skill_id"] for item in invocations}
+    if "medical-manuscript-writing" not in skills:
+        return ["professional_manuscript_writing_consumption_missing"]
+    codes: list[str] = []
+    for invocation in invocations:
+        allowed_roles = PROFESSIONAL_MANUSCRIPT_SKILL_ROLES[invocation["skill_id"]]
+        for binding in invocation["output_artifact_bindings"]:
+            expected = artifacts.get(binding["member_id"])
+            if (
+                expected is None
+                or expected["role"] not in allowed_roles
+                or any(
+                    binding[key] != expected[key]
+                    for key in ("member_id", "role", "ref", "size_bytes", "sha256")
+                )
+            ):
+                codes.append("professional_manuscript_skill_output_binding_stale")
+    return dedupe(codes)
+
+
+def _professional_skill_debt_result(
+    request: Mapping[str, Any],
+    *,
+    reason_codes: list[str],
+    resume_condition: str,
+) -> dict[str, Any]:
+    reason_code = reason_codes[0]
+    if request["mission"]["stage_id"] == "finalize_and_publication_handoff":
+        return _route_result(
+            request,
+            reason_code=reason_code,
+            next_owner="mission_executor",
+            resume_condition=resume_condition,
+        )
+    route_back = _route_back(
+        request,
+        reason_code=reason_code,
+        next_owner="mission_executor",
+        resume_condition=resume_condition,
+    )
+    return _finalize(
+        request,
+        status="completed_with_quality_debt",
+        stage_outcome=_stage_outcome(
+            "completed_with_quality_debt", transition_allowed=True
+        ),
+        route_back=route_back,
+        quality_debt=_quality_debt(request, reason_codes=reason_codes),
+    )
 
 
 def _owner_receipt(request: Mapping[str, Any]) -> dict[str, Any]:
@@ -2120,9 +2191,7 @@ def _owner_receipt(request: Mapping[str, Any]) -> dict[str, Any]:
         "requires_host_exact_byte_persistence": True,
     }
     if request["mission"]["stage_id"] == "finalize_and_publication_handoff":
-        core["artifact_projection_transport"] = _artifact_projection_transport(
-            request
-        )
+        core["artifact_projection_transport"] = _artifact_projection_transport(request)
     receipt_fingerprint = fingerprint(core)
     return {
         **core,
@@ -2143,7 +2212,9 @@ def _revision_consumption_projection(request: Mapping[str, Any]) -> dict[str, An
         "schema_version": 1,
         "consumption_receipt_ref": dict(binding["consumption_receipt_ref"]),
         "applicability": receipt["applicability"],
-        "revision_intake_refs": [dict(item) for item in receipt["revision_intake_refs"]],
+        "revision_intake_refs": [
+            dict(item) for item in receipt["revision_intake_refs"]
+        ],
         "opl_review_receipt_ref": (
             dict(receipt["opl_review_receipt_ref"])
             if receipt["opl_review_receipt_ref"] is not None
@@ -2171,9 +2242,7 @@ def _artifact_projection_transport(request: Mapping[str, Any]) -> dict[str, Any]
         "submission_projection_manifest",
     )
     members = {
-        role: next(
-            item for item in manifest["artifacts"] if item["role"] == role
-        )
+        role: next(item for item in manifest["artifacts"] if item["role"] == role)
         for role in required_roles
     }
     return {
@@ -2223,10 +2292,7 @@ def _artifact_projection_transport(request: Mapping[str, Any]) -> dict[str, Any]
 def _generation_artifact_identity(member: Mapping[str, Any]) -> dict[str, Any]:
     """Project a manifest member onto the stable transport-v1 artifact ABI."""
 
-    return {
-        name: member[name]
-        for name in ("role", "ref", "size_bytes", "sha256")
-    }
+    return {name: member[name] for name in ("role", "ref", "size_bytes", "sha256")}
 
 
 def _route_result(

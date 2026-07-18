@@ -70,6 +70,14 @@ PUBLICATION_SINGLETON_ROLES = frozenset(
     }
 )
 OPTIONAL_GENERATION_ROLES = frozenset({"candidate_artifact", "evidence_record"})
+PROFESSIONAL_MANUSCRIPT_SKILL_ROLES = {
+    "medical-manuscript-writing": frozenset({"canonical_manuscript"}),
+    "medical-registry-atlas-story-architect": frozenset(
+        {"canonical_manuscript", "claim_evidence_map"}
+    ),
+    "medical-statistical-review": frozenset({"analysis_output", "numeric_trace"}),
+    "medical-table-design": frozenset({"table_catalog", "table_file"}),
+}
 REQUIRED_ROLES_BY_SCOPE = {
     "analysis_generation": ANALYSIS_GENERATION_ROLES,
     "manuscript_generation": MANUSCRIPT_GENERATION_ROLES,
@@ -192,6 +200,8 @@ _SCOPE_RANK = {
     "manuscript_generation": 1,
     "publication_generation": 2,
 }
+
+
 def normalize_generation_manifest(
     value: Any,
     field: str = "generation_manifest",
@@ -327,9 +337,7 @@ def _normalize_generation_artifact_inventory(
             allowed_roles=ALLOWED_ROLES_BY_SCOPE[manifest_scope],
             schema_version=schema_version,
         )
-        for index, item in enumerate(
-            sequence(value, field)
-        )
+        for index, item in enumerate(sequence(value, field))
     ]
     identities = [(item["role"], item["ref"]) for item in artifacts]
     if len(identities) != len(set(identities)):
@@ -343,14 +351,10 @@ def _normalize_generation_artifact_inventory(
             f"{field} missing required roles: " + ", ".join(missing_roles)
         )
     if sum(item["role"] == "source_input_digest" for item in artifacts) != 1:
-        raise RequestShapeError(
-            f"{field} requires exactly one source_input_digest"
-        )
+        raise RequestShapeError(f"{field} requires exactly one source_input_digest")
     for role in sorted(PUBLICATION_SINGLETON_ROLES & roles):
         if sum(item["role"] == role for item in artifacts) != 1:
-            raise RequestShapeError(
-                f"{field} requires exactly one {role}"
-            )
+            raise RequestShapeError(f"{field} requires exactly one {role}")
     artifacts.sort(key=lambda item: (item["role"], item["ref"], item["sha256"]))
     return artifacts
 
@@ -412,19 +416,34 @@ def _normalize_professional_skill_invocations(
     artifact_by_member_id = {
         item["member_id"]: item for item in artifacts if "member_id" in item
     }
-    invocations = [
-        _normalize_professional_skill_invocation(
-            item,
-            f"{field}[{index}]",
-            artifact_by_member_id=artifact_by_member_id,
-        )
-        for index, item in enumerate(sequence(value, field))
+    invocations = []
+    for index, item in enumerate(sequence(value, field)):
+        item_field = f"{field}[{index}]"
+        if mapping(item, item_field).get("surface_kind") == (
+            "mas_professional_manuscript_skill_invocation_candidate"
+        ):
+            normalized = _normalize_professional_manuscript_skill_invocation(
+                item,
+                item_field,
+                artifact_by_member_id=artifact_by_member_id,
+            )
+        else:
+            normalized = _normalize_professional_skill_invocation(
+                item,
+                item_field,
+                artifact_by_member_id=artifact_by_member_id,
+            )
+        invocations.append(normalized)
+    identities = [
+        (item["surface_kind"], item.get("figure_id"), item["skill_id"])
+        for item in invocations
     ]
-    identities = [(item["figure_id"], item["skill_id"]) for item in invocations]
     if len(identities) != len(set(identities)):
-        raise RequestShapeError(f"{field} contains duplicate figure/skill receipts")
+        raise RequestShapeError(f"{field} contains duplicate target/skill receipts")
     member_owner: dict[str, str] = {}
     for invocation in invocations:
+        if "figure_id" not in invocation:
+            continue
         for binding in invocation["output_artifact_bindings"]:
             member_id = binding["member_id"]
             prior_figure = member_owner.setdefault(member_id, invocation["figure_id"])
@@ -432,8 +451,127 @@ def _normalize_professional_skill_invocations(
                 raise RequestShapeError(
                     f"{field} binds figure artifact {member_id} to multiple figures"
                 )
-    invocations.sort(key=lambda item: (item["figure_id"], item["skill_id"]))
+    invocations.sort(
+        key=lambda item: (
+            item["surface_kind"],
+            item.get("figure_id", ""),
+            item["skill_id"],
+        )
+    )
     return invocations
+
+
+def _normalize_professional_manuscript_skill_invocation(
+    value: Any,
+    field: str,
+    *,
+    artifact_by_member_id: Mapping[str, Mapping[str, Any]],
+) -> dict[str, Any]:
+    payload = mapping(value, field)
+    keys = {
+        "surface_kind",
+        "schema_version",
+        "receipt_id",
+        "skill_id",
+        "package_id",
+        "package_version",
+        "package_source_ref",
+        "package_source_sha256",
+        "skill_source_ref",
+        "skill_source_sha256",
+        "invocation_id",
+        "input_contract_ref",
+        "input_sha256",
+        "consumed_rule_refs",
+        "output_artifact_bindings",
+        "template_substitution",
+        "status",
+        "refs_only",
+        "authority",
+        "publication_ready",
+    }
+    exact_keys(payload, keys, field)
+    skill_id = enum_text(
+        payload.get("skill_id"),
+        f"{field}.skill_id",
+        set(PROFESSIONAL_MANUSCRIPT_SKILL_ROLES),
+    )
+    if payload.get("surface_kind") != (
+        "mas_professional_manuscript_skill_invocation_candidate"
+    ):
+        raise RequestShapeError(f"{field}.surface_kind is invalid")
+    if payload.get("schema_version") != 1 or isinstance(
+        payload.get("schema_version"), bool
+    ):
+        raise RequestShapeError(f"{field}.schema_version must be integer 1")
+    if payload.get("package_id") != "mas-scholar-skills":
+        raise RequestShapeError(f"{field}.package_id must be mas-scholar-skills")
+    if payload.get("template_substitution") is not False:
+        raise RequestShapeError(f"{field}.template_substitution must be false")
+    if payload.get("status") != "completed" or payload.get("refs_only") is not True:
+        raise RequestShapeError(f"{field} must be completed refs-only evidence")
+    if (
+        payload.get("authority") is not False
+        or payload.get("publication_ready") is not False
+    ):
+        raise RequestShapeError(
+            f"{field} cannot grant authority or publication readiness"
+        )
+    bindings = [
+        _normalize_professional_skill_artifact_binding(
+            item,
+            f"{field}.output_artifact_bindings[{index}]",
+            artifact_by_member_id=artifact_by_member_id,
+            allowed_roles=PROFESSIONAL_MANUSCRIPT_SKILL_ROLES[skill_id],
+        )
+        for index, item in enumerate(
+            sequence(
+                payload.get("output_artifact_bindings"),
+                f"{field}.output_artifact_bindings",
+            )
+        )
+    ]
+    if not bindings:
+        raise RequestShapeError(f"{field}.output_artifact_bindings must not be empty")
+    rules = text_list(payload.get("consumed_rule_refs"), f"{field}.consumed_rule_refs")
+    if not rules:
+        raise RequestShapeError(f"{field}.consumed_rule_refs must not be empty")
+    return {
+        "surface_kind": "mas_professional_manuscript_skill_invocation_candidate",
+        "schema_version": 1,
+        "receipt_id": text(payload.get("receipt_id"), f"{field}.receipt_id"),
+        "skill_id": skill_id,
+        "package_id": "mas-scholar-skills",
+        "package_version": text(
+            payload.get("package_version"), f"{field}.package_version"
+        ),
+        "package_source_ref": text(
+            payload.get("package_source_ref"), f"{field}.package_source_ref"
+        ),
+        "package_source_sha256": sha256(
+            payload.get("package_source_sha256"), f"{field}.package_source_sha256"
+        ),
+        "skill_source_ref": text(
+            payload.get("skill_source_ref"), f"{field}.skill_source_ref"
+        ),
+        "skill_source_sha256": sha256(
+            payload.get("skill_source_sha256"), f"{field}.skill_source_sha256"
+        ),
+        "invocation_id": text(payload.get("invocation_id"), f"{field}.invocation_id"),
+        "input_contract_ref": text(
+            payload.get("input_contract_ref"), f"{field}.input_contract_ref"
+        ),
+        "input_sha256": sha256(payload.get("input_sha256"), f"{field}.input_sha256"),
+        "consumed_rule_refs": rules,
+        "output_artifact_bindings": sorted(
+            bindings, key=lambda item: item["member_id"]
+        ),
+        "template_substitution": False,
+        "status": "completed",
+        "refs_only": True,
+        "authority": False,
+        "publication_ready": False,
+    }
 
 
 def _normalize_professional_skill_invocation(
@@ -479,7 +617,10 @@ def _normalize_professional_skill_invocation(
     if skill_id == "medical-figure-design":
         keys.update({"template_usage", "figure_text_policy"})
     exact_keys(payload, keys, field)
-    if payload.get("surface_kind") != "mas_professional_figure_skill_invocation_candidate":
+    if (
+        payload.get("surface_kind")
+        != "mas_professional_figure_skill_invocation_candidate"
+    ):
         raise RequestShapeError(
             f"{field}.surface_kind must be "
             "mas_professional_figure_skill_invocation_candidate"
@@ -557,15 +698,11 @@ def _normalize_professional_skill_invocation(
         "skill_source_sha256": sha256(
             payload.get("skill_source_sha256"), f"{field}.skill_source_sha256"
         ),
-        "invocation_id": text(
-            payload.get("invocation_id"), f"{field}.invocation_id"
-        ),
+        "invocation_id": text(payload.get("invocation_id"), f"{field}.invocation_id"),
         "input_contract_ref": text(
             payload.get("input_contract_ref"), f"{field}.input_contract_ref"
         ),
-        "input_sha256": sha256(
-            payload.get("input_sha256"), f"{field}.input_sha256"
-        ),
+        "input_sha256": sha256(payload.get("input_sha256"), f"{field}.input_sha256"),
         "consumed_rule_refs": consumed_rule_refs,
         "output_artifact_bindings": sorted(
             output_bindings, key=lambda item: item["member_id"]
@@ -592,22 +729,21 @@ def _normalize_professional_skill_artifact_binding(
     field: str,
     *,
     artifact_by_member_id: Mapping[str, Mapping[str, Any]],
+    allowed_roles: frozenset[str] = frozenset({"figure_file"}),
 ) -> dict[str, Any]:
     payload = mapping(value, field)
     exact_keys(payload, {"member_id", "role", "ref", "size_bytes", "sha256"}, field)
     member_id = text(payload.get("member_id"), f"{field}.member_id")
     normalized = {
         "member_id": member_id,
-        "role": enum_text(payload.get("role"), f"{field}.role", {"figure_file"}),
+        "role": enum_text(payload.get("role"), f"{field}.role", set(allowed_roles)),
         "ref": text(payload.get("ref"), f"{field}.ref"),
         "size_bytes": integer(payload.get("size_bytes"), f"{field}.size_bytes"),
         "sha256": sha256(payload.get("sha256"), f"{field}.sha256"),
     }
     expected = artifact_by_member_id.get(member_id)
-    if expected is None or expected.get("role") != "figure_file":
-        raise RequestShapeError(
-            f"{field} must name a generation figure_file artifact"
-        )
+    if expected is None or expected.get("role") not in allowed_roles:
+        raise RequestShapeError(f"{field} must name an allowed generation artifact")
     return normalized
 
 
@@ -689,7 +825,9 @@ def _normalize_figure_text_policy(
     }
     allowed_roles = evidence_roles | {"graphical_abstract_copy"}
     if not set(allowed_text_roles).issubset(allowed_roles):
-        raise RequestShapeError(f"{field}.allowed_text_roles contains unsupported roles")
+        raise RequestShapeError(
+            f"{field}.allowed_text_roles contains unsupported roles"
+        )
     if figure_kind == "evidence_figure":
         for key in ("embedded_title", "embedded_subtitle", "embedded_prose_footer"):
             if payload.get(key) is not False:
@@ -725,10 +863,7 @@ def source_input_digest(manifest: dict[str, Any]) -> dict[str, Any]:
         if artifact["role"] == "source_input_digest"
     )
     # Candidate admission's established exact-ref contract predates v2 member_id.
-    return {
-        name: artifact[name]
-        for name in ("role", "ref", "size_bytes", "sha256")
-    }
+    return {name: artifact[name] for name in ("role", "ref", "size_bytes", "sha256")}
 
 
 def review_scope_inventory(
@@ -759,7 +894,9 @@ def review_scope_sha256(lane: str, members: list[dict[str, Any]]) -> str:
     _require_unique_member_ids(members, f"review scope {lane} members")
     if lane == "exact_byte_package":
         digest_members = [dict(item) for item in members]
-        digest_members.sort(key=lambda item: (item["role"], item["ref"], item["sha256"]))
+        digest_members.sort(
+            key=lambda item: (item["role"], item["ref"], item["sha256"])
+        )
     else:
         digest_members = [
             {
@@ -876,11 +1013,7 @@ def build_review_input_snapshot_materialization_request(
         set(REVIEW_AUTHORITY_ROLE_BY_LANE),
     )
     scope = next(
-        (
-            item
-            for item in manifest["review_scopes"]
-            if item["review_lane"] == lane
-        ),
+        (item for item in manifest["review_scopes"] if item["review_lane"] == lane),
         None,
     )
     if scope is None:
@@ -1037,7 +1170,10 @@ def _normalize_review_scope(
             f"{field}.reviewed_members must equal the MAS-owned lane inventory"
         )
     expected_sha256 = review_scope_sha256(lane, expected_members)
-    if sha256(payload.get("review_scope_sha256"), f"{field}.review_scope_sha256") != expected_sha256:
+    if (
+        sha256(payload.get("review_scope_sha256"), f"{field}.review_scope_sha256")
+        != expected_sha256
+    ):
         raise RequestShapeError(
             f"{field}.review_scope_sha256 does not match canonical lane members"
         )
@@ -1069,9 +1205,7 @@ def _normalize_artifact(
         "sha256": sha256(payload.get("sha256"), f"{field}.sha256"),
     }
     if schema_version == 2:
-        normalized["member_id"] = text(
-            payload.get("member_id"), f"{field}.member_id"
-        )
+        normalized["member_id"] = text(payload.get("member_id"), f"{field}.member_id")
     return normalized
 
 
@@ -1396,9 +1530,7 @@ def _normalize_review_receipt_v2(
             )
         )
     ]
-    _require_unique_member_ids(
-        reviewed_members, f"{receipt_field}.reviewed_members"
-    )
+    _require_unique_member_ids(reviewed_members, f"{receipt_field}.reviewed_members")
     reviewed_members.sort(key=lambda item: (item["role"], item["ref"], item["sha256"]))
     expected_scope_sha256 = review_scope_sha256(lane, reviewed_members)
     supplied_scope_sha256 = sha256(
@@ -1575,9 +1707,7 @@ def _normalize_review_input_snapshot_binding(
     )
     allowed_roles = frozenset().union(*ALLOWED_ROLES_BY_SCOPE.values())
     members = []
-    for index, item in enumerate(
-        sequence(payload.get("members"), f"{field}.members")
-    ):
+    for index, item in enumerate(sequence(payload.get("members"), f"{field}.members")):
         member_field = f"{field}.members[{index}]"
         member = mapping(item, member_field)
         exact_keys(

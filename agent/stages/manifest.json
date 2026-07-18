@@ -1433,6 +1433,27 @@
           "new_required_stage_output_fields": [],
           "user_projection_uses_mas_authored_medical_narrative_only": true
         },
+        "first_draft_professional_skill_routing": {
+          "base_required_skill": "medical-manuscript-writing",
+          "registry_or_atlas_specialist": "medical-registry-atlas-story-architect",
+          "conditional_specialists": [
+            "medical-statistical-review",
+            "medical-table-design",
+            "medical-figure-design",
+            "medical-figure-style",
+            "medical-figure-composer"
+          ],
+          "template_can_replace_professional_skill_consumption": false,
+          "pre_review_lanes_from_generation_manifest": [
+            "medical",
+            "statistical",
+            "reference",
+            "display"
+          ],
+          "missing_or_stale_receipt_outcome": "completed_with_quality_debt",
+          "ordinary_stage_transition_allowed": true,
+          "finalize_claim_allowed_with_quality_debt": false
+        },
         "cohort_query_refs": [
           {
             "ref": "/product_entry_manifest/family_stage_control_plane_descriptor/route_contract_snapshot",

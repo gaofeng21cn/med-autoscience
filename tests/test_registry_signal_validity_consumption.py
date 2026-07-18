@@ -51,9 +51,8 @@ def test_execution_and_reviewer_policies_preserve_boundaries() -> None:
     normalized_gate = " ".join(gate.split())
 
     assert "`medical-statistical-review`" in execution
-    assert (
-        "`medical-registry-atlas-story-architect` may contribute optional"
-        in normalized_execution
+    assert "`medical-registry-atlas-story-architect` is also required" in (
+        normalized_execution
     )
     assert "cannot produce or own the pack alone" in normalized_execution
     assert "`registry_signal_validity_pack`" in execution
@@ -63,6 +62,30 @@ def test_execution_and_reviewer_policies_preserve_boundaries() -> None:
     assert "not executed validation evidence" in gate
     assert "explicit current MAS owner or human waiver ref" in gate
     assert "`unvalidated data-audit` or `exploratory`" in normalized_gate
+
+
+def test_first_draft_skill_routing_is_declared_without_template_substitution() -> None:
+    stage_pack = json.loads(_read("contracts/mas-paper-study-stage-pack.json"))
+    manifest = json.loads(_read("agent/stages/manifest.json"))
+    readback = stage_pack["reviewer_revision_default_mechanism"][
+        "stage_attempt_readback_contract"
+    ]
+    routing = readback["first_draft_professional_skill_routing"]
+    manuscript_stage = next(
+        stage for stage in manifest["stages"] if stage["stage_id"] == "manuscript_authoring"
+    )
+    manifest_routing = manuscript_stage["stage_contract_extension"][
+        "first_draft_professional_skill_routing"
+    ]
+
+    assert routing["base_required_skill"] == "medical-manuscript-writing"
+    assert routing["study_type_specialists"]["registry_or_atlas"] == (
+        "medical-registry-atlas-story-architect"
+    )
+    assert routing["professional_skill_consumption_may_be_replaced_by_template"] is False
+    assert routing["pre_review_contract"]["ordinary_stage_transition_allowed"] is True
+    assert manifest_routing["template_can_replace_professional_skill_consumption"] is False
+    assert manifest_routing["finalize_claim_allowed_with_quality_debt"] is False
 
 
 def test_revision_uses_existing_stage_action_and_workspace_authority() -> None:

@@ -29,6 +29,11 @@ policy; never claim a Review receipt from this conversation.
   reporting fit, journal voice, and claim restraint. Route professional detail
   through `medical_research_execution.md` rather than reproducing specialist
   checklists in this prompt.
+- Consume `medical-manuscript-writing` for every first draft. Registry, phenotype-
+  atlas, and treatment-gap work also consumes
+  `medical-registry-atlas-story-architect`; route quantitative, table, and figure
+  work to matching specialist Skills. A template never substitutes for a Skill
+  receipt.
 - Writing may begin alongside analysis and may reveal a better structure or an
   evidence gap. Route scientific boundary changes back; do not conceal them with
   prose.

@@ -512,7 +512,7 @@
     {
       "action_id": "paper_mission_authority_evaluate",
       "title": "Paper mission authority evaluation",
-      "summary": "Validate exact candidate, generation, currentness, and independent-review receipts before returning a MAS paper-mission result.",
+      "summary": "Validate exact candidate, professional Skill, generation, review-currentness, and exact-byte package receipts before returning a MAS paper-mission result.",
       "owner": "MedAutoScience",
       "effect": "read_only",
       "execution_binding": {
