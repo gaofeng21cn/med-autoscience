@@ -82,16 +82,20 @@ controller hard stop: return the typed blocker or human gate evidence and neithe
 
 ## Research Trajectory
 
-Follow `research_trajectory_medical_narrative.md`. Emit a candidate
-`research_trajectory_delta_ref` when the independent decisive review establishes
-an evidence interpretation, identifies a limitation that changes the claim, or
-accepts a continue, refine, narrow, pivot, stop, or route-back decision. The
-reviewer must distinguish non-supportive, inconclusive, and design-invalid
-findings. Same-thread checking cannot accept a trajectory event; canonical entry
-requires the exact decisive reviewer or MAS owner receipt. Return `null` if the
-review changes no scientific interpretation or route. Copy provenance Stage,
-StageRun, and Attempt refs only from the host-injected Stage context; never
-construct, infer, or normalize them.
+Follow `research_trajectory_medical_narrative.md`. When independent review
+materially changes the evidence interpretation, claim boundary, limitation,
+research route, or next research step, the current MAS Attempt immediately
+updates `artifacts/research_trajectory/TRAJECTORY.md` and
+`artifacts/research_trajectory/snapshot.json` together. Distinguish a validation
+that could not run, a completed result that does not support the hypothesis,
+insufficient evidence, and a design that cannot answer the question. Preserve
+the earlier route and state why the conclusion or route changed.
+
+Use medical Results and Discussion wording and make no inference beyond the
+reviewed evidence. This Stage keeps its independent quality role, but the
+trajectory file update itself requires no separate acceptance receipt.
+`research_trajectory_delta_ref` remains nullable v1 read compatibility and is
+not the v2 write gate; the current v2 Stage output returns it as `null`.
 
 ## Handoff
 

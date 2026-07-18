@@ -45,15 +45,22 @@ methodology, evidence, or quality gates.
 
 ## Research Trajectory
 
-Follow `research_trajectory_medical_narrative.md`. Emit a candidate
-`research_trajectory_delta_ref` for every claim-relevant planned test, completed
-or failed validation, positive, negative, null, or mixed result, evidence
-interpretation, or resulting continue, refine, narrow, pivot, stop, or researcher
-decision route. Keep execution outcome, evidence interpretation, and route
-decision separate; a technical failure does not negate the hypothesis. Use
-medical Results and Discussion wording. Return `null` only when the work made no
-scientific semantic delta. Copy provenance Stage, StageRun, and Attempt refs only
-from the host-injected Stage context; never construct, infer, or normalize them.
+Follow `research_trajectory_medical_narrative.md`. When a claim-relevant
+validation completes, a positive, negative, null, mixed, or inconclusive result
+is interpreted, or the hypothesis, route, or next research step changes, the
+current MAS Attempt immediately updates
+`artifacts/research_trajectory/TRAJECTORY.md` and
+`artifacts/research_trajectory/snapshot.json` together. A failed execution is
+recorded only when it materially changes the validation boundary, route, or next
+step. Keep execution outcome, evidence interpretation, and route decision
+separate; an execution failure does not negate the hypothesis.
+
+Use medical Results and Discussion wording, preserve unsuccessful routes and
+their pivot reasons, and make no inference beyond the cited evidence. Do not
+update for tool calls, heartbeats, retries, or runtime activity without
+scientific change. The write neither starts nor waits for independent review.
+`research_trajectory_delta_ref` remains nullable v1 read compatibility and is
+not the v2 write gate; the current v2 Stage output returns it as `null`.
 
 ## Handoff
 

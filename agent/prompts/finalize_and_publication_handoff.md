@@ -77,15 +77,19 @@ gates, or artifact authority.
 
 ## Research Trajectory
 
-Follow `research_trajectory_medical_narrative.md`. Emit a candidate
-`research_trajectory_delta_ref` only for a terminal research or publication-route
-decision, or for an accepted artifact that materially changes the scientific
-story exposed to readers. Exact-byte packaging, hashing, transport, and ordinary
-handoff mechanics alone return `research_trajectory_delta_ref: null`. The
-reader-facing account describes the medical conclusion, limitations, route, and
-next research step without exposing packaging internals. Copy provenance Stage,
-StageRun, and Attempt refs only from the host-injected Stage context; never
-construct, infer, or normalize them.
+Follow `research_trajectory_medical_narrative.md`. When a terminal research or
+publication route is decided, or the reader-visible scientific conclusion,
+limitation, route, or next research step materially changes, the current MAS
+Attempt immediately updates `artifacts/research_trajectory/TRAJECTORY.md` and
+`artifacts/research_trajectory/snapshot.json` together. Packaging, hashing,
+transport, and ordinary handoff mechanics do not update the trajectory. Use
+medical Results and Discussion wording, preserve unsuccessful routes and pivot
+reasons, and do not expose packaging internals or infer beyond cited evidence.
+
+The progress write neither starts nor waits for independent review; formal
+publication quality remains governed by the existing quality gate.
+`research_trajectory_delta_ref` remains nullable v1 read compatibility and is
+not the v2 write gate; the current v2 Stage output returns it as `null`.
 
 ## Handoff
 

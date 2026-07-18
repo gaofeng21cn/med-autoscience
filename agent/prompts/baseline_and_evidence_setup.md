@@ -46,15 +46,21 @@ human authority.
 
 ## Research Trajectory
 
-Follow `research_trajectory_medical_narrative.md`. Emit a candidate
-`research_trajectory_delta_ref` when the cohort, endpoint, comparator, source
-boundary, feasibility finding, validation method, or principal hypothesis changes
-materially. Preserve negative or null baselines, data insufficiency, and findings
-that the current design cannot interpret. Describe the validation method,
-finding, evidence judgment, limitation, and justified next step for medical
-readers. When no scientific semantic checkpoint occurred, return the field as
-`null`. Copy provenance Stage, StageRun, and Attempt refs only from the
-host-injected Stage context; never construct, infer, or normalize them.
+Follow `research_trajectory_medical_narrative.md`. When the cohort, endpoint,
+comparator, source boundary, validation method, principal hypothesis, evidence
+judgment, route, or next research step changes materially, the current MAS
+Attempt immediately updates `artifacts/research_trajectory/TRAJECTORY.md` and
+`artifacts/research_trajectory/snapshot.json` together. Preserve negative or
+null baselines, data insufficiency, design-invalid findings, unsuccessful routes,
+and the reason for any pivot. Use medical Results and Discussion wording for the
+research scope, method, finding, uncertainty, judgment, and next step.
+
+Distinguish a validation that could not run from a completed validation that
+does not support the hypothesis and from evidence too limited for a determinate
+judgment. Do not update for tool calls, heartbeats, retries, or runtime activity
+without scientific change. The write neither starts nor waits for independent
+review. `research_trajectory_delta_ref` remains nullable v1 read compatibility
+and is not the v2 write gate; the current v2 Stage output returns it as `null`.
 
 ## Handoff
 

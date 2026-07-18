@@ -2,101 +2,100 @@
 
 Owner: MedAutoScience
 Contract: `contracts/research_trajectory_contract.json`
-Event schema: `contracts/schemas/v2/mas-research-trajectory-event.schema.json`
-Snapshot schema: `contracts/schemas/v2/mas-research-trajectory-snapshot.schema.json`
+Current snapshot schema: `contracts/schemas/v2/mas-research-trajectory-snapshot-v2.schema.json`
 Narrative schema: `contracts/schemas/v2/mas-medical-narrative.schema.json`
 
 ## Purpose
 
-Maintain a durable account of how the study question, principal hypothesis,
-validation strategy, evidence interpretation, and research route evolve. The
-human-readable document and map are for clinicians, professors, and biomedical
-researchers. They must read like a concise medical paper or research conference
-summary, not an execution log.
+Maintain a current, reader-facing account of how the study question, principal
+hypothesis, validation strategy, evidence interpretation, research route, and
+next step evolve while the MAS Attempt is running. This is a progress reference
+for clinicians, professors, and biomedical researchers. It is not a publication
+quality verdict, an acceptance receipt, or an execution log.
 
-## Scientific Separation
+## Update The Two Fixed Artifacts Together
 
-Always record these three dimensions independently:
-
-1. **Execution outcome**: whether the planned validation was run, completed,
-   failed, cancelled, or not run.
-2. **Evidence interpretation**: whether the result supports the current
-   hypothesis, does not support it, remains inconclusive, or cannot be
-   interpreted because the current design is inadequate.
-3. **Route decision**: whether to continue validation, refine or narrow the
-   question, pivot, stop, or request researcher judgment.
-
-A script, environment, data-access, or other execution failure is not evidence
-against a scientific hypothesis. In that case, record the execution outcome and
-leave the evidence interpretation as `not_assessed` unless interpretable evidence
-was actually produced. Negative and null findings are evidence and must not be
-discarded. A null estimate may be classified as not supporting the current
-hypothesis, inconclusive, or design-invalid only from the actual design,
-uncertainty, sensitivity analyses, and evidence refs.
-
-## Semantic Checkpoints
-
-Emit a `research_trajectory_delta_ref` when a Stage produces at least one of the
-following scientific deltas:
-
-- proposes, selects, refines, supersedes, or retires a principal hypothesis;
-- plans or materially changes a validation method, analysis, comparator,
-  endpoint, cohort, evidence boundary, or stopping rule;
-- observes a positive, negative, null, mixed, failed, or methodologically
-  uninterpretable result;
-- interprets evidence as supportive, non-supportive, inconclusive, or
-  design-invalid;
-- decides to continue, refine, narrow, pivot, stop, or request researcher
-  judgment;
-- produces an artifact that materially changes the accepted scientific story or
-  publication route.
-
-Return `research_trajectory_delta_ref: null` when the Stage only performs
-mechanical packaging, formatting, transport, retry, or other work that does not
-change those scientific semantics. Do not manufacture an event merely to show
-activity.
-
-## Acceptance And Storage
-
-The Stage output is a structured candidate. Keep it in the Stage artifact or
-closeout packet until an exact MAS owner receipt or decisive independent reviewer
-receipt accepts it. A candidate, provider completion, readable file, test pass,
-ranking, or generated projection is not accepted study truth.
-
-Candidate provenance may leave the StageRun and Attempt refs null. Before an
-event is accepted, copy `stage_id`, `stage_run_ref`, and `attempt_ref` exactly
-from the host-injected trusted decisive Stage context. Never construct, infer,
-normalize, or repair these refs inside MAS; OPL Framework owns their locator
-format. Missing or mismatched accepted provenance fails closed.
-
-Only receipt-bound accepted exact bytes may be materialized at:
+When a meaningful scientific change occurs, the current MAS Attempt directly
+updates both of these study-relative artifacts as one semantic update:
 
 ```text
-artifacts/research_trajectory/events/<event_id>.json
-```
-
-The rebuildable current graph and human projection are fixed at:
-
-```text
-artifacts/research_trajectory/snapshot.json
 artifacts/research_trajectory/TRAJECTORY.md
+artifacts/research_trajectory/snapshot.json
 ```
 
-An accepted event is immutable. Replaying the same event identity and digest is
-an idempotent no-op; the same identity with different bytes fails closed. A
-revised hypothesis or interpretation creates a new event and explicitly links
-to the earlier event or node rather than rewriting history.
+`TRAJECTORY.md` is the human-readable medical account. `snapshot.json` is the
+lightweight structured source used to draw the map. Increment the snapshot
+revision once for the dual-file update. Both files must describe the same
+current hypothesis, evidence judgment, route, and next step.
 
-## Medical Narrative
+Do not create a candidate event, accepted-event log, checkpoint submission,
+checkpoint manifest, binding, working-checkpoint layer, or trajectory-specific
+receipt. Do not wait for an independent reviewer before recording current
+progress. The nullable Stage output field `research_trajectory_delta_ref` is
+v1 read compatibility only and is not a v2 write gate.
 
-Every map node, relationship, three-axis interpretation, snapshot summary, and
-`TRAJECTORY.md` statement must be authored by MAS. OPL and the App may validate,
-persist, lay out, and display that text, but must not infer medical wording from
-machine kinds or status codes.
+## Meaningful Scientific Changes
 
-Use these reader-facing headings:
+Update the two artifacts when the study does at least one of the following:
+
+- proposes or revises the principal hypothesis;
+- completes a claim-relevant validation;
+- interprets a positive, negative, null, mixed, or inconclusive result;
+- continues, refines, narrows, pivots, stops, or sends the route to researcher
+  judgment;
+- materially changes the next research step.
+
+An execution failure merits an update only when it materially changes the
+validation boundary, route, or next step. Do not update for a tool call,
+heartbeat, retry, provider or queue state, formatting change, packaging,
+hashing, transport, or other activity without a scientific change.
+
+## Keep Three Judgments Separate
+
+Always distinguish:
+
+1. **Execution outcome**: whether the validation was completed, failed,
+   cancelled, or not run.
+2. **Evidence interpretation**: whether the observed result supports the
+   hypothesis, does not support it, remains inconclusive, cannot be interpreted
+   under the current design, or was not assessed.
+3. **Route decision**: whether to continue, refine, narrow, pivot, stop, or
+   request researcher judgment.
+
+An execution failure is not evidence against a hypothesis. State that the
+validation was not completed and the evidence was not assessed. A completed
+validation that yields discordant evidence may be described as not supporting
+the current hypothesis. A completed or partial validation with imprecise,
+conflicting, or sparse evidence is inconclusive. Do not collapse these states.
+
+Negative and null findings are evidence and remain visible. Preserve an
+unsuccessful route in the graph and explain why the study changed direction;
+do not delete the prior hypothesis, test, or finding to make the current route
+look linear.
+
+## Medical Results And Discussion Style
+
+Write for medical and scientific readers. Each current account states:
+
+- the research question and population, evidence, endpoint, and time scope;
+- the validation method at the level needed to understand the result;
+- the observed finding without implementation detail;
+- uncertainty, limitations, and relevant design constraints;
+- the evidence judgment supported by the cited material;
+- the route adjustment and its scientific reason;
+- the next research step and its intended decision value.
+
+Use restrained Results and Discussion language. Distinguish statements such as
+“the result supports the current hypothesis”, “the result does not support the
+current hypothesis”, “the available evidence is insufficient for a determinate
+judgment”, and “the current design is insufficient to answer the question”. Do
+not infer mechanism, causality, subgroup effects, clinical benefit, or safety
+beyond the actual evidence.
+
+`TRAJECTORY.md` uses these reader-facing headings:
 
 - 研究问题
+- 研究范围
 - 当前主要假设
 - 验证方法
 - 主要发现
@@ -105,46 +104,67 @@ Use these reader-facing headings:
 - 下一研究步骤
 - 来源与依据
 
-Write with the conventions of a medical abstract, Results section, or
-Discussion section: identify the population or evidence scope, method, observed
-finding, uncertainty, limitations, interpretation, and justified next step.
-Prefer restrained statements such as “该结果支持当前假设”“该结果不支持当前
-假设”“现有证据尚不足以得出确定判断” and “当前研究设计不足以判断”. Use
-“继续验证”“返回并修订研究假设或研究设计”“收窄研究问题”“调整研究路线”
-“暂停该研究路线” and “需要研究者判断” for route descriptions.
+The Markdown may include a concise route map, but its labels must use the same
+medical wording as the surrounding document.
 
-Do not expose code paths, file paths, node or event identifiers, StageRun or
-Attempt identifiers, payloads, hashes, provider state, runtime queues, retry
-mechanics, or internal chain-of-thought in user-visible prose. Put exact source,
-lineage, receipt, and diagnostic locators only in machine refs. Human-facing
-“来源与依据” should cite recognizable study artifacts, tables, figures,
-protocol sections, guidelines, registries, or publications.
+## Structured Map
 
-## Stage-Specific Checkpoints
+The v2 snapshot contains the current revision and status, summary, current
+focus, active branch, explicit current-focus and active-branch node refs, nodes,
+edges, overall medical narrative, machine source refs, and conditions.
 
-- `direction_and_route_selection`: record proposed or refined hypotheses,
-  selected and rejected scientific routes, stop conditions, and continue,
-  narrow, pivot, stop, or researcher-judgment decisions.
-- `baseline_and_evidence_setup`: record material cohort, endpoint, comparator,
-  source, feasibility, and validation-plan changes; preserve data insufficiency,
-  null baselines, and design-invalid findings.
-- `bounded_analysis_campaign`: record each claim-relevant completed or failed
-  analysis, positive/negative/null/mixed result, evidence interpretation, and
-  resulting route decision.
-- `manuscript_authoring`: record only scientific interpretation or route changes
-  revealed during writing; ordinary prose, citation formatting, or layout edits
-  do not create trajectory events.
-- `review_and_quality_gate`: record the independent reviewer's decisive evidence
-  interpretation, limitations that alter the claim, and accepted continue,
-  refine, pivot, stop, or route-back decision.
-- `finalize_and_publication_handoff`: record a terminal research-route or
-  publication-route decision and a materially accepted artifact; mechanical
-  packaging and transport alone return a null trajectory delta.
+Every edge endpoint and current-route ref must name an existing node. Nodes from
+earlier or unsuccessful routes remain present and are marked historical or
+superseded as appropriate. The current route is explicit; Framework and the App
+must not infer it from branch names or medical text.
 
-## Session Reconciliation
+All visible labels, summaries, edge descriptions, condition explanations, and
+medical narratives are authored by MAS. Framework and the App may validate,
+read, transport, lay out, and display these fields, but may not translate,
+summarize, rewrite, accept, reject, or infer medical judgment.
 
-Codex may inspect linked sessions for historical reconstruction, omission
-detection, or candidate-delta drafting. Use only user-visible messages, tool
-results, artifact refs, and explicit conclusions. Never extract or publish
-implicit reasoning. Session summaries remain candidates and pass through the
-same MAS acceptance gate before entering the accepted trajectory.
+## Reader-Safe Boundary
+
+Do not expose code or file paths, node or event identifiers, StageRun or Attempt
+identifiers, payloads, hashes, provider or queue state, checkpoint mechanics,
+retry mechanics, or internal chain-of-thought in human-visible prose. Machine
+source refs remain hidden by default. In “来源与依据”, cite recognizable study
+protocols, cohort definitions, analysis plans, tables, figures, guidelines,
+registries, or publications.
+
+Codex may read linked sessions to recover omissions or update the current
+account, but may use only user-visible messages, tool results, artifact refs,
+and explicit conclusions. It must not extract or publish implicit reasoning and
+must not turn a session summary into evidence without source support.
+
+## Review Boundary
+
+Ordinary trajectory updates do not start an independent reviewer. Existing
+independent review remains available at an applicable Stage end, after a major
+scientific route switch, and at a formal manuscript or publication quality
+gate. Record the current progress first; any required review follows through the
+existing Stage lifecycle and is not a prerequisite for writing these files.
+
+Passing schema or fixture tests proves only structure, fixed paths, graph
+reference integrity, and absence of selected machine terms. It does not prove
+that medical prose is publication quality or that a scientific conclusion is
+correct.
+
+## Stage Emphasis
+
+- `direction_and_route_selection`: hypotheses, selected and unsuccessful
+  alternatives, route rationale, stop conditions, and next validation.
+- `baseline_and_evidence_setup`: population, endpoint, comparator, source,
+  feasibility, and material validation-plan changes.
+- `bounded_analysis_campaign`: completed or materially failed validation,
+  observed result, evidence interpretation, uncertainty, and route decision.
+- `manuscript_authoring`: only scientific interpretation or route changes
+  revealed during writing, not ordinary prose or layout edits.
+- `review_and_quality_gate`: review findings only when they materially change
+  the evidence judgment, claim boundary, limitation, route, or next step.
+- `finalize_and_publication_handoff`: terminal research or publication-route
+  decisions, not mechanical packaging or transport.
+
+Legacy v1 event and snapshot schemas remain readable for historical studies.
+Do not create new v1 events or silently convert historical acceptance metadata
+into v2 progress authority.

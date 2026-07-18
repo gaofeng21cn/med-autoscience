@@ -44,15 +44,21 @@ separate reviewer/auditor invocation.
 
 ## Research Trajectory
 
-Follow `research_trajectory_medical_narrative.md`. Emit a candidate
-`research_trajectory_delta_ref` when this Stage proposes or refines the principal
-hypothesis, selects or rejects a scientific route, changes a stop condition, or
-decides to continue, narrow, pivot, stop, or request researcher judgment. State
-the research question, current hypothesis, evidence basis, route rationale, and
-next research step in medical-paper language. When no such scientific delta was
-made, return the field as `null`. Copy provenance Stage, StageRun, and Attempt
-refs only from the host-injected Stage context; never construct, infer, or
-normalize them.
+Follow `research_trajectory_medical_narrative.md`. When this Stage proposes or
+revises the principal hypothesis, selects or leaves a scientific route, changes
+a stop condition, or materially changes the next research step, the current MAS
+Attempt immediately updates `artifacts/research_trajectory/TRAJECTORY.md` and
+`artifacts/research_trajectory/snapshot.json` together. Preserve unsuccessful
+alternatives and explain the scientific reason for the selected route. Use
+medical Results and Discussion wording for the research scope, evidence basis,
+uncertainty, judgment, route, and next step. Do not update for tool calls,
+heartbeats, retries, or runtime activity without scientific change.
+
+The trajectory write does not start or wait for an independent reviewer. A
+major route switch may enter the existing independent-review lifecycle after it
+has been recorded. `research_trajectory_delta_ref` remains nullable v1 read
+compatibility and is not the v2 write gate; the current v2 Stage output returns
+it as `null`.
 
 ## Handoff
 

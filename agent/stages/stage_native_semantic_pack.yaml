@@ -65,25 +65,40 @@ stage_native_semantic_pack:
     static_transition_table_can_reject_ai_route_back: false
   research_trajectory_output_policy: &research_trajectory_output_policy
     surface_kind: mas_stage_research_trajectory_obligation
-    version: mas-stage-research-trajectory-obligation.v1
+    version: mas-stage-research-trajectory-obligation.v2
     contract_ref: contracts/research_trajectory_contract.json
     knowledge_ref: agent/knowledge/research_trajectory_medical_narrative.md
-    output_ref_field: research_trajectory_delta_ref
-    emit_at:
+    fixed_artifact_paths:
+      - artifacts/research_trajectory/TRAJECTORY.md
+      - artifacts/research_trajectory/snapshot.json
+    write_mode: current_mas_attempt_direct_same_semantic_update
+    update_at:
       - hypothesis_proposal_refinement_selection_supersession_or_retirement
-      - validation_plan_or_material_design_change
-      - positive_negative_null_mixed_failed_inconclusive_or_design_invalid_result
+      - claim_relevant_validation_completion_or_material_design_change
+      - execution_failure_that_materially_changes_validation_route_or_next_step
+      - positive_negative_null_mixed_inconclusive_or_design_invalid_result
       - evidence_interpretation
       - continue_refine_narrow_pivot_stop_or_researcher_judgment_route_decision
-      - artifact_that_materially_changes_the_accepted_scientific_story
+      - next_research_step_materially_changed
+    do_not_update_at:
+      - tool_call
+      - heartbeat
+      - retry_without_scientific_change
+      - provider_or_queue_state
+      - mechanical_formatting_packaging_hashing_or_transport
     three_axis_separation_required:
       - execution_outcome
       - evidence_interpretation
       - route_decision
-    no_scientific_semantic_delta_value: null
-    candidate_location: stage_artifact_or_closeout_packet_only
-    canonical_acceptance_requires: owner_receipt_or_decisive_reviewer_receipt
-    accepted_event_contract_ref: contracts/schemas/v2/mas-research-trajectory-event.schema.json
+    unsuccessful_routes_and_pivot_reasons_preserved: true
+    independent_reviewer_is_write_prerequisite: false
+    reviewer_scope:
+      - existing_stage_end_review_policy
+      - major_scientific_route_switch
+      - formal_manuscript_or_publication_quality_gate
+    legacy_nullable_output_ref_field: research_trajectory_delta_ref
+    current_v2_stage_output_value: null
+    new_required_stage_output_fields: []
     user_projection_policy: mas_authored_medical_manuscript_narrative_only
     framework_can_infer_medical_wording: false
   global_authority_boundary:

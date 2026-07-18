@@ -52,7 +52,7 @@
     },
     "research_trajectory_delta_ref": {
       "$ref": "#/$defs/nullable_research_trajectory_delta_ref",
-      "description": "Candidate MAS research trajectory delta emitted at a scientific semantic checkpoint, or null when the Stage produced no hypothesis, validation, evidence-interpretation, or route-decision delta."
+      "description": "Legacy v1 compatibility field. Current research trajectory v2 writers return null because the MAS Attempt directly updates the fixed Markdown and snapshot artifacts; historical v1 readers may still encounter a non-null delta ref."
     },
     "owner_receipt_ref": {
       "$ref": "#/$defs/nullable_typed_ref"

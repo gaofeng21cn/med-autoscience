@@ -60,7 +60,7 @@
       {
         "view_id": "scientific-reasoning",
         "view_kind": "scientific_reasoning_map",
-        "schema_version": "scientific-reasoning-map.v1",
+        "schema_version": "scientific-reasoning-map.v2",
         "source_kind": "work_item_relative_json",
         "relative_path": "artifacts/research_trajectory/snapshot.json"
       }

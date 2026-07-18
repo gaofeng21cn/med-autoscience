@@ -10,7 +10,7 @@
   "stage_completion_policy_projection": {
     "projection_kind": "sha-bound-projection-of-canonical-mas-stage-policy",
     "source_ref": "agent/stages/stage_native_semantic_pack.yaml#/stage_native_semantic_pack/stages/write/stage_completion_policy",
-    "source_file_sha256": "sha256:0c8f07db612eedf3ab68b4d3745df7fee12c4036302fe91d6d62f8ed58e27031",
+    "source_file_sha256": "sha256:38aded9c20fab1dc3aecb67a35cf6d6f9c717323bbcaa87d0dddb1036e3834c4",
     "policy": {
       "surface_kind": "domain_stage_completion_policy",
       "version": "domain-stage-completion-policy.v1",

@@ -206,17 +206,25 @@
       "stage_contract_extension": {
         "research_trajectory": {
           "surface_kind": "mas_stage_research_trajectory_obligation",
-          "version": "mas-stage-research-trajectory-obligation.v1",
+          "version": "mas-stage-research-trajectory-obligation.v2",
           "stage_id": "direction_and_route_selection",
           "contract_ref": "contracts/research_trajectory_contract.json",
           "knowledge_ref": "agent/knowledge/research_trajectory_medical_narrative.md",
-          "required_output_ref_field": "research_trajectory_delta_ref",
-          "emit_when": [
-            "principal_hypothesis_proposed_refined_selected_or_retired",
-            "scientific_route_selected_rejected_continued_narrowed_pivoted_stopped_or_sent_to_researcher_judgment"
+          "fixed_artifact_paths": [
+            "artifacts/research_trajectory/TRAJECTORY.md",
+            "artifacts/research_trajectory/snapshot.json"
           ],
-          "no_scientific_semantic_delta_value": null,
-          "candidate_requires_owner_or_decisive_reviewer_receipt_before_canonical_event": true,
+          "write_mode": "current_mas_attempt_direct_same_semantic_update",
+          "update_when": [
+            "principal_hypothesis_proposed_refined_selected_or_retired",
+            "scientific_route_selected_rejected_continued_narrowed_pivoted_stopped_or_sent_to_researcher_judgment",
+            "next_research_step_materially_changed"
+          ],
+          "tool_call_heartbeat_or_retry_without_scientific_change_updates_trajectory": false,
+          "independent_reviewer_is_write_prerequisite": false,
+          "legacy_nullable_output_ref_field": "research_trajectory_delta_ref",
+          "current_v2_stage_output_value": null,
+          "new_required_stage_output_fields": [],
           "user_projection_uses_mas_authored_medical_narrative_only": true
         },
         "cohort_query_refs": [
@@ -603,17 +611,25 @@
       "stage_contract_extension": {
         "research_trajectory": {
           "surface_kind": "mas_stage_research_trajectory_obligation",
-          "version": "mas-stage-research-trajectory-obligation.v1",
+          "version": "mas-stage-research-trajectory-obligation.v2",
           "stage_id": "baseline_and_evidence_setup",
           "contract_ref": "contracts/research_trajectory_contract.json",
           "knowledge_ref": "agent/knowledge/research_trajectory_medical_narrative.md",
-          "required_output_ref_field": "research_trajectory_delta_ref",
-          "emit_when": [
-            "validation_plan_cohort_endpoint_comparator_or_source_boundary_materially_changed",
-            "negative_null_inconclusive_or_design_invalid_baseline_evidence_observed"
+          "fixed_artifact_paths": [
+            "artifacts/research_trajectory/TRAJECTORY.md",
+            "artifacts/research_trajectory/snapshot.json"
           ],
-          "no_scientific_semantic_delta_value": null,
-          "candidate_requires_owner_or_decisive_reviewer_receipt_before_canonical_event": true,
+          "write_mode": "current_mas_attempt_direct_same_semantic_update",
+          "update_when": [
+            "validation_plan_cohort_endpoint_comparator_or_source_boundary_materially_changed",
+            "negative_null_inconclusive_or_design_invalid_baseline_evidence_observed",
+            "next_research_step_materially_changed"
+          ],
+          "tool_call_heartbeat_or_retry_without_scientific_change_updates_trajectory": false,
+          "independent_reviewer_is_write_prerequisite": false,
+          "legacy_nullable_output_ref_field": "research_trajectory_delta_ref",
+          "current_v2_stage_output_value": null,
+          "new_required_stage_output_fields": [],
           "user_projection_uses_mas_authored_medical_narrative_only": true
         },
         "cohort_query_refs": [
@@ -997,18 +1013,27 @@
       "stage_contract_extension": {
         "research_trajectory": {
           "surface_kind": "mas_stage_research_trajectory_obligation",
-          "version": "mas-stage-research-trajectory-obligation.v1",
+          "version": "mas-stage-research-trajectory-obligation.v2",
           "stage_id": "bounded_analysis_campaign",
           "contract_ref": "contracts/research_trajectory_contract.json",
           "knowledge_ref": "agent/knowledge/research_trajectory_medical_narrative.md",
-          "required_output_ref_field": "research_trajectory_delta_ref",
-          "emit_when": [
-            "claim_relevant_test_planned_completed_failed_or_cancelled",
-            "positive_negative_null_mixed_inconclusive_or_design_invalid_result_interpreted",
-            "continue_refine_narrow_pivot_stop_or_researcher_judgment_route_decided"
+          "fixed_artifact_paths": [
+            "artifacts/research_trajectory/TRAJECTORY.md",
+            "artifacts/research_trajectory/snapshot.json"
           ],
-          "no_scientific_semantic_delta_value": null,
-          "candidate_requires_owner_or_decisive_reviewer_receipt_before_canonical_event": true,
+          "write_mode": "current_mas_attempt_direct_same_semantic_update",
+          "update_when": [
+            "claim_relevant_validation_completed",
+            "execution_failure_materially_changes_validation_route_or_next_step",
+            "positive_negative_null_mixed_inconclusive_or_design_invalid_result_interpreted",
+            "continue_refine_narrow_pivot_stop_or_researcher_judgment_route_decided",
+            "next_research_step_materially_changed"
+          ],
+          "tool_call_heartbeat_or_retry_without_scientific_change_updates_trajectory": false,
+          "independent_reviewer_is_write_prerequisite": false,
+          "legacy_nullable_output_ref_field": "research_trajectory_delta_ref",
+          "current_v2_stage_output_value": null,
+          "new_required_stage_output_fields": [],
           "user_projection_uses_mas_authored_medical_narrative_only": true
         },
         "cohort_query_refs": [
@@ -1388,17 +1413,24 @@
       "stage_contract_extension": {
         "research_trajectory": {
           "surface_kind": "mas_stage_research_trajectory_obligation",
-          "version": "mas-stage-research-trajectory-obligation.v1",
+          "version": "mas-stage-research-trajectory-obligation.v2",
           "stage_id": "manuscript_authoring",
           "contract_ref": "contracts/research_trajectory_contract.json",
           "knowledge_ref": "agent/knowledge/research_trajectory_medical_narrative.md",
-          "required_output_ref_field": "research_trajectory_delta_ref",
-          "emit_when": [
+          "fixed_artifact_paths": [
+            "artifacts/research_trajectory/TRAJECTORY.md",
+            "artifacts/research_trajectory/snapshot.json"
+          ],
+          "write_mode": "current_mas_attempt_direct_same_semantic_update",
+          "update_when": [
             "writing_reveals_material_hypothesis_evidence_interpretation_limitation_or_route_change"
           ],
-          "ordinary_prose_citation_formatting_or_layout_emits_delta": false,
-          "no_scientific_semantic_delta_value": null,
-          "candidate_requires_owner_or_decisive_reviewer_receipt_before_canonical_event": true,
+          "ordinary_prose_citation_formatting_or_layout_updates_trajectory": false,
+          "tool_call_heartbeat_or_retry_without_scientific_change_updates_trajectory": false,
+          "independent_reviewer_is_write_prerequisite": false,
+          "legacy_nullable_output_ref_field": "research_trajectory_delta_ref",
+          "current_v2_stage_output_value": null,
+          "new_required_stage_output_fields": [],
           "user_projection_uses_mas_authored_medical_narrative_only": true
         },
         "cohort_query_refs": [
@@ -1896,18 +1928,25 @@
       "stage_contract_extension": {
         "research_trajectory": {
           "surface_kind": "mas_stage_research_trajectory_obligation",
-          "version": "mas-stage-research-trajectory-obligation.v1",
+          "version": "mas-stage-research-trajectory-obligation.v2",
           "stage_id": "review_and_quality_gate",
           "contract_ref": "contracts/research_trajectory_contract.json",
           "knowledge_ref": "agent/knowledge/research_trajectory_medical_narrative.md",
-          "required_output_ref_field": "research_trajectory_delta_ref",
-          "emit_when": [
-            "independent_decisive_review_changes_evidence_interpretation_claim_limitation_or_route",
-            "negative_null_inconclusive_or_design_invalid_finding_is_decisively_classified"
+          "fixed_artifact_paths": [
+            "artifacts/research_trajectory/TRAJECTORY.md",
+            "artifacts/research_trajectory/snapshot.json"
           ],
-          "same_thread_checking_can_accept_canonical_event": false,
-          "no_scientific_semantic_delta_value": null,
-          "candidate_requires_owner_or_decisive_reviewer_receipt_before_canonical_event": true,
+          "write_mode": "current_mas_attempt_direct_same_semantic_update",
+          "update_when": [
+            "independent_decisive_review_changes_evidence_interpretation_claim_limitation_or_route",
+            "negative_null_inconclusive_or_design_invalid_finding_is_decisively_classified",
+            "next_research_step_materially_changed"
+          ],
+          "tool_call_heartbeat_or_retry_without_scientific_change_updates_trajectory": false,
+          "independent_reviewer_is_write_prerequisite": false,
+          "legacy_nullable_output_ref_field": "research_trajectory_delta_ref",
+          "current_v2_stage_output_value": null,
+          "new_required_stage_output_fields": [],
           "user_projection_uses_mas_authored_medical_narrative_only": true
         },
         "cohort_query_refs": [
@@ -2535,18 +2574,25 @@
       "stage_contract_extension": {
         "research_trajectory": {
           "surface_kind": "mas_stage_research_trajectory_obligation",
-          "version": "mas-stage-research-trajectory-obligation.v1",
+          "version": "mas-stage-research-trajectory-obligation.v2",
           "stage_id": "finalize_and_publication_handoff",
           "contract_ref": "contracts/research_trajectory_contract.json",
           "knowledge_ref": "agent/knowledge/research_trajectory_medical_narrative.md",
-          "required_output_ref_field": "research_trajectory_delta_ref",
-          "emit_when": [
-            "terminal_research_or_publication_route_decided",
-            "accepted_artifact_materially_changes_reader_visible_scientific_story"
+          "fixed_artifact_paths": [
+            "artifacts/research_trajectory/TRAJECTORY.md",
+            "artifacts/research_trajectory/snapshot.json"
           ],
-          "mechanical_packaging_hashing_or_transport_emits_delta": false,
-          "no_scientific_semantic_delta_value": null,
-          "candidate_requires_owner_or_decisive_reviewer_receipt_before_canonical_event": true,
+          "write_mode": "current_mas_attempt_direct_same_semantic_update",
+          "update_when": [
+            "terminal_research_or_publication_route_decided",
+            "reader_visible_scientific_conclusion_limitation_or_next_step_materially_changed"
+          ],
+          "mechanical_packaging_hashing_or_transport_updates_trajectory": false,
+          "tool_call_heartbeat_or_retry_without_scientific_change_updates_trajectory": false,
+          "independent_reviewer_is_write_prerequisite": false,
+          "legacy_nullable_output_ref_field": "research_trajectory_delta_ref",
+          "current_v2_stage_output_value": null,
+          "new_required_stage_output_fields": [],
           "user_projection_uses_mas_authored_medical_narrative_only": true
         },
         "cohort_query_refs": [

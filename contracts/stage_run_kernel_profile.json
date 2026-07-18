@@ -103,7 +103,9 @@
       "current_owner_delta_ref_allowed": true,
       "research_trajectory_delta_ref_allowed": true,
       "research_trajectory_contract_ref": "contracts/research_trajectory_contract.json",
-      "accepted_trajectory_requires_mas_owner_or_decisive_reviewer_receipt": true,
+      "research_trajectory_delta_ref_role": "legacy_nullable_v1_read_compatibility",
+      "v2_current_attempt_direct_dual_file_update_allowed": true,
+      "v2_trajectory_update_requires_owner_or_reviewer_receipt": false,
       "framework_can_infer_medical_narrative": false
     }
   },

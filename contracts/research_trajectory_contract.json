@@ -1,79 +1,61 @@
 {
   "surface_kind": "mas_research_trajectory_contract",
-  "version": "mas-research-trajectory-contract.v1",
-  "schema_version": 1,
+  "version": "mas-research-trajectory-contract.v2",
+  "schema_version": 2,
   "domain_id": "medautoscience",
   "owner": "MedAutoScience",
-  "purpose": "Record receipt-bound scientific hypothesis, validation, evidence interpretation, and route evolution while providing medical-manuscript-style user projections.",
+  "purpose": "Maintain a lightweight, reader-facing account of meaningful scientific changes while a MAS study is running.",
   "schema_refs": {
-    "event": "contracts/schemas/v2/mas-research-trajectory-event.schema.json",
-    "snapshot": "contracts/schemas/v2/mas-research-trajectory-snapshot.schema.json",
+    "snapshot": "contracts/schemas/v2/mas-research-trajectory-snapshot-v2.schema.json",
     "medical_narrative": "contracts/schemas/v2/mas-medical-narrative.schema.json"
   },
   "study_relative_layout": {
-    "accepted_event_path_template": "artifacts/research_trajectory/events/{event_id}.json",
     "snapshot_path": "artifacts/research_trajectory/snapshot.json",
-    "human_readable_projection_path": "artifacts/research_trajectory/TRAJECTORY.md",
-    "candidate_location": "stage_owned_artifact_or_closeout_packet_ref_only",
-    "candidate_must_not_be_written_under_accepted_event_path": true
+    "human_readable_path": "artifacts/research_trajectory/TRAJECTORY.md"
   },
-  "event_identity_and_replay": {
-    "identity_inputs": [
-      "study_id",
-      "stage_run_ref",
-      "attempt_ref",
-      "local_event_key",
-      "semantic_payload_sha256"
+  "write_policy": {
+    "writer": "current_mas_attempt",
+    "mode": "ai_first_direct_artifact_update",
+    "same_semantic_update_required": true,
+    "same_semantic_update_outputs": [
+      "artifacts/research_trajectory/snapshot.json",
+      "artifacts/research_trajectory/TRAJECTORY.md"
     ],
-    "exactly_once_assumed": false,
-    "same_event_id_same_digest": {
-      "status": "idempotent_noop"
-    },
-    "same_event_id_different_digest": {
-      "status": "conflict",
-      "error_code": "research_trajectory_event_identity_conflict",
-      "effect": "fail_closed_without_replacing_accepted_bytes"
-    },
-    "append_position_is_scientific_causality": false,
-    "scientific_causality_fields": [
-      "caused_by_event_refs",
-      "supersedes_event_refs",
-      "edges"
-    ]
+    "write_before_independent_review_allowed": true,
+    "independent_review_is_write_prerequisite": false,
+    "framework_checkpoint_submission_required": false,
+    "candidate_acceptance_required": false,
+    "receipt_required_for_progress_update": false,
+    "event_log_required_for_v2_write": false,
+    "working_checkpoint_layer_allowed": false
   },
-  "acceptance_gate": {
-    "candidate_is_domain_truth": false,
-    "accepted_event_required_lifecycle_status": "accepted",
-    "accepted_event_required_acceptance_basis": [
-      "owner_receipt",
-      "decisive_reviewer_receipt"
+  "meaningful_change_policy": {
+    "update_when": [
+      "principal_hypothesis_proposed_or_revised",
+      "claim_relevant_validation_completed",
+      "positive_negative_or_inconclusive_result_interpreted",
+      "scientific_route_continued_refined_narrowed_pivoted_stopped_or_sent_to_researcher_judgment",
+      "next_research_step_materially_changed"
     ],
-    "acceptance_ref_kind_by_basis": {
-      "owner_receipt": "owner_receipt",
-      "decisive_reviewer_receipt": "mas_reviewer_receipt"
-    },
-    "accepted_event_requires_exact_acceptance_ref": true,
-    "acceptance_ref_must_match_trusted_stage_context": true,
-    "accepted_event_requires_trusted_provenance": true,
-    "accepted_provenance_context_fields": [
-      "provenance.stage_id",
-      "provenance.stage_run_ref",
-      "provenance.attempt_ref"
+    "update_when_execution_failure": "only_when_the_failure_materially_changes_the_validation_boundary_route_or_next_step",
+    "do_not_update_for": [
+      "tool_call",
+      "heartbeat",
+      "retry_without_scientific_change",
+      "provider_or_queue_state",
+      "mechanical_formatting_packaging_hashing_or_transport"
     ],
-    "accepted_provenance_must_exactly_match_host_injected_decisive_stage_context": true,
-    "candidate_stage_run_and_attempt_refs_may_be_null": true,
-    "accepted_stage_run_and_attempt_refs_must_be_non_null": true,
-    "mas_must_not_construct_infer_or_normalize_stage_run_or_attempt_refs": true,
-    "stage_run_and_attempt_ref_locator_format_owner": "OPL Framework",
-    "provider_completion_can_accept_event": false,
-    "file_presence_can_accept_event": false,
-    "framework_can_accept_or_rewrite_medical_judgment": false,
-    "owner": "MedAutoScience"
+    "activity_without_meaningful_scientific_change_must_not_increment_revision": true
   },
   "scientific_semantics": {
     "execution_outcome_evidence_interpretation_and_route_decision_are_independent": true,
-    "execution_failure_implies_hypothesis_not_supported": false,
+    "execution_failure_is_not_evidence_against_hypothesis": true,
+    "execution_failure_user_wording": "validation_not_completed_evidence_not_assessed",
+    "does_not_support_user_wording": "completed_validation_does_not_support_current_hypothesis",
+    "insufficient_evidence_user_wording": "completed_or_partial_validation_with_uncertainty_too_large_for_a_determinate_judgment",
     "negative_and_null_results_are_recordable_evidence": true,
+    "unsuccessful_routes_must_remain_in_graph": true,
+    "route_change_requires_reader_facing_reason": true,
     "evidence_interpretations": [
       "supports_current_hypothesis",
       "does_not_support_current_hypothesis",
@@ -89,66 +71,65 @@
       "stop",
       "human_gate",
       "no_change"
-    ],
-    "forbidden_edge_terms": [
-      "refutes"
     ]
   },
-  "snapshot_projection": {
-    "derived_state_only": true,
-    "rebuild_source": "complete_receipt_bound_accepted_event_set",
-    "same_event_set_and_projector_version_must_produce_identical_bytes": true,
-    "wall_clock_build_time_forbidden": true,
-    "updated_at_source": "maximum_accepted_event_occurred_at",
-    "required_freshness_fields": [
+  "snapshot_contract": {
+    "version": "mas-research-trajectory-snapshot.v2",
+    "view_schema_version": "scientific-reasoning-map.v2",
+    "required_fields": [
+      "surface_kind",
+      "version",
+      "study_id",
+      "study_ref",
       "revision",
-      "accepted_event_count",
-      "event_set_sha256",
-      "latest_event_id",
-      "projector_version"
-    ],
-    "latest_explicit_projection_hints_copy_fields": [
       "status",
       "summary",
       "current_focus",
       "active_branch",
-      "conditions",
+      "current_focus_node_refs",
+      "active_branch_node_refs",
+      "nodes",
+      "edges",
+      "medical_narrative",
+      "source_refs",
+      "conditions"
+    ],
+    "revision_policy": "increment_once_per_same_semantic_dual_file_update",
+    "current_route_fields": [
       "current_focus_node_refs",
       "active_branch_node_refs"
     ],
-    "node_structural_copy_mapping": {
-      "id": "node.node_id",
-      "kind": "node.node_type",
-      "label": "node.display_label",
-      "status": "node.status",
-      "summary": "node.medical_summary",
-      "branch_id": "node.branch_id",
-      "occurred_at": "node.occurred_at",
-      "details": "node.medical_narrative",
-      "source_refs": "node.source_refs"
+    "cross_field_validation_owner": "OPL Framework generic domain detail view reader",
+    "node_ids_must_be_unique": true,
+    "edge_ids_must_be_unique": true,
+    "current_focus_node_id_must_reference_existing_node": true,
+    "current_focus_node_id_must_be_listed_in_current_focus_node_refs": true,
+    "current_route_membership_must_reference_existing_nodes": true,
+    "active_branch_node_refs_must_match_active_branch_branch_id": true,
+    "edges_must_reference_existing_nodes": true,
+    "schema_unique_items_does_not_replace_identity_or_reference_validation": true,
+    "source_refs_are_machine_only_and_hidden_by_default": true,
+    "study_identity_binding": {
+      "study_id_must_equal_work_item_id": true,
+      "study_ref_kind": "mas_study",
+      "study_ref_value_template": "mas-study:{study_id}",
+      "study_ref_must_exactly_match_template": true,
+      "study_ref_is_machine_only": true
     },
-    "edge_structural_copy_mapping": {
-      "id": "edge.edge_id",
-      "source": "edge.source_node_id",
-      "target": "edge.target_node_id",
-      "kind": "edge.relation",
-      "label": "edge.display_label",
-      "status": "edge.status",
-      "source_refs": "edge.source_refs"
-    },
-    "copy_mapping_can_infer_medical_semantics": false,
-    "missing_or_stale_snapshot_effect": "rebuild_before_readback"
+    "app_and_framework_must_copy_medical_text_without_inference": true
   },
-  "medical_presentation_policy": {
+  "human_readable_contract": {
+    "format": "markdown",
     "audience": [
       "clinicians",
       "medical_professors",
       "clinical_researchers",
       "biomedical_researchers"
     ],
-    "style": "medical_manuscript",
+    "style": "medical_results_and_discussion",
     "required_user_headings_zh_CN": [
       "研究问题",
+      "研究范围",
       "当前主要假设",
       "验证方法",
       "主要发现",
@@ -157,23 +138,17 @@
       "下一研究步骤",
       "来源与依据"
     ],
-    "preferred_evidence_labels_zh_CN": {
-      "supports_current_hypothesis": "支持当前假设",
-      "does_not_support_current_hypothesis": "不支持当前假设",
-      "inconclusive": "证据尚不确定",
-      "design_invalid": "当前研究设计不足以判断"
-    },
-    "preferred_route_labels_zh_CN": {
-      "continue": "继续验证",
-      "refine": "返回并修订研究假设或研究设计",
-      "narrow": "收窄研究问题",
-      "pivot": "调整研究路线",
-      "stop": "暂停该研究路线",
-      "human_gate": "需要研究者判断"
-    },
-    "user_visible_text_source": "mas_authored_event_and_snapshot_fields_only",
-    "framework_must_not_generate_or_infer_medical_wording": true,
-    "renderer_must_not_translate_machine_status_into_scientific_claim": true,
+    "required_content": [
+      "research_scope",
+      "method",
+      "observed_findings",
+      "uncertainty_and_limitations",
+      "evidence_judgment",
+      "route_adjustment_and_reason",
+      "next_research_step"
+    ],
+    "must_preserve_unsuccessful_routes_and_pivot_reasons": true,
+    "must_not_make_medical_inference_beyond_cited_evidence": true,
     "user_visible_forbidden_concepts": [
       "code_path",
       "file_path",
@@ -185,33 +160,49 @@
       "hash",
       "provider",
       "runtime_queue",
+      "checkpoint",
       "implicit_chain_of_thought"
-    ],
-    "technical_provenance_location": "machine_refs_only"
+    ]
   },
-  "stage_output_contract": {
-    "field": "research_trajectory_delta_ref",
-    "nullable": true,
-    "non_null_kind": "mas_research_trajectory_delta",
-    "candidate_without_semantic_checkpoint": "null",
-    "candidate_promotion": "receipt_bound_acceptance_then_exact_byte_materialization"
+  "review_policy": {
+    "trajectory_update_is_quality_acceptance": false,
+    "trajectory_update_can_claim_publication_quality": false,
+    "ordinary_progress_update_starts_independent_reviewer": false,
+    "independent_reviewer_remains_for": [
+      "existing_stage_end_review_policy",
+      "major_scientific_route_switch",
+      "formal_manuscript_or_publication_quality_gate"
+    ],
+    "review_may_follow_but_must_not_block_recording_current_progress": true
+  },
+  "stage_output_compatibility": {
+    "stage_action_output_schema_version": 1,
+    "new_required_stage_output_fields": [],
+    "legacy_nullable_field": "research_trajectory_delta_ref",
+    "legacy_field_status": "read_only_compatibility_not_v2_write_gate",
+    "current_v2_stage_output_value": null
   },
   "framework_projection_mapping": {
     "raw_detail_view_kind": "research_trajectory",
     "view_id": "scientific-reasoning",
     "view_kind": "scientific_reasoning_map",
-    "projection_schema_version": "scientific-reasoning-map.v1",
+    "projection_schema_version": "scientific-reasoning-map.v2",
     "fast_locator_field": "domain_detail_views",
     "full_payload_transport": "lazy_item_scoped_readback",
-    "shell_reads_raw_mas_events": false,
-    "framework_role": "validate_refs_persist_replay_project_exact_mas_authored_display_text"
+    "framework_role": "validate_read_and_transport_exact_mas_authored_snapshot",
+    "framework_can_accept_reject_or_rewrite_medical_judgment": false,
+    "app_can_accept_reject_summarize_translate_or_rewrite_medical_judgment": false
+  },
+  "legacy_v1_read_compatibility": {
+    "new_v1_writes_allowed": false,
+    "event_schema": "contracts/schemas/v2/mas-research-trajectory-event.schema.json",
+    "snapshot_schema": "contracts/schemas/v2/mas-research-trajectory-snapshot.schema.json",
+    "view_schema_version": "scientific-reasoning-map.v1",
+    "accepted_event_materialization_is_v2_write_path": false,
+    "legacy_receipts_are_historical_read_context_only": true
   },
   "session_reconciliation": {
-    "allowed_roles": [
-      "historical_reconstruction",
-      "omission_detection",
-      "candidate_delta_generation"
-    ],
+    "codex_may_update_from_linked_session": true,
     "allowed_inputs": [
       "user_visible_messages",
       "tool_results",
@@ -219,17 +210,25 @@
       "explicit_conclusions"
     ],
     "implicit_reasoning_extraction_allowed": false,
-    "session_summary_is_domain_authority": false,
-    "candidate_requires_acceptance_gate": true
+    "session_summary_is_evidence_without_source_support": false,
+    "same_dual_file_update_policy_applies": true
+  },
+  "testing_boundary": {
+    "structural_tests_cover": [
+      "schema_shape",
+      "fixed_paths_and_same_update_policy",
+      "forbidden_machine_terms_in_user_visible_fixture",
+      "graph_reference_integrity",
+      "date_time_format_validation",
+      "markdown_headings"
+    ],
+    "tests_prove_medical_prose_quality": false,
+    "tests_prove_scientific_conclusion_correctness": false
   },
   "authority_boundary": {
-    "mas_owns_hypothesis_truth": true,
-    "mas_owns_evidence_interpretation": true,
-    "mas_owns_route_decision": true,
-    "mas_owns_medical_narrative": true,
-    "opl_owns_persistence_replay_and_generic_projection": true,
+    "mas_owns_hypothesis_evidence_route_and_medical_narrative": true,
+    "opl_owns_generic_attempt_lifecycle_transport_and_read_projection": true,
     "opl_can_write_domain_truth": false,
-    "opl_can_infer_scientific_conclusion": false,
     "app_can_mutate_trajectory": false,
     "private_mas_runtime_controller_or_cli_allowed": false
   }
