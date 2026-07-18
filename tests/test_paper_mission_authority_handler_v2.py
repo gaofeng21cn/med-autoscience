@@ -156,6 +156,111 @@ def test_exact_current_reviews_return_deterministic_owner_receipt(
     assert len(receipt["independent_review_receipt_refs"]) == 4
 
 
+def test_missing_professional_figure_skill_receipts_are_progress_first_quality_debt(
+    authority_records: Any,
+) -> None:
+    request = authority_records.paper_request(
+        include_professional_skill_invocations=False
+    )
+
+    result = _evaluate(request)
+
+    route_back = _assert_progress_debt(
+        result, "professional_figure_skill_consumption_evidence_missing"
+    )
+    assert route_back["next_owner"] == "mission_executor"
+    assert result["quality_debt"][
+        "blocks_quality_publication_export_and_submission_claims"
+    ] is True
+    _output_validator().validate(result)
+
+
+def test_missing_final_style_receipt_is_targeted_quality_debt(
+    authority_records: Any,
+) -> None:
+    request = authority_records.paper_request(
+        omit_professional_skill_ids=("medical-figure-style",)
+    )
+
+    result = _evaluate(request)
+
+    _assert_progress_debt(result, "professional_figure_style_consumption_missing")
+    _output_validator().validate(result)
+
+
+def test_assembled_panels_require_composer_receipt_without_blocking_liveness(
+    authority_records: Any,
+) -> None:
+    request = authority_records.paper_request(
+        professional_figure_composition_mode="assembled_panels",
+        omit_professional_skill_ids=("medical-figure-composer",),
+    )
+
+    result = _evaluate(request)
+
+    _assert_progress_debt(result, "professional_figure_composer_consumption_missing")
+    _output_validator().validate(result)
+
+
+def test_stale_professional_skill_output_binding_is_quality_debt(
+    authority_records: Any,
+) -> None:
+    request = authority_records.paper_request(
+        professional_skill_binding_sha_override=authority_records.digest(
+            "stale-figure-output"
+        )
+    )
+
+    result = _evaluate(request)
+
+    _assert_progress_debt(result, "professional_figure_skill_output_binding_stale")
+    _output_validator().validate(result)
+
+
+def test_finalize_routes_back_when_professional_figure_receipts_are_missing(
+    authority_records: Any,
+) -> None:
+    request = authority_records.paper_request(
+        scope="publication_generation",
+        stage_id="finalize_and_publication_handoff",
+        include_professional_skill_invocations=False,
+    )
+
+    result = _evaluate(request)
+
+    assert result["status"] == "route_back"
+    assert result["stage_outcome"]["stage_transition_allowed"] is False
+    assert result["route_back"]["reason_code"] == (
+        "professional_figure_skill_consumption_evidence_missing"
+    )
+    _output_validator().validate(result)
+
+
+def test_invalid_present_professional_skill_package_identity_fails_closed(
+    authority_records: Any,
+) -> None:
+    manifest, _ = authority_records.generation_manifest(
+        "manuscript_generation", schema_version=2
+    )
+    manifest["professional_skill_invocations"][0]["package_id"] = "forged-pack"
+    core = {
+        key: deepcopy(manifest[key])
+        for key in (
+            "surface_kind",
+            "schema_version",
+            "generation_id",
+            "manifest_scope",
+            "artifacts",
+            "review_scopes",
+            "professional_skill_invocations",
+        )
+    }
+    manifest["generation_manifest_sha256"] = authority_records.fingerprint(core)
+
+    with pytest.raises(ValueError, match="package_id must be mas-scholar-skills"):
+        normalize_generation_manifest(manifest)
+
+
 def test_missing_revision_consumption_binding_is_progress_first_quality_debt(
     authority_records: Any,
 ) -> None:

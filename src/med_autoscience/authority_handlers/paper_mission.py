@@ -175,6 +175,41 @@ def evaluate_paper_mission_authority(request: Mapping[str, Any]) -> dict[str, An
             ),
         )
 
+    professional_figure_debt = _professional_figure_skill_quality_debt(normalized)
+    if professional_figure_debt:
+        reason_code = professional_figure_debt[0]
+        if normalized["mission"]["stage_id"] == "finalize_and_publication_handoff":
+            return _route_result(
+                normalized,
+                reason_code=reason_code,
+                next_owner="mission_executor",
+                resume_condition=(
+                    "consume the required professional Figure Skills and bind their "
+                    "receipts to the exact final figure bytes"
+                ),
+            )
+        route_back = _route_back(
+            normalized,
+            reason_code=reason_code,
+            next_owner="mission_executor",
+            resume_condition=(
+                "consume the required professional Figure Skills and bind their "
+                "receipts to the exact final figure bytes"
+            ),
+        )
+        return _finalize(
+            normalized,
+            status="completed_with_quality_debt",
+            stage_outcome=_stage_outcome(
+                "completed_with_quality_debt", transition_allowed=True
+            ),
+            route_back=route_back,
+            quality_debt=_quality_debt(
+                normalized,
+                reason_codes=professional_figure_debt,
+            ),
+        )
+
     review_issue = _review_currentness_issue(normalized)
     if review_issue is not None:
         affected_lanes = review_issue[2]
@@ -1961,6 +1996,87 @@ def _review_quality_debt(
         refs.extend(receipt["defect_refs"])
     unique_refs = {(item["ref"], item["sha256"]): item for item in refs}
     return dedupe(codes), list(unique_refs.values())
+
+
+def _professional_figure_skill_quality_debt(
+    request: Mapping[str, Any],
+) -> list[str]:
+    manifest = request["generation_manifest"]
+    figure_artifacts = {
+        item["member_id"]: item
+        for item in manifest["artifacts"]
+        if item["role"] == "figure_file" and "member_id" in item
+    }
+    if not figure_artifacts:
+        return []
+
+    invocations = manifest.get("professional_skill_invocations") or []
+    if not invocations:
+        return ["professional_figure_skill_consumption_evidence_missing"]
+
+    groups: dict[str, list[Mapping[str, Any]]] = {}
+    for invocation in invocations:
+        groups.setdefault(invocation["figure_id"], []).append(invocation)
+
+    codes: list[str] = []
+    covered_members: set[str] = set()
+    for figure_id, group in sorted(groups.items()):
+        skills = {item["skill_id"] for item in group}
+        required = {"medical-figure-design", "medical-figure-style"}
+        composition_modes = {item["composition_mode"] for item in group}
+        figure_kinds = {item["figure_kind"] for item in group}
+        if len(composition_modes) != 1 or len(figure_kinds) != 1:
+            codes.append("professional_figure_skill_receipt_scope_mismatch")
+            continue
+        if composition_modes == {"assembled_panels"}:
+            required.add("medical-figure-composer")
+        missing = required - skills
+        if "medical-figure-design" in missing:
+            codes.append("professional_figure_design_consumption_missing")
+        if "medical-figure-style" in missing:
+            codes.append("professional_figure_style_consumption_missing")
+        if "medical-figure-composer" in missing:
+            codes.append("professional_figure_composer_consumption_missing")
+        unexpected_composer = (
+            composition_modes == {"single_canvas_direct"}
+            and "medical-figure-composer" in skills
+        )
+        if unexpected_composer:
+            codes.append("professional_figure_composer_receipt_not_applicable")
+
+        output_sets = {
+            tuple(
+                sorted(
+                    binding["member_id"]
+                    for binding in item["output_artifact_bindings"]
+                )
+            )
+            for item in group
+        }
+        if len(output_sets) != 1:
+            codes.append("professional_figure_skill_output_binding_mismatch")
+            continue
+        member_ids = set(next(iter(output_sets)))
+        if not member_ids.issubset(figure_artifacts):
+            codes.append("professional_figure_skill_output_binding_invalid")
+            continue
+        if any(
+            binding
+            != {
+                key: figure_artifacts[binding["member_id"]][key]
+                for key in ("member_id", "role", "ref", "size_bytes", "sha256")
+            }
+            for item in group
+            for binding in item["output_artifact_bindings"]
+        ):
+            codes.append("professional_figure_skill_output_binding_stale")
+        covered_members.update(member_ids)
+        if not figure_id.strip():
+            codes.append("professional_figure_skill_figure_identity_missing")
+
+    if covered_members != set(figure_artifacts):
+        codes.append("professional_figure_skill_output_coverage_incomplete")
+    return dedupe(codes)
 
 
 def _owner_receipt(request: Mapping[str, Any]) -> dict[str, Any]:

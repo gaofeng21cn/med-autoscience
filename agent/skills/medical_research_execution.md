@@ -113,6 +113,14 @@ The executor must treat all medical research work as claim-boundary work. A coho
   manuscript-argument, statistical-reporting, Data Availability, citation,
   figure/table, reader-grounding, and presentation details stay in the
   corresponding `medical-*` professional skill.
+- New or materially repaired paper-facing figures must consume
+  `medical-figure-design`; final visual QA must consume
+  `medical-figure-style`; separately assembled panels additionally consume
+  `medical-figure-composer`. Templates are optional references, not mandatory
+  layouts. If OPL catalog/hosted discovery is unavailable, use the current
+  canonical or materialized Skill and bind its exact identity instead of
+  bypassing the professional Figure workflow. Missing or stale receipts remain
+  progress-first quality debt and block quality/export/publication claims.
 
 ## Forbidden Work
 

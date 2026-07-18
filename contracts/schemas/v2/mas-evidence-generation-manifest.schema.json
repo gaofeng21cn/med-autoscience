@@ -106,6 +106,14 @@
         "$ref": "#/$defs/review_scope"
       }
     },
+    "professional_skill_invocations": {
+      "description": "Optional on legacy v2 manifests. New manuscript/publication generations with figure_file members carry exact professional Figure Skill candidate receipts. Missing receipts remain quality debt rather than an invalid legacy manifest.",
+      "type": "array",
+      "uniqueItems": true,
+      "items": {
+        "$ref": "#/$defs/professional_figure_skill_invocation"
+      }
+    },
     "independent_review_receipts": {
       "type": "array",
       "uniqueItems": true,
@@ -210,6 +218,282 @@
           "$ref": "#/$defs/sha256"
         }
       }
+    },
+    "professional_figure_artifact_binding": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "member_id",
+        "role",
+        "ref",
+        "size_bytes",
+        "sha256"
+      ],
+      "properties": {
+        "member_id": {
+          "$ref": "#/$defs/non_empty_text"
+        },
+        "role": {
+          "const": "figure_file"
+        },
+        "ref": {
+          "$ref": "#/$defs/non_empty_text"
+        },
+        "size_bytes": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "sha256": {
+          "$ref": "#/$defs/sha256"
+        }
+      }
+    },
+    "figure_template_usage": {
+      "oneOf": [
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "used",
+            "decision_reason"
+          ],
+          "properties": {
+            "used": {
+              "const": false
+            },
+            "decision_reason": {
+              "$ref": "#/$defs/non_empty_text"
+            }
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "used",
+            "template_id",
+            "template_ref",
+            "adaptation_mode",
+            "semantic_match_ref",
+            "transform_delta_ref"
+          ],
+          "properties": {
+            "used": {
+              "const": true
+            },
+            "template_id": {
+              "$ref": "#/$defs/non_empty_text"
+            },
+            "template_ref": {
+              "$ref": "#/$defs/non_empty_text"
+            },
+            "adaptation_mode": {
+              "enum": [
+                "declared_template",
+                "schema_adapted_template",
+                "reference_guided_new_render"
+              ]
+            },
+            "semantic_match_ref": {
+              "$ref": "#/$defs/non_empty_text"
+            },
+            "transform_delta_ref": {
+              "$ref": "#/$defs/non_empty_text"
+            }
+          }
+        }
+      ]
+    },
+    "figure_text_policy": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "embedded_title",
+        "embedded_subtitle",
+        "embedded_prose_footer",
+        "allowed_text_roles"
+      ],
+      "properties": {
+        "embedded_title": {
+          "type": "boolean"
+        },
+        "embedded_subtitle": {
+          "type": "boolean"
+        },
+        "embedded_prose_footer": {
+          "type": "boolean"
+        },
+        "allowed_text_roles": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": {
+            "enum": [
+              "panel_label",
+              "axis_label",
+              "tick_label",
+              "legend",
+              "necessary_statistical_annotation",
+              "graphical_abstract_copy"
+            ]
+          }
+        }
+      }
+    },
+    "professional_figure_skill_invocation": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "surface_kind",
+        "schema_version",
+        "receipt_id",
+        "figure_id",
+        "figure_kind",
+        "composition_mode",
+        "skill_id",
+        "package_id",
+        "package_version",
+        "package_source_ref",
+        "package_source_sha256",
+        "skill_source_ref",
+        "skill_source_sha256",
+        "invocation_id",
+        "input_contract_ref",
+        "input_sha256",
+        "consumed_rule_refs",
+        "output_artifact_bindings",
+        "status",
+        "refs_only",
+        "authority",
+        "publication_ready"
+      ],
+      "properties": {
+        "surface_kind": {
+          "const": "mas_professional_figure_skill_invocation_candidate"
+        },
+        "schema_version": {
+          "const": 1
+        },
+        "receipt_id": {
+          "$ref": "#/$defs/non_empty_text"
+        },
+        "figure_id": {
+          "$ref": "#/$defs/non_empty_text"
+        },
+        "figure_kind": {
+          "enum": [
+            "evidence_figure",
+            "graphical_abstract"
+          ]
+        },
+        "composition_mode": {
+          "enum": [
+            "single_canvas_direct",
+            "assembled_panels"
+          ]
+        },
+        "skill_id": {
+          "enum": [
+            "medical-figure-design",
+            "medical-figure-style",
+            "medical-figure-composer"
+          ]
+        },
+        "package_id": {
+          "const": "mas-scholar-skills"
+        },
+        "package_version": {
+          "$ref": "#/$defs/non_empty_text"
+        },
+        "package_source_ref": {
+          "$ref": "#/$defs/non_empty_text"
+        },
+        "package_source_sha256": {
+          "$ref": "#/$defs/sha256"
+        },
+        "skill_source_ref": {
+          "$ref": "#/$defs/non_empty_text"
+        },
+        "skill_source_sha256": {
+          "$ref": "#/$defs/sha256"
+        },
+        "invocation_id": {
+          "$ref": "#/$defs/non_empty_text"
+        },
+        "input_contract_ref": {
+          "$ref": "#/$defs/non_empty_text"
+        },
+        "input_sha256": {
+          "$ref": "#/$defs/sha256"
+        },
+        "consumed_rule_refs": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": {
+            "$ref": "#/$defs/non_empty_text"
+          }
+        },
+        "output_artifact_bindings": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": {
+            "$ref": "#/$defs/professional_figure_artifact_binding"
+          }
+        },
+        "template_usage": {
+          "$ref": "#/$defs/figure_template_usage"
+        },
+        "figure_text_policy": {
+          "$ref": "#/$defs/figure_text_policy"
+        },
+        "status": {
+          "const": "completed"
+        },
+        "refs_only": {
+          "const": true
+        },
+        "authority": {
+          "const": false
+        },
+        "publication_ready": {
+          "const": false
+        }
+      },
+      "allOf": [
+        {
+          "if": {
+            "properties": {
+              "skill_id": {
+                "const": "medical-figure-design"
+              }
+            }
+          },
+          "then": {
+            "required": [
+              "template_usage",
+              "figure_text_policy"
+            ]
+          },
+          "else": {
+            "not": {
+              "anyOf": [
+                {
+                  "required": [
+                    "template_usage"
+                  ]
+                },
+                {
+                  "required": [
+                    "figure_text_policy"
+                  ]
+                }
+              ]
+            }
+          }
+        }
+      ]
     },
     "review_scope": {
       "type": "object",

@@ -200,6 +200,94 @@ class AuthorityRecordFactory:
         }
 
     @classmethod
+    def professional_figure_skill_invocations(
+        cls,
+        artifacts: list[dict[str, Any]],
+        *,
+        figure_id: str = "F1",
+        composition_mode: str = "single_canvas_direct",
+    ) -> list[dict[str, Any]]:
+        bindings = [
+            {
+                key: artifact[key]
+                for key in ("member_id", "role", "ref", "size_bytes", "sha256")
+            }
+            for artifact in artifacts
+            if artifact["role"] == "figure_file"
+        ]
+        if not bindings:
+            return []
+        common = {
+            "surface_kind": "mas_professional_figure_skill_invocation_candidate",
+            "schema_version": 1,
+            "figure_id": figure_id,
+            "figure_kind": "evidence_figure",
+            "composition_mode": composition_mode,
+            "package_id": "mas-scholar-skills",
+            "package_version": "test-version",
+            "package_source_ref": "git:mas-scholar-skills@test",
+            "package_source_sha256": cls.digest("mas-scholar-skills:test-source"),
+            "input_contract_ref": f"mas-figure-contract://{figure_id}",
+            "input_sha256": cls.digest(f"figure-contract:{figure_id}"),
+            "output_artifact_bindings": bindings,
+            "status": "completed",
+            "refs_only": True,
+            "authority": False,
+            "publication_ready": False,
+        }
+        invocations = []
+        for skill_id in ("medical-figure-design", "medical-figure-style"):
+            invocation = {
+                **deepcopy(common),
+                "receipt_id": f"mas-professional-figure-skill:{figure_id}:{skill_id}",
+                "skill_id": skill_id,
+                "skill_source_ref": f"skills/{skill_id}/SKILL.md",
+                "skill_source_sha256": cls.digest(f"skill-source:{skill_id}"),
+                "invocation_id": f"invocation:{figure_id}:{skill_id}",
+                "consumed_rule_refs": [f"{skill_id}#workflow"],
+            }
+            if skill_id == "medical-figure-design":
+                invocation["template_usage"] = {
+                    "used": False,
+                    "decision_reason": "No reusable template was consumed.",
+                }
+                invocation["figure_text_policy"] = {
+                    "embedded_title": False,
+                    "embedded_subtitle": False,
+                    "embedded_prose_footer": False,
+                    "allowed_text_roles": [
+                        "panel_label",
+                        "axis_label",
+                        "tick_label",
+                        "legend",
+                        "necessary_statistical_annotation",
+                    ],
+                }
+            invocations.append(invocation)
+        if composition_mode == "assembled_panels":
+            invocations.append(
+                {
+                    **deepcopy(common),
+                    "receipt_id": (
+                        f"mas-professional-figure-skill:{figure_id}:"
+                        "medical-figure-composer"
+                    ),
+                    "skill_id": "medical-figure-composer",
+                    "skill_source_ref": "skills/medical-figure-composer/SKILL.md",
+                    "skill_source_sha256": cls.digest(
+                        "skill-source:medical-figure-composer"
+                    ),
+                    "invocation_id": (
+                        f"invocation:{figure_id}:medical-figure-composer"
+                    ),
+                    "consumed_rule_refs": [
+                        "medical-figure-composer#workflow"
+                    ],
+                }
+            )
+        return invocations
+
+    @classmethod
     def generation_manifest(
         cls,
         scope: str,
@@ -210,6 +298,11 @@ class AuthorityRecordFactory:
         artifact_ref_overrides: dict[str, str] | None = None,
         artifact_member_id_overrides: dict[str, str] | None = None,
         extra_artifacts: list[dict[str, Any]] | None = None,
+        professional_skill_invocations: list[dict[str, Any]] | None = None,
+        include_professional_skill_invocations: bool = True,
+        omit_professional_skill_ids: tuple[str, ...] = (),
+        professional_figure_composition_mode: str = "single_canvas_direct",
+        professional_skill_binding_sha_override: str | None = None,
         candidate_receipt: dict[str, Any] | None = None,
         review_receipts: list[dict[str, Any]] | None = None,
     ) -> tuple[dict[str, Any], dict[str, Any]]:
@@ -281,6 +374,25 @@ class AuthorityRecordFactory:
             )
 
             core["review_scopes"] = build_review_scopes(artifacts, scope)
+            if include_professional_skill_invocations and scope != "analysis_generation":
+                generated_invocations = deepcopy(
+                    professional_skill_invocations
+                    if professional_skill_invocations is not None
+                    else cls.professional_figure_skill_invocations(
+                        artifacts,
+                        composition_mode=professional_figure_composition_mode,
+                    )
+                )
+                generated_invocations = [
+                    item
+                    for item in generated_invocations
+                    if item["skill_id"] not in set(omit_professional_skill_ids)
+                ]
+                if professional_skill_binding_sha_override is not None:
+                    for item in generated_invocations:
+                        for binding in item["output_artifact_bindings"]:
+                            binding["sha256"] = professional_skill_binding_sha_override
+                core["professional_skill_invocations"] = generated_invocations
         manifest_sha256 = cls.fingerprint(core)
         manifest = {
             **core,
@@ -606,6 +718,11 @@ class AuthorityRecordFactory:
         artifact_ref_overrides: dict[str, str] | None = None,
         artifact_member_id_overrides: dict[str, str] | None = None,
         extra_artifacts: list[dict[str, Any]] | None = None,
+        professional_skill_invocations: list[dict[str, Any]] | None = None,
+        include_professional_skill_invocations: bool = True,
+        omit_professional_skill_ids: tuple[str, ...] = (),
+        professional_figure_composition_mode: str = "single_canvas_direct",
+        professional_skill_binding_sha_override: str | None = None,
     ) -> dict[str, Any]:
         from med_autoscience.authority_handlers.candidate_admission import (
             evaluate_candidate_admission_authority,
@@ -633,6 +750,17 @@ class AuthorityRecordFactory:
             artifact_member_id_overrides=artifact_member_id_overrides,
             extra_artifacts=extra_artifacts,
             candidate_receipt=candidate_receipt,
+            professional_skill_invocations=professional_skill_invocations,
+            include_professional_skill_invocations=(
+                include_professional_skill_invocations
+            ),
+            omit_professional_skill_ids=omit_professional_skill_ids,
+            professional_figure_composition_mode=(
+                professional_figure_composition_mode
+            ),
+            professional_skill_binding_sha_override=(
+                professional_skill_binding_sha_override
+            ),
         )
         producer_output_ref = cls.exact_ref(
             "opl_action_output", f"paper-output-{scope}"
@@ -987,6 +1115,10 @@ class AuthorityRecordFactory:
                 manifest["artifacts"], manifest["manifest_scope"]
             )
             core["review_scopes"] = manifest["review_scopes"]
+            if "professional_skill_invocations" in manifest:
+                core["professional_skill_invocations"] = manifest[
+                    "professional_skill_invocations"
+                ]
         fingerprint = cls.fingerprint(core)
         manifest["generation_manifest_sha256"] = fingerprint
         manifest_ref = {

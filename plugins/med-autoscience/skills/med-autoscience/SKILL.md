@@ -133,3 +133,12 @@ analysis design, writing, or another owning stage instead of chasing a positive
 result. Retry, review, and repair limits are quality budgets. Stop only for an
 unavailable executor, wrong-target identity/currentness, real authority, safety,
 credential, irreversible-action, or explicit human-decision gate.
+
+For new or materially repaired paper-facing figures, consume the installed
+ScholarSkills `medical-figure-design` workflow and bind its exact identity and
+final figure bytes. Final visual QA consumes `medical-figure-style`; use
+`medical-figure-composer` only for separately assembled panels. Figure
+templates are optional references. If hosted discovery is unavailable, use the
+current canonical/materialized Skill rather than bypassing professional figure
+judgment. Missing or stale Figure Skill receipts are progress-first quality
+debt and prevent quality, export, publication, or submission-ready claims.

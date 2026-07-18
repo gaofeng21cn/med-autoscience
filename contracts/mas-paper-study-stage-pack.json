@@ -118,8 +118,25 @@
         "medical-statistical-review",
         "medical-table-design",
         "medical-figure-design",
+        "medical-figure-style",
+        "medical-figure-composer",
         "medical-submission-prep"
       ],
+      "professional_figure_consumption_policy": {
+        "new_or_materially_repaired_figure_requires": [
+          "medical-figure-design"
+        ],
+        "final_visual_qa_requires": [
+          "medical-figure-style"
+        ],
+        "assembled_panels_conditionally_require": "medical-figure-composer",
+        "template_use_is_optional": true,
+        "catalog_or_hosted_interface_unavailable_fallback": "consume_current_canonical_or_materialized_skill_and_record_exact_identity",
+        "fallback_may_bypass_professional_skill": false,
+        "missing_or_stale_receipt_blocks_stage_liveness": false,
+        "missing_or_stale_receipt_creates_quality_debt": true,
+        "quality_debt_blocks_quality_export_publication_and_submission_claims": true
+      },
       "required_observability_fields": [
         "duration",
         "token_usage",
@@ -142,6 +159,8 @@
         "medical-statistical-review",
         "medical-table-design",
         "medical-figure-design",
+        "medical-figure-style",
+        "medical-figure-composer",
         "medical-submission-prep"
       ],
       "work_order_handoff": {

@@ -213,6 +213,8 @@ def normalize_generation_manifest(
     }
     if schema_version == 2:
         keys.add("review_scopes")
+        if "professional_skill_invocations" in payload:
+            keys.add("professional_skill_invocations")
     exact_keys(payload, keys, field)
     if payload.get("surface_kind") != "mas_evidence_generation_manifest":
         raise RequestShapeError(
@@ -261,6 +263,14 @@ def normalize_generation_manifest(
             )
         review_scopes = sorted(supplied_scopes, key=lambda item: item["review_lane"])
         manifest_core["review_scopes"] = review_scopes
+        if "professional_skill_invocations" in payload:
+            manifest_core["professional_skill_invocations"] = (
+                _normalize_professional_skill_invocations(
+                    payload.get("professional_skill_invocations"),
+                    f"{field}.professional_skill_invocations",
+                    artifacts=artifacts,
+                )
+            )
     expected_fingerprint = fingerprint(manifest_core)
     supplied_fingerprint = sha256(
         payload.get("generation_manifest_sha256"),
@@ -350,6 +360,7 @@ def build_generation_manifest_v2(
     artifacts: list[dict[str, Any]],
     generation_id: str,
     manifest_scope: str,
+    professional_skill_invocations: list[dict[str, Any]] | None = None,
 ) -> dict[str, Any]:
     """Build a canonical receipt-free v2 manifest from exact artifact records."""
 
@@ -375,6 +386,14 @@ def build_generation_manifest_v2(
             normalized_scope,
         ),
     }
+    if professional_skill_invocations is not None:
+        core["professional_skill_invocations"] = (
+            _normalize_professional_skill_invocations(
+                professional_skill_invocations,
+                "generation_manifest.professional_skill_invocations",
+                artifacts=normalized_artifacts,
+            )
+        )
     manifest = {
         **core,
         "generation_manifest_sha256": fingerprint(core),
@@ -382,6 +401,311 @@ def build_generation_manifest_v2(
     }
     normalize_generation_manifest(manifest)
     return manifest
+
+
+def _normalize_professional_skill_invocations(
+    value: Any,
+    field: str,
+    *,
+    artifacts: list[dict[str, Any]],
+) -> list[dict[str, Any]]:
+    artifact_by_member_id = {
+        item["member_id"]: item for item in artifacts if "member_id" in item
+    }
+    invocations = [
+        _normalize_professional_skill_invocation(
+            item,
+            f"{field}[{index}]",
+            artifact_by_member_id=artifact_by_member_id,
+        )
+        for index, item in enumerate(sequence(value, field))
+    ]
+    identities = [(item["figure_id"], item["skill_id"]) for item in invocations]
+    if len(identities) != len(set(identities)):
+        raise RequestShapeError(f"{field} contains duplicate figure/skill receipts")
+    member_owner: dict[str, str] = {}
+    for invocation in invocations:
+        for binding in invocation["output_artifact_bindings"]:
+            member_id = binding["member_id"]
+            prior_figure = member_owner.setdefault(member_id, invocation["figure_id"])
+            if prior_figure != invocation["figure_id"]:
+                raise RequestShapeError(
+                    f"{field} binds figure artifact {member_id} to multiple figures"
+                )
+    invocations.sort(key=lambda item: (item["figure_id"], item["skill_id"]))
+    return invocations
+
+
+def _normalize_professional_skill_invocation(
+    value: Any,
+    field: str,
+    *,
+    artifact_by_member_id: Mapping[str, Mapping[str, Any]],
+) -> dict[str, Any]:
+    payload = mapping(value, field)
+    skill_id = enum_text(
+        payload.get("skill_id"),
+        f"{field}.skill_id",
+        {
+            "medical-figure-design",
+            "medical-figure-style",
+            "medical-figure-composer",
+        },
+    )
+    keys = {
+        "surface_kind",
+        "schema_version",
+        "receipt_id",
+        "figure_id",
+        "figure_kind",
+        "composition_mode",
+        "skill_id",
+        "package_id",
+        "package_version",
+        "package_source_ref",
+        "package_source_sha256",
+        "skill_source_ref",
+        "skill_source_sha256",
+        "invocation_id",
+        "input_contract_ref",
+        "input_sha256",
+        "consumed_rule_refs",
+        "output_artifact_bindings",
+        "status",
+        "refs_only",
+        "authority",
+        "publication_ready",
+    }
+    if skill_id == "medical-figure-design":
+        keys.update({"template_usage", "figure_text_policy"})
+    exact_keys(payload, keys, field)
+    if payload.get("surface_kind") != "mas_professional_figure_skill_invocation_candidate":
+        raise RequestShapeError(
+            f"{field}.surface_kind must be "
+            "mas_professional_figure_skill_invocation_candidate"
+        )
+    if payload.get("schema_version") != 1 or isinstance(
+        payload.get("schema_version"), bool
+    ):
+        raise RequestShapeError(f"{field}.schema_version must be integer 1")
+    if payload.get("package_id") != "mas-scholar-skills":
+        raise RequestShapeError(f"{field}.package_id must be mas-scholar-skills")
+    if payload.get("status") != "completed":
+        raise RequestShapeError(f"{field}.status must be completed")
+    if payload.get("refs_only") is not True:
+        raise RequestShapeError(f"{field}.refs_only must be true")
+    for key in ("authority", "publication_ready"):
+        if payload.get(key) is not False:
+            raise RequestShapeError(f"{field}.{key} must be false")
+    consumed_rule_refs = text_list(
+        payload.get("consumed_rule_refs"), f"{field}.consumed_rule_refs"
+    )
+    if not consumed_rule_refs:
+        raise RequestShapeError(f"{field}.consumed_rule_refs must not be empty")
+    output_bindings = [
+        _normalize_professional_skill_artifact_binding(
+            item,
+            f"{field}.output_artifact_bindings[{index}]",
+            artifact_by_member_id=artifact_by_member_id,
+        )
+        for index, item in enumerate(
+            sequence(
+                payload.get("output_artifact_bindings"),
+                f"{field}.output_artifact_bindings",
+            )
+        )
+    ]
+    if not output_bindings:
+        raise RequestShapeError(
+            f"{field}.output_artifact_bindings must bind at least one final figure artifact"
+        )
+    member_ids = [item["member_id"] for item in output_bindings]
+    if len(member_ids) != len(set(member_ids)):
+        raise RequestShapeError(
+            f"{field}.output_artifact_bindings contains duplicate members"
+        )
+    normalized = {
+        "surface_kind": "mas_professional_figure_skill_invocation_candidate",
+        "schema_version": 1,
+        "receipt_id": text(payload.get("receipt_id"), f"{field}.receipt_id"),
+        "figure_id": text(payload.get("figure_id"), f"{field}.figure_id"),
+        "figure_kind": enum_text(
+            payload.get("figure_kind"),
+            f"{field}.figure_kind",
+            {"evidence_figure", "graphical_abstract"},
+        ),
+        "composition_mode": enum_text(
+            payload.get("composition_mode"),
+            f"{field}.composition_mode",
+            {"single_canvas_direct", "assembled_panels"},
+        ),
+        "skill_id": skill_id,
+        "package_id": "mas-scholar-skills",
+        "package_version": text(
+            payload.get("package_version"), f"{field}.package_version"
+        ),
+        "package_source_ref": text(
+            payload.get("package_source_ref"), f"{field}.package_source_ref"
+        ),
+        "package_source_sha256": sha256(
+            payload.get("package_source_sha256"),
+            f"{field}.package_source_sha256",
+        ),
+        "skill_source_ref": text(
+            payload.get("skill_source_ref"), f"{field}.skill_source_ref"
+        ),
+        "skill_source_sha256": sha256(
+            payload.get("skill_source_sha256"), f"{field}.skill_source_sha256"
+        ),
+        "invocation_id": text(
+            payload.get("invocation_id"), f"{field}.invocation_id"
+        ),
+        "input_contract_ref": text(
+            payload.get("input_contract_ref"), f"{field}.input_contract_ref"
+        ),
+        "input_sha256": sha256(
+            payload.get("input_sha256"), f"{field}.input_sha256"
+        ),
+        "consumed_rule_refs": consumed_rule_refs,
+        "output_artifact_bindings": sorted(
+            output_bindings, key=lambda item: item["member_id"]
+        ),
+        "status": "completed",
+        "refs_only": True,
+        "authority": False,
+        "publication_ready": False,
+    }
+    if skill_id == "medical-figure-design":
+        normalized["template_usage"] = _normalize_figure_template_usage(
+            payload.get("template_usage"), f"{field}.template_usage"
+        )
+        normalized["figure_text_policy"] = _normalize_figure_text_policy(
+            payload.get("figure_text_policy"),
+            f"{field}.figure_text_policy",
+            figure_kind=normalized["figure_kind"],
+        )
+    return normalized
+
+
+def _normalize_professional_skill_artifact_binding(
+    value: Any,
+    field: str,
+    *,
+    artifact_by_member_id: Mapping[str, Mapping[str, Any]],
+) -> dict[str, Any]:
+    payload = mapping(value, field)
+    exact_keys(payload, {"member_id", "role", "ref", "size_bytes", "sha256"}, field)
+    member_id = text(payload.get("member_id"), f"{field}.member_id")
+    normalized = {
+        "member_id": member_id,
+        "role": enum_text(payload.get("role"), f"{field}.role", {"figure_file"}),
+        "ref": text(payload.get("ref"), f"{field}.ref"),
+        "size_bytes": integer(payload.get("size_bytes"), f"{field}.size_bytes"),
+        "sha256": sha256(payload.get("sha256"), f"{field}.sha256"),
+    }
+    expected = artifact_by_member_id.get(member_id)
+    if expected is None or expected.get("role") != "figure_file":
+        raise RequestShapeError(
+            f"{field} must name a generation figure_file artifact"
+        )
+    return normalized
+
+
+def _normalize_figure_template_usage(value: Any, field: str) -> dict[str, Any]:
+    payload = mapping(value, field)
+    if payload.get("used") is False:
+        exact_keys(payload, {"used", "decision_reason"}, field)
+        return {
+            "used": False,
+            "decision_reason": text(
+                payload.get("decision_reason"), f"{field}.decision_reason"
+            ),
+        }
+    if payload.get("used") is not True:
+        raise RequestShapeError(f"{field}.used must be boolean")
+    exact_keys(
+        payload,
+        {
+            "used",
+            "template_id",
+            "template_ref",
+            "adaptation_mode",
+            "semantic_match_ref",
+            "transform_delta_ref",
+        },
+        field,
+    )
+    return {
+        "used": True,
+        "template_id": text(payload.get("template_id"), f"{field}.template_id"),
+        "template_ref": text(payload.get("template_ref"), f"{field}.template_ref"),
+        "adaptation_mode": enum_text(
+            payload.get("adaptation_mode"),
+            f"{field}.adaptation_mode",
+            {
+                "declared_template",
+                "schema_adapted_template",
+                "reference_guided_new_render",
+            },
+        ),
+        "semantic_match_ref": text(
+            payload.get("semantic_match_ref"), f"{field}.semantic_match_ref"
+        ),
+        "transform_delta_ref": text(
+            payload.get("transform_delta_ref"), f"{field}.transform_delta_ref"
+        ),
+    }
+
+
+def _normalize_figure_text_policy(
+    value: Any,
+    field: str,
+    *,
+    figure_kind: str,
+) -> dict[str, Any]:
+    payload = mapping(value, field)
+    exact_keys(
+        payload,
+        {
+            "embedded_title",
+            "embedded_subtitle",
+            "embedded_prose_footer",
+            "allowed_text_roles",
+        },
+        field,
+    )
+    for key in ("embedded_title", "embedded_subtitle", "embedded_prose_footer"):
+        if not isinstance(payload.get(key), bool):
+            raise RequestShapeError(f"{field}.{key} must be boolean")
+    allowed_text_roles = text_list(
+        payload.get("allowed_text_roles"), f"{field}.allowed_text_roles"
+    )
+    evidence_roles = {
+        "panel_label",
+        "axis_label",
+        "tick_label",
+        "legend",
+        "necessary_statistical_annotation",
+    }
+    allowed_roles = evidence_roles | {"graphical_abstract_copy"}
+    if not set(allowed_text_roles).issubset(allowed_roles):
+        raise RequestShapeError(f"{field}.allowed_text_roles contains unsupported roles")
+    if figure_kind == "evidence_figure":
+        for key in ("embedded_title", "embedded_subtitle", "embedded_prose_footer"):
+            if payload.get(key) is not False:
+                raise RequestShapeError(
+                    f"{field}.{key} must be false for evidence figures"
+                )
+        if set(allowed_text_roles) != evidence_roles:
+            raise RequestShapeError(
+                f"{field}.allowed_text_roles must equal the evidence-figure text policy"
+            )
+    return {
+        "embedded_title": payload["embedded_title"],
+        "embedded_subtitle": payload["embedded_subtitle"],
+        "embedded_prose_footer": payload["embedded_prose_footer"],
+        "allowed_text_roles": allowed_text_roles,
+    }
 
 
 def require_stage_scope(stage_id: str, manifest_scope: str) -> None:
