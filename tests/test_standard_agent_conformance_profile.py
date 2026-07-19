@@ -110,3 +110,18 @@ def test_medical_authority_source_refs_match_repo_hygiene_allowlist() -> None:
     }
 
     assert medical_authority_refs == expected_authority_refs
+
+
+def test_repo_hygiene_delegates_shared_byproducts_to_opl() -> None:
+    verify_script = (ROOT / "scripts" / "verify.sh").read_text(encoding="utf-8")
+    hygiene_globals = runpy.run_path(str(ROOT / "scripts" / "repo_hygiene_audit.py"))
+
+    assert 'workspace source-hygiene --source-root "${repo_root}" --json' in verify_script
+    assert set(hygiene_globals["MAS_POLICY_DIRECTORY_NAMES"]) == {
+        "ops",
+        "build",
+        "tmp",
+        ".ruff_cache",
+        ".mypy_cache",
+    }
+    assert set(hygiene_globals["MAS_POLICY_FILE_NAMES"]) == {".DS_Store"}

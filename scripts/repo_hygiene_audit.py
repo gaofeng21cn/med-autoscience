@@ -6,21 +6,16 @@ import sys
 from pathlib import Path
 
 
-BANNED_DIRECTORY_NAMES = frozenset(
+MAS_POLICY_DIRECTORY_NAMES = frozenset(
     {
         "ops",
         "build",
-        "dist",
         "tmp",
-        ".venv",
-        "__pycache__",
-        ".pytest_cache",
         ".ruff_cache",
         ".mypy_cache",
     }
 )
-BANNED_FILE_NAMES = frozenset({".DS_Store"})
-BANNED_SUFFIXES = (".egg-info",)
+MAS_POLICY_FILE_NAMES = frozenset({".DS_Store"})
 ACTIVE_SURFACE_ROOTS = (
     "src/",
     "tests/",
@@ -109,21 +104,13 @@ def _git_tracked_paths(root: Path) -> tuple[str, ...]:
     return tuple(tracked_paths)
 
 
-def _is_banned_directory(name: str) -> bool:
-    return name in BANNED_DIRECTORY_NAMES or name.endswith(BANNED_SUFFIXES)
-
-
-def _is_banned_file(name: str) -> bool:
-    return name in BANNED_FILE_NAMES or name.endswith(BANNED_SUFFIXES)
-
-
-def audit_tracked_paths(tracked_paths: tuple[str, ...]) -> list[str]:
+def audit_mas_repository_policy(tracked_paths: tuple[str, ...]) -> list[str]:
     violations: list[str] = []
     for raw_path in tracked_paths:
         parts = Path(raw_path).parts
-        if any(_is_banned_directory(part) for part in parts[:-1]):
+        if any(part in MAS_POLICY_DIRECTORY_NAMES for part in parts[:-1]):
             violations.append(raw_path)
-        elif parts and _is_banned_file(parts[-1]):
+        elif parts and parts[-1] in MAS_POLICY_FILE_NAMES:
             violations.append(raw_path)
     return violations
 
@@ -157,20 +144,20 @@ def main() -> int:
     tracked_paths = _git_tracked_paths(root)
     violations = sorted(
         set(
-            audit_tracked_paths(tracked_paths)
+            audit_mas_repository_policy(tracked_paths)
             + audit_active_surface_residue(tracked_paths)
         )
     )
     if violations:
         print(
-            "repo hygiene audit failed: tracked residue or retired active surfaces detected",
+            "MAS repository policy failed: tracked residue or retired active surfaces detected",
             file=sys.stderr,
         )
         for violation in violations:
             print(f"  - {violation}", file=sys.stderr)
         return 1
 
-    print("repo hygiene audit passed")
+    print("MAS repository policy passed")
     return 0
 
 
