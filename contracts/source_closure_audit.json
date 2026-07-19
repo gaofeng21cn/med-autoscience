@@ -1,32 +1,5 @@
 {
   "surface_kind": "standard_agent_source_closure_audit",
   "version": "standard-agent-source-closure-audit.v1",
-  "entries": [
-    {
-      "file": "scripts/repo_hygiene_audit.py",
-      "symbol": "_default_repo_root",
-      "source_digest": "sha256:414070fcb8afcf06b86d61343cf4b67cc92bfd45e38ff8d7adcb6f13b5d72bed",
-      "allowed_effects": [
-        "process_spawn"
-      ],
-      "role": "developer_tool",
-      "allowed_targets": [
-        "git"
-      ],
-      "reason": "Resolve the repository root for the explicit developer-only tracked-path audit."
-    },
-    {
-      "file": "scripts/repo_hygiene_audit.py",
-      "symbol": "_git_tracked_paths",
-      "source_digest": "sha256:414070fcb8afcf06b86d61343cf4b67cc92bfd45e38ff8d7adcb6f13b5d72bed",
-      "allowed_effects": [
-        "process_spawn"
-      ],
-      "role": "developer_tool",
-      "allowed_targets": [
-        "git"
-      ],
-      "reason": "Read the Git index once without scanning or deleting ignored local environments."
-    }
-  ]
+  "entries": []
 }

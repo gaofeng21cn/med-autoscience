@@ -114,9 +114,19 @@ def test_medical_authority_source_refs_match_repo_hygiene_allowlist() -> None:
 
 def test_repo_hygiene_delegates_shared_byproducts_to_opl() -> None:
     verify_script = (ROOT / "scripts" / "verify.sh").read_text(encoding="utf-8")
+    hygiene_script = (ROOT / "scripts" / "repo_hygiene_audit.py").read_text(
+        encoding="utf-8"
+    )
     hygiene_globals = runpy.run_path(str(ROOT / "scripts" / "repo_hygiene_audit.py"))
 
     assert 'workspace source-hygiene --source-root "${repo_root}" --json' in verify_script
+    assert "git ls-files -z | python3 scripts/repo_hygiene_audit.py" in verify_script
+    assert "uv run --frozen python scripts/repo_hygiene_audit.py" not in verify_script
+    assert "import subprocess" not in hygiene_script
+    makefile = (ROOT / "Makefile").read_text(encoding="utf-8")
+    assert "uv export --quiet --frozen --only-group dev --no-emit-project" in makefile
+    assert '--output-file "$$requirements_file"' in makefile
+    assert "uv run --isolated --no-project --with-requirements" in makefile
     assert set(hygiene_globals["MAS_POLICY_DIRECTORY_NAMES"]) == {
         "ops",
         "build",

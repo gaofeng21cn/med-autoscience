@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import re
-import subprocess
 import sys
 from pathlib import Path
 
@@ -79,26 +78,11 @@ EXPECTED_STANDARD_AGENT_SOURCE_FILES = frozenset(
 )
 
 
-def _default_repo_root() -> Path:
-    result = subprocess.run(
-        ["git", "rev-parse", "--show-toplevel"],
-        text=True,
-        capture_output=True,
-        check=True,
-    )
-    return Path(result.stdout.strip()).resolve()
-
-
-def _git_tracked_paths(root: Path) -> tuple[str, ...]:
-    result = subprocess.run(
-        ["git", "-C", str(root), "ls-files", "-z"],
-        text=True,
-        capture_output=True,
-        check=True,
-    )
+def _tracked_paths_from_stdin() -> tuple[str, ...]:
     tracked_paths: list[str] = []
-    for path in result.stdout.split("\0"):
-        candidate = root / path
+    for raw_path in sys.stdin.buffer.read().split(b"\0"):
+        path = raw_path.decode("utf-8", errors="surrogateescape")
+        candidate = Path(path)
         if path and (candidate.exists() or candidate.is_symlink()):
             tracked_paths.append(path)
     return tuple(tracked_paths)
@@ -140,8 +124,13 @@ def audit_active_surface_residue(tracked_paths: tuple[str, ...]) -> list[str]:
 
 
 def main() -> int:
-    root = _default_repo_root()
-    tracked_paths = _git_tracked_paths(root)
+    tracked_paths = _tracked_paths_from_stdin()
+    if not tracked_paths:
+        print(
+            "MAS repository policy failed: tracked path inventory is required on stdin",
+            file=sys.stderr,
+        )
+        return 2
     violations = sorted(
         set(
             audit_mas_repository_policy(tracked_paths)

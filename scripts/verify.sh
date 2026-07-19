@@ -10,7 +10,7 @@ export PYTEST_ADDOPTS="-p no:cacheprovider"
 
 opl_bin="${OPL_BIN:-/Users/gaofeng/workspace/one-person-lab/bin/opl}"
 "${opl_bin}" workspace source-hygiene --source-root "${repo_root}" --json
-uv run --frozen python scripts/repo_hygiene_audit.py
+git ls-files -z | python3 scripts/repo_hygiene_audit.py
 
 if git grep -n -I -E '^(<<<<<<< |=======|>>>>>>> |\|\|\|\|\|\|\| )' -- .; then
   echo "verify.sh: unresolved merge conflict markers detected" >&2
