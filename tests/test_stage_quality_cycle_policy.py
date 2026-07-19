@@ -145,9 +145,22 @@ def test_quality_cycle_adopts_framework_epistemic_currentness_and_scope_budget()
     profile = _load("contracts/stage_quality_cycle_policy.json")
     adoption = profile["epistemic_review_currentness_adoption"]
 
-    assert adoption["canonical_framework_sha"] == (
-        "367738244273664452e6b7ebfb86d5de5bb36c30"
+    assert adoption["generic_contract_ref"] == (
+        "external_repo:one-person-lab/contracts/opl-framework/"
+        "epistemic-review-currentness-contract.json"
     )
+    assert adoption["generic_contract_surface_kind"] == (
+        "opl_epistemic_review_currentness_contract"
+    )
+    assert adoption["generic_contract_version"] == (
+        "opl-epistemic-review-currentness-contract.v2"
+    )
+    assert adoption["scope_schema_ref"] == (
+        "external_repo:one-person-lab/contracts/opl-framework/"
+        "epistemic-review-scope-v2.schema.json"
+    )
+    assert adoption["scope_surface_kind"] == "opl_epistemic_review_scope"
+    assert adoption["scope_schema_version"] == "opl-epistemic-review-scope.v2"
     assert adoption["evidence_profile"] == "epistemic_provenance"
     assert adoption["trust_model"] == "trusted_local_workspace"
     assert adoption["framework_owns"] == [
@@ -206,9 +219,6 @@ def test_reviewer_revision_reuses_framework_scope_budget_and_scholar_quality_rul
     assert route == {
         "trigger": (
             "consumed_reviewer_revision_with_missing_or_stale_review_currentness"
-        ),
-        "framework_contract_sha": (
-            "367738244273664452e6b7ebfb86d5de5bb36c30"
         ),
         "scope_budget_ref": (
             "contracts/stage_quality_cycle_policy.json#/"

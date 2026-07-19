@@ -21,9 +21,12 @@
     }
   },
   "epistemic_review_currentness_adoption": {
-    "canonical_framework_sha": "367738244273664452e6b7ebfb86d5de5bb36c30",
-    "generic_contract_ref": "external_repo:one-person-lab@367738244273664452e6b7ebfb86d5de5bb36c30/contracts/opl-framework/epistemic-review-currentness-contract.json",
-    "scope_schema_ref": "external_repo:one-person-lab@367738244273664452e6b7ebfb86d5de5bb36c30/contracts/opl-framework/epistemic-review-scope-v2.schema.json",
+    "generic_contract_ref": "external_repo:one-person-lab/contracts/opl-framework/epistemic-review-currentness-contract.json",
+    "generic_contract_surface_kind": "opl_epistemic_review_currentness_contract",
+    "generic_contract_version": "opl-epistemic-review-currentness-contract.v2",
+    "scope_schema_ref": "external_repo:one-person-lab/contracts/opl-framework/epistemic-review-scope-v2.schema.json",
+    "scope_surface_kind": "opl_epistemic_review_scope",
+    "scope_schema_version": "opl-epistemic-review-scope.v2",
     "framework_owns": [
       "generic_contract_validation",
       "dependency_currentness_evaluation",

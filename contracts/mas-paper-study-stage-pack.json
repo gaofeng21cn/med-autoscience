@@ -112,7 +112,6 @@
     ],
     "epistemic_review_route_back": {
       "trigger": "consumed_reviewer_revision_with_missing_or_stale_review_currentness",
-      "framework_contract_sha": "367738244273664452e6b7ebfb86d5de5bb36c30",
       "scope_budget_ref": "contracts/stage_quality_cycle_policy.json#/epistemic_review_currentness_adoption/scope_budget",
       "attempt_projection": "paper_mission.repair_state",
       "max_attempts": 3,
