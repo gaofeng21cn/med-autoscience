@@ -2,10 +2,18 @@
 
 from __future__ import annotations
 
-import hashlib
-import json
 from collections.abc import Mapping, Sequence
 from typing import Any
+
+from opl_framework.exact_refs import (
+    canonical_json_bytes_v1,
+    fingerprint_v1,
+    normalize_exact_ref,
+    normalize_exact_ref_list,
+    normalize_sha256,
+    normalize_typed_ref,
+    normalize_typed_ref_list,
+)
 
 
 class RequestShapeError(ValueError):
@@ -71,11 +79,7 @@ def integer(value: Any, field: str) -> int:
 
 
 def sha256(value: Any, field: str) -> str:
-    normalized = text(value, field).lower()
-    digest = normalized.removeprefix("sha256:")
-    if len(digest) != 64 or any(char not in "0123456789abcdef" for char in digest):
-        raise RequestShapeError(f"{field} must be a SHA-256 digest")
-    return f"sha256:{digest}"
+    return normalize_sha256(value, field, error_type=RequestShapeError)
 
 
 def optional_sha256(value: Any, field: str) -> str | None:
@@ -85,30 +89,21 @@ def optional_sha256(value: Any, field: str) -> str | None:
 
 
 def typed_ref(value: Any, field: str, expected_kind: str) -> dict[str, str]:
-    payload = mapping(value, field)
-    exact_keys(payload, {"kind", "ref", "sha256"}, field)
-    kind = text(payload.get("kind"), f"{field}.kind")
-    if kind != expected_kind:
-        raise RequestShapeError(f"{field}.kind must be {expected_kind}")
-    return {
-        "kind": kind,
-        "ref": text(payload.get("ref"), f"{field}.ref"),
-        "sha256": sha256(payload.get("sha256"), f"{field}.sha256"),
-    }
+    return normalize_typed_ref(
+        value,
+        field,
+        expected_kind,
+        error_type=RequestShapeError,
+    )
 
 
 def exact_ref(value: Any, field: str, expected_kind: str) -> dict[str, Any]:
-    payload = mapping(value, field)
-    exact_keys(payload, {"kind", "ref", "size_bytes", "sha256"}, field)
-    kind = text(payload.get("kind"), f"{field}.kind")
-    if kind != expected_kind:
-        raise RequestShapeError(f"{field}.kind must be {expected_kind}")
-    return {
-        "kind": kind,
-        "ref": text(payload.get("ref"), f"{field}.ref"),
-        "size_bytes": integer(payload.get("size_bytes"), f"{field}.size_bytes"),
-        "sha256": sha256(payload.get("sha256"), f"{field}.sha256"),
-    }
+    return normalize_exact_ref(
+        value,
+        field,
+        expected_kind,
+        error_type=RequestShapeError,
+    )
 
 
 def optional_typed_ref(
@@ -126,14 +121,12 @@ def typed_ref_list(
     field: str,
     expected_kind: str,
 ) -> list[dict[str, str]]:
-    refs = [
-        typed_ref(item, f"{field}[{index}]", expected_kind)
-        for index, item in enumerate(sequence(value, field))
-    ]
-    identities = [(item["ref"], item["sha256"]) for item in refs]
-    if len(identities) != len(set(identities)):
-        raise RequestShapeError(f"{field} contains duplicate refs")
-    return refs
+    return normalize_typed_ref_list(
+        value,
+        field,
+        expected_kind,
+        error_type=RequestShapeError,
+    )
 
 
 def exact_ref_list(
@@ -143,21 +136,13 @@ def exact_ref_list(
     *,
     dedupe_size: bool = True,
 ) -> list[dict[str, Any]]:
-    refs = [
-        exact_ref(item, f"{field}[{index}]", expected_kind)
-        for index, item in enumerate(sequence(value, field))
-    ]
-    identities = [
-        (
-            item["ref"],
-            *((item["size_bytes"],) if dedupe_size else ()),
-            item["sha256"],
-        )
-        for item in refs
-    ]
-    if len(identities) != len(set(identities)):
-        raise RequestShapeError(f"{field} contains duplicate refs")
-    return refs
+    return normalize_exact_ref_list(
+        value,
+        field,
+        expected_kind,
+        dedupe_size=dedupe_size,
+        error_type=RequestShapeError,
+    )
 
 
 def dedupe(values: Sequence[str]) -> list[str]:
@@ -165,16 +150,11 @@ def dedupe(values: Sequence[str]) -> list[str]:
 
 
 def canonical_json_bytes(payload: Mapping[str, Any]) -> bytes:
-    return json.dumps(
-        payload,
-        ensure_ascii=True,
-        sort_keys=True,
-        separators=(",", ":"),
-    ).encode("utf-8")
+    return canonical_json_bytes_v1(payload)
 
 
 def fingerprint(payload: Mapping[str, Any]) -> str:
-    return f"sha256:{hashlib.sha256(canonical_json_bytes(payload)).hexdigest()}"
+    return fingerprint_v1(payload)
 
 
 __all__ = [
