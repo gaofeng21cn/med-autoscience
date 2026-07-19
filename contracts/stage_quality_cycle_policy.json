@@ -20,6 +20,57 @@
       "version": "stage-review-context-manifest.v1"
     }
   },
+  "epistemic_review_currentness_adoption": {
+    "canonical_framework_sha": "367738244273664452e6b7ebfb86d5de5bb36c30",
+    "generic_contract_ref": "external_repo:one-person-lab@367738244273664452e6b7ebfb86d5de5bb36c30/contracts/opl-framework/epistemic-review-currentness-contract.json",
+    "scope_schema_ref": "external_repo:one-person-lab@367738244273664452e6b7ebfb86d5de5bb36c30/contracts/opl-framework/epistemic-review-scope-v2.schema.json",
+    "framework_owns": [
+      "generic_contract_validation",
+      "dependency_currentness_evaluation",
+      "stage_quality_scope_budget_enforcement"
+    ],
+    "mas_owns": [
+      "domain_artifact_claim_and_provenance_dependency_declaration",
+      "review_scope_membership",
+      "medical_and_publication_quality_verdict",
+      "route_back_and_owner_receipt"
+    ],
+    "domain_scope_surface": "generation_manifest.review_scopes[*].epistemic_scope",
+    "currentness_evaluation_surface": "review_authority.currentness_receipt.lane_currentness[*].epistemic_currentness",
+    "evidence_profile": "epistemic_provenance",
+    "trust_model": "trusted_local_workspace",
+    "hash_role": "optional_locator_stale_hint_and_deduplication_only",
+    "hash_change_alone_invalidates_review": false,
+    "semantic_change_invalidates_only_declared_dependency_closure": true,
+    "scope_budget": {
+      "surface_kind": "opl_stage_quality_scope_budget",
+      "version": "opl-stage-quality-scope-budget.v1",
+      "max_attempts": 3,
+      "max_elapsed_ms": 21600000,
+      "max_tokens": 1000000,
+      "token_budget_requires_observed_usage": true,
+      "missing_token_telemetry_is_not_zero_usage": true,
+      "foreground_execution_must_use_managed_attempt": true,
+      "enforcement_owner": "OPL Framework",
+      "mas_attempt_projection": "repair_state.attempts_used/max_attempts",
+      "reviewer_revision_uses_same_scope_budget": true,
+      "available_disposition": "route_back",
+      "exhausted_with_consumable_artifact_disposition": "completed_with_quality_debt"
+    },
+    "professional_skills": {
+      "owner": "mas-scholar-skills",
+      "supplies_quality_rules_only": true,
+      "owns_generation_signature": false,
+      "owns_currentness_or_loop_scheduling": false
+    },
+    "integrity_separation": {
+      "release_integrity_allowed_only_for": "mas_software_package_release_set",
+      "release_set_ref": "contracts/mas_validator_release_set_receipt.json",
+      "release_integrity_can_replace_epistemic_review": false,
+      "epistemic_review_can_replace_release_integrity": false,
+      "manuscript_analysis_reference_and_submission_package_use_release_integrity": false
+    }
+  },
   "review_transport_contracts": {
     "review_input_snapshot_materialization_request": {
       "surface_kind": "opl_reviewer_input_snapshot_materialization_request",
@@ -43,8 +94,8 @@
       "source_ref_is_review_scope_identity": false,
       "mas_authority_record_required": true,
       "mas_authority_record_ref_binds_canonical_exact_bytes": true,
-      "exact_byte_package_scope_identity_includes_owner_ref": true,
-      "other_lane_scope_identity_is_path_independent": true,
+      "snapshot_authority_record_includes_owner_ref": true,
+      "all_review_scope_topology_locators_are_path_independent": true,
       "host_may_infer_from_generic_artifact_refs": false,
       "missing_request_blocks_hosted_action_liveness": false,
       "missing_request_policy": "lane_quality_debt_without_quality_or_readiness_claim",

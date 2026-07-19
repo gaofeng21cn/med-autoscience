@@ -14,13 +14,15 @@ Review before this Meta Review runs again.
 
 Every review receipt names MedAutoScience, the lane-specific authority role and
 verdict. Generation manifest v2 binds each professional receipt to the MAS-owned
-lane scope and complete reviewed member inventory. The currentness receipt may
-reuse an unchanged lane only when scope policy, professional rubric, and scope
-identity are identical and complete origin provenance is retained; changed lanes
-route back for fresh independent review. V1 remains whole-generation exact,
-while `exact_byte_package` always covers the complete root inventory including
-locators. Only exact lane receipt refs named by the current MAS
-review-currentness receipt count.
+lane scope and reviewed member inventory plus its artifact/claim/provenance
+dependency graph. OPL Framework evaluates semantic currentness over each reviewed
+node's declared transitive dependencies; MAS consumes that evaluation and keeps
+the domain verdict. `review_scope_sha256` and member hashes are locator/stale
+hints, not content authority. Reuse requires the current scope id/kind/dependency
+closure, rubric, stable member identity/role, snapshot binding, and complete
+origin provenance. `exact_byte_package` contains package content/wrapper members,
+not checklist, status, evaluation, projection, or receipt metadata. Only exact
+lane receipt refs named by the current MAS review-currentness receipt count.
 
 Candidate-level review begins after candidate freeze. All affected lanes are
 dispatched in one wave, independent lanes may run in parallel, and findings are

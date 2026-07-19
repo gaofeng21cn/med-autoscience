@@ -6,9 +6,11 @@ from collections.abc import Mapping
 from typing import Any
 
 from ._generation_manifest import (
+    EPISTEMIC_AUTHORITY_BOUNDARY,
     PROFESSIONAL_MANUSCRIPT_SKILL_ROLES,
     REVIEW_LANE_ORDER,
     REVIEW_LANES_BY_SCOPE,
+    epistemic_review_dependency_refs,
     normalize_generation_manifest,
     require_stage_scope,
     review_scope_member_projection,
@@ -88,6 +90,50 @@ _REVISION_CONSUMPTION_AUTHORITY_BOUNDARY = {
     "receipt_can_authorize_publication": False,
     "receipt_can_authorize_submission": False,
     "receipt_can_create_typed_blocker": False,
+}
+_EPISTEMIC_CHANGE_CLASSES = {
+    "data",
+    "context",
+    "analysis_code",
+    "analysis_parameters",
+    "analysis_result",
+    "claim",
+    "reference_source",
+    "citation_linkage",
+    "limitation",
+    "visual_content",
+    "layout",
+    "render_template",
+    "package_composition",
+    "package_wrapper",
+    "governance_metadata",
+    "review_receipt",
+    "locator_only",
+}
+_EPISTEMIC_IGNORED_REASONS = {
+    "outside_declared_evidence_graph",
+    "locator_or_non_semantic_change_only",
+    "governance_or_review_metadata_is_not_content_evidence",
+    "outside_reviewed_dependency_closure",
+}
+_EPISTEMIC_CHANGE_CLASS_BY_NODE_ROLE = {
+    "source_data": "data",
+    "context": "context",
+    "analysis_code": "analysis_code",
+    "analysis_parameters": "analysis_parameters",
+    "analysis_result": "analysis_result",
+    "claim": "claim",
+    "reference_source": "reference_source",
+    "citation_linkage": "citation_linkage",
+    "limitation": "limitation",
+    "reproduction_instruction": None,
+    "visual_content": "visual_content",
+    "layout": "layout",
+    "render_template": "render_template",
+    "package_content": "package_composition",
+    "package_wrapper": "package_wrapper",
+    "governance_metadata": "governance_metadata",
+    "review_receipt": "review_receipt",
 }
 
 
@@ -205,6 +251,44 @@ def evaluate_paper_mission_authority(request: Mapping[str, Any]) -> dict[str, An
             if affected_lanes
             else [review_issue[0]]
         )
+        if normalized["generation_manifest"]["manifest_scope"] == (
+            "manuscript_generation"
+        ):
+            reason_codes = dedupe(
+                ["first_draft_cross_domain_pre_review_missing_or_stale", *reason_codes]
+            )
+        if _is_reviewer_revision(normalized):
+            route_back = _route_back(
+                normalized,
+                reason_code=review_issue[0],
+                next_owner="independent_reviewer",
+                resume_condition=review_issue[1],
+                affected_review_lanes=affected_lanes,
+            )
+            repair = normalized["repair_state"]
+            if repair["attempts_used"] < repair["max_attempts"]:
+                return _finalize(
+                    normalized,
+                    status="route_back",
+                    stage_outcome=_stage_outcome(
+                        "route_back", transition_allowed=False
+                    ),
+                    route_back=route_back,
+                )
+            return _finalize(
+                normalized,
+                status="completed_with_quality_debt",
+                stage_outcome=_stage_outcome(
+                    "completed_with_quality_debt", transition_allowed=True
+                ),
+                route_back=route_back,
+                quality_debt=_quality_debt(
+                    normalized,
+                    reason_codes=dedupe(
+                        [*reason_codes, "review_scope_budget_exhausted"]
+                    ),
+                ),
+            )
         if normalized["mission"]["stage_id"] == "finalize_and_publication_handoff":
             return _route_result(
                 normalized,
@@ -212,12 +296,6 @@ def evaluate_paper_mission_authority(request: Mapping[str, Any]) -> dict[str, An
                 next_owner="independent_reviewer",
                 resume_condition=review_issue[1],
                 affected_review_lanes=affected_lanes,
-            )
-        if normalized["generation_manifest"]["manifest_scope"] == (
-            "manuscript_generation"
-        ):
-            reason_codes = dedupe(
-                ["first_draft_cross_domain_pre_review_missing_or_stale", *reason_codes]
             )
         route_back = _route_back(
             normalized,
@@ -324,6 +402,11 @@ def evaluate_paper_mission_authority(request: Mapping[str, Any]) -> dict[str, An
         stage_outcome=_stage_outcome("completed", transition_allowed=True),
         owner_receipt=_owner_receipt(normalized),
     )
+
+
+def _is_reviewer_revision(request: Mapping[str, Any]) -> bool:
+    receipt = request["revision_consumption"]["consumption_receipt"]
+    return receipt["applicability"] == "revision_consumed"
 
 
 def _normalize_request(request: Mapping[str, Any]) -> dict[str, Any]:
@@ -1204,8 +1287,14 @@ def _normalize_lane_currentness(value: Any, field: str) -> dict[str, Any]:
             "current_review_receipt_ref",
             "superseded_review_request_refs",
             "reuse_provenance",
+            "epistemic_currentness",
         },
         field,
+    )
+    lane = enum_text(
+        payload.get("review_lane"),
+        f"{field}.review_lane",
+        set().union(*REVIEW_LANES_BY_SCOPE.values()),
     )
     status = enum_text(
         payload.get("currentness_status"),
@@ -1222,11 +1311,7 @@ def _normalize_lane_currentness(value: Any, field: str) -> dict[str, Any]:
     else:
         reuse = _normalize_reuse_provenance(reuse_value, f"{field}.reuse_provenance")
     return {
-        "review_lane": enum_text(
-            payload.get("review_lane"),
-            f"{field}.review_lane",
-            set().union(*REVIEW_LANES_BY_SCOPE.values()),
-        ),
+        "review_lane": lane,
         "review_authority_epoch": text(
             payload.get("review_authority_epoch"),
             f"{field}.review_authority_epoch",
@@ -1265,7 +1350,154 @@ def _normalize_lane_currentness(value: Any, field: str) -> dict[str, Any]:
             "opl_action_output",
         ),
         "reuse_provenance": reuse,
+        "epistemic_currentness": _normalize_epistemic_currentness(
+            payload.get("epistemic_currentness"),
+            f"{field}.epistemic_currentness",
+            lane=lane,
+        ),
     }
+
+
+def _normalize_epistemic_currentness(
+    value: Any,
+    field: str,
+    *,
+    lane: str,
+) -> dict[str, Any]:
+    payload = mapping(value, field)
+    exact_keys(
+        payload,
+        {
+            "surface_kind",
+            "version",
+            "scope_id",
+            "scope_kind",
+            "status",
+            "invalidating_changes",
+            "ignored_changes",
+            "reviewed_dependency_refs",
+            "authority_boundary",
+        },
+        field,
+    )
+    if payload.get("surface_kind") != "opl_epistemic_review_currentness_evaluation":
+        raise RequestShapeError(
+            f"{field}.surface_kind must be opl_epistemic_review_currentness_evaluation"
+        )
+    if payload.get("version") != "opl-epistemic-review-currentness-evaluation.v2":
+        raise RequestShapeError(
+            f"{field}.version must be opl-epistemic-review-currentness-evaluation.v2"
+        )
+    scope_id = text(payload.get("scope_id"), f"{field}.scope_id")
+    if scope_id != f"mas:{lane}":
+        raise RequestShapeError(f"{field}.scope_id must be mas:{lane}")
+    status = enum_text(
+        payload.get("status"), f"{field}.status", {"current", "stale"}
+    )
+    invalidating = [
+        _normalize_epistemic_change(item, f"{field}.invalidating_changes[{index}]")
+        for index, item in enumerate(
+            sequence(payload.get("invalidating_changes"), f"{field}.invalidating_changes")
+        )
+    ]
+    ignored = [
+        _normalize_epistemic_change(
+            item,
+            f"{field}.ignored_changes[{index}]",
+            ignored=True,
+        )
+        for index, item in enumerate(
+            sequence(payload.get("ignored_changes"), f"{field}.ignored_changes")
+        )
+    ]
+    if (status == "current" and invalidating) or (
+        status == "stale" and not invalidating
+    ):
+        raise RequestShapeError(
+            f"{field}.status must agree with invalidating_changes"
+        )
+    dependency_refs = text_list(
+        payload.get("reviewed_dependency_refs"),
+        f"{field}.reviewed_dependency_refs",
+    )
+    if not dependency_refs or dependency_refs != sorted(set(dependency_refs)):
+        raise RequestShapeError(
+            f"{field}.reviewed_dependency_refs must be sorted and unique"
+        )
+    authority = mapping(payload.get("authority_boundary"), f"{field}.authority_boundary")
+    exact_keys(
+        authority,
+        set(EPISTEMIC_AUTHORITY_BOUNDARY),
+        f"{field}.authority_boundary",
+    )
+    if authority != EPISTEMIC_AUTHORITY_BOUNDARY:
+        raise RequestShapeError(
+            f"{field}.authority_boundary must preserve the OPL/MAS authority split"
+        )
+    return {
+        "surface_kind": "opl_epistemic_review_currentness_evaluation",
+        "version": "opl-epistemic-review-currentness-evaluation.v2",
+        "scope_id": scope_id,
+        "scope_kind": enum_text(
+            payload.get("scope_kind"),
+            f"{field}.scope_kind",
+            {"content", "reference", "display", "package"},
+        ),
+        "status": status,
+        "invalidating_changes": invalidating,
+        "ignored_changes": ignored,
+        "reviewed_dependency_refs": dependency_refs,
+        "authority_boundary": dict(EPISTEMIC_AUTHORITY_BOUNDARY),
+    }
+
+
+def _normalize_epistemic_change(
+    value: Any,
+    field: str,
+    *,
+    ignored: bool = False,
+) -> dict[str, Any]:
+    payload = mapping(value, field)
+    keys = {
+        "node_ref",
+        "change_class",
+        "semantic_changed",
+        "locator_sha256_before",
+        "locator_sha256_after",
+    }
+    if ignored:
+        keys.add("reason")
+    exact_keys(payload, keys, field)
+    if not isinstance(payload.get("semantic_changed"), bool):
+        raise RequestShapeError(f"{field}.semantic_changed must be boolean")
+    if not ignored and payload["semantic_changed"] is not True:
+        raise RequestShapeError(
+            f"{field}.semantic_changed must be true for an invalidating change"
+        )
+    normalized = {
+        "node_ref": text(payload.get("node_ref"), f"{field}.node_ref"),
+        "change_class": enum_text(
+            payload.get("change_class"),
+            f"{field}.change_class",
+            _EPISTEMIC_CHANGE_CLASSES,
+        ),
+        "semantic_changed": payload["semantic_changed"],
+        "locator_sha256_before": optional_sha256(
+            payload.get("locator_sha256_before"),
+            f"{field}.locator_sha256_before",
+        ),
+        "locator_sha256_after": optional_sha256(
+            payload.get("locator_sha256_after"),
+            f"{field}.locator_sha256_after",
+        ),
+    }
+    if ignored:
+        normalized["reason"] = enum_text(
+            payload.get("reason"),
+            f"{field}.reason",
+            _EPISTEMIC_IGNORED_REASONS,
+        )
+    return normalized
 
 
 def _normalize_reuse_provenance(value: Any, field: str) -> dict[str, Any]:
@@ -1279,7 +1511,6 @@ def _normalize_reuse_provenance(value: Any, field: str) -> dict[str, Any]:
             "origin_review_receipt_ref",
             "origin_review_scope_sha256",
             "origin_candidate_admission_receipt_refs",
-            "origin_candidate_scope_sha256",
         },
         field,
     )
@@ -1311,14 +1542,6 @@ def _normalize_reuse_provenance(value: Any, field: str) -> dict[str, Any]:
             f"{field}.origin_candidate_admission_receipt_refs",
             "mas_candidate_admission_receipt",
         ),
-        "origin_candidate_scope_sha256": (
-            sha256(
-                payload.get("origin_candidate_scope_sha256"),
-                f"{field}.origin_candidate_scope_sha256",
-            )
-            if "origin_candidate_scope_sha256" in payload
-            else None
-        ),
     }
 
 
@@ -1338,6 +1561,10 @@ def _normalize_repair(value: Any) -> dict[str, Any]:
     )
     attempts_used = integer(payload.get("attempts_used"), f"{field}.attempts_used")
     max_attempts = integer(payload.get("max_attempts"), f"{field}.max_attempts")
+    if max_attempts != 3:
+        raise RequestShapeError(
+            "repair_state.max_attempts must equal the OPL scope budget of 3"
+        )
     if attempts_used > max_attempts:
         raise RequestShapeError("repair_state.attempts_used cannot exceed max_attempts")
     attempt_refs = _typed_ref_list(
@@ -1771,10 +1998,11 @@ def _review_currentness_issue_v2(
         receipt = wrapper["receipt"]
         lane_state = lane_currentness[lane]
         scope = scopes[lane]
+        epistemic_scope = scope["epistemic_scope"]
+        epistemic_currentness = lane_state["epistemic_currentness"]
         lane_issue: tuple[str, str] | None = None
         if any(
             (
-                lane_state["review_scope_sha256"] != scope["review_scope_sha256"],
                 lane_state["current_rubric_ref"] != receipt["rubric_ref"],
                 receipt["review_scope_sha256"] != lane_state["review_scope_sha256"],
                 lane_state["current_review_receipt_ref"] != wrapper["receipt_ref"],
@@ -1795,6 +2023,29 @@ def _review_currentness_issue_v2(
             lane_issue = (
                 "independent_review_receipt_not_current",
                 f"replace stale {lane} lane currentness and receipt bindings",
+            )
+        elif any(
+            (
+                lane_state["review_scope_sha256"] != scope["review_scope_sha256"],
+                epistemic_currentness["scope_id"] != epistemic_scope["scope_id"],
+                epistemic_currentness["scope_kind"]
+                != epistemic_scope["scope_kind"],
+                epistemic_currentness["reviewed_dependency_refs"]
+                != epistemic_review_dependency_refs(epistemic_scope),
+                not _epistemic_evaluation_matches_scope(
+                    epistemic_currentness,
+                    epistemic_scope,
+                ),
+            )
+        ):
+            lane_issue = (
+                "epistemic_review_scope_binding_required",
+                f"bind {lane} currentness to the current MAS dependency scope",
+            )
+        elif epistemic_currentness["status"] == "stale":
+            lane_issue = (
+                "independent_review_stale_after_epistemic_change",
+                f"obtain a fresh {lane} review for its changed semantic dependencies",
             )
         else:
             receipt_admissions = {
@@ -1863,6 +2114,8 @@ def _review_currentness_issue_v2(
                         receipt["issued_generation_manifest_sha256"]
                         != manifest["generation_manifest_sha256"],
                         receipt_admissions != current_admissions,
+                        review_scope_member_projection(receipt["reviewed_members"])
+                        != review_scope_member_projection(scope["reviewed_members"]),
                     )
                 ):
                     lane_issue = (
@@ -1884,7 +2137,9 @@ def _review_currentness_issue_v2(
                         provenance["origin_review_receipt_ref"]
                         != wrapper["receipt_ref"],
                         provenance["origin_review_scope_sha256"]
-                        != scope["review_scope_sha256"],
+                        != receipt["review_scope_sha256"],
+                        _review_member_semantic_identities(receipt["reviewed_members"])
+                        != _review_member_semantic_identities(scope["reviewed_members"]),
                         receipt_admissions
                         != {
                             _exact_ref_identity(item)
@@ -1892,12 +2147,6 @@ def _review_currentness_issue_v2(
                                 "origin_candidate_admission_receipt_refs"
                             ]
                         },
-                        (
-                            lane
-                            in {"medical", "statistical", "reference", "publication"}
-                            and provenance["origin_candidate_scope_sha256"]
-                            != _candidate_semantic_scope_sha256(request)
-                        ),
                     )
                 ):
                     lane_issue = (
@@ -1929,6 +2178,64 @@ def _review_currentness_issue_v2(
     return None
 
 
+def _epistemic_evaluation_matches_scope(
+    evaluation: Mapping[str, Any],
+    scope: Mapping[str, Any],
+) -> bool:
+    """Verify that a consumed Framework evaluation binds the declared MAS graph."""
+
+    dependency_refs = set(epistemic_review_dependency_refs(scope))
+    nodes_by_ref = {item["node_ref"]: item for item in scope["nodes"]}
+    for change in [
+        *evaluation["invalidating_changes"],
+        *evaluation["ignored_changes"],
+    ]:
+        node = nodes_by_ref.get(change["node_ref"])
+        if node is not None and change["change_class"] != "locator_only":
+            if (
+                _EPISTEMIC_CHANGE_CLASS_BY_NODE_ROLE.get(node["role"])
+                != change["change_class"]
+            ):
+                return False
+    if any(
+        change["node_ref"] not in dependency_refs
+        for change in evaluation["invalidating_changes"]
+    ):
+        return False
+    for change in evaluation["ignored_changes"]:
+        node = nodes_by_ref.get(change["node_ref"])
+        reason = change["reason"]
+        if reason == "outside_declared_evidence_graph" and node is not None:
+            return False
+        if reason == "outside_reviewed_dependency_closure" and (
+            node is None or change["node_ref"] in dependency_refs
+        ):
+            return False
+        if reason == "locator_or_non_semantic_change_only" and not (
+            change["change_class"] == "locator_only"
+            or change["semantic_changed"] is False
+        ):
+            return False
+        if reason == "governance_or_review_metadata_is_not_content_evidence" and (
+            node is None
+            or node["role"] not in {"governance_metadata", "review_receipt"}
+        ):
+            return False
+        if (
+            change["node_ref"] in dependency_refs
+            and change["semantic_changed"] is True
+            and change["change_class"] != "locator_only"
+        ):
+            return False
+    return True
+
+
+def _review_member_semantic_identities(
+    members: list[dict[str, Any]],
+) -> list[tuple[str, str]]:
+    return sorted((item["member_id"], item["role"]) for item in members)
+
+
 def _revision_consumption_issue(
     request: Mapping[str, Any],
 ) -> tuple[str, str] | None:
@@ -1952,25 +2259,6 @@ def _revision_consumption_issue(
 
 def _exact_ref_identity(value: Mapping[str, Any]) -> tuple[str, int, str]:
     return (value["ref"], value["size_bytes"], value["sha256"])
-
-
-def _candidate_semantic_scope_sha256(request: Mapping[str, Any]) -> str:
-    candidates = []
-    for wrapper in request["candidate_admissions"]:
-        receipt = wrapper["receipt"]
-        candidates.append(
-            {
-                "candidate_id": receipt["candidate_id"],
-                "candidate_ref": dict(receipt["candidate_ref"]),
-                "evidence_refs": [dict(item) for item in receipt["evidence_refs"]],
-                "claim_scope": dict(receipt["claim_scope"]),
-                "decision_code": receipt["decision_code"],
-            }
-        )
-    candidates.sort(
-        key=lambda item: (item["candidate_id"], item["candidate_ref"]["sha256"])
-    )
-    return fingerprint({"candidate_semantic_scope": candidates})
 
 
 def _aggregate_review_status(request: Mapping[str, Any]) -> str:

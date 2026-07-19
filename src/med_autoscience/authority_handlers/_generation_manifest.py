@@ -130,12 +130,30 @@ REVIEW_LANE_ORDER = (
     "exact_byte_package",
 )
 REVIEW_SCOPE_POLICY_ID = "mas_review_scope_dependency_map"
-REVIEW_SCOPE_POLICY_VERSION = 1
+REVIEW_SCOPE_POLICY_VERSION = 2
+EPISTEMIC_REVIEW_SCOPE_VERSION = "opl-epistemic-review-scope.v2"
+EPISTEMIC_EVIDENCE_PROFILE = "epistemic_provenance"
+EPISTEMIC_TRUST_MODEL = "trusted_local_workspace"
+EPISTEMIC_SCOPE_KIND_BY_LANE = {
+    "medical": "content",
+    "statistical": "content",
+    "reference": "reference",
+    "display": "display",
+    "publication": "package",
+    "exact_byte_package": "package",
+}
+EPISTEMIC_AUTHORITY_BOUNDARY = {
+    "hash_is_locator_or_stale_hint_only": True,
+    "hash_is_content_authority": False,
+    "release_integrity_is_separate": True,
+    "framework_can_issue_domain_verdict": False,
+}
 # MAS owns this map. Hosts may materialize these inventories, but they may not
 # choose or narrow review members.
 REVIEW_SCOPE_ROLES_BY_LANE = {
     "medical": frozenset(
         {
+            "data_release",
             "denominator_definitions",
             "analysis_output",
             "candidate_artifact",
@@ -168,10 +186,14 @@ REVIEW_SCOPE_ROLES_BY_LANE = {
     ),
     "display": frozenset(
         {
+            "analysis_output",
+            "canonical_manuscript",
+            "claim_evidence_map",
             "table_catalog",
             "table_file",
             "figure_catalog",
             "figure_file",
+            "render_environment_and_font_manifest",
             "docx",
             "pdf",
             "supplementary_output",
@@ -187,14 +209,255 @@ REVIEW_SCOPE_ROLES_BY_LANE = {
             "table_file",
             "figure_catalog",
             "figure_file",
+            "render_environment_and_font_manifest",
             "docx",
             "pdf",
             "supplementary_output",
-            "submission_status",
-            "publication_evaluation",
-            "next_action_envelope",
-            "submission_projection_manifest",
+            "final_zip_allowlist",
+            "final_zip_member",
         }
+    ),
+    "exact_byte_package": frozenset(
+        {
+            "docx",
+            "pdf",
+            "supplementary_output",
+            "final_zip_allowlist",
+            "final_zip_member",
+        }
+    ),
+}
+EPISTEMIC_NODE_ROLE_BY_LANE = {
+    "medical": {
+        "data_release": ("provenance", "source_data"),
+        "denominator_definitions": ("provenance", "analysis_parameters"),
+        "analysis_output": ("artifact", "analysis_result"),
+        "candidate_artifact": ("artifact", "analysis_result"),
+        "evidence_record": ("provenance", "context"),
+        "canonical_manuscript": ("claim", "claim"),
+        "claim_evidence_map": ("provenance", "citation_linkage"),
+        "numeric_trace": ("artifact", "analysis_result"),
+    },
+    "statistical": {
+        "data_release": ("provenance", "source_data"),
+        "denominator_definitions": ("provenance", "analysis_parameters"),
+        "analysis_script": ("provenance", "analysis_code"),
+        "analysis_output": ("artifact", "analysis_result"),
+        "candidate_artifact": ("artifact", "analysis_result"),
+        "evidence_record": ("provenance", "context"),
+        "canonical_manuscript": ("claim", "claim"),
+        "claim_evidence_map": ("provenance", "citation_linkage"),
+        "numeric_trace": ("artifact", "analysis_result"),
+        "table_catalog": ("provenance", "context"),
+        "table_file": ("artifact", "analysis_result"),
+    },
+    "reference": {
+        "canonical_manuscript": ("claim", "claim"),
+        "claim_evidence_map": ("provenance", "citation_linkage"),
+        "citation_ledger": ("provenance", "citation_linkage"),
+        "reference_library": ("artifact", "reference_source"),
+        "evidence_record": ("provenance", "context"),
+    },
+    "display": {
+        "analysis_output": ("artifact", "analysis_result"),
+        "canonical_manuscript": ("claim", "claim"),
+        "claim_evidence_map": ("provenance", "citation_linkage"),
+        "table_catalog": ("provenance", "context"),
+        "table_file": ("artifact", "visual_content"),
+        "figure_catalog": ("provenance", "context"),
+        "figure_file": ("artifact", "visual_content"),
+        "render_environment_and_font_manifest": ("provenance", "render_template"),
+        "docx": ("artifact", "visual_content"),
+        "pdf": ("artifact", "visual_content"),
+        "supplementary_output": ("artifact", "visual_content"),
+    },
+    "publication": {
+        "canonical_manuscript": ("claim", "claim"),
+        "claim_evidence_map": ("provenance", "citation_linkage"),
+        "citation_ledger": ("provenance", "citation_linkage"),
+        "reference_library": ("artifact", "reference_source"),
+        "table_catalog": ("provenance", "context"),
+        "table_file": ("artifact", "visual_content"),
+        "figure_catalog": ("provenance", "context"),
+        "figure_file": ("artifact", "visual_content"),
+        "render_environment_and_font_manifest": ("provenance", "render_template"),
+        "docx": ("artifact", "package_content"),
+        "pdf": ("artifact", "package_content"),
+        "supplementary_output": ("artifact", "package_content"),
+        "final_zip_allowlist": ("artifact", "package_wrapper"),
+        "final_zip_member": ("artifact", "package_content"),
+    },
+    "exact_byte_package": {
+        "docx": ("artifact", "package_content"),
+        "pdf": ("artifact", "package_content"),
+        "supplementary_output": ("artifact", "package_content"),
+        "final_zip_allowlist": ("artifact", "package_wrapper"),
+        "final_zip_member": ("artifact", "package_content"),
+    },
+}
+EPISTEMIC_REVIEWED_ARTIFACT_ROLES_BY_LANE = {
+    "medical": frozenset({"canonical_manuscript", "claim_evidence_map"}),
+    "statistical": frozenset(
+        {
+            "analysis_output",
+            "numeric_trace",
+            "table_file",
+            "canonical_manuscript",
+            "claim_evidence_map",
+        }
+    ),
+    "reference": frozenset({"canonical_manuscript", "claim_evidence_map"}),
+    "display": frozenset(
+        {"table_file", "figure_file", "docx", "pdf", "supplementary_output"}
+    ),
+    "publication": frozenset(
+        {"docx", "pdf", "supplementary_output", "final_zip_allowlist"}
+    ),
+    "exact_byte_package": frozenset({"final_zip_allowlist"}),
+}
+EPISTEMIC_EDGE_RULES_BY_LANE = {
+    "medical": (
+        (
+            frozenset({"data_release", "denominator_definitions"}),
+            frozenset({"analysis_output"}),
+            "derived_from",
+        ),
+        (
+            frozenset(
+                {
+                    "analysis_output",
+                    "candidate_artifact",
+                    "evidence_record",
+                    "numeric_trace",
+                }
+            ),
+            frozenset({"claim_evidence_map", "canonical_manuscript"}),
+            "supports",
+        ),
+        (
+            frozenset({"claim_evidence_map"}),
+            frozenset({"canonical_manuscript"}),
+            "supports",
+        ),
+    ),
+    "statistical": (
+        (
+            frozenset(
+                {"data_release", "denominator_definitions", "analysis_script"}
+            ),
+            frozenset({"analysis_output"}),
+            "derived_from",
+        ),
+        (
+            frozenset({"analysis_output", "evidence_record"}),
+            frozenset(
+                {
+                    "numeric_trace",
+                    "candidate_artifact",
+                    "table_file",
+                    "claim_evidence_map",
+                    "canonical_manuscript",
+                }
+            ),
+            "supports",
+        ),
+        (
+            frozenset({"table_catalog"}),
+            frozenset({"table_file"}),
+            "derived_from",
+        ),
+        (
+            frozenset({"claim_evidence_map"}),
+            frozenset({"canonical_manuscript"}),
+            "supports",
+        ),
+    ),
+    "reference": (
+        (
+            frozenset({"reference_library"}),
+            frozenset({"citation_ledger"}),
+            "cites",
+        ),
+        (
+            frozenset({"citation_ledger", "evidence_record"}),
+            frozenset({"claim_evidence_map", "canonical_manuscript"}),
+            "supports",
+        ),
+        (
+            frozenset({"claim_evidence_map"}),
+            frozenset({"canonical_manuscript"}),
+            "supports",
+        ),
+    ),
+    "display": (
+        (
+            frozenset(
+                {
+                    "analysis_output",
+                    "canonical_manuscript",
+                    "claim_evidence_map",
+                    "table_catalog",
+                    "figure_catalog",
+                    "render_environment_and_font_manifest",
+                }
+            ),
+            frozenset({"table_file", "figure_file"}),
+            "renders",
+        ),
+        (
+            frozenset(
+                {
+                    "canonical_manuscript",
+                    "table_file",
+                    "figure_file",
+                    "render_environment_and_font_manifest",
+                }
+            ),
+            frozenset({"docx", "pdf", "supplementary_output"}),
+            "renders",
+        ),
+    ),
+    "publication": (
+        (
+            frozenset({"reference_library"}),
+            frozenset({"citation_ledger"}),
+            "cites",
+        ),
+        (
+            frozenset({"citation_ledger", "claim_evidence_map"}),
+            frozenset({"canonical_manuscript"}),
+            "supports",
+        ),
+        (
+            frozenset(
+                {
+                    "canonical_manuscript",
+                    "table_catalog",
+                    "table_file",
+                    "figure_catalog",
+                    "figure_file",
+                    "render_environment_and_font_manifest",
+                }
+            ),
+            frozenset({"docx", "pdf", "supplementary_output"}),
+            "packages",
+        ),
+        (
+            frozenset(
+                {"docx", "pdf", "supplementary_output", "final_zip_member"}
+            ),
+            frozenset({"final_zip_allowlist"}),
+            "packages",
+        ),
+    ),
+    "exact_byte_package": (
+        (
+            frozenset(
+                {"docx", "pdf", "supplementary_output", "final_zip_member"}
+            ),
+            frozenset({"final_zip_allowlist"}),
+            "packages",
+        ),
     ),
 }
 STAGE_MINIMUM_SCOPE = {
@@ -884,11 +1147,8 @@ def review_scope_inventory(
 
     if lane not in REVIEW_AUTHORITY_ROLE_BY_LANE:
         raise RequestShapeError(f"unsupported review lane: {lane}")
-    if lane == "exact_byte_package":
-        members = list(artifacts)
-    else:
-        roles = REVIEW_SCOPE_ROLES_BY_LANE[lane]
-        members = [item for item in artifacts if item["role"] in roles]
+    roles = REVIEW_SCOPE_ROLES_BY_LANE[lane]
+    members = [item for item in artifacts if item["role"] in roles]
     members = [dict(item) for item in members]
     members.sort(key=lambda item: (item["role"], item["ref"], item["sha256"]))
     if not members:
@@ -896,44 +1156,134 @@ def review_scope_inventory(
     return members
 
 
+def build_epistemic_review_scope(
+    lane: str,
+    members: list[dict[str, Any]],
+) -> dict[str, Any]:
+    """Build the MAS-owned dependency declaration consumed by OPL currentness."""
+
+    if lane not in EPISTEMIC_SCOPE_KIND_BY_LANE:
+        raise RequestShapeError(f"unsupported review lane: {lane}")
+    _require_unique_member_ids(members, f"epistemic review scope {lane} members")
+    role_map = EPISTEMIC_NODE_ROLE_BY_LANE[lane]
+    if any(item["role"] not in role_map for item in members):
+        raise RequestShapeError(
+            f"epistemic review scope {lane} contains undeclared artifact roles"
+        )
+    nodes = [
+        {
+            "node_ref": item["member_id"],
+            "node_kind": role_map[item["role"]][0],
+            "role": role_map[item["role"]][1],
+            "locator": {"ref": item["ref"], "sha256": item["sha256"]},
+        }
+        for item in members
+    ]
+    nodes.sort(key=lambda item: item["node_ref"])
+    members_by_role: dict[str, list[dict[str, Any]]] = {}
+    for item in members:
+        members_by_role.setdefault(item["role"], []).append(item)
+    edges: list[dict[str, str]] = []
+    for source_roles, dependent_roles, relation in EPISTEMIC_EDGE_RULES_BY_LANE[lane]:
+        sources = [
+            item
+            for role in sorted(source_roles)
+            for item in members_by_role.get(role, [])
+        ]
+        dependents = [
+            item
+            for role in sorted(dependent_roles)
+            for item in members_by_role.get(role, [])
+        ]
+        edges.extend(
+            {
+                "source_ref": source["member_id"],
+                "dependent_ref": dependent["member_id"],
+                "relation": relation,
+            }
+            for source in sources
+            for dependent in dependents
+            if source["member_id"] != dependent["member_id"]
+        )
+    edges.sort(
+        key=lambda item: (
+            item["source_ref"],
+            item["dependent_ref"],
+            item["relation"],
+        )
+    )
+    reviewed_roles = EPISTEMIC_REVIEWED_ARTIFACT_ROLES_BY_LANE[lane]
+    reviewed_node_refs = sorted(
+        item["member_id"] for item in members if item["role"] in reviewed_roles
+    )
+    if not reviewed_node_refs:
+        raise RequestShapeError(
+            f"epistemic review scope {lane} has no reviewed domain nodes"
+        )
+    return {
+        "surface_kind": "opl_epistemic_review_scope",
+        "version": EPISTEMIC_REVIEW_SCOPE_VERSION,
+        "scope_id": f"mas:{lane}",
+        "scope_kind": EPISTEMIC_SCOPE_KIND_BY_LANE[lane],
+        "evidence_profile": EPISTEMIC_EVIDENCE_PROFILE,
+        "trust_model": EPISTEMIC_TRUST_MODEL,
+        "reviewed_node_refs": reviewed_node_refs,
+        "nodes": nodes,
+        "dependency_edges": edges,
+        "authority_boundary": dict(EPISTEMIC_AUTHORITY_BOUNDARY),
+    }
+
+
+def epistemic_review_scope_identity(scope: Mapping[str, Any]) -> dict[str, Any]:
+    """Project scope topology without promoting locator hashes to content truth."""
+
+    return {
+        "surface_kind": scope["surface_kind"],
+        "version": scope["version"],
+        "scope_id": scope["scope_id"],
+        "scope_kind": scope["scope_kind"],
+        "evidence_profile": scope["evidence_profile"],
+        "trust_model": scope["trust_model"],
+        "reviewed_node_refs": list(scope["reviewed_node_refs"]),
+        "nodes": [
+            {
+                "node_ref": item["node_ref"],
+                "node_kind": item["node_kind"],
+                "role": item["role"],
+            }
+            for item in scope["nodes"]
+        ],
+        "dependency_edges": [dict(item) for item in scope["dependency_edges"]],
+        "authority_boundary": dict(scope["authority_boundary"]),
+    }
+
+
+def epistemic_review_dependency_refs(scope: Mapping[str, Any]) -> list[str]:
+    """Return the declared dependency closure for Framework-evaluation binding."""
+
+    sources_by_dependent: dict[str, list[str]] = {}
+    for edge in scope["dependency_edges"]:
+        sources_by_dependent.setdefault(edge["dependent_ref"], []).append(
+            edge["source_ref"]
+        )
+    closure = set(scope["reviewed_node_refs"])
+    pending = list(scope["reviewed_node_refs"])
+    while pending:
+        dependent = pending.pop()
+        for source in sources_by_dependent.get(dependent, []):
+            if source not in closure:
+                closure.add(source)
+                pending.append(source)
+    return sorted(closure)
+
+
 def review_scope_sha256(lane: str, members: list[dict[str, Any]]) -> str:
-    """Hash the owner identity/content projection appropriate to one review lane."""
+    """Hash dependency topology as a locator; artifact bytes are not authority."""
 
     if lane not in REVIEW_AUTHORITY_ROLE_BY_LANE:
         raise RequestShapeError(f"unsupported review lane: {lane}")
-    _require_unique_member_ids(members, f"review scope {lane} members")
-    if lane == "exact_byte_package":
-        digest_members = [dict(item) for item in members]
-        digest_members.sort(
-            key=lambda item: (item["role"], item["ref"], item["sha256"])
-        )
-    else:
-        digest_members = [
-            {
-                "member_id": item["member_id"],
-                "role": item["role"],
-                "sha256": item["sha256"],
-                "size_bytes": item["size_bytes"],
-            }
-            for item in members
-        ]
-        digest_members.sort(
-            key=lambda item: (
-                item["member_id"],
-                item["role"],
-                item["sha256"],
-                item["size_bytes"],
-            )
-        )
-
-    return fingerprint(
-        {
-            "scope_policy_id": REVIEW_SCOPE_POLICY_ID,
-            "scope_policy_version": REVIEW_SCOPE_POLICY_VERSION,
-            "review_lane": lane,
-            "reviewed_members": digest_members,
-        }
-    )
+    scope = build_epistemic_review_scope(lane, members)
+    return fingerprint(epistemic_review_scope_identity(scope))
 
 
 def review_scope_member_projection(
@@ -1123,6 +1473,7 @@ def build_review_scopes(
                 "review_lane": lane,
                 "review_scope_sha256": review_scope_sha256(lane, members),
                 "reviewed_members": members,
+                "epistemic_scope": build_epistemic_review_scope(lane, members),
             }
         )
     return scopes
@@ -1143,6 +1494,7 @@ def _normalize_review_scope(
             "review_lane",
             "review_scope_sha256",
             "reviewed_members",
+            "epistemic_scope",
         },
         field,
     )
@@ -1185,7 +1537,12 @@ def _normalize_review_scope(
         != expected_sha256
     ):
         raise RequestShapeError(
-            f"{field}.review_scope_sha256 does not match canonical lane members"
+            f"{field}.review_scope_sha256 does not match the dependency declaration"
+        )
+    expected_epistemic_scope = build_epistemic_review_scope(lane, expected_members)
+    if payload.get("epistemic_scope") != expected_epistemic_scope:
+        raise RequestShapeError(
+            f"{field}.epistemic_scope must equal the MAS-owned dependency declaration"
         )
     return {
         "scope_policy_id": REVIEW_SCOPE_POLICY_ID,
@@ -1193,6 +1550,7 @@ def _normalize_review_scope(
         "review_lane": lane,
         "review_scope_sha256": expected_sha256,
         "reviewed_members": expected_members,
+        "epistemic_scope": expected_epistemic_scope,
     }
 
 
@@ -1521,11 +1879,7 @@ def _normalize_review_receipt_v2(
         raise RequestShapeError(
             f"{receipt_field}.review_lane has no manifest review scope"
         )
-    allowed_receipt_roles = (
-        frozenset().union(*ALLOWED_ROLES_BY_SCOPE.values())
-        if lane == "exact_byte_package"
-        else REVIEW_SCOPE_ROLES_BY_LANE[lane]
-    )
+    allowed_receipt_roles = REVIEW_SCOPE_ROLES_BY_LANE[lane]
     reviewed_members = [
         _normalize_artifact(
             item,
@@ -1838,6 +2192,7 @@ def _normalize_review_input_snapshot_binding(
 
 __all__ = [
     "ALLOWED_ROLES_BY_SCOPE",
+    "EPISTEMIC_AUTHORITY_BOUNDARY",
     "REQUIRED_ROLES_BY_SCOPE",
     "REVIEW_AUTHORITY_ROLE_BY_LANE",
     "REVIEW_LANE_ORDER",
@@ -1846,9 +2201,11 @@ __all__ = [
     "REVIEW_SCOPE_POLICY_ID",
     "REVIEW_SCOPE_POLICY_VERSION",
     "STAGE_MINIMUM_SCOPE",
+    "build_epistemic_review_scope",
     "build_generation_manifest_v2",
     "build_review_input_snapshot_materialization_request",
     "build_review_scopes",
+    "epistemic_review_dependency_refs",
     "normalize_generation_manifest",
     "require_stage_scope",
     "review_scope_inventory",

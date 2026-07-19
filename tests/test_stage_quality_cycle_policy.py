@@ -69,8 +69,10 @@ def test_quality_cycle_declares_role_bound_review_transport_production_path() ->
     assert snapshot["source_ref_is_review_scope_identity"] is False
     assert snapshot["mas_authority_record_required"] is True
     assert snapshot["mas_authority_record_ref_binds_canonical_exact_bytes"] is True
-    assert snapshot["exact_byte_package_scope_identity_includes_owner_ref"] is True
-    assert snapshot["other_lane_scope_identity_is_path_independent"] is True
+    assert snapshot["snapshot_authority_record_includes_owner_ref"] is True
+    assert snapshot[
+        "all_review_scope_topology_locators_are_path_independent"
+    ] is True
     assert snapshot["host_may_infer_from_generic_artifact_refs"] is False
     assert snapshot["missing_request_blocks_hosted_action_liveness"] is False
     assert snapshot["missing_request_policy"] == (
@@ -139,6 +141,96 @@ def test_quality_cycle_declares_role_bound_review_transport_production_path() ->
     assert "page-hash evidence candidate" in re_reviewer
 
 
+def test_quality_cycle_adopts_framework_epistemic_currentness_and_scope_budget() -> None:
+    profile = _load("contracts/stage_quality_cycle_policy.json")
+    adoption = profile["epistemic_review_currentness_adoption"]
+
+    assert adoption["canonical_framework_sha"] == (
+        "367738244273664452e6b7ebfb86d5de5bb36c30"
+    )
+    assert adoption["evidence_profile"] == "epistemic_provenance"
+    assert adoption["trust_model"] == "trusted_local_workspace"
+    assert adoption["framework_owns"] == [
+        "generic_contract_validation",
+        "dependency_currentness_evaluation",
+        "stage_quality_scope_budget_enforcement",
+    ]
+    assert (
+        "domain_artifact_claim_and_provenance_dependency_declaration"
+        in adoption["mas_owns"]
+    )
+    assert adoption["hash_change_alone_invalidates_review"] is False
+    assert adoption[
+        "semantic_change_invalidates_only_declared_dependency_closure"
+    ] is True
+    assert adoption["scope_budget"] == {
+        "surface_kind": "opl_stage_quality_scope_budget",
+        "version": "opl-stage-quality-scope-budget.v1",
+        "max_attempts": 3,
+        "max_elapsed_ms": 21600000,
+        "max_tokens": 1000000,
+        "token_budget_requires_observed_usage": True,
+        "missing_token_telemetry_is_not_zero_usage": True,
+        "foreground_execution_must_use_managed_attempt": True,
+        "enforcement_owner": "OPL Framework",
+        "mas_attempt_projection": "repair_state.attempts_used/max_attempts",
+        "reviewer_revision_uses_same_scope_budget": True,
+        "available_disposition": "route_back",
+        "exhausted_with_consumable_artifact_disposition": (
+            "completed_with_quality_debt"
+        ),
+    }
+    assert adoption["professional_skills"] == {
+        "owner": "mas-scholar-skills",
+        "supplies_quality_rules_only": True,
+        "owns_generation_signature": False,
+        "owns_currentness_or_loop_scheduling": False,
+    }
+    separation = adoption["integrity_separation"]
+    assert separation["release_integrity_allowed_only_for"] == (
+        "mas_software_package_release_set"
+    )
+    assert separation["release_set_ref"] == (
+        "contracts/mas_validator_release_set_receipt.json"
+    )
+    assert separation[
+        "manuscript_analysis_reference_and_submission_package_use_release_integrity"
+    ] is False
+
+
+def test_reviewer_revision_reuses_framework_scope_budget_and_scholar_quality_rules() -> None:
+    stage_pack = _load("contracts/mas-paper-study-stage-pack.json")
+    mechanism = stage_pack["reviewer_revision_default_mechanism"]
+    route = mechanism["epistemic_review_route_back"]
+
+    assert route == {
+        "trigger": (
+            "consumed_reviewer_revision_with_missing_or_stale_review_currentness"
+        ),
+        "framework_contract_sha": (
+            "367738244273664452e6b7ebfb86d5de5bb36c30"
+        ),
+        "scope_budget_ref": (
+            "contracts/stage_quality_cycle_policy.json#/"
+            "epistemic_review_currentness_adoption/scope_budget"
+        ),
+        "attempt_projection": "paper_mission.repair_state",
+        "max_attempts": 3,
+        "attempts_remaining_disposition": "route_back_to_independent_reviewer",
+        "budget_exhausted_with_consumable_artifact_disposition": (
+            "completed_with_quality_debt"
+        ),
+        "budget_exhausted_reason_code": "review_scope_budget_exhausted",
+        "applies_in_finalize_and_publication_handoff": True,
+        "creates_parallel_retry_scheduler": False,
+    }
+    skills = mechanism["specialist_skill_writeback_contract"]
+    assert skills["professional_skills_supply_quality_rules_only"] is True
+    assert skills[
+        "professional_skills_own_generation_signatures_or_loop_scheduling"
+    ] is False
+
+
 def test_artifact_iteration_separates_preview_freeze_and_projection() -> None:
     policy = _load("contracts/artifact_iteration_efficiency_policy.json")
     plan = policy["impact_plan"]
@@ -199,8 +291,14 @@ def test_artifact_iteration_preserves_currentness_and_owner_boundaries() -> None
         "reuse_requires_identical_scope_policy_and_professional_rubric"
     ] is True
     assert review["reuse_requires_complete_origin_provenance"] is True
+    assert review["reuse_requires_framework_epistemic_currentness_evaluation"] is True
     assert review[
-        "reuse_requires_origin_candidate_semantic_scope_for_professional_lanes"
+        "reuse_requires_current_scope_id_kind_and_dependency_closure"
+    ] is True
+    assert review["review_scope_sha256_is_dependency_topology_locator_only"] is True
+    assert review["hash_change_alone_invalidates_professional_review"] is False
+    assert review[
+        "semantic_change_invalidates_only_declared_dependency_lanes"
     ] is True
     assert review["fresh_receipt_requires_opl_immutable_snapshot_binding"] is True
     assert review[
@@ -210,6 +308,12 @@ def test_artifact_iteration_preserves_currentness_and_owner_boundaries() -> None
         "fresh_missing_snapshot_binding_is_lane_quality_debt_not_host_liveness_failure"
     ] is True
     assert review["missing_or_stale_review_currentness_blocks_hosted_action"] is False
+    assert review[
+        "exact_byte_package_reviews_package_content_and_wrapper_inventory"
+    ] is True
+    assert review[
+        "exact_byte_package_excludes_governance_checklist_status_and_receipt_members"
+    ] is True
     page_cache = policy["page_hash_evidence_cache"]
     assert page_cache["persistent_store_owner"] == "one-person-lab"
     assert page_cache["cache_key_fields"] == [

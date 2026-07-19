@@ -24,7 +24,7 @@ Artifact OS 的 owner split 固定为：OPL / shared family layer 持有通用 l
 
 `submission-package.v2` 的 reproducibility bundle 固定包含：
 
-- `source_signature.json`：记录 source signature 与 source contract，并把 signature 作为 sha256-grade package fingerprint 引用。
+- `source_signature.json`：记录 source contract 与 sha256-grade package fingerprint；它只作 locator、rebuild/stale hint 和 package provenance，不是 manuscript、analysis、claim、reference 或 reviewer currentness authority。
 - `source_relative_paths.json`：记录 canonical/package source 相对路径与每个 source file 的 sha256。
 - `analysis_manifest.json`：记录 analysis result refs、analysis source sha256、software/environment ref 与 lineage graph ref。
 - `software_environment.json`：记录 repo/runtime/software env refs；它是复现索引，不是 runtime truth。

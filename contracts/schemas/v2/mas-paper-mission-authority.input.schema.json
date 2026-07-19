@@ -734,7 +734,8 @@
         "current_review_request_ref",
         "current_review_receipt_ref",
         "superseded_review_request_refs",
-        "reuse_provenance"
+        "reuse_provenance",
+        "epistemic_currentness"
       ],
       "properties": {
         "review_lane": {
@@ -798,6 +799,225 @@
               "$ref": "#/$defs/review_reuse_provenance"
             }
           ]
+        },
+        "epistemic_currentness": {
+          "$ref": "#/$defs/epistemic_currentness_evaluation"
+        }
+      }
+    },
+    "epistemic_currentness_evaluation": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "surface_kind",
+        "version",
+        "scope_id",
+        "scope_kind",
+        "status",
+        "invalidating_changes",
+        "ignored_changes",
+        "reviewed_dependency_refs",
+        "authority_boundary"
+      ],
+      "properties": {
+        "surface_kind": {
+          "const": "opl_epistemic_review_currentness_evaluation"
+        },
+        "version": {
+          "const": "opl-epistemic-review-currentness-evaluation.v2"
+        },
+        "scope_id": {
+          "pattern": "^mas:(medical|statistical|reference|display|publication|exact_byte_package)$"
+        },
+        "scope_kind": {
+          "enum": [
+            "content",
+            "reference",
+            "display",
+            "package"
+          ]
+        },
+        "status": {
+          "enum": [
+            "current",
+            "stale"
+          ]
+        },
+        "invalidating_changes": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/epistemic_change"
+          }
+        },
+        "ignored_changes": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/ignored_epistemic_change"
+          }
+        },
+        "reviewed_dependency_refs": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": {
+            "$ref": "#/$defs/non_empty_text"
+          }
+        },
+        "authority_boundary": {
+          "$ref": "#/$defs/epistemic_authority_boundary"
+        }
+      }
+    },
+    "epistemic_change": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "node_ref",
+        "change_class",
+        "semantic_changed",
+        "locator_sha256_before",
+        "locator_sha256_after"
+      ],
+      "properties": {
+        "node_ref": {
+          "$ref": "#/$defs/non_empty_text"
+        },
+        "change_class": {
+          "enum": [
+            "data",
+            "context",
+            "analysis_code",
+            "analysis_parameters",
+            "analysis_result",
+            "claim",
+            "reference_source",
+            "citation_linkage",
+            "limitation",
+            "visual_content",
+            "layout",
+            "render_template",
+            "package_composition",
+            "package_wrapper",
+            "governance_metadata",
+            "review_receipt",
+            "locator_only"
+          ]
+        },
+        "semantic_changed": {
+          "const": true
+        },
+        "locator_sha256_before": {
+          "oneOf": [
+            {
+              "$ref": "#/$defs/sha256"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "locator_sha256_after": {
+          "oneOf": [
+            {
+              "$ref": "#/$defs/sha256"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      }
+    },
+    "ignored_epistemic_change": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "node_ref",
+        "change_class",
+        "semantic_changed",
+        "locator_sha256_before",
+        "locator_sha256_after",
+        "reason"
+      ],
+      "properties": {
+        "node_ref": {
+          "$ref": "#/$defs/non_empty_text"
+        },
+        "change_class": {
+          "enum": [
+            "data",
+            "context",
+            "analysis_code",
+            "analysis_parameters",
+            "analysis_result",
+            "claim",
+            "reference_source",
+            "citation_linkage",
+            "limitation",
+            "visual_content",
+            "layout",
+            "render_template",
+            "package_composition",
+            "package_wrapper",
+            "governance_metadata",
+            "review_receipt",
+            "locator_only"
+          ]
+        },
+        "semantic_changed": {
+          "type": "boolean"
+        },
+        "locator_sha256_before": {
+          "oneOf": [
+            {
+              "$ref": "#/$defs/sha256"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "locator_sha256_after": {
+          "oneOf": [
+            {
+              "$ref": "#/$defs/sha256"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "reason": {
+          "enum": [
+            "outside_declared_evidence_graph",
+            "locator_or_non_semantic_change_only",
+            "governance_or_review_metadata_is_not_content_evidence",
+            "outside_reviewed_dependency_closure"
+          ]
+        }
+      }
+    },
+    "epistemic_authority_boundary": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "hash_is_locator_or_stale_hint_only",
+        "hash_is_content_authority",
+        "release_integrity_is_separate",
+        "framework_can_issue_domain_verdict"
+      ],
+      "properties": {
+        "hash_is_locator_or_stale_hint_only": {
+          "const": true
+        },
+        "hash_is_content_authority": {
+          "const": false
+        },
+        "release_integrity_is_separate": {
+          "const": true
+        },
+        "framework_can_issue_domain_verdict": {
+          "const": false
         }
       }
     },
@@ -830,10 +1050,6 @@
         },
         "origin_candidate_admission_receipt_refs": {
           "$ref": "#/$defs/exact_ref_array"
-        },
-        "origin_candidate_scope_sha256": {
-          "$ref": "#/$defs/sha256",
-          "description": "Optional only for legacy read compatibility. Candidate-dependent lanes without this MAS semantic-scope digest cannot be reused for owner acceptance."
         }
       }
     },
@@ -1239,8 +1455,7 @@
           "minimum": 0
         },
         "max_attempts": {
-          "type": "integer",
-          "minimum": 0
+          "const": 3
         },
         "repair_attempt_refs": {
           "$ref": "#/$defs/typed_ref_array"

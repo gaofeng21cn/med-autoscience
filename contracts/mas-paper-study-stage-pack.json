@@ -110,6 +110,18 @@
       "coverage_audit",
       "handoff_evidence_surface"
     ],
+    "epistemic_review_route_back": {
+      "trigger": "consumed_reviewer_revision_with_missing_or_stale_review_currentness",
+      "framework_contract_sha": "367738244273664452e6b7ebfb86d5de5bb36c30",
+      "scope_budget_ref": "contracts/stage_quality_cycle_policy.json#/epistemic_review_currentness_adoption/scope_budget",
+      "attempt_projection": "paper_mission.repair_state",
+      "max_attempts": 3,
+      "attempts_remaining_disposition": "route_back_to_independent_reviewer",
+      "budget_exhausted_with_consumable_artifact_disposition": "completed_with_quality_debt",
+      "budget_exhausted_reason_code": "review_scope_budget_exhausted",
+      "applies_in_finalize_and_publication_handoff": true,
+      "creates_parallel_retry_scheduler": false
+    },
     "stage_attempt_readback_contract": {
       "must_preserve_professional_skill_invocation_refs": true,
       "professional_skill_ref_families": [
@@ -203,6 +215,8 @@
         "refs_only": true
       },
       "mas_copies_professional_skill_body": false,
+      "professional_skills_supply_quality_rules_only": true,
+      "professional_skills_own_generation_signatures_or_loop_scheduling": false,
       "writes_study_truth": false,
       "writes_owner_receipt": false,
       "writes_typed_blocker": false,

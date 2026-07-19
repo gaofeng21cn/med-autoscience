@@ -132,26 +132,36 @@ class AuthorityRecordFactory:
         }
 
     @classmethod
-    def candidate_semantic_scope_sha256(cls, request: dict[str, Any]) -> str:
-        candidates = []
-        for wrapper in request["candidate_admissions"]:
-            receipt = wrapper["receipt"]
-            candidates.append(
-                {
-                    "candidate_id": receipt["candidate_id"],
-                    "candidate_ref": deepcopy(receipt["candidate_ref"]),
-                    "evidence_refs": deepcopy(receipt["evidence_refs"]),
-                    "claim_scope": deepcopy(receipt["claim_scope"]),
-                    "decision_code": receipt["decision_code"],
-                }
-            )
-        candidates.sort(
-            key=lambda item: (
-                item["candidate_id"],
-                item["candidate_ref"]["sha256"],
-            )
+    def epistemic_currentness(
+        cls,
+        manifest: dict[str, Any],
+        lane: str,
+        *,
+        invalidating_changes: list[dict[str, Any]] | None = None,
+        ignored_changes: list[dict[str, Any]] | None = None,
+    ) -> dict[str, Any]:
+        from med_autoscience.authority_handlers._generation_manifest import (
+            epistemic_review_dependency_refs,
         )
-        return cls.fingerprint({"candidate_semantic_scope": candidates})
+
+        scope = next(
+            item["epistemic_scope"]
+            for item in manifest["review_scopes"]
+            if item["review_lane"] == lane
+        )
+        invalidating = deepcopy(invalidating_changes or [])
+        ignored = deepcopy(ignored_changes or [])
+        return {
+            "surface_kind": "opl_epistemic_review_currentness_evaluation",
+            "version": "opl-epistemic-review-currentness-evaluation.v2",
+            "scope_id": scope["scope_id"],
+            "scope_kind": scope["scope_kind"],
+            "status": "stale" if invalidating else "current",
+            "invalidating_changes": invalidating,
+            "ignored_changes": ignored,
+            "reviewed_dependency_refs": epistemic_review_dependency_refs(scope),
+            "authority_boundary": deepcopy(scope["authority_boundary"]),
+        }
 
     @classmethod
     def claim_scope(
@@ -899,6 +909,10 @@ class AuthorityRecordFactory:
                     "current_review_receipt_ref": deepcopy(wrapper["receipt_ref"]),
                     "superseded_review_request_refs": [],
                     "reuse_provenance": None,
+                    "epistemic_currentness": cls.epistemic_currentness(
+                        manifest,
+                        wrapper["receipt"]["review_lane"],
+                    ),
                 }
                 for wrapper in wrappers
             ]

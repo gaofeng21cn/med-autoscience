@@ -75,6 +75,9 @@ def _authorize_reused_lane(
     origin: dict[str, Any],
     lane: str,
     authority_records: Any,
+    *,
+    invalidating_changes: list[dict[str, Any]] | None = None,
+    ignored_changes: list[dict[str, Any]] | None = None,
 ) -> None:
     origin_wrapper = next(
         item
@@ -119,13 +122,38 @@ def _authorize_reused_lane(
                 "origin_candidate_admission_receipt_refs": deepcopy(
                     receipt["accepted_candidate_receipt_refs"]
                 ),
-                "origin_candidate_scope_sha256": (
-                    authority_records.candidate_semantic_scope_sha256(origin)
-                ),
             },
+            "epistemic_currentness": authority_records.epistemic_currentness(
+                current["generation_manifest"],
+                lane,
+                invalidating_changes=invalidating_changes,
+                ignored_changes=ignored_changes,
+            ),
         }
     )
     authority_records.reseal_review_currentness(current)
+
+
+def _epistemic_change(
+    authority_records: Any,
+    *,
+    node_ref: str,
+    change_class: str,
+    semantic_changed: bool = True,
+    before: str = "before",
+    after: str = "after",
+    reason: str | None = None,
+) -> dict[str, Any]:
+    change = {
+        "node_ref": node_ref,
+        "change_class": change_class,
+        "semantic_changed": semantic_changed,
+        "locator_sha256_before": authority_records.digest(before),
+        "locator_sha256_after": authority_records.digest(after),
+    }
+    if reason is not None:
+        change["reason"] = reason
+    return change
 
 
 def test_exact_current_reviews_return_deterministic_owner_receipt(
@@ -732,7 +760,7 @@ def test_stale_review_bytes_and_metadata_only_rewrite_cannot_be_reused(
     table_binding["sha256"] = table["sha256"]
     authority_records.refresh_paper_manifest_identity(stale)
     result = _evaluate(stale)
-    _assert_progress_debt(result, "independent_review_receipt_not_current")
+    _assert_progress_debt(result, "review_input_snapshot_binding_not_current")
 
     metadata_rewrite = authority_records.paper_request()
     table = next(
@@ -753,7 +781,7 @@ def test_stale_review_bytes_and_metadata_only_rewrite_cannot_be_reused(
     assert "identity/size/hash" in result["error"]["detail"]
 
 
-def test_v2_review_scopes_are_mas_owned_generation_independent_and_exact_byte_full(
+def test_v2_review_scopes_are_mas_owned_generation_independent_domain_graphs(
     authority_records: Any,
 ) -> None:
     first = authority_records.paper_request(
@@ -786,7 +814,14 @@ def test_v2_review_scopes_are_mas_owned_generation_independent_and_exact_byte_fu
         item["review_lane"]: item
         for item in second["generation_manifest"]["review_scopes"]
     }
-    for lane in {"medical", "statistical", "reference", "display", "publication"}:
+    for lane in {
+        "medical",
+        "statistical",
+        "reference",
+        "display",
+        "publication",
+        "exact_byte_package",
+    }:
         assert (
             first_scopes[lane]["review_scope_sha256"]
             == second_scopes[lane]["review_scope_sha256"]
@@ -794,13 +829,33 @@ def test_v2_review_scopes_are_mas_owned_generation_independent_and_exact_byte_fu
         roles = {item["role"] for item in first_scopes[lane]["reviewed_members"]}
         assert "source_input_digest" not in roles
         assert "candidate_admission_receipt" not in roles
-    assert (
-        first_scopes["exact_byte_package"]["reviewed_members"]
-        == first["generation_manifest"]["artifacts"]
-    )
-    assert (
-        first_scopes["exact_byte_package"]["review_scope_sha256"]
-        != second_scopes["exact_byte_package"]["review_scope_sha256"]
+        epistemic_scope = first_scopes[lane]["epistemic_scope"]
+        assert epistemic_scope["evidence_profile"] == "epistemic_provenance"
+        assert epistemic_scope["trust_model"] == "trusted_local_workspace"
+        assert epistemic_scope["authority_boundary"] == {
+            "hash_is_locator_or_stale_hint_only": True,
+            "hash_is_content_authority": False,
+            "release_integrity_is_separate": True,
+            "framework_can_issue_domain_verdict": False,
+        }
+    exact_roles = {
+        item["role"]
+        for item in first_scopes["exact_byte_package"]["reviewed_members"]
+    }
+    assert exact_roles == {
+        "docx",
+        "pdf",
+        "supplementary_output",
+        "final_zip_allowlist",
+        "final_zip_member",
+    }
+    assert exact_roles.isdisjoint(
+        {
+            "submission_status",
+            "publication_evaluation",
+            "next_action_envelope",
+            "submission_projection_manifest",
+        }
     )
 
     forged = deepcopy(first)
@@ -874,7 +929,7 @@ def test_v2_public_manifest_builder_is_canonical_receipt_free_and_fail_closed(
         )
 
 
-def test_v2_scope_dependency_map_selectively_invalidates_only_affected_lanes(
+def test_v2_scope_locator_tracks_dependency_topology_not_member_bytes(
     authority_records: Any,
 ) -> None:
     baseline = authority_records.paper_request(
@@ -887,21 +942,14 @@ def test_v2_scope_dependency_map_selectively_invalidates_only_affected_lanes(
         item["review_lane"]: item["review_scope_sha256"]
         for item in baseline["generation_manifest"]["review_scopes"]
     }
-    cases = {
-        "figure_file": {"display", "publication", "exact_byte_package"},
-        "canonical_manuscript": {
-            "medical",
-            "statistical",
-            "reference",
-            "publication",
-            "exact_byte_package",
-        },
-        "analysis_output": {"medical", "statistical", "exact_byte_package"},
-        "reference_library": {"reference", "publication", "exact_byte_package"},
-        "render_environment_and_font_manifest": {"exact_byte_package"},
-        "final_zip_member": {"exact_byte_package"},
-    }
-    for role, expected_changed_lanes in cases.items():
+    for role in (
+        "analysis_output",
+        "canonical_manuscript",
+        "reference_library",
+        "render_environment_and_font_manifest",
+        "final_zip_member",
+        "submission_status",
+    ):
         changed = authority_records.paper_request(
             scope="publication_generation",
             stage_id="finalize_and_publication_handoff",
@@ -915,11 +963,7 @@ def test_v2_scope_dependency_map_selectively_invalidates_only_affected_lanes(
             item["review_lane"]: item["review_scope_sha256"]
             for item in changed["generation_manifest"]["review_scopes"]
         }
-        assert {
-            lane
-            for lane, digest in changed_scopes.items()
-            if digest != baseline_scopes[lane]
-        } == expected_changed_lanes
+        assert changed_scopes == baseline_scopes
 
 
 def test_v2_professional_scope_is_locator_invariant_but_member_identity_sensitive(
@@ -937,7 +981,8 @@ def test_v2_professional_scope_is_locator_invariant_but_member_identity_sensitiv
         manifest_version=2,
         generation_id="study-generation-scope-renamed",
         artifact_ref_overrides={
-            "figure_file": "workspace://study/figures/renamed-figure"
+            "figure_file": "workspace://study/figures/renamed-figure",
+            "final_zip_member": "workspace://study/package/renamed-member",
         },
     )
     replaced_identity = authority_records.paper_request(
@@ -961,11 +1006,13 @@ def test_v2_professional_scope_is_locator_invariant_but_member_identity_sensitiv
     replacement_digests = scope_digests(replaced_identity)
     for lane in {"medical", "statistical", "reference", "display", "publication"}:
         assert renamed_digests[lane] == baseline_digests[lane]
-    assert (
-        renamed_digests["exact_byte_package"] != baseline_digests["exact_byte_package"]
-    )
-    for lane in {"display", "publication", "exact_byte_package"}:
+    assert renamed_digests == baseline_digests
+    for lane in {"display", "publication"}:
         assert replacement_digests[lane] != baseline_digests[lane]
+    assert (
+        replacement_digests["exact_byte_package"]
+        == baseline_digests["exact_byte_package"]
+    )
     assert _evaluate(renamed)["status"] == "owner_receipt"
     assert _evaluate(replaced_identity)["status"] == "owner_receipt"
 
@@ -1017,7 +1064,7 @@ def test_v2_member_order_is_canonical_and_member_id_is_required_unique(
     assert "duplicate member_id" in result["error"]["detail"]
 
 
-def test_v2_currentness_reuses_only_exact_unchanged_lane_scopes(
+def test_v2_layout_package_and_governance_deltas_preserve_content_verdicts(
     authority_records: Any,
 ) -> None:
     origin = authority_records.paper_request(
@@ -1032,108 +1079,328 @@ def test_v2_currentness_reuses_only_exact_unchanged_lane_scopes(
         manifest_version=2,
         generation_id="study-generation-004",
         artifact_sha_overrides={
-            "figure_file": authority_records.digest("changed-figure-bytes")
+            "render_environment_and_font_manifest": authority_records.digest(
+                "changed-render-template-bytes"
+            ),
+            "final_zip_member": authority_records.digest(
+                "changed-package-member-bytes"
+            ),
+            "submission_status": authority_records.digest(
+                "changed-governance-status-bytes"
+            ),
         },
     )
-    origin_reviews = {
-        item["receipt"]["review_lane"]: item
-        for item in origin["generation_manifest"]["independent_review_receipts"]
-    }
+    ignored_changes = [
+        _epistemic_change(
+            authority_records,
+            node_ref="mas-member:render_environment_and_font_manifest:primary",
+            change_class="render_template",
+            reason="outside_declared_evidence_graph",
+        ),
+        _epistemic_change(
+            authority_records,
+            node_ref="mas-member:final_zip_member:primary",
+            change_class="package_composition",
+            reason="outside_declared_evidence_graph",
+        ),
+        _epistemic_change(
+            authority_records,
+            node_ref="mas-member:submission_status:primary",
+            change_class="governance_metadata",
+            reason="outside_declared_evidence_graph",
+        ),
+    ]
     for lane in ("medical", "statistical", "reference"):
-        _authorize_reused_lane(current, origin, lane, authority_records)
-    assert _evaluate(current)["status"] == "owner_receipt"
+        _authorize_reused_lane(
+            current,
+            origin,
+            lane,
+            authority_records,
+            ignored_changes=ignored_changes,
+        )
 
-    forged = deepcopy(current)
-    forged_reviews = {
-        item["receipt"]["review_lane"]: item
-        for item in forged["generation_manifest"]["independent_review_receipts"]
-    }
-    forged_reviews["display"] = deepcopy(origin_reviews["display"])
-    forged["generation_manifest"]["independent_review_receipts"] = list(
-        forged_reviews.values()
-    )
-    forged_display = next(
-        item
-        for item in forged["review_authority"]["currentness_receipt"][
+    result = _evaluate(current)
+
+    assert result["status"] == "owner_receipt"
+    lane_states = {
+        item["review_lane"]: item
+        for item in current["review_authority"]["currentness_receipt"][
             "lane_currentness"
         ]
-        if item["review_lane"] == "display"
+    }
+    for lane in ("medical", "statistical", "reference"):
+        assert lane_states[lane]["currentness_status"] == "reused_unchanged_scope"
+        assert lane_states[lane]["epistemic_currentness"]["status"] == "current"
+        assert len(lane_states[lane]["epistemic_currentness"]["ignored_changes"]) == 3
+
+
+@pytest.mark.parametrize(
+    ("role", "change_class", "affected_lanes"),
+    [
+        (
+            "analysis_output",
+            "analysis_result",
+            ("medical", "statistical", "display"),
+        ),
+        (
+            "canonical_manuscript",
+            "claim",
+            ("medical", "statistical", "reference", "display", "publication"),
+        ),
+        (
+            "reference_library",
+            "reference_source",
+            ("reference", "publication"),
+        ),
+        (
+            "render_environment_and_font_manifest",
+            "render_template",
+            ("display", "publication"),
+        ),
+        (
+            "final_zip_member",
+            "package_composition",
+            ("publication", "exact_byte_package"),
+        ),
+    ],
+)
+def test_v2_semantic_changes_stale_only_declared_dependency_lanes(
+    authority_records: Any,
+    role: str,
+    change_class: str,
+    affected_lanes: tuple[str, ...],
+) -> None:
+    origin = authority_records.paper_request(
+        scope="publication_generation",
+        stage_id="finalize_and_publication_handoff",
+        generation_id=f"epistemic-origin-{role}",
     )
-    old_display_receipt = origin_reviews["display"]["receipt"]
-    forged_display.update(
-        {
-            "review_authority_epoch": old_display_receipt["authority_epoch"],
-            "current_review_request_ref": deepcopy(
-                old_display_receipt["review_request_ref"]
-            ),
-            "current_review_receipt_ref": deepcopy(
-                origin_reviews["display"]["receipt_ref"]
-            ),
-            "review_receipt_issued_generation_id": old_display_receipt[
-                "issued_generation_id"
-            ],
-            "review_receipt_issued_generation_manifest_sha256": old_display_receipt[
-                "issued_generation_manifest_sha256"
-            ],
-        }
+    current = authority_records.paper_request(
+        scope="publication_generation",
+        stage_id="finalize_and_publication_handoff",
+        generation_id=f"epistemic-current-{role}",
+        artifact_sha_overrides={
+            role: authority_records.digest(f"semantic-change:{role}")
+        },
     )
-    authority_records.reseal_review_currentness(forged)
-    result = _evaluate(forged)
+    change = _epistemic_change(
+        authority_records,
+        node_ref=f"mas-member:{role}:primary",
+        change_class=change_class,
+    )
+    ignored_change = {**change, "reason": "outside_declared_evidence_graph"}
+    all_lanes = (
+        "medical",
+        "statistical",
+        "reference",
+        "display",
+        "publication",
+        "exact_byte_package",
+    )
+    for lane in all_lanes:
+        _authorize_reused_lane(
+            current,
+            origin,
+            lane,
+            authority_records,
+            invalidating_changes=[change] if lane in affected_lanes else None,
+            ignored_changes=None if lane in affected_lanes else [ignored_change],
+        )
+
+    origin_locators = {
+        item["review_lane"]: item["review_scope_sha256"]
+        for item in origin["generation_manifest"]["review_scopes"]
+    }
+    current_locators = {
+        item["review_lane"]: item["review_scope_sha256"]
+        for item in current["generation_manifest"]["review_scopes"]
+    }
+    assert current_locators == origin_locators
+
+    result = _evaluate(current)
+
     route_back = _assert_finalize_route_back(
-        result, "independent_review_receipt_not_current"
+        result, "independent_review_stale_after_epistemic_change"
     )
-    assert route_back["reason_code"] == "independent_review_receipt_not_current"
+    assert [
+        item["review_lane"] for item in route_back["affected_review_lanes"]
+    ] == list(affected_lanes)
+    assert {item["reason_code"] for item in route_back["affected_review_lanes"]} == {
+        "independent_review_stale_after_epistemic_change"
+    }
 
 
-def test_v2_candidate_semantic_scope_controls_professional_lane_reuse(
+def test_v2_hash_only_locator_drift_preserves_review_currentness(
     authority_records: Any,
 ) -> None:
     origin = authority_records.paper_request(
         scope="publication_generation",
         stage_id="finalize_and_publication_handoff",
-        generation_id="candidate-scope-origin",
+        generation_id="locator-origin",
     )
-    unchanged = authority_records.paper_request(
+    current = authority_records.paper_request(
         scope="publication_generation",
         stage_id="finalize_and_publication_handoff",
-        generation_id="candidate-scope-unchanged",
+        generation_id="locator-current",
+        artifact_ref_overrides={
+            "analysis_output": "workspace://study/analysis/relocated-output"
+        },
+        artifact_sha_overrides={
+            "analysis_output": authority_records.digest("relocated-output-bytes")
+        },
     )
-    professional_lanes = ("medical", "statistical", "reference", "publication")
-    for lane in professional_lanes:
-        _authorize_reused_lane(unchanged, origin, lane, authority_records)
-    assert _evaluate(unchanged)["status"] == "owner_receipt"
+    ignored = _epistemic_change(
+        authority_records,
+        node_ref="mas-member:analysis_output:primary",
+        change_class="locator_only",
+        reason="locator_or_non_semantic_change_only",
+    )
+    for lane in ("medical", "statistical", "display"):
+        _authorize_reused_lane(
+            current,
+            origin,
+            lane,
+            authority_records,
+            ignored_changes=[ignored],
+        )
 
-    changed = authority_records.paper_request(
+    assert _evaluate(current)["status"] == "owner_receipt"
+
+
+def test_v2_epistemic_currentness_is_required_and_bound_to_dependency_closure(
+    authority_records: Any,
+) -> None:
+    missing = authority_records.paper_request()
+    lane_state = missing["review_authority"]["currentness_receipt"][
+        "lane_currentness"
+    ][0]
+    lane_state.pop("epistemic_currentness")
+    authority_records.reseal_review_currentness(missing)
+
+    result = _evaluate(missing)
+
+    assert result["status"] == "invalid_host_input"
+    assert "epistemic_currentness" in result["error"]["detail"]
+
+    mismatched = authority_records.paper_request(
         scope="publication_generation",
         stage_id="finalize_and_publication_handoff",
-        generation_id="candidate-scope-changed",
-        candidate_sensitivity_only=True,
     )
-    origin_manuscript = next(
+    lane_state = next(
         item
-        for item in origin["generation_manifest"]["artifacts"]
-        if item["role"] == "canonical_manuscript"
+        for item in mismatched["review_authority"]["currentness_receipt"][
+            "lane_currentness"
+        ]
+        if item["review_lane"] == "medical"
     )
-    changed_manuscript = next(
-        item
-        for item in changed["generation_manifest"]["artifacts"]
-        if item["role"] == "canonical_manuscript"
-    )
-    assert changed_manuscript["sha256"] == origin_manuscript["sha256"]
-    for lane in professional_lanes:
-        _authorize_reused_lane(changed, origin, lane, authority_records)
+    lane_state["epistemic_currentness"]["reviewed_dependency_refs"] = [
+        "mas-member:canonical_manuscript:primary"
+    ]
+    authority_records.reseal_review_currentness(mismatched)
 
-    result = _evaluate(changed)
+    result = _evaluate(mismatched)
 
     route_back = _assert_finalize_route_back(
-        result, "independent_review_stale_after_scope_change"
+        result, "epistemic_review_scope_binding_required"
     )
-    assert [
-        item["review_lane"] for item in route_back["affected_review_lanes"]
-    ] == list(professional_lanes)
-    assert {item["reason_code"] for item in route_back["affected_review_lanes"]} == {
-        "independent_review_stale_after_scope_change"
-    }
+    assert route_back["affected_review_lanes"][0]["review_lane"] == "medical"
+
+    forged_current = authority_records.paper_request(
+        scope="publication_generation",
+        stage_id="finalize_and_publication_handoff",
+    )
+    lane_state = next(
+        item
+        for item in forged_current["review_authority"]["currentness_receipt"][
+            "lane_currentness"
+        ]
+        if item["review_lane"] == "medical"
+    )
+    lane_state["epistemic_currentness"] = authority_records.epistemic_currentness(
+        forged_current["generation_manifest"],
+        "medical",
+        ignored_changes=[
+            _epistemic_change(
+                authority_records,
+                node_ref="mas-member:analysis_output:primary",
+                change_class="analysis_result",
+                reason="outside_declared_evidence_graph",
+            )
+        ],
+    )
+    authority_records.reseal_review_currentness(forged_current)
+
+    result = _evaluate(forged_current)
+
+    route_back = _assert_finalize_route_back(
+        result, "epistemic_review_scope_binding_required"
+    )
+    assert route_back["affected_review_lanes"][0]["review_lane"] == "medical"
+
+
+def test_reviewer_revision_currentness_uses_existing_three_attempt_route_back_budget(
+    authority_records: Any,
+) -> None:
+    def reviewer_revision_request(attempts_used: int) -> dict[str, Any]:
+        request = authority_records.paper_request(
+            scope="publication_generation",
+            stage_id="finalize_and_publication_handoff",
+        )
+        authority_records.bind_revision_consumption(request)
+        lane_state = next(
+            item
+            for item in request["review_authority"]["currentness_receipt"][
+                "lane_currentness"
+            ]
+            if item["review_lane"] == "medical"
+        )
+        lane_state["epistemic_currentness"] = authority_records.epistemic_currentness(
+            request["generation_manifest"],
+            "medical",
+            invalidating_changes=[
+                _epistemic_change(
+                    authority_records,
+                    node_ref="mas-member:canonical_manuscript:primary",
+                    change_class="claim",
+                )
+            ],
+        )
+        authority_records.reseal_review_currentness(request)
+        request["repair_state"] = {
+            "status": "pending" if attempts_used < 3 else "exhausted",
+            "attempts_used": attempts_used,
+            "max_attempts": 3,
+            "repair_attempt_refs": [
+                authority_records.typed_ref(
+                    "opl_stage_attempt", f"reviewer-revision-{index}"
+                )
+                for index in range(attempts_used)
+            ],
+            "latest_repair_output_ref": (
+                authority_records.typed_ref(
+                    "opl_action_output", "reviewer-revision-latest"
+                )
+                if attempts_used
+                else None
+            ),
+        }
+        return request
+
+    available = _evaluate(reviewer_revision_request(0))
+    route_back = _assert_finalize_route_back(
+        available, "independent_review_stale_after_epistemic_change"
+    )
+    assert route_back["remaining_repair_attempts"] == 3
+    _output_validator().validate(available)
+
+    exhausted = _evaluate(reviewer_revision_request(3))
+    assert exhausted["status"] == "completed_with_quality_debt"
+    assert exhausted["stage_outcome"]["stage_transition_allowed"] is True
+    assert "review_scope_budget_exhausted" in exhausted["quality_debt"][
+        "reason_codes"
+    ]
+    assert exhausted["route_back"]["remaining_repair_attempts"] == 0
+    _output_validator().validate(exhausted)
 
 
 def test_v2_fresh_review_without_snapshot_binding_is_lane_quality_debt(
@@ -1478,26 +1745,37 @@ def test_v2_currentness_returns_all_affected_review_lanes_in_one_route_back(
             "figure_file": authority_records.digest("changed-figure-bytes")
         },
     )
-    for lane in ("display", "publication", "exact_byte_package"):
-        _authorize_reused_lane(current, origin, lane, authority_records)
+    figure_change = _epistemic_change(
+        authority_records,
+        node_ref="mas-member:figure_file:primary",
+        change_class="visual_content",
+    )
+    for lane in ("display", "publication"):
+        _authorize_reused_lane(
+            current,
+            origin,
+            lane,
+            authority_records,
+            invalidating_changes=[figure_change],
+        )
 
     result = _evaluate(current)
 
     route_back = _assert_finalize_route_back(
-        result, "independent_review_receipt_not_current"
+        result, "independent_review_stale_after_epistemic_change"
     )
-    assert route_back["reason_code"] == "independent_review_receipt_not_current"
+    assert route_back["reason_code"] == (
+        "independent_review_stale_after_epistemic_change"
+    )
     assert route_back["resume_condition"] == (
-        "refresh all affected review lanes in one pass: "
-        "display, publication, exact_byte_package"
+        "refresh all affected review lanes in one pass: display, publication"
     )
     assert [item["review_lane"] for item in route_back["affected_review_lanes"]] == [
         "display",
         "publication",
-        "exact_byte_package",
     ]
     assert {item["reason_code"] for item in route_back["affected_review_lanes"]} == {
-        "independent_review_receipt_not_current"
+        "independent_review_stale_after_epistemic_change"
     }
     _output_validator().validate(result)
 

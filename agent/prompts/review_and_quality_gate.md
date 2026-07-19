@@ -29,22 +29,22 @@ route another canonical Stage can act on; do not repair the artifact here.
   and `medical_research_execution.md` for specialist routing.
 - Issue each lane receipt as MedAutoScience with the lane-specific authority
   role and verdict. Generation manifest v2 binds it to the MAS-owned lane scope
-  and complete reviewed member inventory. A fresh v2 receipt also binds the exact
-  OPL immutable reviewer-input snapshot manifest and its path-independent
-  `member_id` / role / hash / size inventory, the Framework materialization
-  owner, and its explicit non-authority boundary. The reviewer reads that
-  snapshot, not live workspace locators. The currentness receipt may mark a lane
-  `reused_unchanged_scope` only when scope policy, professional rubric, and scope
-  identity are unchanged and complete origin provenance is retained. Medical,
-  statistical, reference, and publication reuse also binds the origin candidate
-  semantic scope, so a claim/evidence/disposition change invalidates reuse even
-  when manuscript bytes are unchanged. Only a changed lane requires a fresh
-  independent invocation. A legacy origin receipt without the snapshot binding,
-  or with incomplete materialization-owner metadata, is lane quality debt and
-  cannot produce an owner receipt. Missing or stale review currentness is never a
-  hosted-action liveness rejection, including at finalization. V1 remains
-  whole-generation exact currentness, and `exact_byte_package` always reviews the
-  complete root inventory including locators. A lane counts only when its exact
+  and reviewed member inventory plus an `epistemic_provenance` artifact/claim/
+  provenance dependency graph. Consume the OPL Framework currentness evaluation
+  for that exact scope id, kind, and transitive dependency closure. Hashes and
+  `review_scope_sha256` are locator/stale hints, not content authority: semantic
+  analysis, claim, reference, citation, visual, or package changes invalidate
+  only lanes that declare those dependencies, while layout/package/governance
+  deltas do not invalidate medical/statistical/reference verdicts. A fresh v2
+  receipt also binds the exact OPL immutable reviewer-input snapshot manifest and
+  its path-independent `member_id` / role / hash / size inventory. The reviewer
+  reads that snapshot, not live workspace locators. A lane may be
+  `reused_unchanged_scope` only with a current Framework evaluation, unchanged
+  member identity/role topology and rubric, valid snapshot binding, and complete
+  origin provenance. Missing evaluation, dependency-closure mismatch, or a
+  semantic dependency hidden as ignored fails closed. `exact_byte_package`
+  reviews package content/wrapper members only, excluding checklist, status,
+  evaluation, projection, and receipt metadata. A lane counts only when its exact
   receipt ref is present in the current MAS receipt inventory.
 - Start candidate-level review only after candidate freeze. Dispatch all affected
   lanes in one wave, run independent lanes in parallel, and aggregate findings

@@ -92,8 +92,8 @@
       "one_parallel_review_wave_for_all_affected_lanes"
     ],
     "projection_switch_is_outside_candidate_freeze": true,
-    "complete_member_inventory_required": true,
-    "exact_byte_package_scope_may_be_narrowed": false
+    "complete_package_content_inventory_required": true,
+    "governance_checklist_status_or_receipt_members_are_package_content": false
   },
   "review_dispatch": {
     "currentness_policy_ref": "docs/runtime/control/progress_first_quality_loop.md#review-scope-currentness",
@@ -101,7 +101,11 @@
     "reuse_requires_mas_owned_currentness_receipt": true,
     "reuse_requires_identical_scope_policy_and_professional_rubric": true,
     "reuse_requires_complete_origin_provenance": true,
-    "reuse_requires_origin_candidate_semantic_scope_for_professional_lanes": true,
+    "reuse_requires_framework_epistemic_currentness_evaluation": true,
+    "reuse_requires_current_scope_id_kind_and_dependency_closure": true,
+    "review_scope_sha256_is_dependency_topology_locator_only": true,
+    "hash_change_alone_invalidates_professional_review": false,
+    "semantic_change_invalidates_only_declared_dependency_lanes": true,
     "fresh_receipt_requires_opl_immutable_snapshot_binding": true,
     "snapshot_binding_surface_kind": "mas_review_input_snapshot_binding",
     "snapshot_manifest_ref_kind": "opl_reviewer_input_snapshot_manifest",
@@ -118,7 +122,8 @@
     "dispatch_affected_lanes_in_one_wave": true,
     "parallelize_independent_lanes": true,
     "aggregate_defects_before_repair": true,
-    "exact_byte_package_always_reviews_complete_root_inventory": true
+    "exact_byte_package_reviews_package_content_and_wrapper_inventory": true,
+    "exact_byte_package_excludes_governance_checklist_status_and_receipt_members": true
   },
   "page_hash_evidence_cache": {
     "candidate_owner": "mas-scholar-skills",

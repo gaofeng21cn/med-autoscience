@@ -215,7 +215,7 @@
         },
         "ref": {
           "$ref": "#/$defs/non_empty_text",
-          "description": "Current locator retained for inventory and provenance. Professional review-lane scope identity excludes this locator; exact_byte_package includes it."
+          "description": "Current locator retained for inventory, snapshot transport, and provenance. Every epistemic review-lane topology identity excludes this locator, including exact_byte_package."
         },
         "size_bytes": {
           "type": "integer",
@@ -614,14 +614,15 @@
         "scope_policy_version",
         "review_lane",
         "review_scope_sha256",
-        "reviewed_members"
+        "reviewed_members",
+        "epistemic_scope"
       ],
       "properties": {
         "scope_policy_id": {
           "const": "mas_review_scope_dependency_map"
         },
         "scope_policy_version": {
-          "const": 1
+          "const": 2
         },
         "review_lane": {
           "enum": [
@@ -643,6 +644,179 @@
           "items": {
             "$ref": "#/$defs/generation_artifact_v2"
           }
+        },
+        "epistemic_scope": {
+          "$ref": "#/$defs/epistemic_review_scope"
+        }
+      }
+    },
+    "epistemic_review_scope": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "surface_kind",
+        "version",
+        "scope_id",
+        "scope_kind",
+        "evidence_profile",
+        "trust_model",
+        "reviewed_node_refs",
+        "nodes",
+        "dependency_edges",
+        "authority_boundary"
+      ],
+      "properties": {
+        "surface_kind": {
+          "const": "opl_epistemic_review_scope"
+        },
+        "version": {
+          "const": "opl-epistemic-review-scope.v2"
+        },
+        "scope_id": {
+          "pattern": "^mas:(medical|statistical|reference|display|publication|exact_byte_package)$"
+        },
+        "scope_kind": {
+          "enum": [
+            "content",
+            "reference",
+            "display",
+            "package"
+          ]
+        },
+        "evidence_profile": {
+          "const": "epistemic_provenance"
+        },
+        "trust_model": {
+          "const": "trusted_local_workspace"
+        },
+        "reviewed_node_refs": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": {
+            "$ref": "#/$defs/non_empty_text"
+          }
+        },
+        "nodes": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "$ref": "#/$defs/epistemic_review_node"
+          }
+        },
+        "dependency_edges": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/epistemic_review_edge"
+          }
+        },
+        "authority_boundary": {
+          "$ref": "#/$defs/epistemic_review_authority_boundary"
+        }
+      },
+      "description": "MAS supplies only its domain dependency graph. Generic validation and currentness evaluation remain owned by the OPL Framework canonical contract."
+    },
+    "epistemic_review_node": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "node_ref",
+        "node_kind",
+        "role",
+        "locator"
+      ],
+      "properties": {
+        "node_ref": {
+          "$ref": "#/$defs/non_empty_text"
+        },
+        "node_kind": {
+          "enum": [
+            "artifact",
+            "claim",
+            "provenance"
+          ]
+        },
+        "role": {
+          "enum": [
+            "source_data",
+            "context",
+            "analysis_code",
+            "analysis_parameters",
+            "analysis_result",
+            "claim",
+            "reference_source",
+            "citation_linkage",
+            "visual_content",
+            "render_template",
+            "package_content",
+            "package_wrapper"
+          ]
+        },
+        "locator": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "ref",
+            "sha256"
+          ],
+          "properties": {
+            "ref": {
+              "$ref": "#/$defs/non_empty_text"
+            },
+            "sha256": {
+              "$ref": "#/$defs/sha256"
+            }
+          }
+        }
+      }
+    },
+    "epistemic_review_edge": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "source_ref",
+        "dependent_ref",
+        "relation"
+      ],
+      "properties": {
+        "source_ref": {
+          "$ref": "#/$defs/non_empty_text"
+        },
+        "dependent_ref": {
+          "$ref": "#/$defs/non_empty_text"
+        },
+        "relation": {
+          "enum": [
+            "derived_from",
+            "supports",
+            "cites",
+            "renders",
+            "packages"
+          ]
+        }
+      }
+    },
+    "epistemic_review_authority_boundary": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "hash_is_locator_or_stale_hint_only",
+        "hash_is_content_authority",
+        "release_integrity_is_separate",
+        "framework_can_issue_domain_verdict"
+      ],
+      "properties": {
+        "hash_is_locator_or_stale_hint_only": {
+          "const": true
+        },
+        "hash_is_content_authority": {
+          "const": false
+        },
+        "release_integrity_is_separate": {
+          "const": true
+        },
+        "framework_can_issue_domain_verdict": {
+          "const": false
         }
       }
     },
@@ -1239,7 +1413,7 @@
           "const": "mas_review_scope_dependency_map"
         },
         "scope_policy_version": {
-          "const": 1
+          "const": 2
         },
         "review_scope_sha256": {
           "$ref": "#/$defs/sha256"
