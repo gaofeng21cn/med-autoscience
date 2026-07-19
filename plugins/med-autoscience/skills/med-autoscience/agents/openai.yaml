@@ -1,4 +1,4 @@
 interface:
   display_name: "Med Auto Science"
   short_description: "Medical research domain pack for Codex"
-  default_prompt: "Use $med-autoscience to select the appropriate MAS Stage action and return a scoped, evidence-grounded result."
+  default_prompt: "Use $med-autoscience for a medical-research objective, select the earliest unresolved MAS Stage action, and return exact evidence, artifact, review, quality-debt, and next-Stage refs. Do not use it for patient-specific clinical care."

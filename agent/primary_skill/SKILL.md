@@ -1,144 +1,62 @@
 ---
 name: med-autoscience
-description: Use when Codex should operate the MAS medical-research domain pack through OPL-generated interfaces and MAS-owned authority handlers.
+description: Use when Codex needs MedAutoScience (MAS) to plan, conduct, review, or publish medical research, including research questions, study design, cohorts and endpoints, evidence synthesis, bounded analysis, scientific figures/tables, manuscript writing, quality review, and publication handoff. Do not use for patient-specific diagnosis, treatment, triage, or emergency advice; medical grant applications; or generic Office formatting without a research objective.
 ---
 
 # MedAutoScience
 
-Canonical OPL agent id: `mas`
-Plugin/package locator: `med-autoscience`
-Generated interface owner: `one-person-lab`
-Authority handler registry: `contracts/domain_handler_registry.json`
+Canonical OPL Agent id is `mas`; `med-autoscience` is the package/plugin Skill locator. Operate MAS through OPL-generated interfaces while MAS retains medical, evidence, artifact, quality, and publication authority.
 
-Implementation profile: `contracts/pack_compiler_input.json#/implementation_profile`.
-The declarative pack is Markdown/JSON; Python is only a domain-helper language
-under the source root declared there. Minimal authority functions remain
-declared by the pack authority contracts. Python does not authorize a generic
-runtime, CLI, product entry, status, MCP, or workbench.
+## Admission
 
-Use this skill for medical-research planning, study progression, evidence review,
-display work, manuscript work, publication handoff, or owner-route diagnosis.
+- Admit MAS only when the requested outcome is medical research or a research artifact tied to an identifiable study, evidence question, dataset/cohort, manuscript, or publication package.
+- Do not route patient-specific clinical-care requests to MAS. Keep diagnosis, treatment choice, dosing, triage, and emergency guidance outside this research Agent and direct the user to appropriate clinical care when needed.
+- Route funding-call strategy and grant application authoring to MAG. Route generic slides to RCA and generic document formatting to the relevant document capability unless the work is subordinate to a MAS research artifact.
+- Bind the current research objective, source/data cohort, study/workspace identity, accepted upstream refs, and intended claim before selecting an action. Do not infer scientific readiness from file presence or package/runtime status.
 
-## Package Lifecycle
+## Action Routing
 
-Use the OPL Packages lifecycle for user-managed installation, update, and
-removal:
+Choose the earliest unresolved owning Stage action from the installed OPL-generated interface:
 
-```bash
-opl packages install mas
-opl packages update mas
-opl packages uninstall mas
-```
+- `direction_and_route_selection`: define or repair the research question, route, feasibility, and governing assumptions.
+- `baseline_and_evidence_setup`: establish the protocol/method baseline, evidence/source map, cohort/phenotype, endpoints, governance, and analysis readiness.
+- `bounded_analysis_campaign`: execute a bounded, reproducible analysis against an accepted design and frozen inputs.
+- `manuscript_authoring`: write or materially revise the scientific manuscript and its display artifacts from current evidence refs.
+- `review_and_quality_gate`: run independent scientific, statistical, evidence-integrity, reference, figure/table, or manuscript review.
+- `finalize_and_publication_handoff`: assemble the final publication handoff after current review evidence and explicit human submission authority.
 
-Installing MAS resolves the required `mas-scholar-skills` dependency closure in
-the same OPL transaction. Dependency activation, status reconciliation, repair,
-locking, and rollback remain OPL-owned internal lifecycle semantics; they are
-not a second MAS installer or a separate user setup flow.
+`candidate_admission_authority_evaluate` and `paper_mission_authority_evaluate` are internal registry-bound authority actions. They have no public CLI, MCP, Skill, product-entry, OpenAI, or AI SDK route and must not be invoked as user actions.
 
-## Entry
+## Default Workflow
 
-Read generated interfaces from OPL:
+1. Select one public action from the research intent and current accepted refs; do not begin with package lifecycle or environment commands when the user asked for research work.
+2. Preserve one OPL StageRun lineage and exact source/data/artifact refs while Codex routes among declared MAS stages.
+3. Use the installed `mas-scholar-skills` capability package for focused medical methods. Acquire another external Skill only for a named or demonstrated coverage gap after provenance, permissions, data/credential scope, and compatibility review.
+4. Prepare the declarative runtime environment only when the selected analysis/display work requires it. An environment receipt proves execution readiness only, never medical or publication quality.
+5. Separate producing and independent reviewer/auditor invocations, task records, and receipts before closing a formal quality gate.
+6. Freeze one candidate after bounded previews, then run complete export, exact-byte inventory, and affected independent review once for that candidate.
 
-```bash
-opl agents interfaces --domain mas --json
-opl actions export --domain mas --format cli --json
-opl actions inspect --domain mas --action direction_and_route_selection --json
-opl agents run --domain mas --action direction_and_route_selection \
-  --workspace <absolute_workspace_root> --json
-```
+## Quality And Hard Stops
 
-The MAS repository does not provide a private CLI, MCP server, plugin launcher,
-tool runtime, product shell, or environment provisioner. OPL-generated surfaces
-host these six public Stage actions:
+- Treat raw/partial artifacts, negative or null results, failed attempts, review findings, and no-output diagnostics as route context. A consumable delta may advance as `completed_with_quality_debt`.
+- Retry, review, and repair limits are quality budgets. Exhaustion preserves the best evidence-bearing artifact and closes quality, publication, export, and submission-ready claims; it does not create an infinite stage loop.
+- Negative findings remain evidence. Preserve lineage and route back to the owning hypothesis, cohort/data, endpoint, analysis design, writing, or review stage instead of optimizing for a positive result.
+- For new or materially repaired paper-facing figures, use `medical-figure-design`; use `medical-figure-style` for final visual QA and `medical-figure-composer` only for separately assembled panels.
+- Only executor unavailability, wrong-target identity/currentness, real authority/safety/credential boundaries, irreversible action, protected data/material, or an explicit human decision may hard-stop progress.
 
-- `direction_and_route_selection`
-- `baseline_and_evidence_setup`
-- `bounded_analysis_campaign`
-- `manuscript_authoring`
-- `review_and_quality_gate`
-- `finalize_and_publication_handoff`
+## Output Expectations
 
-`paper_mission_authority_evaluate` is an internal registry-bound MAS authority
-callable. It has no CLI, MCP, Skill, product-entry, OpenAI, or AI SDK user
-surface. OPL injects validated refs and persists the exact returned authority
-result without originating or rewriting MAS medical judgment.
+- Return the selected public action and Stage, exact research/source/data/artifact refs, methods or analysis outputs, review/authority refs, typed blockers, remaining quality debt, and the next owning Stage.
+- Match every scientific claim to its evidence class and locator. Do not promote external Skill output, preview/cache evidence, runtime receipts, generated descriptors, or provider completion into MAS authority.
+- Name artifact maturity precisely: plan, frozen baseline, bounded analysis result, manuscript draft, review finding, publication handoff candidate, or owner-authorized final handoff.
+- Preserve MAS-owned owner receipts and publication/submission authority; OPL may transport and persist refs but cannot author medical truth or sign those decisions.
 
-## Environment
+## References
 
-Runtime dependencies are declarative in
-`contracts/runtime_environment_requirements.json` and are prepared by OPL:
-
-```bash
-opl env prepare --domain mas --profile analysis-display --platform <platform> \
-  --requirement-profile contracts/runtime_environment_requirements.json \
-  --artifact-root <artifact_root> --apply --json
-opl env run --domain mas --profile analysis-display \
-  --artifact-root <artifact_root> -- <command>
-```
-
-A runtime-environment receipt is not medical, artifact, visual-quality,
-publication, submission, or owner authority.
-
-## Professional Work And External Skills
-
-The stage goal and MAS professional policy define what good medical work looks
-like. Codex may choose tools, order, iteration, and safe parallelism inside those
-boundaries. Preserve ordered dependencies that protect scientific validity,
-evidence currentness, authority, or irreversible actions; do not turn a tool
-catalog or CLI recipe into the research method.
-
-Artifact-producing work follows
-`contracts/artifact_iteration_efficiency_policy.json`: use bounded,
-component-scoped previews while iterating, then freeze one candidate and run the
-complete export, exact-byte inventory, and affected independent review lanes once.
-Content-addressed reuse is allowed only when the full input, code, tool, and
-configuration closure is known. Unchanged review scopes may be reused only
-through the MAS-owned currentness receipt; preview or cache evidence never
-substitutes for review authority.
-
-Use the installed `mas-scholar-skills` capability package for ordinary medical
-paper work. Acquire a new external Skill only for a named or demonstrated
-coverage gap. Before syncing any new external Skill, inspect its identity,
-provenance, permissions, data/credential scope, and compatibility. Search and
-comparison order is otherwise executor-chosen; an already installed, inspected,
-compatible Skill does not need to repeat acquisition. External outputs remain
-candidate refs until the MAS owner path accepts them.
-
-## Authority
-
-MAS owns medical study truth, evidence interpretation, publication-quality
-judgment, artifact mutation authorization, memory accept/reject, source
-readiness, typed medical blockers, and owner receipts.
-
-OPL owns generated CLI/MCP/Skill/product/status/workbench descriptors, runtime
-transport, queues, attempts, lifecycle, storage maintenance, environment
-materialization, and refs-only indexing. OPL cannot write MAS truth, sign MAS
-owner receipts, authorize publication or export, or promote advisory capability
-output into evidence.
-
-Executor and reviewer/auditor must be separate invocations with separate task
-records and receipts. Provider completion, file presence, tests, read models,
-or generated descriptors never close an AI-first quality gate.
-
-Ordinary progression lets Codex read any prior `StageOutcome`, raw/partial
-artifact, negative result, failed attempt, or no-output diagnostic as route
-context. No envelope, projection, receipt, or transition table is semantic
-transition authority. A consumable delta may advance as
-`completed_with_quality_debt`; that debt blocks quality, publication, export,
-and submission-ready claims. A stage that produces no scientific or manuscript
-delta still emits a no-output or failure diagnostic and advances so Codex can
-select another declared stage. Negative or null results remain evidence: Codex
-may preserve their lineage and route back to hypothesis, cohort/data, endpoint,
-analysis design, writing, or another owning stage instead of chasing a positive
-result. Retry, review, and repair limits are quality budgets. Stop only for an
-unavailable executor, wrong-target identity/currentness, real authority, safety,
-credential, irreversible-action, or explicit human-decision gate.
-
-For new or materially repaired paper-facing figures, consume the installed
-ScholarSkills `medical-figure-design` workflow and bind its exact identity and
-final figure bytes. Final visual QA consumes `medical-figure-style`; use
-`medical-figure-composer` only for separately assembled panels. Figure
-templates are optional references. If hosted discovery is unavailable, use the
-current canonical/materialized Skill rather than bypassing professional figure
-judgment. Missing or stale Figure Skill receipts are progress-first quality
-debt and prevent quality, export, publication, or submission-ready claims.
+- `contracts/action_catalog.json`
+- `agent/stages/manifest.json`
+- `contracts/artifact_iteration_efficiency_policy.json`
+- `contracts/stage_quality_cycle_policy.json`
+- `contracts/runtime_environment_requirements.json`
+- `contracts/owner_receipt_contract.json`
+- `contracts/domain_handler_registry.json`

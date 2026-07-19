@@ -141,6 +141,41 @@ def test_direct_skill_and_plugin_carrier_are_byte_identical() -> None:
     assert primary.read_bytes() == carrier.read_bytes()
 
 
+def test_primary_skill_routes_research_intent_before_lifecycle_and_excludes_clinical_care() -> None:
+    skill = (ROOT / "agent/primary_skill/SKILL.md").read_text(encoding="utf-8")
+
+    assert "name: med-autoscience" in skill
+    assert "description: Use when Codex needs MedAutoScience (MAS) to plan, conduct, review, or publish medical research" in skill
+    assert "Do not use for patient-specific diagnosis, treatment, triage, or emergency advice" in skill
+    for heading in (
+        "Admission",
+        "Action Routing",
+        "Default Workflow",
+        "Quality And Hard Stops",
+        "Output Expectations",
+        "References",
+    ):
+        assert f"## {heading}\n" in skill
+
+    public_actions = [
+        "direction_and_route_selection",
+        "baseline_and_evidence_setup",
+        "bounded_analysis_campaign",
+        "manuscript_authoring",
+        "review_and_quality_gate",
+        "finalize_and_publication_handoff",
+    ]
+    for action_id in public_actions:
+        assert f"`{action_id}`" in skill
+    assert "Choose the earliest unresolved owning Stage action" in skill
+    assert "Do not route patient-specific clinical-care requests to MAS" in skill
+    assert "Route funding-call strategy and grant application authoring to MAG" in skill
+    assert "do not begin with package lifecycle or environment commands" in skill
+    assert "`candidate_admission_authority_evaluate` and `paper_mission_authority_evaluate` are internal" in skill
+    assert "Retry, review, and repair limits are quality budgets" in skill
+    assert "provider completion into MAS authority" in skill
+
+
 def test_no_active_contract_uses_retired_callable_or_mixed_route_owner() -> None:
     active_roots = [ROOT / "agent", ROOT / "contracts", ROOT / "runtime"]
     forbidden = {
