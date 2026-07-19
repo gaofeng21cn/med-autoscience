@@ -68,7 +68,11 @@ MAS-owned scope returns
 `route_impact.stage_quality_cycle.review_input_snapshot_materialization_request`.
 Build it with
 `build_review_input_snapshot_materialization_request(...)`; never infer the map
-from generic artifact refs or choose a different lane. Each member keeps the
+from generic artifact refs or choose a different lane. Pass
+`authority_issuer` from the exact `OPL_STAGE_ATTEMPT_REF`,
+`OPL_EXECUTION_CONTENT_BINDING_SHA256`, `OPL_PACKAGE_USE_BOUNDARY_ID`,
+`OPL_ROOT_PACKAGE_ID`, and `OPL_ROOT_PACKAGE_CONTENT_DIGEST` Attempt
+environment bindings; never synthesize or reuse them across Attempts. Each member keeps the
 MAS-owned artifact identity as `owner_ref` and the explicit transport locator
 as `source_ref`; moving the locator does not rewrite owner identity. If the
 exact map is unavailable, do not invent a request: record lane quality debt and

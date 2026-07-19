@@ -281,7 +281,7 @@ def test_machine_identity_fields_match_the_framework_registry_semantics() -> Non
                     "target_domain_id",
                     "runtime_domain_id",
                     "stage_control_plane_target_domain_id",
-                } and item in {"mas", "med-autoscience"}:
+                } and isinstance(item, str) and item in {"mas", "med-autoscience"}:
                     forbidden.setdefault(child, []).append(str(item))
                 visit(item, child)
         elif isinstance(value, list):

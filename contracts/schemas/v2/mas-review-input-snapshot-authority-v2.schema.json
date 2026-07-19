@@ -1,0 +1,135 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://one-person-lab.dev/contracts/mas-review-input-snapshot-authority-v2.schema.json",
+  "title": "MAS Review Input Snapshot Authority v2",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "surface_kind",
+    "schema_version",
+    "issuer",
+    "generation_ref",
+    "review_lane",
+    "scope_policy_id",
+    "scope_policy_version",
+    "review_scope_sha256",
+    "members"
+  ],
+  "properties": {
+    "surface_kind": {
+      "const": "mas_review_input_snapshot_authority"
+    },
+    "schema_version": {
+      "const": 2
+    },
+    "issuer": {
+      "$ref": "#/$defs/issuer"
+    },
+    "generation_ref": {
+      "type": "string",
+      "minLength": 1
+    },
+    "review_lane": {
+      "enum": [
+        "medical",
+        "statistical",
+        "reference",
+        "display",
+        "publication",
+        "exact_byte_package"
+      ]
+    },
+    "scope_policy_id": {
+      "const": "mas_review_scope_dependency_map"
+    },
+    "scope_policy_version": {
+      "const": 2
+    },
+    "review_scope_sha256": {
+      "$ref": "#/$defs/sha256"
+    },
+    "members": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "$ref": "#/$defs/member"
+      }
+    }
+  },
+  "$defs": {
+    "sha256": {
+      "type": "string",
+      "pattern": "^sha256:[a-f0-9]{64}$"
+    },
+    "issuer": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "agent_id",
+        "domain_id",
+        "package_id",
+        "stage_attempt_ref",
+        "execution_content_binding_sha256",
+        "package_use_boundary_id",
+        "root_package_content_digest"
+      ],
+      "properties": {
+        "agent_id": {
+          "const": "mas"
+        },
+        "domain_id": {
+          "const": "medautoscience"
+        },
+        "package_id": {
+          "const": "mas"
+        },
+        "stage_attempt_ref": {
+          "type": "string",
+          "pattern": "^opl://stage_attempts/[^/\\s]+$"
+        },
+        "execution_content_binding_sha256": {
+          "$ref": "#/$defs/sha256"
+        },
+        "package_use_boundary_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "root_package_content_digest": {
+          "$ref": "#/$defs/sha256"
+        }
+      }
+    },
+    "member": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "member_id",
+        "role",
+        "owner_ref",
+        "sha256",
+        "size_bytes"
+      ],
+      "properties": {
+        "member_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "role": {
+          "type": "string",
+          "minLength": 1
+        },
+        "owner_ref": {
+          "type": "string",
+          "minLength": 1
+        },
+        "sha256": {
+          "$ref": "#/$defs/sha256"
+        },
+        "size_bytes": {
+          "type": "integer",
+          "minimum": 0
+        }
+      }
+    }
+  }
+}

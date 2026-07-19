@@ -1311,29 +1311,94 @@ def review_scope_member_projection(
     return projected
 
 
+def _normalize_review_input_snapshot_authority_issuer(
+    value: Any,
+    field: str = "authority_issuer",
+) -> dict[str, Any]:
+    payload = mapping(value, field)
+    keys = {
+        "agent_id",
+        "domain_id",
+        "package_id",
+        "stage_attempt_ref",
+        "execution_content_binding_sha256",
+        "package_use_boundary_id",
+        "root_package_content_digest",
+    }
+    exact_keys(payload, keys, field)
+    if payload.get("agent_id") != "mas":
+        raise RequestShapeError(f"{field}.agent_id must be mas")
+    if payload.get("domain_id") != "medautoscience":
+        raise RequestShapeError(f"{field}.domain_id must be medautoscience")
+    if payload.get("package_id") != "mas":
+        raise RequestShapeError(f"{field}.package_id must be mas")
+    stage_attempt_ref = text(
+        payload.get("stage_attempt_ref"),
+        f"{field}.stage_attempt_ref",
+    )
+    if not stage_attempt_ref.startswith("opl://stage_attempts/"):
+        raise RequestShapeError(
+            f"{field}.stage_attempt_ref must reference one OPL Stage Attempt"
+        )
+    return {
+        "agent_id": "mas",
+        "domain_id": "medautoscience",
+        "package_id": "mas",
+        "stage_attempt_ref": stage_attempt_ref,
+        "execution_content_binding_sha256": sha256(
+            payload.get("execution_content_binding_sha256"),
+            f"{field}.execution_content_binding_sha256",
+        ),
+        "package_use_boundary_id": text(
+            payload.get("package_use_boundary_id"),
+            f"{field}.package_use_boundary_id",
+        ),
+        "root_package_content_digest": sha256(
+            payload.get("root_package_content_digest"),
+            f"{field}.root_package_content_digest",
+        ),
+    }
+
+
 def _review_input_snapshot_authority_record(
     *,
     generation_ref: str,
     review_lane: str,
     review_scope_sha256_value: str,
     members: list[dict[str, Any]],
+    authority_issuer: Mapping[str, Any] | None = None,
 ) -> dict[str, Any]:
+    member_projection = [
+        {
+            "member_id": item["member_id"],
+            "role": item["role"],
+            "owner_ref": item["owner_ref"],
+            "sha256": item["sha256"],
+            "size_bytes": item["size_bytes"],
+        }
+        for item in members
+    ]
+    if authority_issuer is None:
+        return {
+            "surface_kind": "mas_review_input_snapshot_authority",
+            "schema_version": 1,
+            "generation_ref": generation_ref,
+            "review_lane": review_lane,
+            "review_scope_sha256": review_scope_sha256_value,
+            "members": member_projection,
+        }
     return {
         "surface_kind": "mas_review_input_snapshot_authority",
-        "schema_version": 1,
+        "schema_version": 2,
+        "issuer": _normalize_review_input_snapshot_authority_issuer(
+            authority_issuer
+        ),
         "generation_ref": generation_ref,
         "review_lane": review_lane,
+        "scope_policy_id": REVIEW_SCOPE_POLICY_ID,
+        "scope_policy_version": REVIEW_SCOPE_POLICY_VERSION,
         "review_scope_sha256": review_scope_sha256_value,
-        "members": [
-            {
-                "member_id": item["member_id"],
-                "role": item["role"],
-                "owner_ref": item["owner_ref"],
-                "sha256": item["sha256"],
-                "size_bytes": item["size_bytes"],
-            }
-            for item in members
-        ],
+        "members": member_projection,
     }
 
 
@@ -1359,6 +1424,7 @@ def build_review_input_snapshot_materialization_request(
     generation_ref: str,
     workspace_root: str,
     source_refs_by_member_id: Mapping[str, str],
+    authority_issuer: Mapping[str, Any],
 ) -> dict[str, Any]:
     """Project one canonical v2 review scope into the OPL transport request."""
 
@@ -1438,6 +1504,7 @@ def build_review_input_snapshot_materialization_request(
         review_lane=lane,
         review_scope_sha256_value=scope["review_scope_sha256"],
         members=members,
+        authority_issuer=authority_issuer,
     )
     return {
         "surface_kind": "opl_reviewer_input_snapshot_materialization_request",
@@ -1948,6 +2015,7 @@ def _normalize_review_receipt_v2(
                     }
                     for item in snapshot_binding["members"]
                 ],
+                authority_issuer=snapshot_binding.get("authority_issuer"),
             )
             if snapshot_binding[
                 "mas_authority_record_ref"
@@ -2037,6 +2105,10 @@ def _normalize_review_input_snapshot_binding(
     field: str,
 ) -> dict[str, Any]:
     payload = mapping(value, field)
+    schema_version = integer(
+        payload.get("schema_version"),
+        f"{field}.schema_version",
+    )
     binding_keys = {
         "surface_kind",
         "schema_version",
@@ -2047,6 +2119,8 @@ def _normalize_review_input_snapshot_binding(
     }
     owner_keys = {"materialization_owner", "authority_boundary"}
     identity_keys = {"generation_ref", "mas_authority_record_ref"}
+    if schema_version == 2:
+        identity_keys.add("authority_issuer")
     if owner_keys & set(payload):
         binding_keys.update(owner_keys)
     if identity_keys & set(payload):
@@ -2060,10 +2134,8 @@ def _normalize_review_input_snapshot_binding(
         raise RequestShapeError(
             f"{field}.surface_kind must be mas_review_input_snapshot_binding"
         )
-    if payload.get("schema_version") != 1 or isinstance(
-        payload.get("schema_version"), bool
-    ):
-        raise RequestShapeError(f"{field}.schema_version must be integer 1")
+    if schema_version not in {1, 2}:
+        raise RequestShapeError(f"{field}.schema_version must be integer 1 or 2")
     lane = enum_text(
         payload.get("review_lane"),
         f"{field}.review_lane",
@@ -2143,11 +2215,20 @@ def _normalize_review_input_snapshot_binding(
         authority_boundary = dict(expected_authority)
     generation_ref = None
     mas_authority_record_ref = None
+    authority_issuer = None
     has_generation_ref = "generation_ref" in payload
     has_authority_record_ref = "mas_authority_record_ref" in payload
     if has_generation_ref != has_authority_record_ref:
         raise RequestShapeError(
             f"{field}.generation_ref and mas_authority_record_ref must appear together"
+        )
+    has_authority_issuer = "authority_issuer" in payload
+    if schema_version == 2 and not (
+        has_generation_ref and has_authority_record_ref and has_authority_issuer
+    ):
+        raise RequestShapeError(
+            f"{field} schema 2 requires generation_ref, "
+            "mas_authority_record_ref, and authority_issuer"
         )
     if has_generation_ref:
         generation_ref = text(payload.get("generation_ref"), f"{field}.generation_ref")
@@ -2167,9 +2248,14 @@ def _normalize_review_input_snapshot_binding(
             raise RequestShapeError(
                 f"{field}.mas_authority_record_ref must bind canonical MAS authority bytes"
             )
+        if schema_version == 2:
+            authority_issuer = _normalize_review_input_snapshot_authority_issuer(
+                payload.get("authority_issuer"),
+                f"{field}.authority_issuer",
+            )
     normalized = {
         "surface_kind": "mas_review_input_snapshot_binding",
-        "schema_version": 1,
+        "schema_version": schema_version,
         "snapshot_manifest_ref": _exact_ref(
             payload.get("snapshot_manifest_ref"),
             f"{field}.snapshot_manifest_ref",
@@ -2187,6 +2273,8 @@ def _normalize_review_input_snapshot_binding(
     if generation_ref is not None:
         normalized["generation_ref"] = generation_ref
         normalized["mas_authority_record_ref"] = mas_authority_record_ref
+        if authority_issuer is not None:
+            normalized["authority_issuer"] = authority_issuer
     return normalized
 
 

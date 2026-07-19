@@ -89,6 +89,20 @@ class AuthorityRecordFactory:
         return cls.digest(cls.canonical_bytes(payload))
 
     @classmethod
+    def review_snapshot_authority_issuer(cls) -> dict[str, Any]:
+        return {
+            "agent_id": "mas",
+            "domain_id": "medautoscience",
+            "package_id": "mas",
+            "stage_attempt_ref": "opl://stage_attempts/producer-attempt-001",
+            "execution_content_binding_sha256": cls.digest(
+                "producer-attempt-execution-content-binding"
+            ),
+            "package_use_boundary_id": "package-use:producer-attempt-001",
+            "root_package_content_digest": cls.digest("mas-package-content"),
+        }
+
+    @classmethod
     def typed_ref(cls, kind: str, name: str) -> dict[str, Any]:
         return {
             "kind": kind,
@@ -708,9 +722,12 @@ class AuthorityRecordFactory:
             }
             authority_record = {
                 "surface_kind": "mas_review_input_snapshot_authority",
-                "schema_version": 1,
+                "schema_version": 2,
+                "issuer": cls.review_snapshot_authority_issuer(),
                 "generation_ref": manifest_ref["ref"],
                 "review_lane": lane,
+                "scope_policy_id": "mas_review_scope_dependency_map",
+                "scope_policy_version": 2,
                 "review_scope_sha256": scope["review_scope_sha256"],
                 "members": [
                     {
@@ -733,7 +750,7 @@ class AuthorityRecordFactory:
                     "reviewed_members": deepcopy(scope["reviewed_members"]),
                     "review_input_snapshot_binding": {
                         "surface_kind": "mas_review_input_snapshot_binding",
-                        "schema_version": 1,
+                        "schema_version": 2,
                         "generation_ref": manifest_ref["ref"],
                         "mas_authority_record_ref": {
                             "kind": "mas_review_input_snapshot_authority",
@@ -744,6 +761,7 @@ class AuthorityRecordFactory:
                             "size_bytes": len(cls.canonical_bytes(authority_record)),
                             "sha256": authority_sha256,
                         },
+                        "authority_issuer": cls.review_snapshot_authority_issuer(),
                         "materialization_owner": "one-person-lab",
                         "snapshot_manifest_ref": cls.exact_ref(
                             "opl_reviewer_input_snapshot_manifest",

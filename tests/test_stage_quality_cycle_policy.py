@@ -68,6 +68,21 @@ def test_quality_cycle_declares_role_bound_review_transport_production_path() ->
     assert snapshot["source_ref_source"] == "explicit_host_transport_locator_mapping"
     assert snapshot["source_ref_is_review_scope_identity"] is False
     assert snapshot["mas_authority_record_required"] is True
+    assert snapshot["mas_authority_record_schema_version"] == 2
+    assert snapshot["mas_authority_record_schema_owner"] == "mas"
+    assert snapshot["mas_authority_record_schema_ref"] == (
+        "contracts/schemas/v2/mas-review-input-snapshot-authority-v2.schema.json"
+    )
+    assert snapshot["mas_authority_record_scope_policy_version"] == 2
+    assert snapshot["mas_authority_issuer_binding_fields"] == [
+        "agent_id",
+        "domain_id",
+        "package_id",
+        "stage_attempt_ref",
+        "execution_content_binding_sha256",
+        "package_use_boundary_id",
+        "root_package_content_digest",
+    ]
     assert snapshot["mas_authority_record_ref_binds_canonical_exact_bytes"] is True
     assert snapshot["snapshot_authority_record_includes_owner_ref"] is True
     assert snapshot[
@@ -92,6 +107,20 @@ def test_quality_cycle_declares_role_bound_review_transport_production_path() ->
     assert page_candidate["allowed_attempt_roles"] == ["reviewer", "re_reviewer"]
     assert page_candidate["forbidden_attempt_roles"] == ["producer", "repairer"]
     assert page_candidate["pass_through_unchanged"] is True
+    assert page_candidate["schema_version"] == 2
+    assert page_candidate["schema_owner"] == "mas-scholar-skills"
+    assert page_candidate["schema_ref"].endswith(
+        "@01b9629a689349e6e142169c8d53ab21d608d8b1/"
+        "contracts/scholarskills-page-hash-evidence-candidate-v2.schema.json"
+    )
+    assert page_candidate["schema_owner_package_content_digest"] == (
+        "sha256:f858bc1ec82f253f865c1fbe2b38a6cf7031d3dbf495f54d061aa0ad5221fda9"
+    )
+    assert page_candidate["producer_package_binding_required"] is True
+    assert page_candidate["domain_owner_field"] == "domain_owner_id"
+    assert page_candidate["requires_domain_owner_judgment_field"] == (
+        "requires_domain_owner_judgment"
+    )
     assert page_candidate["candidate_or_cache_can_emit_verdict_or_authority"] is False
     assert page_candidate["fresh_reviewer_invocation_still_required"] is True
     assert page_candidate["fresh_reviewer_receipt_still_required"] is True
@@ -110,6 +139,9 @@ def test_quality_cycle_declares_role_bound_review_transport_production_path() ->
     assert pack_input["source_refs"][
         "review_input_snapshot_request_builder_ref"
     ].endswith("#build_review_input_snapshot_materialization_request")
+    assert pack_input["source_refs"][
+        "review_input_snapshot_authority_schema_ref"
+    ] == snapshot["mas_authority_record_schema_ref"]
     assert pack_input["source_refs"][
         "review_input_snapshot_materialization_request_schema_ref"
     ] == snapshot["schema_ref"]

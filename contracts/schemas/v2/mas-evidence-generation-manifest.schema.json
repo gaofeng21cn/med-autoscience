@@ -861,7 +861,10 @@
           "const": "mas_review_input_snapshot_binding"
         },
         "schema_version": {
-          "const": 1
+          "enum": [
+            1,
+            2
+          ]
         },
         "generation_ref": {
           "$ref": "#/$defs/non_empty_text"
@@ -886,6 +889,9 @@
               }
             }
           ]
+        },
+        "authority_issuer": {
+          "$ref": "https://one-person-lab.dev/contracts/mas-review-input-snapshot-authority-v2.schema.json#/$defs/issuer"
         },
         "materialization_owner": {
           "const": "one-person-lab"
@@ -944,6 +950,27 @@
           "generation_ref"
         ]
       },
+      "allOf": [
+        {
+          "if": {
+            "properties": {
+              "schema_version": {
+                "const": 2
+              }
+            },
+            "required": [
+              "schema_version"
+            ]
+          },
+          "then": {
+            "required": [
+              "generation_ref",
+              "mas_authority_record_ref",
+              "authority_issuer"
+            ]
+          }
+        }
+      ],
       "description": "Optional only for byte compatibility with legacy v2 receipts. A v2 receipt without the immutable OPL snapshot binding, or with a legacy binding that omits materialization owner metadata, is lane-specific quality debt and cannot produce an owner receipt."
     },
     "review_input_snapshot_authority_boundary": {

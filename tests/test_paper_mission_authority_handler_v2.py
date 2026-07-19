@@ -1494,8 +1494,10 @@ def test_v2_snapshot_authority_identity_is_debt_when_missing_and_strict_when_for
     missing_identity = authority_records.paper_request()
     wrapper = missing_identity["generation_manifest"]["independent_review_receipts"][0]
     binding = wrapper["receipt"]["review_input_snapshot_binding"]
+    binding["schema_version"] = 1
     binding.pop("generation_ref")
     binding.pop("mas_authority_record_ref")
+    binding.pop("authority_issuer")
     authority_records.reseal_review_wrapper(wrapper)
     lane_state = next(
         item
@@ -1528,9 +1530,12 @@ def test_v2_snapshot_authority_identity_is_debt_when_missing_and_strict_when_for
     }
     wrong_authority_record = {
         "surface_kind": "mas_review_input_snapshot_authority",
-        "schema_version": 1,
+        "schema_version": 2,
+        "issuer": deepcopy(forged_binding["authority_issuer"]),
         "generation_ref": forged_binding["generation_ref"],
         "review_lane": forged_receipt["review_lane"],
+        "scope_policy_id": "mas_review_scope_dependency_map",
+        "scope_policy_version": 2,
         "review_scope_sha256": forged_receipt["review_scope_sha256"],
         "members": [
             {
@@ -1575,9 +1580,12 @@ def test_v2_snapshot_binding_rejects_self_consistent_stale_generation_as_debt(
     }
     authority_record = {
         "surface_kind": "mas_review_input_snapshot_authority",
-        "schema_version": 1,
+        "schema_version": 2,
+        "issuer": deepcopy(binding["authority_issuer"]),
         "generation_ref": binding["generation_ref"],
         "review_lane": receipt["review_lane"],
+        "scope_policy_id": "mas_review_scope_dependency_map",
+        "scope_policy_version": 2,
         "review_scope_sha256": receipt["review_scope_sha256"],
         "members": [
             {
