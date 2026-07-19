@@ -39,6 +39,10 @@ route output.
   PDF, supplementary output, ZIP allowlist, and ZIP member records, plus current
   medical, statistical, reference, display, publication, and exact-byte-package
   review receipts authorized by the same MAS review-currentness receipt.
+- Require a current `medical-submission-prep` professional Skill receipt bound
+  to the canonical manuscript, DOCX, PDF, supplementary output, ZIP allowlist,
+  and ZIP member bytes. A nonblank export, internal review companion, filename
+  alias, or package manifest alone does not satisfy this requirement.
 - Require that the same `publication_generation` also binds exactly one
   `submission_status`, `publication_evaluation`, `next_action_envelope`, and
   `submission_projection_manifest`. These are one generation of user-visible

@@ -2447,6 +2447,7 @@
           "next_action_envelope",
           "submission_projection_manifest"
         ],
+        "required_professional_skill_receipt": "medical-submission-prep",
         "target_role": "study_submission_root",
         "completion_marker_paths": [
           "STATUS.json",

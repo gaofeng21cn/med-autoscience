@@ -11,6 +11,10 @@ Its authority input is a `publication_generation` manifest, never a weaker
 manuscript scope, and includes exact DOCX, PDF, supplement, ZIP allowlist, and
 ZIP member records. Medical, statistical, reference, display, publication, and
 exact-byte-package lane receipts must all be current and exact-byte bound.
+The generation also carries a current `medical-submission-prep` receipt bound
+to those reader-facing package bytes; an internal review companion, renamed
+alias, or nonblank-render check cannot substitute for professional package-role
+judgment.
 The same generation must contain exactly one submission status, publication
 evaluation, next-action envelope, and submission projection manifest. The
 projection manifest binds the complete submission tree by relative path, byte

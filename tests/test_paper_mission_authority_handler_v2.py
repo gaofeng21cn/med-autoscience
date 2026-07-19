@@ -277,6 +277,82 @@ def test_missing_manuscript_writing_skill_is_fail_open_until_finalize(
     )
 
 
+@pytest.mark.parametrize(
+    ("skill_id", "reason_code"),
+    [
+        (
+            "medical-statistical-review",
+            "professional_statistical_review_consumption_missing",
+        ),
+        (
+            "medical-table-design",
+            "professional_table_design_consumption_missing",
+        ),
+    ],
+)
+def test_first_draft_requires_specialists_for_present_artifact_roles(
+    authority_records: Any,
+    skill_id: str,
+    reason_code: str,
+) -> None:
+    request = authority_records.paper_request(
+        omit_professional_skill_ids=(skill_id,),
+    )
+
+    result = _evaluate(request)
+
+    _assert_progress_debt(result, reason_code)
+
+
+def test_submission_prep_is_progress_first_debt_until_finalize(
+    authority_records: Any,
+) -> None:
+    request = authority_records.paper_request(
+        scope="publication_generation",
+        omit_professional_skill_ids=("medical-submission-prep",),
+    )
+    result = _evaluate(request)
+    _assert_progress_debt(
+        result,
+        "professional_submission_prep_consumption_missing",
+    )
+
+    finalize = authority_records.paper_request(
+        scope="publication_generation",
+        stage_id="finalize_and_publication_handoff",
+        omit_professional_skill_ids=("medical-submission-prep",),
+    )
+    result = _evaluate(finalize)
+    _assert_finalize_route_back(
+        result,
+        "professional_submission_prep_consumption_missing",
+    )
+
+
+def test_submission_prep_receipt_must_cover_supplement_and_package_bytes(
+    authority_records: Any,
+) -> None:
+    request = authority_records.paper_request(scope="publication_generation")
+    invocation = next(
+        item
+        for item in request["generation_manifest"]["professional_skill_invocations"]
+        if item["skill_id"] == "medical-submission-prep"
+    )
+    invocation["output_artifact_bindings"] = [
+        item
+        for item in invocation["output_artifact_bindings"]
+        if item["role"] != "supplementary_output"
+    ]
+    authority_records.refresh_paper_manifest_identity(request)
+
+    result = _evaluate(request)
+
+    _assert_progress_debt(
+        result,
+        "professional_submission_prep_output_coverage_incomplete",
+    )
+
+
 def test_host_cannot_turn_manuscript_skill_candidate_into_authority(
     authority_records: Any,
 ) -> None:
@@ -334,6 +410,7 @@ def test_finalize_rejects_stale_exact_byte_package_after_package_change(
     assert result["status"] == "route_back"
     assert result["stage_outcome"]["stage_transition_allowed"] is False
     assert result["route_back"]["reason_code"] in {
+        "professional_manuscript_skill_output_binding_stale",
         "independent_review_receipt_not_current",
         "review_currentness_scope_mismatch",
     }

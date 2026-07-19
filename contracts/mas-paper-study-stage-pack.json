@@ -150,7 +150,8 @@
             "medical-figure-design",
             "medical-figure-style"
           ],
-          "assembled_figure_panels": "medical-figure-composer"
+          "assembled_figure_panels": "medical-figure-composer",
+          "publication_package": "medical-submission-prep"
         },
         "professional_skill_consumption_may_be_replaced_by_template": false,
         "pre_review_contract": {
@@ -501,6 +502,7 @@
       "quality_gate": {
         "publication_ready_authority": "AI reviewer eval plus publication gate must both be current and agree that publication handoff is allowed",
         "package_authority": "artifact package authority must expose same-generation refs, freshness proof, handoff manifest, and a generation-bound OPL atomic projection authorization without storing duplicate body copies in the stage index",
+        "professional_submission_prep": "the publication generation must contain a current medical-submission-prep receipt bound to the manuscript, DOCX, PDF, supplement, ZIP allowlist, and ZIP members",
         "failure_policy": "return typed blocker or route-back receipt; do not claim publication readiness from partial package refs"
       },
       "advance_gate": {

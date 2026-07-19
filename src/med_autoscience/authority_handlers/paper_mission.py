@@ -182,8 +182,8 @@ def evaluate_paper_mission_authority(request: Mapping[str, Any]) -> dict[str, An
             normalized,
             reason_codes=professional_debt,
             resume_condition=(
-                "consume medical-manuscript-writing and every routed specialist Skill "
-                "and bind them to the exact manuscript generation"
+                "consume every required manuscript, statistical, table, and submission "
+                "Skill and bind its receipt to the exact generation artifacts"
             ),
         )
     professional_figure_debt = _professional_figure_skill_quality_debt(normalized)
@@ -2099,12 +2099,60 @@ def _professional_manuscript_skill_quality_debt(
         if item["surface_kind"]
         == ("mas_professional_manuscript_skill_invocation_candidate")
     ]
-    skills = {item["skill_id"] for item in invocations}
-    if "medical-manuscript-writing" not in skills:
-        return ["professional_manuscript_writing_consumption_missing"]
+    invocations_by_skill = {item["skill_id"]: item for item in invocations}
+    artifact_roles = {item["role"] for item in artifacts.values()}
+    required_skills = {"medical-manuscript-writing"}
+    if artifact_roles & {"analysis_output", "numeric_trace"}:
+        required_skills.add("medical-statistical-review")
+    if artifact_roles & {"table_catalog", "table_file"}:
+        required_skills.add("medical-table-design")
+    if manifest["manifest_scope"] == "publication_generation":
+        required_skills.add("medical-submission-prep")
+    missing_codes = {
+        "medical-manuscript-writing": (
+            "professional_manuscript_writing_consumption_missing"
+        ),
+        "medical-statistical-review": (
+            "professional_statistical_review_consumption_missing"
+        ),
+        "medical-table-design": "professional_table_design_consumption_missing",
+        "medical-submission-prep": (
+            "professional_submission_prep_consumption_missing"
+        ),
+    }
+    coverage_codes = {
+        "medical-manuscript-writing": (
+            "professional_manuscript_writing_output_coverage_incomplete"
+        ),
+        "medical-registry-atlas-story-architect": (
+            "professional_registry_story_output_coverage_incomplete"
+        ),
+        "medical-statistical-review": (
+            "professional_statistical_review_output_coverage_incomplete"
+        ),
+        "medical-table-design": (
+            "professional_table_design_output_coverage_incomplete"
+        ),
+        "medical-submission-prep": (
+            "professional_submission_prep_output_coverage_incomplete"
+        ),
+    }
     codes: list[str] = []
+    for skill_id in sorted(required_skills):
+        if skill_id not in invocations_by_skill:
+            codes.append(missing_codes[skill_id])
     for invocation in invocations:
         allowed_roles = PROFESSIONAL_MANUSCRIPT_SKILL_ROLES[invocation["skill_id"]]
+        expected_member_ids = {
+            member_id
+            for member_id, artifact in artifacts.items()
+            if artifact["role"] in allowed_roles
+        }
+        covered_member_ids = {
+            binding["member_id"] for binding in invocation["output_artifact_bindings"]
+        }
+        if covered_member_ids != expected_member_ids:
+            codes.append(coverage_codes[invocation["skill_id"]])
         for binding in invocation["output_artifact_bindings"]:
             expected = artifacts.get(binding["member_id"])
             if (

@@ -298,9 +298,22 @@ class AuthorityRecordFactory:
             },
             "medical-statistical-review": {"analysis_output", "numeric_trace"},
             "medical-table-design": {"table_catalog", "table_file"},
+            "medical-submission-prep": {
+                "canonical_manuscript",
+                "docx",
+                "pdf",
+                "supplementary_output",
+                "final_zip_allowlist",
+                "final_zip_member",
+            },
         }
         invocations = []
         for skill_id, roles in role_sets.items():
+            if skill_id == "medical-submission-prep" and not any(
+                artifact["role"] in {"docx", "pdf", "supplementary_output"}
+                for artifact in artifacts
+            ):
+                continue
             bindings = [
                 {
                     key: artifact[key]

@@ -77,6 +77,16 @@ PROFESSIONAL_MANUSCRIPT_SKILL_ROLES = {
     ),
     "medical-statistical-review": frozenset({"analysis_output", "numeric_trace"}),
     "medical-table-design": frozenset({"table_catalog", "table_file"}),
+    "medical-submission-prep": frozenset(
+        {
+            "canonical_manuscript",
+            "docx",
+            "pdf",
+            "supplementary_output",
+            "final_zip_allowlist",
+            "final_zip_member",
+        }
+    ),
 }
 REQUIRED_ROLES_BY_SCOPE = {
     "analysis_generation": ANALYSIS_GENERATION_ROLES,
