@@ -34,15 +34,32 @@ policy; never claim a Review receipt from this conversation.
   `medical-registry-atlas-story-architect`; route quantitative, table, and figure
   work to matching specialist Skills. A template never substitutes for a Skill
   receipt.
-- Follow `contracts/manuscript_first_draft_quality_policy.json`. For prediction-
-  model external validation or any fixed-horizon risk claim, consume the declared
-  statistical, transportability, survival, and table Skills before prose. Bind
-  `fixed_horizon_risk_semantics_ref`, `construct_comparability_ref`,
-  `structured_display_source_map_ref`, and the remaining declared candidate refs.
-  A recorded event fraction is descriptive, not a censoring-aware observed-risk
-  estimate. Missing construct mapping or identity linkage makes a cross-cohort
-  comparison not estimable; it does not support a null, equivalence, direction,
-  or mechanism claim.
+- Follow `contracts/manuscript_first_draft_quality_policy.json`. Before a current
+  first-draft-ready claim, materialize application schema v2 and consume the
+  exact `medical_initial_draft_preflight_candidate_ref`. Every canonical
+  candidate records `satisfied`, `route_back_required`, or
+  `not_applicable_with_reason`; a legacy v1 application is readable but cannot
+  satisfy the current gate. Every applicable v2 candidate exact ref is nonempty
+  (`size_bytes >= 1`). Resolve route-back dispositions at the earliest owner in
+  baseline, analysis, authoring, then review order before checking ref presence.
+- For clinical/registry data, bind `clinical_analysis_input_identity_ref` and
+  consume the data-freeze reviewer; a non-clinical manuscript may use an explicit
+  not-applicable reason. Prediction-model work additionally binds validation-
+  partition integrity, endpoint/analysis-set reconciliation, model-complexity
+  and sparse-event adequacy, claim guardrails, and any triggered fixed-horizon,
+  competing-risk, DCA, Table 1, or reader-PDF candidates. Treat development,
+  internal, internal-external, and external validation as distinct designs;
+  consume transportability review only for true external validation.
+- A recorded event fraction is descriptive, not a censoring-aware observed-risk
+  estimate. Model adequacy requires formal sample-size/overfitting evidence.
+  Require PH evidence only when Scholar preflight explicitly declares
+  `ph_assessment_applicability=required`; otherwise require
+  `not_applicable_with_reason` without inferring applicability from model-family
+  text. Nonlinearity evidence remains conditional on a positive continuous
+  predictor count. DCA binds
+  its calibration basis, calibration status, uncertainty method and interval,
+  censoring method, analysis set, threshold range, net-benefit source, and one
+  clinical action scenario; unverified absolute-risk calibration routes back.
 - For every main table, consume `medical-table-design` and materialize its
   `main_table_information_budget_ref`: one reader question, main/supplement role,
   dimensions, text and footnote load, supplementary-detail refs, and final-page
@@ -69,9 +86,10 @@ policy; never claim a Review receipt from this conversation.
   proof before any quality or ready claim.
 - When a number, denominator, estimand, or construct changes, invalidate any
   table or figure render request that embeds the superseded payload. Rebuild the
-  affected reader surface, caption, catalog, and semantics manifest from the
-  current `structured_display_source_map_ref`; renderer success alone is not
-  source-currentness evidence.
+  affected reader surface, caption, catalog, and semantics manifest. Bind the
+  exact composed paper PDF and page-render or page-hash evidence through
+  `document_display_scope_coverage_ref`; renderer success alone is not
+  source-currentness or display-quality evidence.
 - Follow `contracts/artifact_iteration_efficiency_policy.json` for derived
   artifacts. Before a heavyweight renderer starts, classify the change and use
   the descriptor-declared component graph when it exists. For a legacy
@@ -105,7 +123,9 @@ policy; never claim a Review receipt from this conversation.
 This executor cannot review its own work to close the quality gate. Current
 package is derived output, not an editing authority. Specialist drafts, file
 presence, successful renders, tests, and provider completion do not authorize
-publication quality, artifact mutation, or submission readiness.
+publication quality, artifact mutation, or submission readiness. Apply
+`artifact_source_authority_gate.md` to canonical source and every derived
+manuscript, table, figure, and PDF byte surface.
 
 ## Research Trajectory
 

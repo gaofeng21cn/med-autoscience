@@ -659,6 +659,7 @@
         "reproducibility_refs",
         "source_readiness_receipt_ref",
         "claim_boundary_ref",
+        "professional_skill_receipt_projection",
         "independent_review_receipt_refs",
         "revision_consumption",
         "verdict",
@@ -722,6 +723,41 @@
         },
         "claim_boundary_ref": {
           "$ref": "#/$defs/typed_ref"
+        },
+        "professional_skill_receipt_projection": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "skill_id",
+              "target_id",
+              "invocation_ref",
+              "receipt_ref"
+            ],
+            "properties": {
+              "skill_id": {
+                "$ref": "#/$defs/non_empty_text"
+              },
+              "target_id": {
+                "oneOf": [
+                  {
+                    "$ref": "#/$defs/non_empty_text"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "invocation_ref": {
+                "$ref": "#/$defs/exact_ref"
+              },
+              "receipt_ref": {
+                "$ref": "#/$defs/exact_ref"
+              }
+            }
+          }
         },
         "independent_review_receipt_refs": {
           "type": "array",

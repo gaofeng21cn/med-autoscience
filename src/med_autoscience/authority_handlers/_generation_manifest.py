@@ -15,6 +15,7 @@ from ._record_validation import (
     fingerprint,
     integer,
     mapping,
+    optional_text,
     sequence,
     sha256,
     text,
@@ -70,13 +71,86 @@ PUBLICATION_SINGLETON_ROLES = frozenset(
     }
 )
 OPTIONAL_GENERATION_ROLES = frozenset({"candidate_artifact", "evidence_record"})
+FIRST_DRAFT_QUALITY_ROLE_BY_REF_FIELD = {
+    "medical_initial_draft_preflight_candidate_ref": (
+        "medical_initial_draft_preflight_candidate"
+    ),
+    "clinical_analysis_input_identity_ref": "clinical_analysis_input_identity",
+    "citation_source_coverage_ref": "citation_source_coverage",
+    "validation_partition_integrity_ref": "validation_partition_integrity",
+    "endpoint_analysis_set_reconciliation_ref": (
+        "endpoint_analysis_set_reconciliation"
+    ),
+    "model_complexity_sparse_event_ref": "model_complexity_sparse_event",
+    "fixed_horizon_risk_semantics_ref": "fixed_horizon_risk_semantics",
+    "competing_risk_ref": "competing_risk",
+    "decision_curve_validity_ref": "decision_curve_validity",
+    "baseline_table_traceability_ref": "baseline_table_traceability",
+    "document_display_scope_coverage_ref": "document_display_scope_coverage",
+    "claim_guardrail_ref": "claim_guardrail",
+    "external_transportability_ref": "external_transportability",
+}
+FIRST_DRAFT_QUALITY_ROLES = frozenset(
+    FIRST_DRAFT_QUALITY_ROLE_BY_REF_FIELD.values()
+)
+FIRST_DRAFT_QUALITY_ROUTE_PRIORITY = (
+    "baseline_and_evidence_setup",
+    "bounded_analysis_campaign",
+    "manuscript_authoring",
+    "review_and_quality_gate",
+)
+FIRST_DRAFT_VALIDATION_DESIGNS = frozenset(
+    {
+        "not_applicable",
+        "development_only",
+        "internal_validation",
+        "internal_external",
+        "external_validation",
+    }
+)
+FIRST_DRAFT_QUALITY_DISPOSITION_STATUSES = frozenset(
+    {"satisfied", "route_back_required", "not_applicable_with_reason"}
+)
 PROFESSIONAL_MANUSCRIPT_SKILL_ROLES = {
-    "medical-manuscript-writing": frozenset({"canonical_manuscript"}),
+    "medical-manuscript-writing": frozenset(
+        {
+            "canonical_manuscript",
+            "claim_evidence_map",
+            "claim_guardrail",
+            "medical_initial_draft_preflight_candidate",
+        }
+    ),
     "medical-registry-atlas-story-architect": frozenset(
         {"canonical_manuscript", "claim_evidence_map"}
     ),
-    "medical-statistical-review": frozenset({"analysis_output", "numeric_trace"}),
-    "medical-table-design": frozenset({"table_catalog", "table_file"}),
+    "medical-data-freeze-and-analysis-readiness-reviewer": frozenset(
+        {"clinical_analysis_input_identity"}
+    ),
+    "medical-reference-integrity-auditor": frozenset(
+        {"citation_source_coverage"}
+    ),
+    "medical-statistical-review": frozenset(
+        {
+            "analysis_output",
+            "numeric_trace",
+            "validation_partition_integrity",
+            "endpoint_analysis_set_reconciliation",
+            "model_complexity_sparse_event",
+            "decision_curve_validity",
+        }
+    ),
+    "medical-survival-analysis-plan": frozenset(
+        {"fixed_horizon_risk_semantics", "competing_risk"}
+    ),
+    "medical-risk-model-transportability-reviewer": frozenset(
+        {"external_transportability"}
+    ),
+    "medical-table-design": frozenset(
+        {"table_catalog", "table_file", "baseline_table_traceability"}
+    ),
+    "medical-display-qc": frozenset(
+        {"document_display_scope_coverage", "pdf"}
+    ),
     "medical-submission-prep": frozenset(
         {
             "canonical_manuscript",
@@ -88,13 +162,51 @@ PROFESSIONAL_MANUSCRIPT_SKILL_ROLES = {
         }
     ),
 }
+PROFESSIONAL_MANUSCRIPT_SKILL_INPUT_ROLES = {
+    "medical-manuscript-writing": frozenset(
+        {
+            "medical_initial_draft_preflight_candidate",
+            "clinical_analysis_input_identity",
+            "citation_source_coverage",
+            "claim_guardrail",
+        }
+    ),
+    "medical-registry-atlas-story-architect": frozenset(
+        {"claim_evidence_map"}
+    ),
+    "medical-data-freeze-and-analysis-readiness-reviewer": frozenset(
+        {"source_input_digest", "data_release", "denominator_definitions"}
+    ),
+    "medical-reference-integrity-auditor": frozenset(
+        {"citation_ledger", "reference_library"}
+    ),
+    "medical-statistical-review": frozenset(
+        {"data_release", "denominator_definitions", "analysis_output", "numeric_trace"}
+    ),
+    "medical-survival-analysis-plan": frozenset(
+        {"denominator_definitions", "analysis_output", "numeric_trace"}
+    ),
+    "medical-risk-model-transportability-reviewer": frozenset(
+        {"data_release", "denominator_definitions", "analysis_output"}
+    ),
+    "medical-table-design": frozenset({"analysis_output", "numeric_trace"}),
+    "medical-display-qc": frozenset({"canonical_manuscript", "pdf"}),
+    "medical-submission-prep": frozenset({"canonical_manuscript"}),
+}
 REQUIRED_ROLES_BY_SCOPE = {
     "analysis_generation": ANALYSIS_GENERATION_ROLES,
     "manuscript_generation": MANUSCRIPT_GENERATION_ROLES,
     "publication_generation": PUBLICATION_GENERATION_ROLES,
 }
+OPTIONAL_ROLES_BY_SCOPE = {
+    "analysis_generation": OPTIONAL_GENERATION_ROLES,
+    "manuscript_generation": (
+        OPTIONAL_GENERATION_ROLES | FIRST_DRAFT_QUALITY_ROLES | {"pdf"}
+    ),
+    "publication_generation": OPTIONAL_GENERATION_ROLES | FIRST_DRAFT_QUALITY_ROLES,
+}
 ALLOWED_ROLES_BY_SCOPE = {
-    scope: roles | OPTIONAL_GENERATION_ROLES
+    scope: roles | OPTIONAL_ROLES_BY_SCOPE[scope]
     for scope, roles in REQUIRED_ROLES_BY_SCOPE.items()
 }
 REVIEW_LANES_BY_SCOPE = {
@@ -161,6 +273,17 @@ REVIEW_SCOPE_ROLES_BY_LANE = {
             "canonical_manuscript",
             "claim_evidence_map",
             "numeric_trace",
+            "medical_initial_draft_preflight_candidate",
+            "clinical_analysis_input_identity",
+            "citation_source_coverage",
+            "validation_partition_integrity",
+            "endpoint_analysis_set_reconciliation",
+            "model_complexity_sparse_event",
+            "fixed_horizon_risk_semantics",
+            "competing_risk",
+            "decision_curve_validity",
+            "claim_guardrail",
+            "external_transportability",
         }
     ),
     "statistical": (ANALYSIS_GENERATION_ROLES - {"source_input_digest"})
@@ -173,6 +296,15 @@ REVIEW_SCOPE_ROLES_BY_LANE = {
             "numeric_trace",
             "table_catalog",
             "table_file",
+            "clinical_analysis_input_identity",
+            "validation_partition_integrity",
+            "endpoint_analysis_set_reconciliation",
+            "model_complexity_sparse_event",
+            "fixed_horizon_risk_semantics",
+            "competing_risk",
+            "decision_curve_validity",
+            "baseline_table_traceability",
+            "external_transportability",
         }
     ),
     "reference": frozenset(
@@ -182,6 +314,8 @@ REVIEW_SCOPE_ROLES_BY_LANE = {
             "citation_ledger",
             "reference_library",
             "evidence_record",
+            "citation_source_coverage",
+            "claim_guardrail",
         }
     ),
     "display": frozenset(
@@ -194,6 +328,8 @@ REVIEW_SCOPE_ROLES_BY_LANE = {
             "figure_catalog",
             "figure_file",
             "render_environment_and_font_manifest",
+            "baseline_table_traceability",
+            "document_display_scope_coverage",
             "docx",
             "pdf",
             "supplementary_output",
@@ -237,6 +373,26 @@ EPISTEMIC_NODE_ROLE_BY_LANE = {
         "canonical_manuscript": ("claim", "claim"),
         "claim_evidence_map": ("provenance", "citation_linkage"),
         "numeric_trace": ("artifact", "analysis_result"),
+        "medical_initial_draft_preflight_candidate": (
+            "provenance",
+            "context",
+        ),
+        "clinical_analysis_input_identity": (
+            "provenance",
+            "analysis_parameters",
+        ),
+        "citation_source_coverage": ("provenance", "citation_linkage"),
+        "validation_partition_integrity": ("provenance", "analysis_parameters"),
+        "endpoint_analysis_set_reconciliation": (
+            "provenance",
+            "analysis_parameters",
+        ),
+        "model_complexity_sparse_event": ("provenance", "analysis_result"),
+        "fixed_horizon_risk_semantics": ("provenance", "analysis_parameters"),
+        "competing_risk": ("provenance", "analysis_parameters"),
+        "decision_curve_validity": ("provenance", "analysis_parameters"),
+        "claim_guardrail": ("provenance", "context"),
+        "external_transportability": ("provenance", "analysis_result"),
     },
     "statistical": {
         "data_release": ("provenance", "source_data"),
@@ -250,6 +406,21 @@ EPISTEMIC_NODE_ROLE_BY_LANE = {
         "numeric_trace": ("artifact", "analysis_result"),
         "table_catalog": ("provenance", "context"),
         "table_file": ("artifact", "analysis_result"),
+        "clinical_analysis_input_identity": (
+            "provenance",
+            "analysis_parameters",
+        ),
+        "validation_partition_integrity": ("provenance", "analysis_parameters"),
+        "endpoint_analysis_set_reconciliation": (
+            "provenance",
+            "analysis_parameters",
+        ),
+        "model_complexity_sparse_event": ("provenance", "analysis_result"),
+        "fixed_horizon_risk_semantics": ("provenance", "analysis_parameters"),
+        "competing_risk": ("provenance", "analysis_parameters"),
+        "decision_curve_validity": ("provenance", "analysis_parameters"),
+        "baseline_table_traceability": ("provenance", "analysis_result"),
+        "external_transportability": ("provenance", "analysis_result"),
     },
     "reference": {
         "canonical_manuscript": ("claim", "claim"),
@@ -257,6 +428,8 @@ EPISTEMIC_NODE_ROLE_BY_LANE = {
         "citation_ledger": ("provenance", "citation_linkage"),
         "reference_library": ("artifact", "reference_source"),
         "evidence_record": ("provenance", "context"),
+        "citation_source_coverage": ("provenance", "citation_linkage"),
+        "claim_guardrail": ("provenance", "context"),
     },
     "display": {
         "analysis_output": ("artifact", "analysis_result"),
@@ -267,6 +440,8 @@ EPISTEMIC_NODE_ROLE_BY_LANE = {
         "figure_catalog": ("provenance", "context"),
         "figure_file": ("artifact", "visual_content"),
         "render_environment_and_font_manifest": ("provenance", "render_template"),
+        "baseline_table_traceability": ("provenance", "analysis_result"),
+        "document_display_scope_coverage": ("provenance", "render_template"),
         "docx": ("artifact", "visual_content"),
         "pdf": ("artifact", "visual_content"),
         "supplementary_output": ("artifact", "visual_content"),
@@ -318,7 +493,20 @@ EPISTEMIC_REVIEWED_ARTIFACT_ROLES_BY_LANE = {
 EPISTEMIC_EDGE_RULES_BY_LANE = {
     "medical": (
         (
-            frozenset({"data_release", "denominator_definitions"}),
+            frozenset(
+                {
+                    "data_release",
+                    "denominator_definitions",
+                    "clinical_analysis_input_identity",
+                    "validation_partition_integrity",
+                    "endpoint_analysis_set_reconciliation",
+                    "model_complexity_sparse_event",
+                    "fixed_horizon_risk_semantics",
+                    "competing_risk",
+                    "decision_curve_validity",
+                    "external_transportability",
+                }
+            ),
             frozenset({"analysis_output"}),
             "derived_from",
         ),
@@ -329,6 +517,9 @@ EPISTEMIC_EDGE_RULES_BY_LANE = {
                     "candidate_artifact",
                     "evidence_record",
                     "numeric_trace",
+                    "medical_initial_draft_preflight_candidate",
+                    "citation_source_coverage",
+                    "claim_guardrail",
                 }
             ),
             frozenset({"claim_evidence_map", "canonical_manuscript"}),
@@ -343,13 +534,31 @@ EPISTEMIC_EDGE_RULES_BY_LANE = {
     "statistical": (
         (
             frozenset(
-                {"data_release", "denominator_definitions", "analysis_script"}
+                {
+                    "data_release",
+                    "denominator_definitions",
+                    "analysis_script",
+                    "clinical_analysis_input_identity",
+                    "validation_partition_integrity",
+                    "endpoint_analysis_set_reconciliation",
+                    "model_complexity_sparse_event",
+                    "fixed_horizon_risk_semantics",
+                    "competing_risk",
+                    "decision_curve_validity",
+                    "external_transportability",
+                }
             ),
             frozenset({"analysis_output"}),
             "derived_from",
         ),
         (
-            frozenset({"analysis_output", "evidence_record"}),
+            frozenset(
+                {
+                    "analysis_output",
+                    "evidence_record",
+                    "baseline_table_traceability",
+                }
+            ),
             frozenset(
                 {
                     "numeric_trace",
@@ -379,7 +588,14 @@ EPISTEMIC_EDGE_RULES_BY_LANE = {
             "cites",
         ),
         (
-            frozenset({"citation_ledger", "evidence_record"}),
+            frozenset(
+                {
+                    "citation_ledger",
+                    "evidence_record",
+                    "citation_source_coverage",
+                    "claim_guardrail",
+                }
+            ),
             frozenset({"claim_evidence_map", "canonical_manuscript"}),
             "supports",
         ),
@@ -399,6 +615,8 @@ EPISTEMIC_EDGE_RULES_BY_LANE = {
                     "table_catalog",
                     "figure_catalog",
                     "render_environment_and_font_manifest",
+                    "baseline_table_traceability",
+                    "document_display_scope_coverage",
                 }
             ),
             frozenset({"table_file", "figure_file"}),
@@ -501,6 +719,8 @@ def normalize_generation_manifest(
         keys.add("review_scopes")
         if "professional_skill_invocations" in payload:
             keys.add("professional_skill_invocations")
+        if "first_draft_quality_application" in payload:
+            keys.add("first_draft_quality_application")
     exact_keys(payload, keys, field)
     if payload.get("surface_kind") != "mas_evidence_generation_manifest":
         raise RequestShapeError(
@@ -554,6 +774,19 @@ def normalize_generation_manifest(
                 _normalize_professional_skill_invocations(
                     payload.get("professional_skill_invocations"),
                     f"{field}.professional_skill_invocations",
+                    artifacts=artifacts,
+                )
+            )
+        if "first_draft_quality_application" in payload:
+            if scope == "analysis_generation":
+                raise RequestShapeError(
+                    f"{field}.first_draft_quality_application is not allowed for "
+                    "analysis_generation"
+                )
+            manifest_core["first_draft_quality_application"] = (
+                _normalize_first_draft_quality_application(
+                    payload.get("first_draft_quality_application"),
+                    f"{field}.first_draft_quality_application",
                     artifacts=artifacts,
                 )
             )
@@ -641,6 +874,7 @@ def build_generation_manifest_v2(
     generation_id: str,
     manifest_scope: str,
     professional_skill_invocations: list[dict[str, Any]] | None = None,
+    first_draft_quality_application: dict[str, Any] | None = None,
 ) -> dict[str, Any]:
     """Build a canonical receipt-free v2 manifest from exact artifact records."""
 
@@ -674,6 +908,18 @@ def build_generation_manifest_v2(
                 artifacts=normalized_artifacts,
             )
         )
+    if first_draft_quality_application is not None:
+        if normalized_scope == "analysis_generation":
+            raise RequestShapeError(
+                "first_draft_quality_application is not allowed for analysis_generation"
+            )
+        core["first_draft_quality_application"] = (
+            _normalize_first_draft_quality_application(
+                first_draft_quality_application,
+                "generation_manifest.first_draft_quality_application",
+                artifacts=normalized_artifacts,
+            )
+        )
     manifest = {
         **core,
         "generation_manifest_sha256": fingerprint(core),
@@ -681,6 +927,276 @@ def build_generation_manifest_v2(
     }
     normalize_generation_manifest(manifest)
     return manifest
+
+
+def _normalize_first_draft_quality_application(
+    value: Any,
+    field: str,
+    *,
+    artifacts: list[dict[str, Any]],
+) -> dict[str, Any]:
+    payload = mapping(value, field)
+    schema_version = integer(payload.get("schema_version"), f"{field}.schema_version")
+    if schema_version not in {1, 2}:
+        raise RequestShapeError(f"{field}.schema_version must be integer 1 or 2")
+    keys = {
+        "surface_kind",
+        "schema_version",
+        "paper_type",
+        "validation_design",
+        "triggers",
+        "candidate_refs",
+    }
+    if schema_version == 2:
+        keys.add("candidate_dispositions")
+    exact_keys(
+        payload,
+        keys,
+        field,
+    )
+    if payload.get("surface_kind") != "mas_first_draft_quality_application_candidate":
+        raise RequestShapeError(f"{field}.surface_kind is invalid")
+    paper_type = enum_text(
+        payload.get("paper_type"),
+        f"{field}.paper_type",
+        {"prediction_model", "other"},
+    )
+    validation_design = enum_text(
+        payload.get("validation_design"),
+        f"{field}.validation_design",
+        set(FIRST_DRAFT_VALIDATION_DESIGNS),
+    )
+    if paper_type == "prediction_model" and validation_design == "not_applicable":
+        raise RequestShapeError(
+            f"{field}.validation_design must classify prediction-model validation"
+        )
+    if paper_type == "other" and validation_design != "not_applicable":
+        raise RequestShapeError(
+            f"{field}.validation_design must be not_applicable for other paper types"
+        )
+
+    triggers_field = f"{field}.triggers"
+    trigger_payload = mapping(payload.get("triggers"), triggers_field)
+    trigger_keys = {
+        "reports_fixed_horizon_risk",
+        "competing_risk_relevant",
+        "reports_decision_curve_analysis",
+        "includes_table_one",
+        "requires_reader_pdf",
+    }
+    if schema_version == 2:
+        trigger_keys.add("uses_clinical_or_registry_data")
+    exact_keys(trigger_payload, trigger_keys, triggers_field)
+    triggers: dict[str, bool] = {}
+    for key in sorted(trigger_keys):
+        trigger = trigger_payload.get(key)
+        if not isinstance(trigger, bool):
+            raise RequestShapeError(f"{triggers_field}.{key} must be boolean")
+        triggers[key] = trigger
+    if schema_version == 2 and paper_type == "prediction_model" and not triggers[
+        "uses_clinical_or_registry_data"
+    ]:
+        raise RequestShapeError(
+            f"{triggers_field}.uses_clinical_or_registry_data must be true for "
+            "prediction-model manuscripts"
+        )
+
+    refs_field = f"{field}.candidate_refs"
+    refs_payload = mapping(payload.get("candidate_refs"), refs_field)
+    exact_keys(
+        refs_payload,
+        set(FIRST_DRAFT_QUALITY_ROLE_BY_REF_FIELD),
+        refs_field,
+    )
+    candidate_refs: dict[str, dict[str, Any] | None] = {}
+    for ref_field, role in FIRST_DRAFT_QUALITY_ROLE_BY_REF_FIELD.items():
+        raw_ref = refs_payload.get(ref_field)
+        if raw_ref is None:
+            candidate_refs[ref_field] = None
+            continue
+        candidate_ref = _exact_ref(raw_ref, f"{refs_field}.{ref_field}", "mas_artifact")
+        if schema_version == 2 and candidate_ref["size_bytes"] == 0:
+            raise RequestShapeError(
+                f"{refs_field}.{ref_field}.size_bytes must be greater than zero "
+                "for a current first-draft candidate"
+            )
+        matching_artifacts = [
+            artifact
+            for artifact in artifacts
+            if artifact["role"] == role
+            and all(
+                candidate_ref[key] == artifact[key]
+                for key in ("ref", "size_bytes", "sha256")
+            )
+        ]
+        if len(matching_artifacts) != 1:
+            raise RequestShapeError(
+                f"{refs_field}.{ref_field} must bind the exact {role} artifact"
+            )
+        candidate_refs[ref_field] = candidate_ref
+    if validation_design != "external_validation" and candidate_refs[
+        "external_transportability_ref"
+    ] is not None:
+        raise RequestShapeError(
+            f"{refs_field}.external_transportability_ref is external-validation-only"
+        )
+
+    normalized = {
+        "surface_kind": "mas_first_draft_quality_application_candidate",
+        "schema_version": schema_version,
+        "paper_type": paper_type,
+        "validation_design": validation_design,
+        "triggers": triggers,
+        "candidate_refs": candidate_refs,
+    }
+    if schema_version == 2:
+        dispositions_field = f"{field}.candidate_dispositions"
+        dispositions_payload = mapping(
+            payload.get("candidate_dispositions"), dispositions_field
+        )
+        exact_keys(
+            dispositions_payload,
+            set(FIRST_DRAFT_QUALITY_ROLE_BY_REF_FIELD),
+            dispositions_field,
+        )
+        applicable_fields = first_draft_applicable_ref_fields(normalized)
+        dispositions = {}
+        for ref_field in FIRST_DRAFT_QUALITY_ROLE_BY_REF_FIELD:
+            disposition = _normalize_first_draft_candidate_disposition(
+                dispositions_payload.get(ref_field),
+                f"{dispositions_field}.{ref_field}",
+                candidate_ref=candidate_refs[ref_field],
+            )
+            if ref_field in applicable_fields:
+                if disposition["status"] == "not_applicable_with_reason":
+                    raise RequestShapeError(
+                        f"{dispositions_field}.{ref_field} is required by the "
+                        "declared paper type and triggers"
+                    )
+            elif disposition["status"] != "not_applicable_with_reason":
+                raise RequestShapeError(
+                    f"{dispositions_field}.{ref_field} must be "
+                    "not_applicable_with_reason for the declared paper type and triggers"
+                )
+            dispositions[ref_field] = disposition
+        normalized["candidate_dispositions"] = dispositions
+    return normalized
+
+
+def first_draft_applicable_ref_fields(
+    application: Mapping[str, Any],
+) -> frozenset[str]:
+    fields = {
+        "medical_initial_draft_preflight_candidate_ref",
+        "citation_source_coverage_ref",
+        "claim_guardrail_ref",
+    }
+    if application["triggers"]["uses_clinical_or_registry_data"]:
+        fields.add("clinical_analysis_input_identity_ref")
+    if application["paper_type"] == "prediction_model":
+        fields.update(
+            {
+                "validation_partition_integrity_ref",
+                "endpoint_analysis_set_reconciliation_ref",
+                "model_complexity_sparse_event_ref",
+            }
+        )
+    triggers = application["triggers"]
+    if triggers["reports_fixed_horizon_risk"]:
+        fields.add("fixed_horizon_risk_semantics_ref")
+    if triggers["competing_risk_relevant"]:
+        fields.add("competing_risk_ref")
+    if triggers["reports_decision_curve_analysis"]:
+        fields.add("decision_curve_validity_ref")
+    if triggers["includes_table_one"]:
+        fields.add("baseline_table_traceability_ref")
+    if triggers["requires_reader_pdf"]:
+        fields.add("document_display_scope_coverage_ref")
+    if application["validation_design"] == "external_validation":
+        fields.add("external_transportability_ref")
+    return frozenset(fields)
+
+
+def _normalize_first_draft_candidate_disposition(
+    value: Any,
+    field: str,
+    *,
+    candidate_ref: Mapping[str, Any] | None,
+) -> dict[str, Any]:
+    payload = mapping(value, field)
+    exact_keys(
+        payload,
+        {
+            "status",
+            "earliest_route_back_owner",
+            "reason_codes",
+            "unresolved_items",
+            "not_applicable_reason",
+        },
+        field,
+    )
+    status = enum_text(
+        payload.get("status"),
+        f"{field}.status",
+        set(FIRST_DRAFT_QUALITY_DISPOSITION_STATUSES),
+    )
+    owner = optional_text(
+        payload.get("earliest_route_back_owner"),
+        f"{field}.earliest_route_back_owner",
+    )
+    if owner is not None and owner not in FIRST_DRAFT_QUALITY_ROUTE_PRIORITY:
+        raise RequestShapeError(
+            f"{field}.earliest_route_back_owner must be a canonical first-draft Stage"
+        )
+    reason_codes = text_list(payload.get("reason_codes"), f"{field}.reason_codes")
+    unresolved_items = text_list(
+        payload.get("unresolved_items"), f"{field}.unresolved_items"
+    )
+    not_applicable_reason = optional_text(
+        payload.get("not_applicable_reason"),
+        f"{field}.not_applicable_reason",
+    )
+
+    if status == "satisfied":
+        if candidate_ref is None:
+            raise RequestShapeError(f"{field} satisfied status requires its exact candidate ref")
+        if owner is not None or reason_codes or unresolved_items or not_applicable_reason:
+            raise RequestShapeError(f"{field} satisfied status is contradictory")
+    elif status == "route_back_required":
+        if candidate_ref is None:
+            raise RequestShapeError(
+                f"{field} route_back_required status requires its exact candidate ref"
+            )
+        if owner is None or not reason_codes or not unresolved_items:
+            raise RequestShapeError(
+                f"{field} route_back_required status requires owner, reason codes, "
+                "and unresolved items"
+            )
+        if not_applicable_reason is not None:
+            raise RequestShapeError(
+                f"{field} route_back_required status cannot carry a not-applicable reason"
+            )
+    else:
+        if candidate_ref is not None:
+            raise RequestShapeError(
+                f"{field} not_applicable_with_reason status cannot carry a candidate ref"
+            )
+        if owner is not None or reason_codes or unresolved_items:
+            raise RequestShapeError(
+                f"{field} not_applicable_with_reason status is contradictory"
+            )
+        if not_applicable_reason is None:
+            raise RequestShapeError(
+                f"{field} not_applicable_with_reason status requires a reason"
+            )
+
+    return {
+        "status": status,
+        "earliest_route_back_owner": owner,
+        "reason_codes": reason_codes,
+        "unresolved_items": unresolved_items,
+        "not_applicable_reason": not_applicable_reason,
+    }
 
 
 def _normalize_professional_skill_invocations(
@@ -744,6 +1260,9 @@ def _normalize_professional_manuscript_skill_invocation(
     artifact_by_member_id: Mapping[str, Mapping[str, Any]],
 ) -> dict[str, Any]:
     payload = mapping(value, field)
+    schema_version = integer(payload.get("schema_version"), f"{field}.schema_version")
+    if schema_version not in {1, 2}:
+        raise RequestShapeError(f"{field}.schema_version must be integer 1 or 2")
     keys = {
         "surface_kind",
         "schema_version",
@@ -766,6 +1285,8 @@ def _normalize_professional_manuscript_skill_invocation(
         "authority",
         "publication_ready",
     }
+    if schema_version == 2:
+        keys.update({"invocation_ref", "receipt_ref", "input_artifact_bindings"})
     if (
         payload.get("skill_id") == "medical-table-design"
         and "table_quality_application" in payload
@@ -781,10 +1302,6 @@ def _normalize_professional_manuscript_skill_invocation(
         "mas_professional_manuscript_skill_invocation_candidate"
     ):
         raise RequestShapeError(f"{field}.surface_kind is invalid")
-    if payload.get("schema_version") != 1 or isinstance(
-        payload.get("schema_version"), bool
-    ):
-        raise RequestShapeError(f"{field}.schema_version must be integer 1")
     if payload.get("package_id") != "mas-scholar-skills":
         raise RequestShapeError(f"{field}.package_id must be mas-scholar-skills")
     if payload.get("template_substitution") is not False:
@@ -819,7 +1336,7 @@ def _normalize_professional_manuscript_skill_invocation(
         raise RequestShapeError(f"{field}.consumed_rule_refs must not be empty")
     normalized = {
         "surface_kind": "mas_professional_manuscript_skill_invocation_candidate",
-        "schema_version": 1,
+        "schema_version": schema_version,
         "receipt_id": text(payload.get("receipt_id"), f"{field}.receipt_id"),
         "skill_id": skill_id,
         "package_id": "mas-scholar-skills",
@@ -861,6 +1378,26 @@ def _normalize_professional_manuscript_skill_invocation(
                 payload["table_quality_application"],
                 f"{field}.table_quality_application",
             )
+        )
+    if schema_version == 2:
+        receipt_ref = _exact_ref(
+            payload.get("receipt_ref"),
+            f"{field}.receipt_ref",
+            "scholarskills_professional_skill_receipt",
+        )
+        if normalized["receipt_id"] != receipt_ref["ref"]:
+            raise RequestShapeError(f"{field}.receipt_id must equal receipt_ref.ref")
+        input_bindings = _normalize_professional_skill_input_bindings(
+            payload.get("input_artifact_bindings"),
+            f"{field}.input_artifact_bindings",
+            artifact_by_member_id=artifact_by_member_id,
+        )
+        normalized["receipt_ref"] = receipt_ref
+        normalized["input_artifact_bindings"] = input_bindings
+        normalized["invocation_ref"] = _normalize_professional_invocation_ref(
+            payload.get("invocation_ref"),
+            f"{field}.invocation_ref",
+            invocation_core=normalized,
         )
     return normalized
 
@@ -1006,6 +1543,9 @@ def _normalize_professional_skill_invocation(
     artifact_by_member_id: Mapping[str, Mapping[str, Any]],
 ) -> dict[str, Any]:
     payload = mapping(value, field)
+    schema_version = integer(payload.get("schema_version"), f"{field}.schema_version")
+    if schema_version not in {1, 2}:
+        raise RequestShapeError(f"{field}.schema_version must be integer 1 or 2")
     skill_id = enum_text(
         payload.get("skill_id"),
         f"{field}.skill_id",
@@ -1039,6 +1579,8 @@ def _normalize_professional_skill_invocation(
         "authority",
         "publication_ready",
     }
+    if schema_version == 2:
+        keys.update({"invocation_ref", "receipt_ref", "input_artifact_bindings"})
     if skill_id == "medical-figure-design":
         keys.update({"template_usage", "figure_text_policy"})
     exact_keys(payload, keys, field)
@@ -1050,10 +1592,6 @@ def _normalize_professional_skill_invocation(
             f"{field}.surface_kind must be "
             "mas_professional_figure_skill_invocation_candidate"
         )
-    if payload.get("schema_version") != 1 or isinstance(
-        payload.get("schema_version"), bool
-    ):
-        raise RequestShapeError(f"{field}.schema_version must be integer 1")
     if payload.get("package_id") != "mas-scholar-skills":
         raise RequestShapeError(f"{field}.package_id must be mas-scholar-skills")
     if payload.get("status") != "completed":
@@ -1092,7 +1630,7 @@ def _normalize_professional_skill_invocation(
         )
     normalized = {
         "surface_kind": "mas_professional_figure_skill_invocation_candidate",
-        "schema_version": 1,
+        "schema_version": schema_version,
         "receipt_id": text(payload.get("receipt_id"), f"{field}.receipt_id"),
         "figure_id": text(payload.get("figure_id"), f"{field}.figure_id"),
         "figure_kind": enum_text(
@@ -1146,6 +1684,27 @@ def _normalize_professional_skill_invocation(
             f"{field}.figure_text_policy",
             figure_kind=normalized["figure_kind"],
         )
+    if schema_version == 2:
+        receipt_ref = _exact_ref(
+            payload.get("receipt_ref"),
+            f"{field}.receipt_ref",
+            "scholarskills_professional_skill_receipt",
+        )
+        if normalized["receipt_id"] != receipt_ref["ref"]:
+            raise RequestShapeError(f"{field}.receipt_id must equal receipt_ref.ref")
+        normalized["receipt_ref"] = receipt_ref
+        normalized["input_artifact_bindings"] = (
+            _normalize_professional_skill_input_bindings(
+                payload.get("input_artifact_bindings"),
+                f"{field}.input_artifact_bindings",
+                artifact_by_member_id=artifact_by_member_id,
+            )
+        )
+        normalized["invocation_ref"] = _normalize_professional_invocation_ref(
+            payload.get("invocation_ref"),
+            f"{field}.invocation_ref",
+            invocation_core=normalized,
+        )
     return normalized
 
 
@@ -1170,6 +1729,68 @@ def _normalize_professional_skill_artifact_binding(
     if expected is None or expected.get("role") not in allowed_roles:
         raise RequestShapeError(f"{field} must name an allowed generation artifact")
     return normalized
+
+
+def _normalize_professional_skill_input_bindings(
+    value: Any,
+    field: str,
+    *,
+    artifact_by_member_id: Mapping[str, Mapping[str, Any]],
+) -> list[dict[str, Any]]:
+    allowed_roles = frozenset(
+        item["role"] for item in artifact_by_member_id.values()
+    )
+    bindings = [
+        _normalize_professional_skill_artifact_binding(
+            item,
+            f"{field}[{index}]",
+            artifact_by_member_id=artifact_by_member_id,
+            allowed_roles=allowed_roles,
+        )
+        for index, item in enumerate(sequence(value, field))
+    ]
+    if not bindings:
+        raise RequestShapeError(f"{field} must not be empty")
+    member_ids = [item["member_id"] for item in bindings]
+    if len(member_ids) != len(set(member_ids)):
+        raise RequestShapeError(f"{field} contains duplicate members")
+    for binding in bindings:
+        expected = artifact_by_member_id[binding["member_id"]]
+        if any(
+            binding[key] != expected[key]
+            for key in ("role", "ref", "size_bytes", "sha256")
+        ):
+            raise RequestShapeError(
+                f"{field} does not match the exact generation input artifacts"
+            )
+    return sorted(bindings, key=lambda item: item["member_id"])
+
+
+def _normalize_professional_invocation_ref(
+    value: Any,
+    field: str,
+    *,
+    invocation_core: Mapping[str, Any],
+) -> dict[str, Any]:
+    invocation_ref = _exact_ref(
+        value,
+        field,
+        "mas_professional_skill_invocation",
+    )
+    expected_sha256 = fingerprint(invocation_core)
+    expected_size = len(canonical_json_bytes(invocation_core))
+    expected_ref = (
+        "mas-professional-skill-invocation:"
+        f"{expected_sha256.removeprefix('sha256:')}"
+    )
+    if invocation_ref != {
+        "kind": "mas_professional_skill_invocation",
+        "ref": expected_ref,
+        "size_bytes": expected_size,
+        "sha256": expected_sha256,
+    }:
+        raise RequestShapeError(f"{field} does not match canonical invocation bytes")
+    return invocation_ref
 
 
 def _normalize_figure_template_usage(value: Any, field: str) -> dict[str, Any]:
@@ -1682,6 +2303,7 @@ def build_stage_review_input_snapshot_bundle(
     authority_issuer: Mapping[str, Any],
     review_lane: str | None = None,
     professional_skill_invocations: list[dict[str, Any]] | None = None,
+    first_draft_quality_application: dict[str, Any] | None = None,
 ) -> dict[str, Any]:
     """Build one stage-bound generation manifest and immutable review request."""
 
@@ -1724,6 +2346,7 @@ def build_stage_review_input_snapshot_bundle(
         generation_id=generation_id,
         manifest_scope=manifest_scope,
         professional_skill_invocations=professional_skill_invocations,
+        first_draft_quality_application=first_draft_quality_application,
     )
     request = build_review_input_snapshot_materialization_request(
         generation_manifest=generation_manifest,

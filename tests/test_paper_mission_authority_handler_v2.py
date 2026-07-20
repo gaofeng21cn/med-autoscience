@@ -189,6 +189,401 @@ def test_exact_current_reviews_return_deterministic_owner_receipt(
     assert len(receipt["independent_review_receipt_refs"]) == 4
 
 
+def test_current_internal_validation_first_draft_uses_exact_scholar_receipts(
+    authority_records: Any,
+) -> None:
+    request = authority_records.paper_request()
+    manifest = request["generation_manifest"]
+    application = manifest["first_draft_quality_application"]
+
+    assert application["schema_version"] == 2
+    assert application["validation_design"] == "internal_validation"
+    assert application["triggers"]["uses_clinical_or_registry_data"] is True
+    assert application["candidate_dispositions"][
+        "external_transportability_ref"
+    ]["status"] == "not_applicable_with_reason"
+    assert application["candidate_refs"]["external_transportability_ref"] is None
+    assert any(item["role"] == "pdf" for item in manifest["artifacts"])
+
+    invocations = manifest["professional_skill_invocations"]
+    assert all(item["schema_version"] == 2 for item in invocations)
+    assert all(
+        {"invocation_ref", "receipt_ref", "input_artifact_bindings"}
+        <= set(item)
+        for item in invocations
+    )
+    skill_ids = {item["skill_id"] for item in invocations}
+    assert "medical-data-freeze-and-analysis-readiness-reviewer" in skill_ids
+    assert "medical-survival-analysis-plan" in skill_ids
+    assert "medical-display-qc" in skill_ids
+    assert "medical-risk-model-transportability-reviewer" not in skill_ids
+    _schema_validator("mas-evidence-generation-manifest.schema.json").validate(
+        manifest
+    )
+
+    result = _evaluate(request)
+    assert result["status"] == "owner_receipt"
+    projected = result["owner_receipt"]["professional_skill_receipt_projection"]
+    assert {
+        (item["skill_id"], item["invocation_ref"]["sha256"], item["receipt_ref"]["sha256"])
+        for item in projected
+    } == {
+        (item["skill_id"], item["invocation_ref"]["sha256"], item["receipt_ref"]["sha256"])
+        for item in invocations
+    }
+
+
+def test_current_satisfied_first_draft_candidate_rejects_zero_byte_exact_ref(
+    authority_records: Any,
+) -> None:
+    request = authority_records.paper_request()
+    application = request["generation_manifest"]["first_draft_quality_application"]
+    candidate = application["candidate_refs"][
+        "medical_initial_draft_preflight_candidate_ref"
+    ]
+    assert application["candidate_dispositions"][
+        "medical_initial_draft_preflight_candidate_ref"
+    ]["status"] == "satisfied"
+    candidate["size_bytes"] = 0
+
+    schema_errors = list(
+        _schema_validator(
+            "mas-evidence-generation-manifest.schema.json"
+        ).iter_errors(request["generation_manifest"])
+    )
+    assert schema_errors
+
+    result = _evaluate(request)
+    assert result["status"] == "invalid_host_input"
+    assert "size_bytes must be greater than zero" in result["error"]["detail"]
+
+
+@pytest.mark.parametrize(
+    ("validation_design", "expects_transportability"),
+    [
+        ("internal_external", False),
+        ("external_validation", True),
+    ],
+)
+def test_validation_design_routes_transportability_only_for_true_external_validation(
+    authority_records: Any,
+    validation_design: str,
+    expects_transportability: bool,
+) -> None:
+    request = authority_records.paper_request(validation_design=validation_design)
+    application = request["generation_manifest"]["first_draft_quality_application"]
+    skill_ids = {
+        item["skill_id"]
+        for item in request["generation_manifest"]["professional_skill_invocations"]
+    }
+
+    assert (
+        application["candidate_refs"]["external_transportability_ref"] is not None
+    ) is expects_transportability
+    assert (
+        application["candidate_dispositions"]["external_transportability_ref"][
+            "status"
+        ]
+        == "satisfied"
+    ) is expects_transportability
+    assert (
+        "medical-risk-model-transportability-reviewer" in skill_ids
+    ) is expects_transportability
+    assert _evaluate(request)["status"] == "owner_receipt"
+
+
+def test_non_clinical_other_manuscript_can_explicitly_dispose_data_freeze(
+    authority_records: Any,
+) -> None:
+    request = authority_records.paper_request(
+        paper_type="other",
+        validation_design="not_applicable",
+        reports_fixed_horizon_risk=False,
+        competing_risk_relevant=False,
+        reports_decision_curve_analysis=False,
+        uses_clinical_or_registry_data=False,
+    )
+    application = request["generation_manifest"]["first_draft_quality_application"]
+
+    assert application["candidate_refs"][
+        "clinical_analysis_input_identity_ref"
+    ] is None
+    assert application["candidate_dispositions"][
+        "clinical_analysis_input_identity_ref"
+    ]["status"] == "not_applicable_with_reason"
+    assert "medical-data-freeze-and-analysis-readiness-reviewer" not in {
+        item["skill_id"]
+        for item in request["generation_manifest"]["professional_skill_invocations"]
+    }
+    assert _evaluate(request)["status"] == "owner_receipt"
+
+
+def test_legacy_first_draft_application_is_readable_but_cannot_claim_current_quality(
+    authority_records: Any,
+) -> None:
+    request = authority_records.paper_request(
+        first_draft_application_schema_version=1
+    )
+
+    result = _evaluate(request)
+
+    route_back = _assert_progress_debt(
+        result, "first_draft_candidate_dispositions_missing"
+    )
+    assert route_back["next_owner"] == "baseline_and_evidence_setup"
+    assert request["generation_manifest"]["first_draft_quality_application"][
+        "schema_version"
+    ] == 1
+
+
+@pytest.mark.parametrize(
+    ("overrides", "expected_owner", "expected_reason"),
+    [
+        (
+            {
+                "medical_initial_draft_preflight_candidate_ref": {
+                    "status": "route_back_required",
+                    "earliest_route_back_owner": "manuscript_authoring",
+                    "reason_codes": ["preflight_story_contract_unresolved"],
+                    "unresolved_items": ["story-contract"],
+                    "not_applicable_reason": None,
+                }
+            },
+            "manuscript_authoring",
+            "preflight_story_contract_unresolved",
+        ),
+        (
+            {
+                "medical_initial_draft_preflight_candidate_ref": {
+                    "status": "route_back_required",
+                    "earliest_route_back_owner": "manuscript_authoring",
+                    "reason_codes": ["preflight_story_contract_unresolved"],
+                    "unresolved_items": ["story-contract"],
+                    "not_applicable_reason": None,
+                },
+                "model_complexity_sparse_event_ref": {
+                    "status": "route_back_required",
+                    "earliest_route_back_owner": "bounded_analysis_campaign",
+                    "reason_codes": ["sparse_event_model_adequacy_unresolved"],
+                    "unresolved_items": ["model-adequacy"],
+                    "not_applicable_reason": None,
+                },
+            },
+            "bounded_analysis_campaign",
+            "sparse_event_model_adequacy_unresolved",
+        ),
+        (
+            {
+                "medical_initial_draft_preflight_candidate_ref": {
+                    "status": "route_back_required",
+                    "earliest_route_back_owner": "manuscript_authoring",
+                    "reason_codes": ["preflight_story_contract_unresolved"],
+                    "unresolved_items": ["story-contract"],
+                    "not_applicable_reason": None,
+                },
+                "model_complexity_sparse_event_ref": {
+                    "status": "route_back_required",
+                    "earliest_route_back_owner": "bounded_analysis_campaign",
+                    "reason_codes": ["sparse_event_model_adequacy_unresolved"],
+                    "unresolved_items": ["model-adequacy"],
+                    "not_applicable_reason": None,
+                },
+                "citation_source_coverage_ref": {
+                    "status": "route_back_required",
+                    "earliest_route_back_owner": "baseline_and_evidence_setup",
+                    "reason_codes": ["citation_source_identity_unresolved"],
+                    "unresolved_items": ["citation-source"],
+                    "not_applicable_reason": None,
+                },
+            },
+            "baseline_and_evidence_setup",
+            "citation_source_identity_unresolved",
+        ),
+    ],
+)
+def test_first_draft_dispositions_route_to_the_earliest_canonical_owner(
+    authority_records: Any,
+    overrides: dict[str, dict[str, Any]],
+    expected_owner: str,
+    expected_reason: str,
+) -> None:
+    request = authority_records.paper_request(disposition_overrides=overrides)
+    application = request["generation_manifest"]["first_draft_quality_application"]
+    assert all(
+        application["candidate_refs"][field] is not None for field in overrides
+    )
+
+    result = _evaluate(request)
+
+    route_back = _assert_progress_debt(result, expected_reason)
+    assert route_back["next_owner"] == expected_owner
+
+
+def test_first_draft_routes_to_review_after_earlier_tiers_are_closed(
+    authority_records: Any,
+) -> None:
+    request = authority_records.paper_request(
+        disposition_overrides={
+            "medical_initial_draft_preflight_candidate_ref": {
+                "status": "route_back_required",
+                "earliest_route_back_owner": "review_and_quality_gate",
+                "reason_codes": ["independent_first_draft_review_unresolved"],
+                "unresolved_items": ["review-lane"],
+                "not_applicable_reason": None,
+            }
+        }
+    )
+    dispositions = request["generation_manifest"][
+        "first_draft_quality_application"
+    ]["candidate_dispositions"]
+    assert {
+        item["earliest_route_back_owner"]
+        for item in dispositions.values()
+        if item["status"] == "route_back_required"
+    } == {"review_and_quality_gate"}
+
+    result = _evaluate(request)
+
+    route_back = _assert_progress_debt(
+        result, "independent_first_draft_review_unresolved"
+    )
+    assert route_back["next_owner"] == "review_and_quality_gate"
+
+
+@pytest.mark.parametrize(
+    ("earlier_field", "earlier_owner", "earlier_reason"),
+    [
+        (
+            "citation_source_coverage_ref",
+            "baseline_and_evidence_setup",
+            "citation_source_identity_unresolved",
+        ),
+        (
+            "model_complexity_sparse_event_ref",
+            "bounded_analysis_campaign",
+            "sparse_event_model_adequacy_unresolved",
+        ),
+        (
+            "claim_guardrail_ref",
+            "manuscript_authoring",
+            "claim_guardrail_unresolved",
+        ),
+    ],
+)
+def test_first_draft_review_route_never_preempts_an_earlier_unresolved_tier(
+    authority_records: Any,
+    earlier_field: str,
+    earlier_owner: str,
+    earlier_reason: str,
+) -> None:
+    request = authority_records.paper_request(
+        disposition_overrides={
+            "medical_initial_draft_preflight_candidate_ref": {
+                "status": "route_back_required",
+                "earliest_route_back_owner": "review_and_quality_gate",
+                "reason_codes": ["independent_first_draft_review_unresolved"],
+                "unresolved_items": ["review-lane"],
+                "not_applicable_reason": None,
+            },
+            earlier_field: {
+                "status": "route_back_required",
+                "earliest_route_back_owner": earlier_owner,
+                "reason_codes": [earlier_reason],
+                "unresolved_items": [earlier_field],
+                "not_applicable_reason": None,
+            },
+        }
+    )
+
+    result = _evaluate(request)
+
+    route_back = _assert_progress_debt(result, earlier_reason)
+    assert route_back["next_owner"] == earlier_owner
+
+
+def test_tampered_exact_professional_receipt_fails_closed(
+    authority_records: Any,
+) -> None:
+    request = authority_records.paper_request()
+    invocation = next(
+        item
+        for item in request["generation_manifest"]["professional_skill_invocations"]
+        if item["skill_id"] == "medical-display-qc"
+    )
+    invocation["receipt_ref"]["sha256"] = authority_records.digest(
+        "tampered-scholar-receipt"
+    )
+
+    result = _evaluate(request)
+
+    assert result["status"] == "invalid_host_input"
+    assert "invocation_ref does not match canonical invocation bytes" in result[
+        "error"
+    ]["detail"]
+
+
+def test_pdf_byte_change_invalidates_display_review_scope_and_skill_receipt(
+    authority_records: Any,
+) -> None:
+    origin = authority_records.paper_request(
+        artifact_sha_overrides={"pdf": authority_records.digest("paper-pdf-v1")}
+    )
+    current = authority_records.paper_request(
+        artifact_sha_overrides={"pdf": authority_records.digest("paper-pdf-v2")}
+    )
+    origin_display = next(
+        item
+        for item in origin["generation_manifest"]["review_scopes"]
+        if item["review_lane"] == "display"
+    )
+    current_display = next(
+        item
+        for item in current["generation_manifest"]["review_scopes"]
+        if item["review_lane"] == "display"
+    )
+    assert "pdf" in {item["role"] for item in current_display["reviewed_members"]}
+    assert origin_display["review_scope_sha256"] == current_display[
+        "review_scope_sha256"
+    ]
+    origin_receipt = next(
+        item["receipt_ref"]
+        for item in origin["generation_manifest"]["professional_skill_invocations"]
+        if item["skill_id"] == "medical-display-qc"
+    )
+    current_receipt = next(
+        item["receipt_ref"]
+        for item in current["generation_manifest"]["professional_skill_invocations"]
+        if item["skill_id"] == "medical-display-qc"
+    )
+    assert origin_receipt != current_receipt
+
+    pdf_member = next(
+        item
+        for item in current["generation_manifest"]["artifacts"]
+        if item["role"] == "pdf"
+    )
+    _authorize_reused_lane(
+        current,
+        origin,
+        "display",
+        authority_records,
+        invalidating_changes=[
+            _epistemic_change(
+                authority_records,
+                node_ref=pdf_member["member_id"],
+                change_class="visual_content",
+            )
+        ],
+    )
+    result = _evaluate(current)
+    _assert_progress_debt(
+        result, "first_draft_cross_domain_pre_review_missing_or_stale"
+    )
+    assert result["route_back"]["affected_review_lanes"][0][
+        "review_lane"
+    ] == "display"
+
+
 def test_missing_professional_figure_skill_receipts_are_progress_first_quality_debt(
     authority_records: Any,
 ) -> None:

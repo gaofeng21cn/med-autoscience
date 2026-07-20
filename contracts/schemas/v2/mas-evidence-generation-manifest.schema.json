@@ -121,6 +121,9 @@
         ]
       }
     },
+    "first_draft_quality_application": {
+      "$ref": "#/$defs/first_draft_quality_application"
+    },
     "independent_review_receipts": {
       "type": "array",
       "uniqueItems": true,
@@ -167,7 +170,20 @@
         "next_action_envelope",
         "submission_projection_manifest",
         "candidate_artifact",
-        "evidence_record"
+        "evidence_record",
+        "medical_initial_draft_preflight_candidate",
+        "clinical_analysis_input_identity",
+        "citation_source_coverage",
+        "validation_partition_integrity",
+        "endpoint_analysis_set_reconciliation",
+        "model_complexity_sparse_event",
+        "fixed_horizon_risk_semantics",
+        "competing_risk",
+        "decision_curve_validity",
+        "baseline_table_traceability",
+        "document_display_scope_coverage",
+        "claim_guardrail",
+        "external_transportability"
       ]
     },
     "generation_artifact_v1": {
@@ -225,6 +241,436 @@
           "$ref": "#/$defs/sha256"
         }
       }
+    },
+    "first_draft_quality_application": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "surface_kind",
+        "schema_version",
+        "paper_type",
+        "validation_design",
+        "triggers",
+        "candidate_refs"
+      ],
+      "properties": {
+        "surface_kind": {
+          "const": "mas_first_draft_quality_application_candidate"
+        },
+        "schema_version": {
+          "enum": [
+            1,
+            2
+          ]
+        },
+        "paper_type": {
+          "enum": [
+            "prediction_model",
+            "other"
+          ]
+        },
+        "validation_design": {
+          "enum": [
+            "not_applicable",
+            "development_only",
+            "internal_validation",
+            "internal_external",
+            "external_validation"
+          ]
+        },
+        "triggers": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "reports_fixed_horizon_risk",
+            "competing_risk_relevant",
+            "reports_decision_curve_analysis",
+            "includes_table_one",
+            "requires_reader_pdf"
+          ],
+          "properties": {
+            "reports_fixed_horizon_risk": {
+              "type": "boolean"
+            },
+            "competing_risk_relevant": {
+              "type": "boolean"
+            },
+            "reports_decision_curve_analysis": {
+              "type": "boolean"
+            },
+            "includes_table_one": {
+              "type": "boolean"
+            },
+            "requires_reader_pdf": {
+              "type": "boolean"
+            },
+            "uses_clinical_or_registry_data": {
+              "type": "boolean"
+            }
+          }
+        },
+        "candidate_refs": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "medical_initial_draft_preflight_candidate_ref",
+            "clinical_analysis_input_identity_ref",
+            "citation_source_coverage_ref",
+            "validation_partition_integrity_ref",
+            "endpoint_analysis_set_reconciliation_ref",
+            "model_complexity_sparse_event_ref",
+            "fixed_horizon_risk_semantics_ref",
+            "competing_risk_ref",
+            "decision_curve_validity_ref",
+            "baseline_table_traceability_ref",
+            "document_display_scope_coverage_ref",
+            "claim_guardrail_ref",
+            "external_transportability_ref"
+          ],
+          "properties": {
+            "medical_initial_draft_preflight_candidate_ref": {
+              "$ref": "#/$defs/nullable_mas_artifact_exact_ref"
+            },
+            "clinical_analysis_input_identity_ref": {
+              "$ref": "#/$defs/nullable_mas_artifact_exact_ref"
+            },
+            "citation_source_coverage_ref": {
+              "$ref": "#/$defs/nullable_mas_artifact_exact_ref"
+            },
+            "validation_partition_integrity_ref": {
+              "$ref": "#/$defs/nullable_mas_artifact_exact_ref"
+            },
+            "endpoint_analysis_set_reconciliation_ref": {
+              "$ref": "#/$defs/nullable_mas_artifact_exact_ref"
+            },
+            "model_complexity_sparse_event_ref": {
+              "$ref": "#/$defs/nullable_mas_artifact_exact_ref"
+            },
+            "fixed_horizon_risk_semantics_ref": {
+              "$ref": "#/$defs/nullable_mas_artifact_exact_ref"
+            },
+            "competing_risk_ref": {
+              "$ref": "#/$defs/nullable_mas_artifact_exact_ref"
+            },
+            "decision_curve_validity_ref": {
+              "$ref": "#/$defs/nullable_mas_artifact_exact_ref"
+            },
+            "baseline_table_traceability_ref": {
+              "$ref": "#/$defs/nullable_mas_artifact_exact_ref"
+            },
+            "document_display_scope_coverage_ref": {
+              "$ref": "#/$defs/nullable_mas_artifact_exact_ref"
+            },
+            "claim_guardrail_ref": {
+              "$ref": "#/$defs/nullable_mas_artifact_exact_ref"
+            },
+            "external_transportability_ref": {
+              "$ref": "#/$defs/nullable_mas_artifact_exact_ref"
+            }
+          }
+        },
+        "candidate_dispositions": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "medical_initial_draft_preflight_candidate_ref",
+            "clinical_analysis_input_identity_ref",
+            "citation_source_coverage_ref",
+            "validation_partition_integrity_ref",
+            "endpoint_analysis_set_reconciliation_ref",
+            "model_complexity_sparse_event_ref",
+            "fixed_horizon_risk_semantics_ref",
+            "competing_risk_ref",
+            "decision_curve_validity_ref",
+            "baseline_table_traceability_ref",
+            "document_display_scope_coverage_ref",
+            "claim_guardrail_ref",
+            "external_transportability_ref"
+          ],
+          "properties": {
+            "medical_initial_draft_preflight_candidate_ref": {
+              "$ref": "#/$defs/first_draft_candidate_disposition"
+            },
+            "clinical_analysis_input_identity_ref": {
+              "$ref": "#/$defs/first_draft_candidate_disposition"
+            },
+            "citation_source_coverage_ref": {
+              "$ref": "#/$defs/first_draft_candidate_disposition"
+            },
+            "validation_partition_integrity_ref": {
+              "$ref": "#/$defs/first_draft_candidate_disposition"
+            },
+            "endpoint_analysis_set_reconciliation_ref": {
+              "$ref": "#/$defs/first_draft_candidate_disposition"
+            },
+            "model_complexity_sparse_event_ref": {
+              "$ref": "#/$defs/first_draft_candidate_disposition"
+            },
+            "fixed_horizon_risk_semantics_ref": {
+              "$ref": "#/$defs/first_draft_candidate_disposition"
+            },
+            "competing_risk_ref": {
+              "$ref": "#/$defs/first_draft_candidate_disposition"
+            },
+            "decision_curve_validity_ref": {
+              "$ref": "#/$defs/first_draft_candidate_disposition"
+            },
+            "baseline_table_traceability_ref": {
+              "$ref": "#/$defs/first_draft_candidate_disposition"
+            },
+            "document_display_scope_coverage_ref": {
+              "$ref": "#/$defs/first_draft_candidate_disposition"
+            },
+            "claim_guardrail_ref": {
+              "$ref": "#/$defs/first_draft_candidate_disposition"
+            },
+            "external_transportability_ref": {
+              "$ref": "#/$defs/first_draft_candidate_disposition"
+            }
+          }
+        }
+      },
+      "allOf": [
+        {
+          "if": {
+            "properties": {
+              "schema_version": {
+                "const": 2
+              }
+            }
+          },
+          "then": {
+            "required": [
+              "candidate_dispositions"
+            ],
+            "properties": {
+              "triggers": {
+                "required": [
+                  "uses_clinical_or_registry_data"
+                ]
+              },
+              "candidate_refs": {
+                "additionalProperties": {
+                  "$ref": "#/$defs/nullable_nonempty_mas_artifact_exact_ref"
+                }
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "schema_version": {
+                "const": 1
+              }
+            }
+          },
+          "then": {
+            "allOf": [
+              {
+                "not": {
+                  "required": [
+                    "candidate_dispositions"
+                  ]
+                }
+              },
+              {
+                "properties": {
+                  "triggers": {
+                    "not": {
+                      "required": [
+                        "uses_clinical_or_registry_data"
+                      ]
+                    }
+                  }
+                }
+              }
+            ]
+          }
+        }
+      ]
+    },
+    "first_draft_candidate_disposition": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "status",
+        "earliest_route_back_owner",
+        "reason_codes",
+        "unresolved_items",
+        "not_applicable_reason"
+      ],
+      "properties": {
+        "status": {
+          "enum": [
+            "satisfied",
+            "route_back_required",
+            "not_applicable_with_reason"
+          ]
+        },
+        "earliest_route_back_owner": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "enum": [
+            "baseline_and_evidence_setup",
+            "bounded_analysis_campaign",
+            "manuscript_authoring",
+            "review_and_quality_gate",
+            null
+          ]
+        },
+        "reason_codes": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": {
+            "$ref": "#/$defs/non_empty_text"
+          }
+        },
+        "unresolved_items": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": {
+            "$ref": "#/$defs/non_empty_text"
+          }
+        },
+        "not_applicable_reason": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "minLength": 1
+        }
+      },
+      "allOf": [
+        {
+          "if": {
+            "properties": {
+              "status": {
+                "const": "satisfied"
+              }
+            }
+          },
+          "then": {
+            "properties": {
+              "earliest_route_back_owner": {
+                "type": "null"
+              },
+              "reason_codes": {
+                "maxItems": 0
+              },
+              "unresolved_items": {
+                "maxItems": 0
+              },
+              "not_applicable_reason": {
+                "type": "null"
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "status": {
+                "const": "route_back_required"
+              }
+            }
+          },
+          "then": {
+            "properties": {
+              "earliest_route_back_owner": {
+                "type": "string"
+              },
+              "reason_codes": {
+                "minItems": 1
+              },
+              "unresolved_items": {
+                "minItems": 1
+              },
+              "not_applicable_reason": {
+                "type": "null"
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "status": {
+                "const": "not_applicable_with_reason"
+              }
+            }
+          },
+          "then": {
+            "properties": {
+              "earliest_route_back_owner": {
+                "type": "null"
+              },
+              "reason_codes": {
+                "maxItems": 0
+              },
+              "unresolved_items": {
+                "maxItems": 0
+              },
+              "not_applicable_reason": {
+                "type": "string",
+                "minLength": 1
+              }
+            }
+          }
+        }
+      ]
+    },
+    "mas_artifact_exact_ref": {
+      "allOf": [
+        {
+          "$ref": "#/$defs/exact_ref"
+        },
+        {
+          "type": "object",
+          "properties": {
+            "kind": {
+              "const": "mas_artifact"
+            }
+          }
+        }
+      ]
+    },
+    "nullable_mas_artifact_exact_ref": {
+      "oneOf": [
+        {
+          "$ref": "#/$defs/mas_artifact_exact_ref"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "nonempty_mas_artifact_exact_ref": {
+      "allOf": [
+        {
+          "$ref": "#/$defs/mas_artifact_exact_ref"
+        },
+        {
+          "type": "object",
+          "properties": {
+            "size_bytes": {
+              "minimum": 1
+            }
+          }
+        }
+      ]
+    },
+    "nullable_nonempty_mas_artifact_exact_ref": {
+      "oneOf": [
+        {
+          "$ref": "#/$defs/nonempty_mas_artifact_exact_ref"
+        },
+        {
+          "type": "null"
+        }
+      ]
     },
     "professional_figure_artifact_binding": {
       "type": "object",
@@ -379,10 +825,19 @@
           "const": "mas_professional_figure_skill_invocation_candidate"
         },
         "schema_version": {
-          "const": 1
+          "enum": [
+            1,
+            2
+          ]
         },
         "receipt_id": {
           "$ref": "#/$defs/non_empty_text"
+        },
+        "invocation_ref": {
+          "$ref": "#/$defs/exact_ref"
+        },
+        "receipt_ref": {
+          "$ref": "#/$defs/exact_ref"
         },
         "figure_id": {
           "$ref": "#/$defs/non_empty_text"
@@ -449,6 +904,14 @@
             "$ref": "#/$defs/professional_figure_artifact_binding"
           }
         },
+        "input_artifact_bindings": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": {
+            "$ref": "#/$defs/generation_artifact_v2"
+          }
+        },
         "template_usage": {
           "$ref": "#/$defs/figure_template_usage"
         },
@@ -499,6 +962,22 @@
               ]
             }
           }
+        },
+        {
+          "if": {
+            "properties": {
+              "schema_version": {
+                "const": 2
+              }
+            }
+          },
+          "then": {
+            "required": [
+              "invocation_ref",
+              "receipt_ref",
+              "input_artifact_bindings"
+            ]
+          }
         }
       ]
     },
@@ -532,17 +1011,31 @@
           "const": "mas_professional_manuscript_skill_invocation_candidate"
         },
         "schema_version": {
-          "const": 1
+          "enum": [
+            1,
+            2
+          ]
         },
         "receipt_id": {
           "$ref": "#/$defs/non_empty_text"
+        },
+        "invocation_ref": {
+          "$ref": "#/$defs/exact_ref"
+        },
+        "receipt_ref": {
+          "$ref": "#/$defs/exact_ref"
         },
         "skill_id": {
           "enum": [
             "medical-manuscript-writing",
             "medical-registry-atlas-story-architect",
+            "medical-data-freeze-and-analysis-readiness-reviewer",
+            "medical-reference-integrity-auditor",
             "medical-statistical-review",
+            "medical-survival-analysis-plan",
+            "medical-risk-model-transportability-reviewer",
             "medical-table-design",
+            "medical-display-qc",
             "medical-submission-prep"
           ]
         },
@@ -589,6 +1082,14 @@
             "$ref": "#/$defs/generation_artifact_v2"
           }
         },
+        "input_artifact_bindings": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": {
+            "$ref": "#/$defs/generation_artifact_v2"
+          }
+        },
         "template_substitution": {
           "const": false
         },
@@ -607,7 +1108,25 @@
         "table_quality_application": {
           "$ref": "#/$defs/table_quality_application"
         }
-      }
+      },
+      "allOf": [
+        {
+          "if": {
+            "properties": {
+              "schema_version": {
+                "const": 2
+              }
+            }
+          },
+          "then": {
+            "required": [
+              "invocation_ref",
+              "receipt_ref",
+              "input_artifact_bindings"
+            ]
+          }
+        }
+      ]
     },
     "table_quality_application": {
       "type": "object",
@@ -995,7 +1514,10 @@
             "opl_reviewer_input_snapshot_manifest",
             "mas_review_input_snapshot_authority",
             "mas_candidate_admission_receipt",
-            "mas_reviewer_receipt"
+            "mas_reviewer_receipt",
+            "mas_artifact",
+            "mas_professional_skill_invocation",
+            "scholarskills_professional_skill_receipt"
           ]
         },
         "ref": {

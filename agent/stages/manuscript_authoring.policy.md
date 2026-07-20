@@ -18,12 +18,28 @@ Missing or stale receipts are quality debt in Authoring and Review, and fail
 closed only for quality/export/finalize/publication/submission claims.
 
 First-draft scientific inputs follow
-`contracts/manuscript_first_draft_quality_policy.json`. Prediction-model external
-validation and fixed-horizon risk writing consumes the policy's statistical,
-transportability, survival, table, construct-comparability, and structured-
-display-source refs before prose. Missing refs may produce a reviewable draft
-with quality debt, but they cannot be replaced by a binary event fraction,
-proxy construct, stale render request, template, or successful renderer exit.
+`contracts/manuscript_first_draft_quality_policy.json`. Current work uses
+application schema v2 and one disposition for every canonical candidate ref:
+`satisfied`, `route_back_required`, or `not_applicable_with_reason`. A v1
+application remains readable but always creates
+`first_draft_candidate_dispositions_missing` quality debt. Resolve dispositions
+at the earliest canonical owner in baseline, analysis, authoring, then review
+order; ref presence is checked only after no earlier route-back remains.
+
+Clinical/registry data requires exact input-identity and data-freeze candidates;
+non-clinical work records an explicit not-applicable reason. Prediction-model
+work distinguishes development, internal, internal-external, and external
+validation. Transportability review is external-validation-only. Triggered
+fixed-horizon, competing-risk, DCA, Table 1, and reader-PDF work consumes its
+specialist candidate and exact schema-v2 invocation, Scholar receipt, input,
+and output bindings. PH evidence follows the explicit Scholar preflight
+`ph_assessment_applicability` value and must not be inferred from model-family
+text; nonlinearity evidence remains conditional on a positive continuous-
+predictor count, while formal sample-size/overfitting evidence is not. DCA
+binds calibration basis/status plus uncertainty method/interval. Missing or
+unresolved evidence may produce a reviewable draft with quality debt, but it
+cannot be replaced by a binary event fraction, stale render, template, or
+successful renderer exit.
 
 Reader-facing export follows `contracts/publication_layout_policy.json` and a
 `medical-submission-prep` selection ref. A named journal consumes its local
@@ -42,6 +58,11 @@ configuration closure. Iterative preview is component-scoped; full export,
 complete render inspection, exact-byte inventory, and affected-lane review happen
 only after one candidate freeze. Preview and cache evidence are not Review
 receipts.
+
+Canonical source and every derived manuscript, table, figure, and PDF byte
+surface also pass `agent/quality_gates/artifact_source_authority_gate.md`.
+File presence, a generation hash, or a professional candidate receipt cannot
+promote a derived artifact into MAS source or publication authority.
 
 Refs-only candidates enter canonical claims only through an exact MAS candidate
 admission receipt. Candidate/evidence ref, size, hash, source-input digest,

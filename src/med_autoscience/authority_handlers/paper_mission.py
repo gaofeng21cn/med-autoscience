@@ -7,10 +7,13 @@ from typing import Any
 
 from ._generation_manifest import (
     EPISTEMIC_AUTHORITY_BOUNDARY,
+    FIRST_DRAFT_QUALITY_ROUTE_PRIORITY,
+    PROFESSIONAL_MANUSCRIPT_SKILL_INPUT_ROLES,
     PROFESSIONAL_MANUSCRIPT_SKILL_ROLES,
     REVIEW_LANE_ORDER,
     REVIEW_LANES_BY_SCOPE,
     epistemic_review_dependency_refs,
+    first_draft_applicable_ref_fields,
     normalize_generation_manifest,
     require_stage_scope,
     review_scope_member_projection,
@@ -188,6 +191,15 @@ def evaluate_paper_mission_authority(request: Mapping[str, Any]) -> dict[str, An
             reason_code=candidate_issue[0],
             next_owner="mas_candidate_admission_owner",
             resume_condition=candidate_issue[1],
+        )
+
+    first_draft_issue = _first_draft_quality_issue(normalized)
+    if first_draft_issue is not None:
+        return _first_draft_quality_debt_result(
+            normalized,
+            next_owner=first_draft_issue[0],
+            reason_codes=first_draft_issue[1],
+            resume_condition=first_draft_issue[2],
         )
 
     host = normalized["host_context"]
@@ -2284,6 +2296,98 @@ def _review_quality_debt(
     return dedupe(codes), list(unique_refs.values())
 
 
+def _first_draft_quality_issue(
+    request: Mapping[str, Any],
+) -> tuple[str, list[str], str] | None:
+    manifest = request["generation_manifest"]
+    if manifest["schema_version"] != 2 or manifest["manifest_scope"] == (
+        "analysis_generation"
+    ):
+        return None
+    application = manifest.get("first_draft_quality_application")
+    if application is None:
+        return (
+            "baseline_and_evidence_setup",
+            ["first_draft_quality_application_missing"],
+            "materialize the current Scholar preflight application and exact upstream refs",
+        )
+
+    if application["schema_version"] != 2:
+        return (
+            "baseline_and_evidence_setup",
+            ["first_draft_candidate_dispositions_missing"],
+            "regenerate the first-draft application with canonical candidate dispositions",
+        )
+
+    dispositions = application["candidate_dispositions"]
+    for owner in FIRST_DRAFT_QUALITY_ROUTE_PRIORITY:
+        owner_dispositions = [
+            disposition
+            for disposition in dispositions.values()
+            if disposition["status"] == "route_back_required"
+            and disposition["earliest_route_back_owner"] == owner
+        ]
+        if owner_dispositions:
+            return (
+                owner,
+                dedupe(
+                    [
+                        reason_code
+                        for disposition in owner_dispositions
+                        for reason_code in disposition["reason_codes"]
+                    ]
+                ),
+                "resolve the earliest canonical first-draft preflight findings and "
+                "regenerate their exact candidate refs",
+            )
+
+    candidate_refs = application["candidate_refs"]
+    owner_by_field = {
+        "clinical_analysis_input_identity_ref": "baseline_and_evidence_setup",
+        "citation_source_coverage_ref": "baseline_and_evidence_setup",
+        "validation_partition_integrity_ref": "bounded_analysis_campaign",
+        "endpoint_analysis_set_reconciliation_ref": "bounded_analysis_campaign",
+        "model_complexity_sparse_event_ref": "bounded_analysis_campaign",
+        "fixed_horizon_risk_semantics_ref": "bounded_analysis_campaign",
+        "competing_risk_ref": "bounded_analysis_campaign",
+        "decision_curve_validity_ref": "bounded_analysis_campaign",
+        "external_transportability_ref": "bounded_analysis_campaign",
+        "medical_initial_draft_preflight_candidate_ref": "manuscript_authoring",
+        "baseline_table_traceability_ref": "manuscript_authoring",
+        "document_display_scope_coverage_ref": "manuscript_authoring",
+        "claim_guardrail_ref": "manuscript_authoring",
+    }
+    applicable_fields = first_draft_applicable_ref_fields(application)
+    for owner in FIRST_DRAFT_QUALITY_ROUTE_PRIORITY:
+        missing = [
+            f"first_draft_{field.removesuffix('_ref')}_missing"
+            for field in owner_by_field
+            if field in applicable_fields
+            and owner_by_field[field] == owner
+            and candidate_refs[field] is None
+        ]
+        if missing:
+            return (
+                owner,
+                missing,
+                "materialize the exact candidate refs required by the accepted dispositions",
+            )
+
+    triggers = application["triggers"]
+    missing_authoring = []
+    if triggers["requires_reader_pdf"] and not any(
+        artifact["role"] == "pdf" for artifact in manifest["artifacts"]
+    ):
+        missing_authoring.append("first_draft_composed_paper_pdf_missing")
+    if missing_authoring:
+        return (
+            "manuscript_authoring",
+            missing_authoring,
+            "close manuscript, Table 1, claim, and composed-reader display refs",
+        )
+    return None
+
+
 def _professional_figure_skill_quality_debt(
     request: Mapping[str, Any],
 ) -> list[str]:
@@ -2303,6 +2407,7 @@ def _professional_figure_skill_quality_debt(
     ]
     if not invocations:
         return ["professional_figure_skill_consumption_evidence_missing"]
+    requires_exact_receipts = manifest.get("first_draft_quality_application") is not None
 
     groups: dict[str, list[Mapping[str, Any]]] = {}
     for invocation in invocations:
@@ -2311,6 +2416,10 @@ def _professional_figure_skill_quality_debt(
     codes: list[str] = []
     covered_members: set[str] = set()
     for figure_id, group in sorted(groups.items()):
+        if requires_exact_receipts and any(
+            item["schema_version"] != 2 for item in group
+        ):
+            codes.append("professional_figure_exact_receipt_binding_missing")
         skills = {item["skill_id"] for item in group}
         required = {"medical-figure-design", "medical-figure-style"}
         composition_modes = {item["composition_mode"] for item in group}
@@ -2388,6 +2497,27 @@ def _professional_manuscript_skill_quality_debt(
     invocations_by_skill = {item["skill_id"]: item for item in invocations}
     artifact_roles = {item["role"] for item in artifacts.values()}
     required_skills = {"medical-manuscript-writing"}
+    application = manifest.get("first_draft_quality_application")
+    if application is not None:
+        required_skills.add("medical-reference-integrity-auditor")
+        if application["triggers"]["uses_clinical_or_registry_data"]:
+            required_skills.add(
+                "medical-data-freeze-and-analysis-readiness-reviewer"
+            )
+        if application["paper_type"] == "prediction_model":
+            required_skills.add("medical-statistical-review")
+        triggers = application["triggers"]
+        if (
+            triggers["reports_fixed_horizon_risk"]
+            or triggers["competing_risk_relevant"]
+        ):
+            required_skills.add("medical-survival-analysis-plan")
+        if application["validation_design"] == "external_validation":
+            required_skills.add("medical-risk-model-transportability-reviewer")
+        if triggers["includes_table_one"]:
+            required_skills.add("medical-table-design")
+        if triggers["requires_reader_pdf"]:
+            required_skills.add("medical-display-qc")
     if artifact_roles & {"analysis_output", "numeric_trace"}:
         required_skills.add("medical-statistical-review")
     if artifact_roles & {"table_catalog", "table_file"}:
@@ -2398,10 +2528,23 @@ def _professional_manuscript_skill_quality_debt(
         "medical-manuscript-writing": (
             "professional_manuscript_writing_consumption_missing"
         ),
+        "medical-data-freeze-and-analysis-readiness-reviewer": (
+            "professional_data_freeze_readiness_consumption_missing"
+        ),
+        "medical-reference-integrity-auditor": (
+            "professional_reference_integrity_consumption_missing"
+        ),
         "medical-statistical-review": (
             "professional_statistical_review_consumption_missing"
         ),
+        "medical-survival-analysis-plan": (
+            "professional_survival_analysis_consumption_missing"
+        ),
+        "medical-risk-model-transportability-reviewer": (
+            "professional_transportability_review_consumption_missing"
+        ),
         "medical-table-design": "professional_table_design_consumption_missing",
+        "medical-display-qc": "professional_display_qc_consumption_missing",
         "medical-submission-prep": (
             "professional_submission_prep_consumption_missing"
         ),
@@ -2413,12 +2556,25 @@ def _professional_manuscript_skill_quality_debt(
         "medical-registry-atlas-story-architect": (
             "professional_registry_story_output_coverage_incomplete"
         ),
+        "medical-data-freeze-and-analysis-readiness-reviewer": (
+            "professional_data_freeze_output_coverage_incomplete"
+        ),
+        "medical-reference-integrity-auditor": (
+            "professional_reference_integrity_output_coverage_incomplete"
+        ),
         "medical-statistical-review": (
             "professional_statistical_review_output_coverage_incomplete"
+        ),
+        "medical-survival-analysis-plan": (
+            "professional_survival_analysis_output_coverage_incomplete"
+        ),
+        "medical-risk-model-transportability-reviewer": (
+            "professional_transportability_output_coverage_incomplete"
         ),
         "medical-table-design": (
             "professional_table_design_output_coverage_incomplete"
         ),
+        "medical-display-qc": "professional_display_qc_output_coverage_incomplete",
         "medical-submission-prep": (
             "professional_submission_prep_output_coverage_incomplete"
         ),
@@ -2427,6 +2583,12 @@ def _professional_manuscript_skill_quality_debt(
     for skill_id in sorted(required_skills):
         if skill_id not in invocations_by_skill:
             codes.append(missing_codes[skill_id])
+    if (
+        application is not None
+        and application["validation_design"] != "external_validation"
+        and "medical-risk-model-transportability-reviewer" in invocations_by_skill
+    ):
+        codes.append("professional_transportability_review_not_applicable")
     for invocation in invocations:
         allowed_roles = PROFESSIONAL_MANUSCRIPT_SKILL_ROLES[invocation["skill_id"]]
         expected_member_ids = {
@@ -2450,6 +2612,28 @@ def _professional_manuscript_skill_quality_debt(
                 )
             ):
                 codes.append("professional_manuscript_skill_output_binding_stale")
+        if application is not None:
+            if invocation["schema_version"] != 2:
+                codes.append("professional_skill_exact_receipt_binding_missing")
+            else:
+                required_input_roles = PROFESSIONAL_MANUSCRIPT_SKILL_INPUT_ROLES[
+                    invocation["skill_id"]
+                ]
+                if (
+                    invocation["skill_id"] == "medical-manuscript-writing"
+                    and not application["triggers"][
+                        "uses_clinical_or_registry_data"
+                    ]
+                ):
+                    required_input_roles = required_input_roles - {
+                        "clinical_analysis_input_identity"
+                    }
+                covered_input_roles = {
+                    binding["role"]
+                    for binding in invocation["input_artifact_bindings"]
+                }
+                if not required_input_roles.issubset(covered_input_roles):
+                    codes.append("professional_skill_input_coverage_incomplete")
         if invocation["skill_id"] == "medical-table-design":
             codes.extend(_professional_table_quality_debt(invocation))
     return dedupe(codes)
@@ -2491,6 +2675,38 @@ def _professional_table_quality_debt(
         ):
             codes.append("professional_main_table_final_embedding_incomplete")
     return dedupe(codes)
+
+
+def _first_draft_quality_debt_result(
+    request: Mapping[str, Any],
+    *,
+    next_owner: str,
+    reason_codes: list[str],
+    resume_condition: str,
+) -> dict[str, Any]:
+    reason_codes = dedupe(reason_codes)
+    if request["mission"]["stage_id"] == "finalize_and_publication_handoff":
+        return _route_result(
+            request,
+            reason_code=reason_codes[0],
+            next_owner=next_owner,
+            resume_condition=resume_condition,
+        )
+    route_back = _route_back(
+        request,
+        reason_code=reason_codes[0],
+        next_owner=next_owner,
+        resume_condition=resume_condition,
+    )
+    return _finalize(
+        request,
+        status="completed_with_quality_debt",
+        stage_outcome=_stage_outcome(
+            "completed_with_quality_debt", transition_allowed=True
+        ),
+        route_back=route_back,
+        quality_debt=_quality_debt(request, reason_codes=reason_codes),
+    )
 
 
 def _professional_skill_debt_result(
@@ -2555,6 +2771,9 @@ def _owner_receipt(request: Mapping[str, Any]) -> dict[str, Any]:
         "reproducibility_refs": list(evidence["reproducibility_refs"]),
         "source_readiness_receipt_ref": evidence["source_readiness_receipt_ref"],
         "claim_boundary_ref": evidence["claim_boundary_ref"],
+        "professional_skill_receipt_projection": (
+            _professional_skill_receipt_projection(request)
+        ),
         "independent_review_receipt_refs": [
             dict(item["receipt_ref"]) for item in reviews
         ],
@@ -2576,6 +2795,27 @@ def _owner_receipt(request: Mapping[str, Any]) -> dict[str, Any]:
         "receipt_size_bytes": len(canonical_json_bytes(core)),
         "receipt_fingerprint": receipt_fingerprint,
     }
+
+
+def _professional_skill_receipt_projection(
+    request: Mapping[str, Any],
+) -> list[dict[str, Any]]:
+    projection = []
+    for invocation in request["generation_manifest"].get(
+        "professional_skill_invocations", []
+    ):
+        if invocation["schema_version"] != 2:
+            continue
+        projection.append(
+            {
+                "skill_id": invocation["skill_id"],
+                "target_id": invocation.get("figure_id"),
+                "invocation_ref": dict(invocation["invocation_ref"]),
+                "receipt_ref": dict(invocation["receipt_ref"]),
+            }
+        )
+    projection.sort(key=lambda item: (item["skill_id"], item["target_id"] or ""))
+    return projection
 
 
 def _revision_consumption_projection(request: Mapping[str, Any]) -> dict[str, Any]:

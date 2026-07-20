@@ -1271,7 +1271,8 @@
         "agent/knowledge/research_trajectory_medical_narrative.md"
       ],
       "quality_gate_refs": [
-        "agent/quality_gates/ai_reviewer_auditor_gate.md"
+        "agent/quality_gates/ai_reviewer_auditor_gate.md",
+        "agent/quality_gates/artifact_source_authority_gate.md"
       ],
       "allowed_action_refs": [
         "manuscript_authoring"
@@ -1461,17 +1462,49 @@
         },
         "first_draft_professional_skill_routing": {
           "quality_policy_ref": "contracts/manuscript_first_draft_quality_policy.json",
+          "current_application_schema_version": 2,
+          "legacy_application_schema_version_read_compatible": true,
+          "legacy_application_cannot_satisfy_current_first_draft_ready": true,
           "base_required_skill": "medical-manuscript-writing",
+          "current_first_draft_required_specialists": [
+            "medical-reference-integrity-auditor"
+          ],
           "registry_or_atlas_specialist": "medical-registry-atlas-story-architect",
           "conditional_specialists": [
+            "medical-data-freeze-and-analysis-readiness-reviewer",
             "medical-statistical-review",
             "medical-risk-model-transportability-reviewer",
             "medical-survival-analysis-plan",
             "medical-table-design",
+            "medical-display-qc",
             "medical-figure-design",
             "medical-figure-style",
             "medical-figure-composer"
           ],
+          "conditional_specialist_routes": {
+            "uses_clinical_or_registry_data": "medical-data-freeze-and-analysis-readiness-reviewer",
+            "prediction_model": "medical-statistical-review",
+            "fixed_horizon_or_competing_risk": "medical-survival-analysis-plan",
+            "external_validation_only": "medical-risk-model-transportability-reviewer",
+            "table_one": "medical-table-design",
+            "reader_pdf": "medical-display-qc"
+          },
+          "candidate_disposition_statuses": [
+            "satisfied",
+            "route_back_required",
+            "not_applicable_with_reason"
+          ],
+          "satisfied_or_route_back_requires_nonempty_candidate_ref": true,
+          "route_priority": [
+            "baseline_and_evidence_setup",
+            "bounded_analysis_campaign",
+            "manuscript_authoring",
+            "review_and_quality_gate"
+          ],
+          "exact_skill_invocation_ref_required": true,
+          "exact_skill_receipt_ref_required": true,
+          "exact_input_artifact_bindings_required": true,
+          "owner_receipt_projects_exact_skill_refs": true,
           "template_can_replace_professional_skill_consumption": false,
           "pre_review_lanes_from_generation_manifest": [
             "medical",
