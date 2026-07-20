@@ -603,7 +603,78 @@
         },
         "publication_ready": {
           "const": false
+        },
+        "table_quality_application": {
+          "$ref": "#/$defs/table_quality_application"
         }
+      }
+    },
+    "table_quality_application": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "schema_version",
+        "policy_ref",
+        "template_policy",
+        "coverage_status",
+        "main_tables"
+      ],
+      "properties": {
+        "schema_version": {"const": 1},
+        "policy_ref": {"const": "medical-table-design#main-table-information-budget"},
+        "template_policy": {"const": "reference_floor_not_required"},
+        "coverage_status": {"const": "all_main_tables_assessed"},
+        "main_tables": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": {"$ref": "#/$defs/main_table_quality_assessment"}
+        }
+      }
+    },
+    "main_table_quality_assessment": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "table_id",
+        "role",
+        "reader_question",
+        "row_count",
+        "column_count",
+        "body_word_count",
+        "max_cell_word_count",
+        "footnote_word_count",
+        "supplementary_detail_refs",
+        "budget_status",
+        "exception_reason",
+        "final_embedding_status",
+        "final_embedding_page_span",
+        "standalone_notes_heading_present"
+      ],
+      "properties": {
+        "table_id": {"$ref": "#/$defs/non_empty_text"},
+        "role": {"const": "main_text"},
+        "reader_question": {"$ref": "#/$defs/non_empty_text"},
+        "row_count": {"type": "integer", "minimum": 0},
+        "column_count": {"type": "integer", "minimum": 0},
+        "body_word_count": {"type": "integer", "minimum": 0},
+        "max_cell_word_count": {"type": "integer", "minimum": 0},
+        "footnote_word_count": {"type": "integer", "minimum": 0},
+        "supplementary_detail_refs": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": {"$ref": "#/$defs/non_empty_text"}
+        },
+        "budget_status": {
+          "enum": ["within_default_budget", "documented_exception"]
+        },
+        "exception_reason": {
+          "type": ["string", "null"],
+          "minLength": 1
+        },
+        "final_embedding_status": {"enum": ["pending", "passed"]},
+        "final_embedding_page_span": {"type": "integer", "minimum": 0},
+        "standalone_notes_heading_present": {"type": "boolean"}
       }
     },
     "review_scope": {

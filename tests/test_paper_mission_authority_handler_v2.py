@@ -332,6 +332,150 @@ def test_first_draft_requires_specialists_for_present_artifact_roles(
     _assert_progress_debt(result, reason_code)
 
 
+def test_table_skill_receipt_without_quality_application_is_progress_first_debt(
+    authority_records: Any,
+) -> None:
+    request = authority_records.paper_request()
+    invocation = next(
+        item
+        for item in request["generation_manifest"]["professional_skill_invocations"]
+        if item["skill_id"] == "medical-table-design"
+    )
+    del invocation["table_quality_application"]
+    authority_records.refresh_paper_manifest_identity(request)
+
+    result = _evaluate(request)
+
+    _assert_progress_debt(result, "professional_table_quality_application_missing")
+
+
+def test_overloaded_main_table_cannot_pass_finalize_with_skill_receipt(
+    authority_records: Any,
+) -> None:
+    request = authority_records.paper_request(
+        scope="publication_generation",
+        stage_id="finalize_and_publication_handoff",
+    )
+    invocation = next(
+        item
+        for item in request["generation_manifest"]["professional_skill_invocations"]
+        if item["skill_id"] == "medical-table-design"
+    )
+    table = invocation["table_quality_application"]["main_tables"][0]
+    table.update(
+        {
+            "row_count": 23,
+            "column_count": 9,
+            "body_word_count": 900,
+            "max_cell_word_count": 36,
+            "footnote_word_count": 120,
+            "supplementary_detail_refs": [],
+            "final_embedding_status": "pending",
+            "final_embedding_page_span": 2,
+        }
+    )
+    authority_records.refresh_paper_manifest_identity(request)
+
+    result = _evaluate(request)
+
+    route_back = _assert_finalize_route_back(
+        result,
+        "professional_main_table_information_budget_exceeded",
+    )
+    assert route_back["next_owner"] == "mission_executor"
+
+
+def test_overloaded_main_table_is_progress_first_debt_during_authoring(
+    authority_records: Any,
+) -> None:
+    request = authority_records.paper_request()
+    invocation = next(
+        item
+        for item in request["generation_manifest"]["professional_skill_invocations"]
+        if item["skill_id"] == "medical-table-design"
+    )
+    table = invocation["table_quality_application"]["main_tables"][0]
+    table.update(
+        {
+            "row_count": 23,
+            "column_count": 9,
+            "body_word_count": 900,
+            "max_cell_word_count": 36,
+            "footnote_word_count": 120,
+            "supplementary_detail_refs": [],
+            "final_embedding_status": "pending",
+            "final_embedding_page_span": 2,
+        }
+    )
+    authority_records.refresh_paper_manifest_identity(request)
+
+    result = _evaluate(request)
+
+    _assert_progress_debt(
+        result,
+        "professional_main_table_information_budget_exceeded",
+    )
+
+
+def test_readable_documented_main_table_exception_is_not_template_blocked(
+    authority_records: Any,
+) -> None:
+    request = authority_records.paper_request()
+    invocation = next(
+        item
+        for item in request["generation_manifest"]["professional_skill_invocations"]
+        if item["skill_id"] == "medical-table-design"
+    )
+    table = invocation["table_quality_application"]["main_tables"][0]
+    table.update(
+        {
+            "row_count": 16,
+            "budget_status": "documented_exception",
+            "exception_reason": (
+                "The target journal permits this readable baseline table."
+            ),
+        }
+    )
+    authority_records.refresh_paper_manifest_identity(request)
+
+    result = _evaluate(request)
+
+    reason_codes = (result.get("quality_debt") or {}).get("reason_codes", [])
+    assert not {
+        "professional_main_table_information_budget_exceeded",
+        "professional_main_table_supplementary_route_missing",
+        "professional_main_table_final_embedding_incomplete",
+    } & set(reason_codes)
+
+
+def test_main_table_standalone_notes_heading_is_quality_debt(
+    authority_records: Any,
+) -> None:
+    request = authority_records.paper_request()
+    invocation = next(
+        item
+        for item in request["generation_manifest"]["professional_skill_invocations"]
+        if item["skill_id"] == "medical-table-design"
+    )
+    table = invocation["table_quality_application"]["main_tables"][0]
+    table["standalone_notes_heading_present"] = True
+    authority_records.refresh_paper_manifest_identity(request)
+
+    result = _evaluate(request)
+
+    _assert_progress_debt(result, "professional_main_table_notes_heading_present")
+
+
+def test_compact_main_table_with_supplementary_detail_passes_table_quality_gate(
+    authority_records: Any,
+) -> None:
+    request = authority_records.paper_request()
+
+    result = _evaluate(request)
+
+    assert (result.get("quality_debt") or {}).get("reason_codes", []) == []
+
+
 def test_submission_prep_is_progress_first_debt_until_finalize(
     authority_records: Any,
 ) -> None:

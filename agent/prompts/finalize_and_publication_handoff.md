@@ -43,6 +43,12 @@ route output.
   to the canonical manuscript, DOCX, PDF, supplementary output, ZIP allowlist,
   and ZIP member bytes. A nonblank export, internal review companion, filename
   alias, or package manifest alone does not satisfy this requirement.
+- Require the `medical-table-design` receipt to carry a complete
+  `table_quality_application` for every main table. Finalize routes back when a
+  main table lacks one reader question, exceeds the default information budget
+  without a documented exception, exposes a standalone `Notes` mini-Methods
+  block, omits the supplementary-detail route for uncompressed detail, or has
+  not passed one-page final-size embedding inspection.
 - Require the same receipt and `publication_generation` to consume the
   `publication_layout_selection_ref` defined by
   `contracts/publication_layout_policy.json`. The selected layout emits exactly

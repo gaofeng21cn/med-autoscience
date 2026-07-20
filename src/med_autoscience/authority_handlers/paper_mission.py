@@ -122,6 +122,14 @@ _EPISTEMIC_CHANGE_CLASS_BY_NODE_ROLE = {
     "governance_metadata": "governance_metadata",
     "review_receipt": "review_receipt",
 }
+_DEFAULT_MAIN_TABLE_INFORMATION_BUDGET = {
+    "row_count": 15,
+    "column_count": 8,
+    "body_word_count": 350,
+    "max_cell_word_count": 24,
+    "footnote_word_count": 45,
+    "final_embedding_page_span": 1,
+}
 
 
 def evaluate_paper_mission_authority(request: Mapping[str, Any]) -> dict[str, Any]:
@@ -2394,6 +2402,46 @@ def _professional_manuscript_skill_quality_debt(
                 )
             ):
                 codes.append("professional_manuscript_skill_output_binding_stale")
+        if invocation["skill_id"] == "medical-table-design":
+            codes.extend(_professional_table_quality_debt(invocation))
+    return dedupe(codes)
+
+
+def _professional_table_quality_debt(
+    invocation: Mapping[str, Any],
+) -> list[str]:
+    application = invocation.get("table_quality_application")
+    if not isinstance(application, Mapping):
+        return ["professional_table_quality_application_missing"]
+    codes: list[str] = []
+    if (
+        "medical-table-design#main-table-information-budget"
+        not in invocation["consumed_rule_refs"]
+    ):
+        codes.append("professional_table_information_budget_rule_not_consumed")
+    for table in application["main_tables"]:
+        exceeded = any(
+            table[field] > limit
+            for field, limit in _DEFAULT_MAIN_TABLE_INFORMATION_BUDGET.items()
+        )
+        if exceeded and table["budget_status"] != "documented_exception":
+            codes.append("professional_main_table_information_budget_exceeded")
+        if (
+            exceeded
+            and table["budget_status"] != "documented_exception"
+            and not table["supplementary_detail_refs"]
+        ):
+            codes.append("professional_main_table_supplementary_route_missing")
+        if table["standalone_notes_heading_present"]:
+            codes.append("professional_main_table_notes_heading_present")
+        if (
+            table["final_embedding_status"] != "passed"
+            or table["final_embedding_page_span"]
+            > _DEFAULT_MAIN_TABLE_INFORMATION_BUDGET[
+                "final_embedding_page_span"
+            ]
+        ):
+            codes.append("professional_main_table_final_embedding_incomplete")
     return dedupe(codes)
 
 

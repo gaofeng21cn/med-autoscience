@@ -365,13 +365,50 @@ class AuthorityRecordFactory:
                     "invocation_id": f"invocation:first-draft:{skill_id}",
                     "input_contract_ref": "mas-manuscript-contract://first-draft",
                     "input_sha256": cls.digest("manuscript-contract:first-draft"),
-                    "consumed_rule_refs": [f"{skill_id}#workflow"],
+                    "consumed_rule_refs": [
+                        f"{skill_id}#workflow",
+                        *(
+                            ["medical-table-design#main-table-information-budget"]
+                            if skill_id == "medical-table-design"
+                            else []
+                        ),
+                    ],
                     "output_artifact_bindings": bindings,
                     "template_substitution": False,
                     "status": "completed",
                     "refs_only": True,
                     "authority": False,
                     "publication_ready": False,
+                    **(
+                        {
+                            "table_quality_application": {
+                                "schema_version": 1,
+                                "policy_ref": "medical-table-design#main-table-information-budget",
+                                "template_policy": "reference_floor_not_required",
+                                "coverage_status": "all_main_tables_assessed",
+                                "main_tables": [
+                                    {
+                                        "table_id": "T1",
+                                        "role": "main_text",
+                                        "reader_question": "Who is represented in the cohort?",
+                                        "row_count": 7,
+                                        "column_count": 8,
+                                        "body_word_count": 202,
+                                        "max_cell_word_count": 12,
+                                        "footnote_word_count": 18,
+                                        "supplementary_detail_refs": ["TS27"],
+                                        "budget_status": "within_default_budget",
+                                        "exception_reason": None,
+                                        "final_embedding_status": "passed",
+                                        "final_embedding_page_span": 1,
+                                        "standalone_notes_heading_present": False,
+                                    }
+                                ],
+                            }
+                        }
+                        if skill_id == "medical-table-design"
+                        else {}
+                    ),
                 }
             )
         return invocations

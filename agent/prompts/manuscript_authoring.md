@@ -34,6 +34,12 @@ policy; never claim a Review receipt from this conversation.
   `medical-registry-atlas-story-architect`; route quantitative, table, and figure
   work to matching specialist Skills. A template never substitutes for a Skill
   receipt.
+- For every main table, consume `medical-table-design` and materialize its
+  `main_table_information_budget_ref`: one reader question, main/supplement role,
+  dimensions, text and footnote load, supplementary-detail refs, and final-page
+  readability. Templates are optional reference floors. An overloaded table or
+  a `Notes` mini-Methods block remains quality debt even when a Skill receipt is
+  present.
 - Before the first reader-facing export, follow
   `contracts/publication_layout_policy.json` and consume
   `medical-submission-prep`'s `publication_layout_selection_ref`. A named journal
