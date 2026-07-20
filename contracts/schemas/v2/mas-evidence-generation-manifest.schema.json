@@ -820,31 +820,6 @@
         }
       }
     },
-    "review_input_snapshot_member": {
-      "type": "object",
-      "additionalProperties": false,
-      "required": [
-        "member_id",
-        "role",
-        "sha256",
-        "size_bytes"
-      ],
-      "properties": {
-        "member_id": {
-          "$ref": "#/$defs/non_empty_text"
-        },
-        "role": {
-          "$ref": "#/$defs/artifact_role"
-        },
-        "sha256": {
-          "$ref": "#/$defs/sha256"
-        },
-        "size_bytes": {
-          "type": "integer",
-          "minimum": 0
-        }
-      }
-    },
     "review_input_snapshot_binding": {
       "type": "object",
       "additionalProperties": false,
@@ -852,24 +827,33 @@
         "surface_kind",
         "schema_version",
         "snapshot_manifest_ref",
-        "review_lane",
-        "review_scope_sha256",
-        "members"
+        "owner_authority_ref",
+        "producer_attempt_ref",
+        "execution_content_binding_sha256"
       ],
       "properties": {
         "surface_kind": {
-          "const": "mas_review_input_snapshot_binding"
+          "const": "opl_reviewer_input_snapshot_binding"
         },
         "schema_version": {
-          "enum": [
-            1,
-            2
+          "const": 3
+        },
+        "snapshot_manifest_ref": {
+          "allOf": [
+            {
+              "$ref": "#/$defs/exact_ref"
+            },
+            {
+              "type": "object",
+              "properties": {
+                "kind": {
+                  "const": "opl_reviewer_input_snapshot_manifest"
+                }
+              }
+            }
           ]
         },
-        "generation_ref": {
-          "$ref": "#/$defs/non_empty_text"
-        },
-        "mas_authority_record_ref": {
+        "owner_authority_ref": {
           "allOf": [
             {
               "$ref": "#/$defs/exact_ref"
@@ -890,140 +874,15 @@
             }
           ]
         },
-        "authority_issuer": {
-          "$ref": "https://one-person-lab.dev/contracts/mas-review-input-snapshot-authority-v2.schema.json#/$defs/issuer"
+        "producer_attempt_ref": {
+          "type": "string",
+          "pattern": "^opl://stage_attempts/\\S+$"
         },
-        "materialization_owner": {
-          "const": "one-person-lab"
-        },
-        "snapshot_manifest_ref": {
-          "allOf": [
-            {
-              "$ref": "#/$defs/exact_ref"
-            },
-            {
-              "properties": {
-                "kind": {
-                  "const": "opl_reviewer_input_snapshot_manifest"
-                }
-              },
-              "type": "object"
-            }
-          ]
-        },
-        "review_lane": {
-          "enum": [
-            "medical",
-            "statistical",
-            "reference",
-            "display",
-            "publication",
-            "exact_byte_package"
-          ]
-        },
-        "review_scope_sha256": {
+        "execution_content_binding_sha256": {
           "$ref": "#/$defs/sha256"
-        },
-        "members": {
-          "type": "array",
-          "minItems": 1,
-          "uniqueItems": true,
-          "items": {
-            "$ref": "#/$defs/review_input_snapshot_member"
-          }
-        },
-        "authority_boundary": {
-          "$ref": "#/$defs/review_input_snapshot_authority_boundary"
         }
       },
-      "dependentRequired": {
-        "materialization_owner": [
-          "authority_boundary"
-        ],
-        "authority_boundary": [
-          "materialization_owner"
-        ],
-        "generation_ref": [
-          "mas_authority_record_ref"
-        ],
-        "mas_authority_record_ref": [
-          "generation_ref"
-        ]
-      },
-      "allOf": [
-        {
-          "if": {
-            "properties": {
-              "schema_version": {
-                "const": 2
-              }
-            },
-            "required": [
-              "schema_version"
-            ]
-          },
-          "then": {
-            "required": [
-              "generation_ref",
-              "mas_authority_record_ref",
-              "authority_issuer"
-            ]
-          }
-        }
-      ],
-      "description": "Optional only for byte compatibility with legacy v2 receipts. A v2 receipt without the immutable OPL snapshot binding, or with a legacy binding that omits materialization owner metadata, is lane-specific quality debt and cannot produce an owner receipt."
-    },
-    "review_input_snapshot_authority_boundary": {
-      "type": "object",
-      "additionalProperties": false,
-      "required": [
-        "storage_role",
-        "mas_selects_review_lane_scope_and_members",
-        "framework_can_select_or_narrow_members",
-        "framework_can_interpret_member_roles",
-        "framework_can_write_domain_truth",
-        "framework_can_sign_reviewer_receipt",
-        "framework_can_sign_owner_receipt",
-        "framework_can_create_typed_blocker",
-        "framework_can_claim_quality_readiness",
-        "framework_can_claim_publication_readiness",
-        "framework_can_claim_artifact_authority"
-      ],
-      "properties": {
-        "storage_role": {
-          "const": "immutable_reviewer_input_transport"
-        },
-        "mas_selects_review_lane_scope_and_members": {
-          "const": true
-        },
-        "framework_can_select_or_narrow_members": {
-          "const": false
-        },
-        "framework_can_interpret_member_roles": {
-          "const": false
-        },
-        "framework_can_write_domain_truth": {
-          "const": false
-        },
-        "framework_can_sign_reviewer_receipt": {
-          "const": false
-        },
-        "framework_can_sign_owner_receipt": {
-          "const": false
-        },
-        "framework_can_create_typed_blocker": {
-          "const": false
-        },
-        "framework_can_claim_quality_readiness": {
-          "const": false
-        },
-        "framework_can_claim_publication_readiness": {
-          "const": false
-        },
-        "framework_can_claim_artifact_authority": {
-          "const": false
-        }
-      }
+      "description": "Opaque Framework snapshot binding. MAS owns lane, scope, member semantics, currentness, and verdict in the enclosing review receipt."
     },
     "typed_ref": {
       "type": "object",
@@ -1326,6 +1185,7 @@
         "scope_policy_version",
         "review_scope_sha256",
         "reviewed_members",
+        "review_input_snapshot_binding",
         "accepted_candidate_receipt_refs",
         "defect_refs",
         "quality_debt_codes"

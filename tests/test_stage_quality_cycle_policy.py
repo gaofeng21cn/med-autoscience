@@ -58,36 +58,24 @@ def test_quality_cycle_declares_role_bound_review_transport_production_path() ->
     )
     assert snapshot["allowed_attempt_roles"] == ["producer", "repairer"]
     assert snapshot["forbidden_attempt_roles"] == ["reviewer", "re_reviewer"]
+    assert snapshot["schema_version"] == 2
     assert snapshot["requires_generation_manifest_schema_version"] == 2
     assert snapshot[
         "source_refs_by_member_id_must_exactly_match_review_scope"
     ] is True
-    assert snapshot["owner_ref_source"] == (
-        "mas_owned_generation_manifest_review_scope_member_ref"
-    )
     assert snapshot["source_ref_source"] == "explicit_host_transport_locator_mapping"
-    assert snapshot["source_ref_is_review_scope_identity"] is False
-    assert snapshot["mas_authority_record_required"] is True
-    assert snapshot["mas_authority_record_schema_version"] == 2
-    assert snapshot["mas_authority_record_schema_owner"] == "mas"
-    assert snapshot["mas_authority_record_schema_ref"] == (
+    assert snapshot["domain_scope_owner"] == "mas"
+    assert snapshot["owner_authority_ref_source"] == (
+        "mas_canonical_exact_ref_metadata"
+    )
+    assert snapshot["owner_authority_schema_ref"] == (
         "contracts/schemas/v2/mas-review-input-snapshot-authority-v2.schema.json"
     )
-    assert snapshot["mas_authority_record_scope_policy_version"] == 2
-    assert snapshot["mas_authority_issuer_binding_fields"] == [
-        "agent_id",
-        "domain_id",
-        "package_id",
-        "stage_attempt_ref",
-        "execution_content_binding_sha256",
-        "package_use_boundary_id",
-        "root_package_content_digest",
-    ]
-    assert snapshot["mas_authority_record_ref_binds_canonical_exact_bytes"] is True
-    assert snapshot["snapshot_authority_record_includes_owner_ref"] is True
-    assert snapshot[
-        "all_review_scope_topology_locators_are_path_independent"
-    ] is True
+    assert snapshot["producer_attempt_ref_source"] == "OPL_STAGE_ATTEMPT_REF"
+    assert snapshot["execution_content_binding_sha256_source"] == (
+        "OPL_EXECUTION_CONTENT_BINDING_SHA256"
+    )
+    assert snapshot["producer_binding_must_match_owner_authority_ref"] is True
     assert snapshot["host_may_infer_from_generic_artifact_refs"] is False
     assert snapshot["missing_request_blocks_hosted_action_liveness"] is False
     assert snapshot["missing_request_policy"] == (
@@ -107,24 +95,23 @@ def test_quality_cycle_declares_role_bound_review_transport_production_path() ->
     assert page_candidate["allowed_attempt_roles"] == ["reviewer", "re_reviewer"]
     assert page_candidate["forbidden_attempt_roles"] == ["producer", "repairer"]
     assert page_candidate["pass_through_unchanged"] is True
-    assert page_candidate["schema_version"] == 2
+    assert page_candidate["schema_version"] == 3
     assert page_candidate["schema_owner"] == "mas-scholar-skills"
     assert page_candidate["schema_ref"].endswith(
-        "@01b9629a689349e6e142169c8d53ab21d608d8b1/"
-        "contracts/scholarskills-page-hash-evidence-candidate-v2.schema.json"
+        "/contracts/scholarskills-page-hash-evidence-candidate-v3.schema.json"
     )
-    assert page_candidate["schema_owner_package_content_digest"] == (
-        "sha256:f858bc1ec82f253f865c1fbe2b38a6cf7031d3dbf495f54d061aa0ad5221fda9"
+    assert page_candidate["candidate_package_id_field"] == (
+        "page_hash_evidence_candidate_package_id"
     )
-    assert page_candidate["producer_package_binding_required"] is True
-    assert page_candidate["domain_owner_field"] == "domain_owner_id"
-    assert page_candidate["requires_domain_owner_judgment_field"] == (
-        "requires_domain_owner_judgment"
+    assert page_candidate["candidate_package_id"] == "mas-scholar-skills"
+    assert page_candidate["origin_evidence_ref_field"] == (
+        "page_hash_evidence_origin_ref"
     )
-    assert page_candidate["candidate_or_cache_can_emit_verdict_or_authority"] is False
-    assert page_candidate["fresh_reviewer_invocation_still_required"] is True
-    assert page_candidate["fresh_reviewer_receipt_still_required"] is True
-    assert page_candidate["fresh_mas_judgment_still_required"] is True
+    assert page_candidate["framework_payload_handling"] == "opaque_exact_bytes"
+    assert page_candidate["framework_receipt_surface_kind"] == (
+        "opl_review_evidence_artifact_receipt"
+    )
+    assert page_candidate["candidate_or_artifact_receipt_can_emit_domain_verdict"] is False
 
     assert pack_input["stage_quality_transport_contract_refs"] == {
         "review_input_snapshot_materialization_request": (
@@ -141,7 +128,7 @@ def test_quality_cycle_declares_role_bound_review_transport_production_path() ->
     ].endswith("#build_review_input_snapshot_materialization_request")
     assert pack_input["source_refs"][
         "review_input_snapshot_authority_schema_ref"
-    ] == snapshot["mas_authority_record_schema_ref"]
+    ] == snapshot["owner_authority_schema_ref"]
     assert pack_input["source_refs"][
         "review_input_snapshot_materialization_request_schema_ref"
     ] == snapshot["schema_ref"]
@@ -167,6 +154,10 @@ def test_quality_cycle_declares_role_bound_review_transport_production_path() ->
     assert "forge a MAS typed blocker" in normalized_roles
     assert "page_hash_evidence_candidate" in roles
     assert "returns it unchanged" in roles
+    assert "page_hash_evidence_candidate_package_id=mas-scholar-skills" in roles
+    assert "page_hash_evidence_origin_ref" in roles
+    assert normalized_roles.count("closeout_packet.closeout_ref_metadata[]") == 2
+    assert "use `ref`, not the legacy `uri` spelling" in roles
     assert "page-hash evidence candidate" not in producer
     assert "page-hash evidence candidate" not in repairer
     assert "page-hash evidence candidate" in reviewer
@@ -343,9 +334,15 @@ def test_artifact_iteration_preserves_currentness_and_owner_boundaries() -> None
         "semantic_change_invalidates_only_declared_dependency_lanes"
     ] is True
     assert review["fresh_receipt_requires_opl_immutable_snapshot_binding"] is True
-    assert review[
-        "legacy_origin_receipt_without_snapshot_binding_may_reuse_unchanged_scope"
-    ] is False
+    assert review["snapshot_binding_surface_kind"] == (
+        "opl_reviewer_input_snapshot_binding"
+    )
+    assert review["snapshot_binding_schema_version"] == 3
+    assert review["snapshot_binding_identity_fields"] == [
+        "owner_authority_ref",
+        "producer_attempt_ref",
+        "execution_content_binding_sha256",
+    ]
     assert review[
         "fresh_missing_snapshot_binding_is_lane_quality_debt_not_host_liveness_failure"
     ] is True
@@ -356,17 +353,17 @@ def test_artifact_iteration_preserves_currentness_and_owner_boundaries() -> None
     assert review[
         "exact_byte_package_excludes_governance_checklist_status_and_receipt_members"
     ] is True
-    page_cache = policy["page_hash_evidence_cache"]
-    assert page_cache["persistent_store_owner"] == "one-person-lab"
-    assert page_cache["cache_key_fields"] == [
-        "ordered_page_pixel_hashes",
-        "raster_contract",
-        "review_scope_sha256",
-        "rubric_sha256",
-    ]
-    assert page_cache["cache_hit_can_skip_fresh_reviewer_invocation"] is False
-    assert page_cache["cache_hit_can_emit_mas_receipt_or_verdict"] is False
-    assert page_cache["cache_hit_requires_fresh_mas_judgment"] is True
+    page_artifact = policy["page_hash_evidence_artifact"]
+    assert page_artifact["persistent_store_owner"] == "one-person-lab"
+    assert page_artifact["candidate_content_identity_field"] == "cache_key_sha256"
+    assert page_artifact["candidate_package_id_field"] == (
+        "page_hash_evidence_candidate_package_id"
+    )
+    assert page_artifact["origin_evidence_ref_field"] == (
+        "page_hash_evidence_origin_ref"
+    )
+    assert page_artifact["framework_treats_candidate_payload_as_opaque"] is True
+    assert page_artifact["artifact_receipt_can_emit_mas_receipt_or_verdict"] is False
     assert archive["one_compression_per_unique_tree"] is True
     assert archive["projection_requires_current_mas_owner_result"] is True
     assert archive["unchanged_projection_tree_is_no_op"] is True

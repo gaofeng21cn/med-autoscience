@@ -760,7 +760,7 @@ def test_stale_review_bytes_and_metadata_only_rewrite_cannot_be_reused(
     table_binding["sha256"] = table["sha256"]
     authority_records.refresh_paper_manifest_identity(stale)
     result = _evaluate(stale)
-    _assert_progress_debt(result, "review_input_snapshot_binding_not_current")
+    _assert_progress_debt(result, "independent_review_stale_after_canonical_change")
 
     metadata_rewrite = authority_records.paper_request()
     table = next(
@@ -1403,7 +1403,7 @@ def test_reviewer_revision_currentness_uses_existing_three_attempt_route_back_bu
     _output_validator().validate(exhausted)
 
 
-def test_v2_fresh_review_without_snapshot_binding_is_lane_quality_debt(
+def test_v2_fresh_review_without_snapshot_binding_is_invalid_host_input(
     authority_records: Any,
 ) -> None:
     request = authority_records.paper_request(
@@ -1430,203 +1430,52 @@ def test_v2_fresh_review_without_snapshot_binding_is_lane_quality_debt(
 
     result = _evaluate(request)
 
-    assert result["status"] == "completed_with_quality_debt"
-    assert result["stage_outcome"]["stage_transition_allowed"] is True
-    assert result["typed_blocker"] is None
-    assert result["route_back"]["affected_review_lanes"] == [
-        {
-            "review_lane": "medical",
-            "reason_code": "review_input_snapshot_binding_required",
-            "resume_condition": (
-                "obtain a fresh medical review over the immutable input snapshot"
-            ),
-        }
-    ]
+    assert result["status"] == "invalid_host_input"
+    assert "review_input_snapshot_binding" in result["error"]["detail"]
 
 
-def test_v2_snapshot_owner_metadata_is_debt_but_false_authority_is_strict(
+@pytest.mark.parametrize(
+    "field",
+    [
+        "snapshot_manifest_ref",
+        "owner_authority_ref",
+        "producer_attempt_ref",
+        "execution_content_binding_sha256",
+    ],
+)
+def test_v2_present_snapshot_binding_requires_complete_generic_identity(
     authority_records: Any,
+    field: str,
 ) -> None:
-    missing_metadata = authority_records.paper_request()
-    wrapper = missing_metadata["generation_manifest"]["independent_review_receipts"][0]
-    binding = wrapper["receipt"]["review_input_snapshot_binding"]
-    binding.pop("materialization_owner")
-    binding.pop("authority_boundary")
+    request = authority_records.paper_request()
+    wrapper = request["generation_manifest"]["independent_review_receipts"][0]
+    wrapper["receipt"]["review_input_snapshot_binding"].pop(field)
     authority_records.reseal_review_wrapper(wrapper)
-    lane_state = next(
-        item
-        for item in missing_metadata["review_authority"]["currentness_receipt"][
-            "lane_currentness"
-        ]
-        if item["review_lane"] == wrapper["receipt"]["review_lane"]
-    )
-    lane_state["current_review_receipt_ref"] = deepcopy(wrapper["receipt_ref"])
-    authority_records.reseal_review_currentness(missing_metadata)
 
-    result = _evaluate(missing_metadata)
-
-    route_back = _assert_progress_debt(
-        result, "review_input_snapshot_binding_owner_metadata_required"
-    )
-    assert (
-        route_back["affected_review_lanes"][0]["review_lane"]
-        == wrapper["receipt"]["review_lane"]
-    )
-
-    forged_authority = authority_records.paper_request()
-    forged_wrapper = forged_authority["generation_manifest"][
-        "independent_review_receipts"
-    ][0]
-    forged_wrapper["receipt"]["review_input_snapshot_binding"]["authority_boundary"][
-        "framework_can_sign_owner_receipt"
-    ] = True
-    authority_records.reseal_review_wrapper(forged_wrapper)
-
-    result = _evaluate(forged_authority)
+    result = _evaluate(request)
 
     assert result["status"] == "invalid_host_input"
-    assert "immutable transport-only boundary" in result["error"]["detail"]
+    assert "review_input_snapshot_binding" in result["error"]["detail"]
 
 
-def test_v2_snapshot_authority_identity_is_debt_when_missing_and_strict_when_forged(
-    authority_records: Any,
-) -> None:
-    missing_identity = authority_records.paper_request()
-    wrapper = missing_identity["generation_manifest"]["independent_review_receipts"][0]
-    binding = wrapper["receipt"]["review_input_snapshot_binding"]
-    binding["schema_version"] = 1
-    binding.pop("generation_ref")
-    binding.pop("mas_authority_record_ref")
-    binding.pop("authority_issuer")
-    authority_records.reseal_review_wrapper(wrapper)
-    lane_state = next(
-        item
-        for item in missing_identity["review_authority"]["currentness_receipt"][
-            "lane_currentness"
-        ]
-        if item["review_lane"] == wrapper["receipt"]["review_lane"]
-    )
-    lane_state["current_review_receipt_ref"] = deepcopy(wrapper["receipt_ref"])
-    authority_records.reseal_review_currentness(missing_identity)
-
-    result = _evaluate(missing_identity)
-
-    route_back = _assert_progress_debt(
-        result, "review_input_snapshot_binding_owner_metadata_required"
-    )
-    assert (
-        route_back["affected_review_lanes"][0]["review_lane"]
-        == wrapper["receipt"]["review_lane"]
-    )
-
-    forged_identity = authority_records.paper_request()
-    forged_wrapper = forged_identity["generation_manifest"][
-        "independent_review_receipts"
-    ][0]
-    forged_receipt = forged_wrapper["receipt"]
-    forged_binding = forged_receipt["review_input_snapshot_binding"]
-    owner_refs_by_member_id = {
-        item["member_id"]: item["ref"] for item in forged_receipt["reviewed_members"]
-    }
-    wrong_authority_record = {
-        "surface_kind": "mas_review_input_snapshot_authority",
-        "schema_version": 2,
-        "issuer": deepcopy(forged_binding["authority_issuer"]),
-        "generation_ref": forged_binding["generation_ref"],
-        "review_lane": forged_receipt["review_lane"],
-        "scope_policy_id": "mas_review_scope_dependency_map",
-        "scope_policy_version": 2,
-        "review_scope_sha256": forged_receipt["review_scope_sha256"],
-        "members": [
-            {
-                **item,
-                "owner_ref": (
-                    "workspace://forged-owner"
-                    if index == 0
-                    else owner_refs_by_member_id[item["member_id"]]
-                ),
-            }
-            for index, item in enumerate(forged_binding["members"])
-        ],
-    }
-    wrong_authority_sha256 = authority_records.fingerprint(wrong_authority_record)
-    forged_binding["mas_authority_record_ref"] = {
-        "kind": "mas_review_input_snapshot_authority",
-        "ref": (
-            "mas-review-input-snapshot-authority:"
-            f"{wrong_authority_sha256.removeprefix('sha256:')}"
-        ),
-        "size_bytes": len(authority_records.canonical_bytes(wrong_authority_record)),
-        "sha256": wrong_authority_sha256,
-    }
-    authority_records.reseal_review_wrapper(forged_wrapper)
-
-    result = _evaluate(forged_identity)
-
-    assert result["status"] == "invalid_host_input"
-    assert "must bind the complete MAS-owned scope" in result["error"]["detail"]
-
-
-def test_v2_snapshot_binding_rejects_self_consistent_stale_generation_as_debt(
+def test_v2_snapshot_binding_rejects_forged_owner_authority_ref(
     authority_records: Any,
 ) -> None:
     request = authority_records.paper_request()
     wrapper = request["generation_manifest"]["independent_review_receipts"][0]
-    receipt = wrapper["receipt"]
-    binding = receipt["review_input_snapshot_binding"]
-    binding["generation_ref"] = "mas-generation-manifest:stale"
-    owner_refs_by_member_id = {
-        item["member_id"]: item["ref"] for item in receipt["reviewed_members"]
-    }
-    authority_record = {
-        "surface_kind": "mas_review_input_snapshot_authority",
-        "schema_version": 2,
-        "issuer": deepcopy(binding["authority_issuer"]),
-        "generation_ref": binding["generation_ref"],
-        "review_lane": receipt["review_lane"],
-        "scope_policy_id": "mas_review_scope_dependency_map",
-        "scope_policy_version": 2,
-        "review_scope_sha256": receipt["review_scope_sha256"],
-        "members": [
-            {
-                **item,
-                "owner_ref": owner_refs_by_member_id[item["member_id"]],
-            }
-            for item in binding["members"]
-        ],
-    }
-    authority_sha256 = authority_records.fingerprint(authority_record)
-    binding["mas_authority_record_ref"] = {
-        "kind": "mas_review_input_snapshot_authority",
-        "ref": (
-            "mas-review-input-snapshot-authority:"
-            f"{authority_sha256.removeprefix('sha256:')}"
-        ),
-        "size_bytes": len(authority_records.canonical_bytes(authority_record)),
-        "sha256": authority_sha256,
-    }
-    authority_records.reseal_review_wrapper(wrapper)
-    lane_state = next(
-        item
-        for item in request["review_authority"]["currentness_receipt"][
-            "lane_currentness"
-        ]
-        if item["review_lane"] == receipt["review_lane"]
+    binding = wrapper["receipt"]["review_input_snapshot_binding"]
+    binding["owner_authority_ref"]["ref"] = (
+        "mas-review-input-snapshot-authority:" + "0" * 64
     )
-    lane_state["current_review_receipt_ref"] = deepcopy(wrapper["receipt_ref"])
-    authority_records.reseal_review_currentness(request)
+    authority_records.reseal_review_wrapper(wrapper)
 
     result = _evaluate(request)
 
-    route_back = _assert_progress_debt(
-        result, "review_input_snapshot_binding_not_current"
-    )
-    assert (
-        route_back["affected_review_lanes"][0]["review_lane"] == receipt["review_lane"]
-    )
+    assert result["status"] == "invalid_host_input"
+    assert "must bind canonical MAS authority bytes" in result["error"]["detail"]
 
 
-def test_v2_legacy_origin_receipt_without_snapshot_binding_is_quality_debt(
+def test_v2_origin_receipt_without_snapshot_binding_is_invalid_host_input(
     authority_records: Any,
 ) -> None:
     origin = authority_records.paper_request(
@@ -1647,44 +1496,6 @@ def test_v2_legacy_origin_receipt_without_snapshot_binding_is_quality_debt(
     _authorize_reused_lane(current, origin, "medical", authority_records)
 
     result = _evaluate(current)
-
-    route_back = _assert_progress_debt(result, "review_input_snapshot_binding_required")
-    assert route_back["affected_review_lanes"] == [
-        {
-            "review_lane": "medical",
-            "reason_code": "review_input_snapshot_binding_required",
-            "resume_condition": (
-                "obtain a fresh medical review over the immutable input snapshot"
-            ),
-        }
-    ]
-
-
-@pytest.mark.parametrize(
-    ("field", "replacement"),
-    [
-        ("review_scope_sha256", "sha256:" + "0" * 64),
-        ("member_sha256", "sha256:" + "1" * 64),
-        ("member_size_bytes", 999999),
-    ],
-)
-def test_v2_snapshot_binding_must_match_complete_receipt_inventory(
-    authority_records: Any,
-    field: str,
-    replacement: object,
-) -> None:
-    request = authority_records.paper_request(manifest_version=2)
-    wrapper = request["generation_manifest"]["independent_review_receipts"][0]
-    binding = wrapper["receipt"]["review_input_snapshot_binding"]
-    if field == "review_scope_sha256":
-        binding[field] = replacement
-    elif field == "member_sha256":
-        binding["members"][0]["sha256"] = replacement
-    else:
-        binding["members"][0]["size_bytes"] = replacement
-    authority_records.reseal_review_wrapper(wrapper)
-
-    result = _evaluate(request)
 
     assert result["status"] == "invalid_host_input"
     assert "review_input_snapshot_binding" in result["error"]["detail"]

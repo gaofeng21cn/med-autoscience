@@ -72,23 +72,28 @@ from generic artifact refs or choose a different lane. Pass
 `authority_issuer` from the exact `OPL_STAGE_ATTEMPT_REF`,
 `OPL_EXECUTION_CONTENT_BINDING_SHA256`, `OPL_PACKAGE_USE_BOUNDARY_ID`,
 `OPL_ROOT_PACKAGE_ID`, and `OPL_ROOT_PACKAGE_CONTENT_DIGEST` Attempt
-environment bindings; never synthesize or reuse them across Attempts. Each member keeps the
-MAS-owned artifact identity as `owner_ref` and the explicit transport locator
-as `source_ref`; moving the locator does not rewrite owner identity. If the
-exact map is unavailable, do not invent a request: record lane quality debt and
+environment bindings; never synthesize or reuse them across Attempts. The
+request carries only the canonical MAS `owner_authority_ref`, producer Attempt
+binding, explicit transport locators, hashes, and sizes. Lane, scope, role, and
+owner refs remain in MAS-owned records and are opaque to Framework. Copy the
+same four-field `owner_authority_ref` object into
+`closeout_packet.closeout_ref_metadata[]`; use `ref`, not the legacy `uri` spelling.
+If the exact
+map is unavailable, do not invent a request: record lane quality debt and
 continue the hosted action without a quality, publication, export, submission,
-or ready claim. Every present request embeds the canonical MAS authority record
-and its exact-byte ref; changing only a transport `source_ref` cannot change
-that owner identity. Once you return a request, every scope, member identity,
-`owner_ref`, locator, hash, and size is an exact claim. An invalid,
+or ready claim. Once you return a request, every member identity, locator, hash,
+and size is an exact claim. An invalid,
 out-of-workspace, mismatched, or unmaterializable present request fails closed
 as a transport contract error; never relabel it as ordinary quality debt or
 forge a MAS typed blocker. A reviewer or re-reviewer that receives a
 `scholarskills_page_hash_evidence_candidate` returns it unchanged at
-`route_impact.stage_quality_cycle.page_hash_evidence_candidate`. The candidate
-and any Framework cache hit remain refs-only evidence: they never emit a
-verdict or authority and never replace the fresh reviewer invocation, fresh
-review receipt, or fresh MAS judgment.
+`route_impact.stage_quality_cycle.page_hash_evidence_candidate`, declares
+`page_hash_evidence_candidate_package_id=mas-scholar-skills`, and returns the
+candidate's exact origin ref as `page_hash_evidence_origin_ref`. Framework
+persists the opaque candidate and may issue only a generic artifact receipt;
+the same four-field origin exact ref must also appear in
+`closeout_packet.closeout_ref_metadata[]`. Neither object is a MAS verdict or
+authority.
 
 ## Producer
 
@@ -115,7 +120,9 @@ hashes, rubric, and outcome.
 
 When ScholarSkills returns a page-hash evidence candidate, pass the exact
 candidate through at the declared quality-cycle path without rewriting it or
-turning it into a finding, verdict, receipt, blocker, or readiness claim.
+turning it into a finding, verdict, blocker, or readiness claim. Declare the
+candidate package and origin exact ref in the sibling fields above so Framework
+does not parse the ScholarSkills payload.
 
 While repair budget remains and the repair belongs to this Stage, an outcome of
 `repair_required` is non-terminal and returns at most a route recommendation.

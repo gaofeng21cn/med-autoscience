@@ -107,15 +107,14 @@
     "hash_change_alone_invalidates_professional_review": false,
     "semantic_change_invalidates_only_declared_dependency_lanes": true,
     "fresh_receipt_requires_opl_immutable_snapshot_binding": true,
-    "snapshot_binding_surface_kind": "mas_review_input_snapshot_binding",
+    "snapshot_binding_surface_kind": "opl_reviewer_input_snapshot_binding",
+    "snapshot_binding_schema_version": 3,
     "snapshot_manifest_ref_kind": "opl_reviewer_input_snapshot_manifest",
-    "snapshot_binding_members": [
-      "member_id",
-      "role",
-      "sha256",
-      "size_bytes"
+    "snapshot_binding_identity_fields": [
+      "owner_authority_ref",
+      "producer_attempt_ref",
+      "execution_content_binding_sha256"
     ],
-    "legacy_origin_receipt_without_snapshot_binding_may_reuse_unchanged_scope": false,
     "fresh_missing_snapshot_binding_is_lane_quality_debt_not_host_liveness_failure": true,
     "missing_or_stale_review_currentness_blocks_hosted_action": false,
     "dispatch_only_affected_lanes": true,
@@ -125,31 +124,16 @@
     "exact_byte_package_reviews_package_content_and_wrapper_inventory": true,
     "exact_byte_package_excludes_governance_checklist_status_and_receipt_members": true
   },
-  "page_hash_evidence_cache": {
+  "page_hash_evidence_artifact": {
     "candidate_owner": "mas-scholar-skills",
-    "persistent_store_owner": "one-person-lab",
-    "persistent_receipt_surface_kind": "opl_review_evidence_cache_receipt",
     "candidate_surface_kind": "scholarskills_page_hash_evidence_candidate",
-    "cache_key_fields": [
-      "ordered_page_pixel_hashes",
-      "raster_contract",
-      "review_scope_sha256",
-      "rubric_sha256"
-    ],
-    "excluded_cache_key_provenance": [
-      "path",
-      "checkout",
-      "host",
-      "timestamp",
-      "model",
-      "skill",
-      "runtime",
-      "version_strings"
-    ],
-    "origin_reviewer_invocation_and_evidence_required_for_reuse": true,
-    "cache_hit_can_skip_fresh_reviewer_invocation": false,
-    "cache_hit_can_emit_mas_receipt_or_verdict": false,
-    "cache_hit_requires_fresh_mas_judgment": true
+    "candidate_content_identity_field": "cache_key_sha256",
+    "candidate_package_id_field": "page_hash_evidence_candidate_package_id",
+    "origin_evidence_ref_field": "page_hash_evidence_origin_ref",
+    "persistent_store_owner": "one-person-lab",
+    "persistent_receipt_surface_kind": "opl_review_evidence_artifact_receipt",
+    "framework_treats_candidate_payload_as_opaque": true,
+    "artifact_receipt_can_emit_mas_receipt_or_verdict": false
   },
   "archive_and_projection": {
     "one_compression_per_unique_tree": true,

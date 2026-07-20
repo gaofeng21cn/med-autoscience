@@ -71,19 +71,6 @@ _AUTHORITY_BOUNDARY = {
     "invokes_opl_or_codex": False,
     "authorizes_publication_or_submission": False,
 }
-_SNAPSHOT_AUTHORITY_BOUNDARY = {
-    "storage_role": "immutable_reviewer_input_transport",
-    "mas_selects_review_lane_scope_and_members": True,
-    "framework_can_select_or_narrow_members": False,
-    "framework_can_interpret_member_roles": False,
-    "framework_can_write_domain_truth": False,
-    "framework_can_sign_reviewer_receipt": False,
-    "framework_can_sign_owner_receipt": False,
-    "framework_can_create_typed_blocker": False,
-    "framework_can_claim_quality_readiness": False,
-    "framework_can_claim_publication_readiness": False,
-    "framework_can_claim_artifact_authority": False,
-}
 _REVISION_CONSUMPTION_AUTHORITY_BOUNDARY = {
     "receipt_can_authorize_review_verdict": False,
     "receipt_can_authorize_owner_receipt": False,
@@ -2053,51 +2040,6 @@ def _review_currentness_issue_v2(
                 for item in receipt["accepted_candidate_receipt_refs"]
             }
             reuse_provenance = lane_state["reuse_provenance"]
-            expected_snapshot_generation_ref = (
-                manifest_ref["ref"]
-                if lane_state["currentness_status"] == "fresh"
-                else (
-                    reuse_provenance["origin_generation_manifest_ref"]["ref"]
-                    if reuse_provenance is not None
-                    else None
-                )
-            )
-            snapshot_binding = receipt.get("review_input_snapshot_binding")
-            if snapshot_binding is None:
-                lane_issue = (
-                    "review_input_snapshot_binding_required",
-                    f"obtain a fresh {lane} review over the immutable input snapshot",
-                )
-            elif (
-                snapshot_binding.get("generation_ref") is None
-                or snapshot_binding.get("mas_authority_record_ref") is None
-                or snapshot_binding.get("materialization_owner") != "one-person-lab"
-                or snapshot_binding.get("authority_boundary")
-                != _SNAPSHOT_AUTHORITY_BOUNDARY
-            ):
-                lane_issue = (
-                    "review_input_snapshot_binding_owner_metadata_required",
-                    f"refresh {lane} snapshot binding with its generation/authority "
-                    "identity, transport owner, and false-authority boundary",
-                )
-            elif any(
-                (
-                    (
-                        expected_snapshot_generation_ref is not None
-                        and snapshot_binding["generation_ref"]
-                        != expected_snapshot_generation_ref
-                    ),
-                    snapshot_binding["review_lane"] != lane,
-                    snapshot_binding["review_scope_sha256"]
-                    != receipt["review_scope_sha256"],
-                    snapshot_binding["members"]
-                    != review_scope_member_projection(receipt["reviewed_members"]),
-                )
-            ):
-                lane_issue = (
-                    "review_input_snapshot_binding_not_current",
-                    f"refresh {lane} review against the complete immutable snapshot inventory",
-                )
             if lane_issue is not None:
                 affected_review_lanes.append(
                     {

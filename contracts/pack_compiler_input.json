@@ -279,7 +279,7 @@
     "review_input_snapshot_request_builder_ref": "src/med_autoscience/authority_handlers/_generation_manifest.py#build_review_input_snapshot_materialization_request",
     "review_input_snapshot_authority_schema_ref": "contracts/schemas/v2/mas-review-input-snapshot-authority-v2.schema.json",
     "review_input_snapshot_materialization_request_schema_ref": "external_repo:one-person-lab/contracts/opl-framework/reviewer-input-snapshot-materialization-request.schema.json",
-    "scholarskills_page_hash_evidence_candidate_schema_ref": "external_repo:gaofeng21cn/mas-scholar-skills@01b9629a689349e6e142169c8d53ab21d608d8b1/contracts/scholarskills-page-hash-evidence-candidate-v2.schema.json",
+    "scholarskills_page_hash_evidence_candidate_schema_ref": "external_repo:gaofeng21cn/mas-scholar-skills@2c78c639dd9179b4aa7f71646e185acb19b3acda/contracts/scholarskills-page-hash-evidence-candidate-v3.schema.json",
     "stage_quality_cycle_policy_ref": "contracts/stage_quality_cycle_policy.json",
     "stage_run_kernel_profile_ref": "contracts/stage_run_kernel_profile.json",
     "source_closure_audit": "contracts/source_closure_audit.json",

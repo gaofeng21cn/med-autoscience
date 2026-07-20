@@ -720,10 +720,11 @@ class AuthorityRecordFactory:
             owner_refs_by_member_id = {
                 item["member_id"]: item["ref"] for item in scope["reviewed_members"]
             }
+            authority_issuer = cls.review_snapshot_authority_issuer()
             authority_record = {
                 "surface_kind": "mas_review_input_snapshot_authority",
                 "schema_version": 2,
-                "issuer": cls.review_snapshot_authority_issuer(),
+                "issuer": authority_issuer,
                 "generation_ref": manifest_ref["ref"],
                 "review_lane": lane,
                 "scope_policy_id": "mas_review_scope_dependency_map",
@@ -749,10 +750,13 @@ class AuthorityRecordFactory:
                     "review_scope_sha256": scope["review_scope_sha256"],
                     "reviewed_members": deepcopy(scope["reviewed_members"]),
                     "review_input_snapshot_binding": {
-                        "surface_kind": "mas_review_input_snapshot_binding",
-                        "schema_version": 2,
-                        "generation_ref": manifest_ref["ref"],
-                        "mas_authority_record_ref": {
+                        "surface_kind": "opl_reviewer_input_snapshot_binding",
+                        "schema_version": 3,
+                        "snapshot_manifest_ref": cls.exact_ref(
+                            "opl_reviewer_input_snapshot_manifest",
+                            f"{manifest['generation_id']}-{lane}-review-input-snapshot",
+                        ),
+                        "owner_authority_ref": {
                             "kind": "mas_review_input_snapshot_authority",
                             "ref": (
                                 "mas-review-input-snapshot-authority:"
@@ -761,28 +765,10 @@ class AuthorityRecordFactory:
                             "size_bytes": len(cls.canonical_bytes(authority_record)),
                             "sha256": authority_sha256,
                         },
-                        "authority_issuer": cls.review_snapshot_authority_issuer(),
-                        "materialization_owner": "one-person-lab",
-                        "snapshot_manifest_ref": cls.exact_ref(
-                            "opl_reviewer_input_snapshot_manifest",
-                            f"{manifest['generation_id']}-{lane}-review-input-snapshot",
-                        ),
-                        "review_lane": lane,
-                        "review_scope_sha256": scope["review_scope_sha256"],
-                        "members": binding_members,
-                        "authority_boundary": {
-                            "storage_role": "immutable_reviewer_input_transport",
-                            "mas_selects_review_lane_scope_and_members": True,
-                            "framework_can_select_or_narrow_members": False,
-                            "framework_can_interpret_member_roles": False,
-                            "framework_can_write_domain_truth": False,
-                            "framework_can_sign_reviewer_receipt": False,
-                            "framework_can_sign_owner_receipt": False,
-                            "framework_can_create_typed_blocker": False,
-                            "framework_can_claim_quality_readiness": False,
-                            "framework_can_claim_publication_readiness": False,
-                            "framework_can_claim_artifact_authority": False,
-                        },
+                        "producer_attempt_ref": authority_issuer["stage_attempt_ref"],
+                        "execution_content_binding_sha256": authority_issuer[
+                            "execution_content_binding_sha256"
+                        ],
                     },
                 }
             )

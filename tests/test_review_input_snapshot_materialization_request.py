@@ -44,18 +44,15 @@ def test_build_snapshot_request_projects_exact_scope_in_canonical_order(
         authority_issuer=authority_records.review_snapshot_authority_issuer(),
     )
 
-    expected_members = review_scope_member_projection(scope["reviewed_members"])
+    scope_members = review_scope_member_projection(scope["reviewed_members"])
     request_members = [
         {
-            **item,
-            "owner_ref": next(
-                member["ref"]
-                for member in scope["reviewed_members"]
-                if member["member_id"] == item["member_id"]
-            ),
+            "member_id": item["member_id"],
             "source_ref": source_refs[item["member_id"]],
+            "sha256": item["sha256"],
+            "size_bytes": item["size_bytes"],
         }
-        for item in expected_members
+        for item in scope_members
     ]
     authority_record = {
         "surface_kind": "mas_review_input_snapshot_authority",
@@ -67,20 +64,22 @@ def test_build_snapshot_request_projects_exact_scope_in_canonical_order(
         "scope_policy_version": 2,
         "review_scope_sha256": scope["review_scope_sha256"],
         "members": [
-            {key: value for key, value in item.items() if key != "source_ref"}
-            for item in request_members
+            {
+                **item,
+                "owner_ref": next(
+                    member["ref"]
+                    for member in scope["reviewed_members"]
+                    if member["member_id"] == item["member_id"]
+                ),
+            }
+            for item in scope_members
         ],
     }
     authority_sha256 = authority_records.fingerprint(authority_record)
     assert request == {
         "surface_kind": "opl_reviewer_input_snapshot_materialization_request",
-        "schema_version": 1,
-        "generation_ref": paper_request["generation_manifest_ref"]["ref"],
-        "review_lane": "display",
-        "review_scope_sha256": scope["review_scope_sha256"],
-        "workspace_root": "/workspace",
-        "members": request_members,
-        "mas_authority_record_ref": {
+        "schema_version": 2,
+        "owner_authority_ref": {
             "kind": "mas_review_input_snapshot_authority",
             "ref": (
                 "mas-review-input-snapshot-authority:"
@@ -89,10 +88,17 @@ def test_build_snapshot_request_projects_exact_scope_in_canonical_order(
             "size_bytes": len(authority_records.canonical_bytes(authority_record)),
             "sha256": authority_sha256,
         },
-        "mas_authority_record": authority_record,
+        "producer_attempt_ref": (
+            authority_records.review_snapshot_authority_issuer()["stage_attempt_ref"]
+        ),
+        "execution_content_binding_sha256": authority_records.review_snapshot_authority_issuer()[
+            "execution_content_binding_sha256"
+        ],
+        "workspace_root": "/workspace",
+        "members": request_members,
     }
     assert [item["member_id"] for item in request["members"]] == [
-        item["member_id"] for item in expected_members
+        item["member_id"] for item in scope_members
     ]
     schema = json.loads(
         (
@@ -101,7 +107,7 @@ def test_build_snapshot_request_projects_exact_scope_in_canonical_order(
         ).read_text(encoding="utf-8")
     )
     Draft202012Validator.check_schema(schema)
-    Draft202012Validator(schema).validate(request["mas_authority_record"])
+    Draft202012Validator(schema).validate(authority_record)
 
     moved_sources = {
         member_id: source_ref.replace("/review-inputs/", "/moved/")
@@ -115,11 +121,7 @@ def test_build_snapshot_request_projects_exact_scope_in_canonical_order(
         source_refs_by_member_id=moved_sources,
         authority_issuer=authority_records.review_snapshot_authority_issuer(),
     )
-    assert moved_request["review_scope_sha256"] == request["review_scope_sha256"]
-    assert moved_request["mas_authority_record"] == request["mas_authority_record"]
-    assert moved_request["mas_authority_record_ref"] == request[
-        "mas_authority_record_ref"
-    ]
+    assert moved_request["owner_authority_ref"] == request["owner_authority_ref"]
     assert [
         {key: value for key, value in member.items() if key != "source_ref"}
         for member in moved_request["members"]
@@ -129,7 +131,7 @@ def test_build_snapshot_request_projects_exact_scope_in_canonical_order(
     ]
 
 
-def test_exact_byte_snapshot_request_keeps_owner_ref_separate_from_source_locator(
+def test_exact_byte_snapshot_request_keeps_domain_owner_ref_out_of_transport_members(
     authority_records: Any,
 ) -> None:
     paper_request = authority_records.paper_request(
@@ -156,15 +158,11 @@ def test_exact_byte_snapshot_request_keeps_owner_ref_separate_from_source_locato
         authority_issuer=authority_records.review_snapshot_authority_issuer(),
     )
 
-    owner_refs = {
-        item["member_id"]: item["ref"] for item in scope["reviewed_members"]
-    }
-    assert request["review_scope_sha256"] == scope["review_scope_sha256"]
     assert request["members"]
     for member in request["members"]:
-        assert member["owner_ref"] == owner_refs[member["member_id"]]
         assert member["source_ref"] == source_refs[member["member_id"]]
-        assert member["owner_ref"] != member["source_ref"]
+        assert "owner_ref" not in member
+        assert "role" not in member
 
 
 @pytest.mark.parametrize("mapping_case", ["missing", "extra", "wrong_identity"])
