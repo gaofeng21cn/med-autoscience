@@ -128,7 +128,14 @@
         "manuscript_source_copy_role": "source_lineage_copy",
         "source_lineage_copy_is_editable_source": false,
         "publish_direction": "canonical_editable_source_to_delivery_projection_only",
-        "shallow_collision_policy": "reject_if_target_is_canonical_editable_source"
+        "shallow_collision_policy": "reject_if_target_is_canonical_editable_source",
+        "document_identity_projection": {
+          "canonical_title_source": "current_canonical_editable_source",
+          "visible_title_derived_from_canonical_source": true,
+          "export_metadata_title_when_present_derived_from_same_title": true,
+          "hardcoded_or_secondary_title_constant_allowed": false,
+          "title_mismatch_disposition": "reject_finalize_or_publication_handoff"
+        }
       },
       "revision_currentness": {
         "required_inputs": {
@@ -158,7 +165,8 @@
       },
       "counterexample_outcomes": {
         "internally_consistent_old_package_with_newer_unconsumed_revision": "not_current_delivery",
-        "delivery_source_lineage_copy_would_overwrite_newer_canonical_source": "reject_publish"
+        "delivery_source_lineage_copy_would_overwrite_newer_canonical_source": "reject_publish",
+        "current_visible_title_with_stale_export_metadata_title": "reject_finalize_or_publication_handoff"
       }
     },
     "epistemic_review_route_back": {

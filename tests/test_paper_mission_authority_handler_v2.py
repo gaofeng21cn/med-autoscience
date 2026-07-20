@@ -651,6 +651,13 @@ def test_canonical_manuscript_contract_rejects_stale_package_source_clobber() ->
     assert projection["shallow_collision_policy"] == (
         "reject_if_target_is_canonical_editable_source"
     )
+    assert projection["document_identity_projection"] == {
+        "canonical_title_source": "current_canonical_editable_source",
+        "visible_title_derived_from_canonical_source": True,
+        "export_metadata_title_when_present_derived_from_same_title": True,
+        "hardcoded_or_secondary_title_constant_allowed": False,
+        "title_mismatch_disposition": "reject_finalize_or_publication_handoff",
+    }
 
     currentness = contract["revision_currentness"]
     assert currentness["required_inputs"] == {
@@ -692,6 +699,9 @@ def test_canonical_manuscript_contract_rejects_stale_package_source_clobber() ->
         ),
         "delivery_source_lineage_copy_would_overwrite_newer_canonical_source": (
             "reject_publish"
+        ),
+        "current_visible_title_with_stale_export_metadata_title": (
+            "reject_finalize_or_publication_handoff"
         ),
     }
 
