@@ -43,6 +43,15 @@ route output.
   to the canonical manuscript, DOCX, PDF, supplementary output, ZIP allowlist,
   and ZIP member bytes. A nonblank export, internal review companion, filename
   alias, or package manifest alone does not satisfy this requirement.
+- Require the same receipt and `publication_generation` to consume the
+  `publication_layout_selection_ref` defined by
+  `contracts/publication_layout_policy.json`. The selected layout emits exactly
+  `paper.pdf` and `paper_with_supplementary.pdf`; separately addressable
+  supplementary members remain in the package, and the combined reading copy is
+  not automatically a journal upload artifact. Reject a third reader edition.
+- Profile staleness or an unknown journal does not erase an otherwise usable
+  authoring delivery. It does prevent a current journal-compliance or formal
+  submission claim until official instructions are refreshed and consumed.
 - Require that the same `publication_generation` also binds exactly one
   `submission_status`, `publication_evaluation`, `next_action_envelope`, and
   `submission_projection_manifest`. These are one generation of user-visible

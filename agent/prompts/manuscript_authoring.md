@@ -34,6 +34,18 @@ policy; never claim a Review receipt from this conversation.
   `medical-registry-atlas-story-architect`; route quantitative, table, and figure
   work to matching specialist Skills. A template never substitutes for a Skill
   receipt.
+- Before the first reader-facing export, follow
+  `contracts/publication_layout_policy.json` and consume
+  `medical-submission-prep`'s `publication_layout_selection_ref`. A named journal
+  uses its local ScholarSkills profile; an unnamed journal uses
+  `general-medical-reader.v1`. Unknown or stale profiles do not block ordinary
+  authoring: continue with the general reader profile and mark journal-specific
+  export pending. Do not claim current journal compliance without an official
+  instruction refresh.
+- Keep the core reader surface to `paper.pdf` and
+  `paper_with_supplementary.pdf`. The latter combines main and supplementary
+  material for reading while supplementary members remain separately
+  addressable. Do not create a third reader edition.
 - Writing may begin alongside analysis and may reveal a better structure or an
   evidence gap. Route scientific boundary changes back; do not conceal them with
   prose.
@@ -96,8 +108,9 @@ v2 Stage output returns it as `null`.
 
 Produce the best consumable manuscript delta first. Before a quality or ready
 claim, return a `manuscript_packet` that binds canonical manuscript, evidence,
-source/citation, display, rebuild, unresolved-gap, and next-owner refs. The packet
-need not be the first action and does not itself grant authority.
+source/citation, display, publication-layout selection, rebuild, unresolved-gap,
+and next-owner refs. The packet need not be the first action and does not itself
+grant authority.
 
 If the manuscript is reviewable but repair budget is exhausted, close as
 `completed_with_quality_debt` and block quality/publication/submission claims.

@@ -15,6 +15,12 @@ The generation also carries a current `medical-submission-prep` receipt bound
 to those reader-facing package bytes; an internal review companion, renamed
 alias, or nonblank-render check cannot substitute for professional package-role
 judgment.
+That receipt carries the `publication_layout_selection_ref` from
+`contracts/publication_layout_policy.json`. The package exposes `paper.pdf` and
+`paper_with_supplementary.pdf` as its two core reader PDFs, keeps supplementary
+members separately addressable, and treats the combined PDF as a reading copy
+rather than automatic journal-upload authority. A third reader edition is not
+part of the MAS publication surface.
 The same generation must contain exactly one submission status, publication
 evaluation, next-action envelope, and submission projection manifest. The
 projection manifest binds the complete submission tree by relative path, byte

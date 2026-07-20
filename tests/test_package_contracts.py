@@ -182,7 +182,7 @@ def test_scholarskills_is_a_managed_hard_dependency_not_a_sixth_agent() -> None:
     assert dependency["kind"] == "framework_capability_package"
     assert dependency["required"] is True
     assert dependency["dependency_kind"] == "hard_runtime_dependency"
-    assert dependency["version_requirement"] == ">=0.2.0 <0.3.0"
+    assert dependency["version_requirement"] == ">=0.2.12 <0.3.0"
     assert package["codex_surface"]["standalone_distribution"] == (
         "repo_carrier_source"
     )

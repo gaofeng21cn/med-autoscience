@@ -1013,6 +1013,11 @@
           "ref_kind": "external_capability_ref",
           "ref": "external_repo:mas-scholar-skills/skills/medical-submission-prep/SKILL.md",
           "role": "workspace_or_quest_skill_sync_candidate"
+        },
+        {
+          "ref_kind": "contract_ref",
+          "ref": "contracts/publication_layout_policy.json",
+          "role": "mas_publication_layout_selection_consumption_policy"
         }
       ],
       "sync_policy": "external_pack_default_or_on_demand",
@@ -1023,25 +1028,32 @@
         "submission",
         "submission_quality",
         "submission_package",
-        "journal_package"
+        "journal_package",
+        "publication_layout_profile"
       ],
       "failure_tokens": [
         "medical_failure:submission",
         "submission",
         "submission_quality",
         "submission_package",
-        "journal_package"
+        "journal_package",
+        "publication_layout_profile"
       ],
       "canonical_paths": [
         "external_repo:mas-scholar-skills/skills/medical-submission-prep/SKILL.md",
+        "contracts/publication_layout_policy.json",
         "contracts/capability_map.json"
       ],
       "target_repo_file_hints": [
         "external_repo:mas-scholar-skills/skills/medical-submission-prep/SKILL.md",
+        "contracts/publication_layout_policy.json",
         "contracts/capability_map.json"
       ],
       "verification_refs": [
         "external_repo:mas-scholar-skills/contracts/capability_map.json#/capabilities",
+        "external_repo:mas-scholar-skills/contracts/publication-layout-profile.schema.json",
+        "external_repo:mas-scholar-skills/packs/medical-publication-layouts/publication_layout_catalog.json",
+        "tests/test_publication_layout_policy.py",
         "external_repo:mas-scholar-skills/scripts/verify.sh",
         "opl-framework:contracts/opl-framework/agent-lab-failure-token-registry.json"
       ],
@@ -1067,6 +1079,7 @@
       "owner_closeout_boundary_ref": "contracts/capability_map.json#/owner_closeout_boundary",
       "canonical_target_paths": [
         "external_repo:mas-scholar-skills/skills/medical-submission-prep/SKILL.md",
+        "contracts/publication_layout_policy.json",
         "contracts/capability_map.json"
       ],
       "forbidden_surfaces": [

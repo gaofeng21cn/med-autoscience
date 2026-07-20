@@ -17,6 +17,13 @@ statistical, reference, and display lanes are the cross-domain pre-review.
 Missing or stale receipts are quality debt in Authoring and Review, and fail
 closed only for quality/export/finalize/publication/submission claims.
 
+Reader-facing export follows `contracts/publication_layout_policy.json` and a
+`medical-submission-prep` selection ref. A named journal consumes its local
+ScholarSkills profile; no named journal consumes `general-medical-reader.v1`.
+Unknown or stale profiles continue ordinary authoring with journal export marked
+pending. Core reader outputs are exactly `paper.pdf` and
+`paper_with_supplementary.pdf`; no third reader edition is created.
+
 Derived-artifact iteration follows
 `contracts/artifact_iteration_efficiency_policy.json`. The executor classifies
 the change and computes a bounded impact plan before heavyweight side effects,

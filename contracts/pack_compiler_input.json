@@ -219,6 +219,7 @@
   "program_output_policy": "the_registry_bound_authority_function_validates_exact_host_injected_records; decisive_reviewer_attempts_make_medical_judgments",
   "required_domain_pack_paths": [
     "contracts/artifact_iteration_efficiency_policy.json",
+    "contracts/publication_layout_policy.json",
     "contracts/research_trajectory_contract.json",
     "contracts/schemas/v2/mas-medical-narrative.schema.json",
     "contracts/schemas/v2/mas-research-trajectory-event.schema.json",
@@ -258,6 +259,7 @@
   "source_refs": {
     "action_catalog": "contracts/action_catalog.json",
     "artifact_iteration_efficiency_policy_ref": "contracts/artifact_iteration_efficiency_policy.json",
+    "publication_layout_policy_ref": "contracts/publication_layout_policy.json",
     "authority_functions_source_ref": "runtime/authority_functions/README.md",
     "canonical_agent_pack_root": "agent/",
     "capability_map_source_ref": "contracts/capability_map.json",
@@ -286,6 +288,7 @@
     "submission_resource_requirements": "contracts/submission-resource-requirements.json",
     "required_domain_pack_paths": [
       "contracts/artifact_iteration_efficiency_policy.json",
+      "contracts/publication_layout_policy.json",
       "contracts/research_trajectory_contract.json",
       "contracts/schemas/v2/mas-medical-narrative.schema.json",
       "contracts/schemas/v2/mas-research-trajectory-event.schema.json",

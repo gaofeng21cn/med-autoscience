@@ -29,7 +29,7 @@
       "kind": "framework_capability_package",
       "required": true,
       "dependency_kind": "hard_runtime_dependency",
-      "version_requirement": ">=0.2.0 <0.3.0",
+      "version_requirement": ">=0.2.12 <0.3.0",
       "capability_abi": "mas-scholar-skills.v1",
       "provider_manifest_ref": "mas-scholar-skills/contracts/opl_capability_package_manifest.json",
       "required_export_ids": [
