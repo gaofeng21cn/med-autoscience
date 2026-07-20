@@ -15,8 +15,11 @@ This policy is intentionally narrow: it governs same-line manuscript revision an
 - Workspace `manuscript/` is the controller-authorized canonical editable source.
 - Workspace `submission/`, including human-facing Markdown, DOCX/PDF exports, ZIP files, and submission-minimal bundles, is a generated projection.
 - `manuscript_source.md`, when generated into a projection, records source lineage. It is not a second editable manuscript surface.
+- The canonical editable manuscript is an authoring input, never a package-publish output. Exporters may copy it into `delivery/`, `manuscript/current_package/`, or `submission/` for lineage, but shallow publish must reject any collision that would copy a projection back over the canonical source.
 - `paper/`, when retained by an older workspace, is a legacy compatibility alias or provenance surface and must not be described as the canonical editable source.
 - Submission readiness requires an AI reviewer-backed quality record, a clear publication gate, current per-scope epistemic dependency evaluations, and a fresh package projection; a source/package fingerprint alone is never review currentness authority.
+- An internally consistent older package is not a current delivery when a newer accepted or active reviewer revision has not been consumed by its generation. Ordinary authoring and rendering may continue with typed quality debt, but finalize/publication handoff must route back and must not claim `milestone_delivered`, current revision delivered, publication authority, or submission authority.
+- Package, layout, checklist, receipt, or projection-only changes do not invalidate medical, statistical, or reference review unless a declared semantic dependency of that review actually changed.
 - Mechanical QC and projection files may report blockers or freshness, but they must not claim scientific quality closure.
 - Explicit reviewer/user manuscript feedback after a stopped, submission-ready, or finalize milestone reactivates the same study line through durable revision intake and OPL runtime hydration/resume refs before MAS handlers edit canonical `manuscript/` sources.
 - Foreground edits to `submission/`, DOCX/PDF exports, ZIP files, or package-visible Markdown are review overlays until reconciled into controller-authorized `manuscript/` and regenerated as fresh `submission/` projections.
@@ -35,5 +38,7 @@ The platform must keep regression coverage for:
 - duplicate figure legends
 - study-specific hardcoding in platform package generation
 - projection-as-authority drift
+- shallow package publish overwriting the canonical editable manuscript
+- internally consistent stale package accepted while a newer reviewer revision remains unconsumed
 - stale declared epistemic dependencies or stale package provenance
 - wrong milestone claims from package existence alone

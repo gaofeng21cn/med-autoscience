@@ -314,6 +314,13 @@ def evaluate_paper_mission_authority(request: Mapping[str, Any]) -> dict[str, An
 
     revision_issue = _revision_consumption_issue(normalized)
     if revision_issue is not None:
+        if normalized["mission"]["stage_id"] == "finalize_and_publication_handoff":
+            return _route_result(
+                normalized,
+                reason_code=revision_issue[0],
+                next_owner="mas_revision_consumption_owner",
+                resume_condition=revision_issue[1],
+            )
         route_back = _route_back(
             normalized,
             reason_code=revision_issue[0],
@@ -655,15 +662,22 @@ def _normalize_revision_consumption(value: Any) -> dict[str, Any]:
     if value is None:
         return {
             "binding_status": "legacy_unbound",
+            "current_accepted_or_active_revision_intake_refs": None,
             "consumption_receipt_ref": None,
             "consumption_receipt": None,
         }
     payload = mapping(value, field)
+    has_current_revision_inventory = (
+        "current_accepted_or_active_revision_intake_refs" in payload
+    )
+    shape_payload = dict(payload)
+    shape_payload.setdefault("current_accepted_or_active_revision_intake_refs", None)
     exact_keys(
-        payload,
+        shape_payload,
         {
             "surface_kind",
             "schema_version",
+            "current_accepted_or_active_revision_intake_refs",
             "consumption_receipt_ref",
             "consumption_receipt",
         },
@@ -677,6 +691,14 @@ def _normalize_revision_consumption(value: Any) -> dict[str, Any]:
         payload.get("schema_version"), bool
     ):
         raise RequestShapeError(f"{field}.schema_version must be integer 1")
+    current_revision_intake_refs = None
+    if has_current_revision_inventory:
+        current_revision_intake_refs = _exact_ref_list(
+            payload.get("current_accepted_or_active_revision_intake_refs"),
+            f"{field}.current_accepted_or_active_revision_intake_refs",
+            "opl_revision_intake",
+        )
+        current_revision_intake_refs.sort(key=_exact_ref_identity)
     receipt_ref = _exact_ref(
         payload.get("consumption_receipt_ref"),
         f"{field}.consumption_receipt_ref",
@@ -698,6 +720,9 @@ def _normalize_revision_consumption(value: Any) -> dict[str, Any]:
         "binding_status": "bound",
         "surface_kind": "mas_revision_consumption_binding",
         "schema_version": 1,
+        "current_accepted_or_active_revision_intake_refs": (
+            current_revision_intake_refs
+        ),
         "consumption_receipt_ref": receipt_ref,
         "consumption_receipt": receipt,
     }
@@ -2195,7 +2220,30 @@ def _revision_consumption_issue(
             "revision_consumption_binding_required",
             "bind this generation to an explicit no-revision or consumed-revision receipt",
         )
+    current_revision_refs = binding[
+        "current_accepted_or_active_revision_intake_refs"
+    ]
+    if current_revision_refs is None:
+        return (
+            "revision_currentness_inventory_required",
+            "bind the current accepted or active workspace revision-intake refs before "
+            "claiming revision currentness",
+        )
     receipt = binding["consumption_receipt"]
+    current_revision_identities = {
+        _exact_ref_identity(item) for item in current_revision_refs
+    }
+    consumed_revision_identities = {
+        _exact_ref_identity(item)
+        for item in receipt["consumed_revision_refs"]
+        if item["kind"] == "opl_revision_intake"
+    }
+    if not current_revision_identities.issubset(consumed_revision_identities):
+        return (
+            "latest_accepted_or_active_revision_not_consumed",
+            "consume every current accepted or active workspace revision intake in this "
+            "generation before finalize or publication handoff",
+        )
     if receipt["applicability"] == "revision_consumed" and any(
         item["status"] != "closed" for item in receipt["finding_closures"]
     ):

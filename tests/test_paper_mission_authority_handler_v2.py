@@ -626,6 +626,116 @@ def test_missing_revision_consumption_binding_is_progress_first_quality_debt(
     _output_validator().validate(result)
 
 
+def test_canonical_manuscript_contract_rejects_stale_package_source_clobber() -> None:
+    stage_pack = json.loads(
+        (ROOT / "contracts/mas-paper-study-stage-pack.json").read_text(
+            encoding="utf-8"
+        )
+    )
+    contract = stage_pack["reviewer_revision_default_mechanism"][
+        "canonical_manuscript_currentness_contract"
+    ]
+
+    assert contract["canonical_editable_source"] == {
+        "root": "workspace:manuscript/",
+        "role": "authoring_input",
+        "package_publish_output": False,
+        "may_be_overwritten_by_shallow_publish": False,
+    }
+    projection = contract["delivery_projection"]
+    assert projection["manuscript_source_copy_role"] == "source_lineage_copy"
+    assert projection["source_lineage_copy_is_editable_source"] is False
+    assert projection["publish_direction"] == (
+        "canonical_editable_source_to_delivery_projection_only"
+    )
+    assert projection["shallow_collision_policy"] == (
+        "reject_if_target_is_canonical_editable_source"
+    )
+
+    currentness = contract["revision_currentness"]
+    assert currentness["required_inputs"] == {
+        "current_revision_inventory": (
+            "mas_revision_consumption_binding."
+            "current_accepted_or_active_revision_intake_refs"
+        ),
+        "current_revision_inventory_source": "workspace_revision_intake_registry",
+        "generation_consumption": (
+            "mas_revision_consumption_binding.consumption_receipt."
+            "consumed_revision_refs"
+        ),
+    }
+    assert currentness["current_delivery_predicate"] == (
+        "every_current_accepted_or_active_revision_ref_is_consumed_by_current_generation"
+    )
+    assert currentness[
+        "latest_accepted_or_active_revision_must_be_consumed_by_current_generation"
+    ] is True
+    assert currentness["package_internal_consistency_is_current_delivery_proof"] is False
+    assert currentness["ordinary_authoring_or_render_when_unconsumed"] == (
+        "completed_with_quality_debt"
+    )
+    assert currentness["ordinary_stage_transition_allowed"] is True
+    assert currentness["finalize_or_publication_handoff_when_unconsumed"] == (
+        "route_back"
+    )
+    assert currentness["milestone_delivered_claim_allowed"] is False
+    assert currentness["current_revision_delivered_claim_allowed"] is False
+    assert currentness["publication_authority"] is False
+    assert currentness["submission_authority"] is False
+
+    assert contract["selective_invalidation"][
+        "package_or_layout_only_delta_invalidates_content_review"
+    ] is False
+    assert contract["counterexample_outcomes"] == {
+        "internally_consistent_old_package_with_newer_unconsumed_revision": (
+            "not_current_delivery"
+        ),
+        "delivery_source_lineage_copy_would_overwrite_newer_canonical_source": (
+            "reject_publish"
+        ),
+    }
+
+
+def test_internally_consistent_package_cannot_finalize_without_revision_currentness(
+    authority_records: Any,
+) -> None:
+    request = authority_records.paper_request(
+        scope="publication_generation",
+        stage_id="finalize_and_publication_handoff",
+    )
+    request["revision_consumption"][
+        "current_accepted_or_active_revision_intake_refs"
+    ] = [authority_records.exact_ref("opl_revision_intake", "newer-revision")]
+
+    result = _evaluate(request)
+
+    route_back = _assert_finalize_route_back(
+        result, "latest_accepted_or_active_revision_not_consumed"
+    )
+    assert route_back["next_owner"] == "mas_revision_consumption_owner"
+    assert result["stage_outcome"]["publication_or_submission_ready"] is False
+    assert result["owner_receipt"] is None
+    assert result["quality_debt"] is None
+    _output_validator().validate(result)
+
+
+def test_missing_current_revision_inventory_is_progress_first_quality_debt(
+    authority_records: Any,
+) -> None:
+    request = authority_records.paper_request()
+    request["revision_consumption"].pop(
+        "current_accepted_or_active_revision_intake_refs"
+    )
+
+    result = _evaluate(request)
+
+    route_back = _assert_progress_debt(
+        result, "revision_currentness_inventory_required"
+    )
+    assert route_back["next_owner"] == "mas_revision_consumption_owner"
+    _output_validator().validate(result)
+
+
 def test_explicit_null_revision_consumption_binding_is_invalid(
     authority_records: Any,
 ) -> None:

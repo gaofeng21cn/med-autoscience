@@ -1069,6 +1069,26 @@
         "schema_version": {
           "const": 1
         },
+        "current_accepted_or_active_revision_intake_refs": {
+          "description": "Current workspace revision-intake inventory. Optional only for schema evolution; when absent, ordinary work is progress-first quality debt and finalize/publication handoff routes back.",
+          "type": "array",
+          "uniqueItems": true,
+          "items": {
+            "allOf": [
+              {
+                "$ref": "#/$defs/exact_ref"
+              },
+              {
+                "type": "object",
+                "properties": {
+                  "kind": {
+                    "const": "opl_revision_intake"
+                  }
+                }
+              }
+            ]
+          }
+        },
         "consumption_receipt_ref": {
           "allOf": [
             {

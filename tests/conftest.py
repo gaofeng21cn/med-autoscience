@@ -999,6 +999,7 @@ class AuthorityRecordFactory:
         revision_consumption = {
             "surface_kind": "mas_revision_consumption_binding",
             "schema_version": 1,
+            "current_accepted_or_active_revision_intake_refs": [],
             "consumption_receipt_ref": cls.receipt_ref(
                 "mas_revision_consumption_receipt", revision_receipt
             ),
@@ -1156,6 +1157,9 @@ class AuthorityRecordFactory:
         request["revision_consumption"] = {
             "surface_kind": "mas_revision_consumption_binding",
             "schema_version": 1,
+            "current_accepted_or_active_revision_intake_refs": deepcopy(
+                revision_intake_refs
+            ),
             "consumption_receipt_ref": cls.receipt_ref(
                 "mas_revision_consumption_receipt", revision_receipt
             ),

@@ -110,6 +110,57 @@
       "coverage_audit",
       "handoff_evidence_surface"
     ],
+    "canonical_manuscript_currentness_contract": {
+      "surface_kind": "mas_canonical_manuscript_currentness_contract",
+      "schema_version": 1,
+      "canonical_editable_source": {
+        "root": "workspace:manuscript/",
+        "role": "authoring_input",
+        "package_publish_output": false,
+        "may_be_overwritten_by_shallow_publish": false
+      },
+      "delivery_projection": {
+        "roots": [
+          "workspace:delivery/",
+          "workspace:manuscript/current_package/",
+          "workspace:submission/"
+        ],
+        "manuscript_source_copy_role": "source_lineage_copy",
+        "source_lineage_copy_is_editable_source": false,
+        "publish_direction": "canonical_editable_source_to_delivery_projection_only",
+        "shallow_collision_policy": "reject_if_target_is_canonical_editable_source"
+      },
+      "revision_currentness": {
+        "required_inputs": {
+          "current_revision_inventory": "mas_revision_consumption_binding.current_accepted_or_active_revision_intake_refs",
+          "current_revision_inventory_source": "workspace_revision_intake_registry",
+          "generation_consumption": "mas_revision_consumption_binding.consumption_receipt.consumed_revision_refs"
+        },
+        "current_delivery_predicate": "every_current_accepted_or_active_revision_ref_is_consumed_by_current_generation",
+        "latest_accepted_or_active_revision_must_be_consumed_by_current_generation": true,
+        "package_internal_consistency_is_current_delivery_proof": false,
+        "ordinary_authoring_or_render_when_unconsumed": "completed_with_quality_debt",
+        "ordinary_stage_transition_allowed": true,
+        "finalize_or_publication_handoff_when_unconsumed": "route_back",
+        "milestone_delivered_claim_allowed": false,
+        "current_revision_delivered_claim_allowed": false,
+        "publication_authority": false,
+        "submission_authority": false
+      },
+      "selective_invalidation": {
+        "package_or_layout_only_delta_invalidates_content_review": false,
+        "content_review_scopes": [
+          "medical",
+          "statistical",
+          "reference"
+        ],
+        "currentness_basis": "declared_semantic_dependency_changes"
+      },
+      "counterexample_outcomes": {
+        "internally_consistent_old_package_with_newer_unconsumed_revision": "not_current_delivery",
+        "delivery_source_lineage_copy_would_overwrite_newer_canonical_source": "reject_publish"
+      }
+    },
     "epistemic_review_route_back": {
       "trigger": "consumed_reviewer_revision_with_missing_or_stale_review_currentness",
       "scope_budget_ref": "contracts/stage_quality_cycle_policy.json#/epistemic_review_currentness_adoption/scope_budget",
