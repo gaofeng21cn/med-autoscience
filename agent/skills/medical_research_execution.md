@@ -114,6 +114,13 @@ The executor must treat all medical research work as claim-boundary work. A coho
   manuscript-argument, statistical-reporting, Data Availability, citation,
   figure/table, reader-grounding, and presentation details stay in the
   corresponding `medical-*` professional skill.
+- For prediction-model external validation and fixed-horizon risk work, consume
+  `contracts/manuscript_first_draft_quality_policy.json` and route professional
+  judgment through the declared Scholar Skills. Keep recorded event fractions
+  separate from censoring-aware risk, require accepted construct mapping plus
+  identity linkage before cross-cohort comparison, preserve non-estimability as
+  evidence, and regenerate affected tables and figures from the current
+  structured source map after semantic or numeric changes.
 - New or materially repaired paper-facing figures must consume
   `medical-figure-design`; final visual QA must consume
   `medical-figure-style`; separately assembled panels additionally consume

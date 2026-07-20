@@ -1,0 +1,111 @@
+{
+  "surface_kind": "mas_manuscript_first_draft_quality_policy",
+  "version": "mas-manuscript-first-draft-quality-policy.v1",
+  "owner": "MedAutoScience",
+  "stage_id": "manuscript_authoring",
+  "purpose": "Raise first-draft scientific quality by binding specialist judgment to current evidence semantics before prose and display generation.",
+  "professional_skill_owner": "mas-scholar-skills",
+  "base_first_draft_contract": {
+    "required_skill": "medical-manuscript-writing",
+    "required_candidate_ref": "first_draft_story_contract_ref",
+    "template_can_replace_professional_skill": false,
+    "cross_domain_pre_review_lanes": [
+      "medical",
+      "statistical",
+      "reference",
+      "display"
+    ]
+  },
+  "prediction_model_external_validation": {
+    "trigger_when": [
+      "paper_type_is_prediction_model_external_validation",
+      "transported_absolute_risk_is_reported",
+      "fixed_horizon_outcome_is_reported"
+    ],
+    "required_specialist_skills": [
+      "medical-manuscript-writing",
+      "medical-statistical-review",
+      "medical-risk-model-transportability-reviewer",
+      "medical-survival-analysis-plan",
+      "medical-table-design"
+    ],
+    "required_candidate_refs": [
+      "external_validation_first_draft_contract_ref",
+      "source_model_provenance_ref",
+      "target_population_and_followup_ref",
+      "fixed_horizon_risk_semantics_ref",
+      "construct_comparability_ref",
+      "calibration_and_performance_ref",
+      "structured_display_source_map_ref",
+      "claim_guardrail_ref",
+      "negative_or_non_estimable_result_ref"
+    ],
+    "fixed_horizon_risk_semantics": {
+      "recorded_event_count_fraction_role": "descriptive_count_fraction_not_risk_estimate",
+      "early_censoring_or_unknown_completeness_requires": "censoring_aware_observed_risk_or_explicit_design_route_back",
+      "must_bind": [
+        "time_origin",
+        "prediction_horizon",
+        "event_count",
+        "censored_before_horizon_count",
+        "follow_up_completeness",
+        "observed_risk_estimator",
+        "prediction_error_estimator",
+        "independent_censoring_assumption",
+        "survey_weighting_boundary"
+      ],
+      "binary_event_fraction_may_be_called_observed_risk_with_early_censoring": false
+    },
+    "construct_comparability": {
+      "must_bind": [
+        "source_construct",
+        "target_construct",
+        "accepted_codebook_mapping",
+        "identity_preserving_linkage",
+        "estimability",
+        "allowed_claim",
+        "forbidden_claim"
+      ],
+      "missing_mapping_or_identity_linkage_disposition": "not_estimable",
+      "proxy_substitution_without_owner_acceptance_allowed": false,
+      "non_estimability_may_imply_similarity_difference_or_mechanism": false
+    },
+    "display_source_currentness": {
+      "single_structured_source_map_required": true,
+      "covered_surfaces": [
+        "table",
+        "figure",
+        "caption",
+        "catalog",
+        "semantics_manifest"
+      ],
+      "numeric_denominator_estimand_or_construct_change_invalidates_embedded_render_payload": true,
+      "stale_render_request_reuse_allowed": false,
+      "successful_render_exit_proves_source_currentness": false
+    },
+    "claim_guardrails": [
+      "analysis_sample_performance_is_not_population_representativeness",
+      "discrimination_is_not_absolute_calibration",
+      "unrecalibrated_risk_is_not_supported_for_threshold_decisions",
+      "non_estimable_secondary_comparison_is_not_a_null_or_equivalence_result"
+    ]
+  },
+  "progress_and_quality": {
+    "missing_ref_with_consumable_draft_outcome": "completed_with_quality_debt",
+    "ordinary_stage_transition_allowed": true,
+    "quality_debt_blocks": [
+      "quality_pass",
+      "export_ready",
+      "publication_ready",
+      "submission_ready"
+    ],
+    "missing_ref_authorizes_content_invention": false
+  },
+  "authority_boundary": {
+    "professional_skills_supply_quality_rules_and_candidate_refs_only": true,
+    "mas_owns_study_truth_and_candidate_admission": true,
+    "mas_owns_artifact_mutation_and_publication_verdict": true,
+    "opl_owns_transport_and_stage_attempt_lifecycle": true,
+    "template_render_test_or_provider_completion_can_authorize_quality": false
+  }
+}

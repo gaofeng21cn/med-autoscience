@@ -1460,10 +1460,13 @@
           "executor_may_select_lane": false
         },
         "first_draft_professional_skill_routing": {
+          "quality_policy_ref": "contracts/manuscript_first_draft_quality_policy.json",
           "base_required_skill": "medical-manuscript-writing",
           "registry_or_atlas_specialist": "medical-registry-atlas-story-architect",
           "conditional_specialists": [
             "medical-statistical-review",
+            "medical-risk-model-transportability-reviewer",
+            "medical-survival-analysis-plan",
             "medical-table-design",
             "medical-figure-design",
             "medical-figure-style",

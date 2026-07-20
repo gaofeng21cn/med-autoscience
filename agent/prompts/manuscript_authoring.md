@@ -34,6 +34,15 @@ policy; never claim a Review receipt from this conversation.
   `medical-registry-atlas-story-architect`; route quantitative, table, and figure
   work to matching specialist Skills. A template never substitutes for a Skill
   receipt.
+- Follow `contracts/manuscript_first_draft_quality_policy.json`. For prediction-
+  model external validation or any fixed-horizon risk claim, consume the declared
+  statistical, transportability, survival, and table Skills before prose. Bind
+  `fixed_horizon_risk_semantics_ref`, `construct_comparability_ref`,
+  `structured_display_source_map_ref`, and the remaining declared candidate refs.
+  A recorded event fraction is descriptive, not a censoring-aware observed-risk
+  estimate. Missing construct mapping or identity linkage makes a cross-cohort
+  comparison not estimable; it does not support a null, equivalence, direction,
+  or mechanism claim.
 - For every main table, consume `medical-table-design` and materialize its
   `main_table_information_budget_ref`: one reader question, main/supplement role,
   dimensions, text and footnote load, supplementary-detail refs, and final-page
@@ -58,6 +67,11 @@ policy; never claim a Review receipt from this conversation.
 - Mutate canonical source only through an authorized MAS path. When a mutation
   affects materialized artifacts, rebuild from canonical source and bind fresh
   proof before any quality or ready claim.
+- When a number, denominator, estimand, or construct changes, invalidate any
+  table or figure render request that embeds the superseded payload. Rebuild the
+  affected reader surface, caption, catalog, and semantics manifest from the
+  current `structured_display_source_map_ref`; renderer success alone is not
+  source-currentness evidence.
 - Follow `contracts/artifact_iteration_efficiency_policy.json` for derived
   artifacts. Before a heavyweight renderer starts, classify the change and use
   the descriptor-declared component graph when it exists. For a legacy

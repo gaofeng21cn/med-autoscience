@@ -17,6 +17,14 @@ statistical, reference, and display lanes are the cross-domain pre-review.
 Missing or stale receipts are quality debt in Authoring and Review, and fail
 closed only for quality/export/finalize/publication/submission claims.
 
+First-draft scientific inputs follow
+`contracts/manuscript_first_draft_quality_policy.json`. Prediction-model external
+validation and fixed-horizon risk writing consumes the policy's statistical,
+transportability, survival, table, construct-comparability, and structured-
+display-source refs before prose. Missing refs may produce a reviewable draft
+with quality debt, but they cannot be replaced by a binary event fraction,
+proxy construct, stale render request, template, or successful renderer exit.
+
 Reader-facing export follows `contracts/publication_layout_policy.json` and a
 `medical-submission-prep` selection ref. A named journal consumes its local
 ScholarSkills profile; no named journal consumes `general-medical-reader.v1`.

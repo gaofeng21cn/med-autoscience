@@ -93,7 +93,7 @@
         "structured_revision_checklist",
         "agent_lab_external_suite",
         "OPL FeedbackOps",
-        "OMA developer work order or refs-only improvement proposal",
+        "OPL developer-supervisor direct-repair or GitHub pull-request route",
         "PaperMission owner closeout readback"
       ]
     },
@@ -222,6 +222,7 @@
         "quality_debt_blocks_quality_export_publication_and_submission_claims": true
       },
       "first_draft_professional_skill_routing": {
+        "quality_policy_ref": "contracts/manuscript_first_draft_quality_policy.json",
         "base_required_skill": "medical-manuscript-writing",
         "study_type_specialists": {
           "registry_or_atlas": "medical-registry-atlas-story-architect"
@@ -264,7 +265,7 @@
     },
     "specialist_skill_writeback_contract": {
       "surface_kind": "mas_reviewer_revision_specialist_skill_writeback_contract",
-      "route": "External OMA developer work order or refs-only improvement proposal, then OPL work-order execution.",
+      "route": "OPL developer-supervisor direct repository repair or GitHub pull-request route; OMA does not emit work orders.",
       "target_source_of_truth": "external_repo:mas-scholar-skills",
       "target_skill_ref_families": [
         "medical-manuscript-writing",
@@ -278,12 +279,13 @@
         "medical-submission-prep"
       ],
       "work_order_handoff": {
-        "source_owner": "opl-meta-agent",
-        "source_surface": "developer_patch_work_order",
-        "execution_owner": "one-person-lab",
-        "execution_surface": "opl work-order execute",
+        "source_owner": "one-person-lab",
+        "source_surface": "developer_supervisor_direct_repo_fix_or_pr_route",
+        "execution_owner": "authorized_repository_developer",
+        "execution_surface": "verified_topic_branch_and_main_integration",
         "target_owner_closeout": "med-autoscience",
-        "refs_only": true
+        "refs_only": true,
+        "oma_can_emit_work_order": false
       },
       "mas_copies_professional_skill_body": false,
       "professional_skills_supply_quality_rules_only": true,
