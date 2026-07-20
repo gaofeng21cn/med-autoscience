@@ -117,7 +117,6 @@ def test_stage_manifest_declares_domain_extensions_for_opl_generated_plane() -> 
             if trigger["role"] == "mas_guarded_action_trigger_candidates"
         )
         assert action_trigger["ref"] == stage["allowed_action_refs"]
-
         expected_late_fields = LATE_STAGE_EXTENSION_FIELDS.get(stage["stage_id"], set())
         assert expected_late_fields <= set(extension)
 
@@ -154,6 +153,44 @@ def test_stage_manifest_declares_domain_extensions_for_opl_generated_plane() -> 
         for stage in stages
         if stage["stage_id"] != "finalize_and_publication_handoff"
     )
+
+
+def test_stage_manifest_declares_deterministic_review_snapshot_lane_bindings() -> None:
+    stages = _stage_manifest()["stages"]
+    bounded = next(
+        stage for stage in stages if stage["stage_id"] == "bounded_analysis_campaign"
+    )
+    bounded_transport = bounded["stage_contract_extension"][
+        "review_input_snapshot_transport"
+    ]
+    assert bounded_transport == {
+        "surface_kind": "mas_stage_review_input_snapshot_transport",
+        "schema_version": 1,
+        "manifest_scope": "analysis_generation",
+        "review_lane_binding": "mas_stage_fixed",
+        "review_lane": "statistical",
+        "builder_ref": (
+            "src/med_autoscience/authority_handlers/_generation_manifest.py#"
+            "build_stage_review_input_snapshot_bundle"
+        ),
+        "source_locator_policy": "explicit_source_refs_by_member_id_exact_scope",
+        "missing_binding_effect": "quality_debt_without_quality_or_readiness_claim",
+    }
+
+    authoring = next(
+        stage for stage in stages if stage["stage_id"] == "manuscript_authoring"
+    )
+    authoring_transport = authoring["stage_contract_extension"][
+        "review_input_snapshot_transport"
+    ]
+    assert authoring_transport["review_lane_binding"] == "controller_required"
+    assert authoring_transport["allowed_review_lanes"] == [
+        "medical",
+        "statistical",
+        "reference",
+        "display",
+    ]
+    assert authoring_transport["executor_may_select_lane"] is False
 
 
 def test_publication_handoff_requires_one_exact_generation_package_sequence() -> None:

@@ -91,6 +91,25 @@
       ],
       "requires_generation_manifest_schema_version": 2,
       "domain_scope_owner": "mas",
+      "stage_bundle_builder_ref": "src/med_autoscience/authority_handlers/_generation_manifest.py#build_stage_review_input_snapshot_bundle",
+      "stage_lane_bindings": {
+        "bounded_analysis_campaign": {
+          "manifest_scope": "analysis_generation",
+          "review_lane": "statistical",
+          "binding_kind": "mas_stage_fixed"
+        },
+        "manuscript_authoring": {
+          "manifest_scope": "manuscript_generation",
+          "allowed_review_lanes": [
+            "medical",
+            "statistical",
+            "reference",
+            "display"
+          ],
+          "binding_kind": "controller_required",
+          "executor_may_select_lane": false
+        }
+      },
       "source_refs_by_member_id_must_exactly_match_review_scope": true,
       "source_ref_source": "explicit_host_transport_locator_mapping",
       "owner_authority_ref_source": "mas_canonical_exact_ref_metadata",

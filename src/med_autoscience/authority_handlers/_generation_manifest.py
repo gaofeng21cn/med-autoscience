@@ -468,6 +468,9 @@ STAGE_MINIMUM_SCOPE = {
     "review_and_quality_gate": "manuscript_generation",
     "finalize_and_publication_handoff": "publication_generation",
 }
+STAGE_FIXED_REVIEW_LANE = {
+    "bounded_analysis_campaign": "statistical",
+}
 _SCOPE_RANK = {
     "analysis_generation": 0,
     "manuscript_generation": 1,
@@ -1668,6 +1671,81 @@ def build_review_input_snapshot_materialization_request(
     }
 
 
+def build_stage_review_input_snapshot_bundle(
+    *,
+    stage_id: str,
+    artifacts: list[dict[str, Any]],
+    generation_id: str,
+    generation_ref: str,
+    workspace_root: str,
+    source_refs_by_member_id: Mapping[str, str],
+    authority_issuer: Mapping[str, Any],
+    review_lane: str | None = None,
+    professional_skill_invocations: list[dict[str, Any]] | None = None,
+) -> dict[str, Any]:
+    """Build one stage-bound generation manifest and immutable review request."""
+
+    normalized_stage_id = text(stage_id, "stage_id")
+    manifest_scope = STAGE_MINIMUM_SCOPE.get(normalized_stage_id)
+    if manifest_scope is None:
+        raise RequestShapeError(f"stage_id is unsupported: {normalized_stage_id}")
+
+    allowed_lanes = REVIEW_LANES_BY_SCOPE[manifest_scope]
+    fixed_lane = STAGE_FIXED_REVIEW_LANE.get(normalized_stage_id)
+    if fixed_lane is not None:
+        if review_lane is not None:
+            supplied_lane = enum_text(
+                review_lane,
+                "review_lane",
+                set(REVIEW_AUTHORITY_ROLE_BY_LANE),
+            )
+            if supplied_lane != fixed_lane:
+                raise RequestShapeError(
+                    f"stage_id {normalized_stage_id} binds review_lane {fixed_lane}"
+                )
+        lane = fixed_lane
+    else:
+        if review_lane is None:
+            raise RequestShapeError(
+                f"stage_id {normalized_stage_id} requires an explicit controller-bound review_lane"
+            )
+        lane = enum_text(
+            review_lane,
+            "review_lane",
+            set(REVIEW_AUTHORITY_ROLE_BY_LANE),
+        )
+    if lane not in allowed_lanes:
+        raise RequestShapeError(
+            f"review_lane {lane} is not allowed for stage_id {normalized_stage_id}"
+        )
+
+    generation_manifest = build_generation_manifest_v2(
+        artifacts=artifacts,
+        generation_id=generation_id,
+        manifest_scope=manifest_scope,
+        professional_skill_invocations=professional_skill_invocations,
+    )
+    request = build_review_input_snapshot_materialization_request(
+        generation_manifest=generation_manifest,
+        review_lane=lane,
+        generation_ref=generation_ref,
+        workspace_root=workspace_root,
+        source_refs_by_member_id=source_refs_by_member_id,
+        authority_issuer=authority_issuer,
+    )
+    return {
+        "surface_kind": "mas_stage_review_input_snapshot_bundle",
+        "schema_version": 1,
+        "stage_id": normalized_stage_id,
+        "manifest_scope": manifest_scope,
+        "review_lane": lane,
+        "generation_ref": text(generation_ref, "generation_ref"),
+        "generation_manifest": generation_manifest,
+        "review_input_snapshot_materialization_request": request,
+        "required_closeout_ref_metadata": [dict(request["owner_authority_ref"])],
+    }
+
+
 def build_review_scopes(
     artifacts: list[dict[str, Any]],
     manifest_scope: str,
@@ -2278,10 +2356,12 @@ __all__ = [
     "REVIEW_SCOPE_ROLES_BY_LANE",
     "REVIEW_SCOPE_POLICY_ID",
     "REVIEW_SCOPE_POLICY_VERSION",
+    "STAGE_FIXED_REVIEW_LANE",
     "STAGE_MINIMUM_SCOPE",
     "build_epistemic_review_scope",
     "build_generation_manifest_v2",
     "build_review_input_snapshot_materialization_request",
+    "build_stage_review_input_snapshot_bundle",
     "build_review_scopes",
     "epistemic_review_dependency_refs",
     "normalize_generation_manifest",

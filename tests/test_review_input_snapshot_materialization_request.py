@@ -9,6 +9,7 @@ from jsonschema import Draft202012Validator
 
 from med_autoscience.authority_handlers._generation_manifest import (
     build_review_input_snapshot_materialization_request,
+    build_stage_review_input_snapshot_bundle,
     review_scope_member_projection,
 )
 
@@ -129,6 +130,98 @@ def test_build_snapshot_request_projects_exact_scope_in_canonical_order(
         {key: value for key, value in member.items() if key != "source_ref"}
         for member in request["members"]
     ]
+
+
+def test_stage_bundle_binds_bounded_analysis_to_statistical_lane(
+    authority_records: Any,
+) -> None:
+    manifest, _ = authority_records.generation_manifest(
+        "analysis_generation",
+        schema_version=2,
+    )
+    scope = next(
+        item
+        for item in manifest["review_scopes"]
+        if item["review_lane"] == "statistical"
+    )
+    source_refs = {
+        item["member_id"]: f"file:///workspace/analysis/{item['member_id']}"
+        for item in scope["reviewed_members"]
+    }
+
+    bundle = build_stage_review_input_snapshot_bundle(
+        stage_id="bounded_analysis_campaign",
+        artifacts=manifest["artifacts"],
+        generation_id=manifest["generation_id"],
+        generation_ref="workspace://study/analysis/generation-manifest.json",
+        workspace_root="/workspace",
+        source_refs_by_member_id=source_refs,
+        authority_issuer=authority_records.review_snapshot_authority_issuer(),
+    )
+
+    request = bundle["review_input_snapshot_materialization_request"]
+    assert bundle["surface_kind"] == "mas_stage_review_input_snapshot_bundle"
+    assert bundle["manifest_scope"] == "analysis_generation"
+    assert bundle["review_lane"] == "statistical"
+    assert bundle["generation_manifest"]["review_scopes"] == manifest[
+        "review_scopes"
+    ]
+    assert request["members"]
+    assert request["owner_authority_ref"] == bundle[
+        "required_closeout_ref_metadata"
+    ][0]
+
+    with pytest.raises(ValueError, match="binds review_lane statistical"):
+        build_stage_review_input_snapshot_bundle(
+            stage_id="bounded_analysis_campaign",
+            artifacts=manifest["artifacts"],
+            generation_id=manifest["generation_id"],
+            generation_ref="workspace://study/analysis/generation-manifest.json",
+            workspace_root="/workspace",
+            source_refs_by_member_id=source_refs,
+            authority_issuer=authority_records.review_snapshot_authority_issuer(),
+            review_lane="medical",
+        )
+
+
+def test_multilane_stage_requires_explicit_controller_bound_lane(
+    authority_records: Any,
+) -> None:
+    manifest, _ = authority_records.generation_manifest(
+        "manuscript_generation",
+        schema_version=2,
+    )
+    display_scope = next(
+        item
+        for item in manifest["review_scopes"]
+        if item["review_lane"] == "display"
+    )
+    source_refs = {
+        item["member_id"]: f"file:///workspace/manuscript/{item['member_id']}"
+        for item in display_scope["reviewed_members"]
+    }
+    arguments = {
+        "stage_id": "manuscript_authoring",
+        "artifacts": manifest["artifacts"],
+        "generation_id": manifest["generation_id"],
+        "generation_ref": "workspace://study/manuscript/generation-manifest.json",
+        "workspace_root": "/workspace",
+        "source_refs_by_member_id": source_refs,
+        "authority_issuer": authority_records.review_snapshot_authority_issuer(),
+        "professional_skill_invocations": manifest[
+            "professional_skill_invocations"
+        ],
+    }
+
+    with pytest.raises(ValueError, match="explicit controller-bound review_lane"):
+        build_stage_review_input_snapshot_bundle(**arguments)
+
+    bundle = build_stage_review_input_snapshot_bundle(
+        **arguments,
+        review_lane="display",
+    )
+    assert bundle["manifest_scope"] == "manuscript_generation"
+    assert bundle["review_lane"] == "display"
 
 
 def test_exact_byte_snapshot_request_keeps_domain_owner_ref_out_of_transport_members(

@@ -1036,6 +1036,16 @@
           "new_required_stage_output_fields": [],
           "user_projection_uses_mas_authored_medical_narrative_only": true
         },
+        "review_input_snapshot_transport": {
+          "surface_kind": "mas_stage_review_input_snapshot_transport",
+          "schema_version": 1,
+          "manifest_scope": "analysis_generation",
+          "review_lane_binding": "mas_stage_fixed",
+          "review_lane": "statistical",
+          "builder_ref": "src/med_autoscience/authority_handlers/_generation_manifest.py#build_stage_review_input_snapshot_bundle",
+          "source_locator_policy": "explicit_source_refs_by_member_id_exact_scope",
+          "missing_binding_effect": "quality_debt_without_quality_or_readiness_claim"
+        },
         "cohort_query_refs": [
           {
             "ref": "/product_entry_manifest/family_stage_control_plane_descriptor/route_contract_snapshot",
@@ -1432,6 +1442,22 @@
           "current_v2_stage_output_value": null,
           "new_required_stage_output_fields": [],
           "user_projection_uses_mas_authored_medical_narrative_only": true
+        },
+        "review_input_snapshot_transport": {
+          "surface_kind": "mas_stage_review_input_snapshot_transport",
+          "schema_version": 1,
+          "manifest_scope": "manuscript_generation",
+          "review_lane_binding": "controller_required",
+          "allowed_review_lanes": [
+            "medical",
+            "statistical",
+            "reference",
+            "display"
+          ],
+          "builder_ref": "src/med_autoscience/authority_handlers/_generation_manifest.py#build_stage_review_input_snapshot_bundle",
+          "source_locator_policy": "explicit_source_refs_by_member_id_exact_scope",
+          "missing_binding_effect": "quality_debt_without_quality_or_readiness_claim",
+          "executor_may_select_lane": false
         },
         "first_draft_professional_skill_routing": {
           "base_required_skill": "medical-manuscript-writing",

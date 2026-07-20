@@ -62,6 +62,25 @@ scientific change. The write neither starts nor waits for independent review.
 `research_trajectory_delta_ref` remains nullable v1 read compatibility and is
 not the v2 write gate; the current v2 Stage output returns it as `null`.
 
+## Immutable Review Input
+
+This Stage has a MAS-fixed review binding: `manifest_scope=analysis_generation`
+and `review_lane=statistical`. Before producer or repairer closeout, materialize
+one v2 generation manifest containing the exact required analysis roles and an
+explicit transport locator for every statistical-scope `member_id`. Resolve the
+selected MAS checkout through the OPL-generated interface and call
+`build_stage_review_input_snapshot_bundle(...)`; do not recreate its authority
+record or scope logic in ad hoc JSON.
+
+Use the exact five `OPL_*` Attempt bindings supplied by Framework as
+`authority_issuer`. Return the generated request at
+`route_impact.stage_quality_cycle.review_input_snapshot_materialization_request`
+and add its MAS owner-authority exact ref to
+`closeout_packet.closeout_ref_metadata[]`. Generic `artifact_refs` are not the
+member locator map. If any required manifest member, exact locator, or Attempt
+binding is unavailable, omit the request and carry statistical-lane quality
+debt; do not claim formal review or readiness.
+
 ## Handoff
 
 Return `bounded_analysis_evidence_ready` with result, evidence-ledger,

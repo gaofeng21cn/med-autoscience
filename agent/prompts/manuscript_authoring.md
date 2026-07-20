@@ -110,6 +110,19 @@ manuscript quality gate remains separate. `research_trajectory_delta_ref`
 remains nullable v1 read compatibility and is not the v2 write gate; the current
 v2 Stage output returns it as `null`.
 
+## Immutable Review Input
+
+This Stage uses `manifest_scope=manuscript_generation` and has four distinct MAS
+review lanes: `medical`, `statistical`, `reference`, and `display`. There is no
+default lane. A producer or repairer may call
+`build_stage_review_input_snapshot_bundle(...)` only for the exact lane bound by
+the controller for the current review wave, with an explicit exact
+`source_refs_by_member_id` map and this Attempt's five `OPL_*` authority
+bindings. Never infer or select a lane from generic artifact refs, manuscript
+content, or tool availability. If the controller has not bound a lane, omit the
+request, record lane-binding quality debt, and make no quality, publication,
+export, submission, or ready claim.
+
 ## Handoff
 
 Produce the best consumable manuscript delta first. Before a quality or ready

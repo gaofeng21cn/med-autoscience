@@ -60,6 +60,25 @@ def test_quality_cycle_declares_role_bound_review_transport_production_path() ->
     assert snapshot["forbidden_attempt_roles"] == ["reviewer", "re_reviewer"]
     assert snapshot["schema_version"] == 2
     assert snapshot["requires_generation_manifest_schema_version"] == 2
+    assert snapshot["stage_bundle_builder_ref"].endswith(
+        "#build_stage_review_input_snapshot_bundle"
+    )
+    assert snapshot["stage_lane_bindings"]["bounded_analysis_campaign"] == {
+        "manifest_scope": "analysis_generation",
+        "review_lane": "statistical",
+        "binding_kind": "mas_stage_fixed",
+    }
+    assert snapshot["stage_lane_bindings"]["manuscript_authoring"] == {
+        "manifest_scope": "manuscript_generation",
+        "allowed_review_lanes": [
+            "medical",
+            "statistical",
+            "reference",
+            "display",
+        ],
+        "binding_kind": "controller_required",
+        "executor_may_select_lane": False,
+    }
     assert snapshot[
         "source_refs_by_member_id_must_exactly_match_review_scope"
     ] is True
@@ -127,6 +146,9 @@ def test_quality_cycle_declares_role_bound_review_transport_production_path() ->
         "review_input_snapshot_request_builder_ref"
     ].endswith("#build_review_input_snapshot_materialization_request")
     assert pack_input["source_refs"][
+        "stage_review_input_snapshot_bundle_builder_ref"
+    ].endswith("#build_stage_review_input_snapshot_bundle")
+    assert pack_input["source_refs"][
         "review_input_snapshot_authority_schema_ref"
     ] == snapshot["owner_authority_schema_ref"]
     assert pack_input["source_refs"][
@@ -144,6 +166,7 @@ def test_quality_cycle_declares_role_bound_review_transport_production_path() ->
     reviewer = roles.split("## Reviewer", 1)[1].split("## Repairer", 1)[0]
     repairer = roles.split("## Repairer", 1)[1].split("## Re Reviewer", 1)[0]
     re_reviewer = roles.split("## Re Reviewer", 1)[1]
+    normalized_repairer = " ".join(repairer.split())
     assert "review_input_snapshot_materialization_request" in roles
     assert "never infer the map from generic artifact refs" in normalized_roles
     assert "record lane quality debt and continue" in normalized_roles
@@ -156,8 +179,12 @@ def test_quality_cycle_declares_role_bound_review_transport_production_path() ->
     assert "returns it unchanged" in roles
     assert "page_hash_evidence_candidate_package_id=mas-scholar-skills" in roles
     assert "page_hash_evidence_origin_ref" in roles
-    assert normalized_roles.count("closeout_packet.closeout_ref_metadata[]") == 2
+    assert normalized_roles.count("closeout_packet.closeout_ref_metadata[]") == 4
     assert "use `ref`, not the legacy `uri` spelling" in roles
+    assert "build_stage_review_input_snapshot_bundle(...)" in producer
+    assert "build_stage_review_input_snapshot_bundle(...)" in repairer
+    assert "Never derive that map from generic artifact refs" in producer
+    assert "Never reuse the producer request or authority issuer" in normalized_repairer
     assert "page-hash evidence candidate" not in producer
     assert "page-hash evidence candidate" not in repairer
     assert "page-hash evidence candidate" in reviewer
@@ -533,6 +560,25 @@ def test_main_prompts_label_the_forward_stage_as_a_default_not_a_route_constrain
     for prompt in prompts.values():
         assert "\nDefault forward stage: " in prompt
         assert "\nNext stage: " not in prompt
+
+
+def test_stage_prompts_expose_snapshot_binding_without_allowing_lane_guessing() -> None:
+    bounded = (ROOT / "agent/prompts/bounded_analysis_campaign.md").read_text(
+        encoding="utf-8"
+    )
+    authoring = (ROOT / "agent/prompts/manuscript_authoring.md").read_text(
+        encoding="utf-8"
+    )
+    normalized_authoring = " ".join(authoring.split())
+
+    assert "manifest_scope=analysis_generation" in bounded
+    assert "review_lane=statistical" in bounded
+    assert "build_stage_review_input_snapshot_bundle(...)" in bounded
+    assert "explicit transport locator for every statistical-scope `member_id`" in bounded
+    assert "manifest_scope=manuscript_generation" in authoring
+    assert "There is no default lane." in normalized_authoring
+    assert "executor may select lane" not in authoring
+    assert "Never infer or select a lane" in authoring
 
 
 def test_active_stage_manifest_uses_canonical_review_gate_input_ids() -> None:

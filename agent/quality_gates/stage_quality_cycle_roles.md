@@ -106,6 +106,20 @@ formal Review, return at most an evidence-backed route recommendation and leave
 the terminal decision to the reviewer or re-reviewer. Under
 `hard_boundary_or_zero_artifact`, return no route output.
 
+For formal Review, use the stage-bound MAS manifest scope and review lane to call
+`build_stage_review_input_snapshot_bundle(...)` with an explicit
+`source_refs_by_member_id` map. Never derive that map from generic artifact refs
+or choose an unbound lane. Bind `authority_issuer` to the exact
+`OPL_STAGE_ATTEMPT_REF`, `OPL_EXECUTION_CONTENT_BINDING_SHA256`,
+`OPL_PACKAGE_USE_BOUNDARY_ID`, `OPL_ROOT_PACKAGE_ID`, and
+`OPL_ROOT_PACKAGE_CONTENT_DIGEST` values supplied to this Attempt. Return the
+bundle's request at
+`route_impact.stage_quality_cycle.review_input_snapshot_materialization_request`
+and append its `required_closeout_ref_metadata` entry to
+`closeout_packet.closeout_ref_metadata[]`. If the exact manifest inventory,
+locator map, or controller-bound lane is unavailable, omit the request, record
+lane quality debt, and make no quality or readiness claim.
+
 ## Reviewer
 
 Independently inspect the exact artifact hashes against the declared rubric and
@@ -144,6 +158,16 @@ passed. A repairer never makes a terminal route decision; when no hard boundary
 applies and repair cannot stay inside the inherited Stage boundary, return only
 a route recommendation for the fresh re-reviewer to judge. Under
 `hard_boundary_or_zero_artifact`, return no route output.
+
+When the repaired generation will enter formal re-review, rebuild its v2
+generation manifest and call `build_stage_review_input_snapshot_bundle(...)`
+with the inherited controller-bound lane, an explicit exact
+`source_refs_by_member_id` map, and this repair Attempt's five `OPL_*` authority
+bindings. Return the new snapshot materialization request at the canonical
+quality-cycle path and append its `required_closeout_ref_metadata` entry to
+`closeout_packet.closeout_ref_metadata[]`. Never reuse the producer request or
+authority issuer. Missing exact inputs remain lane quality debt; do not guess or
+forge a request.
 
 ## Re Reviewer
 
