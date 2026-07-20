@@ -102,4 +102,3 @@ def test_specialist_skill_writeback_uses_current_developer_route_not_oma_work_or
         "developer_supervisor_direct_repo_fix_or_pr_route"
     )
     assert handoff["oma_can_emit_work_order"] is False
-
