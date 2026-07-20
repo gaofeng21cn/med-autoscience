@@ -199,8 +199,13 @@
         "medical-manuscript-writing",
         "medical-registry-atlas-story-architect",
         "medical-manuscript-review",
+        "medical-data-freeze-and-analysis-readiness-reviewer",
+        "medical-reference-integrity-auditor",
         "medical-statistical-review",
+        "medical-survival-analysis-plan",
+        "medical-risk-model-transportability-reviewer",
         "medical-table-design",
+        "medical-display-qc",
         "medical-figure-design",
         "medical-figure-style",
         "medical-figure-composer",
@@ -223,19 +228,51 @@
       },
       "first_draft_professional_skill_routing": {
         "quality_policy_ref": "contracts/manuscript_first_draft_quality_policy.json",
+        "current_application_schema_version": 2,
+        "legacy_application_schema_version_read_compatible": true,
+        "legacy_application_cannot_satisfy_current_first_draft_ready": true,
         "base_required_skill": "medical-manuscript-writing",
+        "current_first_draft_required_specialists": [
+          "medical-reference-integrity-auditor"
+        ],
         "study_type_specialists": {
           "registry_or_atlas": "medical-registry-atlas-story-architect"
         },
         "conditional_routes": {
-          "quantitative_analysis_or_numeric_trace": "medical-statistical-review",
-          "paper_facing_table": "medical-table-design",
+          "uses_clinical_or_registry_data": "medical-data-freeze-and-analysis-readiness-reviewer",
+          "prediction_model": "medical-statistical-review",
+          "fixed_horizon_or_competing_risk": "medical-survival-analysis-plan",
+          "external_validation_only": "medical-risk-model-transportability-reviewer",
+          "table_one": "medical-table-design",
+          "reader_pdf": "medical-display-qc",
           "paper_facing_figure": [
             "medical-figure-design",
             "medical-figure-style"
           ],
           "assembled_figure_panels": "medical-figure-composer",
           "publication_package": "medical-submission-prep"
+        },
+        "candidate_disposition_contract": {
+          "statuses": [
+            "satisfied",
+            "route_back_required",
+            "not_applicable_with_reason"
+          ],
+          "satisfied_or_route_back_requires_exact_candidate_ref": true,
+          "satisfied_or_route_back_requires_nonempty_candidate_ref": true,
+          "not_applicable_requires_null_ref_and_non_empty_reason": true
+        },
+        "route_priority": [
+          "baseline_and_evidence_setup",
+          "bounded_analysis_campaign",
+          "manuscript_authoring",
+          "review_and_quality_gate"
+        ],
+        "exact_receipt_readback": {
+          "exact_invocation_ref_required": true,
+          "exact_skill_receipt_ref_required": true,
+          "exact_input_artifact_bindings_required": true,
+          "owner_receipt_projection_field": "professional_skill_receipt_projection"
         },
         "professional_skill_consumption_may_be_replaced_by_template": false,
         "pre_review_contract": {
@@ -271,8 +308,13 @@
         "medical-manuscript-writing",
         "medical-registry-atlas-story-architect",
         "medical-manuscript-review",
+        "medical-data-freeze-and-analysis-readiness-reviewer",
+        "medical-reference-integrity-auditor",
         "medical-statistical-review",
+        "medical-survival-analysis-plan",
+        "medical-risk-model-transportability-reviewer",
         "medical-table-design",
+        "medical-display-qc",
         "medical-figure-design",
         "medical-figure-style",
         "medical-figure-composer",

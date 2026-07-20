@@ -28,6 +28,39 @@ MANUSCRIPT_ROLES = ANALYSIS_ROLES + (
     "figure_file",
     "render_environment_and_font_manifest",
 )
+FIRST_DRAFT_QUALITY_ROLES = (
+    "medical_initial_draft_preflight_candidate",
+    "clinical_analysis_input_identity",
+    "citation_source_coverage",
+    "validation_partition_integrity",
+    "endpoint_analysis_set_reconciliation",
+    "model_complexity_sparse_event",
+    "fixed_horizon_risk_semantics",
+    "competing_risk",
+    "decision_curve_validity",
+    "baseline_table_traceability",
+    "document_display_scope_coverage",
+    "claim_guardrail",
+)
+FIRST_DRAFT_ROLE_BY_REF_FIELD = {
+    "medical_initial_draft_preflight_candidate_ref": (
+        "medical_initial_draft_preflight_candidate"
+    ),
+    "clinical_analysis_input_identity_ref": "clinical_analysis_input_identity",
+    "citation_source_coverage_ref": "citation_source_coverage",
+    "validation_partition_integrity_ref": "validation_partition_integrity",
+    "endpoint_analysis_set_reconciliation_ref": (
+        "endpoint_analysis_set_reconciliation"
+    ),
+    "model_complexity_sparse_event_ref": "model_complexity_sparse_event",
+    "fixed_horizon_risk_semantics_ref": "fixed_horizon_risk_semantics",
+    "competing_risk_ref": "competing_risk",
+    "decision_curve_validity_ref": "decision_curve_validity",
+    "baseline_table_traceability_ref": "baseline_table_traceability",
+    "document_display_scope_coverage_ref": "document_display_scope_coverage",
+    "claim_guardrail_ref": "claim_guardrail",
+    "external_transportability_ref": "external_transportability",
+}
 PUBLICATION_ROLES = MANUSCRIPT_ROLES + (
     "docx",
     "pdf",
@@ -145,6 +178,156 @@ class AuthorityRecordFactory:
             "sha256": receipt["receipt_fingerprint"],
         }
 
+    @staticmethod
+    def artifact_binding(artifact: dict[str, Any]) -> dict[str, Any]:
+        return {
+            key: artifact[key]
+            for key in ("member_id", "role", "ref", "size_bytes", "sha256")
+        }
+
+    @classmethod
+    def mas_artifact_ref(cls, artifact: dict[str, Any]) -> dict[str, Any]:
+        return {
+            "kind": "mas_artifact",
+            "ref": artifact["ref"],
+            "size_bytes": artifact["size_bytes"],
+            "sha256": artifact["sha256"],
+        }
+
+    @classmethod
+    def professional_invocation_ref(
+        cls,
+        invocation_core: dict[str, Any],
+    ) -> dict[str, Any]:
+        invocation_sha256 = cls.fingerprint(invocation_core)
+        return {
+            "kind": "mas_professional_skill_invocation",
+            "ref": (
+                "mas-professional-skill-invocation:"
+                f"{invocation_sha256.removeprefix('sha256:')}"
+            ),
+            "size_bytes": len(cls.canonical_bytes(invocation_core)),
+            "sha256": invocation_sha256,
+        }
+
+    @classmethod
+    def professional_receipt_ref(
+        cls,
+        receipt_core: dict[str, Any],
+    ) -> dict[str, Any]:
+        receipt_sha256 = cls.fingerprint(receipt_core)
+        return {
+            "kind": "scholarskills_professional_skill_receipt",
+            "ref": (
+                "scholarskills-professional-skill-receipt:"
+                f"{receipt_sha256.removeprefix('sha256:')}"
+            ),
+            "size_bytes": len(cls.canonical_bytes(receipt_core)),
+            "sha256": receipt_sha256,
+        }
+
+    @classmethod
+    def first_draft_quality_application(
+        cls,
+        artifacts: list[dict[str, Any]],
+        *,
+        schema_version: int = 2,
+        paper_type: str = "prediction_model",
+        validation_design: str = "internal_validation",
+        reports_fixed_horizon_risk: bool = True,
+        competing_risk_relevant: bool = True,
+        reports_decision_curve_analysis: bool = True,
+        includes_table_one: bool = True,
+        requires_reader_pdf: bool = True,
+        uses_clinical_or_registry_data: bool = True,
+        disposition_overrides: dict[str, dict[str, Any]] | None = None,
+    ) -> dict[str, Any]:
+        artifacts_by_role = {artifact["role"]: artifact for artifact in artifacts}
+        triggers = {
+            "reports_fixed_horizon_risk": reports_fixed_horizon_risk,
+            "competing_risk_relevant": competing_risk_relevant,
+            "reports_decision_curve_analysis": reports_decision_curve_analysis,
+            "includes_table_one": includes_table_one,
+            "requires_reader_pdf": requires_reader_pdf,
+        }
+        if schema_version == 2:
+            triggers["uses_clinical_or_registry_data"] = (
+                uses_clinical_or_registry_data
+            )
+        applicable_fields = {
+            "medical_initial_draft_preflight_candidate_ref",
+            "citation_source_coverage_ref",
+            "claim_guardrail_ref",
+        }
+        if uses_clinical_or_registry_data:
+            applicable_fields.add("clinical_analysis_input_identity_ref")
+        if paper_type == "prediction_model":
+            applicable_fields.update(
+                {
+                    "validation_partition_integrity_ref",
+                    "endpoint_analysis_set_reconciliation_ref",
+                    "model_complexity_sparse_event_ref",
+                }
+            )
+        if reports_fixed_horizon_risk:
+            applicable_fields.add("fixed_horizon_risk_semantics_ref")
+        if competing_risk_relevant:
+            applicable_fields.add("competing_risk_ref")
+        if reports_decision_curve_analysis:
+            applicable_fields.add("decision_curve_validity_ref")
+        if includes_table_one:
+            applicable_fields.add("baseline_table_traceability_ref")
+        if requires_reader_pdf:
+            applicable_fields.add("document_display_scope_coverage_ref")
+        if validation_design == "external_validation":
+            applicable_fields.add("external_transportability_ref")
+
+        candidate_refs = {
+            ref_field: (
+                cls.mas_artifact_ref(artifacts_by_role[role])
+                if ref_field in applicable_fields
+                else None
+            )
+            for ref_field, role in FIRST_DRAFT_ROLE_BY_REF_FIELD.items()
+        }
+        application = {
+            "surface_kind": "mas_first_draft_quality_application_candidate",
+            "schema_version": schema_version,
+            "paper_type": paper_type,
+            "validation_design": validation_design,
+            "triggers": triggers,
+            "candidate_refs": candidate_refs,
+        }
+        if schema_version == 2:
+            application["candidate_dispositions"] = {
+                ref_field: (
+                    {
+                        "status": "satisfied",
+                        "earliest_route_back_owner": None,
+                        "reason_codes": [],
+                        "unresolved_items": [],
+                        "not_applicable_reason": None,
+                    }
+                    if ref_field in applicable_fields
+                    else {
+                        "status": "not_applicable_with_reason",
+                        "earliest_route_back_owner": None,
+                        "reason_codes": [],
+                        "unresolved_items": [],
+                        "not_applicable_reason": (
+                            "The declared paper type or first-draft trigger does not "
+                            "require this specialist candidate."
+                        ),
+                    }
+                )
+                for ref_field in FIRST_DRAFT_ROLE_BY_REF_FIELD
+            }
+            for ref_field, override in (disposition_overrides or {}).items():
+                application["candidate_dispositions"][ref_field].update(
+                    deepcopy(override)
+                )
+        return application
+
     @classmethod
     def epistemic_currentness(
         cls,
@@ -230,6 +413,7 @@ class AuthorityRecordFactory:
         *,
         figure_id: str = "F1",
         composition_mode: str = "single_canvas_direct",
+        schema_version: int = 1,
     ) -> list[dict[str, Any]]:
         bindings = [
             {
@@ -243,7 +427,7 @@ class AuthorityRecordFactory:
             return []
         common = {
             "surface_kind": "mas_professional_figure_skill_invocation_candidate",
-            "schema_version": 1,
+            "schema_version": schema_version,
             "figure_id": figure_id,
             "figure_kind": "evidence_figure",
             "composition_mode": composition_mode,
@@ -263,7 +447,6 @@ class AuthorityRecordFactory:
         for skill_id in ("medical-figure-design", "medical-figure-style"):
             invocation = {
                 **deepcopy(common),
-                "receipt_id": f"mas-professional-figure-skill:{figure_id}:{skill_id}",
                 "skill_id": skill_id,
                 "skill_source_ref": f"skills/{skill_id}/SKILL.md",
                 "skill_source_sha256": cls.digest(f"skill-source:{skill_id}"),
@@ -287,41 +470,126 @@ class AuthorityRecordFactory:
                         "necessary_statistical_annotation",
                     ],
                 }
+            if schema_version == 2:
+                input_bindings = [
+                    cls.artifact_binding(artifact)
+                    for artifact in artifacts
+                    if artifact["role"] in {"analysis_output", "figure_catalog"}
+                ]
+                invocation["input_artifact_bindings"] = input_bindings
+                receipt_ref = cls.professional_receipt_ref(
+                    {
+                        "skill_id": skill_id,
+                        "figure_id": figure_id,
+                        "skill_source_sha256": invocation["skill_source_sha256"],
+                        "input_artifact_bindings": input_bindings,
+                        "output_artifact_bindings": invocation[
+                            "output_artifact_bindings"
+                        ],
+                        "consumed_rule_refs": invocation["consumed_rule_refs"],
+                        "status": "completed",
+                    }
+                )
+                invocation["receipt_id"] = receipt_ref["ref"]
+                invocation["receipt_ref"] = receipt_ref
+                invocation["invocation_ref"] = cls.professional_invocation_ref(
+                    invocation
+                )
+            else:
+                invocation["receipt_id"] = (
+                    f"mas-professional-figure-skill:{figure_id}:{skill_id}"
+                )
             invocations.append(invocation)
         if composition_mode == "assembled_panels":
-            invocations.append(
-                {
-                    **deepcopy(common),
-                    "receipt_id": (
-                        f"mas-professional-figure-skill:{figure_id}:"
-                        "medical-figure-composer"
-                    ),
-                    "skill_id": "medical-figure-composer",
-                    "skill_source_ref": "skills/medical-figure-composer/SKILL.md",
-                    "skill_source_sha256": cls.digest(
-                        "skill-source:medical-figure-composer"
-                    ),
-                    "invocation_id": (
-                        f"invocation:{figure_id}:medical-figure-composer"
-                    ),
-                    "consumed_rule_refs": ["medical-figure-composer#workflow"],
-                }
-            )
+            invocation = {
+                **deepcopy(common),
+                "skill_id": "medical-figure-composer",
+                "skill_source_ref": "skills/medical-figure-composer/SKILL.md",
+                "skill_source_sha256": cls.digest(
+                    "skill-source:medical-figure-composer"
+                ),
+                "invocation_id": f"invocation:{figure_id}:medical-figure-composer",
+                "consumed_rule_refs": ["medical-figure-composer#workflow"],
+            }
+            if schema_version == 2:
+                input_bindings = [
+                    cls.artifact_binding(artifact)
+                    for artifact in artifacts
+                    if artifact["role"] in {"analysis_output", "figure_catalog"}
+                ]
+                invocation["input_artifact_bindings"] = input_bindings
+                receipt_ref = cls.professional_receipt_ref(
+                    {
+                        "skill_id": "medical-figure-composer",
+                        "figure_id": figure_id,
+                        "skill_source_sha256": invocation["skill_source_sha256"],
+                        "input_artifact_bindings": input_bindings,
+                        "output_artifact_bindings": invocation[
+                            "output_artifact_bindings"
+                        ],
+                        "consumed_rule_refs": invocation["consumed_rule_refs"],
+                        "status": "completed",
+                    }
+                )
+                invocation["receipt_id"] = receipt_ref["ref"]
+                invocation["receipt_ref"] = receipt_ref
+                invocation["invocation_ref"] = cls.professional_invocation_ref(
+                    invocation
+                )
+            else:
+                invocation["receipt_id"] = (
+                    f"mas-professional-figure-skill:{figure_id}:"
+                    "medical-figure-composer"
+                )
+            invocations.append(invocation)
         return invocations
 
     @classmethod
     def professional_manuscript_skill_invocations(
         cls,
         artifacts: list[dict[str, Any]],
+        *,
+        schema_version: int = 1,
     ) -> list[dict[str, Any]]:
         role_sets = {
-            "medical-manuscript-writing": {"canonical_manuscript"},
+            "medical-manuscript-writing": {
+                "canonical_manuscript",
+                "claim_evidence_map",
+                "claim_guardrail",
+                "medical_initial_draft_preflight_candidate",
+            },
             "medical-registry-atlas-story-architect": {
                 "canonical_manuscript",
                 "claim_evidence_map",
             },
-            "medical-statistical-review": {"analysis_output", "numeric_trace"},
-            "medical-table-design": {"table_catalog", "table_file"},
+            "medical-data-freeze-and-analysis-readiness-reviewer": {
+                "clinical_analysis_input_identity"
+            },
+            "medical-reference-integrity-auditor": {"citation_source_coverage"},
+            "medical-statistical-review": {
+                "analysis_output",
+                "numeric_trace",
+                "validation_partition_integrity",
+                "endpoint_analysis_set_reconciliation",
+                "model_complexity_sparse_event",
+                "decision_curve_validity",
+            },
+            "medical-survival-analysis-plan": {
+                "fixed_horizon_risk_semantics",
+                "competing_risk",
+            },
+            "medical-risk-model-transportability-reviewer": {
+                "external_transportability"
+            },
+            "medical-table-design": {
+                "table_catalog",
+                "table_file",
+                "baseline_table_traceability",
+            },
+            "medical-display-qc": {
+                "document_display_scope_coverage",
+                "pdf",
+            },
             "medical-submission-prep": {
                 "canonical_manuscript",
                 "docx",
@@ -330,6 +598,43 @@ class AuthorityRecordFactory:
                 "final_zip_allowlist",
                 "final_zip_member",
             },
+        }
+        input_role_sets = {
+            "medical-manuscript-writing": {
+                "medical_initial_draft_preflight_candidate",
+                "clinical_analysis_input_identity",
+                "citation_source_coverage",
+                "claim_guardrail",
+            },
+            "medical-registry-atlas-story-architect": {"claim_evidence_map"},
+            "medical-data-freeze-and-analysis-readiness-reviewer": {
+                "source_input_digest",
+                "data_release",
+                "denominator_definitions",
+            },
+            "medical-reference-integrity-auditor": {
+                "citation_ledger",
+                "reference_library",
+            },
+            "medical-statistical-review": {
+                "data_release",
+                "denominator_definitions",
+                "analysis_output",
+                "numeric_trace",
+            },
+            "medical-survival-analysis-plan": {
+                "denominator_definitions",
+                "analysis_output",
+                "numeric_trace",
+            },
+            "medical-risk-model-transportability-reviewer": {
+                "data_release",
+                "denominator_definitions",
+                "analysis_output",
+            },
+            "medical-table-design": {"analysis_output", "numeric_trace"},
+            "medical-display-qc": {"canonical_manuscript", "pdf"},
+            "medical-submission-prep": {"canonical_manuscript"},
         }
         invocations = []
         for skill_id, roles in role_sets.items():
@@ -346,71 +651,99 @@ class AuthorityRecordFactory:
                 for artifact in artifacts
                 if artifact["role"] in roles
             ]
-            invocations.append(
-                {
-                    "surface_kind": (
-                        "mas_professional_manuscript_skill_invocation_candidate"
-                    ),
-                    "schema_version": 1,
-                    "receipt_id": f"mas-professional-manuscript-skill:{skill_id}",
-                    "skill_id": skill_id,
-                    "package_id": "mas-scholar-skills",
-                    "package_version": "test-version",
-                    "package_source_ref": "git:mas-scholar-skills@test",
-                    "package_source_sha256": cls.digest(
-                        "mas-scholar-skills:test-source"
-                    ),
-                    "skill_source_ref": f"skills/{skill_id}/SKILL.md",
-                    "skill_source_sha256": cls.digest(f"skill-source:{skill_id}"),
-                    "invocation_id": f"invocation:first-draft:{skill_id}",
-                    "input_contract_ref": "mas-manuscript-contract://first-draft",
-                    "input_sha256": cls.digest("manuscript-contract:first-draft"),
-                    "consumed_rule_refs": [
-                        f"{skill_id}#workflow",
-                        *(
-                            ["medical-table-design#main-table-information-budget"]
-                            if skill_id == "medical-table-design"
-                            else []
-                        ),
-                    ],
-                    "output_artifact_bindings": bindings,
-                    "template_substitution": False,
-                    "status": "completed",
-                    "refs_only": True,
-                    "authority": False,
-                    "publication_ready": False,
-                    **(
-                        {
-                            "table_quality_application": {
-                                "schema_version": 1,
-                                "policy_ref": "medical-table-design#main-table-information-budget",
-                                "template_policy": "reference_floor_not_required",
-                                "coverage_status": "all_main_tables_assessed",
-                                "main_tables": [
-                                    {
-                                        "table_id": "T1",
-                                        "role": "main_text",
-                                        "reader_question": "Who is represented in the cohort?",
-                                        "row_count": 7,
-                                        "column_count": 8,
-                                        "body_word_count": 202,
-                                        "max_cell_word_count": 12,
-                                        "footnote_word_count": 18,
-                                        "supplementary_detail_refs": ["TS27"],
-                                        "budget_status": "within_default_budget",
-                                        "exception_reason": None,
-                                        "final_embedding_status": "passed",
-                                        "final_embedding_page_span": 1,
-                                        "standalone_notes_heading_present": False,
-                                    }
-                                ],
-                            }
-                        }
+            if not bindings:
+                continue
+            invocation = {
+                "surface_kind": (
+                    "mas_professional_manuscript_skill_invocation_candidate"
+                ),
+                "schema_version": schema_version,
+                "skill_id": skill_id,
+                "package_id": "mas-scholar-skills",
+                "package_version": "test-version",
+                "package_source_ref": "git:mas-scholar-skills@test",
+                "package_source_sha256": cls.digest(
+                    "mas-scholar-skills:test-source"
+                ),
+                "skill_source_ref": f"skills/{skill_id}/SKILL.md",
+                "skill_source_sha256": cls.digest(f"skill-source:{skill_id}"),
+                "invocation_id": f"invocation:first-draft:{skill_id}",
+                "input_contract_ref": "mas-manuscript-contract://first-draft",
+                "input_sha256": cls.digest("manuscript-contract:first-draft"),
+                "consumed_rule_refs": [
+                    f"{skill_id}#workflow",
+                    *(
+                        ["medical-table-design#main-table-information-budget"]
                         if skill_id == "medical-table-design"
-                        else {}
+                        else []
                     ),
-                }
-            )
+                ],
+                "output_artifact_bindings": bindings,
+                "template_substitution": False,
+                "status": "completed",
+                "refs_only": True,
+                "authority": False,
+                "publication_ready": False,
+                **(
+                    {
+                        "table_quality_application": {
+                            "schema_version": 1,
+                            "policy_ref": "medical-table-design#main-table-information-budget",
+                            "template_policy": "reference_floor_not_required",
+                            "coverage_status": "all_main_tables_assessed",
+                            "main_tables": [
+                                {
+                                    "table_id": "T1",
+                                    "role": "main_text",
+                                    "reader_question": "Who is represented in the cohort?",
+                                    "row_count": 7,
+                                    "column_count": 8,
+                                    "body_word_count": 202,
+                                    "max_cell_word_count": 12,
+                                    "footnote_word_count": 18,
+                                    "supplementary_detail_refs": ["TS27"],
+                                    "budget_status": "within_default_budget",
+                                    "exception_reason": None,
+                                    "final_embedding_status": "passed",
+                                    "final_embedding_page_span": 1,
+                                    "standalone_notes_heading_present": False,
+                                }
+                            ],
+                        }
+                    }
+                    if skill_id == "medical-table-design"
+                    else {}
+                ),
+            }
+            if schema_version == 2:
+                input_bindings = [
+                    cls.artifact_binding(artifact)
+                    for artifact in artifacts
+                    if artifact["role"] in input_role_sets[skill_id]
+                ]
+                invocation["input_artifact_bindings"] = input_bindings
+                receipt_ref = cls.professional_receipt_ref(
+                    {
+                        "skill_id": skill_id,
+                        "skill_source_sha256": invocation["skill_source_sha256"],
+                        "input_artifact_bindings": input_bindings,
+                        "output_artifact_bindings": invocation[
+                            "output_artifact_bindings"
+                        ],
+                        "consumed_rule_refs": invocation["consumed_rule_refs"],
+                        "status": "completed",
+                    }
+                )
+                invocation["receipt_id"] = receipt_ref["ref"]
+                invocation["receipt_ref"] = receipt_ref
+                invocation["invocation_ref"] = cls.professional_invocation_ref(
+                    invocation
+                )
+            else:
+                invocation["receipt_id"] = (
+                    f"mas-professional-manuscript-skill:{skill_id}"
+                )
+            invocations.append(invocation)
         return invocations
 
     @classmethod
@@ -428,6 +761,17 @@ class AuthorityRecordFactory:
         include_professional_skill_invocations: bool = True,
         omit_professional_skill_ids: tuple[str, ...] = (),
         professional_figure_composition_mode: str = "single_canvas_direct",
+        include_first_draft_quality_application: bool | None = None,
+        first_draft_application_schema_version: int = 2,
+        paper_type: str = "prediction_model",
+        validation_design: str = "internal_validation",
+        reports_fixed_horizon_risk: bool = True,
+        competing_risk_relevant: bool = True,
+        reports_decision_curve_analysis: bool = True,
+        includes_table_one: bool = True,
+        requires_reader_pdf: bool = True,
+        uses_clinical_or_registry_data: bool = True,
+        disposition_overrides: dict[str, dict[str, Any]] | None = None,
         candidate_receipt: dict[str, Any] | None = None,
         review_receipts: list[dict[str, Any]] | None = None,
     ) -> tuple[dict[str, Any], dict[str, Any]]:
@@ -435,8 +779,53 @@ class AuthorityRecordFactory:
         artifact_sha_overrides = artifact_sha_overrides or {}
         artifact_ref_overrides = artifact_ref_overrides or {}
         artifact_member_id_overrides = artifact_member_id_overrides or {}
+        if include_first_draft_quality_application is None:
+            include_first_draft_quality_application = (
+                schema_version == 2 and scope != "analysis_generation"
+            )
+        applicable_first_draft_fields = {
+            "medical_initial_draft_preflight_candidate_ref",
+            "citation_source_coverage_ref",
+            "claim_guardrail_ref",
+        }
+        if uses_clinical_or_registry_data:
+            applicable_first_draft_fields.add(
+                "clinical_analysis_input_identity_ref"
+            )
+        if paper_type == "prediction_model":
+            applicable_first_draft_fields.update(
+                {
+                    "validation_partition_integrity_ref",
+                    "endpoint_analysis_set_reconciliation_ref",
+                    "model_complexity_sparse_event_ref",
+                }
+            )
+        if reports_fixed_horizon_risk:
+            applicable_first_draft_fields.add("fixed_horizon_risk_semantics_ref")
+        if competing_risk_relevant:
+            applicable_first_draft_fields.add("competing_risk_ref")
+        if reports_decision_curve_analysis:
+            applicable_first_draft_fields.add("decision_curve_validity_ref")
+        if includes_table_one:
+            applicable_first_draft_fields.add("baseline_table_traceability_ref")
+        if requires_reader_pdf:
+            applicable_first_draft_fields.add(
+                "document_display_scope_coverage_ref"
+            )
+        if validation_design == "external_validation":
+            applicable_first_draft_fields.add("external_transportability_ref")
+        roles = list(ROLES_BY_SCOPE[scope])
+        if include_first_draft_quality_application:
+            roles.extend(
+                FIRST_DRAFT_ROLE_BY_REF_FIELD[field]
+                for field in FIRST_DRAFT_ROLE_BY_REF_FIELD
+                if field in applicable_first_draft_fields
+                and FIRST_DRAFT_ROLE_BY_REF_FIELD[field] not in roles
+            )
+            if requires_reader_pdf and "pdf" not in roles:
+                roles.append("pdf")
         artifacts: list[dict[str, Any]] = []
-        for index, role in enumerate(ROLES_BY_SCOPE[scope]):
+        for index, role in enumerate(roles):
             if role == "candidate_admission_receipt" and candidate_receipt is not None:
                 artifact = {
                     "role": role,
@@ -493,6 +882,24 @@ class AuthorityRecordFactory:
             "manifest_scope": scope,
             "artifacts": artifacts,
         }
+        if include_first_draft_quality_application:
+            core["first_draft_quality_application"] = (
+                cls.first_draft_quality_application(
+                    artifacts,
+                    schema_version=first_draft_application_schema_version,
+                    paper_type=paper_type,
+                    validation_design=validation_design,
+                    reports_fixed_horizon_risk=reports_fixed_horizon_risk,
+                    competing_risk_relevant=competing_risk_relevant,
+                    reports_decision_curve_analysis=reports_decision_curve_analysis,
+                    includes_table_one=includes_table_one,
+                    requires_reader_pdf=requires_reader_pdf,
+                    uses_clinical_or_registry_data=(
+                        uses_clinical_or_registry_data
+                    ),
+                    disposition_overrides=disposition_overrides,
+                )
+            )
         if schema_version == 2:
             from med_autoscience.authority_handlers._generation_manifest import (
                 build_review_scopes,
@@ -507,10 +914,18 @@ class AuthorityRecordFactory:
                     professional_skill_invocations
                     if professional_skill_invocations is not None
                     else [
-                        *cls.professional_manuscript_skill_invocations(artifacts),
+                        *cls.professional_manuscript_skill_invocations(
+                            artifacts,
+                            schema_version=(
+                                2 if include_first_draft_quality_application else 1
+                            ),
+                        ),
                         *cls.professional_figure_skill_invocations(
                             artifacts,
                             composition_mode=professional_figure_composition_mode,
+                            schema_version=(
+                                2 if include_first_draft_quality_application else 1
+                            ),
                         ),
                     ]
                 )
@@ -843,6 +1258,17 @@ class AuthorityRecordFactory:
         include_professional_skill_invocations: bool = True,
         omit_professional_skill_ids: tuple[str, ...] = (),
         professional_figure_composition_mode: str = "single_canvas_direct",
+        include_first_draft_quality_application: bool | None = None,
+        first_draft_application_schema_version: int = 2,
+        paper_type: str = "prediction_model",
+        validation_design: str = "internal_validation",
+        reports_fixed_horizon_risk: bool = True,
+        competing_risk_relevant: bool = True,
+        reports_decision_curve_analysis: bool = True,
+        includes_table_one: bool = True,
+        requires_reader_pdf: bool = True,
+        uses_clinical_or_registry_data: bool = True,
+        disposition_overrides: dict[str, dict[str, Any]] | None = None,
     ) -> dict[str, Any]:
         from med_autoscience.authority_handlers.candidate_admission import (
             evaluate_candidate_admission_authority,
@@ -876,6 +1302,21 @@ class AuthorityRecordFactory:
             ),
             omit_professional_skill_ids=omit_professional_skill_ids,
             professional_figure_composition_mode=(professional_figure_composition_mode),
+            include_first_draft_quality_application=(
+                include_first_draft_quality_application
+            ),
+            first_draft_application_schema_version=(
+                first_draft_application_schema_version
+            ),
+            paper_type=paper_type,
+            validation_design=validation_design,
+            reports_fixed_horizon_risk=reports_fixed_horizon_risk,
+            competing_risk_relevant=competing_risk_relevant,
+            reports_decision_curve_analysis=reports_decision_curve_analysis,
+            includes_table_one=includes_table_one,
+            requires_reader_pdf=requires_reader_pdf,
+            uses_clinical_or_registry_data=uses_clinical_or_registry_data,
+            disposition_overrides=disposition_overrides,
         )
         producer_output_ref = cls.exact_ref(
             "opl_action_output", f"paper-output-{scope}"
@@ -1217,6 +1658,16 @@ class AuthorityRecordFactory:
         manifest["artifacts"].sort(
             key=lambda item: (item["role"], item["ref"], item["sha256"])
         )
+        for invocation in manifest.get("professional_skill_invocations", []):
+            if invocation["schema_version"] == 2:
+                invocation_core = {
+                    key: deepcopy(value)
+                    for key, value in invocation.items()
+                    if key != "invocation_ref"
+                }
+                invocation["invocation_ref"] = cls.professional_invocation_ref(
+                    invocation_core
+                )
         core = {
             "surface_kind": manifest["surface_kind"],
             "schema_version": manifest["schema_version"],
@@ -1236,6 +1687,10 @@ class AuthorityRecordFactory:
             if "professional_skill_invocations" in manifest:
                 core["professional_skill_invocations"] = manifest[
                     "professional_skill_invocations"
+                ]
+            if "first_draft_quality_application" in manifest:
+                core["first_draft_quality_application"] = manifest[
+                    "first_draft_quality_application"
                 ]
         fingerprint = cls.fingerprint(core)
         manifest["generation_manifest_sha256"] = fingerprint

@@ -445,7 +445,8 @@
       "quality_rubric_refs": [
         "agent/prompts/manuscript_authoring.md#good-work",
         "agent/stages/manuscript_authoring.policy.md",
-        "agent/quality_gates/ai_reviewer_auditor_gate.md"
+        "agent/quality_gates/ai_reviewer_auditor_gate.md",
+        "agent/quality_gates/artifact_source_authority_gate.md"
       ],
       "in_thread_refinement": {
         "allowed": true,

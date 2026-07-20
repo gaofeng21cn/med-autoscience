@@ -1,51 +1,159 @@
 {
   "surface_kind": "mas_manuscript_first_draft_quality_policy",
-  "version": "mas-manuscript-first-draft-quality-policy.v1",
+  "version": "mas-manuscript-first-draft-quality-policy.v2",
   "owner": "MedAutoScience",
   "stage_id": "manuscript_authoring",
-  "purpose": "Raise first-draft scientific quality by binding specialist judgment to current evidence semantics before prose and display generation.",
+  "purpose": "Raise first-draft scientific quality by binding exact upstream closure, prediction-model diagnostics, specialist receipts, claim guardrails, and composed reader bytes before any first-draft-ready claim.",
   "professional_skill_owner": "mas-scholar-skills",
   "base_first_draft_contract": {
     "required_skill": "medical-manuscript-writing",
-    "required_candidate_ref": "first_draft_story_contract_ref",
+    "required_application": "first_draft_quality_application",
+    "required_candidate_ref": "medical_initial_draft_preflight_candidate_ref",
+    "required_upstream_candidate_refs": [
+      "clinical_analysis_input_identity_ref",
+      "citation_source_coverage_ref"
+    ],
+    "required_authoring_candidate_refs": [
+      "claim_guardrail_ref"
+    ],
+    "conditional_authoring_candidate_refs": {
+      "reader_pdf": "document_display_scope_coverage_ref"
+    },
+    "current_application_schema_version": 2,
+    "legacy_application_schema_version_read_compatible": true,
+    "legacy_application_cannot_satisfy_current_first_draft_ready": true,
+    "medical_initial_draft_preflight_candidate_schema_ref": "mas-scholar-skills:contracts/scholarskills-medical-initial-draft-preflight-candidate-v1.schema.json",
+    "candidate_disposition_statuses": [
+      "satisfied",
+      "route_back_required",
+      "not_applicable_with_reason"
+    ],
+    "candidate_disposition_requires_exact_ref_when": [
+      "satisfied",
+      "route_back_required"
+    ],
+    "current_applicable_candidate_ref_minimum_size_bytes": 1,
+    "not_applicable_with_reason_requires_null_candidate_ref_and_non_empty_reason": true,
     "template_can_replace_professional_skill": false,
     "cross_domain_pre_review_lanes": [
       "medical",
       "statistical",
       "reference",
       "display"
-    ]
+    ],
+    "first_draft_ready_requires_exact_skill_invocation_and_receipt_refs": true,
+    "missing_application_or_candidate_ref_disposition": "completed_with_quality_debt"
   },
-  "prediction_model_external_validation": {
+  "prediction_model_first_draft": {
     "trigger_when": [
-      "paper_type_is_prediction_model_external_validation",
-      "transported_absolute_risk_is_reported",
-      "fixed_horizon_outcome_is_reported"
+      "paper_type_is_prediction_model",
+      "validation_design_is_internal_validation",
+      "validation_design_is_internal_external",
+      "validation_design_is_external_validation",
+      "uses_clinical_or_registry_data",
+      "fixed_horizon_outcome_is_reported",
+      "decision_curve_analysis_is_reported"
+    ],
+    "supported_validation_designs": [
+      "development_only",
+      "internal_validation",
+      "internal_external",
+      "external_validation"
     ],
     "required_specialist_skills": [
       "medical-manuscript-writing",
-      "medical-statistical-review",
-      "medical-risk-model-transportability-reviewer",
-      "medical-survival-analysis-plan",
-      "medical-table-design"
+      "medical-data-freeze-and-analysis-readiness-reviewer",
+      "medical-reference-integrity-auditor",
+      "medical-statistical-review"
     ],
+    "conditional_specialist_skills": {
+      "fixed_horizon_or_competing_risk": "medical-survival-analysis-plan",
+      "external_validation_only": "medical-risk-model-transportability-reviewer",
+      "table_one": "medical-table-design",
+      "reader_pdf": "medical-display-qc"
+    },
+    "external_transportability_skill_may_be_required_for_internal_validation": false,
+    "external_transportability_skill_may_be_required_for_internal_external": false,
     "required_candidate_refs": [
-      "external_validation_first_draft_contract_ref",
-      "source_model_provenance_ref",
-      "target_population_and_followup_ref",
-      "fixed_horizon_risk_semantics_ref",
-      "construct_comparability_ref",
-      "calibration_and_performance_ref",
-      "structured_display_source_map_ref",
-      "claim_guardrail_ref",
-      "negative_or_non_estimable_result_ref"
+      "validation_partition_integrity_ref",
+      "endpoint_analysis_set_reconciliation_ref",
+      "model_complexity_sparse_event_ref",
+      "claim_guardrail_ref"
     ],
+    "conditional_candidate_refs": {
+      "fixed_horizon": "fixed_horizon_risk_semantics_ref",
+      "competing_risk": "competing_risk_ref",
+      "decision_curve_analysis": "decision_curve_validity_ref",
+      "external_validation_only": "external_transportability_ref",
+      "table_one": "baseline_table_traceability_ref",
+      "reader_pdf": "document_display_scope_coverage_ref"
+    },
+    "partition_integrity": {
+      "must_bind": [
+        "development_partition",
+        "tuning_partition",
+        "validation_partition",
+        "partition_disjointness",
+        "hyperparameter_selection_partition",
+        "validation_outcome_access_boundary"
+      ],
+      "held_out_validation_outcome_may_select_hyperparameters": false
+    },
+    "endpoint_and_analysis_set_reconciliation": {
+      "must_bind": [
+        "primary_endpoint",
+        "secondary_endpoint",
+        "full_follow_up_analysis_set",
+        "fixed_horizon_analysis_set",
+        "event_count_by_endpoint_and_horizon",
+        "exclusion_or_non_estimability_reason"
+      ],
+      "event_counts_from_different_endpoints_or_horizons_may_be_interchanged": false
+    },
+    "model_complexity_and_sparse_event_adequacy": {
+      "must_bind": [
+        "model_family",
+        "event_count",
+        "candidate_parameter_df",
+        "effective_parameter_df",
+        "continuous_predictor_count",
+        "ph_assessment_applicability",
+        "sample_size_adequacy_method",
+        "sample_size_adequacy_inputs_ref",
+        "sample_size_adequacy_result_ref",
+        "expected_shrinkage_or_optimism_ref",
+        "observed_shrinkage_or_optimism_ref",
+        "separation_status",
+        "penalty_source",
+        "calibration_intercept_ref",
+        "calibration_slope_ref",
+        "full_model_parameter_ref"
+      ],
+      "conditional_evidence": {
+        "ph_assessment_ref": {
+          "applicability_field": "ph_assessment_applicability",
+          "applicability_values": [
+            "required",
+            "not_applicable_with_reason"
+          ],
+          "required_when": "ph_assessment_applicability_is_required",
+          "otherwise": "candidate_ref_must_be_null_and_not_applicable_reason_required",
+          "model_family_text_inference_allowed": false
+        },
+        "nonlinearity_assessment_ref": {
+          "required_when": "continuous_predictor_count_is_positive",
+          "otherwise": "not_applicable_with_reason_allowed"
+        }
+      },
+      "discrimination_alone_satisfies_model_adequacy": false
+    },
     "fixed_horizon_risk_semantics": {
       "recorded_event_count_fraction_role": "descriptive_count_fraction_not_risk_estimate",
       "early_censoring_or_unknown_completeness_requires": "censoring_aware_observed_risk_or_explicit_design_route_back",
       "must_bind": [
         "time_origin",
         "prediction_horizon",
+        "risk_set_at_horizon",
         "event_count",
         "censored_before_horizon_count",
         "follow_up_completeness",
@@ -56,48 +164,89 @@
       ],
       "binary_event_fraction_may_be_called_observed_risk_with_early_censoring": false
     },
-    "construct_comparability": {
+    "competing_risk": {
       "must_bind": [
-        "source_construct",
-        "target_construct",
-        "accepted_codebook_mapping",
-        "identity_preserving_linkage",
-        "estimability",
-        "allowed_claim",
-        "forbidden_claim"
+        "competing_event_definition",
+        "competing_risk_estimand_or_not_applicable_reason",
+        "cause_specific_or_subdistribution_boundary",
+        "cumulative_incidence_interpretation"
       ],
-      "missing_mapping_or_identity_linkage_disposition": "not_estimable",
-      "proxy_substitution_without_owner_acceptance_allowed": false,
-      "non_estimability_may_imply_similarity_difference_or_mechanism": false
+      "competing_event_may_be_silently_treated_as_noninformative_censoring": false
     },
-    "display_source_currentness": {
-      "single_structured_source_map_required": true,
-      "covered_surfaces": [
-        "table",
-        "figure",
-        "caption",
-        "catalog",
-        "semantics_manifest"
+    "decision_curve_validity": {
+      "must_bind": [
+        "prediction_horizon_ref",
+        "censoring_before_horizon_count",
+        "censoring_method",
+        "analysis_set_policy",
+        "uncertainty_method",
+        "uncertainty_interval_ref",
+        "calibration_basis_ref",
+        "calibration_basis_status",
+        "threshold_range_ref",
+        "net_benefit_source_ref",
+        "clinical_action_scenarios"
       ],
-      "numeric_denominator_estimand_or_construct_change_invalidates_embedded_render_payload": true,
-      "stale_render_request_reuse_allowed": false,
-      "successful_render_exit_proves_source_currentness": false
+      "clinical_action_scenarios_required_count": 1,
+      "unverified_calibration_basis_disposition": "route_back_required",
+      "complete_case_binary_point_estimates_alone_support_clinical_utility": false
+    },
+    "baseline_table_traceability": {
+      "must_bind": [
+        "variable_level_denominator",
+        "missingness_count_and_percent",
+        "group_definition",
+        "standardized_mean_difference",
+        "source_numeric_trace",
+        "footnote_semantics"
+      ],
+      "global_denominator_may_replace_variable_level_denominator": false
+    },
+    "document_display_scope_coverage": {
+      "must_bind": [
+        "canonical_manuscript",
+        "table_and_figure_catalogs",
+        "captions_and_legends",
+        "render_environment_and_fonts",
+        "composed_paper_pdf_exact_ref",
+        "page_render_or_page_hash_evidence"
+      ],
+      "manuscript_generation_may_include_composed_paper_pdf": true,
+      "successful_render_exit_proves_display_quality": false
     },
     "claim_guardrails": [
+      "internal_center_disjoint_validation_is_not_external_validation",
       "analysis_sample_performance_is_not_population_representativeness",
       "discrimination_is_not_absolute_calibration",
       "unrecalibrated_risk_is_not_supported_for_threshold_decisions",
+      "association_or_prediction_is_not_causal_or_treatment_benefit_evidence",
+      "decision_curve_output_is_not_deployment_or_clinical_action_authority",
       "non_estimable_secondary_comparison_is_not_a_null_or_equivalence_result"
     ]
+  },
+  "professional_invocation_contract": {
+    "current_schema_version": 2,
+    "legacy_schema_version_read_compatible": true,
+    "exact_invocation_ref_required_for_current_first_draft": true,
+    "exact_skill_receipt_ref_required_for_current_first_draft": true,
+    "exact_input_artifact_bindings_required_for_current_first_draft": true,
+    "external_skill_receipt_is_candidate_not_authority": true
   },
   "progress_and_quality": {
     "missing_ref_with_consumable_draft_outcome": "completed_with_quality_debt",
     "ordinary_stage_transition_allowed": true,
     "quality_debt_blocks": [
+      "first_draft_ready",
       "quality_pass",
       "export_ready",
       "publication_ready",
       "submission_ready"
+    ],
+    "route_priority": [
+      "baseline_and_evidence_setup",
+      "bounded_analysis_campaign",
+      "manuscript_authoring",
+      "review_and_quality_gate"
     ],
     "missing_ref_authorizes_content_invention": false
   },
