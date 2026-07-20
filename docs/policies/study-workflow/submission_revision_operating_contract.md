@@ -17,6 +17,7 @@ This policy is intentionally narrow: it governs same-line manuscript revision an
 - `manuscript_source.md`, when generated into a projection, records source lineage. It is not a second editable manuscript surface.
 - The canonical editable manuscript is an authoring input, never a package-publish output. Exporters may copy it into `delivery/`, `manuscript/current_package/`, or `submission/` for lineage, but shallow publish must reject any collision that would copy a projection back over the canonical source.
 - Reader-visible titles and export metadata titles, when the format carries them, must derive from the current canonical manuscript title. A duplicated hardcoded title constant is not an accepted publication source, and a stale metadata title routes finalize/publication handoff back even when the visible page title is current.
+- A user-facing PDF or archive is selected by artifact role from the current published delivery manifest, never by browsing or reusing a filesystem path. The handoff records generation, manifest-declared path, size, and digest; a legacy or historical path is rejected even when it exists and its directory name contains `current`.
 - `paper/`, when retained by an older workspace, is a legacy compatibility alias or provenance surface and must not be described as the canonical editable source.
 - Submission readiness requires an AI reviewer-backed quality record, a clear publication gate, current per-scope epistemic dependency evaluations, and a fresh package projection; a source/package fingerprint alone is never review currentness authority.
 - An internally consistent older package is not a current delivery when a newer accepted or active reviewer revision has not been consumed by its generation. Ordinary authoring and rendering may continue with typed quality debt, but finalize/publication handoff must route back and must not claim `milestone_delivered`, current revision delivered, publication authority, or submission authority.
@@ -42,5 +43,6 @@ The platform must keep regression coverage for:
 - shallow package publish overwriting the canonical editable manuscript
 - internally consistent stale package accepted while a newer reviewer revision remains unconsumed
 - current visible manuscript title paired with stale PDF/DOCX/export metadata title
+- a stale legacy PDF selected directly while a newer manifest-declared PDF exists
 - stale declared epistemic dependencies or stale package provenance
 - wrong milestone claims from package existence alone

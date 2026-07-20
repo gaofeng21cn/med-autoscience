@@ -658,6 +658,18 @@ def test_canonical_manuscript_contract_rejects_stale_package_source_clobber() ->
         "hardcoded_or_secondary_title_constant_allowed": False,
         "title_mismatch_disposition": "reject_finalize_or_publication_handoff",
     }
+    assert projection["handoff_selection"] == {
+        "selector_source": "current_published_delivery_manifest",
+        "role_based_resolution_required": True,
+        "direct_or_legacy_path_selection_allowed": False,
+        "required_checks": [
+            "selected_generation_matches_current_delivery",
+            "selected_path_is_declared_by_current_projection_plan",
+            "selected_bytes_match_current_manifest_record",
+        ],
+        "selection_receipt_required": True,
+        "selection_failure_disposition": "reject_handoff",
+    }
 
     currentness = contract["revision_currentness"]
     assert currentness["required_inputs"] == {
@@ -703,6 +715,7 @@ def test_canonical_manuscript_contract_rejects_stale_package_source_clobber() ->
         "current_visible_title_with_stale_export_metadata_title": (
             "reject_finalize_or_publication_handoff"
         ),
+        "existing_stale_legacy_pdf_selected_by_direct_path": "reject_handoff",
     }
 
 

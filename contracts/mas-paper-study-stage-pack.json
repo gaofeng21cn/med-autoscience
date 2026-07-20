@@ -135,6 +135,18 @@
           "export_metadata_title_when_present_derived_from_same_title": true,
           "hardcoded_or_secondary_title_constant_allowed": false,
           "title_mismatch_disposition": "reject_finalize_or_publication_handoff"
+        },
+        "handoff_selection": {
+          "selector_source": "current_published_delivery_manifest",
+          "role_based_resolution_required": true,
+          "direct_or_legacy_path_selection_allowed": false,
+          "required_checks": [
+            "selected_generation_matches_current_delivery",
+            "selected_path_is_declared_by_current_projection_plan",
+            "selected_bytes_match_current_manifest_record"
+          ],
+          "selection_receipt_required": true,
+          "selection_failure_disposition": "reject_handoff"
         }
       },
       "revision_currentness": {
@@ -166,7 +178,8 @@
       "counterexample_outcomes": {
         "internally_consistent_old_package_with_newer_unconsumed_revision": "not_current_delivery",
         "delivery_source_lineage_copy_would_overwrite_newer_canonical_source": "reject_publish",
-        "current_visible_title_with_stale_export_metadata_title": "reject_finalize_or_publication_handoff"
+        "current_visible_title_with_stale_export_metadata_title": "reject_finalize_or_publication_handoff",
+        "existing_stale_legacy_pdf_selected_by_direct_path": "reject_handoff"
       }
     },
     "epistemic_review_route_back": {

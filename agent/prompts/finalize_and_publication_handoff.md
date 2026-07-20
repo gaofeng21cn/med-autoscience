@@ -69,6 +69,12 @@ route output.
   every file by path, size, and SHA-256 and include `STATUS.json` and
   `audit/submission_manifest.json` as completion markers. Never populate the
   preferred root incrementally.
+- Resolve every user-facing manuscript PDF, submission PDF, or archive handoff
+  by artifact role from the current published delivery manifest. Record the
+  selected generation, manifest-declared path, size, and digest in a selection
+  receipt. A direct filesystem path, legacy `paper/` alias, historical
+  `stage_outputs` path, or directory named `current` is not delivery evidence
+  and must be rejected when it is not declared by that current manifest.
 - When content, figure, table, analysis, citation, source, or current-package
   bytes need to change, route back to the earliest owning Stage. The new
   generation must refresh every affected v2 review lane and may reuse an
