@@ -1107,15 +1107,6 @@
         "openai": null,
         "ai_sdk": null
       },
-      "managed_authority_provenance_dependency": {
-        "requires_distinct_managed_authority_attempt": true,
-        "requires_managed_authority_attempt_receipt": true,
-        "requires_owner_ledger_ref": true,
-        "opl_must_persist_owner_result_before_paper_mission_injection": true,
-        "paper_mission_host_context_authority_ref_field": "build_dependency_currentness_authority_ref",
-        "paper_mission_host_context_issuer_attempt_ref_field": "build_dependency_currentness_authority_issuer_attempt_ref",
-        "runtime_integration_status": "declared_not_current"
-      },
       "authority_boundary": {
         "domain_truth_owner": "MedAutoScience",
         "build_dependency_currentness_owner": "MedAutoScience",
@@ -1130,8 +1121,15 @@
         "opl_can_sign_owner_result": false,
         "independent_trust_root": false,
         "malicious_host_complete_self_consistent_forgery_resistance": false,
+        "requires_distinct_managed_authority_attempt": true,
         "requires_managed_authority_attempt_provenance": true,
+        "requires_managed_authority_attempt_receipt": true,
+        "requires_owner_ledger_ref": true,
         "requires_owner_ledger_provenance": true,
+        "opl_must_persist_owner_result_before_paper_mission_injection": true,
+        "paper_mission_host_context_authority_ref_field": "build_dependency_currentness_authority_ref",
+        "paper_mission_host_context_issuer_attempt_ref_field": "build_dependency_currentness_authority_issuer_attempt_ref",
+        "runtime_integration_status": "declared_not_current",
         "missing_provenance_effect": "fail_closed",
         "authoring_or_launch_clearance": false,
         "authorizes_publication_or_submission": false,

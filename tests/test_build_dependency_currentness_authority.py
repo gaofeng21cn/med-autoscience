@@ -315,7 +315,15 @@ def test_registry_action_declares_managed_attempt_integration_dependency() -> No
     assert action["execution_binding"]["handler_ref"] == (
         "handler:mas.build-dependency-currentness-authority-evaluate"
     )
-    provenance = action["managed_authority_provenance_dependency"]
+    provenance = action["authority_boundary"]
     assert provenance["requires_distinct_managed_authority_attempt"] is True
+    assert provenance["requires_managed_authority_attempt_receipt"] is True
+    assert provenance["requires_owner_ledger_ref"] is True
     assert provenance["opl_must_persist_owner_result_before_paper_mission_injection"] is True
+    assert provenance["paper_mission_host_context_authority_ref_field"] == (
+        "build_dependency_currentness_authority_ref"
+    )
+    assert provenance["paper_mission_host_context_issuer_attempt_ref_field"] == (
+        "build_dependency_currentness_authority_issuer_attempt_ref"
+    )
     assert provenance["runtime_integration_status"] == "declared_not_current"
