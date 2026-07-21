@@ -1077,6 +1077,68 @@
       }
     },
     {
+      "action_id": "build_dependency_currentness_authority_evaluate",
+      "title": "Build dependency currentness authority evaluation",
+      "summary": "Issue one exact MAS build-dependency currentness owner result from a distinct OPL-managed authority attempt for later host injection into paper mission.",
+      "owner": "MedAutoScience",
+      "effect": "read_only",
+      "execution_binding": {
+        "kind": "handler_ref",
+        "handler_ref": "handler:mas.build-dependency-currentness-authority-evaluate"
+      },
+      "input_schema_ref": "contracts/schemas/v2/mas-build-dependency-currentness-authority.input.schema.json",
+      "output_schema_ref": "contracts/schemas/v2/mas-build-dependency-currentness-authority.output.schema.json",
+      "required_fields": [
+        "surface_kind",
+        "schema_version",
+        "authority_context",
+        "dependency_manifest_ref",
+        "dependency_currentness",
+        "reviewer_response_currentness"
+      ],
+      "optional_fields": [],
+      "workspace_locator_fields": [],
+      "human_gate_ids": [],
+      "supported_surfaces": {
+        "cli": null,
+        "mcp": null,
+        "skill": null,
+        "product_entry": null,
+        "openai": null,
+        "ai_sdk": null
+      },
+      "managed_authority_provenance_dependency": {
+        "requires_distinct_managed_authority_attempt": true,
+        "requires_managed_authority_attempt_receipt": true,
+        "requires_owner_ledger_ref": true,
+        "opl_must_persist_owner_result_before_paper_mission_injection": true,
+        "paper_mission_host_context_authority_ref_field": "build_dependency_currentness_authority_ref",
+        "paper_mission_host_context_issuer_attempt_ref_field": "build_dependency_currentness_authority_issuer_attempt_ref",
+        "runtime_integration_status": "declared_not_current"
+      },
+      "authority_boundary": {
+        "domain_truth_owner": "MedAutoScience",
+        "build_dependency_currentness_owner": "MedAutoScience",
+        "handler_role": "issue_exact_build_dependency_currentness_authority_from_managed_attempt_provenance",
+        "performs_filesystem_io": false,
+        "performs_network_io": false,
+        "spawns_process_or_executor": false,
+        "owns_queue_session_dag_or_attempt_lifecycle": false,
+        "owns_runtime_ledger": false,
+        "persists_artifact_or_receipt": false,
+        "opl_can_write_domain_truth": false,
+        "opl_can_sign_owner_result": false,
+        "independent_trust_root": false,
+        "malicious_host_complete_self_consistent_forgery_resistance": false,
+        "requires_managed_authority_attempt_provenance": true,
+        "requires_owner_ledger_provenance": true,
+        "missing_provenance_effect": "fail_closed",
+        "authoring_or_launch_clearance": false,
+        "authorizes_publication_or_submission": false,
+        "provider_completion_is_domain_completion": false
+      }
+    },
+    {
       "action_id": "paper_mission_authority_evaluate",
       "title": "Paper mission authority evaluation",
       "summary": "Validate exact candidate, professional Skill, generation, review-currentness, and exact-byte package receipts before returning a MAS paper-mission result.",
@@ -1102,6 +1164,7 @@
         "hard_gate"
       ],
       "optional_fields": [
+        "selected_build_currentness_authority",
         "revision_consumption"
       ],
       "workspace_locator_fields": [],
@@ -1140,7 +1203,7 @@
   ],
   "notes": [
     "The six public actions are canonical MAS stage actions hosted by OPL.",
-    "The lifecycle-reactivation, candidate-admission, and paper-mission authority actions are internal read-only handler bindings and are not exported as user-facing generated surfaces.",
+    "The lifecycle-reactivation, candidate-admission, build-dependency-currentness, and paper-mission authority actions are internal read-only handler bindings and are not exported as user-facing generated surfaces.",
     "Lifecycle reactivation becomes domain truth only after the OPL CAS materialization receipt matches the MAS authority result; provider completion cannot infer or overwrite it.",
     "Legacy source_command metadata and repo-local CLI, MCP, product, status, workbench, queue, session, and lifecycle commands are not part of this catalog."
   ]

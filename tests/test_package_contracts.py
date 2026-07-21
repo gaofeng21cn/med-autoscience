@@ -57,6 +57,9 @@ def test_package_import_and_hosted_entry_sources_resolve() -> None:
     candidate_handler = importlib.import_module(
         "med_autoscience.authority_handlers.candidate_admission"
     )
+    build_currentness_handler = importlib.import_module(
+        "med_autoscience.authority_handlers.build_dependency_currentness"
+    )
     lifecycle_handler = importlib.import_module(
         "med_autoscience.authority_handlers.study_lifecycle_reactivation"
     )
@@ -69,6 +72,9 @@ def test_package_import_and_hosted_entry_sources_resolve() -> None:
     assert callable(paper_handler.evaluate_paper_mission_authority)
     assert callable(candidate_handler.evaluate_candidate_admission_authority)
     assert callable(
+        build_currentness_handler.evaluate_build_dependency_currentness_authority
+    )
+    assert callable(
         lifecycle_handler.evaluate_study_lifecycle_reactivation_authority
     )
     assert (ROOT / "agent/primary_skill/SKILL.md").is_file()
@@ -76,7 +82,7 @@ def test_package_import_and_hosted_entry_sources_resolve() -> None:
     catalog = json.loads(
         (ROOT / "contracts/action_catalog.json").read_text(encoding="utf-8")
     )
-    assert len(catalog["actions"]) == 9
+    assert len(catalog["actions"]) == 10
     for action in catalog["actions"]:
         binding = action["execution_binding"]
         if binding["kind"] == "stage_binding":
@@ -130,10 +136,11 @@ def test_validator_release_set_preserves_managed_provenance_gate() -> None:
         if action["action_id"]
         in {
             "candidate_admission_authority_evaluate",
+            "build_dependency_currentness_authority_evaluate",
             "paper_mission_authority_evaluate",
         }
     }
-    assert len(internal_actions) == 2
+    assert len(internal_actions) == 3
     for action in internal_actions.values():
         boundary = action["authority_boundary"]
         assert boundary["independent_trust_root"] is False

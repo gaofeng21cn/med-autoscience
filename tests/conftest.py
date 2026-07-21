@@ -42,7 +42,7 @@ FIRST_DRAFT_QUALITY_ROLES = (
     "document_display_scope_coverage",
     "claim_guardrail",
 )
-FIRST_DRAFT_ROLE_BY_REF_FIELD = {
+LEGACY_FIRST_DRAFT_ROLE_BY_REF_FIELD = {
     "medical_initial_draft_preflight_candidate_ref": (
         "medical_initial_draft_preflight_candidate"
     ),
@@ -60,6 +60,55 @@ FIRST_DRAFT_ROLE_BY_REF_FIELD = {
     "document_display_scope_coverage_ref": "document_display_scope_coverage",
     "claim_guardrail_ref": "claim_guardrail",
     "external_transportability_ref": "external_transportability",
+}
+SCHOLAR_V2_FIRST_DRAFT_ROLE_BY_REF_FIELD = {
+    "active_reference_currentness_ref": "active_reference_currentness",
+    "linked_prediction_performance_ref": "linked_prediction_performance",
+    "display_render_integrity_ref": "display_render_integrity",
+}
+FIRST_DRAFT_ROLE_BY_REF_FIELD = {
+    **LEGACY_FIRST_DRAFT_ROLE_BY_REF_FIELD,
+    **SCHOLAR_V2_FIRST_DRAFT_ROLE_BY_REF_FIELD,
+}
+SELECTED_BUILD_ROLE_BY_REF_FIELD = {
+    "selected_archive_manifest_ref": "selected_archive_manifest",
+    "selected_build_receipt_ref": "selected_build_receipt",
+    "dependency_manifest_ref": "build_dependency_manifest",
+    "root_reader_output_ref": "root_reader_output",
+    "selected_reader_output_ref": "selected_reader_output",
+}
+REVIEWER_RESPONSE_ROLE_BY_REF_FIELD = {
+    "response_ref": "reviewer_response",
+    "action_matrix_ref": "reviewer_action_matrix",
+    "artifact_inventory_ref": "reviewer_artifact_inventory",
+    "external_synthesis_ref": "reviewer_external_synthesis",
+    "new_revision_ref": "reviewer_new_revision",
+}
+SCHOLAR_V2_SEMANTIC_POLICY_BY_SKILL = {
+    "medical-manuscript-writing": {
+        "policy_id": "scholarskills_medical_initial_draft_preflight.v2",
+        "validator_id": "validate_medical_initial_draft_preflight_candidate_v2",
+        "candidate_ref_field": "medical_initial_draft_preflight_candidate_ref",
+        "candidate_surface_kind": "medical_initial_draft_preflight_candidate_ref",
+    },
+    "medical-statistical-review": {
+        "policy_id": "scholarskills_linked_prediction_performance.v2",
+        "validator_id": "validate_linked_prediction_performance",
+        "candidate_ref_field": "linked_prediction_performance_ref",
+        "candidate_surface_kind": "linked_prediction_performance_ref",
+    },
+    "medical-reference-integrity-auditor": {
+        "policy_id": "scholarskills_medical_initial_draft_preflight.v2",
+        "validator_id": "audit_active_reference_currentness",
+        "candidate_ref_field": "active_reference_currentness_ref",
+        "candidate_surface_kind": "active_reference_currentness_ref",
+    },
+    "medical-display-qc": {
+        "policy_id": "scholarskills_medical_initial_draft_preflight.v2",
+        "validator_id": "validate_display_render_integrity",
+        "candidate_ref_field": "display_render_integrity_ref",
+        "candidate_surface_kind": "display_render_integrity_ref",
+    },
 }
 PUBLICATION_ROLES = MANUSCRIPT_ROLES + (
     "docx",
@@ -159,6 +208,28 @@ class AuthorityRecordFactory:
             "sha256": sha256 or cls.digest(f"{kind}:{name}:bytes"),
         }
 
+    @staticmethod
+    def no_authority_boundary() -> dict[str, bool]:
+        return {"authorizes_publication": False, "authorizes_submission": False}
+
+    @staticmethod
+    def artifact_exact_ref(artifact: dict[str, Any]) -> dict[str, Any]:
+        return {
+            "kind": "mas_artifact",
+            "ref": artifact["ref"],
+            "size_bytes": artifact["size_bytes"],
+            "sha256": artifact["sha256"],
+        }
+
+    @staticmethod
+    def affected_artifact_binding(artifact: dict[str, Any]) -> dict[str, Any]:
+        return {
+            "member_id": artifact["member_id"],
+            "ref": artifact["ref"],
+            "size_bytes": artifact["size_bytes"],
+            "sha256": artifact["sha256"],
+        }
+
     @classmethod
     def seal(cls, core: dict[str, Any], prefix: str) -> dict[str, Any]:
         receipt_fingerprint = cls.fingerprint(core)
@@ -176,6 +247,77 @@ class AuthorityRecordFactory:
             "ref": receipt["receipt_id"],
             "size_bytes": receipt["receipt_size_bytes"],
             "sha256": receipt["receipt_fingerprint"],
+        }
+
+    @classmethod
+    def build_dependency_currentness_authority(
+        cls,
+        dependency_manifest_ref: dict[str, Any],
+        dependency_currentness: str,
+        reviewer_response_currentness: dict[str, Any] | None = None,
+    ) -> dict[str, Any]:
+        from med_autoscience.authority_handlers.build_dependency_currentness import (
+            evaluate_build_dependency_currentness_authority,
+        )
+
+        request = cls.build_dependency_currentness_authority_request(
+            dependency_manifest_ref,
+            dependency_currentness,
+            reviewer_response_currentness,
+        )
+        result = evaluate_build_dependency_currentness_authority(request)
+        if result["status"] != "owner_authority":
+            raise AssertionError(result)
+        return {
+            "authority_ref": deepcopy(result["authority_ref"]),
+            "authority_record": deepcopy(result["authority_record"]),
+        }
+
+    @classmethod
+    def build_dependency_currentness_authority_request(
+        cls,
+        dependency_manifest_ref: dict[str, Any],
+        dependency_currentness: str,
+        reviewer_response_currentness: dict[str, Any] | None = None,
+    ) -> dict[str, Any]:
+        reviewer_response_currentness = reviewer_response_currentness or {
+            "generation_id": cls.generation_id,
+            "candidate_state": "pre_freeze",
+            "response_ref": cls.exact_ref(
+                "mas_artifact", "reviewer-response-current"
+            ),
+            "prior_frozen_response_ref": None,
+            "post_freeze_disposition": "not_started",
+            "external_synthesis_ref": None,
+            "new_revision_ref": None,
+            "owner_ledger_history_ref": cls.exact_ref(
+                "opl_action_output", "build-dependency-currentness-owner-ledger"
+            ),
+        }
+        return {
+            "surface_kind": "mas_build_dependency_currentness_authority_request",
+            "schema_version": 1,
+            "authority_context": {
+                "action_id": "build_dependency_currentness_authority_evaluate",
+                "authority_epoch": cls.authority_epoch,
+                "managed_authority_attempt_ref": cls.typed_ref(
+                    "opl_stage_attempt", "build-dependency-currentness-owner"
+                ),
+                "generation_producer_attempt_ref": cls.typed_ref(
+                    "opl_stage_attempt", "paper-producer"
+                ),
+                "managed_authority_attempt_receipt_ref": cls.exact_ref(
+                    "opl_action_output", "build-dependency-currentness-attempt"
+                ),
+                "owner_ledger_ref": cls.exact_ref(
+                    "opl_action_output", "build-dependency-currentness-owner-ledger"
+                ),
+            },
+            "dependency_manifest_ref": deepcopy(dependency_manifest_ref),
+            "dependency_currentness": dependency_currentness,
+            "reviewer_response_currentness": deepcopy(
+                reviewer_response_currentness
+            ),
         }
 
     @staticmethod
@@ -227,6 +369,41 @@ class AuthorityRecordFactory:
         }
 
     @classmethod
+    def scholar_v2_semantic_policy_bindings(
+        cls,
+        invocations: list[dict[str, Any]],
+        candidate_refs: dict[str, dict[str, Any] | None],
+    ) -> list[dict[str, Any]]:
+        invocations_by_skill = {
+            item["skill_id"]: item
+            for item in invocations
+            if item["surface_kind"]
+            == "mas_professional_manuscript_skill_invocation_candidate"
+        }
+        bindings = []
+        for skill_id, policy in SCHOLAR_V2_SEMANTIC_POLICY_BY_SKILL.items():
+            invocation = invocations_by_skill[skill_id]
+            candidate_ref = candidate_refs[policy["candidate_ref_field"]]
+            if candidate_ref is None:
+                continue
+            bindings.append(
+                {
+                    "skill_id": skill_id,
+                    "semantic_policy_id": policy["policy_id"],
+                    "validator_id": policy["validator_id"],
+                    "semantic_policy_ref": deepcopy(
+                        invocation["semantic_policy_ref"]
+                    ),
+                    "candidate_ref_field": policy["candidate_ref_field"],
+                    "candidate_surface_kind": policy["candidate_surface_kind"],
+                    "candidate_ref": deepcopy(invocation["semantic_candidate_ref"]),
+                    "invocation_ref": deepcopy(invocation["invocation_ref"]),
+                    "receipt_ref": deepcopy(invocation["receipt_ref"]),
+                }
+            )
+        return sorted(bindings, key=lambda item: item["skill_id"])
+
+    @classmethod
     def first_draft_quality_application(
         cls,
         artifacts: list[dict[str, Any]],
@@ -240,6 +417,7 @@ class AuthorityRecordFactory:
         includes_table_one: bool = True,
         requires_reader_pdf: bool = True,
         uses_clinical_or_registry_data: bool = True,
+        include_scholar_v2_semantics: bool = False,
         disposition_overrides: dict[str, dict[str, Any]] | None = None,
     ) -> dict[str, Any]:
         artifacts_by_role = {artifact["role"]: artifact for artifact in artifacts}
@@ -259,6 +437,8 @@ class AuthorityRecordFactory:
             "citation_source_coverage_ref",
             "claim_guardrail_ref",
         }
+        if include_scholar_v2_semantics:
+            applicable_fields.add("active_reference_currentness_ref")
         if uses_clinical_or_registry_data:
             applicable_fields.add("clinical_analysis_input_identity_ref")
         if paper_type == "prediction_model":
@@ -269,6 +449,8 @@ class AuthorityRecordFactory:
                     "model_complexity_sparse_event_ref",
                 }
             )
+            if include_scholar_v2_semantics:
+                applicable_fields.add("linked_prediction_performance_ref")
         if reports_fixed_horizon_risk:
             applicable_fields.add("fixed_horizon_risk_semantics_ref")
         if competing_risk_relevant:
@@ -279,16 +461,23 @@ class AuthorityRecordFactory:
             applicable_fields.add("baseline_table_traceability_ref")
         if requires_reader_pdf:
             applicable_fields.add("document_display_scope_coverage_ref")
+            if include_scholar_v2_semantics:
+                applicable_fields.add("display_render_integrity_ref")
         if validation_design == "external_validation":
             applicable_fields.add("external_transportability_ref")
 
+        role_by_ref_field = (
+            FIRST_DRAFT_ROLE_BY_REF_FIELD
+            if include_scholar_v2_semantics
+            else LEGACY_FIRST_DRAFT_ROLE_BY_REF_FIELD
+        )
         candidate_refs = {
             ref_field: (
                 cls.mas_artifact_ref(artifacts_by_role[role])
                 if ref_field in applicable_fields
                 else None
             )
-            for ref_field, role in FIRST_DRAFT_ROLE_BY_REF_FIELD.items()
+            for ref_field, role in role_by_ref_field.items()
         }
         application = {
             "surface_kind": "mas_first_draft_quality_application_candidate",
@@ -320,7 +509,7 @@ class AuthorityRecordFactory:
                         ),
                     }
                 )
-                for ref_field in FIRST_DRAFT_ROLE_BY_REF_FIELD
+                for ref_field in role_by_ref_field
             }
             for ref_field, override in (disposition_overrides or {}).items():
                 application["candidate_dispositions"][ref_field].update(
@@ -550,7 +739,9 @@ class AuthorityRecordFactory:
         artifacts: list[dict[str, Any]],
         *,
         schema_version: int = 1,
+        include_scholar_v2_semantics: bool = False,
     ) -> list[dict[str, Any]]:
+        artifact_by_role = {artifact["role"]: artifact for artifact in artifacts}
         role_sets = {
             "medical-manuscript-writing": {
                 "canonical_manuscript",
@@ -586,10 +777,7 @@ class AuthorityRecordFactory:
                 "table_file",
                 "baseline_table_traceability",
             },
-            "medical-display-qc": {
-                "document_display_scope_coverage",
-                "pdf",
-            },
+            "medical-display-qc": {"document_display_scope_coverage", "pdf"},
             "medical-submission-prep": {
                 "canonical_manuscript",
                 "docx",
@@ -599,6 +787,14 @@ class AuthorityRecordFactory:
                 "final_zip_member",
             },
         }
+        if include_scholar_v2_semantics:
+            role_sets["medical-reference-integrity-auditor"].add(
+                "active_reference_currentness"
+            )
+            role_sets["medical-statistical-review"].add(
+                "linked_prediction_performance"
+            )
+            role_sets["medical-display-qc"].add("display_render_integrity")
         input_role_sets = {
             "medical-manuscript-writing": {
                 "medical_initial_draft_preflight_candidate",
@@ -716,24 +912,68 @@ class AuthorityRecordFactory:
                 ),
             }
             if schema_version == 2:
+                policy = SCHOLAR_V2_SEMANTIC_POLICY_BY_SKILL.get(skill_id)
+                if (
+                    include_scholar_v2_semantics
+                    and policy is not None
+                    and FIRST_DRAFT_ROLE_BY_REF_FIELD[
+                        policy["candidate_ref_field"]
+                    ]
+                    in artifact_by_role
+                ):
+                    semantic_candidate = cls.mas_artifact_ref(
+                        artifact_by_role[
+                            FIRST_DRAFT_ROLE_BY_REF_FIELD[
+                                policy["candidate_ref_field"]
+                            ]
+                        ]
+                    )
+                    invocation["semantic_policy_id"] = policy["policy_id"]
+                    invocation["semantic_validator_id"] = policy["validator_id"]
+                    invocation["semantic_policy_ref"] = cls.exact_ref(
+                        "scholarskills_semantic_policy", policy["policy_id"]
+                    )
+                    invocation["semantic_candidate_ref"] = semantic_candidate
+                    invocation["consumed_rule_refs"].extend(
+                        [
+                            policy["policy_id"],
+                            f"validator:{policy['validator_id']}",
+                        ]
+                    )
                 input_bindings = [
                     cls.artifact_binding(artifact)
                     for artifact in artifacts
                     if artifact["role"] in input_role_sets[skill_id]
                 ]
                 invocation["input_artifact_bindings"] = input_bindings
-                receipt_ref = cls.professional_receipt_ref(
-                    {
-                        "skill_id": skill_id,
-                        "skill_source_sha256": invocation["skill_source_sha256"],
-                        "input_artifact_bindings": input_bindings,
-                        "output_artifact_bindings": invocation[
-                            "output_artifact_bindings"
-                        ],
-                        "consumed_rule_refs": invocation["consumed_rule_refs"],
-                        "status": "completed",
-                    }
-                )
+                receipt_core = {
+                    "skill_id": skill_id,
+                    "skill_source_sha256": invocation["skill_source_sha256"],
+                    "input_artifact_bindings": input_bindings,
+                    "output_artifact_bindings": invocation[
+                        "output_artifact_bindings"
+                    ],
+                    "consumed_rule_refs": invocation["consumed_rule_refs"],
+                    "status": "completed",
+                }
+                if "semantic_policy_id" in invocation:
+                    receipt_core.update(
+                        {
+                            "semantic_policy_id": invocation[
+                                "semantic_policy_id"
+                            ],
+                            "semantic_validator_id": invocation[
+                                "semantic_validator_id"
+                            ],
+                            "semantic_policy_ref": invocation[
+                                "semantic_policy_ref"
+                            ],
+                            "semantic_candidate_ref": invocation[
+                                "semantic_candidate_ref"
+                            ],
+                        }
+                    )
+                receipt_ref = cls.professional_receipt_ref(receipt_core)
                 invocation["receipt_id"] = receipt_ref["ref"]
                 invocation["receipt_ref"] = receipt_ref
                 invocation["invocation_ref"] = cls.professional_invocation_ref(
@@ -772,6 +1012,15 @@ class AuthorityRecordFactory:
         requires_reader_pdf: bool = True,
         uses_clinical_or_registry_data: bool = True,
         disposition_overrides: dict[str, dict[str, Any]] | None = None,
+        include_clinical_analysis_identity_admission: bool | None = None,
+        include_clinical_analysis_identity_artifact: bool | None = None,
+        clinical_analysis_identity_status: str = "adjudicator_required",
+        include_revision_generation_bindings: bool | None = None,
+        dependency_currentness: str = "current",
+        reviewer_response_sync_status: str = "synchronized",
+        reviewer_response_candidate_state: str = "pre_freeze",
+        reviewer_response_item_status: str = "implemented_candidate",
+        reviewer_response_post_freeze_disposition: str = "not_started",
         candidate_receipt: dict[str, Any] | None = None,
         review_receipts: list[dict[str, Any]] | None = None,
     ) -> tuple[dict[str, Any], dict[str, Any]]:
@@ -783,11 +1032,29 @@ class AuthorityRecordFactory:
             include_first_draft_quality_application = (
                 schema_version == 2 and scope != "analysis_generation"
             )
+        if include_clinical_analysis_identity_admission is None:
+            include_clinical_analysis_identity_admission = (
+                schema_version == 2 and scope == "analysis_generation"
+            )
+        if include_clinical_analysis_identity_artifact is None:
+            include_clinical_analysis_identity_artifact = (
+                include_clinical_analysis_identity_admission
+            )
+        if include_revision_generation_bindings is None:
+            include_revision_generation_bindings = (
+                schema_version == 2 and scope != "analysis_generation"
+            )
+        include_scholar_v2_semantics = (
+            include_revision_generation_bindings
+            and first_draft_application_schema_version == 2
+        )
         applicable_first_draft_fields = {
             "medical_initial_draft_preflight_candidate_ref",
             "citation_source_coverage_ref",
             "claim_guardrail_ref",
         }
+        if include_scholar_v2_semantics:
+            applicable_first_draft_fields.add("active_reference_currentness_ref")
         if uses_clinical_or_registry_data:
             applicable_first_draft_fields.add(
                 "clinical_analysis_input_identity_ref"
@@ -800,6 +1067,10 @@ class AuthorityRecordFactory:
                     "model_complexity_sparse_event_ref",
                 }
             )
+            if include_scholar_v2_semantics:
+                applicable_first_draft_fields.add(
+                    "linked_prediction_performance_ref"
+                )
         if reports_fixed_horizon_risk:
             applicable_first_draft_fields.add("fixed_horizon_risk_semantics_ref")
         if competing_risk_relevant:
@@ -812,9 +1083,36 @@ class AuthorityRecordFactory:
             applicable_first_draft_fields.add(
                 "document_display_scope_coverage_ref"
             )
+            if include_scholar_v2_semantics:
+                applicable_first_draft_fields.add("display_render_integrity_ref")
         if validation_design == "external_validation":
             applicable_first_draft_fields.add("external_transportability_ref")
         roles = list(ROLES_BY_SCOPE[scope])
+        if include_clinical_analysis_identity_artifact and (
+            "clinical_analysis_input_identity" not in roles
+        ):
+            roles.append("clinical_analysis_input_identity")
+        if include_revision_generation_bindings:
+            roles.extend(
+                role
+                for role in (
+                    *SELECTED_BUILD_ROLE_BY_REF_FIELD.values(),
+                    "reviewer_response",
+                    "reviewer_action_matrix",
+                    "reviewer_artifact_inventory",
+                )
+                if role not in roles
+            )
+            if reviewer_response_post_freeze_disposition in {
+                "external_synthesis_bound",
+                "scientific_change_requires_new_revision",
+            }:
+                roles.append("reviewer_external_synthesis")
+            if (
+                reviewer_response_post_freeze_disposition
+                == "scientific_change_requires_new_revision"
+            ):
+                roles.append("reviewer_new_revision")
         if include_first_draft_quality_application:
             roles.extend(
                 FIRST_DRAFT_ROLE_BY_REF_FIELD[field]
@@ -857,6 +1155,15 @@ class AuthorityRecordFactory:
                     role, f"mas-member:{role}:primary"
                 )
             artifacts.append(artifact)
+        if include_revision_generation_bindings:
+            root_output = next(
+                item for item in artifacts if item["role"] == "root_reader_output"
+            )
+            selected_output = next(
+                item for item in artifacts if item["role"] == "selected_reader_output"
+            )
+            selected_output["size_bytes"] = root_output["size_bytes"]
+            selected_output["sha256"] = root_output["sha256"]
         candidate = cls.candidate_member()
         evidence = cls.evidence_member()
         candidate_artifact = {
@@ -897,6 +1204,7 @@ class AuthorityRecordFactory:
                     uses_clinical_or_registry_data=(
                         uses_clinical_or_registry_data
                     ),
+                    include_scholar_v2_semantics=include_scholar_v2_semantics,
                     disposition_overrides=disposition_overrides,
                 )
             )
@@ -919,6 +1227,9 @@ class AuthorityRecordFactory:
                             schema_version=(
                                 2 if include_first_draft_quality_application else 1
                             ),
+                            include_scholar_v2_semantics=(
+                                include_scholar_v2_semantics
+                            ),
                         ),
                         *cls.professional_figure_skill_invocations(
                             artifacts,
@@ -929,6 +1240,17 @@ class AuthorityRecordFactory:
                         ),
                     ]
                 )
+                if (
+                    "first_draft_quality_application" in core
+                    and core["first_draft_quality_application"]["schema_version"] == 2
+                    and include_scholar_v2_semantics
+                ):
+                    core["first_draft_quality_application"][
+                        "scholar_v2_semantic_policy_bindings"
+                    ] = cls.scholar_v2_semantic_policy_bindings(
+                        generated_invocations,
+                        core["first_draft_quality_application"]["candidate_refs"],
+                    )
                 generated_invocations = [
                     item
                     for item in generated_invocations
@@ -942,6 +1264,154 @@ class AuthorityRecordFactory:
                     )
                 )
                 core["professional_skill_invocations"] = generated_invocations
+            if include_clinical_analysis_identity_admission:
+                identity = next(
+                    item
+                    for item in artifacts
+                    if item["role"] == "clinical_analysis_input_identity"
+                )
+                route_state = clinical_analysis_identity_status != "adjudicator_required"
+                human_gate = clinical_analysis_identity_status == "open_human_gate"
+                core["clinical_analysis_identity_admission"] = {
+                    "surface_kind": "mas_clinical_analysis_identity_admission",
+                    "schema_version": 1,
+                    "status": clinical_analysis_identity_status,
+                    "clinical_analysis_input_identity_ref": cls.artifact_exact_ref(
+                        identity
+                    ),
+                    "reason_codes": (
+                        ["clinical_analysis_identity_unresolved"] if route_state else []
+                    ),
+                    "unresolved_items": (
+                        ["resolve the clinical analysis input identity"]
+                        if route_state
+                        else []
+                    ),
+                    "next_owner": (
+                        "human_principal_investigator"
+                        if human_gate
+                        else (
+                            "baseline_and_evidence_setup" if route_state else None
+                        )
+                    ),
+                    "human_gate_refs": (
+                        [cls.typed_ref("mas_human_gate", "clinical-identity")]
+                        if human_gate
+                        else []
+                    ),
+                    "authority_boundary": cls.no_authority_boundary(),
+                }
+            if include_revision_generation_bindings:
+                artifact_by_role = {item["role"]: item for item in artifacts}
+                dependency_manifest_ref = cls.artifact_exact_ref(
+                    artifact_by_role["build_dependency_manifest"]
+                )
+                response_ref = cls.artifact_exact_ref(
+                    artifact_by_role["reviewer_response"]
+                )
+                external_synthesis_ref = (
+                    cls.artifact_exact_ref(
+                        artifact_by_role["reviewer_external_synthesis"]
+                    )
+                    if "reviewer_external_synthesis" in artifact_by_role
+                    else None
+                )
+                new_revision_ref = (
+                    cls.artifact_exact_ref(artifact_by_role["reviewer_new_revision"])
+                    if "reviewer_new_revision" in artifact_by_role
+                    else None
+                )
+                reviewer_response_currentness = {
+                    "generation_id": generation_id,
+                    "candidate_state": reviewer_response_candidate_state,
+                    "response_ref": response_ref,
+                    "prior_frozen_response_ref": (
+                        deepcopy(response_ref)
+                        if reviewer_response_candidate_state == "frozen"
+                        else None
+                    ),
+                    "post_freeze_disposition": (
+                        reviewer_response_post_freeze_disposition
+                    ),
+                    "external_synthesis_ref": external_synthesis_ref,
+                    "new_revision_ref": new_revision_ref,
+                    "owner_ledger_history_ref": cls.exact_ref(
+                        "opl_action_output",
+                        "build-dependency-currentness-owner-ledger",
+                    ),
+                }
+                dependency_currentness_authority = (
+                    cls.build_dependency_currentness_authority(
+                        dependency_manifest_ref,
+                        dependency_currentness,
+                        reviewer_response_currentness,
+                    )
+                )
+                dependency_currentness_receipt = cls.seal(
+                    {
+                        "receipt_kind": "mas_build_dependency_currentness_receipt",
+                        "schema_version": 1,
+                        "owner": "MedAutoScience",
+                        "authority_role": "build_dependency_currentness_owner",
+                        "authority_ref": dependency_currentness_authority[
+                            "authority_ref"
+                        ],
+                        "dependency_manifest_ref": dependency_manifest_ref,
+                        "dependency_currentness": dependency_currentness,
+                    },
+                    "mas-build-dependency-currentness",
+                )
+                core["selected_build_binding"] = {
+                    "surface_kind": "mas_selected_build_binding",
+                    "schema_version": 1,
+                    "selected_archive_label": "current-candidate",
+                    **{
+                        ref_field: cls.artifact_exact_ref(artifact_by_role[role])
+                        for ref_field, role in SELECTED_BUILD_ROLE_BY_REF_FIELD.items()
+                    },
+                    "dependency_currentness": dependency_currentness,
+                    "dependency_currentness_receipt_ref": cls.receipt_ref(
+                        "mas_build_dependency_currentness_receipt",
+                        dependency_currentness_receipt,
+                    ),
+                    "dependency_currentness_receipt": dependency_currentness_receipt,
+                    "root_matches_selected_bytes": True,
+                    "authority_boundary": cls.no_authority_boundary(),
+                }
+                manuscript = artifact_by_role["canonical_manuscript"]
+                core["reviewer_response_sync"] = {
+                    "surface_kind": "mas_reviewer_response_sync",
+                    "schema_version": 1,
+                    "response_ref": response_ref,
+                    "action_matrix_ref": cls.artifact_exact_ref(
+                        artifact_by_role["reviewer_action_matrix"]
+                    ),
+                    "action_matrix_item_ids": ["REV-001"],
+                    "artifact_inventory_ref": cls.artifact_exact_ref(
+                        artifact_by_role["reviewer_artifact_inventory"]
+                    ),
+                    "candidate_state": reviewer_response_candidate_state,
+                    "sync_status": reviewer_response_sync_status,
+                    "items": [
+                        {
+                            "comment_id": "REV-001",
+                            "status": reviewer_response_item_status,
+                            "affected_artifact_bindings": [
+                                cls.affected_artifact_binding(manuscript)
+                            ],
+                            "evidence_refs": [
+                                cls.exact_ref("mas_evidence", "revision-response")
+                            ],
+                            "remaining_gap_or_not_applicable_reason": None,
+                        }
+                    ],
+                    "external_synthesis_ref": external_synthesis_ref,
+                    "new_revision_ref": new_revision_ref,
+                    "post_freeze_disposition": (
+                        reviewer_response_post_freeze_disposition
+                    ),
+                    "authority_boundary": cls.no_authority_boundary(),
+                }
         manifest_sha256 = cls.fingerprint(core)
         manifest = {
             **core,
@@ -971,12 +1441,22 @@ class AuthorityRecordFactory:
         abstract_headline_allowed: bool = False,
         manifest_version: int = 1,
         generation_id: str | None = None,
+        include_clinical_analysis_identity_admission: bool | None = None,
+        include_clinical_analysis_identity_artifact: bool | None = None,
+        clinical_analysis_identity_status: str = "adjudicator_required",
     ) -> dict[str, Any]:
         generation_id = generation_id or cls.generation_id
         manifest, manifest_ref = cls.generation_manifest(
             "analysis_generation",
             schema_version=manifest_version,
             generation_id=generation_id,
+            include_clinical_analysis_identity_admission=(
+                include_clinical_analysis_identity_admission
+            ),
+            include_clinical_analysis_identity_artifact=(
+                include_clinical_analysis_identity_artifact
+            ),
+            clinical_analysis_identity_status=clinical_analysis_identity_status,
         )
         candidate = {
             "candidate_id": "bounded-candidate",
@@ -1269,6 +1749,12 @@ class AuthorityRecordFactory:
         requires_reader_pdf: bool = True,
         uses_clinical_or_registry_data: bool = True,
         disposition_overrides: dict[str, dict[str, Any]] | None = None,
+        include_revision_generation_bindings: bool | None = None,
+        dependency_currentness: str = "current",
+        reviewer_response_sync_status: str = "synchronized",
+        reviewer_response_candidate_state: str = "pre_freeze",
+        reviewer_response_item_status: str = "implemented_candidate",
+        reviewer_response_post_freeze_disposition: str = "not_started",
     ) -> dict[str, Any]:
         from med_autoscience.authority_handlers.candidate_admission import (
             evaluate_candidate_admission_authority,
@@ -1317,6 +1803,14 @@ class AuthorityRecordFactory:
             requires_reader_pdf=requires_reader_pdf,
             uses_clinical_or_registry_data=uses_clinical_or_registry_data,
             disposition_overrides=disposition_overrides,
+            include_revision_generation_bindings=include_revision_generation_bindings,
+            dependency_currentness=dependency_currentness,
+            reviewer_response_sync_status=reviewer_response_sync_status,
+            reviewer_response_candidate_state=reviewer_response_candidate_state,
+            reviewer_response_item_status=reviewer_response_item_status,
+            reviewer_response_post_freeze_disposition=(
+                reviewer_response_post_freeze_disposition
+            ),
         )
         producer_output_ref = cls.exact_ref(
             "opl_action_output", f"paper-output-{scope}"
@@ -1346,6 +1840,39 @@ class AuthorityRecordFactory:
             for lane in LANES_BY_SCOPE[scope]
         ]
         manifest["independent_review_receipts"] = wrappers
+        selected_build_currentness_authority = None
+        if "selected_build_binding" in manifest:
+            response_sync = manifest["reviewer_response_sync"]
+            response_ref = deepcopy(response_sync["response_ref"])
+            selected_build_currentness_authority = (
+                cls.build_dependency_currentness_authority(
+                    manifest["selected_build_binding"]["dependency_manifest_ref"],
+                    manifest["selected_build_binding"]["dependency_currentness"],
+                    {
+                        "generation_id": manifest["generation_id"],
+                        "candidate_state": response_sync["candidate_state"],
+                        "response_ref": response_ref,
+                        "prior_frozen_response_ref": (
+                            deepcopy(response_ref)
+                            if response_sync["candidate_state"] == "frozen"
+                            else None
+                        ),
+                        "post_freeze_disposition": response_sync[
+                            "post_freeze_disposition"
+                        ],
+                        "external_synthesis_ref": deepcopy(
+                            response_sync["external_synthesis_ref"]
+                        ),
+                        "new_revision_ref": deepcopy(
+                            response_sync["new_revision_ref"]
+                        ),
+                        "owner_ledger_history_ref": cls.exact_ref(
+                            "opl_action_output",
+                            "build-dependency-currentness-owner-ledger",
+                        ),
+                    },
+                )
+            )
         superseded_review_requests = [
             cls.exact_ref("opl_action_output", name)
             for name in superseded_review_request_names
@@ -1372,6 +1899,15 @@ class AuthorityRecordFactory:
                 }
             )
         else:
+            currentness_core["current_build_dependency_authority_refs"] = (
+                [
+                    deepcopy(
+                        selected_build_currentness_authority["authority_ref"]
+                    )
+                ]
+                if selected_build_currentness_authority is not None
+                else []
+            )
             currentness_core["lane_currentness"] = [
                 {
                     "review_lane": wrapper["receipt"]["review_lane"],
@@ -1446,7 +1982,7 @@ class AuthorityRecordFactory:
             ),
             "consumption_receipt": revision_receipt,
         }
-        return {
+        request = {
             "surface_kind": "mas_paper_mission_authority_request",
             "schema_version": 2,
             "host_context": {
@@ -1522,6 +2058,21 @@ class AuthorityRecordFactory:
                 "resume_condition": None,
             },
         }
+        if selected_build_currentness_authority is not None:
+            request["selected_build_currentness_authority"] = (
+                selected_build_currentness_authority
+            )
+            request["host_context"][
+                "build_dependency_currentness_authority_ref"
+            ] = deepcopy(selected_build_currentness_authority["authority_ref"])
+            request["host_context"][
+                "build_dependency_currentness_authority_issuer_attempt_ref"
+            ] = deepcopy(
+                selected_build_currentness_authority["authority_record"][
+                    "issuer_attempt_ref"
+                ]
+            )
+        return request
 
     @classmethod
     def bind_revision_consumption(
@@ -1638,6 +2189,51 @@ class AuthorityRecordFactory:
         )
 
     @classmethod
+    def reseal_selected_build_currentness_receipt(
+        cls,
+        request: dict[str, Any],
+    ) -> None:
+        selected_build = request["generation_manifest"]["selected_build_binding"]
+        receipt = selected_build["dependency_currentness_receipt"]
+        core = {
+            name: deepcopy(value)
+            for name, value in receipt.items()
+            if name not in {"receipt_id", "receipt_size_bytes", "receipt_fingerprint"}
+        }
+        sealed = cls.seal(core, "mas-build-dependency-currentness")
+        selected_build["dependency_currentness_receipt"] = sealed
+        selected_build["dependency_currentness_receipt_ref"] = cls.receipt_ref(
+            "mas_build_dependency_currentness_receipt", sealed
+        )
+
+    @classmethod
+    def reseal_selected_build_currentness_authority(
+        cls,
+        request: dict[str, Any],
+    ) -> None:
+        authority = request["selected_build_currentness_authority"]
+        record = authority["authority_record"]
+        authority_sha256 = cls.fingerprint(record)
+        authority_ref = {
+            "kind": "mas_build_dependency_currentness_authority",
+            "ref": (
+                "mas-build-dependency-currentness-authority:"
+                f"{authority_sha256.removeprefix('sha256:')}"
+            ),
+            "size_bytes": len(cls.canonical_bytes(record)),
+            "sha256": authority_sha256,
+        }
+        authority["authority_ref"] = authority_ref
+        request["review_authority"]["currentness_receipt"][
+            "current_build_dependency_authority_refs"
+        ] = [deepcopy(authority_ref)]
+        request["generation_manifest"]["selected_build_binding"][
+            "dependency_currentness_receipt"
+        ]["authority_ref"] = deepcopy(authority_ref)
+        cls.reseal_selected_build_currentness_receipt(request)
+        cls.refresh_paper_manifest_identity(request)
+
+    @classmethod
     def reseal_review_wrapper(cls, wrapper: dict[str, Any]) -> None:
         core = deepcopy(wrapper["receipt"])
         receipt_fingerprint = cls.fingerprint(core)
@@ -1692,6 +2288,13 @@ class AuthorityRecordFactory:
                 core["first_draft_quality_application"] = manifest[
                     "first_draft_quality_application"
                 ]
+            for field in (
+                "clinical_analysis_identity_admission",
+                "selected_build_binding",
+                "reviewer_response_sync",
+            ):
+                if field in manifest:
+                    core[field] = manifest[field]
         fingerprint = cls.fingerprint(core)
         manifest["generation_manifest_sha256"] = fingerprint
         manifest_ref = {

@@ -25,7 +25,7 @@ Choose the earliest unresolved owning Stage action from the installed OPL-genera
 - `review_and_quality_gate`: run independent scientific, statistical, evidence-integrity, reference, figure/table, or manuscript review.
 - `finalize_and_publication_handoff`: assemble the final publication handoff after current review evidence and explicit human submission authority.
 
-`study_lifecycle_reactivation_authority_evaluate`, `candidate_admission_authority_evaluate`, and `paper_mission_authority_evaluate` are internal registry-bound authority actions. They have no public CLI, MCP, Skill, product-entry, OpenAI, or AI SDK route and must not be invoked as user actions.
+`study_lifecycle_reactivation_authority_evaluate`, `candidate_admission_authority_evaluate`, `build_dependency_currentness_authority_evaluate`, and `paper_mission_authority_evaluate` are internal registry-bound authority actions. They have no public CLI, MCP, Skill, product-entry, OpenAI, or AI SDK route and must not be invoked as user actions.
 
 ## Default Workflow
 

@@ -182,6 +182,65 @@
         "existing_stale_legacy_pdf_selected_by_direct_path": "reject_handoff"
       }
     },
+    "reviewer_response_sync_contract": {
+      "surface_kind": "mas_reviewer_response_sync_contract",
+      "schema_version": 1,
+      "applies_from_scope": "manuscript_generation",
+      "applicable_mission_stages": [
+        "manuscript_authoring",
+        "review_and_quality_gate",
+        "finalize_and_publication_handoff"
+      ],
+      "early_analysis_generation_is_not_gated": true,
+      "higher_scope_manifest_does_not_preempt_earlier_mission_stage": true,
+      "pre_freeze_required_bindings": [
+        "reviewer_response_sync.response_ref",
+        "reviewer_response_sync.action_matrix_ref",
+        "reviewer_response_sync.artifact_inventory_ref",
+        "reviewer_response_sync.items[].affected_artifact_bindings",
+        "selected_build_binding.selected_archive_manifest_ref",
+        "selected_build_binding.selected_build_receipt_ref",
+        "selected_build_binding.dependency_manifest_ref",
+        "selected_build_binding.dependency_currentness_receipt_ref",
+        "selected_build_binding.dependency_currentness_receipt",
+        "selected_build_currentness_authority.authority_ref",
+        "selected_build_currentness_authority.authority_record",
+        "selected_build_binding.root_reader_output_ref",
+        "selected_build_binding.selected_reader_output_ref"
+      ],
+      "response_item_statuses": [
+        "planned",
+        "implemented_candidate",
+        "independently_reviewed_candidate",
+        "not_applicable_with_reason"
+      ],
+      "candidate_status_cannot_claim_owner_acceptance": true,
+      "owner_acceptance_requires_paper_mission_owner_receipt": true,
+      "action_matrix_item_ids_must_equal_response_comment_ids": true,
+      "implemented_or_independently_reviewed_requires_nonempty_exact_evidence_refs": true,
+      "build_dependency_currentness_authority_is_separately_host_injected": true,
+      "build_dependency_currentness_authority_ref_and_issuer_attempt_are_host_context_bound": true,
+      "build_dependency_currentness_authority_epoch_must_match_current_review_authority_epoch": true,
+      "build_dependency_currentness_authority_issuer_attempt_must_differ_from_generation_producer": true,
+      "implemented_candidate_evidence_kind": "mas_evidence",
+      "independently_reviewed_candidate_evidence_kind": "mas_reviewer_receipt",
+      "independently_reviewed_candidate_receipt_must_match_current_manifest_review_receipt": true,
+      "frozen_response_is_immutable": true,
+      "frozen_response_prior_exact_identity_required": true,
+      "frozen_response_owner_ledger_history_ref_required": true,
+      "frozen_response_history_must_reuse_build_currentness_owner_ledger_ref": true,
+      "same_generation_response_byte_replacement_requires_new_revision": true,
+      "external_synthesis_must_bind_original_frozen_response_bytes": true,
+      "post_freeze_review_result_target": "reviewer_external_synthesis",
+      "post_freeze_scientific_change_requires": "reviewer_new_revision",
+      "missing_legacy_binding_is_read_compatible_quality_debt": true,
+      "stale_or_mismatched_exact_binding_disposition": "invalid_host_input",
+      "authority_boundary": {
+        "binding_authorizes_publication": false,
+        "binding_authorizes_submission": false,
+        "opl_or_oma_can_claim_owner_acceptance": false
+      }
+    },
     "epistemic_review_route_back": {
       "trigger": "consumed_reviewer_revision_with_missing_or_stale_review_currentness",
       "scope_budget_ref": "contracts/stage_quality_cycle_policy.json#/epistemic_review_currentness_adoption/scope_budget",
@@ -273,6 +332,25 @@
           "exact_skill_receipt_ref_required": true,
           "exact_input_artifact_bindings_required": true,
           "owner_receipt_projection_field": "professional_skill_receipt_projection"
+        },
+        "scholar_v2_semantic_policy_consumption": {
+          "required_for_current_selected_build": true,
+          "legacy_v2_without_selected_build_read_compatible": true,
+          "required_candidate_refs": {
+            "medical-manuscript-writing": "medical_initial_draft_preflight_candidate_ref",
+            "medical-reference-integrity-auditor": "active_reference_currentness_ref",
+            "medical-statistical-review_when_prediction_model": "linked_prediction_performance_ref",
+            "medical-display-qc_when_reader_pdf": "display_render_integrity_ref"
+          },
+          "policy_ids": [
+            "scholarskills_medical_initial_draft_preflight.v2",
+            "scholarskills_linked_prediction_performance.v2"
+          ],
+          "reference_and_display_reuse_preflight_umbrella_policy": true,
+          "exact_invocation_receipt_policy_and_candidate_member_required": true,
+          "missing_duplicate_legacy_or_orphan_binding_disposition": "invalid_host_input",
+          "scholar_candidate_can_issue_mas_authority": false,
+          "opl_runtime_integration_status": "declared_not_current"
         },
         "professional_skill_consumption_may_be_replaced_by_template": false,
         "pre_review_contract": {

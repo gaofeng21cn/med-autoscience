@@ -133,6 +133,56 @@ def test_finalizer_builds_statistical_snapshot_and_injects_closeout(
     assert repeated["closeout_packet"] == finalized
 
 
+def test_finalizer_carries_clinical_identity_admission_into_frozen_manifest(
+    tmp_path: Path,
+) -> None:
+    artifacts, source_refs, environ = _case(tmp_path)
+    payload = b"accepted clinical analysis identity\n"
+    path = tmp_path / "analysis" / "frozen" / "clinical_identity.txt"
+    path.write_bytes(payload)
+    identity = {
+        "role": "clinical_analysis_input_identity",
+        "member_id": "mas-member:clinical_analysis_input_identity:primary",
+        "ref": "workspace://study/analysis/clinical-analysis-input-identity",
+        "size_bytes": len(payload),
+        "sha256": _digest(payload),
+    }
+    artifacts.append(identity)
+    source_refs[identity["member_id"]] = path.relative_to(tmp_path).as_posix()
+    admission = {
+        "surface_kind": "mas_clinical_analysis_identity_admission",
+        "schema_version": 1,
+        "status": "adjudicator_required",
+        "clinical_analysis_input_identity_ref": {
+            "kind": "mas_artifact",
+            "ref": identity["ref"],
+            "size_bytes": identity["size_bytes"],
+            "sha256": identity["sha256"],
+        },
+        "reason_codes": [],
+        "unresolved_items": [],
+        "next_owner": None,
+        "human_gate_refs": [],
+        "authority_boundary": {
+            "authorizes_publication": False,
+            "authorizes_submission": False,
+        },
+    }
+
+    result = finalize_bounded_analysis_producer_snapshot_closeout(
+        closeout_packet=_closeout(),
+        artifacts=artifacts,
+        generation_id="analysis-generation:clinical-identity",
+        generation_ref="workspace://study/analysis/generation-manifest.json",
+        source_refs_by_member_id=source_refs,
+        clinical_analysis_identity_admission=admission,
+        environ=environ,
+    )
+
+    manifest = result["snapshot_bundle"]["generation_manifest"]
+    assert manifest["clinical_analysis_identity_admission"] == admission
+
+
 def test_finalizer_fails_before_injection_when_source_bytes_do_not_match(
     tmp_path: Path,
 ) -> None:

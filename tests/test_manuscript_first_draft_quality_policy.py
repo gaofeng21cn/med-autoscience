@@ -46,6 +46,18 @@ def test_prediction_model_first_draft_contract_preserves_current_semantics() -> 
     assert prediction[
         "external_transportability_skill_may_be_required_for_internal_external"
     ] is False
+    assert "linked_prediction_performance_ref" in prediction["required_candidate_refs"]
+    assert "active_reference_currentness_ref" in policy["base_first_draft_contract"][
+        "required_upstream_candidate_refs"
+    ]
+    assert set(
+        policy["base_first_draft_contract"]["conditional_authoring_candidate_refs"][
+            "reader_pdf"
+        ]
+    ) == {
+        "document_display_scope_coverage_ref",
+        "display_render_integrity_ref",
+    }
 
     adequacy = prediction["model_complexity_and_sparse_event_adequacy"]
     ph_contract = adequacy["conditional_evidence"]["ph_assessment_ref"]
@@ -119,11 +131,20 @@ def test_v2_application_and_skill_receipts_are_exact_and_readback_visible() -> N
         "stage_attempt_readback_contract"
     ]
     routing = readback["first_draft_professional_skill_routing"]
+    revision_sync = stage_pack["reviewer_revision_default_mechanism"][
+        "reviewer_response_sync_contract"
+    ]
 
     base = policy["base_first_draft_contract"]
     assert base["current_application_schema_version"] == 2
     assert base["legacy_application_schema_version_read_compatible"] is True
     assert base["legacy_application_cannot_satisfy_current_first_draft_ready"] is True
+    assert base[
+        "current_selected_build_requires_scholar_v2_semantic_policy_bindings"
+    ] is True
+    assert base[
+        "legacy_v2_without_selected_build_preserves_exact_owner_receipt_abi"
+    ] is True
     assert set(base["candidate_disposition_statuses"]) == set(
         FIRST_DRAFT_QUALITY_DISPOSITION_STATUSES
     )
@@ -135,6 +156,75 @@ def test_v2_application_and_skill_receipts_are_exact_and_readback_visible() -> N
     assert policy["progress_and_quality"]["route_priority"] == list(
         FIRST_DRAFT_QUALITY_ROUTE_PRIORITY
     )
+    invariants = policy["cross_stage_generation_invariants"]
+    assert invariants["candidate_adjudicator_acceptance_required_for_clinical_identity"] is True
+    assert invariants[
+        "selected_build_dependency_currentness_requires_expanded_sealed_owner_receipt"
+    ] is True
+    assert invariants[
+        "selected_build_dependency_currentness_requires_separate_current_owner_authority"
+    ] is True
+    assert invariants[
+        "generation_producer_cannot_issue_build_dependency_currentness_authority"
+    ] is True
+    assert invariants[
+        "selected_build_currentness_applies_to_every_paper_mission_request"
+    ] is True
+    assert invariants[
+        "frozen_reviewer_response_replacement_requires_new_revision_generation"
+    ] is True
+    assert invariants[
+        "external_synthesis_must_bind_original_frozen_response_bytes"
+    ] is True
+    assert invariants[
+        "independently_reviewed_response_requires_current_manifest_independent_reviewer_receipt"
+    ] is True
+    assert invariants["professional_payloads_remain_owned_by"] == "mas-scholar-skills"
+    assert revision_sync["early_analysis_generation_is_not_gated"] is True
+    assert revision_sync[
+        "higher_scope_manifest_does_not_preempt_earlier_mission_stage"
+    ] is True
+    assert revision_sync["applicable_mission_stages"] == [
+        "manuscript_authoring",
+        "review_and_quality_gate",
+        "finalize_and_publication_handoff",
+    ]
+    assert revision_sync["candidate_status_cannot_claim_owner_acceptance"] is True
+    assert revision_sync["owner_acceptance_requires_paper_mission_owner_receipt"] is True
+    assert revision_sync["action_matrix_item_ids_must_equal_response_comment_ids"] is True
+    assert revision_sync[
+        "implemented_or_independently_reviewed_requires_nonempty_exact_evidence_refs"
+    ] is True
+    assert revision_sync[
+        "build_dependency_currentness_authority_is_separately_host_injected"
+    ] is True
+    assert revision_sync[
+        "build_dependency_currentness_authority_ref_and_issuer_attempt_are_host_context_bound"
+    ] is True
+    assert revision_sync[
+        "build_dependency_currentness_authority_epoch_must_match_current_review_authority_epoch"
+    ] is True
+    assert revision_sync[
+        "build_dependency_currentness_authority_issuer_attempt_must_differ_from_generation_producer"
+    ] is True
+    assert revision_sync["implemented_candidate_evidence_kind"] == "mas_evidence"
+    assert revision_sync["independently_reviewed_candidate_evidence_kind"] == (
+        "mas_reviewer_receipt"
+    )
+    assert revision_sync[
+        "independently_reviewed_candidate_receipt_must_match_current_manifest_review_receipt"
+    ] is True
+    assert revision_sync["frozen_response_prior_exact_identity_required"] is True
+    assert revision_sync["frozen_response_owner_ledger_history_ref_required"] is True
+    assert revision_sync[
+        "frozen_response_history_must_reuse_build_currentness_owner_ledger_ref"
+    ] is True
+    assert revision_sync[
+        "same_generation_response_byte_replacement_requires_new_revision"
+    ] is True
+    assert revision_sync[
+        "external_synthesis_must_bind_original_frozen_response_bytes"
+    ] is True
 
     invocation_schema = generation_schema["$defs"][
         "professional_manuscript_skill_invocation"
@@ -172,6 +262,24 @@ def test_v2_application_and_skill_receipts_are_exact_and_readback_visible() -> N
     assert exact_readback["exact_invocation_ref_required"] is True
     assert exact_readback["exact_skill_receipt_ref_required"] is True
     assert exact_readback["exact_input_artifact_bindings_required"] is True
+    semantic = routing["scholar_v2_semantic_policy_consumption"]
+    assert semantic["required_for_current_selected_build"] is True
+    assert semantic["legacy_v2_without_selected_build_read_compatible"] is True
+    assert semantic["reference_and_display_reuse_preflight_umbrella_policy"] is True
+    assert semantic[
+        "exact_invocation_receipt_policy_and_candidate_member_required"
+    ] is True
+    assert semantic["scholar_candidate_can_issue_mas_authority"] is False
+    assert semantic["opl_runtime_integration_status"] == "declared_not_current"
+    assert set(semantic["policy_ids"]) == {
+        "scholarskills_medical_initial_draft_preflight.v2",
+        "scholarskills_linked_prediction_performance.v2",
+    }
+    invocation_contract = policy["professional_invocation_contract"]
+    assert invocation_contract[
+        "missing_duplicate_legacy_or_orphan_semantic_invocation_fails_closed"
+    ] is True
+    assert invocation_contract["external_skill_receipt_is_candidate_not_authority"] is True
 
     owner_receipt = output_schema["$defs"]["owner_receipt"]
     assert exact_readback["owner_receipt_projection_field"] in owner_receipt[

@@ -16,8 +16,27 @@
       },
       "then": {
         "not": {
-          "required": [
-            "review_scopes"
+          "anyOf": [
+            {
+              "required": [
+                "review_scopes"
+              ]
+            },
+            {
+              "required": [
+                "clinical_analysis_identity_admission"
+              ]
+            },
+            {
+              "required": [
+                "selected_build_binding"
+              ]
+            },
+            {
+              "required": [
+                "reviewer_response_sync"
+              ]
+            }
           ]
         },
         "properties": {
@@ -46,6 +65,143 @@
             "items": {
               "$ref": "#/$defs/generation_artifact_v2"
             }
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "required": [
+          "manifest_scope"
+        ],
+        "properties": {
+          "manifest_scope": {
+            "const": "analysis_generation"
+          }
+        }
+      },
+      "then": {
+        "allOf": [
+          {
+            "not": {
+              "anyOf": [
+                {
+                  "required": [
+                    "selected_build_binding"
+                  ]
+                },
+                {
+                  "required": [
+                    "reviewer_response_sync"
+                  ]
+                },
+                {
+                  "required": [
+                    "first_draft_quality_application"
+                  ]
+                }
+              ]
+            }
+          },
+          {
+            "properties": {
+              "artifacts": {
+                "not": {
+                  "contains": {
+                    "required": [
+                      "role"
+                    ],
+                    "properties": {
+                      "role": {
+                        "enum": [
+                          "selected_archive_manifest",
+                          "selected_build_receipt",
+                          "build_dependency_manifest",
+                          "root_reader_output",
+                          "selected_reader_output",
+                          "reviewer_response",
+                          "reviewer_action_matrix",
+                          "reviewer_artifact_inventory",
+                          "reviewer_external_synthesis",
+                          "reviewer_new_revision"
+                        ]
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        ]
+      }
+    },
+    {
+      "if": {
+        "required": [
+          "manifest_scope"
+        ],
+        "properties": {
+          "manifest_scope": {
+            "enum": [
+              "manuscript_generation",
+              "publication_generation"
+            ]
+          }
+        }
+      },
+      "then": {
+        "not": {
+          "required": [
+            "clinical_analysis_identity_admission"
+          ]
+        }
+      }
+    },
+    {
+      "if": {
+        "required": [
+          "selected_build_binding"
+        ]
+      },
+      "then": {
+        "required": [
+          "first_draft_quality_application",
+          "professional_skill_invocations"
+        ],
+        "properties": {
+          "first_draft_quality_application": {
+            "allOf": [
+              {
+                "if": {
+                  "properties": {
+                    "schema_version": {
+                      "const": 2
+                    }
+                  }
+                },
+                "then": {
+                  "required": [
+                    "scholar_v2_semantic_policy_bindings"
+                  ],
+                  "properties": {
+                    "candidate_refs": {
+                      "required": [
+                        "active_reference_currentness_ref",
+                        "linked_prediction_performance_ref",
+                        "display_render_integrity_ref"
+                      ]
+                    },
+                    "candidate_dispositions": {
+                      "required": [
+                        "active_reference_currentness_ref",
+                        "linked_prediction_performance_ref",
+                        "display_render_integrity_ref"
+                      ]
+                    }
+                  }
+                }
+              }
+            ]
           }
         }
       }
@@ -124,6 +280,15 @@
     "first_draft_quality_application": {
       "$ref": "#/$defs/first_draft_quality_application"
     },
+    "clinical_analysis_identity_admission": {
+      "$ref": "#/$defs/clinical_analysis_identity_admission"
+    },
+    "selected_build_binding": {
+      "$ref": "#/$defs/selected_build_binding"
+    },
+    "reviewer_response_sync": {
+      "$ref": "#/$defs/reviewer_response_sync"
+    },
     "independent_review_receipts": {
       "type": "array",
       "uniqueItems": true,
@@ -174,16 +339,30 @@
         "medical_initial_draft_preflight_candidate",
         "clinical_analysis_input_identity",
         "citation_source_coverage",
+        "active_reference_currentness",
         "validation_partition_integrity",
         "endpoint_analysis_set_reconciliation",
         "model_complexity_sparse_event",
+        "linked_prediction_performance",
         "fixed_horizon_risk_semantics",
         "competing_risk",
         "decision_curve_validity",
         "baseline_table_traceability",
         "document_display_scope_coverage",
+        "display_render_integrity",
         "claim_guardrail",
         "external_transportability"
+        ,
+        "selected_archive_manifest",
+        "selected_build_receipt",
+        "build_dependency_manifest",
+        "root_reader_output",
+        "selected_reader_output",
+        "reviewer_response",
+        "reviewer_action_matrix",
+        "reviewer_artifact_inventory",
+        "reviewer_external_synthesis",
+        "reviewer_new_revision"
       ]
     },
     "generation_artifact_v1": {
@@ -232,6 +411,469 @@
         "ref": {
           "$ref": "#/$defs/non_empty_text",
           "description": "Current locator retained for inventory, snapshot transport, and provenance. Every epistemic review-lane topology identity excludes this locator, including exact_byte_package."
+        },
+        "size_bytes": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "sha256": {
+          "$ref": "#/$defs/sha256"
+        }
+      }
+    },
+    "no_authority_boundary": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "authorizes_publication",
+        "authorizes_submission"
+      ],
+      "properties": {
+        "authorizes_publication": {
+          "const": false
+        },
+        "authorizes_submission": {
+          "const": false
+        }
+      }
+    },
+    "mas_artifact_exact_ref": {
+      "allOf": [
+        {
+          "$ref": "#/$defs/exact_ref"
+        },
+        {
+          "type": "object",
+          "properties": {
+            "kind": {
+              "const": "mas_artifact"
+            }
+          }
+        }
+      ]
+    },
+    "mas_evidence_exact_ref": {
+      "allOf": [
+        {
+          "$ref": "#/$defs/exact_ref"
+        },
+        {
+          "type": "object",
+          "properties": {
+            "kind": {
+              "const": "mas_evidence"
+            }
+          }
+        }
+      ]
+    },
+    "mas_reviewer_receipt_exact_ref": {
+      "allOf": [
+        {
+          "$ref": "#/$defs/exact_ref"
+        },
+        {
+          "type": "object",
+          "properties": {
+            "kind": {
+              "const": "mas_reviewer_receipt"
+            }
+          }
+        }
+      ]
+    },
+    "mas_human_gate_typed_ref": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "kind",
+        "ref",
+        "sha256"
+      ],
+      "properties": {
+        "kind": {
+          "const": "mas_human_gate"
+        },
+        "ref": {
+          "$ref": "#/$defs/non_empty_text"
+        },
+        "sha256": {
+          "$ref": "#/$defs/sha256"
+        }
+      }
+    },
+    "clinical_analysis_identity_admission": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "surface_kind",
+        "schema_version",
+        "status",
+        "clinical_analysis_input_identity_ref",
+        "reason_codes",
+        "unresolved_items",
+        "next_owner",
+        "human_gate_refs",
+        "authority_boundary"
+      ],
+      "properties": {
+        "surface_kind": {
+          "const": "mas_clinical_analysis_identity_admission"
+        },
+        "schema_version": {
+          "const": 1
+        },
+        "status": {
+          "enum": [
+            "adjudicator_required",
+            "open_human_gate",
+            "route_back"
+          ]
+        },
+        "clinical_analysis_input_identity_ref": {
+          "$ref": "#/$defs/mas_artifact_exact_ref"
+        },
+        "reason_codes": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": {
+            "$ref": "#/$defs/non_empty_text"
+          }
+        },
+        "unresolved_items": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": {
+            "$ref": "#/$defs/non_empty_text"
+          }
+        },
+        "next_owner": {
+          "anyOf": [
+            {
+              "type": "null"
+            },
+            {
+              "$ref": "#/$defs/non_empty_text"
+            }
+          ]
+        },
+        "human_gate_refs": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": {
+            "$ref": "#/$defs/mas_human_gate_typed_ref"
+          }
+        },
+        "authority_boundary": {
+          "$ref": "#/$defs/no_authority_boundary"
+        }
+      }
+    },
+    "selected_build_binding": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "surface_kind",
+        "schema_version",
+        "selected_archive_label",
+        "selected_archive_manifest_ref",
+        "selected_build_receipt_ref",
+        "dependency_manifest_ref",
+        "root_reader_output_ref",
+        "selected_reader_output_ref",
+        "dependency_currentness",
+        "dependency_currentness_receipt_ref",
+        "dependency_currentness_receipt",
+        "root_matches_selected_bytes",
+        "authority_boundary"
+      ],
+      "properties": {
+        "surface_kind": {
+          "const": "mas_selected_build_binding"
+        },
+        "schema_version": {
+          "const": 1
+        },
+        "selected_archive_label": {
+          "$ref": "#/$defs/non_empty_text"
+        },
+        "selected_archive_manifest_ref": {
+          "$ref": "#/$defs/mas_artifact_exact_ref"
+        },
+        "selected_build_receipt_ref": {
+          "$ref": "#/$defs/mas_artifact_exact_ref"
+        },
+        "dependency_manifest_ref": {
+          "$ref": "#/$defs/mas_artifact_exact_ref"
+        },
+        "root_reader_output_ref": {
+          "$ref": "#/$defs/mas_artifact_exact_ref"
+        },
+        "selected_reader_output_ref": {
+          "$ref": "#/$defs/mas_artifact_exact_ref"
+        },
+        "dependency_currentness": {
+          "enum": [
+            "current",
+            "stale",
+            "open"
+          ]
+        },
+        "dependency_currentness_receipt_ref": {
+          "allOf": [
+            {
+              "$ref": "#/$defs/exact_ref"
+            },
+            {
+              "type": "object",
+              "properties": {
+                "kind": {
+                  "const": "mas_build_dependency_currentness_receipt"
+                }
+              }
+            }
+          ]
+        },
+        "dependency_currentness_receipt": {
+          "$ref": "#/$defs/build_dependency_currentness_receipt"
+        },
+        "root_matches_selected_bytes": {
+          "type": "boolean"
+        },
+        "authority_boundary": {
+          "$ref": "#/$defs/no_authority_boundary"
+        }
+      }
+    },
+    "build_dependency_currentness_receipt": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "receipt_kind",
+        "schema_version",
+        "owner",
+        "authority_role",
+        "authority_ref",
+        "dependency_manifest_ref",
+        "dependency_currentness",
+        "receipt_id",
+        "receipt_size_bytes",
+        "receipt_fingerprint"
+      ],
+      "properties": {
+        "receipt_kind": {
+          "const": "mas_build_dependency_currentness_receipt"
+        },
+        "schema_version": {
+          "const": 1
+        },
+        "owner": {
+          "const": "MedAutoScience"
+        },
+        "authority_role": {
+          "const": "build_dependency_currentness_owner"
+        },
+        "authority_ref": {
+          "allOf": [
+            {
+              "$ref": "#/$defs/exact_ref"
+            },
+            {
+              "type": "object",
+              "properties": {
+                "kind": {
+                  "const": "mas_build_dependency_currentness_authority"
+                }
+              }
+            }
+          ]
+        },
+        "dependency_manifest_ref": {
+          "$ref": "#/$defs/mas_artifact_exact_ref"
+        },
+        "dependency_currentness": {
+          "enum": [
+            "current",
+            "stale",
+            "open"
+          ]
+        },
+        "receipt_id": {
+          "$ref": "#/$defs/non_empty_text"
+        },
+        "receipt_size_bytes": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "receipt_fingerprint": {
+          "$ref": "#/$defs/sha256"
+        }
+      }
+    },
+    "reviewer_response_sync": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "surface_kind",
+        "schema_version",
+        "response_ref",
+        "action_matrix_ref",
+        "action_matrix_item_ids",
+        "artifact_inventory_ref",
+        "candidate_state",
+        "sync_status",
+        "items",
+        "external_synthesis_ref",
+        "new_revision_ref",
+        "post_freeze_disposition",
+        "authority_boundary"
+      ],
+      "properties": {
+        "surface_kind": {
+          "const": "mas_reviewer_response_sync"
+        },
+        "schema_version": {
+          "const": 1
+        },
+        "response_ref": {
+          "$ref": "#/$defs/mas_artifact_exact_ref"
+        },
+        "action_matrix_ref": {
+          "$ref": "#/$defs/mas_artifact_exact_ref"
+        },
+        "action_matrix_item_ids": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": {
+            "$ref": "#/$defs/non_empty_text"
+          }
+        },
+        "artifact_inventory_ref": {
+          "$ref": "#/$defs/mas_artifact_exact_ref"
+        },
+        "candidate_state": {
+          "enum": [
+            "pre_freeze",
+            "frozen"
+          ]
+        },
+        "sync_status": {
+          "enum": [
+            "synchronized",
+            "route_back_required"
+          ]
+        },
+        "items": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": {
+            "$ref": "#/$defs/reviewer_response_sync_item"
+          }
+        },
+        "external_synthesis_ref": {
+          "anyOf": [
+            {
+              "type": "null"
+            },
+            {
+              "$ref": "#/$defs/mas_artifact_exact_ref"
+            }
+          ]
+        },
+        "new_revision_ref": {
+          "anyOf": [
+            {
+              "type": "null"
+            },
+            {
+              "$ref": "#/$defs/mas_artifact_exact_ref"
+            }
+          ]
+        },
+        "post_freeze_disposition": {
+          "enum": [
+            "not_started",
+            "external_synthesis_bound",
+            "scientific_change_requires_new_revision"
+          ]
+        },
+        "authority_boundary": {
+          "$ref": "#/$defs/no_authority_boundary"
+        }
+      }
+    },
+    "reviewer_response_sync_item": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "comment_id",
+        "status",
+        "affected_artifact_bindings",
+        "evidence_refs",
+        "remaining_gap_or_not_applicable_reason"
+      ],
+      "properties": {
+        "comment_id": {
+          "$ref": "#/$defs/non_empty_text"
+        },
+        "status": {
+          "enum": [
+            "planned",
+            "implemented_candidate",
+            "independently_reviewed_candidate",
+            "not_applicable_with_reason"
+          ]
+        },
+        "affected_artifact_bindings": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": {
+            "$ref": "#/$defs/affected_artifact_binding"
+          }
+        },
+        "evidence_refs": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": {
+            "oneOf": [
+              {
+                "$ref": "#/$defs/mas_evidence_exact_ref"
+              },
+              {
+                "$ref": "#/$defs/mas_reviewer_receipt_exact_ref"
+              }
+            ]
+          }
+        },
+        "remaining_gap_or_not_applicable_reason": {
+          "anyOf": [
+            {
+              "type": "null"
+            },
+            {
+              "$ref": "#/$defs/non_empty_text"
+            }
+          ]
+        }
+      }
+    },
+    "affected_artifact_binding": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "member_id",
+        "ref",
+        "size_bytes",
+        "sha256"
+      ],
+      "properties": {
+        "member_id": {
+          "$ref": "#/$defs/non_empty_text"
+        },
+        "ref": {
+          "$ref": "#/$defs/non_empty_text"
         },
         "size_bytes": {
           "type": "integer",
@@ -334,18 +976,24 @@
             "clinical_analysis_input_identity_ref": {
               "$ref": "#/$defs/nullable_mas_artifact_exact_ref"
             },
-            "citation_source_coverage_ref": {
-              "$ref": "#/$defs/nullable_mas_artifact_exact_ref"
-            },
+        "citation_source_coverage_ref": {
+          "$ref": "#/$defs/nullable_mas_artifact_exact_ref"
+        },
+        "active_reference_currentness_ref": {
+          "$ref": "#/$defs/nullable_mas_artifact_exact_ref"
+        },
             "validation_partition_integrity_ref": {
               "$ref": "#/$defs/nullable_mas_artifact_exact_ref"
             },
             "endpoint_analysis_set_reconciliation_ref": {
               "$ref": "#/$defs/nullable_mas_artifact_exact_ref"
             },
-            "model_complexity_sparse_event_ref": {
-              "$ref": "#/$defs/nullable_mas_artifact_exact_ref"
-            },
+        "model_complexity_sparse_event_ref": {
+          "$ref": "#/$defs/nullable_mas_artifact_exact_ref"
+        },
+        "linked_prediction_performance_ref": {
+          "$ref": "#/$defs/nullable_mas_artifact_exact_ref"
+        },
             "fixed_horizon_risk_semantics_ref": {
               "$ref": "#/$defs/nullable_mas_artifact_exact_ref"
             },
@@ -358,9 +1006,12 @@
             "baseline_table_traceability_ref": {
               "$ref": "#/$defs/nullable_mas_artifact_exact_ref"
             },
-            "document_display_scope_coverage_ref": {
-              "$ref": "#/$defs/nullable_mas_artifact_exact_ref"
-            },
+        "document_display_scope_coverage_ref": {
+          "$ref": "#/$defs/nullable_mas_artifact_exact_ref"
+        },
+        "display_render_integrity_ref": {
+          "$ref": "#/$defs/nullable_mas_artifact_exact_ref"
+        },
             "claim_guardrail_ref": {
               "$ref": "#/$defs/nullable_mas_artifact_exact_ref"
             },
@@ -394,18 +1045,24 @@
             "clinical_analysis_input_identity_ref": {
               "$ref": "#/$defs/first_draft_candidate_disposition"
             },
-            "citation_source_coverage_ref": {
-              "$ref": "#/$defs/first_draft_candidate_disposition"
-            },
+        "citation_source_coverage_ref": {
+          "$ref": "#/$defs/first_draft_candidate_disposition"
+        },
+        "active_reference_currentness_ref": {
+          "$ref": "#/$defs/first_draft_candidate_disposition"
+        },
             "validation_partition_integrity_ref": {
               "$ref": "#/$defs/first_draft_candidate_disposition"
             },
             "endpoint_analysis_set_reconciliation_ref": {
               "$ref": "#/$defs/first_draft_candidate_disposition"
             },
-            "model_complexity_sparse_event_ref": {
-              "$ref": "#/$defs/first_draft_candidate_disposition"
-            },
+        "model_complexity_sparse_event_ref": {
+          "$ref": "#/$defs/first_draft_candidate_disposition"
+        },
+        "linked_prediction_performance_ref": {
+          "$ref": "#/$defs/first_draft_candidate_disposition"
+        },
             "fixed_horizon_risk_semantics_ref": {
               "$ref": "#/$defs/first_draft_candidate_disposition"
             },
@@ -418,15 +1075,27 @@
             "baseline_table_traceability_ref": {
               "$ref": "#/$defs/first_draft_candidate_disposition"
             },
-            "document_display_scope_coverage_ref": {
-              "$ref": "#/$defs/first_draft_candidate_disposition"
-            },
+        "document_display_scope_coverage_ref": {
+          "$ref": "#/$defs/first_draft_candidate_disposition"
+        },
+        "display_render_integrity_ref": {
+          "$ref": "#/$defs/first_draft_candidate_disposition"
+        },
             "claim_guardrail_ref": {
               "$ref": "#/$defs/first_draft_candidate_disposition"
             },
             "external_transportability_ref": {
               "$ref": "#/$defs/first_draft_candidate_disposition"
             }
+          }
+        },
+        "scholar_v2_semantic_policy_bindings": {
+          "type": "array",
+          "minItems": 2,
+          "maxItems": 4,
+          "uniqueItems": true,
+          "items": {
+            "$ref": "#/$defs/scholar_v2_semantic_policy_binding"
           }
         }
       },
@@ -621,6 +1290,106 @@
           }
         }
       ]
+    },
+    "scholar_v2_semantic_policy_binding": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "skill_id",
+        "semantic_policy_id",
+        "validator_id",
+        "semantic_policy_ref",
+        "candidate_ref_field",
+        "candidate_surface_kind",
+        "candidate_ref",
+        "invocation_ref",
+        "receipt_ref"
+      ],
+      "properties": {
+        "skill_id": {
+          "enum": [
+            "medical-manuscript-writing",
+            "medical-statistical-review",
+            "medical-reference-integrity-auditor",
+            "medical-display-qc"
+          ]
+        },
+        "semantic_policy_id": {
+          "enum": [
+            "scholarskills_medical_initial_draft_preflight.v2",
+            "scholarskills_linked_prediction_performance.v2"
+          ]
+        },
+        "validator_id": {
+          "enum": [
+            "validate_medical_initial_draft_preflight_candidate_v2",
+            "validate_linked_prediction_performance",
+            "audit_active_reference_currentness",
+            "validate_display_render_integrity"
+          ]
+        },
+        "semantic_policy_ref": {
+          "allOf": [
+            {
+              "$ref": "#/$defs/exact_ref"
+            },
+            {
+              "properties": {
+                "kind": {
+                  "const": "scholarskills_semantic_policy"
+                }
+              }
+            }
+          ]
+        },
+        "candidate_ref_field": {
+          "enum": [
+            "medical_initial_draft_preflight_candidate_ref",
+            "linked_prediction_performance_ref",
+            "active_reference_currentness_ref",
+            "display_render_integrity_ref"
+          ]
+        },
+        "candidate_surface_kind": {
+          "enum": [
+            "medical_initial_draft_preflight_candidate_ref",
+            "linked_prediction_performance_ref",
+            "active_reference_currentness_ref",
+            "display_render_integrity_ref"
+          ]
+        },
+        "candidate_ref": {
+          "$ref": "#/$defs/nonempty_mas_artifact_exact_ref"
+        },
+        "invocation_ref": {
+          "allOf": [
+            {
+              "$ref": "#/$defs/exact_ref"
+            },
+            {
+              "properties": {
+                "kind": {
+                  "const": "mas_professional_skill_invocation"
+                }
+              }
+            }
+          ]
+        },
+        "receipt_ref": {
+          "allOf": [
+            {
+              "$ref": "#/$defs/exact_ref"
+            },
+            {
+              "properties": {
+                "kind": {
+                  "const": "scholarskills_professional_skill_receipt"
+                }
+              }
+            }
+          ]
+        }
+      }
     },
     "mas_artifact_exact_ref": {
       "allOf": [
@@ -1024,6 +1793,37 @@
         },
         "receipt_ref": {
           "$ref": "#/$defs/exact_ref"
+        },
+        "semantic_policy_id": {
+          "enum": [
+            "scholarskills_medical_initial_draft_preflight.v2",
+            "scholarskills_linked_prediction_performance.v2"
+          ]
+        },
+        "semantic_validator_id": {
+          "enum": [
+            "validate_medical_initial_draft_preflight_candidate_v2",
+            "validate_linked_prediction_performance",
+            "audit_active_reference_currentness",
+            "validate_display_render_integrity"
+          ]
+        },
+        "semantic_policy_ref": {
+          "allOf": [
+            {
+              "$ref": "#/$defs/exact_ref"
+            },
+            {
+              "properties": {
+                "kind": {
+                  "const": "scholarskills_semantic_policy"
+                }
+              }
+            }
+          ]
+        },
+        "semantic_candidate_ref": {
+          "$ref": "#/$defs/nonempty_mas_artifact_exact_ref"
         },
         "skill_id": {
           "enum": [
@@ -1516,8 +2316,12 @@
             "mas_candidate_admission_receipt",
             "mas_reviewer_receipt",
             "mas_artifact",
-            "mas_professional_skill_invocation",
-            "scholarskills_professional_skill_receipt"
+            "mas_build_dependency_currentness_authority",
+            "mas_build_dependency_currentness_receipt",
+            "mas_evidence",
+          "mas_professional_skill_invocation",
+          "scholarskills_professional_skill_receipt",
+          "scholarskills_semantic_policy"
           ]
         },
         "ref": {
