@@ -27,7 +27,7 @@ projection；MAS 持有医学语义声明、专业能力依赖、独立 Review p
 | Action catalog | `contracts/action_catalog.json` 持有六个公开 Stage action 与两个无用户 surface 的内部 authority actions | public/generated surface currentness 仍归 OPL readback |
 | Authority registry | `contracts/domain_handler_registry.json` 绑定 candidate admission、paper mission 与 self-evolution closeout 三个纯 handler | handler 只作领域裁决，不拥有 runtime、transport、session 或 transition |
 | Source morphology | `src/med_autoscience/` 只保留 package init、三个 authority handlers、共享纯校验 helper 与 CSL assets | source closure 不等于 runtime、paper 或 publication ready |
-| Package / ScholarSkills dependency | `contracts/opl_agent_package_manifest.json` 声明 MAS SemVer `0.2.15`、硬依赖范围 `>=0.2.12 <0.3.0` 和 required ABI/exports/modules；出版版式由 ScholarSkills 单一目录提供，MAS 只消费 selection ref | exact installed resolution、lock 与 activation 归 OPL package readback |
+| Package / ScholarSkills dependency | `contracts/opl_agent_package_manifest.json` 声明 MAS SemVer `0.2.16`、硬依赖范围 `>=0.2.12 <0.3.0` 和 required ABI/exports/modules；出版版式由 ScholarSkills 单一目录提供，MAS 只消费 selection ref | exact installed resolution、lock 与 activation 归 OPL package readback |
 
 ## Current-State vs Ideal-State Gaps
 
