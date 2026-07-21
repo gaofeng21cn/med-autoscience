@@ -11,6 +11,7 @@ import pytest
 from jsonschema import Draft202012Validator, ValidationError
 
 from med_autoscience.authority_handlers.study_lifecycle_reactivation import (
+    _TARGET_ROLE_ORDER,
     evaluate_study_lifecycle_reactivation_authority,
 )
 
@@ -292,6 +293,85 @@ def _request(state: str = "paused") -> dict[str, Any]:
     }
 
 
+def _request_with_all_optional_projections() -> dict[str, Any]:
+    request = _request()
+    targets = {
+        item["projection_id"]: item
+        for item in request["projection_inventory"]["targets"]
+    }
+    targets.update(
+        {
+            "workspace_studies_index": {
+                "projection_id": "workspace_studies_index",
+                "root": "workspace",
+                "relative_path": "reports/studies_index.json",
+                "ref": "file:///workspace/reports/studies_index.json",
+                "sha256": _digest("workspace-studies-index-g1"),
+                "byte_size": 1200,
+                "record": _workspace_index("paused"),
+            },
+            "workspace_latest_status": {
+                "projection_id": "workspace_latest_status",
+                "root": "workspace",
+                "relative_path": "reports/latest_status.json",
+                "ref": "file:///workspace/reports/latest_status.json",
+                "sha256": _digest("workspace-latest-status-g1"),
+                "byte_size": 800,
+                "record": {
+                    "surface_kind": "workspace_latest_status",
+                    "schema_version": 1,
+                    "status_counts": {"paused": 1},
+                    "next_required_actions": ["wait_for_explicit_user_wakeup"],
+                    "recorded_at": "2026-07-20T00:00:00Z",
+                },
+            },
+            "publication_current_package_status": {
+                "projection_id": "publication_current_package_status",
+                "root": "work_item",
+                "relative_path": "publication/current_package/STATUS.json",
+                "ref": (
+                    f"file:///workspace/studies/{STUDY_ID}/"
+                    "publication/current_package/STATUS.json"
+                ),
+                "sha256": _digest("publication-current-package-status-g1"),
+                "byte_size": 500,
+                "record": {
+                    "surface_kind": "study_current_package_status",
+                    "schema_version": 1,
+                    "lifecycle_state": "paused",
+                    "status": "not_ready",
+                    "submission_ready": False,
+                    "promotion_allowed": False,
+                    "reason": "The user paused this study.",
+                    "recorded_at": "2026-07-20T00:00:00Z",
+                },
+            },
+            "stage_index": {
+                "projection_id": "stage_index",
+                "root": "work_item",
+                "relative_path": "control/stage_index.json",
+                "ref": (
+                    f"file:///workspace/studies/{STUDY_ID}/control/stage_index.json"
+                ),
+                "sha256": _digest("stage-index-g1"),
+                "byte_size": 700,
+                "record": {
+                    "surface_kind": "mas_stage_index",
+                    "schema_version": 1,
+                    "study_id": STUDY_ID,
+                    "lifecycle_state": "paused",
+                    "stages": [],
+                },
+            },
+        }
+    )
+    request["projection_inventory"]["targets"] = [
+        targets[role] for role in _TARGET_ROLE_ORDER
+    ]
+    request["projection_inventory"]["absent_optional_projection_ids"] = []
+    return request
+
+
 def _validator(name: str) -> Draft202012Validator:
     schema = json.loads(
         (ROOT / "contracts/schemas/v2" / name).read_text(encoding="utf-8")
@@ -369,6 +449,49 @@ def test_paused_reactivation_returns_deterministic_atomic_cas_authority() -> Non
     assert submission["publication_verdict"] == "not_ready"
     assert "paused" not in submission["reason"].lower()
     assert submission["recorded_at"] == "2026-07-21T01:00:00Z"
+
+
+def test_all_projection_sources_share_handler_order_and_are_authorized() -> None:
+    expected_order = list(_TARGET_ROLE_ORDER)
+    catalog = json.loads(
+        (ROOT / "contracts/action_catalog.json").read_text(encoding="utf-8")
+    )
+    lifecycle_contract = json.loads(
+        (ROOT / "contracts/study_lifecycle_reactivation_contract.json").read_text(
+            encoding="utf-8"
+        )
+    )
+    assert [
+        item["projection_id"] for item in lifecycle_contract["projection_sources"]
+    ] == expected_order
+    for stage_action in catalog["actions"][:6]:
+        sources = stage_action["authority_boundary"][
+            "lifecycle_admission_contract"
+        ]["reactivation_projection_sources"]
+        assert [item["projection_id"] for item in sources] == expected_order
+
+    request = _request_with_all_optional_projections()
+    _validator(
+        "mas-study-lifecycle-reactivation-authority.input.schema.json"
+    ).validate(request)
+    result = evaluate_study_lifecycle_reactivation_authority(request)
+    _validator(
+        "mas-study-lifecycle-reactivation-authority.output.schema.json"
+    ).validate(result)
+
+    assert result["status"] == "authorized"
+    operations = result["opl_host_materialization_request"]["operations"]
+    assert len(operations) == 11
+    assert [item["target_relative_path"] for item in operations[:8]] == [
+        f"studies/{STUDY_ID}/control/lifecycle.json",
+        "runtime/artifacts/study_lifecycle_control/latest.json",
+        "workspace_index.json",
+        "reports/studies_index.json",
+        "reports/latest_status.json",
+        f"studies/{STUDY_ID}/submission/STATUS.json",
+        f"studies/{STUDY_ID}/publication/current_package/STATUS.json",
+        f"studies/{STUDY_ID}/control/stage_index.json",
+    ]
 
 
 def test_stopped_reactivation_requires_separate_relaunch_authority() -> None:

@@ -54,11 +54,11 @@
     {"projection_id": "study_lifecycle_current", "root": "work_item", "relative_path": "control/lifecycle.json", "required": true},
     {"projection_id": "workspace_lifecycle_latest", "root": "workspace", "relative_path": "runtime/artifacts/study_lifecycle_control/latest.json", "required": true},
     {"projection_id": "workspace_index", "root": "workspace", "relative_path": "workspace_index.json", "required": true},
+    {"projection_id": "workspace_studies_index", "root": "workspace", "relative_path": "reports/studies_index.json", "required": false},
+    {"projection_id": "workspace_latest_status", "root": "workspace", "relative_path": "reports/latest_status.json", "required": false},
     {"projection_id": "submission_status", "root": "work_item", "relative_path": "submission/STATUS.json", "required": true},
     {"projection_id": "publication_current_package_status", "root": "work_item", "relative_path": "publication/current_package/STATUS.json", "required": false},
-    {"projection_id": "stage_index", "root": "work_item", "relative_path": "control/stage_index.json", "required": false},
-    {"projection_id": "workspace_latest_status", "root": "workspace", "relative_path": "reports/latest_status.json", "required": false},
-    {"projection_id": "workspace_studies_index", "root": "workspace", "relative_path": "reports/studies_index.json", "required": false}
+    {"projection_id": "stage_index", "root": "work_item", "relative_path": "control/stage_index.json", "required": false}
   ],
   "append_only_target_roles": [
     "study_lifecycle_history",

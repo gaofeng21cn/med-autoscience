@@ -131,6 +131,20 @@
               "media_type": "application/json"
             },
             {
+              "projection_id": "workspace_studies_index",
+              "root": "workspace",
+              "relative_path": "reports/studies_index.json",
+              "required": false,
+              "media_type": "application/json"
+            },
+            {
+              "projection_id": "workspace_latest_status",
+              "root": "workspace",
+              "relative_path": "reports/latest_status.json",
+              "required": false,
+              "media_type": "application/json"
+            },
+            {
               "projection_id": "submission_status",
               "root": "work_item",
               "relative_path": "submission/STATUS.json",
@@ -148,20 +162,6 @@
               "projection_id": "stage_index",
               "root": "work_item",
               "relative_path": "control/stage_index.json",
-              "required": false,
-              "media_type": "application/json"
-            },
-            {
-              "projection_id": "workspace_latest_status",
-              "root": "workspace",
-              "relative_path": "reports/latest_status.json",
-              "required": false,
-              "media_type": "application/json"
-            },
-            {
-              "projection_id": "workspace_studies_index",
-              "root": "workspace",
-              "relative_path": "reports/studies_index.json",
               "required": false,
               "media_type": "application/json"
             }
@@ -286,6 +286,20 @@
               "media_type": "application/json"
             },
             {
+              "projection_id": "workspace_studies_index",
+              "root": "workspace",
+              "relative_path": "reports/studies_index.json",
+              "required": false,
+              "media_type": "application/json"
+            },
+            {
+              "projection_id": "workspace_latest_status",
+              "root": "workspace",
+              "relative_path": "reports/latest_status.json",
+              "required": false,
+              "media_type": "application/json"
+            },
+            {
               "projection_id": "submission_status",
               "root": "work_item",
               "relative_path": "submission/STATUS.json",
@@ -303,20 +317,6 @@
               "projection_id": "stage_index",
               "root": "work_item",
               "relative_path": "control/stage_index.json",
-              "required": false,
-              "media_type": "application/json"
-            },
-            {
-              "projection_id": "workspace_latest_status",
-              "root": "workspace",
-              "relative_path": "reports/latest_status.json",
-              "required": false,
-              "media_type": "application/json"
-            },
-            {
-              "projection_id": "workspace_studies_index",
-              "root": "workspace",
-              "relative_path": "reports/studies_index.json",
               "required": false,
               "media_type": "application/json"
             }
@@ -441,6 +441,20 @@
               "media_type": "application/json"
             },
             {
+              "projection_id": "workspace_studies_index",
+              "root": "workspace",
+              "relative_path": "reports/studies_index.json",
+              "required": false,
+              "media_type": "application/json"
+            },
+            {
+              "projection_id": "workspace_latest_status",
+              "root": "workspace",
+              "relative_path": "reports/latest_status.json",
+              "required": false,
+              "media_type": "application/json"
+            },
+            {
               "projection_id": "submission_status",
               "root": "work_item",
               "relative_path": "submission/STATUS.json",
@@ -458,20 +472,6 @@
               "projection_id": "stage_index",
               "root": "work_item",
               "relative_path": "control/stage_index.json",
-              "required": false,
-              "media_type": "application/json"
-            },
-            {
-              "projection_id": "workspace_latest_status",
-              "root": "workspace",
-              "relative_path": "reports/latest_status.json",
-              "required": false,
-              "media_type": "application/json"
-            },
-            {
-              "projection_id": "workspace_studies_index",
-              "root": "workspace",
-              "relative_path": "reports/studies_index.json",
               "required": false,
               "media_type": "application/json"
             }
@@ -596,6 +596,20 @@
               "media_type": "application/json"
             },
             {
+              "projection_id": "workspace_studies_index",
+              "root": "workspace",
+              "relative_path": "reports/studies_index.json",
+              "required": false,
+              "media_type": "application/json"
+            },
+            {
+              "projection_id": "workspace_latest_status",
+              "root": "workspace",
+              "relative_path": "reports/latest_status.json",
+              "required": false,
+              "media_type": "application/json"
+            },
+            {
               "projection_id": "submission_status",
               "root": "work_item",
               "relative_path": "submission/STATUS.json",
@@ -613,20 +627,6 @@
               "projection_id": "stage_index",
               "root": "work_item",
               "relative_path": "control/stage_index.json",
-              "required": false,
-              "media_type": "application/json"
-            },
-            {
-              "projection_id": "workspace_latest_status",
-              "root": "workspace",
-              "relative_path": "reports/latest_status.json",
-              "required": false,
-              "media_type": "application/json"
-            },
-            {
-              "projection_id": "workspace_studies_index",
-              "root": "workspace",
-              "relative_path": "reports/studies_index.json",
               "required": false,
               "media_type": "application/json"
             }
@@ -752,6 +752,20 @@
               "media_type": "application/json"
             },
             {
+              "projection_id": "workspace_studies_index",
+              "root": "workspace",
+              "relative_path": "reports/studies_index.json",
+              "required": false,
+              "media_type": "application/json"
+            },
+            {
+              "projection_id": "workspace_latest_status",
+              "root": "workspace",
+              "relative_path": "reports/latest_status.json",
+              "required": false,
+              "media_type": "application/json"
+            },
+            {
               "projection_id": "submission_status",
               "root": "work_item",
               "relative_path": "submission/STATUS.json",
@@ -769,20 +783,6 @@
               "projection_id": "stage_index",
               "root": "work_item",
               "relative_path": "control/stage_index.json",
-              "required": false,
-              "media_type": "application/json"
-            },
-            {
-              "projection_id": "workspace_latest_status",
-              "root": "workspace",
-              "relative_path": "reports/latest_status.json",
-              "required": false,
-              "media_type": "application/json"
-            },
-            {
-              "projection_id": "workspace_studies_index",
-              "root": "workspace",
-              "relative_path": "reports/studies_index.json",
               "required": false,
               "media_type": "application/json"
             }
@@ -911,6 +911,20 @@
               "media_type": "application/json"
             },
             {
+              "projection_id": "workspace_studies_index",
+              "root": "workspace",
+              "relative_path": "reports/studies_index.json",
+              "required": false,
+              "media_type": "application/json"
+            },
+            {
+              "projection_id": "workspace_latest_status",
+              "root": "workspace",
+              "relative_path": "reports/latest_status.json",
+              "required": false,
+              "media_type": "application/json"
+            },
+            {
               "projection_id": "submission_status",
               "root": "work_item",
               "relative_path": "submission/STATUS.json",
@@ -928,20 +942,6 @@
               "projection_id": "stage_index",
               "root": "work_item",
               "relative_path": "control/stage_index.json",
-              "required": false,
-              "media_type": "application/json"
-            },
-            {
-              "projection_id": "workspace_latest_status",
-              "root": "workspace",
-              "relative_path": "reports/latest_status.json",
-              "required": false,
-              "media_type": "application/json"
-            },
-            {
-              "projection_id": "workspace_studies_index",
-              "root": "workspace",
-              "relative_path": "reports/studies_index.json",
               "required": false,
               "media_type": "application/json"
             }
