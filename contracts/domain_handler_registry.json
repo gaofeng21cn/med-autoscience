@@ -19,6 +19,14 @@
       }
     },
     {
+      "handler_id": "mas.study-lifecycle-reactivation-authority-evaluate",
+      "binding": {
+        "kind": "python_callable",
+        "module": "med_autoscience.authority_handlers.study_lifecycle_reactivation",
+        "callable": "evaluate_study_lifecycle_reactivation_authority"
+      }
+    },
+    {
       "handler_id": "mas.agent-lab-self-evolution-closeout",
       "binding": {
         "kind": "python_callable",

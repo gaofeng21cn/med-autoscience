@@ -66,6 +66,31 @@
       "semantic_equivalence_status": "registry_bound_pre_authoring_authority"
     },
     {
+      "module_id": "mas.study_lifecycle_reactivation_authority",
+      "classification": "minimal_authority_function",
+      "standardization_layer": "authority_function_inventory",
+      "code_paths": [
+        "src/med_autoscience/authority_handlers/study_lifecycle_reactivation.py",
+        "contracts/study_lifecycle_reactivation_contract.json",
+        "contracts/domain_handler_registry.json"
+      ],
+      "active_callers": [
+        "OPL-hosted inactive-study lifecycle admission binding"
+      ],
+      "active_caller_status": "registry_bound_pure_domain_authority_function",
+      "migration_action": "retain deterministic MAS lifecycle reactivation authority behind OPL-hosted admission and CAS materialization",
+      "retention_reason": "The function validates one MAS-recorded durable user-instruction evidence record whose source owner is the user, a durable reviewer_revision intake, the exact inactive lifecycle, and every current projection before authorizing exact replacement bytes.",
+      "cannot_absorb_reason": "OPL may read, transport, and atomically persist exact bytes, but it cannot originate the user-authority evidence, interpret MAS lifecycle semantics, or sign the MAS lifecycle transition receipt.",
+      "retained_domain_authority": [
+        "explicit_user_wakeup_evidence_validation",
+        "inactive_study_reactivation",
+        "lifecycle_projection_semantics",
+        "lifecycle_cas_mutation_authorization",
+        "typed_blocker"
+      ],
+      "semantic_equivalence_status": "registry_bound_authority_and_opl_hosted_materialization"
+    },
+    {
       "module_id": "mas.agent_lab_self_evolution_closeout",
       "classification": "minimal_authority_function",
       "standardization_layer": "authority_function_inventory",

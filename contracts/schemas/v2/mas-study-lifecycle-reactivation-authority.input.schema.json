@@ -1,0 +1,248 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://one-person-lab.local/med-autoscience/mas-study-lifecycle-reactivation-authority.input.schema.json",
+  "title": "MAS study lifecycle reactivation authority request",
+  "description": "Closed OPL-internal handler payload assembled from nine lifecycle-admission semantic inputs. OPL reads exact bytes; MAS validates user authority, revision intake, lifecycle semantics, and projection currentness without I/O.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "study_id",
+    "reactivation_request",
+    "authority_context",
+    "study_identity",
+    "user_authority",
+    "reviewer_revision_intake",
+    "current_lifecycle",
+    "profile",
+    "projection_inventory"
+  ],
+  "properties": {
+    "study_id": { "$ref": "#/$defs/safe_segment" },
+    "reactivation_request": { "$ref": "#/$defs/reactivation_request" },
+    "authority_context": { "$ref": "#/$defs/authority_context" },
+    "study_identity": { "$ref": "#/$defs/study_identity" },
+    "user_authority": { "$ref": "#/$defs/user_authority" },
+    "reviewer_revision_intake": { "$ref": "#/$defs/reviewer_revision_intake" },
+    "current_lifecycle": { "$ref": "#/$defs/current_lifecycle" },
+    "profile": { "$ref": "#/$defs/profile" },
+    "projection_inventory": { "$ref": "#/$defs/projection_inventory" }
+  },
+  "$defs": {
+    "text": { "type": "string", "minLength": 1, "pattern": ".*\\S.*" },
+    "safe_segment": { "type": "string", "pattern": "^[A-Za-z0-9][A-Za-z0-9._-]*$" },
+    "file_url": { "type": "string", "pattern": "^file:///.+" },
+    "sha256": { "type": "string", "pattern": "^(?:sha256:)?[a-f0-9]{64}$" },
+    "date_time": { "type": "string", "format": "date-time" },
+    "stage_id": {
+      "enum": [
+        "direction_and_route_selection",
+        "baseline_and_evidence_setup",
+        "bounded_analysis_campaign",
+        "manuscript_authoring",
+        "review_and_quality_gate",
+        "finalize_and_publication_handoff"
+      ]
+    },
+    "reactivation_request": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "profile_ref", "profile_sha256", "user_authority_ref", "user_authority_sha256",
+        "reviewer_revision_intake_ref", "reviewer_revision_intake_sha256",
+        "current_lifecycle_ref", "current_lifecycle_sha256", "observed_lifecycle_state",
+        "observed_lifecycle_generation", "explicit_user_wakeup", "allow_stopped_relaunch",
+        "requested_at", "reason_code", "reason_summary"
+      ],
+      "properties": {
+        "profile_ref": { "$ref": "#/$defs/file_url" },
+        "profile_sha256": { "$ref": "#/$defs/sha256" },
+        "user_authority_ref": { "$ref": "#/$defs/file_url" },
+        "user_authority_sha256": { "$ref": "#/$defs/sha256" },
+        "reviewer_revision_intake_ref": { "$ref": "#/$defs/file_url" },
+        "reviewer_revision_intake_sha256": { "$ref": "#/$defs/sha256" },
+        "current_lifecycle_ref": { "$ref": "#/$defs/file_url" },
+        "current_lifecycle_sha256": { "$ref": "#/$defs/sha256" },
+        "observed_lifecycle_state": { "enum": ["paused", "delivered_paused", "stopped"] },
+        "observed_lifecycle_generation": { "type": "integer", "minimum": 1 },
+        "explicit_user_wakeup": { "type": "boolean" },
+        "allow_stopped_relaunch": { "type": "boolean" },
+        "requested_at": { "$ref": "#/$defs/date_time" },
+        "reason_code": { "const": "reviewer_revision_reactivation" },
+        "reason_summary": { "$ref": "#/$defs/text" }
+      }
+    },
+    "authority_context": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "handler_call_ref", "owner_ledger_ref", "original_admission_request_ref",
+        "original_admission_request_sha256", "admission_scope_id", "requested_action_id",
+        "requested_run_id", "original_invocation_sha256"
+      ],
+      "properties": {
+        "handler_call_ref": { "$ref": "#/$defs/text" },
+        "owner_ledger_ref": { "$ref": "#/$defs/file_url" },
+        "original_admission_request_ref": { "$ref": "#/$defs/file_url" },
+        "original_admission_request_sha256": { "$ref": "#/$defs/sha256" },
+        "admission_scope_id": { "$ref": "#/$defs/text" },
+        "requested_action_id": { "$ref": "#/$defs/stage_id" },
+        "requested_run_id": { "$ref": "#/$defs/text" },
+        "original_invocation_sha256": { "$ref": "#/$defs/sha256" }
+      }
+    },
+    "study_identity": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["study_id", "work_item_root_ref", "lifecycle_ref", "descriptor_domain_id"],
+      "properties": {
+        "study_id": { "$ref": "#/$defs/safe_segment" },
+        "work_item_root_ref": { "$ref": "#/$defs/file_url" },
+        "lifecycle_ref": { "$ref": "#/$defs/file_url" },
+        "descriptor_domain_id": { "const": "medautoscience" }
+      }
+    },
+    "user_authority": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["authority_ref", "authority_sha256", "record"],
+      "properties": {
+        "authority_ref": { "$ref": "#/$defs/file_url" },
+        "authority_sha256": { "$ref": "#/$defs/sha256" },
+        "record": { "$ref": "#/$defs/user_authority_record" }
+      }
+    },
+    "user_authority_record": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "surface_kind", "schema_version", "study_id", "task_intake_kind", "status",
+        "explicit_user_wakeup", "allow_stopped_relaunch", "recorded_at", "source_kind",
+        "source_ref", "instruction_text", "instruction_sha256", "source_owner",
+        "record_owner", "owner_receipt"
+      ],
+      "properties": {
+        "surface_kind": { "const": "mas_explicit_user_authority_evidence" },
+        "schema_version": { "const": 1 },
+        "study_id": { "$ref": "#/$defs/safe_segment" },
+        "task_intake_kind": { "const": "reviewer_revision" },
+        "status": { "const": "accepted" },
+        "explicit_user_wakeup": { "type": "boolean" },
+        "allow_stopped_relaunch": { "type": "boolean" },
+        "recorded_at": { "$ref": "#/$defs/date_time" },
+        "source_kind": { "const": "explicit_user_instruction" },
+        "source_ref": { "$ref": "#/$defs/text" },
+        "instruction_text": { "$ref": "#/$defs/text" },
+        "instruction_sha256": { "$ref": "#/$defs/sha256" },
+        "source_owner": { "const": "user" },
+        "record_owner": { "const": "MedAutoScience" },
+        "owner_receipt": { "const": false }
+      }
+    },
+    "reviewer_revision_intake": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["intake_ref", "intake_sha256", "record"],
+      "properties": {
+        "intake_ref": { "$ref": "#/$defs/file_url" },
+        "intake_sha256": { "$ref": "#/$defs/sha256" },
+        "record": { "$ref": "#/$defs/reviewer_revision_record" }
+      }
+    },
+    "reviewer_revision_record": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "surface_kind", "schema_version", "task_intake_kind", "study_id", "status",
+        "user_authority_ref", "user_authority_sha256", "recorded_at", "request_summary",
+        "revision_checklist_ref", "revision_checklist_sha256", "independent_review_packet_ref",
+        "independent_review_packet_sha256", "first_owning_stage_id", "allowed_revision_scope",
+        "record_owner", "source_owner", "owner_receipt"
+      ],
+      "properties": {
+        "surface_kind": { "const": "mas_reviewer_revision_task_intake" },
+        "schema_version": { "const": 1 },
+        "task_intake_kind": { "const": "reviewer_revision" },
+        "study_id": { "$ref": "#/$defs/safe_segment" },
+        "status": { "enum": ["accepted", "active"] },
+        "user_authority_ref": { "$ref": "#/$defs/file_url" },
+        "user_authority_sha256": { "$ref": "#/$defs/sha256" },
+        "recorded_at": { "$ref": "#/$defs/date_time" },
+        "request_summary": { "$ref": "#/$defs/text" },
+        "revision_checklist_ref": { "$ref": "#/$defs/file_url" },
+        "revision_checklist_sha256": { "$ref": "#/$defs/sha256" },
+        "independent_review_packet_ref": { "$ref": "#/$defs/file_url" },
+        "independent_review_packet_sha256": { "$ref": "#/$defs/sha256" },
+        "first_owning_stage_id": { "$ref": "#/$defs/stage_id" },
+        "allowed_revision_scope": {
+          "type": "array", "minItems": 1, "uniqueItems": true,
+          "items": { "$ref": "#/$defs/text" }
+        },
+        "record_owner": { "const": "MedAutoScience" },
+        "source_owner": { "const": "user" },
+        "owner_receipt": { "const": false }
+      }
+    },
+    "current_lifecycle": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["lifecycle_ref", "lifecycle_sha256", "record"],
+      "properties": {
+        "lifecycle_ref": { "$ref": "#/$defs/file_url" },
+        "lifecycle_sha256": { "$ref": "#/$defs/sha256" },
+        "record": { "type": "object", "minProperties": 1 }
+      }
+    },
+    "profile": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["profile_ref", "profile_sha256", "profile_byte_size", "profile_body_utf8"],
+      "properties": {
+        "profile_ref": { "$ref": "#/$defs/file_url" },
+        "profile_sha256": { "$ref": "#/$defs/sha256" },
+        "profile_byte_size": { "type": "integer", "minimum": 1 },
+        "profile_body_utf8": { "type": "string", "minLength": 1 }
+      }
+    },
+    "projection_inventory": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["discovery_complete", "targets", "absent_optional_projection_ids"],
+      "properties": {
+        "discovery_complete": { "const": true },
+        "targets": {
+          "type": "array", "minItems": 4, "maxItems": 8,
+          "items": { "$ref": "#/$defs/projection_target" }
+        },
+        "absent_optional_projection_ids": {
+          "type": "array", "uniqueItems": true,
+          "items": {
+            "enum": [
+              "publication_current_package_status", "stage_index",
+              "workspace_latest_status", "workspace_studies_index"
+            ]
+          }
+        }
+      }
+    },
+    "projection_target": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["projection_id", "root", "relative_path", "ref", "sha256", "byte_size", "record"],
+      "properties": {
+        "projection_id": {
+          "enum": [
+            "study_lifecycle_current", "workspace_lifecycle_latest", "workspace_index",
+            "submission_status", "publication_current_package_status", "stage_index",
+            "workspace_latest_status", "workspace_studies_index"
+          ]
+        },
+        "root": { "enum": ["workspace", "work_item"] },
+        "relative_path": { "type": "string", "pattern": "^(?!/)(?!.*(?:^|/)\\.{1,2}(?:/|$))(?!.*//).+$" },
+        "ref": { "$ref": "#/$defs/file_url" },
+        "sha256": { "$ref": "#/$defs/sha256" },
+        "byte_size": { "type": "integer", "minimum": 1 },
+        "record": { "type": "object", "minProperties": 1 }
+      }
+    }
+  }
+}

@@ -43,7 +43,7 @@ finalize_and_publication_handoff
   -> agent/stages/manifest.json
 ```
 
-OPL generated/hosted surface 可以把这些 Stage action 映射为 CLI/MCP/tool UI，但 MAS 不维护第二份 parser、transport 或 command template。catalog 内两个非 Stage action 是 host-only `candidate_admission_authority_evaluate` 与 `paper_mission_authority_evaluate`；它们通过 `contracts/domain_handler_registry.json` 的 closed bindings 指向纯 authority callables，没有 CLI/MCP/Skill/product user surface。registry 另绑定 `mas.agent-lab-self-evolution-closeout`，因此当前精确边界是六个公开 Stage actions、两个 host-only actions 与三个 closed-registry authority handlers。
+OPL generated/hosted surface 可以把这些 Stage action 映射为 CLI/MCP/tool UI，但 MAS 不维护第二份 parser、transport 或 command template。catalog 内三个非 Stage action 是 host-only `study_lifecycle_reactivation_authority_evaluate`、`candidate_admission_authority_evaluate` 与 `paper_mission_authority_evaluate`；它们通过 `contracts/domain_handler_registry.json` 的 closed bindings 指向纯 authority callables，没有 CLI/MCP/Skill/product user surface。registry 另绑定 `mas.agent-lab-self-evolution-closeout`，因此当前精确边界是六个公开 Stage actions、三个 host-only actions 与四个 closed-registry authority handlers。
 
 catalog 中没有的 `study_progress`、`launch_study`、`submit_study_task`、`paper_mission`、`study_state_matrix`、`domain_handler_export`、`domain_handler_dispatch`、`scientific_capability_registry`、`display_pack_*`、`init_workspace`、`doctor report/profile/backend-upgrade`、`runtime domain-diagnostic-report` 和 `runtime overlay-status` 只属于 internal residue/provenance 语境，不是当前可执行入口。workspace lifecycle、profile binding、environment preparation、runtime supervision 和 operator shell 归 OPL owner surface。
 

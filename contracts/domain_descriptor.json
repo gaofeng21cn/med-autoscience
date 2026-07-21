@@ -127,6 +127,7 @@
     "pack_compiler_input": "contracts/pack_compiler_input.json",
     "private_functional_surface_policy": "contracts/private_functional_surface_policy.json",
     "runtime_environment_requirement_profile": "contracts/runtime_environment_requirements.json",
+    "study_lifecycle_reactivation_contract": "contracts/study_lifecycle_reactivation_contract.json",
     "source_closure_audit": "contracts/source_closure_audit.json",
     "submission_resource_requirements": "contracts/submission-resource-requirements.json",
     "stage_control_plane": "opl-generated:family_stage_control_plane"

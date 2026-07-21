@@ -25,20 +25,22 @@ Choose the earliest unresolved owning Stage action from the installed OPL-genera
 - `review_and_quality_gate`: run independent scientific, statistical, evidence-integrity, reference, figure/table, or manuscript review.
 - `finalize_and_publication_handoff`: assemble the final publication handoff after current review evidence and explicit human submission authority.
 
-`candidate_admission_authority_evaluate` and `paper_mission_authority_evaluate` are internal registry-bound authority actions. They have no public CLI, MCP, Skill, product-entry, OpenAI, or AI SDK route and must not be invoked as user actions.
+`study_lifecycle_reactivation_authority_evaluate`, `candidate_admission_authority_evaluate`, and `paper_mission_authority_evaluate` are internal registry-bound authority actions. They have no public CLI, MCP, Skill, product-entry, OpenAI, or AI SDK route and must not be invoked as user actions.
 
 ## Default Workflow
 
 1. Select one public action from the research intent and current accepted refs; do not begin with package lifecycle or environment commands when the user asked for research work.
-2. Preserve one OPL StageRun lineage and exact source/data/artifact refs while Codex routes among declared MAS stages.
-3. Use the installed `mas-scholar-skills` capability package for focused medical methods. Acquire another external Skill only for a named or demonstrated coverage gap after provenance, permissions, data/credential scope, and compatibility review.
-4. Prepare the declarative runtime environment only when the selected analysis/display work requires it. An environment receipt proves execution readiness only, never medical or publication quality.
-5. Separate producing and independent reviewer/auditor invocations, task records, and receipts before closing a formal quality gate.
-6. Freeze one candidate after bounded previews, then run complete export, exact-byte inventory, and affected independent review once for that candidate.
+2. For an inactive study receiving an explicit manuscript-revision instruction, first persist durable user-instruction evidence and a `reviewer_revision` intake that binds the full checklist, independent review packet, first owning Stage, and allowed revision scope. Use the hosted lifecycle admission flow; runtime activity alone never reactivates MAS business truth.
+3. Preserve one OPL StageRun lineage and exact source/data/artifact refs while Codex routes among declared MAS stages.
+4. Use the installed `mas-scholar-skills` capability package for focused medical methods. Acquire another external Skill only for a named or demonstrated coverage gap after provenance, permissions, data/credential scope, and compatibility review.
+5. Prepare the declarative runtime environment only when the selected analysis/display work requires it. An environment receipt proves execution readiness only, never medical or publication quality.
+6. Separate producing and independent reviewer/auditor invocations, task records, and receipts before closing a formal quality gate.
+7. Freeze one candidate after bounded previews, then run complete export, exact-byte inventory, and affected independent review once for that candidate.
 
 ## Quality And Hard Stops
 
 - Treat raw/partial artifacts, negative or null results, failed attempts, review findings, and no-output diagnostics as route context. A consumable delta may advance as `completed_with_quality_debt`.
+- Do not edit `submission/` or launch a Stage from a paused, delivered-paused, or stopped business projection. Reactivation requires a current MAS receipt plus matching OPL all-or-rollback materialization receipt; neither a Temporal-running signal nor provider completion is sufficient.
 - Retry, review, and repair limits are quality budgets. Exhaustion preserves the best evidence-bearing artifact and closes quality, publication, export, and submission-ready claims; it does not create an infinite stage loop.
 - Negative findings remain evidence. Preserve lineage and route back to the owning hypothesis, cohort/data, endpoint, analysis design, writing, or review stage instead of optimizing for a positive result.
 - For new or materially repaired paper-facing figures, use `medical-figure-design`; use `medical-figure-style` for final visual QA and `medical-figure-composer` only for separately assembled panels.

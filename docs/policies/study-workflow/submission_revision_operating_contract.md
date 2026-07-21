@@ -24,6 +24,7 @@ This policy is intentionally narrow: it governs same-line manuscript revision an
 - Package, layout, checklist, receipt, or projection-only changes do not invalidate medical, statistical, or reference review unless a declared semantic dependency of that review actually changed.
 - Mechanical QC and projection files may report blockers or freshness, but they must not claim scientific quality closure.
 - Explicit reviewer/user manuscript feedback after a stopped, submission-ready, or finalize milestone reactivates the same study line through durable revision intake and OPL runtime hydration/resume refs before MAS handlers edit canonical `manuscript/` sources.
+- A paused, delivered-paused, or stopped lifecycle is reactivated only after durable user-instruction evidence and a `reviewer_revision` intake bind the exact revision checklist, independent review packet, first owning Stage, and allowed scope. The MAS reactivation receipt must then be atomically materialized by OPL; Temporal activity or provider completion alone cannot change MAS business truth.
 - Foreground edits to `submission/`, DOCX/PDF exports, ZIP files, or package-visible Markdown are review overlays until reconciled into controller-authorized `manuscript/` and regenerated as fresh `submission/` projections.
 
 ## Revision Intake / Wake Action Decision

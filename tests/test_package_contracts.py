@@ -57,6 +57,9 @@ def test_package_import_and_hosted_entry_sources_resolve() -> None:
     candidate_handler = importlib.import_module(
         "med_autoscience.authority_handlers.candidate_admission"
     )
+    lifecycle_handler = importlib.import_module(
+        "med_autoscience.authority_handlers.study_lifecycle_reactivation"
+    )
     try:
         installed_version = version("med-autoscience")
     except PackageNotFoundError:
@@ -65,12 +68,15 @@ def test_package_import_and_hosted_entry_sources_resolve() -> None:
     assert package.__version__ == installed_version
     assert callable(paper_handler.evaluate_paper_mission_authority)
     assert callable(candidate_handler.evaluate_candidate_admission_authority)
+    assert callable(
+        lifecycle_handler.evaluate_study_lifecycle_reactivation_authority
+    )
     assert (ROOT / "agent/primary_skill/SKILL.md").is_file()
 
     catalog = json.loads(
         (ROOT / "contracts/action_catalog.json").read_text(encoding="utf-8")
     )
-    assert len(catalog["actions"]) == 8
+    assert len(catalog["actions"]) == 9
     for action in catalog["actions"]:
         binding = action["execution_binding"]
         if binding["kind"] == "stage_binding":

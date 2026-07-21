@@ -1,0 +1,113 @@
+{
+  "surface_kind": "mas_study_lifecycle_reactivation_contract",
+  "schema_version": 1,
+  "contract_id": "mas.study-lifecycle-reactivation.v1",
+  "owner": "MedAutoScience",
+  "handler_ref": "handler:mas.study-lifecycle-reactivation-authority-evaluate",
+  "input_schema_ref": "contracts/schemas/v2/mas-study-lifecycle-reactivation-authority.input.schema.json",
+  "output_schema_ref": "contracts/schemas/v2/mas-study-lifecycle-reactivation-authority.output.schema.json",
+  "supported_before_states": ["paused", "delivered_paused", "stopped"],
+  "target_state": "active",
+  "user_reachability": {
+    "evidence_surface_kind": "mas_explicit_user_authority_evidence",
+    "source_owner": "user",
+    "record_owner": "MedAutoScience",
+    "record_is_owner_receipt": false,
+    "instruction_text_normalization": "utf8_lf_no_surrounding_whitespace",
+    "instruction_sha256_recomputed_by_handler": true,
+    "opl_role": "contained_exact_byte_read_and_injection_only"
+  },
+  "revision_intake": {
+    "surface_kind": "mas_reviewer_revision_task_intake",
+    "accepted_statuses": ["accepted", "active"],
+    "required_downstream_bindings": [
+      "revision_checklist_ref_and_sha256",
+      "independent_review_packet_ref_and_sha256",
+      "first_owning_stage_id",
+      "allowed_revision_scope"
+    ]
+  },
+  "authority_requirements": {
+    "explicit_user_wakeup": true,
+    "same_user_authority_ref_and_sha256_required": true,
+    "same_user_authority_flags_required": true,
+    "stopped_requires_allow_stopped_relaunch": true,
+    "before_generation_and_exact_hash_cas_required": true,
+    "projection_discovery_must_be_complete": true
+  },
+  "two_phase_materialization": {
+    "phase_1": "MAS pure handler returns a flat content-bound reactivation receipt, flat CAS authorization, and OPL exact-bytes request without filesystem I/O.",
+    "phase_2": "OPL verifies every exact precondition and canonical base64 replacement, then journals and materializes all targets or rolls all targets back.",
+    "host_capability_id": "opl_domain_artifact_cas_materialization.v1",
+    "host_request_version": "opl-domain-artifact-cas-materialization.v1",
+    "operation_replacement_fields": [
+      "replacement_bytes_base64",
+      "replacement_sha256",
+      "replacement_byte_size"
+    ],
+    "journaled_all_or_rollback_required": true,
+    "in_progress_journal_blocks_admission": true,
+    "partial_commit_allowed": false,
+    "handler_result_without_materialization_effect": "no_attempt_admission"
+  },
+  "projection_sources": [
+    {"projection_id": "study_lifecycle_current", "root": "work_item", "relative_path": "control/lifecycle.json", "required": true},
+    {"projection_id": "workspace_lifecycle_latest", "root": "workspace", "relative_path": "runtime/artifacts/study_lifecycle_control/latest.json", "required": true},
+    {"projection_id": "workspace_index", "root": "workspace", "relative_path": "workspace_index.json", "required": true},
+    {"projection_id": "submission_status", "root": "work_item", "relative_path": "submission/STATUS.json", "required": true},
+    {"projection_id": "publication_current_package_status", "root": "work_item", "relative_path": "publication/current_package/STATUS.json", "required": false},
+    {"projection_id": "stage_index", "root": "work_item", "relative_path": "control/stage_index.json", "required": false},
+    {"projection_id": "workspace_latest_status", "root": "workspace", "relative_path": "reports/latest_status.json", "required": false},
+    {"projection_id": "workspace_studies_index", "root": "workspace", "relative_path": "reports/studies_index.json", "required": false}
+  ],
+  "append_only_target_roles": [
+    "study_lifecycle_history",
+    "study_lifecycle_reactivation_receipt",
+    "workspace_lifecycle_history"
+  ],
+  "projection_write_boundary": {
+    "lifecycle_state_reason_and_recorded_at_may_change": true,
+    "package_status_preserved": true,
+    "milestone_package_delivered_preserved": true,
+    "submission_ready_preserved": true,
+    "promotion_allowed_preserved_false": true,
+    "publication_verdict_preserved": true,
+    "paper_or_manuscript_body_mutation_allowed": false,
+    "stage_selection_allowed": false
+  },
+  "active_state_semantics": {
+    "current_stage_id": null,
+    "current_stage_status": null,
+    "current_stage_policy": "project_current_runtime_stage",
+    "next_action_id": "continue_current_study_line",
+    "next_action_owner": "MedAutoScience",
+    "resume_policy_id": "automatic_allowed",
+    "submission_ready": false,
+    "package_status_policy": "preserve_current"
+  },
+  "stage_admission": {
+    "capability_id": "opl_domain_lifecycle_admission.v1",
+    "stage_input_field": "lifecycle_admission",
+    "request_mode": "reactivation_request",
+    "receipt_mode": "materialized_receipt",
+    "reactivation_action_id": "study_lifecycle_reactivation_authority_evaluate",
+    "reactivation_receipt_output_field": "reactivation_receipt",
+    "materialization_authorization_output_field": "mas_lifecycle_cas_mutation_authorization",
+    "request_mode_must_freeze_to_receipt_mode_before_reservation": true,
+    "admission_scope_is_single_action_and_single_use": true,
+    "materialized_receipt_replay_must_bind_current_active_generation": true,
+    "provider_completion_is_domain_truth": false
+  },
+  "authority_boundary": {
+    "domain_truth_owner": "MedAutoScience",
+    "host_materialization_owner": "one-person-lab",
+    "owner_ledger_entry_owner": "one-person-lab",
+    "owner_ledger_cannot_authorize_domain_truth": true,
+    "opl_may_interpret_lifecycle_semantics": false,
+    "opl_may_produce_user_instruction_evidence": false,
+    "opl_may_mutate_undeclared_targets": false,
+    "opl_may_sign_mas_receipt": false,
+    "provider_completion_may_change_lifecycle": false,
+    "public_action": false
+  }
+}

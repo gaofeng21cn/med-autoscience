@@ -41,9 +41,165 @@
         "$ref": "#/$defs/typed_ref"
       },
       "uniqueItems": true
+    },
+    "lifecycle_admission": {
+      "$ref": "#/$defs/lifecycle_admission"
     }
   },
   "$defs": {
+    "sha256": {
+      "type": "string",
+      "pattern": "^sha256:[a-f0-9]{64}$"
+    },
+    "file_url": {
+      "type": "string",
+      "pattern": "^file:///.+"
+    },
+    "lifecycle_admission": {
+      "oneOf": [
+        {
+          "$ref": "#/$defs/lifecycle_reactivation_request_admission"
+        },
+        {
+          "$ref": "#/$defs/lifecycle_materialized_receipt_admission"
+        }
+      ]
+    },
+    "lifecycle_reactivation_request_admission": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "surface_kind",
+        "version",
+        "mode",
+        "reactivation_request"
+      ],
+      "properties": {
+        "surface_kind": {
+          "const": "opl_domain_lifecycle_admission"
+        },
+        "version": {
+          "const": "opl-domain-lifecycle-admission.v1"
+        },
+        "mode": {
+          "const": "reactivation_request"
+        },
+        "reactivation_request": {
+          "$ref": "#/$defs/public_reactivation_request"
+        }
+      }
+    },
+    "public_reactivation_request": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "profile_ref",
+        "profile_sha256",
+        "user_authority_ref",
+        "user_authority_sha256",
+        "reviewer_revision_intake_ref",
+        "reviewer_revision_intake_sha256",
+        "current_lifecycle_ref",
+        "current_lifecycle_sha256",
+        "observed_lifecycle_state",
+        "observed_lifecycle_generation",
+        "explicit_user_wakeup",
+        "allow_stopped_relaunch",
+        "requested_at",
+        "reason_code",
+        "reason_summary"
+      ],
+      "properties": {
+        "profile_ref": {
+          "$ref": "#/$defs/file_url"
+        },
+        "profile_sha256": {
+          "$ref": "#/$defs/sha256"
+        },
+        "user_authority_ref": {
+          "$ref": "#/$defs/file_url"
+        },
+        "user_authority_sha256": {
+          "$ref": "#/$defs/sha256"
+        },
+        "reviewer_revision_intake_ref": {
+          "$ref": "#/$defs/file_url"
+        },
+        "reviewer_revision_intake_sha256": {
+          "$ref": "#/$defs/sha256"
+        },
+        "current_lifecycle_ref": {
+          "$ref": "#/$defs/file_url"
+        },
+        "current_lifecycle_sha256": {
+          "$ref": "#/$defs/sha256"
+        },
+        "observed_lifecycle_state": {
+          "enum": [
+            "paused",
+            "delivered_paused",
+            "stopped"
+          ]
+        },
+        "observed_lifecycle_generation": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "explicit_user_wakeup": {
+          "type": "boolean"
+        },
+        "allow_stopped_relaunch": {
+          "type": "boolean"
+        },
+        "requested_at": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "reason_code": {
+          "const": "reviewer_revision_reactivation"
+        },
+        "reason_summary": {
+          "type": "string",
+          "minLength": 1
+        }
+      }
+    },
+    "lifecycle_materialized_receipt_admission": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "surface_kind",
+        "version",
+        "mode",
+        "domain_authority_result_ref",
+        "domain_authority_result_sha256",
+        "materialization_receipt_ref",
+        "materialization_receipt_sha256"
+      ],
+      "properties": {
+        "surface_kind": {
+          "const": "opl_domain_lifecycle_admission"
+        },
+        "version": {
+          "const": "opl-domain-lifecycle-admission.v1"
+        },
+        "mode": {
+          "const": "materialized_receipt"
+        },
+        "domain_authority_result_ref": {
+          "$ref": "#/$defs/file_url"
+        },
+        "domain_authority_result_sha256": {
+          "$ref": "#/$defs/sha256"
+        },
+        "materialization_receipt_ref": {
+          "$ref": "#/$defs/file_url"
+        },
+        "materialization_receipt_sha256": {
+          "$ref": "#/$defs/sha256"
+        }
+      }
+    },
     "typed_ref": {
       "oneOf": [
         {

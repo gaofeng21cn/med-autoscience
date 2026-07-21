@@ -6,6 +6,7 @@
   "allowed_domain_surfaces": [
     "declarative_medical_research_pack",
     "registry_bound_paper_mission_authority_function",
+    "registry_bound_study_lifecycle_reactivation_authority_function",
     "package_bundled_domain_styles"
   ],
   "allowed_developer_surfaces": [

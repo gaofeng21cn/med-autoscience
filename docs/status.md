@@ -28,14 +28,14 @@ publication/submission ready 或 production ready。
 | Identity | canonical agent/package id `mas`；machine domain id `medautoscience`；`med-autoscience` 只作 repo/package/plugin locator |
 | Package | repo package manifest 声明 SemVer `0.2.15`；`mas-scholar-skills` 以 `>=0.2.12 <0.3.0` 为硬依赖，并提供 publication layout profiles、reference verification 与 scientific search adapter modules；exact installed resolution、content lock 与生命周期 currentness 统一归 `opl packages` fresh readback |
 | Declarative pack | `agent/` 持有 primary skill、六个 Stage、prompts、knowledge 与 quality gates；plugin skill 是字节一致的分发镜像 |
-| Action catalog | `family-action-catalog.v2`：六个公开 Stage action + 两个无用户 surface 的内部 authority actions |
+| Action catalog | `family-action-catalog.v2`：六个公开 Stage action + 三个无用户 surface 的内部 authority actions |
 | Generated surfaces | CLI、MCP、Skill、product-entry、status、workbench 与 default domain-handler surface 全由 OPL 生成或托管 |
 | Runtime | StageRun、Attempt、Temporal、session、retry、StateIndex、storage/lifecycle、observability 与 transition materialization 全归 OPL |
 | Route owner | decisive Codex Attempt 决定领域 route；OPL StageRun controller 只校验并物化 transition |
 | Provider/resource | OPL Connect / Pack 生成 exact-path、digest-bound receipt；MAS 只消费 receipt 并作医学判断 |
 | Publication handoff | `publication_generation` 强制同代绑定 package、submission status、publication evaluation、next action 与 projection manifest；MAS owner receipt 授权 OPL Pack 原子投影完整 submission tree，但不授权 publication/submission ready |
-| Retained code | `evaluate_candidate_admission_authority`、`evaluate_paper_mission_authority` 与 `evaluate_agent_lab_self_evolution_closeout` 是仅有的非声明式 authority functions；不持有 runtime、session、lifecycle 或 transition 权限 |
-| Source morphology | `src/med_autoscience/` 只保留 package init、三个 authority handlers、共享纯校验 helper 与 CSL assets |
+| Retained code | `evaluate_study_lifecycle_reactivation_authority`、`evaluate_candidate_admission_authority`、`evaluate_paper_mission_authority` 与 `evaluate_agent_lab_self_evolution_closeout` 是仅有的非声明式 authority functions；reactivation handler 只决定 MAS lifecycle 语义并输出 exact-bytes CAS 授权，不持有 runtime、session 或物化权限 |
+| Source morphology | `src/med_autoscience/` 只保留 package init、四个 authority handlers、共享纯校验 helper 与 CSL assets |
 
 ## 0.2.15 validator Release Set 边界
 
