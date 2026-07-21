@@ -16,3 +16,4 @@ OPL generated surfaces may consume body-free refs, manifests, lineage refs, and 
 ## Function Ref
 
 - `med_autoscience.authority_handlers.paper_mission.evaluate_paper_mission_authority`: pure, registry-bound evaluation of exact OPL-hosted refs. It performs no filesystem, network, process, runtime, package, or lifecycle operation. The callable does not replace independent reviewer/re_reviewer judgment and cannot materialize a Stage transition.
+- `src/med_autoscience/authority_handlers/_stage_attempt_review_snapshot.py#finalize_bounded_analysis_producer_snapshot_closeout`: private attempt-local adapter used only by a bounded analysis producer. It reads declared workspace bytes to verify exact statistical member identities, calls the MAS-owned snapshot builder, and returns closeout refs; it does not write OPL runtime state, issue a verdict, or materialize a Stage transition.

@@ -65,12 +65,17 @@ not the v2 write gate; the current v2 Stage output returns it as `null`.
 ## Immutable Review Input
 
 This Stage has a MAS-fixed review binding: `manifest_scope=analysis_generation`
-and `review_lane=statistical`. Before producer or repairer closeout, materialize
-one v2 generation manifest containing the exact required analysis roles and an
-explicit transport locator for every statistical-scope `member_id`. Resolve the
-selected MAS checkout through the OPL-generated interface and call
-`build_stage_review_input_snapshot_bundle(...)`; do not recreate its authority
-record or scope logic in ad hoc JSON.
+and `review_lane=statistical`. Once a producer has one complete frozen artifact
+inventory, resolve the selected MAS checkout through the OPL-generated
+interface and call
+`finalize_bounded_analysis_producer_snapshot_closeout(...)`. Supply the
+producer closeout candidate, exact analysis artifact records, generation id and
+ref, and an explicit transport locator for every statistical-scope `member_id`.
+Emit the returned `closeout_packet`; the finalizer verifies the
+locator bytes, calls `build_stage_review_input_snapshot_bundle(...)`, and
+injects both required transport surfaces. Do not recreate its authority record,
+scope logic, or closeout injection in ad hoc JSON. A repairer uses the stage
+bundle builder directly with its own fresh Attempt bindings.
 
 Use the exact five `OPL_*` Attempt bindings supplied by Framework as
 `authority_issuer`. Return the generated request at
@@ -79,7 +84,8 @@ and add its MAS owner-authority exact ref to
 `closeout_packet.closeout_ref_metadata[]`. Generic `artifact_refs` are not the
 member locator map. If any required manifest member, exact locator, or Attempt
 binding is unavailable, omit the request and carry statistical-lane quality
-debt; do not claim formal review or readiness.
+debt; do not claim formal review or readiness. A zero-artifact or hard-boundary producer
+must not call the finalizer or fabricate a snapshot.
 
 ## Handoff
 

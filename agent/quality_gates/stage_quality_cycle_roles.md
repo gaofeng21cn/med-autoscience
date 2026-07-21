@@ -106,19 +106,23 @@ formal Review, return at most an evidence-backed route recommendation and leave
 the terminal decision to the reviewer or re-reviewer. Under
 `hard_boundary_or_zero_artifact`, return no route output.
 
-For formal Review, use the stage-bound MAS manifest scope and review lane to call
-`build_stage_review_input_snapshot_bundle(...)` with an explicit
-`source_refs_by_member_id` map. Never derive that map from generic artifact refs
-or choose an unbound lane. Bind `authority_issuer` to the exact
+For formal Review, use the stage-bound MAS manifest scope and review lane. When
+the Stage declares a producer attempt-local snapshot finalizer, call that
+finalizer with the closeout candidate, frozen artifact inventory, and explicit
+`source_refs_by_member_id` map; emit its returned closeout packet. Otherwise,
+call `build_stage_review_input_snapshot_bundle(...)` directly.
+Never derive that map from generic artifact refs or choose an unbound lane.
+Bind snapshot authority to the exact
 `OPL_STAGE_ATTEMPT_REF`, `OPL_EXECUTION_CONTENT_BINDING_SHA256`,
 `OPL_PACKAGE_USE_BOUNDARY_ID`, `OPL_ROOT_PACKAGE_ID`, and
 `OPL_ROOT_PACKAGE_CONTENT_DIGEST` values supplied to this Attempt. Return the
-bundle's request at
+resulting request at
 `route_impact.stage_quality_cycle.review_input_snapshot_materialization_request`
-and append its `required_closeout_ref_metadata` entry to
+and append its owner-authority exact-ref entry to
 `closeout_packet.closeout_ref_metadata[]`. If the exact manifest inventory,
 locator map, or controller-bound lane is unavailable, omit the request, record
-lane quality debt, and make no quality or readiness claim.
+lane quality debt, and make no quality or readiness claim. Never call a
+snapshot finalizer for a zero-artifact or hard-boundary producer.
 
 ## Reviewer
 

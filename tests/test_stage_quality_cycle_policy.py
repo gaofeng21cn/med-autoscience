@@ -63,6 +63,23 @@ def test_quality_cycle_declares_role_bound_review_transport_production_path() ->
     assert snapshot["stage_bundle_builder_ref"].endswith(
         "#build_stage_review_input_snapshot_bundle"
     )
+    assert snapshot["bounded_analysis_producer_snapshot_finalizer_ref"].endswith(
+        "#finalize_bounded_analysis_producer_snapshot_closeout"
+    )
+    assert snapshot["bounded_analysis_producer_finalizer_applies_when"] == (
+        "complete_frozen_analysis_artifact_inventory_and_exact_statistical_"
+        "locator_map_available"
+    )
+    assert snapshot["bounded_analysis_producer_finalizer_attempt_env_sources"] == [
+        "OPL_STAGE_ATTEMPT_REF",
+        "OPL_EXECUTION_CONTENT_BINDING_SHA256",
+        "OPL_PACKAGE_USE_BOUNDARY_ID",
+        "OPL_ROOT_PACKAGE_ID",
+        "OPL_ROOT_PACKAGE_CONTENT_DIGEST",
+    ]
+    assert snapshot[
+        "zero_artifact_or_hard_boundary_snapshot_fabrication_allowed"
+    ] is False
     assert snapshot["stage_lane_bindings"]["bounded_analysis_campaign"] == {
         "manifest_scope": "analysis_generation",
         "review_lane": "statistical",
@@ -149,6 +166,9 @@ def test_quality_cycle_declares_role_bound_review_transport_production_path() ->
         "stage_review_input_snapshot_bundle_builder_ref"
     ].endswith("#build_stage_review_input_snapshot_bundle")
     assert pack_input["source_refs"][
+        "bounded_analysis_producer_snapshot_finalizer_ref"
+    ].endswith("#finalize_bounded_analysis_producer_snapshot_closeout")
+    assert pack_input["source_refs"][
         "review_input_snapshot_authority_schema_ref"
     ] == snapshot["owner_authority_schema_ref"]
     assert pack_input["source_refs"][
@@ -182,6 +202,7 @@ def test_quality_cycle_declares_role_bound_review_transport_production_path() ->
     assert normalized_roles.count("closeout_packet.closeout_ref_metadata[]") == 4
     assert "use `ref`, not the legacy `uri` spelling" in roles
     assert "build_stage_review_input_snapshot_bundle(...)" in producer
+    assert "attempt-local snapshot finalizer" in producer
     assert "build_stage_review_input_snapshot_bundle(...)" in repairer
     assert "Never derive that map from generic artifact refs" in producer
     assert "Never reuse the producer request or authority issuer" in normalized_repairer
@@ -575,7 +596,9 @@ def test_stage_prompts_expose_snapshot_binding_without_allowing_lane_guessing() 
     assert "manifest_scope=analysis_generation" in bounded
     assert "review_lane=statistical" in bounded
     assert "build_stage_review_input_snapshot_bundle(...)" in bounded
+    assert "finalize_bounded_analysis_producer_snapshot_closeout(...)" in bounded
     assert "explicit transport locator for every statistical-scope `member_id`" in bounded
+    assert "zero-artifact or hard-boundary producer" in bounded
     assert "manifest_scope=manuscript_generation" in authoring
     assert "There is no default lane." in normalized_authoring
     assert "executor may select lane" not in authoring

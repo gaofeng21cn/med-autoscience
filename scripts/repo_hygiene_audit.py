@@ -72,6 +72,7 @@ EXPECTED_STANDARD_AGENT_SOURCE_FILES = frozenset(
         "src/med_autoscience/authority_handlers/candidate_admission.py",
         "src/med_autoscience/authority_handlers/paper_mission.py",
         "src/med_autoscience/authority_handlers/self_evolution_closeout.py",
+        "src/med_autoscience/authority_handlers/_stage_attempt_review_snapshot.py",
         "src/med_autoscience/styles/__init__.py",
         "src/med_autoscience/styles/frontiers.csl",
     }

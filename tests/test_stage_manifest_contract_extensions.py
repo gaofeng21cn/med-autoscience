@@ -173,6 +173,15 @@ def test_stage_manifest_declares_deterministic_review_snapshot_lane_bindings() -
             "src/med_autoscience/authority_handlers/_generation_manifest.py#"
             "build_stage_review_input_snapshot_bundle"
         ),
+        "producer_attempt_local_finalizer_ref": (
+            "src/med_autoscience/authority_handlers/_stage_attempt_review_snapshot.py#"
+            "finalize_bounded_analysis_producer_snapshot_closeout"
+        ),
+        "producer_finalizer_applies_when": (
+            "complete_frozen_analysis_artifact_inventory_and_exact_"
+            "statistical_locator_map_available"
+        ),
+        "zero_artifact_or_hard_boundary_snapshot_fabrication_allowed": False,
         "source_locator_policy": "explicit_source_refs_by_member_id_exact_scope",
         "missing_binding_effect": "quality_debt_without_quality_or_readiness_claim",
     }

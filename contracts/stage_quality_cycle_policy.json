@@ -93,6 +93,16 @@
       "requires_generation_manifest_schema_version": 2,
       "domain_scope_owner": "mas",
       "stage_bundle_builder_ref": "src/med_autoscience/authority_handlers/_generation_manifest.py#build_stage_review_input_snapshot_bundle",
+      "bounded_analysis_producer_snapshot_finalizer_ref": "src/med_autoscience/authority_handlers/_stage_attempt_review_snapshot.py#finalize_bounded_analysis_producer_snapshot_closeout",
+      "bounded_analysis_producer_finalizer_applies_when": "complete_frozen_analysis_artifact_inventory_and_exact_statistical_locator_map_available",
+      "bounded_analysis_producer_finalizer_attempt_env_sources": [
+        "OPL_STAGE_ATTEMPT_REF",
+        "OPL_EXECUTION_CONTENT_BINDING_SHA256",
+        "OPL_PACKAGE_USE_BOUNDARY_ID",
+        "OPL_ROOT_PACKAGE_ID",
+        "OPL_ROOT_PACKAGE_CONTENT_DIGEST"
+      ],
+      "zero_artifact_or_hard_boundary_snapshot_fabrication_allowed": false,
       "stage_lane_bindings": {
         "bounded_analysis_campaign": {
           "manifest_scope": "analysis_generation",
