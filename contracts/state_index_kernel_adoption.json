@@ -51,6 +51,19 @@
     "research_trajectory_event_refs",
     "research_trajectory_snapshot_refs"
   ],
+  "execution_scope_binding": {
+    "binding_contract_ref": "contracts/domain_descriptor.json#/work_item_scope_binding",
+    "snapshot_schema_ref": "contracts/opl-framework/execution-scope-snapshot.schema.json",
+    "scope_snapshot_owner": "one-person-lab",
+    "binding_mode": "exact_same_scope_digest",
+    "index_scope_binding_source": "referenced_opl_execution_scope_snapshot",
+    "index_scope_fields_are_host_projection_only": true,
+    "index_rows_may_not_infer_scope_from_workspace_or_path": true,
+    "cross_scope_pointer_or_receipt_join_allowed": false,
+    "legacy_unscoped_index_row_state": "identity_unresolved",
+    "legacy_unscoped_index_row_can_be_current_or_resumable": false,
+    "mas_payload_carries_opaque_scope_ids": false
+  },
   "compaction_policy": {
     "small_file_runtime_refs_may_be_indexed": true,
     "large_payload_strategy": "store_preview_hash_and_refs_never_body",

@@ -6,6 +6,18 @@
   },
   "canonical_artifact_authority": "MedAutoScience",
   "domain_id": "medautoscience",
+  "execution_scope_binding": {
+    "binding_contract_ref": "contracts/domain_descriptor.json#/work_item_scope_binding",
+    "snapshot_schema_ref": "contracts/opl-framework/execution-scope-snapshot.schema.json",
+    "scope_snapshot_owner": "one-person-lab",
+    "binding_mode": "exact_same_scope_digest",
+    "artifact_path_must_descend_from_canonical_work_item_root": true,
+    "cross_work_item_consumption_requires_explicit_import_edge": true,
+    "workspace_latest_file_inference_allowed": false,
+    "legacy_unscoped_locator_state": "identity_unresolved",
+    "legacy_unscoped_locator_can_be_current_or_consumable": false,
+    "mas_payload_carries_opaque_scope_ids": false
+  },
   "opl_projection_policy": "locator_lifecycle_and_receipt_refs_only",
   "schema_version": 1,
   "surface_kind": "artifact_locator_contract"

@@ -50,7 +50,7 @@ def test_domain_descriptor_exposes_generic_standard_agent_interface() -> None:
         "project_kind": "study",
         "project_collection_label": "studies",
         "default_workspace_id": "research-workspace",
-        "default_project_id": "study-001",
+        "default_project_id": "medical-research-portfolio",
         "locator_surface_kind": "med_autoscience_workspace_profile",
         "required_locator_fields": ["profile_ref"],
         "optional_locator_fields": ["workspace_root"],
@@ -61,6 +61,7 @@ def test_domain_descriptor_exposes_generic_standard_agent_interface() -> None:
         "source_kind": "workspace_relative_json",
         "relative_path": "workspace_index.json",
         "items_pointer": "/studies",
+        "work_item_root_template": "studies/{study_id}",
         "field_map": {
             "work_item_id": "study_id",
             "display_name": "display_name",
@@ -197,6 +198,7 @@ def test_owner_answer_uses_the_hosted_stage_run_contract_without_private_dispatc
         "contracts/stage_run_kernel_profile.json",
         "contracts/action_catalog.json",
         "contracts/research_trajectory_contract.json",
+        "contracts/domain_descriptor.json#/work_item_scope_binding",
     ]
     assert state_index["projection_source_refs"] == [
         "contracts/domain_descriptor.json",

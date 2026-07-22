@@ -33,6 +33,30 @@
     "derived_index_rebuildable": true,
     "manifest_receipt_hash_required": true
   },
+  "execution_scope_binding": {
+    "binding_contract_ref": "contracts/domain_descriptor.json#/work_item_scope_binding",
+    "snapshot_schema_ref": "contracts/opl-framework/execution-scope-snapshot.schema.json",
+    "scope_snapshot_owner": "one-person-lab",
+    "binding_mode": "exact_same_scope_digest",
+    "host_binding_required_before_domain_consumption": true,
+    "bound_surface_families": [
+      "stage_folder",
+      "stage_run",
+      "stage_attempt",
+      "manifest",
+      "receipt",
+      "current_pointer",
+      "artifact_ref",
+      "typed_blocker",
+      "human_gate"
+    ],
+    "artifact_path_must_descend_from_canonical_work_item_root": true,
+    "cross_work_item_consumption_requires_explicit_import_edge": true,
+    "workspace_latest_file_inference_allowed": false,
+    "legacy_unscoped_ref_state": "identity_unresolved",
+    "legacy_unscoped_ref_can_be_current_or_resumed_or_closed_out": false,
+    "mas_payload_carries_opaque_scope_ids": false
+  },
   "domain_pack_binding": {
     "accepted_source_refs": [
       "agent/stages/manifest.json",

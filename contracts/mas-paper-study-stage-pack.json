@@ -14,7 +14,11 @@
     "file_name_is_not_interface": true,
     "workbench_must_not_display_two_current_truths": true,
     "physical_stage_folder_kernel_source": "contracts/opl-framework/stage-artifact-runtime-contract.json",
-    "legacy_declared_refs_role": "migration_historical_projection_only"
+    "legacy_declared_refs_role": "migration_historical_projection_only",
+    "work_item_scope_binding_ref": "contracts/domain_descriptor.json#/work_item_scope_binding",
+    "topic_id_template_is_domain_alias_locator_only": true,
+    "physical_ownership_requires_host_resolved_work_item_scope": true,
+    "stable_artifact_paths_are_work_item_relative": true
   },
   "physical_stage_folder_kernel": {
     "surface_kind": "mas_opl_physical_stage_folder_kernel_adoption",
@@ -25,6 +29,18 @@
       "program_id": "mas-paper-study",
       "topic_id_template": "{study_id}",
       "deliverable_id": "paper-study"
+    },
+    "execution_scope_binding": {
+      "binding_contract_ref": "contracts/domain_descriptor.json#/work_item_scope_binding",
+      "snapshot_schema_ref": "contracts/opl-framework/execution-scope-snapshot.schema.json",
+      "scope_snapshot_owner": "one-person-lab",
+      "binding_mode": "exact_same_scope_digest",
+      "topic_id_role": "domain_alias_display_locator_not_scope_authority",
+      "host_binding_required_before_stage_folder_selection": true,
+      "cross_work_item_consumption_requires_explicit_import_edge": true,
+      "legacy_unscoped_stage_folder_state": "identity_unresolved",
+      "legacy_unscoped_stage_folder_can_be_current_or_resumed": false,
+      "mas_payload_carries_opaque_scope_ids": false
     },
     "projection_refs": [
       "deliverable_root",

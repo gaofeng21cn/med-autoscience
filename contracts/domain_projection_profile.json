@@ -14,7 +14,8 @@
     "contracts/opl-framework/owner-answer.schema.json",
     "contracts/stage_run_kernel_profile.json",
     "contracts/action_catalog.json",
-    "contracts/research_trajectory_contract.json"
+    "contracts/research_trajectory_contract.json",
+    "contracts/domain_descriptor.json#/work_item_scope_binding"
   ],
   "generic_fields": [
     "domain_id",
@@ -27,6 +28,17 @@
     "blocker_refs",
     "authority_boundary"
   ],
+  "execution_scope_binding": {
+    "binding_contract_ref": "contracts/domain_descriptor.json#/work_item_scope_binding",
+    "snapshot_schema_ref": "contracts/opl-framework/execution-scope-snapshot.schema.json",
+    "scope_snapshot_owner": "one-person-lab",
+    "projection_identity_field": "work_item_id",
+    "domain_identity_alias": "study_id",
+    "binding_mode": "exact_same_scope_digest",
+    "unresolved_identity_projection_state": "identity_unresolved",
+    "unresolved_identity_can_project_as_current_or_resumable": false,
+    "mas_payload_carries_opaque_scope_ids": false
+  },
   "domain_display_extension": {
     "field": "domain_display",
     "interpretation": "opaque_domain_owned_display_payload",

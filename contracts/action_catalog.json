@@ -26,6 +26,12 @@
         "kind": "stage_binding",
         "stage_manifest_ref": "agent/stages/manifest.json"
       },
+      "execution_scope": {
+        "kind": "work_item",
+        "alias_fields": [
+          "study_id"
+        ]
+      },
       "input_schema_ref": "contracts/schemas/v2/mas-stage-action.input.schema.json",
       "output_schema_ref": "contracts/schemas/v2/mas-stage-action.output.schema.json",
       "required_fields": [
@@ -209,6 +215,12 @@
         "kind": "stage_binding",
         "stage_manifest_ref": "agent/stages/manifest.json"
       },
+      "execution_scope": {
+        "kind": "work_item",
+        "alias_fields": [
+          "study_id"
+        ]
+      },
       "input_schema_ref": "contracts/schemas/v2/mas-stage-action.input.schema.json",
       "output_schema_ref": "contracts/schemas/v2/mas-stage-action.output.schema.json",
       "required_fields": [
@@ -389,6 +401,12 @@
       "execution_binding": {
         "kind": "stage_binding",
         "stage_manifest_ref": "agent/stages/manifest.json"
+      },
+      "execution_scope": {
+        "kind": "work_item",
+        "alias_fields": [
+          "study_id"
+        ]
       },
       "input_schema_ref": "contracts/schemas/v2/mas-stage-action.input.schema.json",
       "output_schema_ref": "contracts/schemas/v2/mas-stage-action.output.schema.json",
@@ -571,6 +589,12 @@
         "kind": "stage_binding",
         "stage_manifest_ref": "agent/stages/manifest.json"
       },
+      "execution_scope": {
+        "kind": "work_item",
+        "alias_fields": [
+          "study_id"
+        ]
+      },
       "input_schema_ref": "contracts/schemas/v2/mas-stage-action.input.schema.json",
       "output_schema_ref": "contracts/schemas/v2/mas-stage-action.output.schema.json",
       "required_fields": [
@@ -751,6 +775,12 @@
       "execution_binding": {
         "kind": "stage_binding",
         "stage_manifest_ref": "agent/stages/manifest.json"
+      },
+      "execution_scope": {
+        "kind": "work_item",
+        "alias_fields": [
+          "study_id"
+        ]
       },
       "input_schema_ref": "contracts/schemas/v2/mas-stage-action.input.schema.json",
       "output_schema_ref": "contracts/schemas/v2/mas-stage-action.output.schema.json",
@@ -933,6 +963,12 @@
       "execution_binding": {
         "kind": "stage_binding",
         "stage_manifest_ref": "agent/stages/manifest.json"
+      },
+      "execution_scope": {
+        "kind": "work_item",
+        "alias_fields": [
+          "study_id"
+        ]
       },
       "input_schema_ref": "contracts/schemas/v2/mas-stage-action.input.schema.json",
       "output_schema_ref": "contracts/schemas/v2/mas-stage-action.output.schema.json",
@@ -1120,6 +1156,12 @@
         "kind": "handler_ref",
         "handler_ref": "handler:mas.study-lifecycle-reactivation-authority-evaluate"
       },
+      "execution_scope": {
+        "kind": "work_item",
+        "alias_fields": [
+          "study_id"
+        ]
+      },
       "input_schema_ref": "contracts/schemas/v2/mas-study-lifecycle-reactivation-authority.input.schema.json",
       "output_schema_ref": "contracts/schemas/v2/mas-study-lifecycle-reactivation-authority.output.schema.json",
       "required_fields": [
@@ -1188,6 +1230,12 @@
         "kind": "handler_ref",
         "handler_ref": "handler:mas.candidate-admission-authority-evaluate"
       },
+      "execution_scope": {
+        "kind": "work_item",
+        "alias_fields": [
+          "mission.study_id"
+        ]
+      },
       "input_schema_ref": "contracts/schemas/v2/mas-candidate-admission-authority.input.schema.json",
       "output_schema_ref": "contracts/schemas/v2/mas-candidate-admission-authority.output.schema.json",
       "required_fields": [
@@ -1246,6 +1294,9 @@
       "execution_binding": {
         "kind": "handler_ref",
         "handler_ref": "handler:mas.build-dependency-currentness-authority-evaluate"
+      },
+      "execution_scope": {
+        "kind": "none"
       },
       "input_schema_ref": "contracts/schemas/v2/mas-build-dependency-currentness-authority.input.schema.json",
       "output_schema_ref": "contracts/schemas/v2/mas-build-dependency-currentness-authority.output.schema.json",
@@ -1306,6 +1357,12 @@
       "execution_binding": {
         "kind": "handler_ref",
         "handler_ref": "handler:mas.paper-mission-authority-evaluate"
+      },
+      "execution_scope": {
+        "kind": "work_item",
+        "alias_fields": [
+          "mission.study_id"
+        ]
       },
       "input_schema_ref": "contracts/schemas/v2/mas-paper-mission-authority.input.schema.json",
       "output_schema_ref": "contracts/schemas/v2/mas-paper-mission-authority.output.schema.json",

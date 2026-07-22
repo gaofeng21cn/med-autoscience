@@ -63,6 +63,11 @@ def test_action_catalog_exposes_six_hosted_stages_and_four_internal_handlers() -
         }
         for action in stage_actions
     )
+    assert all(
+        action["execution_scope"]
+        == {"kind": "work_item", "alias_fields": ["study_id"]}
+        for action in stage_actions
+    )
     assert [action["action_id"] for action in authority_actions] == [
         "study_lifecycle_reactivation_authority_evaluate",
         "candidate_admission_authority_evaluate",
@@ -92,6 +97,24 @@ def test_action_catalog_exposes_six_hosted_stages_and_four_internal_handlers() -
             "mas.paper-mission-authority-evaluate",
         }
     )
+    assert {
+        action["action_id"]: action["execution_scope"]
+        for action in authority_actions
+    } == {
+        "study_lifecycle_reactivation_authority_evaluate": {
+            "kind": "work_item",
+            "alias_fields": ["study_id"],
+        },
+        "candidate_admission_authority_evaluate": {
+            "kind": "work_item",
+            "alias_fields": ["mission.study_id"],
+        },
+        "build_dependency_currentness_authority_evaluate": {"kind": "none"},
+        "paper_mission_authority_evaluate": {
+            "kind": "work_item",
+            "alias_fields": ["mission.study_id"],
+        },
+    }
 
 
 def test_generated_surfaces_are_opl_owned_and_private_surfaces_are_forbidden() -> None:
