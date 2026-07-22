@@ -1,0 +1,102 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://opl.onepersonlab/contracts/mas-workspace-index.schema.json",
+  "title": "MAS workspace study inventory compatibility schema",
+  "description": "Non-enforcing compatibility definition for MAS-owned study inventory rows. It validates the existing study_id and canonical_study_root shapes while allowing current consumer fields and future host projection extensions. This schema does not declare host enforcement or require an OPL execution-scope contract.",
+  "$comment": "The stable domain identity remains study_id. A host may map it to its own work-item identity after host authority exists; no host-owned identity field is required here.",
+  "type": "object",
+  "additionalProperties": true,
+  "required": [
+    "surface_kind",
+    "schema_version",
+    "studies"
+  ],
+  "properties": {
+    "surface_kind": {
+      "const": "workspace_index"
+    },
+    "schema_version": {
+      "const": "mas.workspace_index.v1"
+    },
+    "studies": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/study"
+      }
+    }
+  },
+  "$defs": {
+    "study_id": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 128,
+      "pattern": "^[a-z0-9]+(?:[._-][a-z0-9]+)*$"
+    },
+    "non_empty_text": {
+      "type": "string",
+      "minLength": 1,
+      "pattern": ".*\\S.*"
+    },
+    "nullable_non_empty_text": {
+      "oneOf": [
+        {
+          "type": "null"
+        },
+        {
+          "$ref": "#/$defs/non_empty_text"
+        }
+      ]
+    },
+    "workspace_relative_ref": {
+      "type": "string",
+      "minLength": 1,
+      "pattern": "^(?!/)(?!.*(?:^|/)\\.\\.(?:/|$))[^\\\\]+$"
+    },
+    "canonical_study_root": {
+      "type": "string",
+      "pattern": "^studies/[a-z0-9]+(?:[._-][a-z0-9]+)*$"
+    },
+    "study": {
+      "type": "object",
+      "additionalProperties": true,
+      "required": [
+        "study_id",
+        "canonical_study_root",
+        "status",
+        "current_stage_id",
+        "current_stage_status",
+        "package_status",
+        "lifecycle_ref"
+      ],
+      "properties": {
+        "study_id": {
+          "$ref": "#/$defs/study_id"
+        },
+        "canonical_study_root": {
+          "$ref": "#/$defs/canonical_study_root"
+        },
+        "display_name": {
+          "$ref": "#/$defs/non_empty_text"
+        },
+        "status": {
+          "$ref": "#/$defs/non_empty_text"
+        },
+        "current_stage_id": {
+          "$ref": "#/$defs/nullable_non_empty_text"
+        },
+        "current_stage_status": {
+          "$ref": "#/$defs/nullable_non_empty_text"
+        },
+        "package_status": {
+          "$ref": "#/$defs/non_empty_text"
+        },
+        "lifecycle_ref": {
+          "$ref": "#/$defs/workspace_relative_ref"
+        },
+        "stage_index_ref": {
+          "$ref": "#/$defs/workspace_relative_ref"
+        }
+      }
+    }
+  }
+}
