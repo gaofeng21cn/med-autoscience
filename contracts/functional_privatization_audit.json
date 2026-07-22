@@ -91,6 +91,31 @@
       "semantic_equivalence_status": "registry_bound_authority_and_opl_hosted_materialization"
     },
     {
+      "module_id": "mas.qualification_work_item_provisioning_authority",
+      "classification": "minimal_authority_function",
+      "standardization_layer": "authority_function_inventory",
+      "code_paths": [
+        "src/med_autoscience/authority_handlers/qualification_work_item_provisioning.py",
+        "contracts/qualification_work_item_provisioning_contract.json",
+        "contracts/domain_handler_registry.json"
+      ],
+      "active_callers": [
+        "OPL-hosted standard-agent Full VM qualification binding"
+      ],
+      "active_caller_status": "registry_declared_framework_materialization_integration_pending",
+      "migration_action": "retain deterministic MAS work-item identity and qualification-only lifecycle authority behind OPL-hosted journaled CAS materialization",
+      "retention_reason": "The function derives one collision-checked MAS study_id from exact qualification authority bytes and signs exact workspace-index, qualification-only lifecycle, and receipt bytes without owning persistence or runtime lifecycle.",
+      "cannot_absorb_reason": "OPL may host the scope-none attempt and atomically persist exact bytes, but cannot derive MAS work-item identity, originate MAS lifecycle truth, or sign the provisioning receipt.",
+      "retained_domain_authority": [
+        "qualification_work_item_identity",
+        "qualification_only_lifecycle",
+        "workspace_index_cas_mutation_authorization",
+        "provisioning_receipt",
+        "typed_blocker"
+      ],
+      "semantic_equivalence_status": "registry_declared_opl_integration_dependency"
+    },
+    {
       "module_id": "mas.build_dependency_currentness_authority",
       "classification": "minimal_authority_function",
       "standardization_layer": "authority_function_inventory",

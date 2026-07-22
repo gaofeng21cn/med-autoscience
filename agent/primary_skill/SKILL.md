@@ -25,7 +25,7 @@ Choose the earliest unresolved owning Stage action from the installed OPL-genera
 - `review_and_quality_gate`: run independent scientific, statistical, evidence-integrity, reference, figure/table, or manuscript review.
 - `finalize_and_publication_handoff`: assemble the final publication handoff after current review evidence and explicit human submission authority.
 
-`study_lifecycle_reactivation_authority_evaluate`, `candidate_admission_authority_evaluate`, `build_dependency_currentness_authority_evaluate`, and `paper_mission_authority_evaluate` are internal registry-bound authority actions. They have no public CLI, MCP, Skill, product-entry, OpenAI, or AI SDK route and must not be invoked as user actions.
+`qualification_work_item_provisioning_authority_evaluate`, `study_lifecycle_reactivation_authority_evaluate`, `candidate_admission_authority_evaluate`, `build_dependency_currentness_authority_evaluate`, and `paper_mission_authority_evaluate` are internal registry-bound authority actions. They have no public CLI, MCP, Skill, product-entry, OpenAI, or AI SDK route and must not be invoked as user actions.
 
 ## Default Workflow
 
@@ -42,6 +42,7 @@ Choose the earliest unresolved owning Stage action from the installed OPL-genera
 
 - Treat raw/partial artifacts, negative or null results, failed attempts, review findings, and no-output diagnostics as route context. A consumable delta may advance as `completed_with_quality_debt`.
 - Do not edit `submission/` or launch a Stage from a paused, delivered-paused, or stopped business projection. Reactivation requires a current MAS receipt plus matching OPL all-or-rollback materialization receipt; neither a Temporal-running signal nor provider completion is sufficient.
+- A qualification-only work item may prove Full VM identity and lifecycle transport only. It never authorizes a Stage body, business action, publication, or submission, even after its MAS provisioning receipt and matching OPL materialization receipt are current.
 - Retry, review, and repair limits are quality budgets. Exhaustion preserves the best evidence-bearing artifact and closes quality, publication, export, and submission-ready claims; it does not create an infinite stage loop.
 - Negative findings remain evidence. Preserve lineage and route back to the owning hypothesis, cohort/data, endpoint, analysis design, writing, or review stage instead of optimizing for a positive result.
 - For new or materially repaired paper-facing figures, use `medical-figure-design`; use `medical-figure-style` for final visual QA and `medical-figure-composer` only for separately assembled panels.

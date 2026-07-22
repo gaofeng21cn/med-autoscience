@@ -3510,6 +3510,7 @@ def test_registry_catalog_schemas_and_audit_bind_exact_handlers() -> None:
         "mas.paper_mission_authority",
         "mas.candidate_admission_authority",
         "mas.study_lifecycle_reactivation_authority",
+        "mas.qualification_work_item_provisioning_authority",
         "mas.build_dependency_currentness_authority",
         "mas.agent_lab_self_evolution_closeout",
     ]

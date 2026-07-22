@@ -106,7 +106,7 @@ def test_revision_uses_existing_stage_action_and_workspace_authority() -> None:
     assert "`revision_intake_wake_host_binding_missing`" in policy
     assert "must all start from controller-authorized `paper/` sources" not in policy
     assert "revision_intake_wake" not in action_ids
-    assert len(action_ids) == 10
+    assert len(action_ids) == 11
     assert {"user_intent", "input_refs", "route_context_refs"}.issubset(
         manuscript_action["optional_fields"]
     )

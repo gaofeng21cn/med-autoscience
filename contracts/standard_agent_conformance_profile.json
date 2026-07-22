@@ -90,6 +90,7 @@
           "src/med_autoscience/authority_handlers/build_dependency_currentness.py",
           "src/med_autoscience/authority_handlers/candidate_admission.py",
           "src/med_autoscience/authority_handlers/paper_mission.py",
+          "src/med_autoscience/authority_handlers/qualification_work_item_provisioning.py",
           "src/med_autoscience/authority_handlers/self_evolution_closeout.py",
           "src/med_autoscience/authority_handlers/study_lifecycle_reactivation.py",
           "contracts/domain_handler_registry.json"

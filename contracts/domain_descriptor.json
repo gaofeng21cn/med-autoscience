@@ -126,6 +126,19 @@
       "id_field": "study_id",
       "root_field": "canonical_study_root"
     },
+    "qualification_work_item_provisioning": {
+      "owner": "MedAutoScience",
+      "action_id": "qualification_work_item_provisioning_authority_evaluate",
+      "execution_scope_kind": "none",
+      "contract_ref": "contracts/qualification_work_item_provisioning_contract.json",
+      "study_id_source": "sha256_of_exact_raw_qualification_authority_bytes",
+      "single_use": true,
+      "qualification_only": true,
+      "stage_body_authorized": false,
+      "business_action_authorized": false,
+      "publication_authorized": false,
+      "submission_authorized": false
+    },
     "canonical_root": {
       "template_ref": "contracts/domain_descriptor.json#/standard_agent_interface/inventory_projection/work_item_root_template",
       "workspace_relative": true,
@@ -174,6 +187,7 @@
     "generated_surface_handoff": "contracts/generated_surface_handoff.json",
     "pack_compiler_input": "contracts/pack_compiler_input.json",
     "private_functional_surface_policy": "contracts/private_functional_surface_policy.json",
+    "qualification_work_item_provisioning_contract": "contracts/qualification_work_item_provisioning_contract.json",
     "runtime_environment_requirement_profile": "contracts/runtime_environment_requirements.json",
     "study_lifecycle_reactivation_contract": "contracts/study_lifecycle_reactivation_contract.json",
     "source_closure_audit": "contracts/source_closure_audit.json",

@@ -1147,6 +1147,80 @@
       }
     },
     {
+      "action_id": "qualification_work_item_provisioning_authority_evaluate",
+      "title": "Qualification work item provisioning authority evaluation",
+      "summary": "Validate exact single-use qualification authority bytes and the current or absent workspace index, deterministically derive one collision-free MAS study_id, and authorize only exact qualification-only workspace-index, lifecycle, and receipt CAS bytes.",
+      "owner": "MedAutoScience",
+      "effect": "read_only",
+      "execution_binding": {
+        "kind": "handler_ref",
+        "handler_ref": "handler:mas.qualification-work-item-provisioning-authority-evaluate"
+      },
+      "execution_scope": {
+        "kind": "none"
+      },
+      "input_schema_ref": "contracts/schemas/v2/mas-qualification-work-item-provisioning-authority.input.schema.json",
+      "output_schema_ref": "contracts/schemas/v2/mas-qualification-work-item-provisioning-authority.output.schema.json",
+      "required_fields": [
+        "surface_kind",
+        "schema_version",
+        "authority_context",
+        "qualification_authority",
+        "current_workspace_index"
+      ],
+      "optional_fields": [],
+      "workspace_locator_fields": [],
+      "human_gate_ids": [],
+      "supported_surfaces": {
+        "cli": null,
+        "mcp": null,
+        "skill": null,
+        "product_entry": null,
+        "openai": null,
+        "ai_sdk": null
+      },
+      "authority_boundary": {
+        "domain_truth_owner": "MedAutoScience",
+        "work_item_identity_owner": "MedAutoScience",
+        "handler_role": "authorize_one_qualification_only_work_item_and_exact_cas_bytes",
+        "host_materialization_contract": {
+          "capability_id": "opl_domain_artifact_cas_materialization.v1",
+          "request_output_field": "opl_host_materialization_request",
+          "authorization_output_field": "mas_qualification_work_item_cas_mutation_authorization",
+          "receipt_output_field": "provisioning_receipt",
+          "receipt_content_binding_output_field": "provisioning_receipt_content_binding",
+          "materialization_scope_sha256_field": "materialization_scope_sha256",
+          "absent_relative_path_preconditions_field": "absent_relative_path_preconditions"
+        },
+        "study_id_derivation": "qualification-<sha256_of_exact_raw_qualification_authority_bytes>",
+        "study_id_uses_full_digest": true,
+        "random_or_caller_supplied_study_id_allowed": false,
+        "inventory_collision_check_required": true,
+        "single_use": true,
+        "qualification_only": true,
+        "performs_filesystem_io": false,
+        "performs_network_io": false,
+        "spawns_process_or_executor": false,
+        "owns_queue_session_dag_or_attempt_lifecycle": false,
+        "owns_runtime_ledger": false,
+        "persists_artifact_or_receipt": false,
+        "selects_scientific_stage": false,
+        "handler_result_alone_is_effective_authority": false,
+        "public_action": false,
+        "supported_surfaces_null_is_not_runtime_access_control": true,
+        "handler_raw_byte_self_validation_required": true,
+        "opl_can_derive_or_choose_study_id": false,
+        "opl_can_write_domain_truth_without_exact_mas_authorization": false,
+        "opl_can_sign_owner_receipt": false,
+        "opl_can_create_typed_blocker": false,
+        "authorizes_stage_body": false,
+        "authorizes_business_action": false,
+        "authorizes_publication": false,
+        "authorizes_submission": false,
+        "provider_completion_is_domain_completion": false
+      }
+    },
+    {
       "action_id": "study_lifecycle_reactivation_authority_evaluate",
       "title": "Study lifecycle reactivation authority evaluation",
       "summary": "Validate raw-byte-bound fresh user authority, reviewer revision intake, inactive lifecycle, first owning Stage, and exact lifecycle projections before authorizing one OPL-hosted journaled all-or-rollback CAS materialization.",

@@ -1,0 +1,155 @@
+{
+  "surface_kind": "mas_qualification_work_item_provisioning_contract",
+  "schema_version": 1,
+  "contract_id": "mas.qualification-work-item-provisioning.v1",
+  "owner": "MedAutoScience",
+  "domain_id": "medautoscience",
+  "action_id": "qualification_work_item_provisioning_authority_evaluate",
+  "handler_ref": "handler:mas.qualification-work-item-provisioning-authority-evaluate",
+  "input_schema_ref": "contracts/schemas/v2/mas-qualification-work-item-provisioning-authority.input.schema.json",
+  "output_schema_ref": "contracts/schemas/v2/mas-qualification-work-item-provisioning-authority.output.schema.json",
+  "purpose": "Provision exactly one domain-owned qualification-only active work item so a standard-agent Full VM harness can bind a real MAS study_id without authorizing a research Stage body or business action.",
+  "admission": {
+    "execution_scope": "none",
+    "qualification_scope": "standard_agent_full_vm_qualification",
+    "requires_exact_qualification_authority_bytes": true,
+    "requires_current_or_absent_workspace_index": true,
+    "single_use": true,
+    "public_action": false,
+    "supported_surfaces": {
+      "cli": null,
+      "mcp": null,
+      "skill": null,
+      "product_entry": null,
+      "openai": null,
+      "ai_sdk": null
+    }
+  },
+  "identity_derivation": {
+    "source": "sha256_of_exact_raw_qualification_authority_bytes",
+    "format": "qualification-<64-lowercase-hex-sha256>",
+    "uses_full_digest": true,
+    "random_generation_allowed": false,
+    "caller_supplied_study_id_allowed": false,
+    "hardcoded_study_id_allowed": false,
+    "inventory_collision_checks": [
+      "study_id_unique_in_workspace_index",
+      "canonical_study_root_unique_in_workspace_index"
+    ],
+    "same_authority_bytes_collision_effect": "qualification_authority_already_consumed",
+    "other_identity_collision_effect": "derived_work_item_identity_collision"
+  },
+  "workspace_binding": {
+    "inventory_ref": "workspace_index.json#/studies",
+    "workspace_index_schema_ref": "contracts/schemas/v2/mas-workspace-index.schema.json",
+    "canonical_study_root_template": "studies/{study_id}",
+    "workspace_index_target": "workspace_index.json",
+    "lifecycle_target_template": "studies/{study_id}/control/lifecycle.json",
+    "receipt_target_template": "studies/{study_id}/artifacts/controller/qualification/provisioning-receipt.json",
+    "all_targets_workspace_relative_and_contained": true,
+    "parent_directory_materialization_owner": "one-person-lab",
+    "handler_materializes_parent_directories": false
+  },
+  "lifecycle_contract": {
+    "surface_kind": "study_lifecycle_control",
+    "schema_version": "mas.study_lifecycle_control.v1",
+    "lifecycle_state": "active",
+    "generation": 1,
+    "business_status": "qualification_only",
+    "current_stage_id": null,
+    "current_stage_status": null,
+    "single_use": true,
+    "qualification_only": true,
+    "stage_body_authorized": false,
+    "business_action_authorized": false,
+    "publication_authorized": false,
+    "submission_authorized": false
+  },
+  "receipt_contract": {
+    "surface_kind": "mas_qualification_work_item_provisioning_receipt",
+    "schema_version": 1,
+    "content_binding_surface_kind": "mas_qualification_work_item_provisioning_receipt_content_binding",
+    "content_binding_schema_version": 1,
+    "required_identity_fields": [
+      "domain_owner",
+      "domain_id",
+      "canonical_workspace_root",
+      "study_id",
+      "canonical_study_root"
+    ],
+    "required_lifecycle_fields": [
+      "lifecycle_state",
+      "lifecycle_generation",
+      "lifecycle_relative_path",
+      "lifecycle_sha256"
+    ],
+    "required_authority_fields": [
+      "qualification_scope",
+      "qualification_authority_ref",
+      "qualification_authority_sha256",
+      "qualification_authority_byte_size",
+      "single_use",
+      "qualification_only",
+      "stage_body_authorized",
+      "business_action_authorized",
+      "publication_authorized",
+      "submission_authorized"
+    ],
+    "receipt_ref_field": "provisioning_receipt.receipt_ref",
+    "exact_content_binding_field": "provisioning_receipt_content_binding",
+    "content_binding_required_fields": [
+      "receipt_ref",
+      "target_relative_path",
+      "sha256",
+      "byte_size"
+    ],
+    "receipt_ref_must_match_content_binding": true,
+    "content_binding_must_match_receipt_operation_exact_bytes": true
+  },
+  "materialization_contract": {
+    "capability_id": "opl_domain_artifact_cas_materialization.v1",
+    "request_output_field": "opl_host_materialization_request",
+    "authorization_output_field": "mas_qualification_work_item_cas_mutation_authorization",
+    "receipt_output_field": "provisioning_receipt",
+    "receipt_content_binding_output_field": "provisioning_receipt_content_binding",
+    "operation_count": 3,
+    "operation_roles": [
+      "workspace_index",
+      "study_lifecycle",
+      "provisioning_receipt"
+    ],
+    "preconditions": "workspace index is absent or exact-CAS; lifecycle and receipt are absent",
+    "semantics": "journaled_all_or_rollback",
+    "successful_handler_result_alone_is_effective_authority": false,
+    "requires_matching_framework_materialization_receipt": true
+  },
+  "typed_blockers": [
+    "qualification_authority_already_consumed",
+    "derived_work_item_identity_collision"
+  ],
+  "authority_boundary": {
+    "domain_truth_owner": "MedAutoScience",
+    "handler_role": "authorize_one_qualification_only_work_item_and_exact_cas_bytes",
+    "opl_role": "journal_and_materialize_exact_authorized_bytes_all_or_rollback",
+    "performs_filesystem_io": false,
+    "performs_network_io": false,
+    "spawns_process_or_executor": false,
+    "owns_runtime_or_attempt_lifecycle": false,
+    "persists_artifact_or_receipt": false,
+    "selects_scientific_stage": false,
+    "authorizes_stage_body": false,
+    "authorizes_business_action": false,
+    "authorizes_publication": false,
+    "authorizes_submission": false,
+    "provider_completion_is_domain_completion": false,
+    "public_action": false,
+    "opl_can_derive_or_choose_study_id": false,
+    "opl_can_write_domain_truth_without_exact_mas_authorization": false,
+    "opl_can_sign_provisioning_receipt": false
+  },
+  "verification_refs": [
+    "tests/test_qualification_work_item_provisioning_authority.py",
+    "tests/test_package_contracts.py",
+    "tests/test_standard_agent_boundary.py"
+  ]
+}

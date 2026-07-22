@@ -1,0 +1,842 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://one-person-lab.local/med-autoscience/mas-qualification-work-item-provisioning-authority.output.schema.json",
+  "title": "MAS qualification work item provisioning authority result",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "surface_kind",
+    "schema_version",
+    "status",
+    "study_identity",
+    "provisioning_receipt",
+    "provisioning_receipt_content_binding",
+    "mas_qualification_work_item_cas_mutation_authorization",
+    "opl_host_materialization_request",
+    "typed_blocker",
+    "error",
+    "authority_boundary",
+    "decision_id",
+    "decision_fingerprint"
+  ],
+  "properties": {
+    "surface_kind": {
+      "const": "mas_qualification_work_item_provisioning_authority_result"
+    },
+    "schema_version": {
+      "const": 1
+    },
+    "status": {
+      "enum": [
+        "authorized",
+        "typed_blocker",
+        "invalid_host_input"
+      ]
+    },
+    "study_identity": {
+      "oneOf": [
+        {
+          "$ref": "#/$defs/study_identity"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "provisioning_receipt": {
+      "oneOf": [
+        {
+          "$ref": "#/$defs/provisioning_receipt"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "provisioning_receipt_content_binding": {
+      "oneOf": [
+        {
+          "$ref": "#/$defs/receipt_content_binding"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "mas_qualification_work_item_cas_mutation_authorization": {
+      "oneOf": [
+        {
+          "$ref": "#/$defs/authorization"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "opl_host_materialization_request": {
+      "oneOf": [
+        {
+          "$ref": "#/$defs/host_request"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "typed_blocker": {
+      "oneOf": [
+        {
+          "$ref": "#/$defs/typed_blocker"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "error": {
+      "oneOf": [
+        {
+          "$ref": "#/$defs/error"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "authority_boundary": {
+      "$ref": "#/$defs/authority_boundary"
+    },
+    "decision_id": {
+      "type": "string",
+      "pattern": "^mas-qualification-work-item-provisioning-decision:[a-f0-9]{64}$"
+    },
+    "decision_fingerprint": {
+      "$ref": "#/$defs/prefixed_sha256"
+    }
+  },
+  "allOf": [
+    {
+      "if": {
+        "properties": {
+          "status": {
+            "const": "authorized"
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "study_identity": {
+            "$ref": "#/$defs/study_identity"
+          },
+          "provisioning_receipt": {
+            "$ref": "#/$defs/provisioning_receipt"
+          },
+          "provisioning_receipt_content_binding": {
+            "$ref": "#/$defs/receipt_content_binding"
+          },
+          "mas_qualification_work_item_cas_mutation_authorization": {
+            "$ref": "#/$defs/authorization"
+          },
+          "opl_host_materialization_request": {
+            "$ref": "#/$defs/host_request"
+          },
+          "typed_blocker": {
+            "type": "null"
+          },
+          "error": {
+            "type": "null"
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "status": {
+            "const": "typed_blocker"
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "study_identity": {
+            "$ref": "#/$defs/study_identity"
+          },
+          "provisioning_receipt": {
+            "type": "null"
+          },
+          "provisioning_receipt_content_binding": {
+            "type": "null"
+          },
+          "mas_qualification_work_item_cas_mutation_authorization": {
+            "type": "null"
+          },
+          "opl_host_materialization_request": {
+            "type": "null"
+          },
+          "typed_blocker": {
+            "$ref": "#/$defs/typed_blocker"
+          },
+          "error": {
+            "type": "null"
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "status": {
+            "const": "invalid_host_input"
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "study_identity": {
+            "type": "null"
+          },
+          "provisioning_receipt": {
+            "type": "null"
+          },
+          "provisioning_receipt_content_binding": {
+            "type": "null"
+          },
+          "mas_qualification_work_item_cas_mutation_authorization": {
+            "type": "null"
+          },
+          "opl_host_materialization_request": {
+            "type": "null"
+          },
+          "typed_blocker": {
+            "type": "null"
+          },
+          "error": {
+            "$ref": "#/$defs/error"
+          }
+        }
+      }
+    }
+  ],
+  "$defs": {
+    "text": {
+      "type": "string",
+      "minLength": 1,
+      "pattern": ".*\\S.*"
+    },
+    "raw_sha256": {
+      "type": "string",
+      "pattern": "^[a-f0-9]{64}$"
+    },
+    "prefixed_sha256": {
+      "type": "string",
+      "pattern": "^sha256:[a-f0-9]{64}$"
+    },
+    "canonical_workspace_root": {
+      "type": "string",
+      "pattern": "^/(?!$)(?!.*//)(?!.*(?:^|/)\\.{1,2}(?:/|$))[^\\\\]+$"
+    },
+    "workspace_relative_path": {
+      "type": "string",
+      "pattern": "^(?!/)(?!.*//)(?!.*(?:^|/)\\.{1,2}(?:/|$))[^\\\\]+$"
+    },
+    "study_id": {
+      "type": "string",
+      "pattern": "^qualification-[a-f0-9]{64}$"
+    },
+    "canonical_study_root": {
+      "type": "string",
+      "pattern": "^studies/qualification-[a-f0-9]{64}$"
+    },
+    "study_identity": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "domain_owner",
+        "domain_id",
+        "canonical_workspace_root",
+        "study_id",
+        "canonical_study_root",
+        "lifecycle_relative_path",
+        "receipt_relative_path"
+      ],
+      "properties": {
+        "domain_owner": {
+          "const": "MedAutoScience"
+        },
+        "domain_id": {
+          "const": "medautoscience"
+        },
+        "canonical_workspace_root": {
+          "$ref": "#/$defs/canonical_workspace_root"
+        },
+        "study_id": {
+          "$ref": "#/$defs/study_id"
+        },
+        "canonical_study_root": {
+          "$ref": "#/$defs/canonical_study_root"
+        },
+        "lifecycle_relative_path": {
+          "type": "string",
+          "pattern": "^studies/qualification-[a-f0-9]{64}/control/lifecycle\\.json$"
+        },
+        "receipt_relative_path": {
+          "type": "string",
+          "pattern": "^studies/qualification-[a-f0-9]{64}/artifacts/controller/qualification/provisioning-receipt\\.json$"
+        }
+      }
+    },
+    "provisioning_receipt": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "surface_kind",
+        "schema_version",
+        "domain_owner",
+        "domain_id",
+        "canonical_workspace_root",
+        "study_id",
+        "canonical_study_root",
+        "lifecycle_state",
+        "lifecycle_generation",
+        "qualification_scope",
+        "qualification_authority_ref",
+        "qualification_authority_sha256",
+        "qualification_authority_byte_size",
+        "handler_call_ref",
+        "owner_ledger_ref",
+        "workspace_index_ref",
+        "workspace_index_before_sha256",
+        "workspace_index_after_sha256",
+        "lifecycle_relative_path",
+        "lifecycle_sha256",
+        "receipt_relative_path",
+        "issued_at",
+        "single_use",
+        "qualification_only",
+        "stage_body_authorized",
+        "business_action_authorized",
+        "publication_authorized",
+        "submission_authorized",
+        "requires_opl_cas_materialization_receipt",
+        "materialization_semantics",
+        "provider_completion_is_domain_completion",
+        "receipt_ref",
+        "receipt_fingerprint"
+      ],
+      "properties": {
+        "surface_kind": {
+          "const": "mas_qualification_work_item_provisioning_receipt"
+        },
+        "schema_version": {
+          "const": 1
+        },
+        "domain_owner": {
+          "const": "MedAutoScience"
+        },
+        "domain_id": {
+          "const": "medautoscience"
+        },
+        "canonical_workspace_root": {
+          "$ref": "#/$defs/canonical_workspace_root"
+        },
+        "study_id": {
+          "$ref": "#/$defs/study_id"
+        },
+        "canonical_study_root": {
+          "$ref": "#/$defs/canonical_study_root"
+        },
+        "lifecycle_state": {
+          "const": "active"
+        },
+        "lifecycle_generation": {
+          "const": 1
+        },
+        "qualification_scope": {
+          "const": "standard_agent_full_vm_qualification"
+        },
+        "qualification_authority_ref": {
+          "$ref": "#/$defs/text"
+        },
+        "qualification_authority_sha256": {
+          "$ref": "#/$defs/raw_sha256"
+        },
+        "qualification_authority_byte_size": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "handler_call_ref": {
+          "$ref": "#/$defs/text"
+        },
+        "owner_ledger_ref": {
+          "$ref": "#/$defs/text"
+        },
+        "workspace_index_ref": {
+          "const": "workspace_index.json"
+        },
+        "workspace_index_before_sha256": {
+          "oneOf": [
+            {
+              "$ref": "#/$defs/raw_sha256"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "workspace_index_after_sha256": {
+          "$ref": "#/$defs/prefixed_sha256"
+        },
+        "lifecycle_relative_path": {
+          "$ref": "#/$defs/workspace_relative_path"
+        },
+        "lifecycle_sha256": {
+          "$ref": "#/$defs/prefixed_sha256"
+        },
+        "receipt_relative_path": {
+          "$ref": "#/$defs/workspace_relative_path"
+        },
+        "issued_at": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "single_use": {
+          "const": true
+        },
+        "qualification_only": {
+          "const": true
+        },
+        "stage_body_authorized": {
+          "const": false
+        },
+        "business_action_authorized": {
+          "const": false
+        },
+        "publication_authorized": {
+          "const": false
+        },
+        "submission_authorized": {
+          "const": false
+        },
+        "requires_opl_cas_materialization_receipt": {
+          "const": true
+        },
+        "materialization_semantics": {
+          "const": "journaled_all_or_rollback"
+        },
+        "provider_completion_is_domain_completion": {
+          "const": false
+        },
+        "receipt_ref": {
+          "type": "string",
+          "pattern": "^mas-qualification-work-item-provisioning:[a-f0-9]{64}$"
+        },
+        "receipt_fingerprint": {
+          "$ref": "#/$defs/prefixed_sha256"
+        }
+      }
+    },
+    "receipt_content_binding": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "surface_kind",
+        "schema_version",
+        "receipt_ref",
+        "target_relative_path",
+        "sha256",
+        "byte_size"
+      ],
+      "properties": {
+        "surface_kind": {
+          "const": "mas_qualification_work_item_provisioning_receipt_content_binding"
+        },
+        "schema_version": {
+          "const": 1
+        },
+        "receipt_ref": {
+          "type": "string",
+          "pattern": "^mas-qualification-work-item-provisioning:[a-f0-9]{64}$"
+        },
+        "target_relative_path": {
+          "$ref": "#/$defs/workspace_relative_path"
+        },
+        "sha256": {
+          "$ref": "#/$defs/prefixed_sha256"
+        },
+        "byte_size": {
+          "type": "integer",
+          "minimum": 1
+        }
+      }
+    },
+    "authorization": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "surface_kind",
+        "version",
+        "capability_id",
+        "request_id",
+        "domain_owner",
+        "domain_id",
+        "study_id",
+        "canonical_study_root",
+        "qualification_authority_ref",
+        "qualification_authority_sha256",
+        "authority_receipt_ref",
+        "authority_receipt_content_sha256",
+        "operations_sha256",
+        "materialization_scope_sha256",
+        "absent_relative_path_preconditions",
+        "authorized",
+        "single_use",
+        "qualification_only",
+        "stage_body_authorized",
+        "business_action_authorized",
+        "publication_authorized",
+        "submission_authorized",
+        "authorization_ref",
+        "authorization_fingerprint"
+      ],
+      "properties": {
+        "surface_kind": {
+          "const": "mas_qualification_work_item_cas_mutation_authorization"
+        },
+        "version": {
+          "const": "mas-qualification-work-item-cas-mutation-authorization.v1"
+        },
+        "capability_id": {
+          "const": "opl_domain_artifact_cas_materialization.v1"
+        },
+        "request_id": {
+          "$ref": "#/$defs/text"
+        },
+        "domain_owner": {
+          "const": "MedAutoScience"
+        },
+        "domain_id": {
+          "const": "medautoscience"
+        },
+        "study_id": {
+          "$ref": "#/$defs/study_id"
+        },
+        "canonical_study_root": {
+          "$ref": "#/$defs/canonical_study_root"
+        },
+        "qualification_authority_ref": {
+          "$ref": "#/$defs/text"
+        },
+        "qualification_authority_sha256": {
+          "$ref": "#/$defs/raw_sha256"
+        },
+        "authority_receipt_ref": {
+          "type": "string",
+          "pattern": "^mas-qualification-work-item-provisioning:[a-f0-9]{64}$"
+        },
+        "authority_receipt_content_sha256": {
+          "$ref": "#/$defs/prefixed_sha256"
+        },
+        "operations_sha256": {
+          "$ref": "#/$defs/prefixed_sha256"
+        },
+        "materialization_scope_sha256": {
+          "$ref": "#/$defs/prefixed_sha256"
+        },
+        "absent_relative_path_preconditions": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": {
+            "$ref": "#/$defs/workspace_relative_path"
+          }
+        },
+        "authorized": {
+          "const": true
+        },
+        "single_use": {
+          "const": true
+        },
+        "qualification_only": {
+          "const": true
+        },
+        "stage_body_authorized": {
+          "const": false
+        },
+        "business_action_authorized": {
+          "const": false
+        },
+        "publication_authorized": {
+          "const": false
+        },
+        "submission_authorized": {
+          "const": false
+        },
+        "authorization_ref": {
+          "type": "string",
+          "pattern": "^mas-qualification-work-item-cas-authorization:[a-f0-9]{64}$"
+        },
+        "authorization_fingerprint": {
+          "$ref": "#/$defs/prefixed_sha256"
+        }
+      }
+    },
+    "host_request": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "surface_kind",
+        "version",
+        "capability_id",
+        "request_id",
+        "domain_id",
+        "authorization_ref",
+        "operations_sha256",
+        "materialization_scope_sha256",
+        "absent_relative_path_preconditions",
+        "operations"
+      ],
+      "properties": {
+        "surface_kind": {
+          "const": "opl_domain_artifact_cas_materialization_request"
+        },
+        "version": {
+          "const": "opl-domain-artifact-cas-materialization.v1"
+        },
+        "capability_id": {
+          "const": "opl_domain_artifact_cas_materialization.v1"
+        },
+        "request_id": {
+          "$ref": "#/$defs/text"
+        },
+        "domain_id": {
+          "const": "medautoscience"
+        },
+        "authorization_ref": {
+          "type": "string",
+          "pattern": "^mas-qualification-work-item-cas-authorization:[a-f0-9]{64}$"
+        },
+        "operations_sha256": {
+          "$ref": "#/$defs/prefixed_sha256"
+        },
+        "materialization_scope_sha256": {
+          "$ref": "#/$defs/prefixed_sha256"
+        },
+        "absent_relative_path_preconditions": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": {
+            "$ref": "#/$defs/workspace_relative_path"
+          }
+        },
+        "operations": {
+          "type": "array",
+          "minItems": 3,
+          "maxItems": 3,
+          "items": {
+            "$ref": "#/$defs/operation"
+          }
+        }
+      }
+    },
+    "operation": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "target_relative_path",
+        "precondition",
+        "replacement_bytes_base64",
+        "replacement_sha256",
+        "replacement_byte_size"
+      ],
+      "properties": {
+        "target_relative_path": {
+          "$ref": "#/$defs/workspace_relative_path"
+        },
+        "precondition": {
+          "oneOf": [
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "kind",
+                "sha256",
+                "byte_size"
+              ],
+              "properties": {
+                "kind": {
+                  "const": "existing_exact"
+                },
+                "sha256": {
+                  "$ref": "#/$defs/raw_sha256"
+                },
+                "byte_size": {
+                  "type": "integer",
+                  "minimum": 1
+                }
+              }
+            },
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "kind"
+              ],
+              "properties": {
+                "kind": {
+                  "const": "absent"
+                }
+              }
+            }
+          ]
+        },
+        "replacement_bytes_base64": {
+          "type": "string",
+          "minLength": 1,
+          "contentEncoding": "base64"
+        },
+        "replacement_sha256": {
+          "$ref": "#/$defs/prefixed_sha256"
+        },
+        "replacement_byte_size": {
+          "type": "integer",
+          "minimum": 1
+        }
+      }
+    },
+    "typed_blocker": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "surface_kind",
+        "schema_version",
+        "reason_code",
+        "resume_condition",
+        "domain_owner",
+        "domain_id",
+        "study_id",
+        "canonical_study_root",
+        "qualification_authority_ref",
+        "qualification_authority_sha256"
+      ],
+      "properties": {
+        "surface_kind": {
+          "const": "mas_qualification_work_item_provisioning_typed_blocker"
+        },
+        "schema_version": {
+          "const": 1
+        },
+        "reason_code": {
+          "enum": [
+            "qualification_authority_already_consumed",
+            "derived_work_item_identity_collision"
+          ]
+        },
+        "resume_condition": {
+          "$ref": "#/$defs/text"
+        },
+        "domain_owner": {
+          "const": "MedAutoScience"
+        },
+        "domain_id": {
+          "const": "medautoscience"
+        },
+        "study_id": {
+          "$ref": "#/$defs/study_id"
+        },
+        "canonical_study_root": {
+          "$ref": "#/$defs/canonical_study_root"
+        },
+        "qualification_authority_ref": {
+          "$ref": "#/$defs/text"
+        },
+        "qualification_authority_sha256": {
+          "$ref": "#/$defs/raw_sha256"
+        }
+      }
+    },
+    "error": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "code",
+        "detail"
+      ],
+      "properties": {
+        "code": {
+          "const": "invalid_host_input"
+        },
+        "detail": {
+          "$ref": "#/$defs/text"
+        }
+      }
+    },
+    "authority_boundary": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "owner",
+        "handler_role",
+        "opl_role",
+        "performs_filesystem_io",
+        "performs_network_io",
+        "spawns_process_or_executor",
+        "owns_runtime_or_attempt_lifecycle",
+        "persists_artifact_or_receipt",
+        "selects_scientific_stage",
+        "authorizes_stage_body",
+        "authorizes_business_action",
+        "authorizes_publication",
+        "authorizes_submission",
+        "provider_completion_is_domain_completion",
+        "public_action"
+      ],
+      "properties": {
+        "owner": {
+          "const": "MedAutoScience"
+        },
+        "handler_role": {
+          "$ref": "#/$defs/text"
+        },
+        "opl_role": {
+          "$ref": "#/$defs/text"
+        },
+        "performs_filesystem_io": {
+          "const": false
+        },
+        "performs_network_io": {
+          "const": false
+        },
+        "spawns_process_or_executor": {
+          "const": false
+        },
+        "owns_runtime_or_attempt_lifecycle": {
+          "const": false
+        },
+        "persists_artifact_or_receipt": {
+          "const": false
+        },
+        "selects_scientific_stage": {
+          "const": false
+        },
+        "authorizes_stage_body": {
+          "const": false
+        },
+        "authorizes_business_action": {
+          "const": false
+        },
+        "authorizes_publication": {
+          "const": false
+        },
+        "authorizes_submission": {
+          "const": false
+        },
+        "provider_completion_is_domain_completion": {
+          "const": false
+        },
+        "public_action": {
+          "const": false
+        }
+      }
+    }
+  }
+}
