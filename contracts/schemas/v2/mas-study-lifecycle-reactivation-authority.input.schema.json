@@ -2,7 +2,7 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://one-person-lab.local/med-autoscience/mas-study-lifecycle-reactivation-authority.input.schema.json",
   "title": "MAS study lifecycle reactivation authority request",
-  "description": "Closed OPL-internal handler payload assembled from nine lifecycle-admission semantic inputs. OPL reads exact bytes; MAS validates user authority, revision intake, lifecycle semantics, and projection currentness without I/O.",
+  "description": "Closed OPL-internal handler payload assembled from nine lifecycle-admission inputs. OPL injects exact raw bytes plus parsed records; MAS independently verifies base64, size, SHA-256, strict JSON object identity, user authority, revision intake freshness, lifecycle semantics, and projection currentness without I/O.",
   "type": "object",
   "additionalProperties": false,
   "required": [
@@ -32,6 +32,7 @@
     "safe_segment": { "type": "string", "pattern": "^[A-Za-z0-9][A-Za-z0-9._-]*$" },
     "file_url": { "type": "string", "pattern": "^file:///.+" },
     "sha256": { "type": "string", "pattern": "^(?:sha256:)?[a-f0-9]{64}$" },
+    "base64_bytes": { "type": "string", "minLength": 1 },
     "date_time": { "type": "string", "format": "date-time" },
     "stage_id": {
       "enum": [
@@ -104,10 +105,15 @@
     "user_authority": {
       "type": "object",
       "additionalProperties": false,
-      "required": ["authority_ref", "authority_sha256", "record"],
+      "required": [
+        "authority_ref", "authority_sha256", "authority_bytes_base64",
+        "authority_byte_size", "record"
+      ],
       "properties": {
         "authority_ref": { "$ref": "#/$defs/file_url" },
         "authority_sha256": { "$ref": "#/$defs/sha256" },
+        "authority_bytes_base64": { "$ref": "#/$defs/base64_bytes" },
+        "authority_byte_size": { "type": "integer", "minimum": 1 },
         "record": { "$ref": "#/$defs/user_authority_record" }
       }
     },
@@ -141,10 +147,15 @@
     "reviewer_revision_intake": {
       "type": "object",
       "additionalProperties": false,
-      "required": ["intake_ref", "intake_sha256", "record"],
+      "required": [
+        "intake_ref", "intake_sha256", "intake_bytes_base64",
+        "intake_byte_size", "record"
+      ],
       "properties": {
         "intake_ref": { "$ref": "#/$defs/file_url" },
         "intake_sha256": { "$ref": "#/$defs/sha256" },
+        "intake_bytes_base64": { "$ref": "#/$defs/base64_bytes" },
+        "intake_byte_size": { "type": "integer", "minimum": 1 },
         "record": { "$ref": "#/$defs/reviewer_revision_record" }
       }
     },
@@ -185,10 +196,15 @@
     "current_lifecycle": {
       "type": "object",
       "additionalProperties": false,
-      "required": ["lifecycle_ref", "lifecycle_sha256", "record"],
+      "required": [
+        "lifecycle_ref", "lifecycle_sha256", "lifecycle_bytes_base64",
+        "lifecycle_byte_size", "record"
+      ],
       "properties": {
         "lifecycle_ref": { "$ref": "#/$defs/file_url" },
         "lifecycle_sha256": { "$ref": "#/$defs/sha256" },
+        "lifecycle_bytes_base64": { "$ref": "#/$defs/base64_bytes" },
+        "lifecycle_byte_size": { "type": "integer", "minimum": 1 },
         "record": { "type": "object", "minProperties": 1 }
       }
     },
@@ -227,7 +243,10 @@
     "projection_target": {
       "type": "object",
       "additionalProperties": false,
-      "required": ["projection_id", "root", "relative_path", "ref", "sha256", "byte_size", "record"],
+      "required": [
+        "projection_id", "root", "relative_path", "ref", "sha256",
+        "bytes_base64", "byte_size", "record"
+      ],
       "properties": {
         "projection_id": {
           "enum": [
@@ -240,6 +259,7 @@
         "relative_path": { "type": "string", "pattern": "^(?!/)(?!.*(?:^|/)\\.{1,2}(?:/|$))(?!.*//).+$" },
         "ref": { "$ref": "#/$defs/file_url" },
         "sha256": { "$ref": "#/$defs/sha256" },
+        "bytes_base64": { "$ref": "#/$defs/base64_bytes" },
         "byte_size": { "type": "integer", "minimum": 1 },
         "record": { "type": "object", "minProperties": 1 }
       }

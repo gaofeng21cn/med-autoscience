@@ -28,6 +28,10 @@
     "file_url": { "type": "string", "pattern": "^file:///.+" },
     "sha256": { "type": "string", "pattern": "^(?:sha256:)?[a-f0-9]{64}$" },
     "prefixed_sha256": { "type": "string", "pattern": "^sha256:[a-f0-9]{64}$" },
+    "workspace_relative_path": {
+      "type": "string",
+      "pattern": "^(?!/)(?!.*(?:^|/)\\.{1,2}(?:/|$))(?!.*//).+$"
+    },
     "study_identity": {
       "type": "object",
       "additionalProperties": false,
@@ -111,7 +115,8 @@
       "additionalProperties": false,
       "required": [
         "surface_kind", "version", "capability_id", "request_id", "domain_id",
-        "operations_sha256", "authorized", "authority_receipt_ref", "satisfied_gate_ids",
+        "operations_sha256", "materialization_scope_sha256",
+        "absent_relative_path_preconditions", "authorized", "authority_receipt_ref", "satisfied_gate_ids",
         "authorization_ref", "authorization_fingerprint"
       ],
       "properties": {
@@ -121,6 +126,11 @@
         "request_id": { "$ref": "#/$defs/text" },
         "domain_id": { "const": "medautoscience" },
         "operations_sha256": { "$ref": "#/$defs/sha256" },
+        "materialization_scope_sha256": { "$ref": "#/$defs/sha256" },
+        "absent_relative_path_preconditions": {
+          "type": "array", "uniqueItems": true,
+          "items": { "$ref": "#/$defs/workspace_relative_path" }
+        },
         "authorized": { "const": true },
         "authority_receipt_ref": { "$ref": "#/$defs/text" },
         "satisfied_gate_ids": { "type": "array", "minItems": 1, "uniqueItems": true, "items": { "$ref": "#/$defs/text" } },
@@ -131,7 +141,11 @@
     "host_request": {
       "type": "object",
       "additionalProperties": false,
-      "required": ["surface_kind", "version", "capability_id", "request_id", "domain_id", "authorization_ref", "operations_sha256", "operations"],
+      "required": [
+        "surface_kind", "version", "capability_id", "request_id", "domain_id",
+        "authorization_ref", "operations_sha256", "materialization_scope_sha256",
+        "absent_relative_path_preconditions", "operations"
+      ],
       "properties": {
         "surface_kind": { "const": "opl_domain_artifact_cas_materialization_request" },
         "version": { "const": "opl-domain-artifact-cas-materialization.v1" },
@@ -140,6 +154,11 @@
         "domain_id": { "const": "medautoscience" },
         "authorization_ref": { "$ref": "#/$defs/text" },
         "operations_sha256": { "$ref": "#/$defs/sha256" },
+        "materialization_scope_sha256": { "$ref": "#/$defs/sha256" },
+        "absent_relative_path_preconditions": {
+          "type": "array", "uniqueItems": true,
+          "items": { "$ref": "#/$defs/workspace_relative_path" }
+        },
         "operations": { "type": "array", "minItems": 1, "maxItems": 32, "items": { "$ref": "#/$defs/operation" } }
       }
     },

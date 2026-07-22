@@ -6,18 +6,18 @@ from collections.abc import Mapping
 from copy import deepcopy
 from datetime import datetime, timezone
 import base64
+import binascii
 import hashlib
 import json
+import math
 import re
 from typing import Any
 
 from ._record_validation import (
     RequestShapeError,
-    canonical_json_bytes,
     enum_text,
     exact_keys,
     exact_ref,
-    fingerprint,
     integer,
     mapping,
     sequence,
@@ -139,21 +139,34 @@ def evaluate_study_lifecycle_reactivation_authority(
             after_lifecycle=after_lifecycle,
             receipt=receipt,
         )
-    except ProjectionCurrentnessError as error:
+    except (ProjectionCurrentnessError, RequestShapeError) as error:
         return _typed_blocker(
             normalized,
             reason_code="lifecycle_projection_currentness_mismatch",
             resume_condition=str(error),
         )
 
+    absent_relative_path_preconditions = _absent_relative_path_preconditions(
+        normalized
+    )
     operations_sha256 = _json_fingerprint(operations)
+    materialization_scope_sha256 = _json_fingerprint(
+        {
+            "operations": operations,
+            "absent_relative_path_preconditions": (
+                absent_relative_path_preconditions
+            ),
+        }
+    )
     request_id = (
         "mas-lifecycle-cas-request:"
-        f"{operations_sha256.removeprefix('sha256:')}"
+        f"{materialization_scope_sha256.removeprefix('sha256:')}"
     )
     authorization = _cas_authorization(
         request_id=request_id,
         operations_sha256=operations_sha256,
+        materialization_scope_sha256=materialization_scope_sha256,
+        absent_relative_path_preconditions=absent_relative_path_preconditions,
         authority_receipt_ref=receipt["receipt_ref"],
         satisfied_gate_ids=receipt["satisfied_gate_ids"],
     )
@@ -165,6 +178,10 @@ def evaluate_study_lifecycle_reactivation_authority(
         "domain_id": "medautoscience",
         "authorization_ref": authorization["authorization_ref"],
         "operations_sha256": operations_sha256,
+        "materialization_scope_sha256": materialization_scope_sha256,
+        "absent_relative_path_preconditions": (
+            absent_relative_path_preconditions
+        ),
         "operations": operations,
     }
     return _finalize(
@@ -253,6 +270,28 @@ def _normalize_request(request: Mapping[str, Any]) -> dict[str, Any]:
         raise RequestShapeError(
             "user authority evidence recorded_at must match wakeup requested_at"
         )
+    if intake["record"]["recorded_at"] != wakeup["requested_at"]:
+        raise RequestShapeError(
+            "reviewer_revision intake recorded_at must match wakeup requested_at"
+        )
+    lifecycle = current_lifecycle["record"]
+    requested_at = _timestamp_instant(wakeup["requested_at"])
+    if requested_at <= _timestamp_instant(lifecycle["recorded_at"]):
+        raise RequestShapeError(
+            "wakeup requested_at must be strictly later than current lifecycle recorded_at"
+        )
+    if requested_at <= _timestamp_instant(lifecycle["materialized_at"]):
+        raise RequestShapeError(
+            "wakeup requested_at must be strictly later than current lifecycle materialized_at"
+        )
+    if (
+        authority_context["requested_action_id"]
+        != intake["record"]["first_owning_stage_id"]
+    ):
+        raise RequestShapeError(
+            "authority_context requested_action_id must match reviewer_revision "
+            "intake first_owning_stage_id"
+        )
     exact_bindings = (
         (
             "user_authority",
@@ -288,7 +327,6 @@ def _normalize_request(request: Mapping[str, Any]) -> dict[str, Any]:
             raise RequestShapeError(
                 f"reactivation_request {name} ref/hash does not match injected exact bytes"
             )
-    lifecycle = current_lifecycle["record"]
     if (
         reactivation["observed_lifecycle_state"] != lifecycle["lifecycle_state"]
         or reactivation["observed_lifecycle_generation"] != lifecycle["generation"]
@@ -306,7 +344,9 @@ def _normalize_request(request: Mapping[str, Any]) -> dict[str, Any]:
         raise RequestShapeError(
             "study lifecycle projection ref/hash must match current_lifecycle"
         )
-    if lifecycle_target["current_payload"] != current_lifecycle["record"]:
+    if not _json_deep_equal(
+        lifecycle_target["current_payload"], current_lifecycle["record"]
+    ):
         raise RequestShapeError(
             "study lifecycle projection payload must match current_lifecycle.record"
         )
@@ -505,15 +545,37 @@ def _normalize_study_identity(value: Any) -> dict[str, str]:
 def _normalize_current_lifecycle(value: Any) -> dict[str, Any]:
     field = "current_lifecycle"
     payload = mapping(value, field)
-    exact_keys(payload, {"lifecycle_ref", "lifecycle_sha256", "record"}, field)
+    exact_keys(
+        payload,
+        {
+            "lifecycle_ref",
+            "lifecycle_sha256",
+            "lifecycle_bytes_base64",
+            "lifecycle_byte_size",
+            "record",
+        },
+        field,
+    )
+    lifecycle_sha256 = _digest_text(
+        payload["lifecycle_sha256"], f"{field}.lifecycle_sha256"
+    )
+    lifecycle_bytes_base64, lifecycle_byte_size, raw_record = (
+        _normalize_exact_json_object(
+            encoded_value=payload["lifecycle_bytes_base64"],
+            byte_size_value=payload["lifecycle_byte_size"],
+            expected_sha256=lifecycle_sha256,
+            supplied_record=payload["record"],
+            field=field,
+        )
+    )
     return {
         "lifecycle_ref": _file_ref(
             payload["lifecycle_ref"], f"{field}.lifecycle_ref"
         ),
-        "lifecycle_sha256": _digest_text(
-            payload["lifecycle_sha256"], f"{field}.lifecycle_sha256"
-        ),
-        "record": _normalize_lifecycle_record(payload["record"]),
+        "lifecycle_sha256": lifecycle_sha256,
+        "lifecycle_bytes_base64": lifecycle_bytes_base64,
+        "lifecycle_byte_size": lifecycle_byte_size,
+        "record": _normalize_lifecycle_record(raw_record),
     }
 
 
@@ -595,9 +657,31 @@ def _normalize_lifecycle_record(value: Any) -> dict[str, Any]:
 def _normalize_revision_intake(value: Any) -> dict[str, Any]:
     field = "reviewer_revision_intake"
     payload = mapping(value, field)
-    exact_keys(payload, {"intake_ref", "intake_sha256", "record"}, field)
+    exact_keys(
+        payload,
+        {
+            "intake_ref",
+            "intake_sha256",
+            "intake_bytes_base64",
+            "intake_byte_size",
+            "record",
+        },
+        field,
+    )
+    intake_sha256 = _digest_text(
+        payload["intake_sha256"], f"{field}.intake_sha256"
+    )
+    intake_bytes_base64, intake_byte_size, raw_record = (
+        _normalize_exact_json_object(
+            encoded_value=payload["intake_bytes_base64"],
+            byte_size_value=payload["intake_byte_size"],
+            expected_sha256=intake_sha256,
+            supplied_record=payload["record"],
+            field=field,
+        )
+    )
     record_field = f"{field}.record"
-    record = mapping(payload["record"], record_field)
+    record = raw_record
     exact_keys(
         record,
         {
@@ -635,9 +719,9 @@ def _normalize_revision_intake(value: Any) -> dict[str, Any]:
     )
     return {
         "intake_ref": _file_ref(payload["intake_ref"], f"{field}.intake_ref"),
-        "intake_sha256": _digest_text(
-            payload["intake_sha256"], f"{field}.intake_sha256"
-        ),
+        "intake_sha256": intake_sha256,
+        "intake_bytes_base64": intake_bytes_base64,
+        "intake_byte_size": intake_byte_size,
         "record": {
             "surface_kind": "mas_reviewer_revision_task_intake",
             "schema_version": 1,
@@ -700,9 +784,31 @@ def _normalize_revision_intake(value: Any) -> dict[str, Any]:
 def _normalize_user_authority(value: Any) -> dict[str, Any]:
     field = "user_authority"
     payload = mapping(value, field)
-    exact_keys(payload, {"authority_ref", "authority_sha256", "record"}, field)
+    exact_keys(
+        payload,
+        {
+            "authority_ref",
+            "authority_sha256",
+            "authority_bytes_base64",
+            "authority_byte_size",
+            "record",
+        },
+        field,
+    )
+    authority_sha256 = _digest_text(
+        payload["authority_sha256"], f"{field}.authority_sha256"
+    )
+    authority_bytes_base64, authority_byte_size, raw_record = (
+        _normalize_exact_json_object(
+            encoded_value=payload["authority_bytes_base64"],
+            byte_size_value=payload["authority_byte_size"],
+            expected_sha256=authority_sha256,
+            supplied_record=payload["record"],
+            field=field,
+        )
+    )
     record_field = f"{field}.record"
-    record = mapping(payload["record"], record_field)
+    record = raw_record
     exact_keys(
         record,
         {
@@ -753,9 +859,9 @@ def _normalize_user_authority(value: Any) -> dict[str, Any]:
         "authority_ref": _file_ref(
             payload["authority_ref"], f"{field}.authority_ref"
         ),
-        "authority_sha256": _digest_text(
-            payload["authority_sha256"], f"{field}.authority_sha256"
-        ),
+        "authority_sha256": authority_sha256,
+        "authority_bytes_base64": authority_bytes_base64,
+        "authority_byte_size": authority_byte_size,
         "record": {
             "surface_kind": "mas_explicit_user_authority_evidence",
             "schema_version": 1,
@@ -861,7 +967,20 @@ def _normalize_projection_inventory(value: Any, *, study_id: str) -> dict[str, A
 
 def _normalize_projection_target(value: Any, field: str, *, study_id: str) -> dict[str, Any]:
     payload = mapping(value, field)
-    exact_keys(payload, {"projection_id", "root", "relative_path", "ref", "sha256", "byte_size", "record"}, field)
+    exact_keys(
+        payload,
+        {
+            "projection_id",
+            "root",
+            "relative_path",
+            "ref",
+            "sha256",
+            "bytes_base64",
+            "byte_size",
+            "record",
+        },
+        field,
+    )
     role = enum_text(
         payload.get("projection_id"),
         f"{field}.projection_id",
@@ -876,22 +995,36 @@ def _normalize_projection_target(value: Any, field: str, *, study_id: str) -> di
         if root == "workspace"
         else f"studies/{study_id}/{source_relative_path}"
     )
-    current_byte_size = integer(payload.get("byte_size"), f"{field}.byte_size")
-    if current_byte_size < 1:
-        raise RequestShapeError(f"{field}.byte_size must be positive")
+    current_sha256 = _digest_text(payload.get("sha256"), f"{field}.sha256")
+    current_bytes_base64, current_byte_size, current_payload = (
+        _normalize_exact_json_object(
+            encoded_value=payload.get("bytes_base64"),
+            byte_size_value=payload.get("byte_size"),
+            expected_sha256=current_sha256,
+            supplied_record=payload.get("record"),
+            field=field,
+        )
+    )
     return {
         "role": role,
         "root": root,
         "source_relative_path": source_relative_path,
         "relative_path": target_relative_path,
         "current_ref": _file_ref(payload.get("ref"), f"{field}.ref"),
-        "current_sha256": _digest_text(payload.get("sha256"), f"{field}.sha256"),
+        "current_sha256": current_sha256,
+        "current_bytes_base64": current_bytes_base64,
         "current_byte_size": current_byte_size,
-        "current_payload": mapping(payload.get("record"), f"{field}.record"),
+        "current_payload": current_payload,
     }
 
 
 def _validate_target_paths(study_id: str, targets: Mapping[str, Mapping[str, Any]]) -> None:
+    for role, target in targets.items():
+        if target["relative_path"] != _projection_target_path(role, study_id):
+            raise RequestShapeError(f"projection target path does not match role {role}")
+
+
+def _projection_target_path(role: str, study_id: str) -> str:
     expected = {
         "study_lifecycle_current": f"studies/{study_id}/control/lifecycle.json",
         "workspace_lifecycle_latest": "runtime/artifacts/study_lifecycle_control/latest.json",
@@ -904,9 +1037,21 @@ def _validate_target_paths(study_id: str, targets: Mapping[str, Mapping[str, Any
         "workspace_latest_status": "reports/latest_status.json",
         "workspace_studies_index": "reports/studies_index.json",
     }
-    for role, target in targets.items():
-        if target["relative_path"] != expected[role]:
-            raise RequestShapeError(f"projection target path does not match role {role}")
+    return expected[role]
+
+
+def _absent_relative_path_preconditions(
+    request: Mapping[str, Any],
+) -> list[str]:
+    absent_roles = set(
+        request["projection_inventory"]["absent_optional_projection_ids"]
+    )
+    study_id = request["study_identity"]["study_id"]
+    return [
+        _projection_target_path(role, study_id)
+        for role in _TARGET_ROLE_ORDER
+        if role in absent_roles
+    ]
 
 
 def _active_lifecycle_record(request: Mapping[str, Any]) -> dict[str, Any]:
@@ -1011,7 +1156,9 @@ def _reactivation_receipt(
         "from_sha256": current["lifecycle_sha256"],
         "to_state": "active",
         "to_generation": after_lifecycle["generation"],
-        "after_sha256": _raw_bytes_sha256(canonical_json_bytes(after_lifecycle)),
+        "after_sha256": _raw_bytes_sha256(
+            _strict_canonical_json_bytes(after_lifecycle)
+        ),
         "recorded_at": after_lifecycle["recorded_at"],
         "explicit_user_wakeup": True,
         "allow_stopped_relaunch": wakeup["allow_stopped_relaunch"],
@@ -1025,7 +1172,7 @@ def _reactivation_receipt(
         "materialization_semantics": "journaled_all_or_rollback",
         "provider_completion_is_domain_completion": False,
     }
-    receipt_fingerprint = fingerprint(core)
+    receipt_fingerprint = _strict_fingerprint(core)
     receipt_ref = (
         "mas-study-lifecycle-reactivation:"
         f"{receipt_fingerprint.removeprefix('sha256:')}"
@@ -1063,6 +1210,7 @@ def _materialization_operations(
             targets["workspace_index"]["current_payload"],
             current=current,
             after=after_lifecycle,
+            role="workspace_index",
         ),
         "submission_status": _update_status_projection(
             targets["submission_status"]["current_payload"],
@@ -1076,12 +1224,14 @@ def _materialization_operations(
             targets["workspace_studies_index"]["current_payload"],
             current=current,
             after=after_lifecycle,
+            role="workspace_studies_index",
         )
     if "workspace_latest_status" in targets:
         updated_by_role["workspace_latest_status"] = _update_workspace_latest_status(
             targets["workspace_latest_status"]["current_payload"],
             updated_workspace_index=updated_by_role["workspace_index"],
             event_time=event_time,
+            old_state=old_state,
         )
     if "publication_current_package_status" in targets:
         updated_by_role["publication_current_package_status"] = _update_status_projection(
@@ -1114,8 +1264,8 @@ def _materialization_operations(
             after_lifecycle,
         ),
         (
-            f"studies/{study_id}/artifacts/controller/lifecycle_control/"
-            f"reactivation_receipts/{stamp}-g{generation:04d}.json",
+            f"studies/{study_id}/artifacts/controller/lifecycle_control/history/"
+            f"{stamp}-g{generation:04d}-reactivation-receipt.json",
             receipt,
         ),
         (
@@ -1131,6 +1281,16 @@ def _materialization_operations(
     return operations
 
 
+def _require_projection_fields(
+    payload: Mapping[str, Any], role: str, required: set[str]
+) -> None:
+    missing = sorted(required - set(payload))
+    if missing:
+        raise ProjectionCurrentnessError(
+            f"{role} projection missing required fields: {', '.join(missing)}"
+        )
+
+
 def _update_workspace_lifecycle(
     value: Mapping[str, Any],
     *,
@@ -1138,8 +1298,32 @@ def _update_workspace_lifecycle(
     after: Mapping[str, Any],
 ) -> dict[str, Any]:
     payload = deepcopy(mapping(value, "workspace_lifecycle_latest.current_payload"))
+    _require_projection_fields(
+        payload,
+        "workspace_lifecycle_latest",
+        {
+            "schema_version",
+            "surface_kind",
+            "recorded_at",
+            "status_counts",
+            "changed_study_id",
+            "changed_generation",
+            "studies",
+        },
+    )
     if payload.get("schema_version") != "mas.workspace_study_lifecycle_control.v1":
         raise ProjectionCurrentnessError("workspace lifecycle schema is unsupported")
+    if payload.get("surface_kind") != "workspace_study_lifecycle_control":
+        raise ProjectionCurrentnessError("workspace lifecycle surface is unsupported")
+    if payload.get("changed_study_id") != current["study_id"]:
+        raise ProjectionCurrentnessError(
+            "workspace lifecycle changed_study_id does not match current lifecycle"
+        )
+    if payload.get("changed_generation") != current["generation"]:
+        raise ProjectionCurrentnessError(
+            "workspace lifecycle changed_generation does not match current lifecycle"
+        )
+    _timestamp(payload["recorded_at"], "workspace lifecycle recorded_at")
     studies = sequence(payload.get("studies"), "workspace lifecycle studies")
     matches = [
         index
@@ -1170,8 +1354,19 @@ def _update_workspace_index(
     *,
     current: Mapping[str, Any],
     after: Mapping[str, Any],
+    role: str,
 ) -> dict[str, Any]:
-    payload = deepcopy(mapping(value, "workspace_index.current_payload"))
+    payload = deepcopy(mapping(value, f"{role}.current_payload"))
+    _require_projection_fields(
+        payload,
+        role,
+        {"schema_version", "surface_kind", "recorded_at", "status_counts", "studies"},
+    )
+    if payload.get("schema_version") != "mas.workspace_index.v1":
+        raise ProjectionCurrentnessError(f"{role} schema is unsupported")
+    if payload.get("surface_kind") != "workspace_index":
+        raise ProjectionCurrentnessError(f"{role} surface is unsupported")
+    _timestamp(payload["recorded_at"], f"{role} recorded_at")
     studies = sequence(payload.get("studies"), "workspace index studies")
     matches = [
         index
@@ -1183,8 +1378,25 @@ def _update_workspace_index(
             "workspace index must contain exactly one current study entry"
         )
     study = dict(studies[matches[0]])
+    _require_projection_fields(
+        study,
+        f"{role} current study entry",
+        {
+            "study_id",
+            "status",
+            "business_status",
+            "lifecycle_state",
+            "package_status",
+            "submission_ready",
+        },
+    )
     for field in ("status", "business_status", "lifecycle_state"):
         if study.get(field) != current["lifecycle_state"]:
+            raise ProjectionCurrentnessError(
+                f"workspace index {field} does not match current lifecycle"
+            )
+    for field in ("package_status", "submission_ready"):
+        if not _json_deep_equal(study[field], current[field]):
             raise ProjectionCurrentnessError(
                 f"workspace index {field} does not match current lifecycle"
             )
@@ -1214,8 +1426,36 @@ def _update_workspace_latest_status(
     *,
     updated_workspace_index: Mapping[str, Any],
     event_time: str,
+    old_state: str,
 ) -> dict[str, Any]:
     payload = deepcopy(mapping(value, "workspace_latest_status.current_payload"))
+    _require_projection_fields(
+        payload,
+        "workspace_latest_status",
+        {
+            "surface_kind",
+            "schema_version",
+            "status_counts",
+            "next_required_actions",
+            "recorded_at",
+        },
+    )
+    if payload.get("surface_kind") != "workspace_latest_status":
+        raise ProjectionCurrentnessError("workspace latest status surface is unsupported")
+    if type(payload.get("schema_version")) is not int or payload["schema_version"] != 1:
+        raise ProjectionCurrentnessError(
+            "workspace latest status schema_version must be integer 1"
+        )
+    _timestamp(payload["recorded_at"], "workspace latest status recorded_at")
+    text_list(
+        payload["next_required_actions"],
+        "workspace latest status next_required_actions",
+    )
+    expected_counts = _updated_status_counts(payload["status_counts"], old_state)
+    if expected_counts != updated_workspace_index["status_counts"]:
+        raise ProjectionCurrentnessError(
+            "workspace latest status counts do not match workspace index currentness"
+        )
     payload["status_counts"] = deepcopy(updated_workspace_index["status_counts"])
     payload["next_required_actions"] = list(
         dict.fromkeys(
@@ -1234,23 +1474,49 @@ def _update_status_projection(
     value: Mapping[str, Any], *, old_state: str, role: str, after: Mapping[str, Any]
 ) -> dict[str, Any]:
     payload = deepcopy(mapping(value, f"{role}.current_payload"))
+    required = {
+        "surface_kind",
+        "schema_version",
+        "lifecycle_state",
+        "status",
+        "submission_ready",
+        "promotion_allowed",
+        "recorded_at",
+    }
+    if role == "submission_status":
+        required.add("publication_verdict")
+    _require_projection_fields(payload, role, required)
+    if payload.get("surface_kind") != "study_current_package_status":
+        raise ProjectionCurrentnessError(f"{role} surface is unsupported")
+    if type(payload.get("schema_version")) is not int or payload["schema_version"] != 1:
+        raise ProjectionCurrentnessError(f"{role} schema_version must be integer 1")
     if payload.get("lifecycle_state") != old_state:
         raise ProjectionCurrentnessError(
             f"{role} lifecycle_state does not match current lifecycle"
         )
     if payload.get("submission_ready") is not False:
         raise ProjectionCurrentnessError(f"{role} unexpectedly claims submission ready")
-    if "promotion_allowed" in payload and payload.get("promotion_allowed") is not False:
+    if payload.get("promotion_allowed") is not False:
         raise ProjectionCurrentnessError(f"{role} unexpectedly permits promotion")
+    if payload.get("status") != "not_ready":
+        raise ProjectionCurrentnessError(f"{role} status must remain not_ready")
+    if role == "submission_status" and payload.get("publication_verdict") != "not_ready":
+        raise ProjectionCurrentnessError(
+            "submission_status publication_verdict must remain not_ready"
+        )
+    if "reason" not in payload and "reason_code" not in payload:
+        raise ProjectionCurrentnessError(
+            f"{role} must carry a current reason or reason_code"
+        )
+    _timestamp(payload["recorded_at"], f"{role} recorded_at")
     payload["lifecycle_state"] = "active"
     if "reason" in payload:
-        payload["reason"] = after["reason_summary"]
+        payload["reason"] = after["reason_code"]
     if "reason_code" in payload:
         payload["reason_code"] = after["reason_code"]
     if "reason_summary" in payload:
         payload["reason_summary"] = after["reason_summary"]
-    if "recorded_at" in payload:
-        payload["recorded_at"] = after["recorded_at"]
+    payload["recorded_at"] = after["recorded_at"]
     return payload
 
 
@@ -1258,12 +1524,22 @@ def _update_stage_index(
     value: Mapping[str, Any], *, old_state: str, study_id: str
 ) -> dict[str, Any]:
     payload = deepcopy(mapping(value, "stage_index.current_payload"))
+    _require_projection_fields(
+        payload,
+        "stage_index",
+        {"surface_kind", "schema_version", "study_id", "lifecycle_state", "stages"},
+    )
+    if payload.get("surface_kind") != "mas_stage_index":
+        raise ProjectionCurrentnessError("stage index surface is unsupported")
+    if type(payload.get("schema_version")) is not int or payload["schema_version"] != 1:
+        raise ProjectionCurrentnessError("stage index schema_version must be integer 1")
     if payload.get("study_id") != study_id:
         raise ProjectionCurrentnessError("stage index study_id does not match")
     if payload.get("lifecycle_state") != old_state:
         raise ProjectionCurrentnessError(
             "stage index lifecycle_state does not match current lifecycle"
         )
+    sequence(payload["stages"], "stage index stages")
     payload["lifecycle_state"] = "active"
     return payload
 
@@ -1288,7 +1564,7 @@ def _updated_status_counts(value: Any, old_state: str) -> dict[str, int]:
 def _replace_operation(
     target: Mapping[str, Any], after_json: Mapping[str, Any]
 ) -> dict[str, Any]:
-    after_bytes = canonical_json_bytes(after_json)
+    after_bytes = _strict_canonical_json_bytes(after_json)
     return {
         "target_relative_path": target["relative_path"],
         "precondition": {
@@ -1304,7 +1580,7 @@ def _replace_operation(
 
 def _create_operation(path: str, after_json: Mapping[str, Any]) -> dict[str, Any]:
     normalized_path = _relative_path(path, "history target path")
-    after_bytes = canonical_json_bytes(after_json)
+    after_bytes = _strict_canonical_json_bytes(after_json)
     return {
         "target_relative_path": normalized_path,
         "precondition": {"kind": "absent"},
@@ -1318,6 +1594,8 @@ def _cas_authorization(
     *,
     request_id: str,
     operations_sha256: str,
+    materialization_scope_sha256: str,
+    absent_relative_path_preconditions: list[str],
     authority_receipt_ref: str,
     satisfied_gate_ids: list[str],
 ) -> dict[str, Any]:
@@ -1328,11 +1606,15 @@ def _cas_authorization(
         "request_id": request_id,
         "domain_id": "medautoscience",
         "operations_sha256": operations_sha256,
+        "materialization_scope_sha256": materialization_scope_sha256,
+        "absent_relative_path_preconditions": deepcopy(
+            absent_relative_path_preconditions
+        ),
         "authorized": True,
         "authority_receipt_ref": authority_receipt_ref,
         "satisfied_gate_ids": list(satisfied_gate_ids),
     }
-    authorization_fingerprint = fingerprint(core)
+    authorization_fingerprint = _strict_fingerprint(core)
     return {
         **core,
         "authorization_ref": (
@@ -1414,7 +1696,7 @@ def _finalize(
         "error": deepcopy(error) if error is not None else None,
         "authority_boundary": deepcopy(_AUTHORITY_BOUNDARY),
     }
-    decision_fingerprint = fingerprint(core)
+    decision_fingerprint = _strict_fingerprint(core)
     return {
         **core,
         "decision_id": (
@@ -1423,6 +1705,94 @@ def _finalize(
         ),
         "decision_fingerprint": decision_fingerprint,
     }
+
+
+def _normalize_exact_json_object(
+    *,
+    encoded_value: Any,
+    byte_size_value: Any,
+    expected_sha256: str,
+    supplied_record: Any,
+    field: str,
+) -> tuple[str, int, dict[str, Any]]:
+    if not isinstance(encoded_value, str) or not encoded_value:
+        raise RequestShapeError(f"{field} bytes_base64 must be a non-empty string")
+    try:
+        raw_bytes = base64.b64decode(encoded_value, validate=True)
+    except (binascii.Error, ValueError) as error:
+        raise RequestShapeError(f"{field} bytes_base64 is malformed") from error
+    if base64.b64encode(raw_bytes).decode("ascii") != encoded_value:
+        raise RequestShapeError(f"{field} bytes_base64 must be canonical base64")
+
+    byte_size = integer(byte_size_value, f"{field} byte_size")
+    if byte_size < 1:
+        raise RequestShapeError(f"{field} byte_size must be positive")
+    if len(raw_bytes) != byte_size:
+        raise RequestShapeError(f"{field} byte_size does not match decoded bytes")
+    if hashlib.sha256(raw_bytes).hexdigest() != expected_sha256:
+        raise RequestShapeError(f"{field} sha256 does not match decoded bytes")
+
+    try:
+        json_text = raw_bytes.decode("utf-8", errors="strict")
+    except UnicodeDecodeError as error:
+        raise RequestShapeError(f"{field} bytes must be strict UTF-8") from error
+    try:
+        parsed = json.loads(
+            json_text,
+            object_pairs_hook=_json_object_without_duplicate_keys,
+            parse_constant=_reject_json_constant,
+            parse_float=_strict_json_float,
+        )
+    except (json.JSONDecodeError, ValueError) as error:
+        raise RequestShapeError(
+            f"{field} bytes must contain one strict JSON object: {error}"
+        ) from error
+    if not isinstance(parsed, dict):
+        raise RequestShapeError(f"{field} bytes must contain a JSON object")
+
+    record = mapping(supplied_record, f"{field}.record")
+    if not _json_deep_equal(parsed, record):
+        raise RequestShapeError(
+            f"{field} decoded JSON must deep-equal the supplied record"
+        )
+    return encoded_value, byte_size, parsed
+
+
+def _json_object_without_duplicate_keys(
+    pairs: list[tuple[str, Any]],
+) -> dict[str, Any]:
+    result: dict[str, Any] = {}
+    for key, value in pairs:
+        if key in result:
+            raise ValueError(f"duplicate JSON object key {key!r}")
+        result[key] = value
+    return result
+
+
+def _reject_json_constant(value: str) -> None:
+    raise ValueError(f"non-standard JSON constant {value!r}")
+
+
+def _strict_json_float(value: str) -> float:
+    parsed = float(value)
+    if not math.isfinite(parsed):
+        raise ValueError(f"non-finite JSON number {value!r}")
+    return parsed
+
+
+def _json_deep_equal(left: Any, right: Any) -> bool:
+    if type(left) is not type(right):
+        return False
+    if isinstance(left, dict):
+        return left.keys() == right.keys() and all(
+            _json_deep_equal(left[key], right[key]) for key in left
+        )
+    if isinstance(left, list):
+        return len(left) == len(right) and all(
+            _json_deep_equal(left_item, right_item)
+            for left_item, right_item in zip(left, right, strict=True)
+        )
+    return bool(left == right)
 
 
 def _timestamp(value: Any, field: str) -> str:
@@ -1434,6 +1804,10 @@ def _timestamp(value: Any, field: str) -> str:
     if parsed.tzinfo is None:
         raise RequestShapeError(f"{field} must include a timezone")
     return parsed.astimezone(timezone.utc).isoformat().replace("+00:00", "Z")
+
+
+def _timestamp_instant(value: str) -> datetime:
+    return datetime.fromisoformat(value.replace("Z", "+00:00"))
 
 
 def _relative_path(value: Any, field: str) -> str:
@@ -1480,13 +1854,26 @@ def _history_stamp(value: str) -> str:
 
 
 def _json_fingerprint(value: Any) -> str:
-    body = json.dumps(
-        value,
-        ensure_ascii=True,
-        sort_keys=True,
-        separators=(",", ":"),
-    ).encode("utf-8")
-    return _bytes_sha256(body)
+    return _strict_fingerprint(value)
+
+
+def _strict_canonical_json_bytes(value: Any) -> bytes:
+    try:
+        return json.dumps(
+            value,
+            ensure_ascii=True,
+            sort_keys=True,
+            separators=(",", ":"),
+            allow_nan=False,
+        ).encode("utf-8")
+    except (TypeError, ValueError) as error:
+        raise RequestShapeError(
+            "authority JSON contains an unsupported or non-finite value"
+        ) from error
+
+
+def _strict_fingerprint(value: Any) -> str:
+    return _bytes_sha256(_strict_canonical_json_bytes(value))
 
 
 def _bytes_sha256(value: bytes) -> str:

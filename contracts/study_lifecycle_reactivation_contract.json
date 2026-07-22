@@ -15,11 +15,14 @@
     "record_is_owner_receipt": false,
     "instruction_text_normalization": "utf8_lf_no_surrounding_whitespace",
     "instruction_sha256_recomputed_by_handler": true,
+    "recorded_at_must_equal_requested_at": true,
     "opl_role": "contained_exact_byte_read_and_injection_only"
   },
   "revision_intake": {
     "surface_kind": "mas_reviewer_revision_task_intake",
     "accepted_statuses": ["accepted", "active"],
+    "recorded_at_must_equal_requested_at": true,
+    "first_owning_stage_must_equal_requested_action": true,
     "required_downstream_bindings": [
       "revision_checklist_ref_and_sha256",
       "independent_review_packet_ref_and_sha256",
@@ -32,9 +35,48 @@
     "same_user_authority_ref_and_sha256_required": true,
     "same_user_authority_flags_required": true,
     "stopped_requires_allow_stopped_relaunch": true,
+    "requested_at_strictly_later_than_lifecycle_recorded_at": true,
+    "requested_at_strictly_later_than_lifecycle_materialized_at": true,
+    "stale_authority_or_intake_replay_allowed": false,
     "before_generation_and_exact_hash_cas_required": true,
     "projection_discovery_must_be_complete": true
   },
+  "exact_byte_binding_fields": {
+    "user_authority": {
+      "bytes_base64": "authority_bytes_base64",
+      "byte_size": "authority_byte_size",
+      "sha256": "authority_sha256",
+      "record": "record"
+    },
+    "reviewer_revision_intake": {
+      "bytes_base64": "intake_bytes_base64",
+      "byte_size": "intake_byte_size",
+      "sha256": "intake_sha256",
+      "record": "record"
+    },
+    "current_lifecycle": {
+      "bytes_base64": "lifecycle_bytes_base64",
+      "byte_size": "lifecycle_byte_size",
+      "sha256": "lifecycle_sha256",
+      "record": "record"
+    },
+    "projection_target": {
+      "bytes_base64": "bytes_base64",
+      "byte_size": "byte_size",
+      "sha256": "sha256",
+      "record": "record"
+    }
+  },
+  "exact_byte_handler_validation": [
+    "strict_base64_decode",
+    "canonical_base64_encoding",
+    "exact_byte_size",
+    "raw_sha256_recomputation",
+    "strict_utf8",
+    "strict_json_object_without_duplicate_keys",
+    "type_strict_record_deep_equality",
+    "domain_semantics_after_byte_validation"
+  ],
   "two_phase_materialization": {
     "phase_1": "MAS pure handler returns a flat content-bound reactivation receipt, flat CAS authorization, and OPL exact-bytes request without filesystem I/O.",
     "phase_2": "OPL verifies every exact precondition and canonical base64 replacement, then journals and materializes all targets or rolls all targets back.",
@@ -45,6 +87,13 @@
       "replacement_sha256",
       "replacement_byte_size"
     ],
+    "absent_relative_path_preconditions_field": "absent_relative_path_preconditions",
+    "materialization_scope_sha256_field": "materialization_scope_sha256",
+    "materialization_scope_digest_payload": [
+      "operations",
+      "absent_relative_path_preconditions"
+    ],
+    "optional_absence_rechecked_before_journal_switch": true,
     "journaled_all_or_rollback_required": true,
     "in_progress_journal_blocks_admission": true,
     "partial_commit_allowed": false,
@@ -65,8 +114,11 @@
     "study_lifecycle_reactivation_receipt",
     "workspace_lifecycle_history"
   ],
+  "reactivation_receipt_path_policy": "artifacts/controller/lifecycle_control/history/<stamp>-g<generation>-reactivation-receipt.json",
   "projection_write_boundary": {
     "lifecycle_state_reason_and_recorded_at_may_change": true,
+    "status_reason_field_preserves_reason_code_semantics": true,
+    "status_reason_summary_changes_only_when_field_exists": true,
     "package_status_preserved": true,
     "milestone_package_delivered_preserved": true,
     "submission_ready_preserved": true,
@@ -107,6 +159,8 @@
     "opl_may_produce_user_instruction_evidence": false,
     "opl_may_mutate_undeclared_targets": false,
     "opl_may_sign_mas_receipt": false,
+    "supported_surfaces_null_is_not_runtime_access_control": true,
+    "handler_raw_byte_self_validation_required": true,
     "provider_completion_may_change_lifecycle": false,
     "public_action": false
   }
