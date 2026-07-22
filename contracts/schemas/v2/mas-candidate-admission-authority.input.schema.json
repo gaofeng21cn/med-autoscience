@@ -55,6 +55,12 @@
       "minLength": 1,
       "pattern": ".*\\S.*"
     },
+    "study_id": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 128,
+      "pattern": "^[a-z0-9]+(?:[._-][a-z0-9]+)*$"
+    },
     "nullable_non_empty_text": {
       "anyOf": [
         {
@@ -162,7 +168,7 @@
           "$ref": "#/$defs/non_empty_text"
         },
         "study_id": {
-          "$ref": "#/$defs/non_empty_text"
+          "$ref": "#/$defs/study_id"
         },
         "mission_id": {
           "$ref": "#/$defs/non_empty_text"
