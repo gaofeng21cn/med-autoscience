@@ -1,13 +1,14 @@
 {
   "surface_kind": "mas_exact_byte_validator_release_set_receipt",
   "schema_version": 1,
-  "release_set_id": "mas-validator-0.2.16",
+  "release_set_id": "mas-validator-0.2.17",
   "package_id": "mas",
-  "package_version": "0.2.16",
-  "source_ref": "refs/tags/v0.2.16",
+  "package_version": "0.2.17",
+  "source_ref": "refs/tags/v0.2.17",
   "supported_scope": {
     "kind": "exact_byte_domain_validator",
     "generation_manifest_validation": true,
+    "qualification_work_item_provisioning_validation": true,
     "candidate_admission_validation": true,
     "paper_mission_validation": true,
     "stage_scope_validation": true
@@ -32,10 +33,13 @@
     "repo_gate_ref": "scripts/verify.sh full",
     "focused_test_refs": [
       "tests/test_candidate_admission_authority_handler.py",
-      "tests/test_paper_mission_authority_handler_v2.py"
+      "tests/test_paper_mission_authority_handler_v2.py",
+      "tests/test_qualification_work_item_provisioning_authority.py"
     ],
     "schema_refs": [
       "contracts/schemas/v2/mas-evidence-generation-manifest.schema.json",
+      "contracts/schemas/v2/mas-qualification-work-item-provisioning-authority.input.schema.json",
+      "contracts/schemas/v2/mas-qualification-work-item-provisioning-authority.output.schema.json",
       "contracts/schemas/v2/mas-candidate-admission-authority.input.schema.json",
       "contracts/schemas/v2/mas-candidate-admission-authority.output.schema.json",
       "contracts/schemas/v2/mas-paper-mission-authority.input.schema.json",
