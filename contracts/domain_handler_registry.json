@@ -27,6 +27,14 @@
       }
     },
     {
+      "handler_id": "mas.build-dependency-currentness-authority-evaluate",
+      "binding": {
+        "kind": "python_callable",
+        "module": "med_autoscience.authority_handlers.build_dependency_currentness",
+        "callable": "evaluate_build_dependency_currentness_authority"
+      }
+    },
+    {
       "handler_id": "mas.agent-lab-self-evolution-closeout",
       "binding": {
         "kind": "python_callable",

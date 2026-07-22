@@ -155,9 +155,9 @@ Medical papers do not finish in one generation. The system can keep multiple cla
   <summary><strong>Start here if you are handing this repo to Codex or another agent</strong></summary>
 
 - Install, update, or remove the MAS package with `opl packages install mas`, `opl packages update mas`, or `opl packages uninstall mas`. Installation resolves the required `mas-scholar-skills` closure in the same OPL transaction.
-- Cloning this repository provides the MAS declarative pack, not an OPL runtime installation. OPL discovers `contracts/domain_descriptor.json`, compiles six public Stage actions plus three internal authority actions, generates CLI/MCP/Skill/product surfaces, and hosts runtime/workbench behavior.
+- Cloning this repository provides the MAS declarative pack, not an OPL runtime installation. OPL discovers `contracts/domain_descriptor.json`, compiles six public Stage actions plus four internal authority actions, generates CLI/MCP/Skill/product surfaces, and hosts runtime/workbench behavior.
 - The canonical domain id is `mas`. `med-autoscience` is only the repository, package, and plugin locator.
-- The repo-root `agent/` pack and action schemas are the interface source. Public execution uses six OPL-hosted Stage actions. Lifecycle reactivation, candidate admission, and paper-mission authority evaluation are internal registry-bound MAS callables, not user commands.
+- The repo-root `agent/` pack and action schemas are the interface source. Public execution uses six OPL-hosted Stage actions. Lifecycle reactivation, candidate admission, build-dependency currentness, and paper-mission authority evaluation are internal registry-bound MAS callables, not user commands.
 - Runtime environments are prepared by OPL from `contracts/runtime_environment_requirements.json`; MAS does not install Python/R packages or plugins from its import path or workspace bootstrap.
 - The only current stage-route authority is `Codex CLI selected declared stage`. `StageOutcome`, legacy `NextActionEnvelope`, queue, attempt, provider, status, and workbench state are nonbinding context or observation; they cannot select the next stage or prove paper progress.
 - MAS may be used through its Codex skill or an OPL-hosted interface. Both routes return to the same MAS medical truth, quality, publication, and artifact authority surfaces.

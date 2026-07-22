@@ -261,6 +261,7 @@ def finalize_bounded_analysis_producer_snapshot_closeout(
     generation_id: str,
     generation_ref: str,
     source_refs_by_member_id: Mapping[str, str],
+    clinical_analysis_identity_admission: Mapping[str, Any] | None = None,
     environ: Mapping[str, str] | None = None,
 ) -> dict[str, Any]:
     """Build and inject one statistical snapshot request for a producer Attempt."""
@@ -270,6 +271,11 @@ def finalize_bounded_analysis_producer_snapshot_closeout(
         artifacts=artifacts,
         generation_id=generation_id,
         manifest_scope="analysis_generation",
+        clinical_analysis_identity_admission=(
+            dict(clinical_analysis_identity_admission)
+            if clinical_analysis_identity_admission is not None
+            else None
+        ),
     )
     statistical_source_refs = _statistical_source_refs(
         generation_manifest=generation_manifest,
@@ -284,6 +290,11 @@ def finalize_bounded_analysis_producer_snapshot_closeout(
         workspace_root=str(workspace_root),
         source_refs_by_member_id=statistical_source_refs,
         authority_issuer=authority_issuer,
+        clinical_analysis_identity_admission=(
+            dict(clinical_analysis_identity_admission)
+            if clinical_analysis_identity_admission is not None
+            else None
+        ),
     )
     if bundle["generation_manifest"] != generation_manifest:
         raise RequestShapeError(

@@ -136,6 +136,10 @@ def evaluate_candidate_admission_authority(
             typed_blocker=_typed_blocker(normalized),
         )
 
+    identity_admission = _clinical_identity_admission_result(normalized)
+    if identity_admission is not None:
+        return identity_admission
+
     verdict = normalized["adjudicator_receipt"]["verdict"]
     if verdict == "route_back":
         return _finalize(
@@ -1164,6 +1168,68 @@ def _route_back(request: Mapping[str, Any]) -> dict[str, Any]:
         "authorizes_manuscript_consumption": False,
         "requires_host_exact_byte_persistence": True,
     }
+
+
+def _clinical_identity_admission_result(
+    request: Mapping[str, Any],
+) -> dict[str, Any] | None:
+    manifest = request["generation_manifest"]
+    if manifest["schema_version"] != 2:
+        return None
+    admission = manifest.get("clinical_analysis_identity_admission")
+    if admission is None:
+        if not any(
+            item["role"] == "clinical_analysis_input_identity"
+            for item in manifest["artifacts"]
+        ):
+            return None
+        return _finalize(
+            request,
+            status="route_back",
+            route_back={
+                "route_code": "candidate_evidence_incomplete",
+                "candidate_id": request["candidate"]["candidate_id"],
+                "candidate_ref": _candidate_exact_ref(request["candidate"]),
+                "next_owner": "baseline_and_evidence_setup",
+                "resume_condition": (
+                    "materialize and adjudicate the exact clinical analysis input "
+                    "identity before candidate admission"
+                ),
+                "authorizes_manuscript_consumption": False,
+                "requires_host_exact_byte_persistence": True,
+            },
+        )
+    if admission["status"] == "adjudicator_required":
+        return None
+    reason_code = admission["reason_codes"][0]
+    resume_condition = "; ".join(admission["unresolved_items"])
+    if admission["status"] == "open_human_gate":
+        return _finalize(
+            request,
+            status="human_gate",
+            human_gate={
+                "gate_kind": "human_decision",
+                "reason_code": reason_code,
+                "evidence_refs": list(admission["human_gate_refs"]),
+                "next_owner": admission["next_owner"],
+                "resume_condition": resume_condition,
+                "authorizes_manuscript_consumption": False,
+                "requires_host_exact_byte_persistence": True,
+            },
+        )
+    return _finalize(
+        request,
+        status="route_back",
+        route_back={
+            "route_code": "candidate_evidence_incomplete",
+            "candidate_id": request["candidate"]["candidate_id"],
+            "candidate_ref": _candidate_exact_ref(request["candidate"]),
+            "next_owner": admission["next_owner"],
+            "resume_condition": resume_condition,
+            "authorizes_manuscript_consumption": False,
+            "requires_host_exact_byte_persistence": True,
+        },
+    )
 
 
 def _waiver_result(request: Mapping[str, Any]) -> dict[str, Any]:

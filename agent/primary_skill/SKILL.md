@@ -25,7 +25,7 @@ Choose the earliest unresolved owning Stage action from the installed OPL-genera
 - `review_and_quality_gate`: run independent scientific, statistical, evidence-integrity, reference, figure/table, or manuscript review.
 - `finalize_and_publication_handoff`: assemble the final publication handoff after current review evidence and explicit human submission authority.
 
-`study_lifecycle_reactivation_authority_evaluate`, `candidate_admission_authority_evaluate`, and `paper_mission_authority_evaluate` are internal registry-bound authority actions. They have no public CLI, MCP, Skill, product-entry, OpenAI, or AI SDK route and must not be invoked as user actions.
+`study_lifecycle_reactivation_authority_evaluate`, `candidate_admission_authority_evaluate`, `build_dependency_currentness_authority_evaluate`, and `paper_mission_authority_evaluate` are internal registry-bound authority actions. They have no public CLI, MCP, Skill, product-entry, OpenAI, or AI SDK route and must not be invoked as user actions.
 
 ## Default Workflow
 
@@ -33,9 +33,10 @@ Choose the earliest unresolved owning Stage action from the installed OPL-genera
 2. For an inactive study receiving an explicit manuscript-revision instruction, first persist durable user-instruction evidence and a `reviewer_revision` intake that binds the full checklist, independent review packet, first owning Stage, and allowed revision scope. Use the hosted lifecycle admission flow; runtime activity alone never reactivates MAS business truth.
 3. Preserve one OPL StageRun lineage and exact source/data/artifact refs while Codex routes among declared MAS stages.
 4. Use the installed `mas-scholar-skills` capability package for focused medical methods. Acquire another external Skill only for a named or demonstrated coverage gap after provenance, permissions, data/credential scope, and compatibility review.
-5. Prepare the declarative runtime environment only when the selected analysis/display work requires it. An environment receipt proves execution readiness only, never medical or publication quality.
-6. Separate producing and independent reviewer/auditor invocations, task records, and receipts before closing a formal quality gate.
-7. Freeze one candidate after bounded previews, then run complete export, exact-byte inventory, and affected independent review once for that candidate.
+5. For every initial draft, apply the MAS-owned `initial_draft_evidence_integrity_requirements` in `contracts/manuscript_first_draft_quality_policy.json` at their declared earliest Stage owners. Missing or unresolved requirements are quality debt and cannot be hidden by prose, Skill output, render success, or runtime completion.
+6. Prepare the declarative runtime environment only when the selected analysis/display work requires it. An environment receipt proves execution readiness only, never medical or publication quality.
+7. Separate producing and independent reviewer/auditor invocations, task records, and receipts before closing a formal quality gate.
+8. Freeze one candidate after bounded previews, then run complete export, exact-byte inventory, and affected independent review once for that candidate.
 
 ## Quality And Hard Stops
 

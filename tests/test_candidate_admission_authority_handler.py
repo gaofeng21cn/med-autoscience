@@ -10,6 +10,9 @@ from jsonschema import Draft202012Validator
 from med_autoscience.authority_handlers.candidate_admission import (
     evaluate_candidate_admission_authority,
 )
+from med_autoscience.authority_handlers._generation_manifest import (
+    build_review_scopes,
+)
 
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -225,6 +228,93 @@ def test_candidate_hard_and_human_gates_preserve_authority_boundary(
     result = _evaluate(human)
     assert result["status"] == "human_gate"
     assert result["human_gate"]["authorizes_manuscript_consumption"] is False
+
+
+def test_clinical_identity_admission_controls_only_applicable_v2_analysis(
+    authority_records: Any,
+) -> None:
+    accepted = authority_records.candidate_request(manifest_version=2)
+    assert _evaluate(accepted)["status"] == "accepted"
+
+    rejected = authority_records.candidate_request(
+        manifest_version=2, verdict="rejected"
+    )
+    assert _evaluate(rejected)["status"] == "rejected"
+
+    non_clinical = authority_records.candidate_request(
+        manifest_version=2,
+        include_clinical_analysis_identity_admission=False,
+        include_clinical_analysis_identity_artifact=False,
+    )
+    assert _evaluate(non_clinical)["status"] == "accepted"
+
+    applicable_but_missing = authority_records.candidate_request(
+        manifest_version=2,
+        include_clinical_analysis_identity_admission=False,
+        include_clinical_analysis_identity_artifact=True,
+    )
+    result = _evaluate(applicable_but_missing)
+    assert result["status"] == "route_back"
+    assert result["route_back"]["next_owner"] == "baseline_and_evidence_setup"
+    assert result["route_back"]["authorizes_manuscript_consumption"] is False
+
+
+def test_clinical_identity_human_gate_and_route_back_never_authorize_candidate(
+    authority_records: Any,
+) -> None:
+    human = authority_records.candidate_request(
+        manifest_version=2,
+        clinical_analysis_identity_status="open_human_gate",
+    )
+    result = _evaluate(human)
+    assert result["status"] == "human_gate"
+    assert result["human_gate"]["next_owner"] == "human_principal_investigator"
+    assert result["human_gate"]["authorizes_manuscript_consumption"] is False
+
+    route = authority_records.candidate_request(
+        manifest_version=2,
+        clinical_analysis_identity_status="route_back",
+    )
+    result = _evaluate(route)
+    assert result["status"] == "route_back"
+    assert result["route_back"]["next_owner"] == "baseline_and_evidence_setup"
+    assert result["route_back"]["authorizes_manuscript_consumption"] is False
+
+
+def test_clinical_identity_admission_rejects_stale_or_forged_exact_ref(
+    authority_records: Any,
+) -> None:
+    forged_binding = authority_records.candidate_request(manifest_version=2)
+    forged_binding["generation_manifest"][
+        "clinical_analysis_identity_admission"
+    ]["clinical_analysis_input_identity_ref"]["sha256"] = authority_records.digest(
+        "forged-clinical-identity-binding"
+    )
+    result = _evaluate(forged_binding)
+    assert result["status"] == "invalid_host_input"
+    assert "must match exactly one current" in result["error"]["detail"]
+
+    forged_acceptance = authority_records.candidate_request(manifest_version=2)
+    forged_acceptance["generation_manifest"][
+        "clinical_analysis_identity_admission"
+    ]["status"] = "accepted"
+    result = _evaluate(forged_acceptance)
+    assert result["status"] == "invalid_host_input"
+    assert "status must be one of" in result["error"]["detail"]
+
+    stale_binding = authority_records.candidate_request(manifest_version=2)
+    identity = next(
+        item
+        for item in stale_binding["generation_manifest"]["artifacts"]
+        if item["role"] == "clinical_analysis_input_identity"
+    )
+    identity["sha256"] = authority_records.digest("changed-clinical-identity-bytes")
+    stale_binding["generation_manifest"]["review_scopes"] = build_review_scopes(
+        stale_binding["generation_manifest"]["artifacts"], "analysis_generation"
+    )
+    result = _evaluate(stale_binding)
+    assert result["status"] == "invalid_host_input"
+    assert "must match exactly one current" in result["error"]["detail"]
 
 
 def test_candidate_output_oneof_rejects_contradictory_status_receipt(

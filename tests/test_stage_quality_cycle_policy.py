@@ -356,7 +356,15 @@ def test_artifact_iteration_separates_preview_freeze_and_projection() -> None:
         "one_archive_build_per_unique_tree",
         "one_parallel_review_wave_for_all_affected_lanes",
     ]
+    assert freeze["reviewer_revision_required_actions"] == [
+        "one_selected_archive_and_build_identity_binding",
+        "one_root_to_selected_reader_exact_byte_equality_check",
+        "one_current_dependency_manifest_binding",
+        "one_pre_freeze_reviewer_response_action_inventory_sync",
+    ]
     assert freeze["projection_switch_is_outside_candidate_freeze"] is True
+    assert freeze["changed_dependency_invalidates_selected_build"] is True
+    assert freeze["post_freeze_scientific_response_change_requires_new_revision"] is True
 
 
 def test_artifact_iteration_preserves_currentness_and_owner_boundaries() -> None:

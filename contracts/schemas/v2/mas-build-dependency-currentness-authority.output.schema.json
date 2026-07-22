@@ -1,0 +1,411 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://one-person-lab.local/med-autoscience/mas-build-dependency-currentness-authority.output.schema.json",
+  "title": "MAS build dependency currentness authority output",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "surface_kind",
+    "schema_version",
+    "status",
+    "authority_ref",
+    "authority_record",
+    "opl_injection_provenance",
+    "error"
+  ],
+  "properties": {
+    "surface_kind": {
+      "const": "mas_build_dependency_currentness_authority_result"
+    },
+    "schema_version": {
+      "const": 1
+    },
+    "status": {
+      "enum": [
+        "owner_authority",
+        "invalid_host_input"
+      ]
+    },
+    "authority_ref": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/authority_ref"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "authority_record": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/authority_record"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "opl_injection_provenance": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/opl_injection_provenance"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "error": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/error"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    }
+  },
+  "allOf": [
+    {
+      "if": {
+        "properties": {
+          "status": {
+            "const": "owner_authority"
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "authority_ref": {
+            "$ref": "#/$defs/authority_ref"
+          },
+          "authority_record": {
+            "$ref": "#/$defs/authority_record"
+          },
+          "opl_injection_provenance": {
+            "$ref": "#/$defs/opl_injection_provenance"
+          },
+          "error": {
+            "type": "null"
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "status": {
+            "const": "invalid_host_input"
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "authority_ref": {
+            "type": "null"
+          },
+          "authority_record": {
+            "type": "null"
+          },
+          "opl_injection_provenance": {
+            "type": "null"
+          },
+          "error": {
+            "$ref": "#/$defs/error"
+          }
+        }
+      }
+    }
+  ],
+  "$defs": {
+    "non_empty_text": {
+      "type": "string",
+      "minLength": 1,
+      "pattern": ".*\\S.*"
+    },
+    "sha256": {
+      "type": "string",
+      "pattern": "^(?:sha256:)?[0-9a-fA-F]{64}$"
+    },
+    "opl_stage_attempt_ref": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "kind",
+        "ref",
+        "sha256"
+      ],
+      "properties": {
+        "kind": {
+          "const": "opl_stage_attempt"
+        },
+        "ref": {
+          "$ref": "#/$defs/non_empty_text"
+        },
+        "sha256": {
+          "$ref": "#/$defs/sha256"
+        }
+      }
+    },
+    "opl_action_output_exact_ref": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "kind",
+        "ref",
+        "size_bytes",
+        "sha256"
+      ],
+      "properties": {
+        "kind": {
+          "const": "opl_action_output"
+        },
+        "ref": {
+          "$ref": "#/$defs/non_empty_text"
+        },
+        "size_bytes": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "sha256": {
+          "$ref": "#/$defs/sha256"
+        }
+      }
+    },
+    "mas_artifact_exact_ref": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "kind",
+        "ref",
+        "size_bytes",
+        "sha256"
+      ],
+      "properties": {
+        "kind": {
+          "const": "mas_artifact"
+        },
+        "ref": {
+          "$ref": "#/$defs/non_empty_text"
+        },
+        "size_bytes": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "sha256": {
+          "$ref": "#/$defs/sha256"
+        }
+      }
+    },
+    "authority_ref": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "kind",
+        "ref",
+        "size_bytes",
+        "sha256"
+      ],
+      "properties": {
+        "kind": {
+          "const": "mas_build_dependency_currentness_authority"
+        },
+        "ref": {
+          "type": "string",
+          "pattern": "^mas-build-dependency-currentness-authority:[0-9a-f]{64}$"
+        },
+        "size_bytes": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "sha256": {
+          "$ref": "#/$defs/sha256"
+        }
+      }
+    },
+    "nullable_mas_artifact_exact_ref": {
+      "anyOf": [
+        {
+          "type": "null"
+        },
+        {
+          "$ref": "#/$defs/mas_artifact_exact_ref"
+        }
+      ]
+    },
+    "reviewer_response_currentness": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "generation_id",
+        "candidate_state",
+        "response_ref",
+        "prior_frozen_response_ref",
+        "post_freeze_disposition",
+        "external_synthesis_ref",
+        "new_revision_ref",
+        "owner_ledger_history_ref"
+      ],
+      "properties": {
+        "generation_id": {
+          "$ref": "#/$defs/non_empty_text"
+        },
+        "candidate_state": {
+          "enum": [
+            "pre_freeze",
+            "frozen"
+          ]
+        },
+        "response_ref": {
+          "$ref": "#/$defs/mas_artifact_exact_ref"
+        },
+        "prior_frozen_response_ref": {
+          "$ref": "#/$defs/nullable_mas_artifact_exact_ref"
+        },
+        "post_freeze_disposition": {
+          "enum": [
+            "not_started",
+            "external_synthesis_bound",
+            "scientific_change_requires_new_revision"
+          ]
+        },
+        "external_synthesis_ref": {
+          "$ref": "#/$defs/nullable_mas_artifact_exact_ref"
+        },
+        "new_revision_ref": {
+          "$ref": "#/$defs/nullable_mas_artifact_exact_ref"
+        },
+        "owner_ledger_history_ref": {
+          "$ref": "#/$defs/opl_action_output_exact_ref"
+        }
+      }
+    },
+    "authority_record": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "surface_kind",
+        "schema_version",
+        "owner",
+        "authority_role",
+        "authority_epoch",
+        "issuer_attempt_ref",
+        "managed_authority_attempt_receipt_ref",
+        "owner_ledger_ref",
+        "reviewer_response_currentness",
+        "dependency_manifest_ref",
+        "dependency_currentness",
+        "authority_boundary"
+      ],
+      "properties": {
+        "surface_kind": {
+          "const": "mas_build_dependency_currentness_authority"
+        },
+        "schema_version": {
+          "const": 1
+        },
+        "owner": {
+          "const": "MedAutoScience"
+        },
+        "authority_role": {
+          "const": "build_dependency_currentness_owner"
+        },
+        "authority_epoch": {
+          "$ref": "#/$defs/non_empty_text"
+        },
+        "issuer_attempt_ref": {
+          "$ref": "#/$defs/opl_stage_attempt_ref"
+        },
+        "managed_authority_attempt_receipt_ref": {
+          "$ref": "#/$defs/opl_action_output_exact_ref"
+        },
+        "owner_ledger_ref": {
+          "$ref": "#/$defs/opl_action_output_exact_ref"
+        },
+        "reviewer_response_currentness": {
+          "$ref": "#/$defs/reviewer_response_currentness"
+        },
+        "dependency_manifest_ref": {
+          "$ref": "#/$defs/mas_artifact_exact_ref"
+        },
+        "dependency_currentness": {
+          "enum": [
+            "current",
+            "stale",
+            "open"
+          ]
+        },
+        "authority_boundary": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "authorizes_publication",
+            "authorizes_submission"
+          ],
+          "properties": {
+            "authorizes_publication": {
+              "const": false
+            },
+            "authorizes_submission": {
+              "const": false
+            }
+          }
+        }
+      }
+    },
+    "opl_injection_provenance": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "managed_authority_attempt_ref",
+        "managed_authority_attempt_receipt_ref",
+        "owner_ledger_ref",
+        "owner_ledger_history_ref",
+        "host_context_authority_ref_field",
+        "host_context_issuer_attempt_ref_field",
+        "requires_host_exact_byte_persistence"
+      ],
+      "properties": {
+        "managed_authority_attempt_ref": {
+          "$ref": "#/$defs/opl_stage_attempt_ref"
+        },
+        "managed_authority_attempt_receipt_ref": {
+          "$ref": "#/$defs/opl_action_output_exact_ref"
+        },
+        "owner_ledger_ref": {
+          "$ref": "#/$defs/opl_action_output_exact_ref"
+        },
+        "owner_ledger_history_ref": {
+          "$ref": "#/$defs/opl_action_output_exact_ref"
+        },
+        "host_context_authority_ref_field": {
+          "const": "build_dependency_currentness_authority_ref"
+        },
+        "host_context_issuer_attempt_ref_field": {
+          "const": "build_dependency_currentness_authority_issuer_attempt_ref"
+        },
+        "requires_host_exact_byte_persistence": {
+          "const": true
+        }
+      }
+    },
+    "error": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "code",
+        "detail"
+      ],
+      "properties": {
+        "code": {
+          "const": "invalid_host_input"
+        },
+        "detail": {
+          "$ref": "#/$defs/non_empty_text"
+        }
+      }
+    }
+  }
+}

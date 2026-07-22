@@ -91,6 +91,28 @@
       "semantic_equivalence_status": "registry_bound_authority_and_opl_hosted_materialization"
     },
     {
+      "module_id": "mas.build_dependency_currentness_authority",
+      "classification": "minimal_authority_function",
+      "standardization_layer": "authority_function_inventory",
+      "code_paths": [
+        "src/med_autoscience/authority_handlers/build_dependency_currentness.py",
+        "contracts/domain_handler_registry.json"
+      ],
+      "active_callers": [
+        "OPL-managed build dependency currentness authority attempt binding"
+      ],
+      "active_caller_status": "registry_declared_runtime_integration_pending",
+      "migration_action": "retain deterministic MAS owner authority issuance behind an OPL-managed distinct attempt",
+      "retention_reason": "The function binds dependency currentness to exact managed-attempt, attempt-receipt, owner-ledger, epoch, and dependency refs without owning execution or persistence.",
+      "cannot_absorb_reason": "OPL may host the managed attempt and inject exact output refs, but cannot originate MAS build-dependency currentness authority.",
+      "retained_domain_authority": [
+        "build_dependency_currentness",
+        "managed_authority_attempt_provenance",
+        "owner_authority_exact_ref"
+      ],
+      "semantic_equivalence_status": "registry_declared_opl_integration_dependency"
+    },
+    {
       "module_id": "mas.agent_lab_self_evolution_closeout",
       "classification": "minimal_authority_function",
       "standardization_layer": "authority_function_inventory",

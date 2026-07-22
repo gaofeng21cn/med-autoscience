@@ -226,6 +226,32 @@
         }
       }
     },
+    "build_dependency_currentness_authority_ref": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "kind",
+        "ref",
+        "size_bytes",
+        "sha256"
+      ],
+      "properties": {
+        "kind": {
+          "const": "mas_build_dependency_currentness_authority"
+        },
+        "ref": {
+          "type": "string",
+          "pattern": "^mas-build-dependency-currentness-authority:[0-9a-f]{64}$"
+        },
+        "size_bytes": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "sha256": {
+          "$ref": "#/$defs/sha256"
+        }
+      }
+    },
     "typed_ref_array": {
       "type": "array",
       "uniqueItems": true,
@@ -675,7 +701,10 @@
           "const": "mas_paper_mission_owner_receipt"
         },
         "schema_version": {
-          "const": 2
+          "enum": [
+            2,
+            3
+          ]
         },
         "owner": {
           "const": "MedAutoScience"
@@ -694,6 +723,9 @@
         },
         "review_currentness_receipt_ref": {
           "$ref": "#/$defs/exact_ref"
+        },
+        "selected_build_currentness_authority_ref": {
+          "$ref": "#/$defs/build_dependency_currentness_authority_ref"
         },
         "accepted_candidate_admissions": {
           "type": "array",
@@ -797,6 +829,32 @@
           "$ref": "#/$defs/sha256"
         }
       },
+      "oneOf": [
+        {
+          "title": "Legacy owner receipt v2",
+          "properties": {
+            "schema_version": {
+              "const": 2
+            }
+          },
+          "not": {
+            "required": [
+              "selected_build_currentness_authority_ref"
+            ]
+          }
+        },
+        {
+          "title": "Selected-build owner receipt v3",
+          "properties": {
+            "schema_version": {
+              "const": 3
+            }
+          },
+          "required": [
+            "selected_build_currentness_authority_ref"
+          ]
+        }
+      ],
       "allOf": [
         {
           "if": {

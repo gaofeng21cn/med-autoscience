@@ -12,6 +12,13 @@ defect-owner matrix and routes to the earliest canonical Stage that can close th
 root cause. The target Stage creates a new generation and passes fresh independent
 Review before this Meta Review runs again.
 
+The Meta Reviewer independently checks all applicable
+`initial_draft_evidence_integrity_requirements` in
+`contracts/manuscript_first_draft_quality_policy.json` against the immutable
+candidate snapshot and lane-consumed member inventories. It does not reopen live
+workspace files to complete missing evidence, and it assigns each defect to the
+requirement's declared earliest owner.
+
 Every review receipt names MedAutoScience, the lane-specific authority role and
 verdict. Generation manifest v2 binds each professional receipt to the MAS-owned
 lane scope and reviewed member inventory plus its artifact/claim/provenance

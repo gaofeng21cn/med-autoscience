@@ -27,6 +27,12 @@ route another canonical Stage can act on; do not repair the artifact here.
   citation, statistical, table/figure, artifact-rebuild, controller, memory, and
   reporting/journal refs. Use `ai_reviewer_auditor_gate.md` as the quality floor
   and `medical_research_execution.md` for specialist routing.
+- Independently evaluate every applicable
+  `initial_draft_evidence_integrity_requirements` entry in
+  `contracts/manuscript_first_draft_quality_policy.json`. Verify its exact
+  bindings and cross-surface effects against the immutable candidate snapshot;
+  never fill a gap by reopening live workspace files. Route each defect to the
+  requirement's earliest canonical owner.
 - Issue each lane receipt as MedAutoScience with the lane-specific authority
   role and verdict. Generation manifest v2 binds it to the MAS-owned lane scope
   and reviewed member inventory plus an `epistemic_provenance` artifact/claim/

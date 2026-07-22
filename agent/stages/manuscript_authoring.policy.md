@@ -26,6 +26,12 @@ application remains readable but always creates
 at the earliest canonical owner in baseline, analysis, authoring, then review
 order; ref presence is checked only after no earlier route-back remains.
 
+This Stage consumes its `initial_draft_evidence_integrity_requirements` entries
+from the same policy: propagate analysis-scope qualifiers across every affected
+reader and machine-readable surface, derive the manuscript/table/figure/claim
+set from one generation-consistent structured source with renderer provenance,
+and freeze one immutable candidate snapshot before independent review.
+
 Clinical/registry data requires exact input-identity and data-freeze candidates;
 non-clinical work records an explicit not-applicable reason. Prediction-model
 work distinguishes development, internal, internal-external, and external

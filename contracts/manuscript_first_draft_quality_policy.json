@@ -1,23 +1,61 @@
 {
   "surface_kind": "mas_manuscript_first_draft_quality_policy",
-  "version": "mas-manuscript-first-draft-quality-policy.v2",
+  "version": "mas-manuscript-first-draft-quality-policy.v3",
   "owner": "MedAutoScience",
   "stage_id": "manuscript_authoring",
   "purpose": "Raise first-draft scientific quality by binding exact upstream closure, prediction-model diagnostics, specialist receipts, claim guardrails, and composed reader bytes before any first-draft-ready claim.",
   "professional_skill_owner": "mas-scholar-skills",
+  "professional_skill_source_authority": {
+    "package_id": "mas-scholar-skills",
+    "package_version": "0.2.15",
+    "source_commit": "5c1015a90cfd937d01f69b419ddbcce84398891a",
+    "content_lock": {
+      "algorithm": "sha256",
+      "canonicalization": "ordered_path_length_file_length_bytes",
+      "digest": "sha256:c7c35cb51d72c2d0f8de45d296997e04350dafd8d630fb88f18d880fc4e331bc"
+    },
+    "bound_quality_contract_sections": [
+      "cross_stage_generation_invariants",
+      "initial_draft_evidence_integrity_requirements"
+    ],
+    "source_can_issue_mas_authority": false
+  },
+  "cross_stage_generation_invariants": {
+    "clinical_identity_admission_trigger": "analysis_generation inventory contains clinical_analysis_input_identity",
+    "candidate_adjudicator_acceptance_required_for_clinical_identity": true,
+    "open_human_gate_or_route_back_cannot_authorize_candidate": true,
+    "reviewer_revision_selected_build_binding_starts_at": "manuscript_generation",
+    "selected_build_dependencies_must_be_current": true,
+    "selected_build_dependency_currentness_requires_expanded_sealed_owner_receipt": true,
+    "selected_build_dependency_currentness_requires_separate_current_owner_authority": true,
+    "selected_build_currentness_applies_to_every_paper_mission_request": true,
+    "generation_producer_cannot_issue_build_dependency_currentness_authority": true,
+    "root_reader_output_must_equal_selected_build_output_bytes": true,
+    "reviewer_response_actions_bind_current_artifact_member_identity_and_hash": true,
+    "independently_reviewed_response_requires_current_manifest_independent_reviewer_receipt": true,
+    "frozen_reviewer_response_replacement_requires_new_revision_generation": true,
+    "external_synthesis_must_bind_original_frozen_response_bytes": true,
+    "frozen_response_history_reuses_build_currentness_owner_ledger_provenance": true,
+    "candidate_binding_can_authorize_publication_or_submission": false,
+    "professional_payloads_remain_owned_by": "mas-scholar-skills"
+  },
   "base_first_draft_contract": {
     "required_skill": "medical-manuscript-writing",
     "required_application": "first_draft_quality_application",
     "required_candidate_ref": "medical_initial_draft_preflight_candidate_ref",
     "required_upstream_candidate_refs": [
       "clinical_analysis_input_identity_ref",
-      "citation_source_coverage_ref"
+      "citation_source_coverage_ref",
+      "active_reference_currentness_ref"
     ],
     "required_authoring_candidate_refs": [
       "claim_guardrail_ref"
     ],
     "conditional_authoring_candidate_refs": {
-      "reader_pdf": "document_display_scope_coverage_ref"
+      "reader_pdf": [
+        "document_display_scope_coverage_ref",
+        "display_render_integrity_ref"
+      ]
     },
     "current_application_schema_version": 2,
     "legacy_application_schema_version_read_compatible": true,
@@ -42,7 +80,215 @@
       "display"
     ],
     "first_draft_ready_requires_exact_skill_invocation_and_receipt_refs": true,
+    "current_selected_build_requires_scholar_v2_semantic_policy_bindings": true,
+    "legacy_v2_without_selected_build_preserves_exact_owner_receipt_abi": true,
     "missing_application_or_candidate_ref_disposition": "completed_with_quality_debt"
+  },
+  "initial_draft_evidence_integrity_requirements": {
+    "requirement_ids": [
+      "fixed_horizon_censoring_aware_estimand",
+      "prediction_claim_family_separation",
+      "analysis_scope_qualifier_propagation",
+      "numeric_verification_scope",
+      "construct_comparability_stop",
+      "non_mutating_anomaly_sensitivity",
+      "immutable_candidate_review",
+      "structured_source_and_renderer_provenance"
+    ],
+    "stage_consumption": {
+      "baseline_and_evidence_setup": [
+        "fixed_horizon_censoring_aware_estimand",
+        "analysis_scope_qualifier_propagation",
+        "construct_comparability_stop"
+      ],
+      "bounded_analysis_campaign": [
+        "fixed_horizon_censoring_aware_estimand",
+        "prediction_claim_family_separation",
+        "numeric_verification_scope",
+        "non_mutating_anomaly_sensitivity"
+      ],
+      "manuscript_authoring": [
+        "analysis_scope_qualifier_propagation",
+        "immutable_candidate_review",
+        "structured_source_and_renderer_provenance"
+      ],
+      "review_and_quality_gate": [
+        "fixed_horizon_censoring_aware_estimand",
+        "prediction_claim_family_separation",
+        "analysis_scope_qualifier_propagation",
+        "numeric_verification_scope",
+        "construct_comparability_stop",
+        "non_mutating_anomaly_sensitivity",
+        "immutable_candidate_review",
+        "structured_source_and_renderer_provenance"
+      ]
+    },
+    "requirements": {
+      "fixed_horizon_censoring_aware_estimand": {
+        "earliest_owner": "baseline_and_evidence_setup",
+        "applies_when": [
+          "fixed_horizon_outcome_is_reported"
+        ],
+        "must_bind": [
+          "time_origin",
+          "prediction_horizon",
+          "recorded_event_count_and_fraction",
+          "censored_before_horizon_count",
+          "follow_up_completeness",
+          "censoring_aware_observed_risk_estimator",
+          "censoring_aware_prediction_error_estimator",
+          "censoring_assumptions"
+        ],
+        "recorded_event_fraction_role": "descriptive_only",
+        "observed_risk_and_prediction_error_must_remain_distinct": true,
+        "binary_event_fraction_may_replace_observed_risk_with_early_censoring": false,
+        "fail_closed_for_ready_claims": true
+      },
+      "prediction_claim_family_separation": {
+        "earliest_owner": "bounded_analysis_campaign",
+        "applies_when": [
+          "paper_type_is_prediction_model"
+        ],
+        "must_bind": [
+          "discrimination_evidence",
+          "calibration_in_the_large_evidence",
+          "calibration_slope_or_grouped_calibration_evidence",
+          "prediction_range_compression_evidence",
+          "recalibration_status",
+          "clinical_utility_status",
+          "transport_causal_attribution_status"
+        ],
+        "discrimination_may_authorize_absolute_risk_or_utility_claim": false,
+        "observed_transport_difference_may_be_labeled_causal_without_causal_design": false,
+        "fail_closed_for_ready_claims": true
+      },
+      "analysis_scope_qualifier_propagation": {
+        "earliest_owner": "baseline_and_evidence_setup",
+        "applies_when": [
+          "development_performance_is_reported",
+          "restricted_analysis_sample_is_used",
+          "complete_case_analysis_is_used",
+          "unweighted_analysis_is_used"
+        ],
+        "must_bind": [
+          "development_or_validation_status",
+          "apparent_performance_status",
+          "analysis_population",
+          "complete_case_status",
+          "weighting_status",
+          "target_population_inference_boundary",
+          "qualifier_surface_inventory"
+        ],
+        "surfaces_requiring_qualifier_when_corresponding_claim_appears": [
+          "title",
+          "abstract",
+          "results",
+          "tables",
+          "figures",
+          "machine_readable_claims"
+        ],
+        "analysis_sample_may_be_promoted_to_target_population_without_design_support": false,
+        "apparent_performance_may_be_presented_as_validated_performance": false,
+        "fail_closed_for_ready_claims": true
+      },
+      "numeric_verification_scope": {
+        "earliest_owner": "bounded_analysis_campaign",
+        "applies_when": [
+          "numeric_verification_is_claimed"
+        ],
+        "must_bind": [
+          "verification_evidence_class",
+          "included_quantities",
+          "excluded_quantities",
+          "replicate_provenance",
+          "independent_rerun_status",
+          "verification_artifact_ref"
+        ],
+        "bare_pass_count_may_be_called_independent_reproduction": false,
+        "verification_scope_may_exceed_bound_quantities": false,
+        "fail_closed_for_ready_claims": true
+      },
+      "construct_comparability_stop": {
+        "earliest_owner": "baseline_and_evidence_setup",
+        "applies_when": [
+          "cross_source_construct_comparison_is_planned",
+          "identity_level_attribution_is_planned"
+        ],
+        "must_bind": [
+          "source_construct",
+          "target_construct",
+          "accepted_codebook_mapping",
+          "identity_preserving_linkage",
+          "estimability",
+          "permitted_interpretations",
+          "prohibited_interpretations"
+        ],
+        "missing_mapping_or_identity_linkage_disposition": "not_estimable",
+        "proxy_substitution_for_non_isomorphic_construct_allowed": false,
+        "non_estimability_may_be_interpreted_as_null_equivalence_or_difference": false,
+        "fail_closed_for_ready_claims": true
+      },
+      "non_mutating_anomaly_sensitivity": {
+        "earliest_owner": "bounded_analysis_campaign",
+        "applies_when": [
+          "input_plausibility_anomaly_is_detected"
+        ],
+        "must_bind": [
+          "anomaly_definition",
+          "flag_rule",
+          "flagged_count",
+          "frozen_source_value_ref",
+          "derived_sensitivity_analysis_set_ref",
+          "exact_estimate_deltas",
+          "materiality_rule_and_status"
+        ],
+        "sensitivity_analysis_may_mutate_frozen_source_values": false,
+        "materiality_may_be_claimed_without_a_defined_rule": false,
+        "fail_closed_for_ready_claims": true
+      },
+      "immutable_candidate_review": {
+        "earliest_owner": "manuscript_authoring",
+        "applies_when": [
+          "candidate_is_frozen_for_independent_review"
+        ],
+        "must_bind": [
+          "candidate_snapshot_id",
+          "snapshot_manifest_ref",
+          "member_hash_and_size_inventory",
+          "lane_consumed_member_inventories",
+          "source_and_output_fingerprints"
+        ],
+        "reviewer_input_surface": "immutable_snapshot_only",
+        "reviewer_may_reopen_live_workspace_files": false,
+        "changed_member_invalidates_dependent_lane_binding": true,
+        "fail_closed_for_ready_claims": true
+      },
+      "structured_source_and_renderer_provenance": {
+        "earliest_owner": "manuscript_authoring",
+        "applies_when": [
+          "manuscript_table_figure_or_claim_surface_is_generated"
+        ],
+        "must_bind": [
+          "canonical_structured_evidence_ref",
+          "canonical_structured_evidence_hash",
+          "derived_surface_inventory",
+          "source_fingerprint",
+          "render_request_bytes_hash",
+          "renderer_identity_and_version",
+          "output_fingerprints",
+          "clean_rebuild_equality_status"
+        ],
+        "derived_surfaces": [
+          "manuscript",
+          "tables",
+          "figures",
+          "claim_ledger"
+        ],
+        "all_derived_surfaces_require_one_generation_consistent_structured_source": true,
+        "renderer_success_alone_proves_source_currentness_or_display_quality": false,
+        "fail_closed_for_ready_claims": true
+      }
+    }
   },
   "prediction_model_first_draft": {
     "trigger_when": [
@@ -78,6 +324,7 @@
       "validation_partition_integrity_ref",
       "endpoint_analysis_set_reconciliation_ref",
       "model_complexity_sparse_event_ref",
+      "linked_prediction_performance_ref",
       "claim_guardrail_ref"
     ],
     "conditional_candidate_refs": {
@@ -86,7 +333,10 @@
       "decision_curve_analysis": "decision_curve_validity_ref",
       "external_validation_only": "external_transportability_ref",
       "table_one": "baseline_table_traceability_ref",
-      "reader_pdf": "document_display_scope_coverage_ref"
+      "reader_pdf": [
+        "document_display_scope_coverage_ref",
+        "display_render_integrity_ref"
+      ]
     },
     "partition_integrity": {
       "must_bind": [
@@ -230,6 +480,19 @@
     "exact_invocation_ref_required_for_current_first_draft": true,
     "exact_skill_receipt_ref_required_for_current_first_draft": true,
     "exact_input_artifact_bindings_required_for_current_first_draft": true,
+    "selected_build_requires_exact_semantic_policy_ref": true,
+    "selected_build_requires_exact_semantic_candidate_current_member": true,
+    "selected_build_requires_rebuildable_semantic_receipt_ref": true,
+    "missing_duplicate_legacy_or_orphan_semantic_invocation_fails_closed": true,
+    "semantic_policy_ids": [
+      "scholarskills_medical_initial_draft_preflight.v2",
+      "scholarskills_linked_prediction_performance.v2"
+    ],
+    "umbrella_policy_validators": {
+      "active_reference_currentness": "audit_active_reference_currentness",
+      "display_render_integrity": "validate_display_render_integrity"
+    },
+    "opl_semantic_policy_binding_integration_status": "declared_not_current",
     "external_skill_receipt_is_candidate_not_authority": true
   },
   "progress_and_quality": {

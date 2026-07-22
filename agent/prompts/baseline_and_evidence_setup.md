@@ -25,6 +25,12 @@ policy; never claim a Review receipt from this conversation.
 - Resolve cohort, inclusion/exclusion, endpoint, exposure or model target,
   comparator, measurement window, missingness, censoring, and reproducibility
   assumptions to the degree required by the intended claim.
+- Apply this Stage's `initial_draft_evidence_integrity_requirements` from
+  `contracts/manuscript_first_draft_quality_policy.json`: establish the fixed-
+  horizon censoring-aware estimand, analysis-scope qualifier boundary, and
+  construct-comparability stop before claim-bearing analysis. Route a
+  non-isomorphic construct or missing identity-preserving linkage as not
+  estimable; do not substitute a proxy construct.
 - Bind baseline and primary-result candidates to input versions, run context,
   code/provenance, source readiness, and evidence-ledger refs so another agent can
   replay the basis.

@@ -42,6 +42,13 @@ policy; never claim a Review receipt from this conversation.
   satisfy the current gate. Every applicable v2 candidate exact ref is nonempty
   (`size_bytes >= 1`). Resolve route-back dispositions at the earliest owner in
   baseline, analysis, authoring, then review order before checking ref presence.
+- Consume this Stage's `initial_draft_evidence_integrity_requirements` from that
+  policy. Propagate development/apparent-performance and restricted, complete-
+  case, or unweighted analysis-scope qualifiers wherever the corresponding
+  number or conclusion appears. Derive manuscript, tables, figures, and claim
+  ledger from one generation-consistent structured evidence source, bind source,
+  request-byte, renderer, output, and clean-rebuild provenance, and freeze the
+  immutable candidate snapshot before independent review.
 - For clinical/registry data, bind `clinical_analysis_input_identity_ref` and
   consume the data-freeze reviewer; a non-clinical manuscript may use an explicit
   not-applicable reason. Prediction-model work additionally binds validation-

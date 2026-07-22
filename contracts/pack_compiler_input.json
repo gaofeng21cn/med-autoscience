@@ -213,6 +213,7 @@
     "surface_kind": "independent_executor_reviewer_agent_policy"
   },
   "minimal_authority_functions": [
+    "build_dependency_currentness_authority_evaluate",
     "paper_mission_authority_evaluate"
   ],
   "minimal_authority_semantic_model": "registry_bound_pure_authority_function_plus_declarative_decisive_reviewer_contracts",

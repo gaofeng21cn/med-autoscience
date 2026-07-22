@@ -91,8 +91,18 @@
       "one_archive_build_per_unique_tree",
       "one_parallel_review_wave_for_all_affected_lanes"
     ],
+    "reviewer_revision_required_actions": [
+      "one_selected_archive_and_build_identity_binding",
+      "one_root_to_selected_reader_exact_byte_equality_check",
+      "one_current_dependency_manifest_binding",
+      "one_pre_freeze_reviewer_response_action_inventory_sync"
+    ],
     "projection_switch_is_outside_candidate_freeze": true,
     "complete_package_content_inventory_required": true,
+    "selected_build_binding_required_before_reviewer_revision_freeze": true,
+    "changed_dependency_invalidates_selected_build": true,
+    "post_freeze_review_results_write_external_synthesis": true,
+    "post_freeze_scientific_response_change_requires_new_revision": true,
     "governance_checklist_status_or_receipt_members_are_package_content": false
   },
   "review_dispatch": {
@@ -141,7 +151,10 @@
     "projection_requires_current_mas_owner_result": true,
     "unchanged_projection_tree_is_no_op": true,
     "changed_projection_uses_atomic_staging_and_switch": true,
-    "every_final_alias_and_target_hash_verified": true
+    "every_final_alias_and_target_hash_verified": true,
+    "selected_archive_manifest_and_build_receipt_are_exact_refs": true,
+    "root_reader_output_must_equal_selected_build_output_bytes": true,
+    "dependency_currentness_required_for_projection": true
   },
   "observability": {
     "required_receipt_fields": [

@@ -24,6 +24,13 @@ policy; never claim a Review receipt from this conversation.
 - Before claim-bearing analysis, state the question, estimand or target quantity,
   accepted cohort/source/endpoint/comparator boundary, expected evidence gain,
   and stop or route-back condition.
+- Apply this Stage's `initial_draft_evidence_integrity_requirements` from
+  `contracts/manuscript_first_draft_quality_policy.json`: keep fixed-horizon
+  observed risk and prediction error censoring-aware; evaluate discrimination,
+  calibration, score-range compression, recalibration, and utility as separate
+  claim families; bind the exact scope of every numeric verification claim; and
+  analyze input anomalies through a derived sensitivity set without mutating
+  frozen source values.
 - Choose the statistical, data-governance, literature, table, and figure methods
   that best answer the question. `medical_research_execution.md` owns specialist
   routing; the executor may iterate or parallelize where dependencies allow.

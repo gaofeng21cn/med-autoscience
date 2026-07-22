@@ -81,6 +81,10 @@ _REVISION_CONSUMPTION_AUTHORITY_BOUNDARY = {
     "receipt_can_authorize_submission": False,
     "receipt_can_create_typed_blocker": False,
 }
+_BUILD_DEPENDENCY_CURRENTNESS_AUTHORITY_BOUNDARY = {
+    "authorizes_publication": False,
+    "authorizes_submission": False,
+}
 _EPISTEMIC_CHANGE_CLASSES = {
     "data",
     "context",
@@ -200,6 +204,15 @@ def evaluate_paper_mission_authority(request: Mapping[str, Any]) -> dict[str, An
             next_owner=first_draft_issue[0],
             reason_codes=first_draft_issue[1],
             resume_condition=first_draft_issue[2],
+        )
+
+    revision_generation_issue = _reviewer_revision_generation_issue(normalized)
+    if revision_generation_issue is not None:
+        return _first_draft_quality_debt_result(
+            normalized,
+            next_owner=revision_generation_issue[0],
+            reason_codes=revision_generation_issue[1],
+            resume_condition=revision_generation_issue[2],
         )
 
     host = normalized["host_context"]
@@ -420,7 +433,7 @@ def evaluate_paper_mission_authority(request: Mapping[str, Any]) -> dict[str, An
 
 def _is_reviewer_revision(request: Mapping[str, Any]) -> bool:
     receipt = request["revision_consumption"]["consumption_receipt"]
-    return receipt["applicability"] == "revision_consumed"
+    return receipt is not None and receipt["applicability"] == "revision_consumed"
 
 
 def _normalize_request(request: Mapping[str, Any]) -> dict[str, Any]:
@@ -440,6 +453,8 @@ def _normalize_request(request: Mapping[str, Any]) -> dict[str, Any]:
     }
     if "revision_consumption" in payload:
         request_keys.add("revision_consumption")
+    if "selected_build_currentness_authority" in payload:
+        request_keys.add("selected_build_currentness_authority")
     exact_keys(
         payload,
         request_keys,
@@ -469,10 +484,28 @@ def _normalize_request(request: Mapping[str, Any]) -> dict[str, Any]:
         )
     if "revision_consumption" in payload and payload["revision_consumption"] is None:
         raise RequestShapeError("revision_consumption must be an object when supplied")
+    selected_build = manifest.get("selected_build_binding")
+    if selected_build is not None and "selected_build_currentness_authority" not in payload:
+        raise RequestShapeError(
+            "selected_build_currentness_authority is required for selected build binding"
+        )
+    if selected_build is None and "selected_build_currentness_authority" in payload:
+        raise RequestShapeError(
+            "selected_build_currentness_authority requires selected build binding"
+        )
+    host_context = _normalize_host_context(payload.get("host_context"))
+    review_authority = _normalize_review_authority(payload.get("review_authority"))
+    selected_build_authority = (
+        _normalize_selected_build_currentness_authority(
+            payload.get("selected_build_currentness_authority")
+        )
+        if selected_build is not None
+        else None
+    )
     normalized = {
         "surface_kind": REQUEST_KIND,
         "schema_version": SCHEMA_VERSION,
-        "host_context": _normalize_host_context(payload.get("host_context")),
+        "host_context": host_context,
         "mission": mission,
         "medical_evidence": _normalize_medical_evidence(
             payload.get("medical_evidence")
@@ -482,9 +515,8 @@ def _normalize_request(request: Mapping[str, Any]) -> dict[str, Any]:
         "candidate_admissions": _normalize_candidate_admissions(
             payload.get("candidate_admissions")
         ),
-        "review_authority": _normalize_review_authority(
-            payload.get("review_authority")
-        ),
+        "review_authority": review_authority,
+        "selected_build_currentness_authority": selected_build_authority,
         "revision_consumption": _normalize_revision_consumption(
             payload.get("revision_consumption")
         ),
@@ -499,19 +531,42 @@ def _normalize_request(request: Mapping[str, Any]) -> dict[str, Any]:
             "generation manifest and review currentness schema versions must match"
         )
     _validate_review_currentness_receipt_ref(normalized)
+    _validate_selected_build_currentness_authority(normalized)
     return normalized
 
 
 def _normalize_host_context(value: Any) -> dict[str, Any]:
     field = "host_context"
     payload = mapping(value, field)
+    keys = {
+        "action_id",
+        "run_ref",
+        "producer_attempt_ref",
+        "output_ref",
+        "output_state",
+    }
+    for optional_field in (
+        "build_dependency_currentness_authority_ref",
+        "build_dependency_currentness_authority_issuer_attempt_ref",
+    ):
+        if optional_field in payload:
+            keys.add(optional_field)
     exact_keys(
         payload,
-        {"action_id", "run_ref", "producer_attempt_ref", "output_ref", "output_state"},
+        keys,
         field,
     )
     if payload.get("action_id") != "paper_mission":
         raise RequestShapeError("host_context.action_id must be paper_mission")
+    authority_ref_present = "build_dependency_currentness_authority_ref" in payload
+    issuer_ref_present = (
+        "build_dependency_currentness_authority_issuer_attempt_ref" in payload
+    )
+    if authority_ref_present != issuer_ref_present:
+        raise RequestShapeError(
+            "host_context build dependency currentness authority refs must be "
+            "supplied together"
+        )
     return {
         "action_id": "paper_mission",
         "run_ref": _typed_ref(
@@ -531,6 +586,26 @@ def _normalize_host_context(value: Any) -> dict[str, Any]:
             payload.get("output_state"),
             f"{field}.output_state",
             {"consumable", "no_output", "damaged", "failed"},
+        ),
+        "build_dependency_currentness_authority_ref": (
+            _exact_ref(
+                payload.get("build_dependency_currentness_authority_ref"),
+                f"{field}.build_dependency_currentness_authority_ref",
+                "mas_build_dependency_currentness_authority",
+            )
+            if authority_ref_present
+            else None
+        ),
+        "build_dependency_currentness_authority_issuer_attempt_ref": (
+            _typed_ref(
+                payload.get(
+                    "build_dependency_currentness_authority_issuer_attempt_ref"
+                ),
+                f"{field}.build_dependency_currentness_authority_issuer_attempt_ref",
+                "opl_stage_attempt",
+            )
+            if issuer_ref_present
+            else None
         ),
     }
 
@@ -1076,6 +1151,214 @@ def _normalize_review_authority(value: Any) -> dict[str, Any]:
     }
 
 
+def _normalize_selected_build_currentness_authority(
+    value: Any,
+) -> dict[str, Any]:
+    field = "selected_build_currentness_authority"
+    payload = mapping(value, field)
+    exact_keys(payload, {"authority_ref", "authority_record"}, field)
+    authority_ref = _exact_ref(
+        payload.get("authority_ref"),
+        f"{field}.authority_ref",
+        "mas_build_dependency_currentness_authority",
+    )
+    record_field = f"{field}.authority_record"
+    record = mapping(payload.get("authority_record"), record_field)
+    exact_keys(
+        record,
+        {
+            "surface_kind",
+            "schema_version",
+            "owner",
+            "authority_role",
+            "authority_epoch",
+            "issuer_attempt_ref",
+            "managed_authority_attempt_receipt_ref",
+            "owner_ledger_ref",
+            "reviewer_response_currentness",
+            "dependency_manifest_ref",
+            "dependency_currentness",
+            "authority_boundary",
+        },
+        record_field,
+    )
+    if record.get("surface_kind") != "mas_build_dependency_currentness_authority":
+        raise RequestShapeError(f"{record_field}.surface_kind is invalid")
+    if record.get("schema_version") != 1 or isinstance(
+        record.get("schema_version"), bool
+    ):
+        raise RequestShapeError(f"{record_field}.schema_version must be integer 1")
+    if record.get("owner") != "MedAutoScience":
+        raise RequestShapeError(f"{record_field}.owner must be MedAutoScience")
+    if record.get("authority_role") != "build_dependency_currentness_owner":
+        raise RequestShapeError(f"{record_field}.authority_role is invalid")
+    boundary = mapping(
+        record.get("authority_boundary"), f"{record_field}.authority_boundary"
+    )
+    exact_keys(
+        boundary,
+        set(_BUILD_DEPENDENCY_CURRENTNESS_AUTHORITY_BOUNDARY),
+        f"{record_field}.authority_boundary",
+    )
+    if boundary != _BUILD_DEPENDENCY_CURRENTNESS_AUTHORITY_BOUNDARY:
+        raise RequestShapeError(
+            f"{record_field}.authority_boundary must preserve no publication or "
+            "submission authority"
+        )
+    core = {
+        "surface_kind": "mas_build_dependency_currentness_authority",
+        "schema_version": 1,
+        "owner": "MedAutoScience",
+        "authority_role": "build_dependency_currentness_owner",
+        "authority_epoch": text(
+            record.get("authority_epoch"), f"{record_field}.authority_epoch"
+        ),
+        "issuer_attempt_ref": _typed_ref(
+            record.get("issuer_attempt_ref"),
+            f"{record_field}.issuer_attempt_ref",
+            "opl_stage_attempt",
+        ),
+        "managed_authority_attempt_receipt_ref": _exact_ref(
+            record.get("managed_authority_attempt_receipt_ref"),
+            f"{record_field}.managed_authority_attempt_receipt_ref",
+            "opl_action_output",
+        ),
+        "owner_ledger_ref": _exact_ref(
+            record.get("owner_ledger_ref"),
+            f"{record_field}.owner_ledger_ref",
+            "opl_action_output",
+        ),
+        "reviewer_response_currentness": (
+            _normalize_reviewer_response_authority_currentness(
+                record.get("reviewer_response_currentness"),
+                f"{record_field}.reviewer_response_currentness",
+            )
+        ),
+        "dependency_manifest_ref": _exact_ref(
+            record.get("dependency_manifest_ref"),
+            f"{record_field}.dependency_manifest_ref",
+            "mas_artifact",
+        ),
+        "dependency_currentness": enum_text(
+            record.get("dependency_currentness"),
+            f"{record_field}.dependency_currentness",
+            {"current", "stale", "open"},
+        ),
+        "authority_boundary": dict(
+            _BUILD_DEPENDENCY_CURRENTNESS_AUTHORITY_BOUNDARY
+        ),
+    }
+    expected_fingerprint = fingerprint(core)
+    expected_size = len(canonical_json_bytes(core))
+    expected_id = (
+        "mas-build-dependency-currentness-authority:"
+        f"{expected_fingerprint.removeprefix('sha256:')}"
+    )
+    if authority_ref != {
+        "kind": "mas_build_dependency_currentness_authority",
+        "ref": expected_id,
+        "size_bytes": expected_size,
+        "sha256": expected_fingerprint,
+    }:
+        raise RequestShapeError(
+            f"{field}.authority_ref does not match canonical authority record bytes"
+        )
+    return {"authority_ref": authority_ref, "authority_record": core}
+
+
+def _normalize_reviewer_response_authority_currentness(
+    value: Any,
+    field: str,
+) -> dict[str, Any]:
+    payload = mapping(value, field)
+    exact_keys(
+        payload,
+        {
+            "generation_id",
+            "candidate_state",
+            "response_ref",
+            "prior_frozen_response_ref",
+            "post_freeze_disposition",
+            "external_synthesis_ref",
+            "new_revision_ref",
+            "owner_ledger_history_ref",
+        },
+        field,
+    )
+
+    def optional_artifact_ref(name: str) -> dict[str, Any] | None:
+        raw = payload.get(name)
+        return (
+            None
+            if raw is None
+            else _exact_ref(raw, f"{field}.{name}", "mas_artifact")
+        )
+
+    normalized = {
+        "generation_id": text(payload.get("generation_id"), f"{field}.generation_id"),
+        "candidate_state": enum_text(
+            payload.get("candidate_state"),
+            f"{field}.candidate_state",
+            {"pre_freeze", "frozen"},
+        ),
+        "response_ref": _exact_ref(
+            payload.get("response_ref"), f"{field}.response_ref", "mas_artifact"
+        ),
+        "prior_frozen_response_ref": optional_artifact_ref(
+            "prior_frozen_response_ref"
+        ),
+        "post_freeze_disposition": enum_text(
+            payload.get("post_freeze_disposition"),
+            f"{field}.post_freeze_disposition",
+            {
+                "not_started",
+                "external_synthesis_bound",
+                "scientific_change_requires_new_revision",
+            },
+        ),
+        "external_synthesis_ref": optional_artifact_ref("external_synthesis_ref"),
+        "new_revision_ref": optional_artifact_ref("new_revision_ref"),
+        "owner_ledger_history_ref": _exact_ref(
+            payload.get("owner_ledger_history_ref"),
+            f"{field}.owner_ledger_history_ref",
+            "opl_action_output",
+        ),
+    }
+    state = normalized["candidate_state"]
+    prior_ref = normalized["prior_frozen_response_ref"]
+    disposition = normalized["post_freeze_disposition"]
+    if state == "pre_freeze" and (
+        prior_ref is not None
+        or disposition != "not_started"
+        or normalized["external_synthesis_ref"] is not None
+        or normalized["new_revision_ref"] is not None
+    ):
+        raise RequestShapeError(
+            f"{field} pre-freeze state cannot carry frozen history or post-freeze refs"
+        )
+    if state == "frozen":
+        if prior_ref is None:
+            raise RequestShapeError(
+                f"{field} frozen state requires prior_frozen_response_ref"
+            )
+        if (
+            normalized["response_ref"] != prior_ref
+            and normalized["new_revision_ref"] is None
+        ):
+            raise RequestShapeError(
+                f"{field} same frozen generation cannot replace reviewer response bytes"
+            )
+        if disposition == "external_synthesis_bound" and (
+            normalized["response_ref"] != prior_ref
+            or normalized["external_synthesis_ref"] is None
+            or normalized["new_revision_ref"] is not None
+        ):
+            raise RequestShapeError(
+                f"{field} external synthesis must bind original frozen response bytes"
+            )
+    return normalized
+
+
 def _normalize_review_currentness_receipt(value: Any) -> dict[str, Any]:
     field = "review_authority.currentness_receipt"
     payload = mapping(value, field)
@@ -1199,23 +1482,26 @@ def _normalize_review_currentness_receipt_v1(value: Any) -> dict[str, Any]:
 def _normalize_review_currentness_receipt_v2(value: Any) -> dict[str, Any]:
     field = "review_authority.currentness_receipt"
     payload = mapping(value, field)
+    keys = {
+        "receipt_kind",
+        "schema_version",
+        "owner",
+        "authority_role",
+        "authority_epoch",
+        "current_generation_id",
+        "current_generation_manifest_ref",
+        "current_review_request_ref",
+        "current_candidate_admission_receipt_refs",
+        "lane_currentness",
+        "receipt_id",
+        "receipt_size_bytes",
+        "receipt_fingerprint",
+    }
+    if "current_build_dependency_authority_refs" in payload:
+        keys.add("current_build_dependency_authority_refs")
     exact_keys(
         payload,
-        {
-            "receipt_kind",
-            "schema_version",
-            "owner",
-            "authority_role",
-            "authority_epoch",
-            "current_generation_id",
-            "current_generation_manifest_ref",
-            "current_review_request_ref",
-            "current_candidate_admission_receipt_refs",
-            "lane_currentness",
-            "receipt_id",
-            "receipt_size_bytes",
-            "receipt_fingerprint",
-        },
+        keys,
         field,
     )
     if payload.get("receipt_kind") != "mas_review_currentness_receipt":
@@ -1274,6 +1560,12 @@ def _normalize_review_currentness_receipt_v2(value: Any) -> dict[str, Any]:
         ),
         "lane_currentness": lanes,
     }
+    if "current_build_dependency_authority_refs" in payload:
+        core["current_build_dependency_authority_refs"] = _exact_ref_list(
+            payload.get("current_build_dependency_authority_refs"),
+            f"{field}.current_build_dependency_authority_refs",
+            "mas_build_dependency_currentness_authority",
+        )
     expected_fingerprint = fingerprint(core)
     expected_size = len(canonical_json_bytes(core))
     expected_id = (
@@ -1297,6 +1589,9 @@ def _normalize_review_currentness_receipt_v2(value: Any) -> dict[str, Any]:
         )
     return {
         **core,
+        "current_build_dependency_authority_refs": core.get(
+            "current_build_dependency_authority_refs", []
+        ),
         "receipt_id": expected_id,
         "receipt_size_bytes": expected_size,
         "receipt_fingerprint": expected_fingerprint,
@@ -1685,6 +1980,113 @@ def _validate_review_currentness_receipt_ref(request: Mapping[str, Any]) -> None
     ):
         raise RequestShapeError(
             "review currentness receipt ref does not match canonical receipt bytes"
+        )
+
+
+def _validate_selected_build_currentness_authority(
+    request: Mapping[str, Any],
+) -> None:
+    authority = request["selected_build_currentness_authority"]
+    selected_build = request["generation_manifest"].get("selected_build_binding")
+    if authority is None or selected_build is None:
+        return
+    record = authority["authority_record"]
+    receipt = selected_build["dependency_currentness_receipt"]
+    host_authority_ref = request["host_context"][
+        "build_dependency_currentness_authority_ref"
+    ]
+    host_issuer_attempt_ref = request["host_context"][
+        "build_dependency_currentness_authority_issuer_attempt_ref"
+    ]
+    if host_authority_ref is None or host_issuer_attempt_ref is None:
+        raise RequestShapeError(
+            "selected build currentness authority requires host-bound authority refs"
+        )
+    if authority["authority_ref"] != host_authority_ref:
+        raise RequestShapeError(
+            "selected build currentness authority does not match host-bound authority ref"
+        )
+    if record["issuer_attempt_ref"] != host_issuer_attempt_ref:
+        raise RequestShapeError(
+            "selected build currentness authority issuer attempt does not match "
+            "host-bound authority attempt"
+        )
+    if receipt["authority_ref"] != authority["authority_ref"]:
+        raise RequestShapeError(
+            "selected build currentness receipt does not bind the current owner "
+            "authority record"
+        )
+    current_authority_refs = request["review_authority"]["currentness_receipt"].get(
+        "current_build_dependency_authority_refs", []
+    )
+    if current_authority_refs != [authority["authority_ref"]]:
+        raise RequestShapeError(
+            "selected build currentness authority is not current in the MAS "
+            "authority record"
+        )
+    if selected_build["dependency_currentness"] != "current":
+        raise RequestShapeError(
+            "selected build dependencies must be current for paper mission authority"
+        )
+    if not selected_build["root_matches_selected_bytes"]:
+        raise RequestShapeError(
+            "selected build root reader output must match selected build bytes"
+        )
+    if record["dependency_manifest_ref"] != selected_build["dependency_manifest_ref"]:
+        raise RequestShapeError(
+            "selected build currentness authority dependency manifest is not current"
+        )
+    if record["dependency_currentness"] != selected_build["dependency_currentness"]:
+        raise RequestShapeError(
+            "selected build currentness authority status does not match generation"
+        )
+    response_sync = request["generation_manifest"].get("reviewer_response_sync")
+    if response_sync is None:
+        raise RequestShapeError(
+            "selected build currentness authority requires reviewer response currentness"
+        )
+    response_currentness = record["reviewer_response_currentness"]
+    expected_response_currentness = {
+        "generation_id": request["generation_manifest"]["generation_id"],
+        "candidate_state": response_sync["candidate_state"],
+        "response_ref": response_sync["response_ref"],
+        "post_freeze_disposition": response_sync["post_freeze_disposition"],
+        "external_synthesis_ref": response_sync["external_synthesis_ref"],
+        "new_revision_ref": response_sync["new_revision_ref"],
+    }
+    if any(
+        response_currentness[field] != expected
+        for field, expected in expected_response_currentness.items()
+    ):
+        raise RequestShapeError(
+            "selected build currentness authority does not bind current reviewer "
+            "response generation and exact bytes"
+        )
+    if (
+        response_sync["candidate_state"] == "frozen"
+        and response_currentness["new_revision_ref"] is None
+        and response_currentness["response_ref"]
+        != response_currentness["prior_frozen_response_ref"]
+    ):
+        raise RequestShapeError(
+            "same frozen generation cannot replace reviewer response exact bytes"
+        )
+    review_epoch = request["review_authority"]["currentness_receipt"][
+        "authority_epoch"
+    ]
+    if record["authority_epoch"] != review_epoch:
+        raise RequestShapeError(
+            "selected build currentness authority epoch is not current"
+        )
+    issuer_attempt = record["issuer_attempt_ref"]
+    producer_attempt = request["host_context"]["producer_attempt_ref"]
+    if (
+        issuer_attempt["ref"] == producer_attempt["ref"]
+        or issuer_attempt["sha256"] == producer_attempt["sha256"]
+    ):
+        raise RequestShapeError(
+            "selected build currentness authority issuer attempt must differ from "
+            "generation producer attempt"
         )
 
 
@@ -2300,8 +2702,15 @@ def _first_draft_quality_issue(
     request: Mapping[str, Any],
 ) -> tuple[str, list[str], str] | None:
     manifest = request["generation_manifest"]
-    if manifest["schema_version"] != 2 or manifest["manifest_scope"] == (
-        "analysis_generation"
+    if (
+        manifest["schema_version"] != 2
+        or manifest["manifest_scope"] == "analysis_generation"
+        or request["mission"]["stage_id"]
+        not in {
+            "manuscript_authoring",
+            "review_and_quality_gate",
+            "finalize_and_publication_handoff",
+        }
     ):
         return None
     application = manifest.get("first_draft_quality_application")
@@ -2384,6 +2793,65 @@ def _first_draft_quality_issue(
             "manuscript_authoring",
             missing_authoring,
             "close manuscript, Table 1, claim, and composed-reader display refs",
+        )
+    return None
+
+
+def _reviewer_revision_generation_issue(
+    request: Mapping[str, Any],
+) -> tuple[str, list[str], str] | None:
+    manifest = request["generation_manifest"]
+    if (
+        not _is_reviewer_revision(request)
+        or manifest["schema_version"] != 2
+        or request["mission"]["stage_id"]
+        not in {
+            "manuscript_authoring",
+            "review_and_quality_gate",
+            "finalize_and_publication_handoff",
+        }
+    ):
+        return None
+    selected_build = manifest.get("selected_build_binding")
+    if selected_build is None:
+        return (
+            "manuscript_authoring",
+            ["selected_build_binding_missing"],
+            "bind the selected archive, build receipt, dependency manifest, and exact root reader bytes",
+        )
+    selected_build_codes: list[str] = []
+    if selected_build["dependency_currentness"] != "current":
+        selected_build_codes.append("selected_build_dependencies_not_current")
+    if not selected_build["root_matches_selected_bytes"]:
+        selected_build_codes.append("root_reader_output_differs_from_selected_build")
+    if selected_build_codes:
+        return (
+            "manuscript_authoring",
+            selected_build_codes,
+            "rebuild from current dependencies and select a root reader output with exact byte equality",
+        )
+    response_sync = manifest.get("reviewer_response_sync")
+    if response_sync is None:
+        return (
+            "manuscript_authoring",
+            ["reviewer_response_sync_missing"],
+            "bind the current reviewer response, action matrix, artifact inventory, and affected exact refs before freeze",
+        )
+    response_codes: list[str] = []
+    if response_sync["sync_status"] != "synchronized":
+        response_codes.append("reviewer_response_sync_route_back_required")
+    if any(item["status"] == "planned" for item in response_sync["items"]):
+        response_codes.append("reviewer_response_items_not_implemented")
+    if (
+        response_sync["post_freeze_disposition"]
+        == "scientific_change_requires_new_revision"
+    ):
+        response_codes.append("post_freeze_scientific_change_requires_new_revision_cycle")
+    if response_codes:
+        return (
+            "manuscript_authoring",
+            response_codes,
+            "synchronize every response item to current exact artifacts or start the bound new revision cycle",
         )
     return None
 
@@ -2744,9 +3212,10 @@ def _owner_receipt(request: Mapping[str, Any]) -> dict[str, Any]:
     evidence = request["medical_evidence"]
     reviews = request["generation_manifest"]["independent_review_receipts"]
     currentness = request["review_authority"]["currentness_receipt"]
+    selected_build_authority = request["selected_build_currentness_authority"]
     core = {
         "receipt_kind": "mas_paper_mission_owner_receipt",
-        "schema_version": 2,
+        "schema_version": 3 if selected_build_authority is not None else 2,
         "owner": "MedAutoScience",
         "mission_identity": dict(request["mission"]),
         "host_refs": _host_refs(request),
@@ -2783,6 +3252,10 @@ def _owner_receipt(request: Mapping[str, Any]) -> dict[str, Any]:
         "authorizes_publication_or_submission": False,
         "requires_host_exact_byte_persistence": True,
     }
+    if selected_build_authority is not None:
+        core["selected_build_currentness_authority_ref"] = dict(
+            selected_build_authority["authority_ref"]
+        )
     if request["mission"]["stage_id"] == "finalize_and_publication_handoff":
         core["artifact_projection_transport"] = _artifact_projection_transport(request)
     receipt_fingerprint = fingerprint(core)
