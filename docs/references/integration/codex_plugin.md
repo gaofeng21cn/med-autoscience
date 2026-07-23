@@ -71,7 +71,7 @@ opl packages update mas
 opl packages uninstall mas
 ```
 
-OPL 在这些 lifecycle transaction 内完成依赖闭包解析、generated interface/Carrier 物化、currentness readback、卸载保护与回滚；MAS 文档不暴露内部 activation/status/repair 命令。
+OPL 在这些 lifecycle transaction 内为 MAS root package 及 hard runtime dependencies 完成闭包解析、generated interface/Carrier 物化、currentness readback、卸载保护与回滚。Optional Provider 采用独立 lifecycle，缺失、禁用、不兼容或未物化只形成 diagnostic，不阻断 MAS install、launch 或 Stage route；MAS 文档不暴露内部 activation/status/repair 命令。
 
 不要恢复 `.agents/plugins/marketplace.json`、`plugins/mas`、`medautosci-mcp`、`uv tool install .` 作为 MAS plugin 安装合同，或把 package import success 当作 runtime ready。
 

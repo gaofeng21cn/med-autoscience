@@ -218,6 +218,42 @@ def test_scholarskills_is_a_managed_optional_enhancement_not_a_sixth_agent() -> 
     assert package["codex_surface"]["standalone_distribution"] == (
         "repo_carrier_source"
     )
+
+    active_truth_paths = [
+        "README.md",
+        "README.zh-CN.md",
+        "bootstrap/README.md",
+        "docs/architecture.md",
+        "docs/invariants.md",
+        "docs/whitepapers/mas-whitepaper.md",
+        "docs/references/integration/codex_plugin.md",
+        "docs/active/stage_surface_standardization_program.md",
+    ]
+    active_truth = {
+        path: (ROOT / path).read_text(encoding="utf-8")
+        for path in active_truth_paths
+    }
+    forbidden_legacy_claims = [
+        "required `mas-scholar-skills` closure",
+        "必需的 `mas-scholar-skills` 闭包",
+        "原子解析 MAS 与 `mas-scholar-skills` 依赖闭包",
+        "`mas-scholar-skills` 是 MAS 的必需能力包",
+        "`mas-scholar-skills` 是 MAS 硬依赖",
+        "产品依赖闭包",
+        "operational_ready=false",
+        "进入同一 package closure transaction",
+        "对当前依赖闭包和 scope materialization fail-closed 修复",
+        "在这些 lifecycle transaction 内完成依赖闭包解析",
+        "required knowledge / ScholarSkills / tool affordances",
+    ]
+    for path, text in active_truth.items():
+        for legacy_claim in forbidden_legacy_claims:
+            assert legacy_claim not in text, f"{path} retains {legacy_claim}"
+    for path in active_truth_paths[:6]:
+        text = active_truth[path]
+        assert (
+            "可选专业增强" in text or "optional professional enhancement" in text
+        )
     assert dependency["required_module_ids"] == [
         "mas-scholar-skills.display",
         "mas-scholar-skills.tables",

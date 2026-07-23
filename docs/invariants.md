@@ -20,7 +20,7 @@ Machine boundary: 本文是人读约束；机器事实以 contracts、source、r
 - V2 generated/default interface 只绑定 Stage manifest 与 closed handler registry。旧 `domain_entry` 及其 status/read-model/queue caller 已物理退役，不得以 compatibility、diagnostic 或 test fixture 名义恢复为 active source。
 - Foundry 系列 policy 归唯一 OPL Framework；MAS 只保留 canonical refs、policy fingerprint、domain delta 与 false-authority envelope，不复制 policy body，也不安装 Framework policy carrier。
 - 环境依赖在 `contracts/runtime_environment_requirements.json` 声明；prepare/run 归 OPL。MAS 可保留 `mas_provisioning_allowed=false` 的只读环境检查/投影，但不在 import、workspace 或 installer 中安装、修复环境，也不授权 ready。
-- `mas-scholar-skills` 是 MAS 硬依赖。核心 package、ABI 或任一必需 export 缺失/不兼容时必须 `operational_ready=false`，不得静默降级；安装、激活、修复、更新、锁定、回滚和依赖卸载保护统一归 `opl packages`。可选 named-specialty Skill 不进入该 readiness floor。
+- `mas-scholar-skills` 是默认可随包提供的可选专业增强，不是 MAS 硬依赖。package、ABI 或 profile compatibility set 缺失/不兼容时只记录 diagnostic / quality debt，MAS core、Stage route、launch 与 `operational_ready` 继续成立；Provider 的安装、激活、修复、更新、锁定和回滚仍归 `opl packages`，但不得与 MAS lifecycle 或卸载保护形成原子依赖。
 
 ## Authority
 
