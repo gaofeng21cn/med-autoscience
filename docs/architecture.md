@@ -39,7 +39,7 @@ canonical agent/package id 固定为 `mas`；machine `domain_id` / `target_domai
 
 Pack 只声明需求和能力，不实现通用 transport、installer、workspace bootstrap、runtime shell 或 workbench。
 
-`mas-scholar-skills` 是默认可随包提供的可选专业增强，不是 MAS 运行硬依赖。独立仓库形成开发、版本和发布边界；`contracts/opl_agent_package_manifest.json` 只声明 Provider 兼容版本、capability ABI 与 profile compatibility set。用户通过 `opl packages install/update/uninstall mas` 管理 MAS；OPL `packages` 分别持有各 package 的 activation/status/repair、digest lock、lifecycle receipt、更新与回滚。默认 bundle 不形成原子依赖闭包或卸载保护，Provider 缺失或不兼容时 MAS core、Stage route、launch 与 readiness 继续成立。MAS 不维护私有安装入口、Framework lock 或第二套 package lifecycle。
+`mas-scholar-skills` 是 MAS 的 required capability dependency，不是第六个 Agent。独立仓库形成开发、版本和发布边界；`contracts/opl_agent_package_manifest.json` 声明兼容版本、capability ABI 与 profile compatibility set。用户通过 `opl packages install/update/uninstall mas` 管理 MAS；OPL `packages` 对 MAS root 与 required dependency closure 原子解析、锁定、激活、更新、修复、回滚并保护卸载。依赖缺失或不兼容时 readiness fail-closed；MAS 仍持有医学 domain truth，不维护私有安装入口、Framework lock 或第二套 package lifecycle。
 
 Foundry 系列 policy 只由唯一 OPL Framework 持有。MAS 的 `contracts/foundry_agent_series.json` 是 refs-only consumer contract，只记录 canonical contract refs、policy fingerprint、MAS domain delta 与 false-authority envelope；MAS 不复制 OPL policy body，也不声明本地 Framework 依赖。
 

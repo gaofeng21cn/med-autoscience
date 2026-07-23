@@ -154,7 +154,7 @@ Medical papers do not finish in one generation. The system can keep multiple cla
 <details>
   <summary><strong>Start here if you are handing this repo to Codex or another agent</strong></summary>
 
-- Install, update, or remove the MAS package with `opl packages install mas`, `opl packages update mas`, or `opl packages uninstall mas`. OPL may bundle and materialize `mas-scholar-skills` as an optional professional enhancement, but its absence or incompatibility records a diagnostic instead of blocking MAS installation, launch, or Stage routing.
+- Install, update, or remove the MAS package with `opl packages install mas`, `opl packages update mas`, or `opl packages uninstall mas`. OPL resolves and materializes the required `mas-scholar-skills` dependency closure with MAS; a missing or incompatible dependency fails MAS readiness and routes to managed doctor/repair.
 - Cloning this repository provides the MAS declarative pack, not an OPL runtime installation. OPL discovers `contracts/domain_descriptor.json`, compiles six public Stage actions plus four internal authority actions, generates CLI/MCP/Skill/product surfaces, and hosts runtime/workbench behavior.
 - The canonical domain id is `mas`. `med-autoscience` is only the repository, package, and plugin locator.
 - The repo-root `agent/` pack and action schemas are the interface source. Public execution uses six OPL-hosted Stage actions. Lifecycle reactivation, candidate admission, build-dependency currentness, and paper-mission authority evaluation are internal registry-bound MAS callables, not user commands.

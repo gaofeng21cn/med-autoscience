@@ -1,10 +1,10 @@
 {
   "surface_kind": "mas_exact_byte_validator_release_set_receipt",
   "schema_version": 1,
-  "release_set_id": "mas-validator-0.2.18",
+  "release_set_id": "mas-validator-0.2.19",
   "package_id": "mas",
-  "package_version": "0.2.18",
-  "source_ref": "refs/tags/v0.2.18",
+  "package_version": "0.2.19",
+  "source_ref": "refs/tags/v0.2.19",
   "supported_scope": {
     "kind": "exact_byte_domain_validator",
     "generation_manifest_validation": true,

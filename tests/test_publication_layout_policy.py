@@ -80,9 +80,10 @@ def test_package_and_stage_surfaces_consume_the_single_layout_policy() -> None:
 
     assert dependency["package_id"] == "mas-scholar-skills"
     assert dependency["version_requirement"] == ">=0.2.12 <0.3.0"
-    assert dependency["required"] is False
+    assert dependency["required"] is True
+    assert dependency["dependency_kind"] == "hard_runtime_dependency"
     assert dependency["missing_or_incompatible_policy"] == (
-        "continue_with_consumer_core_and_record_diagnostic"
+        "fail_closed_to_doctor_and_repair"
     )
     assert pack_input["required_domain_pack_paths"].count(POLICY_REF) == 1
     assert pack_input["source_refs"]["publication_layout_policy_ref"] == POLICY_REF

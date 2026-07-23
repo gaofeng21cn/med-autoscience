@@ -24,7 +24,7 @@ def test_package_plugin_and_python_versions_are_one_semver() -> None:
     )
 
     assert package["version"] == pyproject["project"]["version"] == plugin["version"]
-    assert package["version"] == "0.2.18"
+    assert package["version"] == "0.2.19"
     assert "distribution_payload" not in package
     assert package["agent_id"] == package["package_id"] == "mas"
     assert package["codex_surface"]["plugin_id"] == "med-autoscience"
@@ -108,12 +108,12 @@ def test_validator_release_set_preserves_managed_provenance_gate() -> None:
         (ROOT / "contracts/action_catalog.json").read_text(encoding="utf-8")
     )
 
-    assert release["release_set_id"] == "mas-validator-0.2.18"
-    assert release["package_version"] == package["version"] == "0.2.18"
+    assert release["release_set_id"] == "mas-validator-0.2.19"
+    assert release["package_version"] == package["version"] == "0.2.19"
     assert package["release_set_receipt_ref"] == (
         "contracts/mas_validator_release_set_receipt.json"
     )
-    assert release["source_ref"] == "refs/tags/v0.2.18"
+    assert release["source_ref"] == "refs/tags/v0.2.19"
     assert "source_commit" not in release
     assert release["supported_scope"]["kind"] == "exact_byte_domain_validator"
     assert (
@@ -200,7 +200,7 @@ def test_stage_route_contract_has_one_canonical_package_source() -> None:
     ) == 1
 
 
-def test_scholarskills_is_a_managed_optional_enhancement_not_a_sixth_agent() -> None:
+def test_scholarskills_is_a_managed_hard_dependency_not_a_sixth_agent() -> None:
     package = json.loads(
         (ROOT / "contracts/opl_agent_package_manifest.json").read_text(
             encoding="utf-8"
@@ -208,12 +208,14 @@ def test_scholarskills_is_a_managed_optional_enhancement_not_a_sixth_agent() -> 
     )
     dependencies = package["capability_dependencies"]
 
-    assert len(dependencies) == 1
+    assert [item["package_id"] for item in dependencies] == [
+        "mas-scholar-skills"
+    ]
     dependency = dependencies[0]
     assert dependency["package_id"] == "mas-scholar-skills"
     assert dependency["kind"] == "framework_capability_package"
-    assert dependency["required"] is False
-    assert dependency["dependency_kind"] == "optional_enhancement"
+    assert dependency["required"] is True
+    assert dependency["dependency_kind"] == "hard_runtime_dependency"
     assert dependency["version_requirement"] == ">=0.2.12 <0.3.0"
     assert dependency["consumer_profile_id"] == "mas-medical-paper.v1"
     assert package["codex_surface"]["standalone_distribution"] == (
@@ -226,35 +228,55 @@ def test_scholarskills_is_a_managed_optional_enhancement_not_a_sixth_agent() -> 
         "bootstrap/README.md",
         "docs/architecture.md",
         "docs/invariants.md",
+        "docs/decisions.md",
+        "docs/status.md",
+        "docs/active/mas-ideal-state-gap-plan.md",
         "docs/whitepapers/mas-whitepaper.md",
         "docs/references/integration/codex_plugin.md",
         "docs/active/stage_surface_standardization_program.md",
+        "agent/primary_skill/SKILL.md",
+        "plugins/med-autoscience/skills/med-autoscience/SKILL.md",
     ]
     active_truth = {
         path: (ROOT / path).read_text(encoding="utf-8")
         for path in active_truth_paths
     }
-    forbidden_legacy_claims = [
-        "required `mas-scholar-skills` closure",
-        "必需的 `mas-scholar-skills` 闭包",
-        "原子解析 MAS 与 `mas-scholar-skills` 依赖闭包",
-        "`mas-scholar-skills` 是 MAS 的必需能力包",
-        "`mas-scholar-skills` 是 MAS 硬依赖",
-        "产品依赖闭包",
-        "operational_ready=false",
-        "进入同一 package closure transaction",
-        "对当前依赖闭包和 scope materialization fail-closed 修复",
-        "在这些 lifecycle transaction 内完成依赖闭包解析",
-        "required knowledge / ScholarSkills / tool affordances",
+    forbidden_optional_claims = [
+        "optional professional enhancement",
+        "可选专业增强",
+        "not enter MAS's hard dependency closure",
+        "不进入 MAS 的硬依赖闭包",
+        "不是 MAS 硬依赖",
+        "optional Provider",
+        "optional enhancement gap",
+        "continue_with_consumer_core_and_record_diagnostic",
     ]
     for path, text in active_truth.items():
-        for legacy_claim in forbidden_legacy_claims:
-            assert legacy_claim not in text, f"{path} retains {legacy_claim}"
-    for path in active_truth_paths[:6]:
-        text = active_truth[path]
-        assert (
-            "可选专业增强" in text or "optional professional enhancement" in text
-        )
+        for optional_claim in forbidden_optional_claims:
+            assert optional_claim not in text, f"{path} retains {optional_claim}"
+    required_truth_claims = {
+        "README.md": "required `mas-scholar-skills` dependency closure",
+        "README.zh-CN.md": "必需的 `mas-scholar-skills` 依赖闭包",
+        "bootstrap/README.md": "MAS 与 `mas-scholar-skills` required dependency closure",
+        "docs/architecture.md": "`mas-scholar-skills` 是 MAS 的 required capability dependency",
+        "docs/invariants.md": "`mas-scholar-skills` 是 MAS 硬依赖",
+        "docs/decisions.md": "ScholarSkills 硬依赖",
+        "docs/status.md": "MAS required capability dependency",
+        "docs/active/mas-ideal-state-gap-plan.md": "required dependency",
+        "docs/whitepapers/mas-whitepaper.md": "必需能力依赖",
+        "docs/references/integration/codex_plugin.md": "MAS root package 及其 required dependency closure",
+        "docs/active/stage_surface_standardization_program.md": (
+            "required knowledge / ScholarSkills / tool affordances"
+        ),
+        "agent/primary_skill/SKILL.md": (
+            "Use the installed `mas-scholar-skills` capability package"
+        ),
+        "plugins/med-autoscience/skills/med-autoscience/SKILL.md": (
+            "Use the installed `mas-scholar-skills` capability package"
+        ),
+    }
+    for path, required_claim in required_truth_claims.items():
+        assert required_claim in active_truth[path], f"{path} lacks {required_claim}"
     assert dependency["required_module_ids"] == [
         "mas-scholar-skills.display",
         "mas-scholar-skills.tables",
@@ -268,13 +290,21 @@ def test_scholarskills_is_a_managed_optional_enhancement_not_a_sixth_agent() -> 
         "mas-scholar-skills.scientific-search-adapters",
     ]
     assert package["codex_surface"]["user_install_action_count"] == 1
-    assert package["codex_surface"]["bundled_capability_package_ids"] == [
+    assert package["codex_surface"]["required_capability_package_ids"] == [
         "mas-scholar-skills"
     ]
-    assert dependency["activation_materialization"]["required"] is False
-    assert dependency["activation_materialization"]["receipt_required"] is False
+    assert dependency["required_for"] == [
+        "workspace_or_quest_codex_discovery",
+        "mas_operational_readiness",
+        "all_mas_medical_research_workflows",
+    ]
+    assert dependency["activation_materialization"]["required"] is True
+    assert dependency["activation_materialization"]["receipt_required"] is True
+    assert dependency["activation_materialization"]["readiness_policy"] == (
+        "all_core_skills_current_for_active_scope"
+    )
     assert dependency["missing_or_incompatible_policy"] == (
-        "continue_with_consumer_core_and_record_diagnostic"
+        "fail_closed_to_doctor_and_repair"
     )
 
 

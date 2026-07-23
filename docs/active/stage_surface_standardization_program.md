@@ -10,7 +10,7 @@ Machine boundary: 本文解释 Stage pack 形态。机器真相归 `agent/stages
 每个 MAS Stage 只声明：
 
 - goal、good result 与 scope；
-- needed domain knowledge / preferred or available professional Skills / tool affordances；
+- required knowledge / ScholarSkills / tool affordances；
 - artifact roles、source/evidence obligations 与 forbidden writes；
 - quality rubric、formal Review policy 与 repair budget；
 - declared route targets、handoff refs 与 authority boundary。
