@@ -487,6 +487,83 @@ def _request_with_all_optional_projections() -> dict[str, Any]:
     return request
 
 
+def _projection_target(
+    request: dict[str, Any], projection_id: str
+) -> dict[str, Any]:
+    return next(
+        target
+        for target in request["projection_inventory"]["targets"]
+        if target["projection_id"] == projection_id
+    )
+
+
+def _operation_payload(operation: dict[str, Any]) -> dict[str, Any]:
+    return json.loads(base64.b64decode(operation["replacement_bytes_base64"]))
+
+
+def _request_with_current_multistudy_projection_shape() -> dict[str, Any]:
+    request = _request_with_all_optional_projections()
+    other_study_id = "004-dpcc-longitudinal-care-inertia-intensification-gap"
+    other_lifecycle = _lifecycle("delivered_paused")
+    other_lifecycle["study_id"] = other_study_id
+
+    workspace_lifecycle = _projection_target(
+        request, "workspace_lifecycle_latest"
+    )["record"]
+    workspace_lifecycle["recorded_at"] = "2026-07-20T00:30:00Z"
+    workspace_lifecycle["status_counts"] = {
+        "paused": 1,
+        "delivered_paused": 1,
+    }
+    workspace_lifecycle["changed_study_id"] = other_study_id
+    workspace_lifecycle["changed_generation"] = other_lifecycle["generation"]
+    workspace_lifecycle["studies"].append(other_lifecycle)
+
+    for role in ("workspace_index", "workspace_studies_index"):
+        workspace_index = _projection_target(request, role)["record"]
+        workspace_index["status_counts"] = {
+            "paused": 1,
+            "delivered_paused": 1,
+        }
+        workspace_index["studies"][0].pop("submission_ready")
+        other_study = _workspace_index("delivered_paused")["studies"][0]
+        other_study["study_id"] = other_study_id
+        workspace_index["studies"].append(other_study)
+
+    latest_status = _projection_target(request, "workspace_latest_status")["record"]
+    latest_status["schema_version"] = "mas.workspace_status.v1"
+    latest_status["status_counts"] = {
+        "paused": 1,
+        "delivered_paused": 1,
+    }
+    latest_status["next_required_actions"] = [
+        "wait_for_explicit_user_wakeup"
+    ]
+
+    submission_status = _projection_target(request, "submission_status")["record"]
+    submission_status.clear()
+    submission_status.update(
+        {
+            "authority": False,
+            "candidate_generation": "v3r6",
+            "mas_owner_receipt_issued": False,
+            "package_stage": "author_review_package",
+            "reason": "registered owner facts and submission metadata remain open",
+            "schema_version": "study001-formal-sci-package-status.v1",
+            "status": "not_ready",
+            "submission_ready": False,
+        }
+    )
+
+    stage_index = _projection_target(request, "stage_index")["record"]
+    stage_index.pop("surface_kind")
+    stage_index["schema_version"] = "mas.study_stage_index.v1"
+
+    for target in request["projection_inventory"]["targets"]:
+        _rebind_projection_target(target)
+    return request
+
+
 def _validator(name: str) -> Draft202012Validator:
     schema = json.loads(
         (ROOT / "contracts/schemas/v2" / name).read_text(encoding="utf-8")
@@ -676,6 +753,148 @@ def test_all_projection_sources_share_handler_order_and_are_authorized() -> None
     ]
 
 
+def test_current_multistudy_legacy_projection_roundtrip_is_narrow_and_cas_bound() -> None:
+    request = _request_with_current_multistudy_projection_shape()
+    request_before = deepcopy(request)
+    other_study_id = "004-dpcc-longitudinal-care-inertia-intensification-gap"
+    shared_roles = (
+        "workspace_lifecycle_latest",
+        "workspace_index",
+        "workspace_studies_index",
+    )
+    other_study_fingerprints = {
+        role: _json_fingerprint(
+            next(
+                study
+                for study in _projection_target(request, role)["record"]["studies"]
+                if study["study_id"] == other_study_id
+            )
+        )
+        for role in shared_roles
+    }
+    last_changed = {
+        field: _projection_target(request, "workspace_lifecycle_latest")["record"][
+            field
+        ]
+        for field in ("changed_study_id", "changed_generation", "recorded_at")
+    }
+
+    result = evaluate_study_lifecycle_reactivation_authority(request)
+
+    assert request == request_before
+    assert result["status"] == "authorized"
+    operations = result["opl_host_materialization_request"]["operations"]
+    assert len(operations) == 10
+    operation_by_path = {
+        operation["target_relative_path"]: operation for operation in operations
+    }
+    assert f"studies/{STUDY_ID}/submission/STATUS.json" not in operation_by_path
+
+    role_paths = {
+        role: _projection_target(request, role)["relative_path"]
+        if _projection_target(request, role)["root"] == "workspace"
+        else f"studies/{STUDY_ID}/{_projection_target(request, role)['relative_path']}"
+        for role in shared_roles
+    }
+    for role, target_path in role_paths.items():
+        operation = operation_by_path[target_path]
+        assert operation["precondition"]["kind"] == "existing_exact"
+        assert operation["precondition"]["sha256"] == _projection_target(
+            request, role
+        )["sha256"].removeprefix("sha256:")
+        updated = _operation_payload(operation)
+        other_study = next(
+            study
+            for study in updated["studies"]
+            if study["study_id"] == other_study_id
+        )
+        assert _json_fingerprint(other_study) == other_study_fingerprints[role]
+
+    updated_workspace_lifecycle = _operation_payload(
+        operation_by_path[role_paths["workspace_lifecycle_latest"]]
+    )
+    assert {
+        field: updated_workspace_lifecycle[field]
+        for field in ("changed_study_id", "changed_generation", "recorded_at")
+    } == last_changed
+
+    for role in ("workspace_index", "workspace_studies_index"):
+        updated_index = _operation_payload(operation_by_path[role_paths[role]])
+        target_study = next(
+            study for study in updated_index["studies"] if study["study_id"] == STUDY_ID
+        )
+        assert target_study["lifecycle_state"] == "active"
+        assert target_study["submission_ready"] is False
+
+    latest_status_path = "reports/latest_status.json"
+    assert _operation_payload(operation_by_path[latest_status_path])["schema_version"] == (
+        "mas.workspace_status.v1"
+    )
+    stage_index_path = f"studies/{STUDY_ID}/control/stage_index.json"
+    updated_stage_index = _operation_payload(operation_by_path[stage_index_path])
+    assert updated_stage_index["schema_version"] == "mas.study_stage_index.v1"
+    assert "surface_kind" not in updated_stage_index
+    assert updated_stage_index["lifecycle_state"] == "active"
+
+    publication_status_path = (
+        f"studies/{STUDY_ID}/publication/current_package/STATUS.json"
+    )
+    assert _operation_payload(operation_by_path[publication_status_path])[
+        "lifecycle_state"
+    ] == "active"
+
+
+def test_foreign_submission_status_requires_lifecycle_owned_package_status() -> None:
+    request = _request_with_current_multistudy_projection_shape()
+    request["projection_inventory"]["targets"] = [
+        target
+        for target in request["projection_inventory"]["targets"]
+        if target["projection_id"] != "publication_current_package_status"
+    ]
+    request["projection_inventory"]["absent_optional_projection_ids"] = [
+        "publication_current_package_status"
+    ]
+
+    result = evaluate_study_lifecycle_reactivation_authority(request)
+
+    assert result["status"] == "typed_blocker"
+    assert result["typed_blocker"]["reason_code"] == (
+        "lifecycle_projection_currentness_mismatch"
+    )
+    assert "requires publication_current_package_status" in result["typed_blocker"][
+        "resume_condition"
+    ]
+    assert result["opl_host_materialization_request"] is None
+
+
+@pytest.mark.parametrize(
+    ("field", "claim"),
+    [
+        ("authority", True),
+        ("status", "ready"),
+        ("submission_ready", True),
+        ("mas_owner_receipt_issued", True),
+        ("publication_verdict", "ready"),
+    ],
+)
+def test_foreign_submission_status_readiness_or_authority_claim_fails_closed(
+    field: str, claim: Any
+) -> None:
+    request = _request_with_current_multistudy_projection_shape()
+    submission = _projection_target(request, "submission_status")
+    submission["record"][field] = claim
+    _rebind_projection_target(submission)
+
+    result = evaluate_study_lifecycle_reactivation_authority(request)
+
+    assert result["status"] == "typed_blocker"
+    assert result["typed_blocker"]["reason_code"] == (
+        "lifecycle_projection_currentness_mismatch"
+    )
+    assert result["opl_host_materialization_request"] is None
+    assert result["mas_lifecycle_cas_mutation_authorization"] is None
+
+
 def test_stopped_reactivation_requires_separate_relaunch_authority() -> None:
     request = _request("stopped")
     request["reactivation_request"]["allow_stopped_relaunch"] = False
@@ -760,9 +979,7 @@ def test_incomplete_projection_returns_closed_typed_blocker(
     ("projection_id", "missing_field"),
     [
         ("workspace_index", "package_status"),
-        ("workspace_index", "submission_ready"),
         ("workspace_studies_index", "package_status"),
-        ("workspace_studies_index", "submission_ready"),
     ],
 )
 def test_incomplete_workspace_study_entry_returns_closed_typed_blocker(

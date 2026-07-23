@@ -1212,13 +1212,20 @@ def _materialization_operations(
             after=after_lifecycle,
             role="workspace_index",
         ),
-        "submission_status": _update_status_projection(
-            targets["submission_status"]["current_payload"],
-            old_state=old_state,
-            role="submission_status",
-            after=after_lifecycle,
-        ),
     }
+    submission_status = _update_submission_status_projection(
+        targets["submission_status"]["current_payload"],
+        old_state=old_state,
+        after=after_lifecycle,
+    )
+    if submission_status is None:
+        if "publication_current_package_status" not in targets:
+            raise ProjectionCurrentnessError(
+                "foreign submission_status requires "
+                "publication_current_package_status lifecycle authority"
+            )
+    else:
+        updated_by_role["submission_status"] = submission_status
     if "workspace_studies_index" in targets:
         updated_by_role["workspace_studies_index"] = _update_workspace_index(
             targets["workspace_studies_index"]["current_payload"],
@@ -1250,11 +1257,9 @@ def _materialization_operations(
     operations = []
     for role in _TARGET_ROLE_ORDER:
         target = targets.get(role)
-        if target is None:
+        if target is None or role not in updated_by_role:
             continue
-        operations.append(
-            _replace_operation(target, updated_by_role[role])
-        )
+        operations.append(_replace_operation(target, updated_by_role[role]))
 
     stamp = _history_stamp(event_time)
     history_targets = (
@@ -1315,13 +1320,13 @@ def _update_workspace_lifecycle(
         raise ProjectionCurrentnessError("workspace lifecycle schema is unsupported")
     if payload.get("surface_kind") != "workspace_study_lifecycle_control":
         raise ProjectionCurrentnessError("workspace lifecycle surface is unsupported")
-    if payload.get("changed_study_id") != current["study_id"]:
+    text(payload["changed_study_id"], "workspace lifecycle changed_study_id")
+    changed_generation = integer(
+        payload["changed_generation"], "workspace lifecycle changed_generation"
+    )
+    if changed_generation < 1:
         raise ProjectionCurrentnessError(
-            "workspace lifecycle changed_study_id does not match current lifecycle"
-        )
-    if payload.get("changed_generation") != current["generation"]:
-        raise ProjectionCurrentnessError(
-            "workspace lifecycle changed_generation does not match current lifecycle"
+            "workspace lifecycle changed_generation must be positive"
         )
     _timestamp(payload["recorded_at"], "workspace lifecycle recorded_at")
     studies = sequence(payload.get("studies"), "workspace lifecycle studies")
@@ -1343,9 +1348,6 @@ def _update_workspace_lifecycle(
     payload["status_counts"] = _updated_status_counts(
         payload.get("status_counts"), current["lifecycle_state"]
     )
-    payload["changed_study_id"] = current["study_id"]
-    payload["changed_generation"] = after["generation"]
-    payload["recorded_at"] = after["recorded_at"]
     return payload
 
 
@@ -1387,7 +1389,6 @@ def _update_workspace_index(
             "business_status",
             "lifecycle_state",
             "package_status",
-            "submission_ready",
         },
     )
     for field in ("status", "business_status", "lifecycle_state"):
@@ -1395,11 +1396,23 @@ def _update_workspace_index(
             raise ProjectionCurrentnessError(
                 f"workspace index {field} does not match current lifecycle"
             )
-    for field in ("package_status", "submission_ready"):
-        if not _json_deep_equal(study[field], current[field]):
+    if not _json_deep_equal(study["package_status"], current["package_status"]):
+        raise ProjectionCurrentnessError(
+            "workspace index package_status does not match current lifecycle"
+        )
+    if "submission_ready" in study:
+        if not _json_deep_equal(
+            study["submission_ready"], current["submission_ready"]
+        ):
             raise ProjectionCurrentnessError(
-                f"workspace index {field} does not match current lifecycle"
+                "workspace index submission_ready does not match current lifecycle"
             )
+    elif current["submission_ready"] is False:
+        study["submission_ready"] = False
+    else:
+        raise ProjectionCurrentnessError(
+            "workspace index cannot infer submission_ready from current lifecycle"
+        )
     study.update(
         {
             "status": "active",
@@ -1442,9 +1455,13 @@ def _update_workspace_latest_status(
     )
     if payload.get("surface_kind") != "workspace_latest_status":
         raise ProjectionCurrentnessError("workspace latest status surface is unsupported")
-    if type(payload.get("schema_version")) is not int or payload["schema_version"] != 1:
+    schema_version = payload.get("schema_version")
+    if not (
+        (type(schema_version) is int and schema_version == 1)
+        or schema_version == "mas.workspace_status.v1"
+    ):
         raise ProjectionCurrentnessError(
-            "workspace latest status schema_version must be integer 1"
+            "workspace latest status schema_version is unsupported"
         )
     _timestamp(payload["recorded_at"], "workspace latest status recorded_at")
     text_list(
@@ -1520,6 +1537,53 @@ def _update_status_projection(
     return payload
 
 
+def _update_submission_status_projection(
+    value: Mapping[str, Any], *, old_state: str, after: Mapping[str, Any]
+) -> dict[str, Any] | None:
+    payload = deepcopy(mapping(value, "submission_status.current_payload"))
+    if "surface_kind" not in payload and isinstance(
+        payload.get("schema_version"), str
+    ):
+        _require_projection_fields(
+            payload,
+            "foreign submission_status",
+            {"schema_version", "authority", "status", "submission_ready"},
+        )
+        text(payload["schema_version"], "foreign submission_status schema_version")
+        if payload.get("authority") is not False:
+            raise ProjectionCurrentnessError(
+                "foreign submission_status unexpectedly claims authority"
+            )
+        if payload.get("status") != "not_ready":
+            raise ProjectionCurrentnessError(
+                "foreign submission_status status must remain not_ready"
+            )
+        if payload.get("submission_ready") is not False:
+            raise ProjectionCurrentnessError(
+                "foreign submission_status unexpectedly claims submission ready"
+            )
+        false_claim_fields = ("promotion_allowed", "mas_owner_receipt_issued")
+        for field in false_claim_fields:
+            if field in payload and payload[field] is not False:
+                raise ProjectionCurrentnessError(
+                    f"foreign submission_status unexpectedly claims {field}"
+                )
+        if (
+            "publication_verdict" in payload
+            and payload["publication_verdict"] != "not_ready"
+        ):
+            raise ProjectionCurrentnessError(
+                "foreign submission_status unexpectedly claims publication readiness"
+            )
+        return None
+    return _update_status_projection(
+        payload,
+        old_state=old_state,
+        role="submission_status",
+        after=after,
+    )
+
+
 def _update_stage_index(
     value: Mapping[str, Any], *, old_state: str, study_id: str
 ) -> dict[str, Any]:
@@ -1527,12 +1591,17 @@ def _update_stage_index(
     _require_projection_fields(
         payload,
         "stage_index",
-        {"surface_kind", "schema_version", "study_id", "lifecycle_state", "stages"},
+        {"schema_version", "study_id", "lifecycle_state", "stages"},
     )
-    if payload.get("surface_kind") != "mas_stage_index":
-        raise ProjectionCurrentnessError("stage index surface is unsupported")
-    if type(payload.get("schema_version")) is not int or payload["schema_version"] != 1:
-        raise ProjectionCurrentnessError("stage index schema_version must be integer 1")
+    schema_version = payload.get("schema_version")
+    if type(schema_version) is int and schema_version == 1:
+        if payload.get("surface_kind") != "mas_stage_index":
+            raise ProjectionCurrentnessError("stage index surface is unsupported")
+    elif schema_version == "mas.study_stage_index.v1":
+        if "surface_kind" in payload and payload["surface_kind"] != "mas_stage_index":
+            raise ProjectionCurrentnessError("stage index surface is unsupported")
+    else:
+        raise ProjectionCurrentnessError("stage index schema_version is unsupported")
     if payload.get("study_id") != study_id:
         raise ProjectionCurrentnessError("stage index study_id does not match")
     if payload.get("lifecycle_state") != old_state:

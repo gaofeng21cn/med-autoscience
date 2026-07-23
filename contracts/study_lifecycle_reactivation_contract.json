@@ -127,6 +127,39 @@
     "paper_or_manuscript_body_mutation_allowed": false,
     "stage_selection_allowed": false
   },
+  "projection_compatibility": {
+    "workspace_lifecycle_latest": {
+      "changed_study_fields_semantics": "global_last_changed_study_not_target_currentness",
+      "target_currentness_source": "exact_target_study_row",
+      "whole_file_sha256_cas_required": true,
+      "non_target_study_rows_preserved": true,
+      "changed_study_fields_preserved": true
+    },
+    "workspace_indexes": {
+      "legacy_missing_target_submission_ready_allowed": true,
+      "inferred_value_source": "exact_current_lifecycle_submission_ready_false",
+      "non_target_study_rows_preserved": true,
+      "schema_migration_allowed": false
+    },
+    "workspace_latest_status": {
+      "accepted_schema_versions": [1, "mas.workspace_status.v1"],
+      "schema_version_preserved": true,
+      "schema_migration_allowed": false
+    },
+    "submission_status": {
+      "lifecycle_owned_surface_kind": "study_current_package_status",
+      "foreign_package_status_requires_authority_false": true,
+      "foreign_package_status_requires_submission_ready_false": true,
+      "foreign_package_status_write_allowed": false,
+      "foreign_package_status_requires_publication_current_package_status": true
+    },
+    "stage_index": {
+      "accepted_schema_versions": [1, "mas.study_stage_index.v1"],
+      "legacy_surface_kind_may_be_absent": true,
+      "schema_version_and_surface_kind_preserved": true,
+      "schema_migration_allowed": false
+    }
+  },
   "active_state_semantics": {
     "current_stage_id": null,
     "current_stage_status": null,
