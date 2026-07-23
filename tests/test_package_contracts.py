@@ -215,6 +215,7 @@ def test_scholarskills_is_a_managed_optional_enhancement_not_a_sixth_agent() -> 
     assert dependency["required"] is False
     assert dependency["dependency_kind"] == "optional_enhancement"
     assert dependency["version_requirement"] == ">=0.2.12 <0.3.0"
+    assert dependency["consumer_profile_id"] == "mas-medical-paper.v1"
     assert package["codex_surface"]["standalone_distribution"] == (
         "repo_carrier_source"
     )
