@@ -10,14 +10,14 @@
   "carrier_source_role": "codex_plugin_default_carrier_not_package_truth",
   "schema_ref": "one-person-lab/contracts/opl-framework/agent-package-manifest.schema.json",
   "domain_descriptor_ref": "contracts/domain_descriptor.json",
-  "machine_boundary": "This repo-local sidecar declares the MAS package and its required capability dependency. OPL owns dependency resolution, lock, lifecycle receipt, atomic update, rollback, and repair; MAS retains domain truth and authority.",
+  "machine_boundary": "This repo-local sidecar declares the MAS package and its optional professional capability enhancement. OPL owns capability discovery, materialization, lifecycle receipts, update, rollback, and repair; MAS remains runnable without the enhancement and retains domain truth and authority.",
   "codex_surface": {
     "plugin_id": "med-autoscience",
     "standalone_distribution": "repo_carrier_source",
     "required_skill_ids": [
       "med-autoscience"
     ],
-    "required_capability_package_ids": [
+    "bundled_capability_package_ids": [
       "mas-scholar-skills"
     ],
     "user_install_action_count": 1
@@ -27,8 +27,8 @@
       "module_id": "scholarskills",
       "package_id": "mas-scholar-skills",
       "kind": "framework_capability_package",
-      "required": true,
-      "dependency_kind": "hard_runtime_dependency",
+      "required": false,
+      "dependency_kind": "optional_enhancement",
       "version_requirement": ">=0.2.12 <0.3.0",
       "capability_abi": "mas-scholar-skills.v1",
       "provider_manifest_ref": "mas-scholar-skills/contracts/opl_capability_package_manifest.json",
@@ -58,9 +58,8 @@
         "mas-scholar-skills.scientific-search-adapters"
       ],
       "required_for": [
-        "workspace_or_quest_codex_discovery",
-        "mas_operational_readiness",
-        "all_mas_medical_research_workflows"
+        "preferred_professional_method_support",
+        "preferred_medical_research_quality_support"
       ],
       "codex_distribution": "bundled",
       "opl_distribution": "managed_dependency",
@@ -76,7 +75,7 @@
         "opl packages activate mas --scope quest --target-quest <quest-root> --json"
       ],
       "activation_materialization": {
-        "required": true,
+        "required": false,
         "owner": "one-person-lab",
         "trigger": "mas_workspace_or_quest_activation",
         "scopes": [
@@ -85,10 +84,10 @@
         ],
         "required_skill_ids_source": "provider_manifest_exports_core_skill_ids",
         "target_path_template": "<scope-root>/.codex/skills/<skill-id>",
-        "receipt_required": true,
-        "readiness_policy": "all_core_skills_current_for_active_scope"
+        "receipt_required": false,
+        "readiness_policy": "enhancement_currentness_is_diagnostic_not_mas_operational_readiness"
       },
-      "missing_or_incompatible_policy": "fail_closed_to_doctor_and_repair",
+      "missing_or_incompatible_policy": "continue_with_consumer_core_and_record_diagnostic",
       "status_command_templates": {
         "workspace": "opl packages status --package-id mas --json",
         "quest": "opl packages status --package-id mas --json"

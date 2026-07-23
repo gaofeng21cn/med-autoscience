@@ -200,7 +200,7 @@ def test_stage_route_contract_has_one_canonical_package_source() -> None:
     ) == 1
 
 
-def test_scholarskills_is_a_managed_hard_dependency_not_a_sixth_agent() -> None:
+def test_scholarskills_is_a_managed_optional_enhancement_not_a_sixth_agent() -> None:
     package = json.loads(
         (ROOT / "contracts/opl_agent_package_manifest.json").read_text(
             encoding="utf-8"
@@ -212,8 +212,8 @@ def test_scholarskills_is_a_managed_hard_dependency_not_a_sixth_agent() -> None:
     dependency = dependencies[0]
     assert dependency["package_id"] == "mas-scholar-skills"
     assert dependency["kind"] == "framework_capability_package"
-    assert dependency["required"] is True
-    assert dependency["dependency_kind"] == "hard_runtime_dependency"
+    assert dependency["required"] is False
+    assert dependency["dependency_kind"] == "optional_enhancement"
     assert dependency["version_requirement"] == ">=0.2.12 <0.3.0"
     assert package["codex_surface"]["standalone_distribution"] == (
         "repo_carrier_source"
@@ -231,9 +231,14 @@ def test_scholarskills_is_a_managed_hard_dependency_not_a_sixth_agent() -> None:
         "mas-scholar-skills.scientific-search-adapters",
     ]
     assert package["codex_surface"]["user_install_action_count"] == 1
-    assert package["codex_surface"]["required_capability_package_ids"] == [
+    assert package["codex_surface"]["bundled_capability_package_ids"] == [
         "mas-scholar-skills"
     ]
+    assert dependency["activation_materialization"]["required"] is False
+    assert dependency["activation_materialization"]["receipt_required"] is False
+    assert dependency["missing_or_incompatible_policy"] == (
+        "continue_with_consumer_core_and_record_diagnostic"
+    )
 
 
 def test_submission_resources_are_host_or_package_provisioned_without_fallback() -> None:

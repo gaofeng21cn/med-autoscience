@@ -26,7 +26,7 @@ publication/submission ready 或 production ready。
 | Surface | Current state |
 | --- | --- |
 | Identity | canonical agent/package id `mas`；machine domain id `medautoscience`；`med-autoscience` 只作 repo/package/plugin locator |
-| Package | repo package manifest 声明 SemVer `0.2.17`；`mas-scholar-skills` 以 `>=0.2.12 <0.3.0` 为硬依赖，并提供 publication layout profiles、reference verification 与 scientific search adapter modules；exact installed resolution、content lock 与生命周期 currentness 统一归 `opl packages` fresh readback |
+| Package | repo package manifest 声明 SemVer `0.2.17`；`mas-scholar-skills >=0.2.12 <0.3.0` 是 fail-open 的可选专业增强，提供 publication layout profiles、reference verification 与 scientific search adapter modules；缺失时 MAS 继续 owner Stage 并记录 quality debt，exact installed resolution、content lock 与生命周期 currentness 统一归 `opl packages` fresh readback |
 | Declarative pack | `agent/` 持有 primary skill、六个 Stage、prompts、knowledge 与 quality gates；plugin skill 是字节一致的分发镜像 |
 | Action catalog | `family-action-catalog.v2`：六个公开 Stage action + 三个无用户 surface 的内部 authority actions |
 | Generated surfaces | CLI、MCP、Skill、product-entry、status、workbench 与 default domain-handler surface 全由 OPL 生成或托管 |
