@@ -13,6 +13,9 @@ authors = [
 ]
 dependencies = []
 
+[project.scripts]
+mas-foundry-owner-gate = "med_autoscience.authority_handlers.foundry_owner_gate:main"
+
 [dependency-groups]
 dev = [
   "jsonschema>=4.23,<5",

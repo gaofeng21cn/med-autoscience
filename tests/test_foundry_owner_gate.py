@@ -3,8 +3,10 @@ from __future__ import annotations
 import hashlib
 import json
 import os
+import shutil
 import subprocess
 import sys
+import zipfile
 from pathlib import Path
 
 import pytest
@@ -227,47 +229,137 @@ def test_rejects_symlink_receipt_and_symlink_store(tmp_path: Path) -> None:
         )
 
 
-def test_process_entrypoint_is_read_only_and_fails_closed(tmp_path: Path) -> None:
+def test_installed_process_entrypoint_is_physical_read_only_and_fails_closed(
+    tmp_path: Path,
+) -> None:
+    uv = shutil.which("uv")
+    assert uv is not None
+
+    build_source = tmp_path / "source"
+    shutil.copytree(
+        REPO_ROOT,
+        build_source,
+        ignore=shutil.ignore_patterns(".git", ".venv", "*.egg-info", "__pycache__"),
+    )
+    wheel_dir = tmp_path / "wheel"
+    build = subprocess.run(
+        [uv, "build", "--wheel", "--out-dir", str(wheel_dir), str(build_source)],
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE,
+        check=False,
+        cwd=build_source,
+    )
+    assert build.returncode == 0, build.stderr.decode()
+    wheels = list(wheel_dir.glob("med_autoscience-*.whl"))
+    assert len(wheels) == 1
+    with zipfile.ZipFile(wheels[0]) as archive:
+        metadata_refs = [
+            name for name in archive.namelist() if name.endswith(".dist-info/entry_points.txt")
+        ]
+        assert len(metadata_refs) == 1
+        assert archive.read(metadata_refs[0]).decode() == (
+            "[console_scripts]\n"
+            "mas-foundry-owner-gate = "
+            "med_autoscience.authority_handlers.foundry_owner_gate:main\n"
+        )
+
+    environment_root = tmp_path / "environment"
+    create_environment = subprocess.run(
+        [uv, "venv", "--python", sys.executable, str(environment_root)],
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE,
+        check=False,
+    )
+    assert create_environment.returncode == 0, create_environment.stderr.decode()
+    python = environment_root / "bin" / "python"
+    install = subprocess.run(
+        [
+            uv,
+            "pip",
+            "install",
+            "--python",
+            str(python),
+            "--no-deps",
+            str(wheels[0]),
+        ],
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE,
+        check=False,
+    )
+    assert install.returncode == 0, install.stderr.decode()
+
+    executable = environment_root / "bin" / "mas-foundry-owner-gate"
+    assert executable.is_file()
+    assert not executable.is_symlink()
+    assert executable.resolve(strict=True) == executable
+    assert os.access(executable, os.X_OK)
+
     receipt = _receipt()
     receipt_path = _write_receipt(tmp_path, receipt)
     before = receipt_path.read_bytes()
-    command = [
-        sys.executable,
-        "-m",
-        "med_autoscience.authority_handlers.foundry_owner_gate",
+    arguments = [
         "--policy",
         str(POLICY_PATH),
         "--receipt-dir",
         str(tmp_path),
     ]
-    environment = {
-        **os.environ,
-        "PYTHONPATH": str(REPO_ROOT / "src"),
-        "PYTHONDONTWRITEBYTECODE": "1",
-    }
 
     completed = subprocess.run(
-        command,
+        [str(executable), *arguments],
         input=canonical_json_bytes(_request(_context(receipt))),
         stdout=subprocess.PIPE,
         stderr=subprocess.PIPE,
         check=False,
-        env=environment,
     )
     assert completed.returncode == 0, completed.stderr.decode()
-    assert json.loads(completed.stdout)["receipt"] == receipt
+    verification = json.loads(completed.stdout)
+    assert completed.stdout == canonical_json_bytes(verification)
+    assert verification["receipt"] == receipt
     assert receipt_path.read_bytes() == before
 
-    failed = subprocess.run(
-        command,
-        input=canonical_json_bytes(
-            _request(_context(receipt, expected_revision=999))
+    wrong_policy = tmp_path / "wrong-policy.json"
+    wrong_policy.write_bytes(canonical_json_bytes({"owner": "other"}))
+    empty_receipt_dir = tmp_path / "empty-receipts"
+    empty_receipt_dir.mkdir()
+    failures = [
+        (
+            [str(executable), "--policy", str(tmp_path / "missing-policy.json"),
+             "--receipt-dir", str(tmp_path)],
+            canonical_json_bytes(_request(_context(receipt))),
+            b"policy is unavailable",
         ),
-        stdout=subprocess.PIPE,
-        stderr=subprocess.PIPE,
-        check=False,
-        env=environment,
-    )
-    assert failed.returncode != 0
-    assert failed.stdout == b""
-    assert b"exact context" in failed.stderr
+        (
+            [str(executable), "--policy", str(wrong_policy),
+             "--receipt-dir", str(tmp_path)],
+            canonical_json_bytes(_request(_context(receipt))),
+            b"policy has unknown or missing fields",
+        ),
+        (
+            [str(executable), "--policy", str(POLICY_PATH),
+             "--receipt-dir", str(empty_receipt_dir)],
+            canonical_json_bytes(_request(_context(receipt))),
+            b"owner receipt is unavailable",
+        ),
+        (
+            [str(executable), *arguments],
+            b"not-json",
+            b"mas-foundry-owner-gate:",
+        ),
+        (
+            [str(executable), *arguments],
+            canonical_json_bytes(_request(_context(receipt, expected_revision=999))),
+            b"exact context",
+        ),
+    ]
+    for command, process_input, error_fragment in failures:
+        failed = subprocess.run(
+            command,
+            input=process_input,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+            check=False,
+        )
+        assert failed.returncode != 0
+        assert failed.stdout == b""
+        assert error_fragment in failed.stderr
+        assert receipt_path.read_bytes() == before

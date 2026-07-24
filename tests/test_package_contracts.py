@@ -28,7 +28,11 @@ def test_package_plugin_and_python_versions_are_one_semver() -> None:
     assert "distribution_payload" not in package
     assert package["agent_id"] == package["package_id"] == "mas"
     assert package["codex_surface"]["plugin_id"] == "med-autoscience"
-    assert "scripts" not in pyproject["project"]
+    assert pyproject["project"]["scripts"] == {
+        "mas-foundry-owner-gate": (
+            "med_autoscience.authority_handlers.foundry_owner_gate:main"
+        )
+    }
     assert plugin["name"] == "med-autoscience"
     assert plugin["repository"] == "https://github.com/gaofeng21cn/med-autoscience"
     assert plugin["skills"] == "./skills/"
