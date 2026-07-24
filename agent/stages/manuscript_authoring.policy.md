@@ -30,7 +30,11 @@ This Stage consumes its `initial_draft_evidence_integrity_requirements` entries
 from the same policy: propagate analysis-scope qualifiers across every affected
 reader and machine-readable surface, derive the manuscript/table/figure/claim
 set from one generation-consistent structured source with renderer provenance,
-and freeze one immutable candidate snapshot before independent review.
+write from the authors' position, distinguish scientific evidence gaps from
+author-supplied objective facts, and bind all local `[AUTHOR INPUT: ...]`
+annotations plus the derived To-Do projection through one
+`author_stance_integrity_ref`, and freeze one immutable candidate snapshot
+before independent review.
 
 Clinical/registry data requires exact input-identity and data-freeze candidates;
 non-clinical work records an explicit not-applicable reason. Prediction-model

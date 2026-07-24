@@ -41,6 +41,7 @@ FIRST_DRAFT_QUALITY_ROLES = (
     "baseline_table_traceability",
     "document_display_scope_coverage",
     "claim_guardrail",
+    "author_stance_integrity",
 )
 LEGACY_FIRST_DRAFT_ROLE_BY_REF_FIELD = {
     "medical_initial_draft_preflight_candidate_ref": (
@@ -65,6 +66,7 @@ SCHOLAR_V2_FIRST_DRAFT_ROLE_BY_REF_FIELD = {
     "active_reference_currentness_ref": "active_reference_currentness",
     "linked_prediction_performance_ref": "linked_prediction_performance",
     "display_render_integrity_ref": "display_render_integrity",
+    "author_stance_integrity_ref": "author_stance_integrity",
 }
 FIRST_DRAFT_ROLE_BY_REF_FIELD = {
     **LEGACY_FIRST_DRAFT_ROLE_BY_REF_FIELD,
@@ -86,8 +88,8 @@ REVIEWER_RESPONSE_ROLE_BY_REF_FIELD = {
 }
 SCHOLAR_V2_SEMANTIC_POLICY_BY_SKILL = {
     "medical-manuscript-writing": {
-        "policy_id": "scholarskills_medical_initial_draft_preflight.v2",
-        "validator_id": "validate_medical_initial_draft_preflight_candidate_v2",
+        "policy_id": "scholarskills_medical_initial_draft_preflight.v3",
+        "validator_id": "validate_medical_initial_draft_preflight_candidate_v3",
         "candidate_ref_field": "medical_initial_draft_preflight_candidate_ref",
         "candidate_surface_kind": "medical_initial_draft_preflight_candidate_ref",
     },
@@ -438,7 +440,12 @@ class AuthorityRecordFactory:
             "claim_guardrail_ref",
         }
         if include_scholar_v2_semantics:
-            applicable_fields.add("active_reference_currentness_ref")
+            applicable_fields.update(
+                {
+                    "active_reference_currentness_ref",
+                    "author_stance_integrity_ref",
+                }
+            )
         if uses_clinical_or_registry_data:
             applicable_fields.add("clinical_analysis_input_identity_ref")
         if paper_type == "prediction_model":
@@ -748,6 +755,7 @@ class AuthorityRecordFactory:
                 "claim_evidence_map",
                 "claim_guardrail",
                 "medical_initial_draft_preflight_candidate",
+                "author_stance_integrity",
             },
             "medical-registry-atlas-story-architect": {
                 "canonical_manuscript",
@@ -1054,7 +1062,12 @@ class AuthorityRecordFactory:
             "claim_guardrail_ref",
         }
         if include_scholar_v2_semantics:
-            applicable_first_draft_fields.add("active_reference_currentness_ref")
+            applicable_first_draft_fields.update(
+                {
+                    "active_reference_currentness_ref",
+                    "author_stance_integrity_ref",
+                }
+            )
         if uses_clinical_or_registry_data:
             applicable_first_draft_fields.add(
                 "clinical_analysis_input_identity_ref"

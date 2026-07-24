@@ -2762,6 +2762,7 @@ def _first_draft_quality_issue(
         "decision_curve_validity_ref": "bounded_analysis_campaign",
         "external_transportability_ref": "bounded_analysis_campaign",
         "medical_initial_draft_preflight_candidate_ref": "manuscript_authoring",
+        "author_stance_integrity_ref": "manuscript_authoring",
         "baseline_table_traceability_ref": "manuscript_authoring",
         "document_display_scope_coverage_ref": "manuscript_authoring",
         "claim_guardrail_ref": "manuscript_authoring",

@@ -934,6 +934,19 @@ def test_legacy_first_draft_application_is_readable_but_cannot_claim_current_qua
         ),
         (
             {
+                "author_stance_integrity_ref": {
+                    "status": "route_back_required",
+                    "earliest_route_back_owner": "manuscript_authoring",
+                    "reason_codes": ["author_stance_integrity_unresolved"],
+                    "unresolved_items": ["author-stated-objective-facts"],
+                    "not_applicable_reason": None,
+                }
+            },
+            "manuscript_authoring",
+            "author_stance_integrity_unresolved",
+        ),
+        (
+            {
                 "medical_initial_draft_preflight_candidate_ref": {
                     "status": "route_back_required",
                     "earliest_route_back_owner": "manuscript_authoring",
@@ -1224,7 +1237,7 @@ def test_selected_build_rejects_tampered_scholar_v2_semantics(
         )
     else:
         invocation["consumed_rule_refs"].remove(
-            "validator:validate_medical_initial_draft_preflight_candidate_v2"
+            "validator:validate_medical_initial_draft_preflight_candidate_v3"
         )
 
     result = _evaluate(request)

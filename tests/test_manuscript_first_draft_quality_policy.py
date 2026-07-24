@@ -33,7 +33,7 @@ def test_prediction_model_first_draft_contract_preserves_current_semantics() -> 
         "first_draft_quality_application"
     ]
 
-    assert policy["version"] == "mas-manuscript-first-draft-quality-policy.v3"
+    assert policy["version"] == "mas-manuscript-first-draft-quality-policy.v4"
     assert set(prediction["supported_validation_designs"]) == (
         set(FIRST_DRAFT_VALIDATION_DESIGNS) - {"not_applicable"}
     )
@@ -49,6 +49,9 @@ def test_prediction_model_first_draft_contract_preserves_current_semantics() -> 
     assert "linked_prediction_performance_ref" in prediction["required_candidate_refs"]
     assert "active_reference_currentness_ref" in policy["base_first_draft_contract"][
         "required_upstream_candidate_refs"
+    ]
+    assert "author_stance_integrity_ref" in policy["base_first_draft_contract"][
+        "required_authoring_candidate_refs"
     ]
     assert set(
         policy["base_first_draft_contract"]["conditional_authoring_candidate_refs"][
@@ -229,14 +232,14 @@ def test_v2_application_and_skill_receipts_are_exact_and_readback_visible() -> N
     source_authority = policy["professional_skill_source_authority"]
     assert source_authority == {
         "package_id": "mas-scholar-skills",
-        "package_version": "0.2.15",
-        "source_commit": "5c1015a90cfd937d01f69b419ddbcce84398891a",
+        "package_version": "0.2.22",
+        "source_commit": "0c7f523c36222a9a3f08572dcead58e7b2953686",
         "content_lock": {
             "algorithm": "sha256",
             "canonicalization": "ordered_path_length_file_length_bytes",
             "digest": (
-                "sha256:c7c35cb51d72c2d0f8de45d296997e04350dafd8d630fb88"
-                "f18d880fc4e331bc"
+                "sha256:89234c47e7663fad4313fd5171cac7e7763fbbe0ec13d5dff"
+                "0ae0b7ff3a04f21"
             ),
         },
         "bound_quality_contract_sections": [
@@ -292,6 +295,7 @@ def test_v2_application_and_skill_receipts_are_exact_and_readback_visible() -> N
     assert semantic["scholar_candidate_can_issue_mas_authority"] is False
     assert semantic["opl_runtime_integration_status"] == "declared_not_current"
     assert set(semantic["policy_ids"]) == {
+        "scholarskills_medical_initial_draft_preflight.v3",
         "scholarskills_medical_initial_draft_preflight.v2",
         "scholarskills_linked_prediction_performance.v2",
     }
@@ -300,6 +304,7 @@ def test_v2_application_and_skill_receipts_are_exact_and_readback_visible() -> N
         "missing_duplicate_legacy_or_orphan_semantic_invocation_fails_closed"
     ] is True
     assert set(invocation_contract["semantic_policy_ids"]) == {
+        "scholarskills_medical_initial_draft_preflight.v3",
         "scholarskills_medical_initial_draft_preflight.v2",
         "scholarskills_linked_prediction_performance.v2",
     }
@@ -419,7 +424,7 @@ def test_specialist_skill_writeback_uses_current_developer_route_not_oma_work_or
     assert handoff["oma_can_emit_work_order"] is False
 
 
-def test_initial_draft_integrity_contract_machine_binds_all_eight_requirements() -> None:
+def test_initial_draft_integrity_contract_machine_binds_all_nine_requirements() -> None:
     policy = _load(POLICY_REF)
     integrity = policy["initial_draft_evidence_integrity_requirements"]
     requirements = integrity["requirements"]
@@ -430,6 +435,7 @@ def test_initial_draft_integrity_contract_machine_binds_all_eight_requirements()
         "numeric_verification_scope": "bounded_analysis_campaign",
         "construct_comparability_stop": "baseline_and_evidence_setup",
         "non_mutating_anomaly_sensitivity": "bounded_analysis_campaign",
+        "manuscript_author_stance_integrity": "manuscript_authoring",
         "immutable_candidate_review": "manuscript_authoring",
         "structured_source_and_renderer_provenance": "manuscript_authoring",
     }
@@ -560,6 +566,18 @@ def test_initial_draft_integrity_contract_machine_binds_all_eight_requirements()
     assert renderer[
         "renderer_success_alone_proves_source_currentness_or_display_quality"
     ] is False
+    author_stance = requirements["manuscript_author_stance_integrity"]
+    assert {
+        "author_stance_integrity_ref",
+        "author_input_registry_ref",
+        "inline_annotation_closure",
+        "author_input_todo_projection_ref",
+        "defensive_workflow_language_lint_status",
+    }.issubset(author_stance["must_bind"])
+    assert author_stance[
+        "scientific_evidence_gap_may_be_reclassified_as_author_input"
+    ] is False
+    assert author_stance["todo_projection_is_independent_truth"] is False
 
 
 def test_four_stages_consume_only_their_declared_integrity_responsibilities() -> None:
@@ -581,6 +599,7 @@ def test_four_stages_consume_only_their_declared_integrity_responsibilities() ->
         },
         "manuscript_authoring": {
             "analysis_scope_qualifier_propagation",
+            "manuscript_author_stance_integrity",
             "immutable_candidate_review",
             "structured_source_and_renderer_provenance",
         },
@@ -603,6 +622,12 @@ def test_four_stages_consume_only_their_declared_integrity_responsibilities() ->
     )
     assert "one generation-consistent structured evidence source" in _read(
         "agent/prompts/manuscript_authoring.md"
+    )
+    assert "Write from the manuscript authors' position" in _read(
+        "agent/prompts/manuscript_authoring.md"
+    )
+    assert "author_stance_integrity_ref" in _read(
+        "agent/stages/manuscript_authoring.policy.md"
     )
     assert "never fill a gap by reopening live workspace files" in _read(
         "agent/prompts/review_and_quality_gate.md"

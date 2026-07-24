@@ -1,18 +1,18 @@
 {
   "surface_kind": "mas_manuscript_first_draft_quality_policy",
-  "version": "mas-manuscript-first-draft-quality-policy.v3",
+  "version": "mas-manuscript-first-draft-quality-policy.v4",
   "owner": "MedAutoScience",
   "stage_id": "manuscript_authoring",
   "purpose": "Raise first-draft scientific quality by binding exact upstream closure, prediction-model diagnostics, specialist receipts, claim guardrails, and composed reader bytes before any first-draft-ready claim.",
   "professional_skill_owner": "mas-scholar-skills",
   "professional_skill_source_authority": {
     "package_id": "mas-scholar-skills",
-    "package_version": "0.2.15",
-    "source_commit": "5c1015a90cfd937d01f69b419ddbcce84398891a",
+    "package_version": "0.2.22",
+    "source_commit": "0c7f523c36222a9a3f08572dcead58e7b2953686",
     "content_lock": {
       "algorithm": "sha256",
       "canonicalization": "ordered_path_length_file_length_bytes",
-      "digest": "sha256:c7c35cb51d72c2d0f8de45d296997e04350dafd8d630fb88f18d880fc4e331bc"
+      "digest": "sha256:89234c47e7663fad4313fd5171cac7e7763fbbe0ec13d5dff0ae0b7ff3a04f21"
     },
     "bound_quality_contract_sections": [
       "cross_stage_generation_invariants",
@@ -49,7 +49,8 @@
       "active_reference_currentness_ref"
     ],
     "required_authoring_candidate_refs": [
-      "claim_guardrail_ref"
+      "claim_guardrail_ref",
+      "author_stance_integrity_ref"
     ],
     "conditional_authoring_candidate_refs": {
       "reader_pdf": [
@@ -92,6 +93,7 @@
       "numeric_verification_scope",
       "construct_comparability_stop",
       "non_mutating_anomaly_sensitivity",
+      "manuscript_author_stance_integrity",
       "immutable_candidate_review",
       "structured_source_and_renderer_provenance"
     ],
@@ -109,6 +111,7 @@
       ],
       "manuscript_authoring": [
         "analysis_scope_qualifier_propagation",
+        "manuscript_author_stance_integrity",
         "immutable_candidate_review",
         "structured_source_and_renderer_provenance"
       ],
@@ -119,6 +122,7 @@
         "numeric_verification_scope",
         "construct_comparability_stop",
         "non_mutating_anomaly_sensitivity",
+        "manuscript_author_stance_integrity",
         "immutable_candidate_review",
         "structured_source_and_renderer_provenance"
       ]
@@ -244,6 +248,25 @@
         ],
         "sensitivity_analysis_may_mutate_frozen_source_values": false,
         "materiality_may_be_claimed_without_a_defined_rule": false,
+        "fail_closed_for_ready_claims": true
+      },
+      "manuscript_author_stance_integrity": {
+        "earliest_owner": "manuscript_authoring",
+        "applies_when": [
+          "reader_facing_manuscript_is_generated"
+        ],
+        "must_bind": [
+          "author_stance_integrity_ref",
+          "author_input_registry_ref",
+          "reader_facing_surface_inventory",
+          "scientific_evidence_gap_and_author_supplied_objective_fact_classification",
+          "inline_annotation_closure",
+          "author_input_todo_projection_ref",
+          "defensive_workflow_language_lint_status"
+        ],
+        "author_supplied_objective_fact_disposition": "preserve_ideal_manuscript_structure_and_insert_minimum_local_author_input_annotation",
+        "scientific_evidence_gap_may_be_reclassified_as_author_input": false,
+        "todo_projection_is_independent_truth": false,
         "fail_closed_for_ready_claims": true
       },
       "immutable_candidate_review": {
@@ -485,6 +508,7 @@
     "selected_build_requires_rebuildable_semantic_receipt_ref": true,
     "missing_duplicate_legacy_or_orphan_semantic_invocation_fails_closed": true,
     "semantic_policy_ids": [
+      "scholarskills_medical_initial_draft_preflight.v3",
       "scholarskills_medical_initial_draft_preflight.v2",
       "scholarskills_linked_prediction_performance.v2"
     ],

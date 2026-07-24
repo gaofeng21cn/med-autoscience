@@ -111,6 +111,7 @@ SCHOLAR_V2_FIRST_DRAFT_ROLE_BY_REF_FIELD = {
     "active_reference_currentness_ref": "active_reference_currentness",
     "linked_prediction_performance_ref": "linked_prediction_performance",
     "display_render_integrity_ref": "display_render_integrity",
+    "author_stance_integrity_ref": "author_stance_integrity",
 }
 FIRST_DRAFT_QUALITY_ROLE_BY_REF_FIELD = {
     **LEGACY_FIRST_DRAFT_QUALITY_ROLE_BY_REF_FIELD,
@@ -139,8 +140,8 @@ FIRST_DRAFT_QUALITY_DISPOSITION_STATUSES = frozenset(
 )
 SCHOLAR_V2_SEMANTIC_POLICY_BY_SKILL = {
     "medical-manuscript-writing": {
-        "policy_id": "scholarskills_medical_initial_draft_preflight.v2",
-        "validator_id": "validate_medical_initial_draft_preflight_candidate_v2",
+        "policy_id": "scholarskills_medical_initial_draft_preflight.v3",
+        "validator_id": "validate_medical_initial_draft_preflight_candidate_v3",
         "candidate_ref_field": "medical_initial_draft_preflight_candidate_ref",
         "candidate_surface_kind": "medical_initial_draft_preflight_candidate_ref",
     },
@@ -170,6 +171,7 @@ PROFESSIONAL_MANUSCRIPT_SKILL_ROLES = {
             "claim_evidence_map",
             "claim_guardrail",
             "medical_initial_draft_preflight_candidate",
+            "author_stance_integrity",
         }
     ),
     "medical-registry-atlas-story-architect": frozenset(
@@ -442,6 +444,7 @@ EPISTEMIC_NODE_ROLE_BY_LANE = {
             "provenance",
             "context",
         ),
+        "author_stance_integrity": ("provenance", "context"),
         "clinical_analysis_input_identity": (
             "provenance",
             "analysis_parameters",
@@ -636,6 +639,7 @@ EPISTEMIC_EDGE_RULES_BY_LANE = {
                     "medical_initial_draft_preflight_candidate",
                     "citation_source_coverage",
                     "claim_guardrail",
+                    "author_stance_integrity",
                 }
             ),
             frozenset({"claim_evidence_map", "canonical_manuscript"}),
@@ -2000,7 +2004,7 @@ def _normalize_scholar_v2_semantic_policy_bindings(
         policy = SCHOLAR_V2_SEMANTIC_POLICY_BY_SKILL[skill_id]
         if payload.get("semantic_policy_id") != policy["policy_id"]:
             raise RequestShapeError(
-                f"{item_field}.semantic_policy_id must bind the current Scholar v2 policy"
+                f"{item_field}.semantic_policy_id must bind the current Scholar policy"
             )
         if payload.get("validator_id") != policy["validator_id"]:
             raise RequestShapeError(
@@ -2105,7 +2109,12 @@ def first_draft_applicable_ref_fields(
         else include_scholar_v2_semantics
     )
     if uses_scholar_v2_semantics:
-        fields.add("active_reference_currentness_ref")
+        fields.update(
+            {
+                "active_reference_currentness_ref",
+                "author_stance_integrity_ref",
+            }
+        )
     if application["triggers"]["uses_clinical_or_registry_data"]:
         fields.add("clinical_analysis_input_identity_ref")
     if application["paper_type"] == "prediction_model":
@@ -2404,13 +2413,13 @@ def _normalize_professional_manuscript_skill_invocation(
         schema_version != 2 or skill_id not in SCHOLAR_V2_SEMANTIC_POLICY_BY_SKILL
     ):
         raise RequestShapeError(
-            f"{field} semantic fields require a Scholar v2 policy-bearing invocation"
+            f"{field} semantic fields require a current Scholar policy-bearing invocation"
         )
     if has_semantic_binding:
         policy = SCHOLAR_V2_SEMANTIC_POLICY_BY_SKILL[skill_id]
         if payload.get("semantic_policy_id") != policy["policy_id"]:
             raise RequestShapeError(
-                f"{field}.semantic_policy_id must bind the current Scholar v2 policy"
+                f"{field}.semantic_policy_id must bind the current Scholar policy"
             )
         if payload.get("semantic_validator_id") != policy["validator_id"]:
             raise RequestShapeError(

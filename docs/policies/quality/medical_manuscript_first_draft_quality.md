@@ -36,7 +36,10 @@ The user-edited 003 manuscript reads as a medical article because it starts from
 
 - Results were narrated as "The clinical question was ... The answer was ...", preserving the controller's analysis checklist instead of journal prose.
 - `Figure and Table Anchors` was emitted as a manuscript section, although it is packaging metadata.
-- Declaration placeholders and author-confirmation instructions were mixed into the article body instead of remaining in submission TODO surfaces.
+- Objective author facts were previously handled as defensive manuscript prose
+  or detached submission notes. The corrected model preserves the ideal article
+  structure, inserts only the minimum local `[AUTHOR INPUT: ...]` annotation,
+  and derives the submission To-Do surface from one registry.
 - Figure legends explained what reviewers could identify and what the figure "defines", which is an operations/review framing rather than a reader-facing legend.
 - Controller language such as claim boundaries, model protagonist, and manuscript role labels leaked into clinical interpretation.
 
@@ -73,7 +76,13 @@ Before a first full draft is treated as generated:
 - results narrative must answer clinical findings directly, then cite figures/tables as support;
 - limitations must be written as clinical interpretation, not as claim-boundary/controller language;
 - registry and observational manuscripts should state denominator, source, causal, prognostic, and treatment-response boundaries in compact clinical language; they must not repeat long defensive disclaimer lists across Abstract, Methods, Results, Discussion, and legends;
-- administrative placeholders belong in submission metadata or TODO surfaces, not in the article body;
+- objective facts available to the author, institution, data owner, or
+  submission owner use a minimum local `[AUTHOR INPUT: ...]` annotation at the
+  exact manuscript location where the final fact belongs; all such annotations
+  are registered once and projected into the submission To-Do list;
+- scientific evidence gaps must never be disguised as author-input annotations;
+  they route back, constrain the claim, become a scientific limitation, or are
+  omitted;
 - terms such as `analytic surface` and `data surface` should be rewritten as analytic cohort, analytic dataset, registry dataset, measured fields, or available measurements;
 - figure legends must explain the display for readers, not describe what reviewers can identify or what the figure itself "defines".
 - internal correction provenance, debug history, and preprocessing repair history must not become the title, objective, Results, Discussion opening, conclusion, novelty claim, or figure-legend story. Corrected preprocessing definitions belong in Methods or table notes only when needed for reproducibility; the article body should report the final analysis estimates as the clean scientific story.

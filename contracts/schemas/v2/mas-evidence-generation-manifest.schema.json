@@ -188,14 +188,16 @@
                       "required": [
                         "active_reference_currentness_ref",
                         "linked_prediction_performance_ref",
-                        "display_render_integrity_ref"
+                        "display_render_integrity_ref",
+                        "author_stance_integrity_ref"
                       ]
                     },
                     "candidate_dispositions": {
                       "required": [
                         "active_reference_currentness_ref",
                         "linked_prediction_performance_ref",
-                        "display_render_integrity_ref"
+                        "display_render_integrity_ref",
+                        "author_stance_integrity_ref"
                       ]
                     }
                   }
@@ -350,6 +352,7 @@
         "baseline_table_traceability",
         "document_display_scope_coverage",
         "display_render_integrity",
+        "author_stance_integrity",
         "claim_guardrail",
         "external_transportability"
         ,
@@ -1012,6 +1015,9 @@
         "display_render_integrity_ref": {
           "$ref": "#/$defs/nullable_mas_artifact_exact_ref"
         },
+        "author_stance_integrity_ref": {
+          "$ref": "#/$defs/nullable_mas_artifact_exact_ref"
+        },
             "claim_guardrail_ref": {
               "$ref": "#/$defs/nullable_mas_artifact_exact_ref"
             },
@@ -1079,6 +1085,9 @@
           "$ref": "#/$defs/first_draft_candidate_disposition"
         },
         "display_render_integrity_ref": {
+          "$ref": "#/$defs/first_draft_candidate_disposition"
+        },
+        "author_stance_integrity_ref": {
           "$ref": "#/$defs/first_draft_candidate_disposition"
         },
             "claim_guardrail_ref": {
@@ -1316,12 +1325,14 @@
         },
         "semantic_policy_id": {
           "enum": [
+            "scholarskills_medical_initial_draft_preflight.v3",
             "scholarskills_medical_initial_draft_preflight.v2",
             "scholarskills_linked_prediction_performance.v2"
           ]
         },
         "validator_id": {
           "enum": [
+            "validate_medical_initial_draft_preflight_candidate_v3",
             "validate_medical_initial_draft_preflight_candidate_v2",
             "validate_linked_prediction_performance",
             "audit_active_reference_currentness",
@@ -1796,12 +1807,14 @@
         },
         "semantic_policy_id": {
           "enum": [
+            "scholarskills_medical_initial_draft_preflight.v3",
             "scholarskills_medical_initial_draft_preflight.v2",
             "scholarskills_linked_prediction_performance.v2"
           ]
         },
         "semantic_validator_id": {
           "enum": [
+            "validate_medical_initial_draft_preflight_candidate_v3",
             "validate_medical_initial_draft_preflight_candidate_v2",
             "validate_linked_prediction_performance",
             "audit_active_reference_currentness",

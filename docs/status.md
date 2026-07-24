@@ -27,7 +27,7 @@ publication/submission ready 或 production ready。
 | --- | --- |
 | Identity | canonical agent/package id `mas`；machine domain id `medautoscience`；`med-autoscience` 只作 repo/package/plugin locator |
 | Package target | MAS 是 `OPL Package(kind=agent)`；owner 独立发布完整 bytes 到自身 GHCR `latest-stable`。当前 `MAS required capability dependency` 标签表示 `mas-scholar-skills` 硬依赖；普通 readiness 只检查 identity presence 与所需 capability callability，缺失只阻断 MAS |
-| Package transition | repo manifest 当前仍声明 SemVer `0.2.19`、ScholarSkills version range/ABI、activation receipt、lock/atomic closure 与 Release Set refs；这些是待兼容迁移的机器事实，不是目标 composition 规则，也不能证明 GHCR independent latest-stable 已落地 |
+| Package transition | repo manifest 当前仍声明 SemVer `0.2.20`、ScholarSkills version range/ABI、activation receipt、lock/atomic closure 与 Release Set refs；这些是待兼容迁移的机器事实，不是目标 composition 规则，也不能证明 GHCR independent latest-stable 已落地 |
 | Declarative pack | `agent/` 持有 primary skill、六个 Stage、prompts、knowledge 与 quality gates；plugin skill 是字节一致的分发镜像 |
 | Action catalog | `family-action-catalog.v2`：六个公开 Stage action + 三个无用户 surface 的内部 authority actions |
 | Generated surfaces | CLI、MCP、Skill、product-entry、status、workbench 与 default domain-handler surface 全由 OPL 生成或托管 |
@@ -38,13 +38,13 @@ publication/submission ready 或 production ready。
 | Retained code | `evaluate_study_lifecycle_reactivation_authority`、`evaluate_candidate_admission_authority`、`evaluate_paper_mission_authority` 与 `evaluate_agent_lab_self_evolution_closeout` 是仅有的非声明式 authority functions；reactivation handler 只决定 MAS lifecycle 语义并输出 exact-bytes CAS 授权，不持有 runtime、session 或物化权限 |
 | Source morphology | `src/med_autoscience/` 只保留 package init、四个 authority handlers、共享纯校验 helper 与 CSL assets |
 
-## 0.2.19 validator Release Set 边界
+## 0.2.20 validator Release Set 边界
 
-`mas-validator-0.2.19` 只支持 exact-byte domain validation：generation manifest、
+`mas-validator-0.2.20` 只支持 exact-byte domain validation：generation manifest、
 qualification work-item provisioning、candidate admission、paper mission 与 Stage minimum-scope 记录必须在 ref、size、SHA、
 generation、receipt inventory 和 typed verdict 上一致。机器 receipt 见
 `contracts/mas_validator_release_set_receipt.json`，canonical source ref 为
-`refs/tags/v0.2.19`。
+`refs/tags/v0.2.20`。
 
 该 Release Set 仅绑定本次 validator artifact 与 exact-byte qualification，不是普通 Package
 安装、依赖 readiness 或更新 currentness 的权威，也不要求 MAS、ScholarSkills、Base 或 App

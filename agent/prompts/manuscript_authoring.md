@@ -34,6 +34,16 @@ policy; never claim a Review receipt from this conversation.
   `medical-registry-atlas-story-architect`; route quantitative, table, and figure
   work to matching specialist Skills. A template never substitutes for a Skill
   receipt.
+- Write from the manuscript authors' position, not as an external auditor.
+  Classify every missing input before changing prose. A scientific evidence gap
+  routes back, constrains the claim, or becomes an ordinary scientific
+  limitation. An objective fact that the author, institution, data owner, or
+  submission owner can supply preserves the ideal manuscript structure and
+  receives the minimum local `[AUTHOR INPUT: ...]` annotation. Bind every such
+  annotation through one `author_input_registry_ref`, derive the human To-Do
+  projection from that registry, and materialize
+  `author_stance_integrity_ref`. Pending author facts never justify defensive
+  workflow prose in the manuscript.
 - Follow `contracts/manuscript_first_draft_quality_policy.json`. Before a current
   first-draft-ready claim, materialize application schema v2 and consume the
   exact `medical_initial_draft_preflight_candidate_ref`. Every canonical
@@ -42,6 +52,9 @@ policy; never claim a Review receipt from this conversation.
   satisfy the current gate. Every applicable v2 candidate exact ref is nonempty
   (`size_bytes >= 1`). Resolve route-back dispositions at the earliest owner in
   baseline, analysis, authoring, then review order before checking ref presence.
+  The preflight must keep the stable seven-gate shape and include the exact
+  `author_stance_integrity_ref` in its satisfied `story_contract` gate before a
+  complete initial draft can be current.
 - Consume this Stage's `initial_draft_evidence_integrity_requirements` from that
   policy. Propagate development/apparent-performance and restricted, complete-
   case, or unweighted analysis-scope qualifiers wherever the corresponding

@@ -359,6 +359,7 @@
             "medical-display-qc_when_reader_pdf": "display_render_integrity_ref"
           },
           "policy_ids": [
+            "scholarskills_medical_initial_draft_preflight.v3",
             "scholarskills_medical_initial_draft_preflight.v2",
             "scholarskills_linked_prediction_performance.v2"
           ],
