@@ -71,7 +71,13 @@ Foundry 系列 canonical policy 只存在于 OPL Framework。MAS 不声明或安
 
 ## D-17 ScholarSkills 硬依赖
 
-`mas-scholar-skills` 与 MAS 是产品级一对一硬依赖：MAS 是唯一获得运行兼容性承诺的 required consumer；其他智能体可以只读发现或评估其 refs，但不能据此获得通用 runtime dependency 承诺。代码仓保持独立，package lifecycle 统一走 `opl packages`。OPL 按依赖闭包原子安装、锁定、更新、回滚并保护卸载；MAS 只声明 consumer ABI 和消费 OPL status，不拥有第二套安装器。
+`mas-scholar-skills` 是 MAS 的产品级 required hard dependency：MAS 要求其所需 capability 可用；其他 Package 是否依赖 ScholarSkills 由各自 owner 声明，本仓不代替其定义。代码仓、完整 Package bytes、GHCR `latest-stable` 与发布节奏保持独立，package lifecycle 统一走 `opl packages`。普通 composition 只检查 dependency identity presence 与所需 capability callability；缺失或不可调用只令 MAS fail-closed 并进入托管安装/修复，不阻断无关 Package，也不得把该依赖降级为 optional。普通 readiness 不依赖跨包版本范围、ABI、lock、payload、digest、原子 closure、共享 Release Set 或跨包求解。
+
+## D-22 Codex-first 与 OPL-owned Package 边界
+
+生态长期模型固定为 `OPL Base ~= R`、`OPL App ~= RStudio / replaceable GUI or deployment carrier`、`OPL Package ~= R Package`；MAS 是 `OPL Package(kind=agent)`。Package identity、capabilities、dependency identity、business work item、Temporal refs、用户偏好与 typed views 归 OPL/MAS 的 executor-neutral 合同。当前只维护 Codex 正式路径以控制实现和维护成本；Codex Plugin 是 carrier projection，Codex CLI 是 executor，二者都不拥有 MAS identity、完整 installed Package truth 或医学 authority。替换 carrier/executor 不得要求重装完整 Package或丢失业务状态。
+
+MAS owner 独立发布完整 bytes 到自身 GHCR 并独立推进 `latest-stable`。Exact ref/digest 只用于单次 release artifact、传输完整性与离线/Full/集成测试/QA 快照；共享 Release Set 不定义普通更新 currentness。当前 machine contracts、validator 和 readback 中仍存在的 version range、ABI、lock、payload、digest、atomic closure、receipt 与 Release Set 字段属于兼容迁移输入；在实现和 consumer 迁移完成前，不得声称该目标边界已经落地。
 
 ## D-18 Standard Agent interface descriptor
 

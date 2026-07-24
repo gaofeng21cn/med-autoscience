@@ -25,7 +25,25 @@ MAS registry-bound authority functions
   owner receipt / typed blocker / human gate / domain refs
 ```
 
-canonical agent/package id 固定为 `mas`；machine `domain_id` / `target_domain_id` 固定为 `medautoscience`。`med-autoscience` 仅是 repo/package/plugin locator。
+canonical agent/package id 固定为 `mas`；machine `domain_id` / `target_domain_id` 固定为 `medautoscience`。`med-autoscience` 仅是 repo/package/plugin locator。生态顶层关系是：
+
+```text
+OPL Base        ~= R
+OPL App         ~= RStudio / replaceable GUI and deployment carrier
+OPL Package     ~= R Package
+MAS             = OPL Package(kind=agent)
+```
+
+这不是把 MAS 绑定到某个 App 或 executor。OPL 自有并保持 executor-neutral 的边界包括 Package identity、capabilities、required/optional dependency identity、business work item、Temporal refs、用户偏好与 typed views。当前正式路径优先使用 Codex，以最低实现和维护成本获得成熟体验；Codex Plugin 只是首个 carrier projection，Codex CLI 只是首个 executor。替换 carrier 或 executor 不应改变 MAS identity、重装完整 Package，或丢失业务任务与 typed views。
+
+Package、carrier 与 executor 分离：
+
+- MAS owner 独立构建和发布完整 Package bytes 到自身 GHCR，并独立推进 `latest-stable`；共享 Release Set 不定义普通更新 currentness。
+- Base 只提供薄 OCI 下载适配器并把 bytes 交给 Package 声明的 carrier/runtime adapter；实际 carrier 负责完整 runtime 的激活/readback，以及所需 Skill/Plugin/config/cache 投影。仅安装 Codex Plugin 不能证明完整 MAS Package 已安装。
+- Framework 根据各实际 carrier 的 fresh readback 聚合状态；App 只消费并展示通用状态、Home shortcut、业务 Work Item 和 MAS-owned typed views。
+- exact ref/digest 只绑定单次 release artifact、下载完整性或离线/Full/QA 快照，不进入普通 composition readiness。
+
+这是目标边界，不是实现完成声明。当前机器合同、validator 和 readback 仍可能带有 version range、ABI、lock、payload、digest、atomic closure、receipt 或共享 Release Set 字段；在兼容迁移和 retained-consumer 清零前，它们只描述过渡实现，不能反向成为生态长期规则。
 
 ## Declarative Medical Research Pack
 
@@ -39,7 +57,7 @@ canonical agent/package id 固定为 `mas`；machine `domain_id` / `target_domai
 
 Pack 只声明需求和能力，不实现通用 transport、installer、workspace bootstrap、runtime shell 或 workbench。
 
-`mas-scholar-skills` 是 MAS 的 required capability dependency，不是第六个 Agent。独立仓库形成开发、版本和发布边界；`contracts/opl_agent_package_manifest.json` 声明兼容版本、capability ABI 与 profile compatibility set。用户通过 `opl packages install/update/uninstall mas` 管理 MAS；OPL `packages` 对 MAS root 与 required dependency closure 原子解析、锁定、激活、更新、修复、回滚并保护卸载。依赖缺失或不兼容时 readiness fail-closed；MAS 仍持有医学 domain truth，不维护私有安装入口、Framework lock 或第二套 package lifecycle。
+`mas-scholar-skills` 是 MAS 的 required capability dependency（硬依赖），不是第六个 Agent。独立仓库形成开发、发布和 owner 边界。普通 composition 只要求 `mas-scholar-skills` identity 存在且 MAS 需要的能力可调用，不做跨包版本范围、ABI 或依赖图求解；缺失或不可调用时仅 MAS readiness fail-closed 并进入托管安装/修复，无关 Package 继续可用。该依赖不得降级为 optional。用户仍通过 `opl packages install/update/uninstall mas` 使用统一入口；MAS 不维护私有安装器或第二套 package lifecycle。
 
 Foundry 系列 policy 只由唯一 OPL Framework 持有。MAS 的 `contracts/foundry_agent_series.json` 是 refs-only consumer contract，只记录 canonical contract refs、policy fingerprint、MAS domain delta 与 false-authority envelope；MAS 不复制 OPL policy body，也不声明本地 Framework 依赖。
 

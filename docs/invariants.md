@@ -16,11 +16,13 @@ Machine boundary: 本文是人读约束；机器事实以 contracts、source、r
 ## Pack 与 generated surfaces
 
 - `agent/` 是 canonical rich pack source；plugin carrier mirror 是分发要求，不是重复实现。
+- MAS 是 `OPL Package(kind=agent)`。Package identity、capabilities、dependency identity、business work item、Temporal refs 与 typed views 必须 executor-neutral；Codex Plugin 只是 carrier projection，Codex CLI 只是当前默认 executor。carrier/executor 切换不得改变 MAS identity、要求重装完整 Package 或丢失业务状态。
 - V2 action catalog 当前包含六个公开 Stage action，以及 candidate admission、paper mission 两个无用户 surface 的内部 authority actions。closed handler registry 另绑定 self-evolution closeout。普通 interface 从 catalog/schema 生成，不在 MAS 新增手写 parser、JSON-RPC glue 或 duplicate descriptor。
 - V2 generated/default interface 只绑定 Stage manifest 与 closed handler registry。旧 `domain_entry` 及其 status/read-model/queue caller 已物理退役，不得以 compatibility、diagnostic 或 test fixture 名义恢复为 active source。
 - Foundry 系列 policy 归唯一 OPL Framework；MAS 只保留 canonical refs、policy fingerprint、domain delta 与 false-authority envelope，不复制 policy body，也不安装 Framework policy carrier。
 - 环境依赖在 `contracts/runtime_environment_requirements.json` 声明；prepare/run 归 OPL。MAS 可保留 `mas_provisioning_allowed=false` 的只读环境检查/投影，但不在 import、workspace 或 installer 中安装、修复环境，也不授权 ready。
-- `mas-scholar-skills` 是 MAS 硬依赖，但不是第六个 Agent，也不取得 MAS domain authority。OPL 按 required dependency closure 原子安装、激活、修复、更新、锁定、回滚并保护卸载；package、ABI、profile compatibility set 或 scope materialization 缺失/不兼容时，MAS `operational_ready=false` 并进入托管 doctor/repair。
+- `mas-scholar-skills` 是 MAS 硬依赖，但不是第六个 Agent，也不取得 MAS domain authority。普通 composition 只检查 identity presence 与所需 capability callability；缺失或不可调用时 MAS `operational_ready=false` 并进入托管安装/修复，不得降级为 optional，也不得阻断无关 Package。跨包版本范围、ABI、lock、payload、digest、原子 closure、共享 Release Set 与跨包求解不得成为普通 readiness 门。
+- MAS owner 独立发布完整 Package bytes 到自身 GHCR `latest-stable`。Exact ref/digest 只服务单次 release artifact、传输完整性与离线/Full/集成测试/QA 快照；Codex Plugin-only 安装和共享 Release Set 都不能单独证明完整 Package installed/current。
 
 ## Authority
 

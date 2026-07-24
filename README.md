@@ -120,8 +120,9 @@ Medical papers do not finish in one generation. The system can keep multiple cla
 ## Current Position And Boundary
 
 - `Med Auto Science` is the medical research Foundry Agent for turning disease data, study questions, evidence, and manuscript work into one governed research line.
-- In the OPL family, MAS is the domain agent package: MAS retains medical-domain authority, while OPL owns generic runtime, package carrier, generated wrapper, and hosted surfaces.
+- In the OPL family, MAS is an `OPL Package(kind=agent)`: MAS retains medical-domain authority, while OPL owns generic runtime and hosted surfaces. Package identity, capabilities, dependencies, research work items, and typed views remain independent of any one carrier or executor.
 - It can be used as the Research Foundry inside One Person Lab, and it can also be called directly by Codex or another agent through stable capability entries.
+- Codex is the current first-class path because it offers the best implementation and maintenance economics. Its Plugin is a carrier projection and its CLI is an executor; neither is MAS package identity or the complete installed package.
 - MAS owns the medical work itself: study questions, evidence organization, manuscript direction, manuscript quality, and delivery materials. One Person Lab handles hosted runtime, progress display, recovery/retry, and the cross-agent product entry.
 - Manuscript quality is governed by study charters, evidence ledgers, review records, AI reviewer workflow, publication gates, and controller records. Status panels and script checks provide supporting evidence.
 - Clinical framing, claim acceptance, and final submission decisions stay with researchers and PIs.
@@ -154,7 +155,9 @@ Medical papers do not finish in one generation. The system can keep multiple cla
 <details>
   <summary><strong>Start here if you are handing this repo to Codex or another agent</strong></summary>
 
-- Install, update, or remove the MAS package with `opl packages install mas`, `opl packages update mas`, or `opl packages uninstall mas`. OPL resolves and materializes the required `mas-scholar-skills` dependency closure with MAS; a missing or incompatible dependency fails MAS readiness and routes to managed doctor/repair.
+- Install, update, or remove the MAS package with `opl packages install mas`, `opl packages update mas`, or `opl packages uninstall mas`. MAS requires `mas-scholar-skills`; ordinary readiness checks that its identity exists and required capabilities are callable. Missing capability blocks MAS and routes to managed install/repair, but does not block unrelated packages and cannot be treated as optional.
+- The target distribution is independently owner-published complete MAS bytes in its own GHCR `latest-stable`; Codex Plugin materialization is only one carrier projection. Current machine contracts and readbacks may still expose legacy version-range, ABI, lock, payload, digest, atomic-closure, receipt, or shared Release Set fields while migration is in progress; these fields do not prove the target model is implemented.
+- The current compatibility label "required `mas-scholar-skills` dependency closure" means the required identity/callability edge during migration; it does not make version solving, locking, or an atomic cross-package closure part of the target readiness model.
 - Cloning this repository provides the MAS declarative pack, not an OPL runtime installation. OPL discovers `contracts/domain_descriptor.json`, compiles six public Stage actions plus four internal authority actions, generates CLI/MCP/Skill/product surfaces, and hosts runtime/workbench behavior.
 - The canonical domain id is `mas`. `med-autoscience` is only the repository, package, and plugin locator.
 - The repo-root `agent/` pack and action schemas are the interface source. Public execution uses six OPL-hosted Stage actions. Lifecycle reactivation, candidate admission, build-dependency currentness, and paper-mission authority evaluation are internal registry-bound MAS callables, not user commands.

@@ -27,7 +27,7 @@ projection；MAS 持有医学语义声明、专业能力依赖、独立 Review p
 | Action catalog | `contracts/action_catalog.json` 持有六个公开 Stage action 与两个无用户 surface 的内部 authority actions | public/generated surface currentness 仍归 OPL readback |
 | Authority registry | `contracts/domain_handler_registry.json` 绑定 candidate admission、paper mission 与 self-evolution closeout 三个纯 handler | handler 只作领域裁决，不拥有 runtime、transport、session 或 transition |
 | Source morphology | `src/med_autoscience/` 只保留 package init、三个 authority handlers、共享纯校验 helper 与 CSL assets | source closure 不等于 runtime、paper 或 publication ready |
-| Package / ScholarSkills dependency | `contracts/opl_agent_package_manifest.json` 声明 MAS SemVer `0.2.19`、required dependency 范围 `>=0.2.12 <0.3.0` 和兼容 ABI/exports/modules；出版版式由 ScholarSkills 单一目录提供，MAS 只消费 selection ref | 缺失或不兼容使 MAS readiness fail-closed；exact closure、installed resolution、lock 与 activation 归 OPL package readback |
+| Package / ScholarSkills dependency | `contracts/opl_agent_package_manifest.json` 当前仍声明 MAS SemVer `0.2.19`、required dependency range/ABI、activation receipt、lock/atomic closure 与 Release Set refs；出版版式由 ScholarSkills 单一目录提供，MAS 只消费 selection ref | 目标态仅要求 `mas-scholar-skills` identity presence 与所需 capability callability；缺失只阻断 MAS。per-owner GHCR `latest-stable`、完整 Package/carrier readback 和旧字段退出尚未由本仓机器面证明 |
 
 ## Current-State vs Ideal-State Gaps
 
@@ -51,7 +51,7 @@ State: `partial_deferred`
 | OPL runtime ready | same-identity StageRun/Attempt readback、provider running、restart/retry/dead-letter/long-soak |
 | Paper progress | MAS owner receipt、stable typed blocker、human gate、route-back 或 paper/artifact semantic delta |
 | Quality/publication ready | independent reviewer/auditor receipt、publication owner verdict 与 current artifact refs |
-| Installed package current | `opl packages` authority readback，包括 resolved version、content lock、activation 与 lifecycle receipt |
+| Installed package current | `opl packages` 聚合 owner GHCR 完整 Package bytes 与实际 carrier 的 fresh readback；普通 readiness 不以跨包 version/ABI/lock/payload/digest/atomic closure 为门 |
 | Submission/current package ready | submission authority、fresh manifest/package receipt 与 owner readback |
 | Production ready | live runtime/readback 与 production no-forbidden-write proof |
 

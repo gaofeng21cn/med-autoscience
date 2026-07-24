@@ -26,7 +26,8 @@ publication/submission ready 或 production ready。
 | Surface | Current state |
 | --- | --- |
 | Identity | canonical agent/package id `mas`；machine domain id `medautoscience`；`med-autoscience` 只作 repo/package/plugin locator |
-| Package | repo package manifest 声明 SemVer `0.2.19`；`mas-scholar-skills >=0.2.12 <0.3.0` 是 MAS required capability dependency，提供 publication layout profiles、reference verification 与 scientific search adapter modules；exact installed resolution、content lock、activation readiness 与生命周期 currentness 统一归 `opl packages` fresh readback |
+| Package target | MAS 是 `OPL Package(kind=agent)`；owner 独立发布完整 bytes 到自身 GHCR `latest-stable`。当前 `MAS required capability dependency` 标签表示 `mas-scholar-skills` 硬依赖；普通 readiness 只检查 identity presence 与所需 capability callability，缺失只阻断 MAS |
+| Package transition | repo manifest 当前仍声明 SemVer `0.2.19`、ScholarSkills version range/ABI、activation receipt、lock/atomic closure 与 Release Set refs；这些是待兼容迁移的机器事实，不是目标 composition 规则，也不能证明 GHCR independent latest-stable 已落地 |
 | Declarative pack | `agent/` 持有 primary skill、六个 Stage、prompts、knowledge 与 quality gates；plugin skill 是字节一致的分发镜像 |
 | Action catalog | `family-action-catalog.v2`：六个公开 Stage action + 三个无用户 surface 的内部 authority actions |
 | Generated surfaces | CLI、MCP、Skill、product-entry、status、workbench 与 default domain-handler surface 全由 OPL 生成或托管 |
@@ -45,7 +46,9 @@ generation、receipt inventory 和 typed verdict 上一致。机器 receipt 见
 `contracts/mas_validator_release_set_receipt.json`，canonical source ref 为
 `refs/tags/v0.2.19`。
 
-该 Release Set 不是独立 trust root。自洽 hash 只能证明输入记录内部字节一致，不能证明
+该 Release Set 仅绑定本次 validator artifact 与 exact-byte qualification，不是普通 Package
+安装、依赖 readiness 或更新 currentness 的权威，也不要求 MAS、ScholarSkills、Base 或 App
+锁步发布。它也不是独立 trust root。自洽 hash 只能证明输入记录内部字节一致，不能证明
 issuer 身份；若恶意 host 同时伪造完整 adjudicator、currentness、review 与 owner-ledger
 记录，repo-local validator 本身不能识别。正式消费必须由 OPL Framework 提供 managed
 authority-attempt 与 owner-ledger provenance gate，缺失时 fail closed。因此 package

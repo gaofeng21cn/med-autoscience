@@ -7,7 +7,7 @@ Machine boundary: Human-readable integration reference only; callable and genera
 
 ## 当前结论
 
-`plugins/med-autoscience/` 是 Codex plugin carrier，不是 MAS 自己维护的 CLI、MCP server、installer 或 runtime。
+`plugins/med-autoscience/` 是 Codex plugin carrier projection，不是 MAS Package identity、完整 installed Package、CLI、MCP server、installer 或 runtime。Codex CLI 是当前默认 executor；Package identity、capabilities、dependency identity、business work item 与 typed views 保持 executor-neutral。
 
 当前仓库只保留：
 
@@ -59,7 +59,7 @@ catalog 中没有的 `study_progress`、`launch_study`、`submit_study_task`、`
 
 ## 安装与分发边界
 
-仓库里存在 plugin carrier，不等于本机 Codex 已加载它。package discovery、plugin materialization、cache refresh 和 generated interface currentness 由 OPL 安装/启动维护面负责；MAS 不提供 standalone GitHub Release、marketplace、installer 或系统级 skill copy 命令。
+仓库里存在 plugin carrier，不等于本机 Codex 已加载它，也不等于完整 MAS Package 已安装。目标态由 MAS owner 将完整 Package bytes 独立发布到自身 GHCR `latest-stable`；package discovery、plugin materialization、cache refresh 和 generated interface currentness 由 OPL 安装/启动维护面负责。MAS 不提供 standalone GitHub Release、marketplace、installer 或系统级 skill copy 命令。
 
 Python package 只按标准 packaging/`uv sync` 或 OPL workspace override 安装。运行环境由 OPL 根据 `contracts/runtime_environment_requirements.json` 准备；MAS import、plugin load 或 domain handler 不安装/修复 Python、R、Bioconductor 或系统依赖。
 
@@ -71,7 +71,11 @@ opl packages update mas
 opl packages uninstall mas
 ```
 
-OPL 在这些 lifecycle transaction 内为 MAS root package 及其 required dependency closure 完成解析、generated interface/Carrier 物化、currentness readback、卸载保护与回滚。`mas-scholar-skills` 缺失、禁用、不兼容或未物化时，MAS readiness fail-closed 并进入托管 doctor/repair；MAS 文档不暴露内部 activation/status/repair 命令。
+OPL 在这些 lifecycle 操作中维护 MAS 与 required dependency 的 identity presence、capability callability、完整 Package 和实际 carrier fresh readback，并物化当前 Codex generated interface/carrier。`mas-scholar-skills` 缺失、禁用或所需能力不可调用时，仅 MAS readiness fail-closed 并进入托管安装/修复；它不阻断无关 Package，也不能降级为 optional。普通 readiness 不以跨包版本范围、ABI、lock、payload、digest、原子 closure 或共享 Release Set 为门。
+
+现有 machine contracts、validator 与 readback 仍可能保留上述旧字段；在 Framework 和 consumer 完成兼容迁移前，这些只是 transition surface，本文不声称目标 Package 分发、安装或更新链已经落地。
+
+当前 contract/test 中的“MAS root package 及其 required dependency closure”是迁移期兼容标签；它只保留 required edge 的可发现性，不授权版本求解、lock、rollback 或跨包原子 closure 成为目标 readiness 规则。
 
 不要恢复 `.agents/plugins/marketplace.json`、`plugins/mas`、`medautosci-mcp`、`uv tool install .` 作为 MAS plugin 安装合同，或把 package import success 当作 runtime ready。
 
