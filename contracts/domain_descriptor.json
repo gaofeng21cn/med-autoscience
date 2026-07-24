@@ -6,6 +6,9 @@
     "opl_can_write_domain_truth": false,
     "opl_can_write_memory_body": false
   },
+  "kind": "agent",
+  "agent_id": "mas",
+  "package_id": "mas",
   "domain_id": "medautoscience",
   "domain_label": "Med Auto Science",
   "domain_repo_can_own_generated_surface": false,
@@ -22,6 +25,31 @@
   "generated_surface_owner": "one-person-lab",
   "package_role": "opl_standard_domain_agent",
   "schema_version": 1,
+  "action_catalog_ref": "contracts/action_catalog.json",
+  "task_provider": {
+    "inventory_ref": "contracts/domain_descriptor.json#/standard_agent_interface/inventory_projection",
+    "business_lifecycle_owner": "MedAutoScience",
+    "temporal_execution_ref": {
+      "source_kind": "opaque_framework_execution_scope",
+      "join_field": "work_item_scope_id"
+    },
+    "views": [
+      {
+        "view_id": "research-roadmap",
+        "view_kind": "research-roadmap",
+        "title": "Research roadmap",
+        "schema_ref": "contracts/schemas/v2/mas-research-trajectory-snapshot-v2.schema.json",
+        "source_kind": "work_item_relative_json",
+        "relative_path": "artifacts/research_trajectory/snapshot.json",
+        "revision_pointer": "/revision",
+        "owner_task_binding": {
+          "task_id_pointer": "/study_id",
+          "task_ref_pointer": "/study_ref/ref",
+          "task_ref_template": "mas-study:{task_id}"
+        }
+      }
+    ]
+  },
   "standard_agent_interface": {
     "version": "opl_standard_agent_interface.v1",
     "workspace_binding": {

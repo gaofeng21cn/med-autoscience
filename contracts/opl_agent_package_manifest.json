@@ -1,5 +1,6 @@
 {
   "surface_kind": "opl_agent_package_manifest.v1",
+  "kind": "agent",
   "agent_id": "mas",
   "package_id": "mas",
   "display_name": "Med Auto Science",
@@ -10,7 +11,18 @@
   "carrier_source_role": "codex_plugin_default_carrier_not_package_truth",
   "schema_ref": "one-person-lab/contracts/opl-framework/agent-package-manifest.schema.json",
   "domain_descriptor_ref": "contracts/domain_descriptor.json",
-  "machine_boundary": "This repo-local sidecar declares the MAS package and its required capability dependency. OPL owns dependency resolution, lock, lifecycle receipt, atomic update, rollback, and repair; MAS retains domain truth and authority.",
+  "task_provider_ref": "contracts/domain_descriptor.json#/task_provider",
+  "action_catalog_ref": "contracts/action_catalog.json",
+  "view_refs": [
+    "contracts/domain_descriptor.json#/task_provider/views/0"
+  ],
+  "requires": [
+    {
+      "package_id": "mas-scholar-skills",
+      "presence": "required"
+    }
+  ],
+  "machine_boundary": "This repo-local sidecar declares the MAS Package identity, Agent producer surfaces, and required Package presence. The configured carrier owns physical lifecycle; Framework aggregates fresh presence, callability, status, and actions; MAS retains business task, typed-view, artifact, and domain authority.",
   "codex_surface": {
     "plugin_id": "med-autoscience",
     "standalone_distribution": "repo_carrier_source",
