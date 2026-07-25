@@ -9,6 +9,53 @@ import tomllib
 ROOT = Path(__file__).resolve().parents[1]
 
 
+def test_package_manifest_owns_home_presentation_bytes() -> None:
+    package = json.loads(
+        (ROOT / "contracts/opl_agent_package_manifest.json").read_text(
+            encoding="utf-8"
+        )
+    )
+
+    assert package["presentation"] == {
+        "display_name_i18n": {
+            "zh-CN": "Med Auto Science",
+            "en-US": "Med Auto Science",
+        },
+        "description_i18n": {
+            "zh-CN": (
+                "用于科研选题、文献分析、数据分析、论文写作、审稿、返修和投稿。"
+            ),
+            "en-US": (
+                "For research planning, literature review, data analysis, manuscript "
+                "writing, peer review, revision, and submission."
+            ),
+        },
+        "session_routing_summary_i18n": {
+            "zh-CN": "科研、论文、数据分析、审稿、返修和投稿",
+            "en-US": (
+                "research, papers, data analysis, peer review, revision, and "
+                "submission"
+            ),
+        },
+        "home_shortcuts": [
+            {
+                "shortcut_id": "research",
+                "label_i18n": {
+                    "zh-CN": "科研",
+                    "en-US": "Research",
+                },
+                "default_visible": True,
+                "user_configurable": True,
+                "route": {
+                    "route_kind": "agent_package_shortcut",
+                    "executor": "codex_cli",
+                    "codex_visible_entry": package["codex_surface"]["plugin_id"],
+                },
+            }
+        ],
+    }
+
+
 def test_package_plugin_and_python_versions_are_one_semver() -> None:
     pyproject = tomllib.loads((ROOT / "pyproject.toml").read_text(encoding="utf-8"))
     package = json.loads(
