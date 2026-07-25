@@ -9,6 +9,8 @@ Artifact OS 的目标是让 manuscript、figures、tables 和 submission package
 
 Artifact OS 的 owner split 固定为：OPL / shared family layer 持有通用 locator/index、lifecycle transport、restore/retention shell、attempt/workbench projection 和 artifact refs 展示；MAS 持有医学 artifact authority，包括 artifact mutation authorization、canonical-source rebuild proof、publication-route memory decision、AI reviewer / publication gate 解释、package freshness interpretation 和 current package authority。OPL 可以把 artifact refs、lifecycle refs、restore proof refs 或 typed blocker refs 交回 MAS；它不能直接决定 artifact mutation、publication quality、submission readiness 或 `current_package` 更新。
 
+当交付包需要 ZIP、tree inventory、SHA-256 sidecar、exact-byte verification 或原子 projection 时，机制 owner 是 OPL Framework 的 `publication_package` 和 `pack materialize-artifact-projection` 接口；MAS 只提供同代冻结时间、授权成员清单和 artifact mutation authorization。study 不得保留这些通用功能的私有 writer、verifier 或 publisher。
+
 ## Layers
 
 1. canonical sources：study charter、evidence ledger、analysis outputs、AI reviewer quality decision、canonical blueprint。

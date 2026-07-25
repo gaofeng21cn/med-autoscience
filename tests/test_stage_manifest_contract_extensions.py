@@ -217,6 +217,32 @@ def test_publication_handoff_requires_one_exact_generation_package_sequence() ->
     assert currentness["single_generation_required"] is True
     assert currentness["exact_source_and_package_bytes_required"] is True
     assert currentness["stale_owner_sidecar_rejected"] is True
+    assert currentness["user_visible_archive_timestamp_contract"] == {
+        "generic_mechanism_owner": "OPL Framework",
+        "generic_mechanism_interfaces": [
+            "opl_framework.publication_package",
+            "opl pack materialize-artifact-projection",
+        ],
+        "mas_authority_inputs": [
+            "same_generation_package_finalized_at_utc",
+            "authorized_package_membership",
+            "artifact_mutation_authorization",
+        ],
+        "private_study_mechanisms_forbidden": [
+            "archive_container_writer",
+            "tree_inventory_hasher",
+            "sha256_sidecar_writer",
+            "archive_byte_verifier",
+            "atomic_artifact_materializer",
+        ],
+        "timestamp_source": "same_generation_package_finalized_at_utc",
+        "normalization": "utc_floor_to_zip_dos_two_second_precision",
+        "portable_utc_extended_timestamp_required": True,
+        "all_outer_archive_members_must_match": True,
+        "fixed_container_epoch_forbidden": True,
+        "internal_compound_document_timestamp_policy_is_separate": True,
+        "deterministic_rebuild_bytes_required": True,
+    }
     assert (
         currentness["phase_completion_is_not_publication_or_submission_authority"]
         is True

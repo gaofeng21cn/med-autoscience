@@ -698,6 +698,32 @@
           "single_generation_required": true,
           "exact_source_and_package_bytes_required": true,
           "stale_owner_sidecar_rejected": true,
+          "user_visible_archive_timestamp_contract": {
+            "generic_mechanism_owner": "OPL Framework",
+            "generic_mechanism_interfaces": [
+              "opl_framework.publication_package",
+              "opl pack materialize-artifact-projection"
+            ],
+            "mas_authority_inputs": [
+              "same_generation_package_finalized_at_utc",
+              "authorized_package_membership",
+              "artifact_mutation_authorization"
+            ],
+            "private_study_mechanisms_forbidden": [
+              "archive_container_writer",
+              "tree_inventory_hasher",
+              "sha256_sidecar_writer",
+              "archive_byte_verifier",
+              "atomic_artifact_materializer"
+            ],
+            "timestamp_source": "same_generation_package_finalized_at_utc",
+            "normalization": "utc_floor_to_zip_dos_two_second_precision",
+            "portable_utc_extended_timestamp_required": true,
+            "all_outer_archive_members_must_match": true,
+            "fixed_container_epoch_forbidden": true,
+            "internal_compound_document_timestamp_policy_is_separate": true,
+            "deterministic_rebuild_bytes_required": true
+          },
           "phase_completion_is_not_publication_or_submission_authority": true
         },
         "publication_ready_claim_requires": [

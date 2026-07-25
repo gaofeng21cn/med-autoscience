@@ -45,5 +45,6 @@ The platform must keep regression coverage for:
 - internally consistent stale package accepted while a newer reviewer revision remains unconsumed
 - current visible manuscript title paired with stale PDF/DOCX/export metadata title
 - a stale legacy PDF selected directly while a newer manifest-declared PDF exists
+- a user-visible ZIP using the fixed container epoch instead of the frozen same-generation package finalization time
 - stale declared epistemic dependencies or stale package provenance
 - wrong milestone claims from package existence alone
