@@ -150,6 +150,49 @@ Medical papers do not finish in one generation. The system can keep multiple cla
 2. Technical readers and planners should read [Project](./docs/project.md), [Status](./docs/status.md), [Architecture](./docs/architecture.md), [Invariants](./docs/invariants.md), and [Decisions](./docs/decisions.md).
 3. Developers and maintainers should continue from the [Docs Guide](./docs/README.md) into `docs/active/`, `docs/runtime/`, `docs/delivery/`, `docs/references/`, and `docs/policies/`.
 
+## For Codex / Agents
+
+This repository includes a Codex Plugin marketplace for the existing
+`med-autoscience` carrier. From a clone of this repository, add the marketplace,
+inspect the available entry, install it, and verify the installed snapshot:
+
+```bash
+repo_root="$(git rev-parse --show-toplevel)"
+codex plugin marketplace add "${repo_root}"
+codex plugin marketplace list
+codex plugin list --marketplace med-autoscience --available --json
+codex plugin add med-autoscience@med-autoscience
+codex plugin list --marketplace med-autoscience --json
+```
+
+In the Codex App, open **Plugins**, select **Med Auto Science**, and install it.
+Start a new task after installation so the App or CLI loads the installed plugin
+snapshot. To remove the carrier and its marketplace configuration:
+
+```bash
+codex plugin remove med-autoscience@med-autoscience
+codex plugin marketplace remove med-autoscience
+```
+
+These commands prove only that Codex can discover, install, and load the Plugin
+carrier. The OPL Package id remains `mas`; the Codex Plugin id remains
+`med-autoscience`. A carrier install does not prove that the complete OPL
+Package, managed runtime, study workspace, or publication surface is ready, and
+it does not make the required `mas-scholar-skills` dependency optional.
+
+Use OPL-owned readbacks for the complete Package and hosted work-item state:
+
+```bash
+opl packages status --package-id mas --json
+opl packages status --package-id mas --scope workspace --target-workspace <absolute_path> --json
+opl workspace work-item readback --workspace <absolute_path> --work-item <id> --agent mas --profile full
+```
+
+Those readbacks report current Package, required-dependency, carrier, runtime,
+and hosted work-item evidence. They do not create a MAS owner receipt, accept a
+medical claim, authorize publication, or turn legacy transaction/receipt fields
+into current MAS authority.
+
 ## Agent And Operator Quick Start
 
 <details>

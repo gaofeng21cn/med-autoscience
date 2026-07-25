@@ -91,13 +91,54 @@ def test_package_plugin_and_python_versions_are_one_semver() -> None:
     assert (plugin_root / "skills/med-autoscience/agents/openai.yaml").is_file()
     assert not (plugin_root / "bin/medautosci-mcp").exists()
     assert not (ROOT / "plugins/mas").exists()
-    assert not (ROOT / ".agents/plugins/marketplace.json").exists()
     assert not any((ROOT / "src/med_autoscience/cli").glob("*.py"))
     assert not (ROOT / "scripts/install-codex-plugin.sh").exists()
 
     prompt_text = json.dumps(plugin["interface"]["defaultPrompt"]).lower()
     assert "doctor" not in prompt_text
     assert "controller" not in prompt_text
+
+
+def test_repo_marketplace_exposes_only_the_codex_plugin_carrier() -> None:
+    package = json.loads(
+        (ROOT / "contracts/opl_agent_package_manifest.json").read_text(
+            encoding="utf-8"
+        )
+    )
+    plugin = json.loads(
+        (
+            ROOT
+            / "plugins/med-autoscience/.codex-plugin/plugin.json"
+        ).read_text(encoding="utf-8")
+    )
+    marketplace = json.loads(
+        (ROOT / ".agents/plugins/marketplace.json").read_text(encoding="utf-8")
+    )
+
+    assert marketplace["name"] == "med-autoscience"
+    assert marketplace["interface"] == {"displayName": "Med Auto Science"}
+    assert marketplace["plugins"] == [
+        {
+            "name": "med-autoscience",
+            "source": {
+                "source": "local",
+                "path": "./plugins/med-autoscience",
+            },
+            "policy": {
+                "installation": "AVAILABLE",
+                "authentication": "ON_INSTALL",
+            },
+            "category": "Research",
+        }
+    ]
+
+    entry = marketplace["plugins"][0]
+    plugin_root = ROOT / entry["source"]["path"]
+    assert (plugin_root / ".codex-plugin/plugin.json").is_file()
+    assert entry["name"] == plugin["name"] == package["codex_surface"]["plugin_id"]
+    assert entry["category"] == plugin["interface"]["category"]
+    assert package["package_id"] == "mas"
+    assert "products" not in entry["policy"]
 
 
 def test_package_import_and_hosted_entry_sources_resolve() -> None:
