@@ -7,7 +7,15 @@ Machine boundary: 本文解释 package/environment handoff。可执行真相归 
 
 ## 结论
 
-MAS 不再提供 repo-local workspace initializer、editable import bootstrap、Python/R environment builder、Codex plugin installer 或 runtime healthcheck。OPL Package lifecycle 从 Release Set 或显式 manifest/registry 选择 MAS，原子解析 MAS 与 `mas-scholar-skills` required dependency closure，并持有 package lock、receipt、scope activation、更新、修复、回滚与卸载保护。环境 owner 仍是 OPL Base，依赖环境、uv cache 与 bytecode 全部位于 source checkout 外。
+MAS 不再提供 repo-local workspace initializer、editable import bootstrap、Python/R
+environment builder、Codex plugin installer 或 runtime healthcheck。MAS owner 独立发布
+完整 Package bytes 到自己的 GHCR repository，并只推进自己的 `latest-stable`。安装
+MAS 时，配置的 carrier/runtime adapter 对
+MAS 与 `mas-scholar-skills` required dependency closure 只核验 identity presence 与
+callability；缺失或不可调用只阻断
+MAS，不阻断其他 Package。共享 Release Set 只服务 Full/offline/integration/QA snapshot，不定义
+普通安装、更新或 currentness。环境 owner 仍是 OPL Base，依赖环境、uv cache 与
+bytecode 全部位于 source checkout 外。
 
 当前 bootstrap 是两部分：
 
@@ -35,7 +43,13 @@ opl packages status --package-id mas --json
 opl packages repair mas --json
 ```
 
-workspace / quest 的 Skill materialization 通过 `--scope workspace|quest` 与对应 target 参数执行。`required=true` 的 `mas-scholar-skills` hard runtime dependency 进入 MAS package closure transaction；`status` 读取闭包内各 package 的 lock、projection、migration 与 lifecycle receipt，`repair` 对当前依赖闭包和 scope materialization fail-closed 修复。上述命令都不写 MAS domain truth、不生成 owner receipt，也不授权 domain 或 production ready。
+`required=true` 的 `mas-scholar-skills` 是 MAS 的 hard runtime dependency。carrier 对
+MAS 与 ScholarSkills 分别执行其原生 install/update/remove，并以 fresh physical
+installed/callable readback 作为结果；Framework 只聚合状态和 projected actions，不
+建立跨 Package version/ABI resolver、exact lock、payload、atomic closure、lifecycle
+receipt、LKG、materialization 或 rollback manager。当前 CLI 输出中仍存在的上述字段
+只是兼容实现，不是新增 consumer 的目标接口。上述命令都不写 MAS domain truth、不
+生成 MAS owner receipt，也不授权 domain 或 production ready。
 
 ## Python packaging
 
