@@ -81,6 +81,31 @@ EXPECTED_STANDARD_AGENT_SOURCE_FILES = frozenset(
         "src/med_autoscience/styles/frontiers.csl",
     }
 )
+EXPECTED_STANDARD_AGENT_INTERNAL_SOURCE_FILES = frozenset(
+    {
+        "src/med_autoscience/authority_handlers/_generation_manifest_parts/__init__.py",
+        "src/med_autoscience/authority_handlers/_generation_manifest_parts/constants.py",
+        "src/med_autoscience/authority_handlers/_generation_manifest_parts/currentness.py",
+        "src/med_autoscience/authority_handlers/_generation_manifest_parts/first_draft.py",
+        "src/med_autoscience/authority_handlers/_generation_manifest_parts/manifest.py",
+        "src/med_autoscience/authority_handlers/_generation_manifest_parts/professional_manuscript.py",
+        "src/med_autoscience/authority_handlers/_generation_manifest_parts/professional_skill.py",
+        "src/med_autoscience/authority_handlers/_generation_manifest_parts/professional_table.py",
+        "src/med_autoscience/authority_handlers/_generation_manifest_parts/records.py",
+        "src/med_autoscience/authority_handlers/_generation_manifest_parts/review_receipts.py",
+        "src/med_autoscience/authority_handlers/_generation_manifest_parts/review_scope.py",
+        "src/med_autoscience/authority_handlers/_generation_manifest_parts/review_snapshot.py",
+        "src/med_autoscience/authority_handlers/paper_mission_parts/__init__.py",
+        "src/med_autoscience/authority_handlers/paper_mission_parts/constants.py",
+        "src/med_autoscience/authority_handlers/paper_mission_parts/currentness.py",
+        "src/med_autoscience/authority_handlers/paper_mission_parts/orchestration.py",
+        "src/med_autoscience/authority_handlers/paper_mission_parts/quality.py",
+        "src/med_autoscience/authority_handlers/paper_mission_parts/receipt.py",
+        "src/med_autoscience/authority_handlers/paper_mission_parts/request.py",
+        "src/med_autoscience/authority_handlers/paper_mission_parts/result.py",
+        "src/med_autoscience/authority_handlers/paper_mission_parts/validation.py",
+    }
+)
 
 
 def _tracked_paths_from_stdin() -> tuple[str, ...]:
@@ -109,12 +134,16 @@ def audit_active_surface_residue(tracked_paths: tuple[str, ...]) -> list[str]:
     observed_source_files = {
         path for path in tracked_paths if path.startswith("src/med_autoscience/")
     }
+    expected_source_files = (
+        EXPECTED_STANDARD_AGENT_SOURCE_FILES
+        | EXPECTED_STANDARD_AGENT_INTERNAL_SOURCE_FILES
+    )
     for relative_path in sorted(
-        observed_source_files - EXPECTED_STANDARD_AGENT_SOURCE_FILES
+        observed_source_files - expected_source_files
     ):
         violations.append(f"{relative_path}: nonstandard_mas_private_source_surface")
     for relative_path in sorted(
-        EXPECTED_STANDARD_AGENT_SOURCE_FILES - observed_source_files
+        expected_source_files - observed_source_files
     ):
         violations.append(f"{relative_path}: required_standard_agent_source_missing")
 
