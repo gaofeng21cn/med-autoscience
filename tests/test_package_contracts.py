@@ -9,7 +9,7 @@ import tomllib
 ROOT = Path(__file__).resolve().parents[1]
 
 
-def test_carrier_root_descriptor_is_an_exact_owner_contract_deployment() -> None:
+def test_carrier_root_descriptor_projects_owner_identity_without_lifecycle_authority() -> None:
     owner_descriptor = json.loads(
         (ROOT / "contracts/opl_agent_package_manifest.json").read_text(
             encoding="utf-8"
@@ -26,12 +26,85 @@ def test_carrier_root_descriptor_is_an_exact_owner_contract_deployment() -> None
         )
     )
 
-    assert carrier_descriptor == owner_descriptor
+    projected_owner_fields = {
+        "surface_kind",
+        "kind",
+        "agent_id",
+        "package_id",
+        "display_name",
+        "publisher",
+        "version",
+        "source",
+        "carrier_source_role",
+        "domain_descriptor_ref",
+        "task_provider_ref",
+        "action_catalog_ref",
+        "view_refs",
+        "requires",
+        "presentation",
+    }
+    assert set(carrier_descriptor) == projected_owner_fields | {
+        "capability_dependencies",
+        "codex_surface",
+    }
+    for field in projected_owner_fields:
+        assert carrier_descriptor[field] == owner_descriptor[field]
+
+    projected_codex_fields = {
+        "plugin_id",
+        "required_capability_package_ids",
+        "required_skill_ids",
+        "standalone_distribution",
+        "user_install_action_count",
+    }
+    assert set(carrier_descriptor["codex_surface"]) == projected_codex_fields
+    for field in projected_codex_fields:
+        assert (
+            carrier_descriptor["codex_surface"][field]
+            == owner_descriptor["codex_surface"][field]
+        )
+
+    assert carrier_descriptor["capability_dependencies"] == []
+    assert carrier_descriptor["requires"] == [
+        {"package_id": "mas-scholar-skills", "presence": "required"}
+    ]
     assert carrier_descriptor["agent_id"] == carrier_descriptor["package_id"] == "mas"
     assert carrier_descriptor["carrier_source_role"] == (
         "codex_plugin_default_carrier_not_package_truth"
     )
     assert carrier_descriptor["codex_surface"]["plugin_id"] == plugin["name"]
+
+    def nested_keys(value: object) -> set[str]:
+        if isinstance(value, dict):
+            return set(value) | {
+                key for nested in value.values() for key in nested_keys(nested)
+            }
+        if isinstance(value, list):
+            return {key for nested in value for key in nested_keys(nested)}
+        return set()
+
+    legacy_authority_keys = {
+        "activation_materialization",
+        "capability_abi",
+        "consumer_profile_id",
+        "dependency_kind",
+        "install_owner",
+        "install_update_source",
+        "last_known_good",
+        "lifecycle",
+        "lock",
+        "opl_managed_surface",
+        "package_core",
+        "receipt",
+        "release_set_receipt_ref",
+        "repair_command_templates",
+        "resolver",
+        "rollback_ref",
+        "status_command_templates",
+        "sync_command_refs",
+        "version_requirement",
+    }
+    assert nested_keys(carrier_descriptor).isdisjoint(legacy_authority_keys)
 
 
 def test_package_manifest_owns_home_presentation_bytes() -> None:
