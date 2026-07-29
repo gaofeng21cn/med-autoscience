@@ -9,6 +9,31 @@ import tomllib
 ROOT = Path(__file__).resolve().parents[1]
 
 
+def test_carrier_root_descriptor_is_an_exact_owner_contract_deployment() -> None:
+    owner_descriptor = json.loads(
+        (ROOT / "contracts/opl_agent_package_manifest.json").read_text(
+            encoding="utf-8"
+        )
+    )
+    carrier_descriptor = json.loads(
+        (ROOT / "plugins/med-autoscience/opl-package.json").read_text(
+            encoding="utf-8"
+        )
+    )
+    plugin = json.loads(
+        (ROOT / "plugins/med-autoscience/.codex-plugin/plugin.json").read_text(
+            encoding="utf-8"
+        )
+    )
+
+    assert carrier_descriptor == owner_descriptor
+    assert carrier_descriptor["agent_id"] == carrier_descriptor["package_id"] == "mas"
+    assert carrier_descriptor["carrier_source_role"] == (
+        "codex_plugin_default_carrier_not_package_truth"
+    )
+    assert carrier_descriptor["codex_surface"]["plugin_id"] == plugin["name"]
+
+
 def test_package_manifest_owns_home_presentation_bytes() -> None:
     package = json.loads(
         (ROOT / "contracts/opl_agent_package_manifest.json").read_text(

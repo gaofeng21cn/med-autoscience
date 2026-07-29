@@ -1,0 +1,151 @@
+{
+  "surface_kind": "opl_agent_package_manifest.v1",
+  "kind": "agent",
+  "agent_id": "mas",
+  "package_id": "mas",
+  "display_name": "Med Auto Science",
+  "presentation": {
+    "display_name_i18n": {
+      "zh-CN": "Med Auto Science",
+      "en-US": "Med Auto Science"
+    },
+    "description_i18n": {
+      "zh-CN": "用于科研选题、文献分析、数据分析、论文写作、审稿、返修和投稿。",
+      "en-US": "For research planning, literature review, data analysis, manuscript writing, peer review, revision, and submission."
+    },
+    "session_routing_summary_i18n": {
+      "zh-CN": "科研、论文、数据分析、审稿、返修和投稿",
+      "en-US": "research, papers, data analysis, peer review, revision, and submission"
+    },
+    "home_shortcuts": [
+      {
+        "shortcut_id": "research",
+        "label_i18n": {
+          "zh-CN": "科研",
+          "en-US": "Research"
+        },
+        "default_visible": true,
+        "user_configurable": true,
+        "route": {
+          "route_kind": "agent_package_shortcut",
+          "executor": "codex_cli",
+          "codex_visible_entry": "med-autoscience"
+        }
+      }
+    ]
+  },
+  "publisher": "one-person-lab",
+  "version": "0.2.21",
+  "release_set_receipt_ref": "contracts/mas_validator_release_set_receipt.json",
+  "source": "first_party_repo_local",
+  "carrier_source_role": "codex_plugin_default_carrier_not_package_truth",
+  "schema_ref": "one-person-lab/contracts/opl-framework/agent-package-manifest.schema.json",
+  "domain_descriptor_ref": "contracts/domain_descriptor.json",
+  "task_provider_ref": "contracts/domain_descriptor.json#/task_provider",
+  "action_catalog_ref": "contracts/action_catalog.json",
+  "view_refs": [
+    "contracts/domain_descriptor.json#/task_provider/views/0"
+  ],
+  "requires": [
+    {
+      "package_id": "mas-scholar-skills",
+      "presence": "required"
+    }
+  ],
+  "machine_boundary": "This repo-local sidecar declares the MAS Package identity, Agent producer surfaces, and required Package presence. The configured carrier owns physical lifecycle; Framework aggregates fresh presence, callability, status, and actions; MAS retains business task, typed-view, artifact, and domain authority.",
+  "codex_surface": {
+    "plugin_id": "med-autoscience",
+    "standalone_distribution": "repo_carrier_source",
+    "required_skill_ids": [
+      "med-autoscience"
+    ],
+    "required_capability_package_ids": [
+      "mas-scholar-skills"
+    ],
+    "user_install_action_count": 1
+  },
+  "capability_dependencies": [
+    {
+      "module_id": "scholarskills",
+      "package_id": "mas-scholar-skills",
+      "kind": "framework_capability_package",
+      "required": true,
+      "dependency_kind": "hard_runtime_dependency",
+      "version_requirement": ">=0.2.12 <0.3.0",
+      "capability_abi": "mas-scholar-skills.v1",
+      "consumer_profile_id": "mas-medical-paper.v1",
+      "provider_manifest_ref": "mas-scholar-skills/contracts/opl_capability_package_manifest.json",
+      "required_export_ids": [
+        "mas-scholar-skills",
+        "medical-manuscript-writing",
+        "medical-manuscript-review",
+        "medical-figure-design",
+        "medical-figure-style",
+        "medical-figure-composer",
+        "medical-research-lit",
+        "medical-statistical-review",
+        "medical-table-design",
+        "medical-submission-prep",
+        "medical-data-governance"
+      ],
+      "required_module_ids": [
+        "mas-scholar-skills.display",
+        "mas-scholar-skills.tables",
+        "mas-scholar-skills.stats",
+        "mas-scholar-skills.lit",
+        "mas-scholar-skills.write",
+        "mas-scholar-skills.review",
+        "mas-scholar-skills.submit",
+        "mas-scholar-skills.data",
+        "mas-scholar-skills.reference-provider-adapters",
+        "mas-scholar-skills.scientific-search-adapters"
+      ],
+      "required_for": [
+        "workspace_or_quest_codex_discovery",
+        "mas_operational_readiness",
+        "all_mas_medical_research_workflows"
+      ],
+      "codex_distribution": "bundled",
+      "opl_distribution": "managed_dependency",
+      "developer_distribution": "source_checkout",
+      "install_owner": "one-person-lab",
+      "install_update_source": "ghcr_capability_packages_channel",
+      "sync_scopes": [
+        "workspace",
+        "quest"
+      ],
+      "sync_command_refs": [
+        "opl packages activate mas --scope workspace --target-workspace <workspace-root> --json",
+        "opl packages activate mas --scope quest --target-quest <quest-root> --json"
+      ],
+      "activation_materialization": {
+        "required": true,
+        "owner": "one-person-lab",
+        "trigger": "mas_workspace_or_quest_activation",
+        "scopes": [
+          "workspace",
+          "quest"
+        ],
+        "required_skill_ids_source": "provider_manifest_exports_core_skill_ids",
+        "target_path_template": "<scope-root>/.codex/skills/<skill-id>",
+        "receipt_required": true,
+        "readiness_policy": "all_core_skills_current_for_active_scope"
+      },
+      "missing_or_incompatible_policy": "fail_closed_to_doctor_and_repair",
+      "status_command_templates": {
+        "workspace": "opl packages status --package-id mas --json",
+        "quest": "opl packages status --package-id mas --json"
+      },
+      "repair_command_templates": {
+        "workspace": "opl packages repair mas --agent-root <agent-root> --json",
+        "quest": "opl packages repair mas --agent-root <agent-root> --json"
+      },
+      "authority_boundary": {
+        "can_write_domain_truth": false,
+        "can_sign_owner_receipt": false,
+        "can_create_typed_blocker": false,
+        "can_write_runtime_queue": false
+      }
+    }
+  ]
+}
