@@ -410,7 +410,7 @@ def test_registry_catalog_schemas_and_audit_bind_exact_handlers() -> None:
     )
     assert paper_handler["binding"] == {
         "kind": "python_callable",
-        "module": "med_autoscience.authority_handlers.paper_mission",
+        "module": "med_autoscience.authority_handlers.paper_mission_parts.orchestration",
         "callable": "evaluate_paper_mission_authority",
     }
     action = next(

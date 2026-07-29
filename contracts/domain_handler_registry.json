@@ -14,7 +14,7 @@
       "handler_id": "mas.paper-mission-authority-evaluate",
       "binding": {
         "kind": "python_callable",
-        "module": "med_autoscience.authority_handlers.paper_mission",
+        "module": "med_autoscience.authority_handlers.paper_mission_parts.orchestration",
         "callable": "evaluate_paper_mission_authority"
       }
     },
