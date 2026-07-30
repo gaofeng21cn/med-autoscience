@@ -293,18 +293,32 @@ The useful work now is:
 
 Do not implement a separate publication recipe engine until a route has matured into an audited capability with clear evidence obligations, tests, owner boundary, and failure behavior.
 
-## 2026-05-12 OPL Family Index Status
+## OPL Family Index Readback
 
-Current OPL discovery sees MAS, MAG, and RCA as resolved family memory descriptors:
+The OPL counts and Temporal proof observed on 2026-05-12 are historical
+provenance, not current family or runtime state. Do not reuse their descriptor
+counts, closure-gap counts, selected provider, or proof status as a current
+claim.
 
-- OPL `agents list --json` currently reports `aligned_count=3`, `missing_count=0`, `drift_detected_count=0`, `blocked_count=0`, `production_closure_gap_count=12`, and `provider_temporal_residency_gap_status=closed_by_fresh_proven_proof`.
-- OPL `stages list --json` currently reports `resolved_planes_count=3` and `stages_count=18`.
-- OPL `domain-memory list --json` currently reports `resolved_memory_descriptor_count=3` and `missing_memory_descriptor_count=0`.
-- OPL `domain-memory inspect --domain mas --json` resolves `mas_publication_route_memory` from the MAS standard `domain_memory_descriptor`, with `opl_role=locator_projection_owner` and forbidden OPL authority over memory store, domain truth, quality verdict, artifact authority, route decision, and publication readiness.
-- OPL `family-runtime status --json` now defaults to selected provider `temporal`; Temporal is the production required provider and fresh read model reports managed service / worker residency proof. `local_sqlite` remains available only as explicit dev/CI/offline diagnostic baseline and cannot replace production provider, domain daemon replacement, or paper-line readiness evidence.
-- OPL roadmap now records Temporal provider core as landed: `StageAttemptWorkflow`, Codex/domain domain-handler activities, human/user/resume signals, attempt query, `attempt start|query|signal`, worker helper, lifecycle contract, and Temporal residency proof. The current OPL-side provider residency gate is closed by fresh `production_residency_proven` proof; the remaining OPL-side evidence gap is long-running provider SLO plus real domain activity / owner-chain soak.
-- MAG/RCA also expose standard `family_domain_memory_ref.v1` descriptors for their grant-strategy and visual-pattern memory locators.
-- This makes MAS Publication Strategy Memory the MAS-side reference implementation for natural-language, stage-consumed publication strategy memory, not a reason to move publication-route content into OPL or to build an OPL-owned recipe runtime.
+Resolve currentness from the live owner surfaces:
+
+- run `opl agents list --json`, `opl stages list --json`, and
+  `opl domain-memory list --json` for fresh family inventory;
+- run `opl domain-memory inspect --domain mas --json` for the current
+  `mas_publication_route_memory` locator projection and its authority boundary;
+- run `opl family-runtime status --json` for the selected provider and provider
+  proof projection;
+- treat `closed_by_fresh_proven_proof` as current only when the latest runtime
+  proof is still `proof_fresh`; a historical `production_residency_proven`
+  event does not close the gate after its freshness window;
+- read MAS migration readiness from `contracts/memory_descriptor.json` and
+  workspace-owned apply/writeback receipts, not from an OPL inventory count.
+
+OPL remains the locator projection owner only. MAS keeps the memory body,
+accept/reject decisions, domain truth, quality verdict, artifact authority,
+route decision, and publication readiness. The MAS Publication Strategy Memory
+can serve as the family reference without moving publication-route content into
+OPL or creating an OPL-owned recipe runtime.
 
 Remaining MAS-side proof:
 
