@@ -14,7 +14,7 @@ Fresh intake 基于 `Yuan1z0825/nature-skills` observed commit `1cb9070fdd94929d
 - 写作、review、figure、citation、reader与 response pattern 进入 MAS Stage prompts、knowledge/quality requirements与 MAS ScholarSkills professional Skills。
 - Figure 相关专业能力由 `medical-figure-design` 编排，`medical-figure-style` 与 `medical-figure-composer` 提供子能力；OPL 只托管工具与 Attempt。
 - Exact figure/manuscript quality由独立 reviewer/re-reviewer判断；MAS owner持有 publication/export/artifact authority。
-- OPL Pack负责 Skill package、dependency closure、materialization、currentness与 lifecycle receipt。
+- MAS owner 持有 Package identity、完整 bytes 与 publication；实际 carrier 持有 Skill 物理 materialization、currentness 与 lifecycle receipt，Framework 只按声明检查 dependency presence/callability 并聚合 fresh readback。
 
 ## 不吸收
 
