@@ -19,12 +19,14 @@ scripts/verify.sh full
 
 | Workflow/lane | 用途 |
 | --- | --- |
-| `macOS CI` | push/PR 完整 repo verification、OPL hosted interface readback 与 `uv build` |
+| `macOS CI` | PR、每日定时或手动触发的完整 repo verification、OPL hosted interface readback 与 `uv build` |
 | `full` | 本仓完整 pytest collection |
 
 ## Lane semantics
 
 - `full` 是唯一 repo verification lane；全套足够小，不再维护行为不清晰的子集。
+- 合并或 direct push 前先运行本地 `full`；GitHub 不在 merge 后为相同字节重复跑
+  push CI，每日 hosted lane 负责发现 OPL Framework currentness 与 runner 环境漂移。
 - 结构 drilldown 需要时直接使用 OPL `quality details`；MAS CI 不维护 advisory
   workflow 或重复上传诊断 artifact。
 

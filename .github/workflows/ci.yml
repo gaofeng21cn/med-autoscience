@@ -4,9 +4,9 @@ on:
   pull_request:
     branches:
       - main
-  push:
-    branches:
-      - main
+  workflow_dispatch:
+  schedule:
+    - cron: '37 19 * * *'
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
