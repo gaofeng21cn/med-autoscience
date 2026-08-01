@@ -35,7 +35,7 @@
     ]
   },
   "publisher": "one-person-lab",
-  "version": "0.2.21",
+  "version": "0.2.22",
   "source": "first_party_repo_local",
   "carrier_source_role": "codex_plugin_default_carrier_not_package_truth",
   "domain_descriptor_ref": "contracts/domain_descriptor.json",
