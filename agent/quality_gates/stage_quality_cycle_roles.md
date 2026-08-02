@@ -106,6 +106,14 @@ formal Review, return at most an evidence-backed route recommendation and leave
 the terminal decision to the reviewer or re-reviewer. Under
 `hard_boundary_or_zero_artifact`, return no route output.
 
+When the current Stage is the primary-only `review_and_quality_gate` Meta Review,
+the producer is the isolated decisive review invocation. It must follow that
+Stage prompt's Attempt Closeout ABI exactly: persist and return
+`surface_kind=stage_attempt_closeout_packet`, never a legacy alias; use only the
+declared refs-only metadata fields; and return
+`route_impact.stage_route_decision`, not `stage_route_recommendation`, for a
+consumable progress-terminal result.
+
 For formal Review, use the stage-bound MAS manifest scope and review lane. When
 the Stage declares a producer attempt-local snapshot finalizer, call that
 finalizer with the closeout candidate, frozen artifact inventory, and explicit
