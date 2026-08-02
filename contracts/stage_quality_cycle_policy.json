@@ -506,23 +506,6 @@
         "context_isolation_required": true,
         "max_repair_rounds": 0
       },
-      "primary_only_meta_review_closeout_contract": {
-        "surface_kind": "stage_attempt_closeout_packet",
-        "legacy_surface_aliases_allowed": false,
-        "closeout_refs_required": true,
-        "closeout_ref_metadata_allowed_fields": [
-          "ref_kind",
-          "kind",
-          "uri",
-          "sha256",
-          "ref",
-          "size_bytes",
-          "artifact_identity_receipt_ref"
-        ],
-        "progress_terminal_route_field": "route_impact.stage_route_decision",
-        "stage_route_recommendation_allowed": false,
-        "persisted_packet_must_be_exact_byte_hydratable": true
-      },
       "budget_exhaustion": "complete_with_quality_debt_if_consumable",
       "attempt_boundary": {
         "inherits_stage_goal_scope_authority": true,
@@ -599,7 +582,24 @@
     "inline_repair_allowed": false,
     "route_back_requires_defect_owner_stage_id": true,
     "route_back_selection": "earliest_canonical_stage_that_can_close_root_cause",
-    "max_route_back_rounds": 3
+    "max_route_back_rounds": 3,
+    "primary_only_meta_review_closeout_contract": {
+      "surface_kind": "stage_attempt_closeout_packet",
+      "legacy_surface_aliases_allowed": false,
+      "closeout_refs_required": true,
+      "closeout_ref_metadata_allowed_fields": [
+        "ref_kind",
+        "kind",
+        "uri",
+        "sha256",
+        "ref",
+        "size_bytes",
+        "artifact_identity_receipt_ref"
+      ],
+      "progress_terminal_route_field": "route_impact.stage_route_decision",
+      "stage_route_recommendation_allowed": false,
+      "persisted_packet_must_be_exact_byte_hydratable": true
+    }
   },
   "canonical_to_physical_stage_mapping": {
     "direction_and_route_selection": [

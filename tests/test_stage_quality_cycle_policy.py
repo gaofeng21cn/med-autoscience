@@ -467,8 +467,9 @@ def test_artifact_iteration_policy_is_packaged_and_used_by_stage_prompts() -> No
 
 def test_meta_review_primary_only_closeout_contract_is_explicit() -> None:
     profile = _load("contracts/stage_quality_cycle_policy.json")
-    review_policy = profile["stage_policies"]["review_and_quality_gate"]
-    contract = review_policy["primary_only_meta_review_closeout_contract"]
+    contract = profile["meta_review_policy"][
+        "primary_only_meta_review_closeout_contract"
+    ]
     review_prompt = (
         ROOT / "agent/prompts/review_and_quality_gate.md"
     ).read_text(encoding="utf-8")
@@ -498,6 +499,25 @@ def test_meta_review_primary_only_closeout_contract_is_explicit() -> None:
     assert "Only `ref_kind`, `kind`, `uri`, `sha256`, `ref`, `size_bytes`," in (
         normalized_prompt
     )
+
+
+def test_stage_quality_cycle_policies_match_framework_v1_exact_fields() -> None:
+    profile = _load("contracts/stage_quality_cycle_policy.json")
+    expected_fields = {
+        "surface_kind",
+        "version",
+        "enabled",
+        "stage_prompt_ref",
+        "role_prompt_refs",
+        "quality_rubric_refs",
+        "in_thread_refinement",
+        "formal_review",
+        "budget_exhaustion",
+        "attempt_boundary",
+    }
+
+    for stage_id, stage_policy in profile["stage_policies"].items():
+        assert set(stage_policy) == expected_fields, stage_id
 
 
 def test_all_six_stages_bind_quality_policy_and_budget_exhaustion() -> None:
