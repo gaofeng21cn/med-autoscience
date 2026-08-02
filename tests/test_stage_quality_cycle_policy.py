@@ -95,6 +95,13 @@ def test_quality_cycle_declares_role_bound_review_transport_production_path() ->
         ],
         "binding_kind": "controller_required",
         "executor_may_select_lane": False,
+        "producer_finalizer_ref": (
+            "src/med_autoscience/authority_handlers/"
+            "_stage_attempt_review_snapshot.py#"
+            "finalize_manuscript_authoring_producer_snapshot_closeout"
+        ),
+        "producer_attempt_local": True,
+        "lane_fallback": False,
     }
     assert snapshot[
         "source_refs_by_member_id_must_exactly_match_review_scope"

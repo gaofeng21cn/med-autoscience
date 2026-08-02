@@ -192,3 +192,17 @@ and route-back recommendation while allowing Codex to continue. Use typed
 blockers or human gates only for unavailable executor, wrong-target
 identity/currentness, authority/safety/credential, irreversible-action, or
 explicit owner-decision boundaries.
+
+## Required producer snapshot finalization
+
+For the producer Attempt, invoke
+`finalize_manuscript_authoring_producer_snapshot_closeout(...)` after the frozen
+manuscript artifact inventory and exact host locator map are complete. Pass the
+controller-bound `review_lane` explicitly (`medical`, `statistical`,
+`reference`, or `display`) and pass `source_refs_by_member_id` with exactly one
+workspace locator per reviewed member. Do not call the generic bundle builder
+as a substitute, infer a lane from artifacts, reuse a sidecar-only MAS owner
+authority record, or use a lane fallback. Return the finalizer's
+`stage_attempt_closeout_packet`; it must contain `stage_attempt_id`, the v2
+`route_impact.stage_quality_cycle.review_input_snapshot_materialization_request`,
+and the exact MAS owner authority metadata in `closeout_ref_metadata`.

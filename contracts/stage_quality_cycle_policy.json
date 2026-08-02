@@ -94,7 +94,16 @@
       "domain_scope_owner": "mas",
       "stage_bundle_builder_ref": "src/med_autoscience/authority_handlers/_generation_manifest.py#build_stage_review_input_snapshot_bundle",
       "bounded_analysis_producer_snapshot_finalizer_ref": "src/med_autoscience/authority_handlers/_stage_attempt_review_snapshot.py#finalize_bounded_analysis_producer_snapshot_closeout",
+      "manuscript_authoring_producer_snapshot_finalizer_ref": "src/med_autoscience/authority_handlers/_stage_attempt_review_snapshot.py#finalize_manuscript_authoring_producer_snapshot_closeout",
       "bounded_analysis_producer_finalizer_applies_when": "complete_frozen_analysis_artifact_inventory_and_exact_statistical_locator_map_available",
+      "manuscript_authoring_producer_finalizer_applies_when": "complete_frozen_manuscript_artifact_inventory_and_exact_controller_lane_locator_map_available",
+      "manuscript_authoring_producer_finalizer_attempt_env_sources": [
+        "OPL_STAGE_ATTEMPT_REF",
+        "OPL_EXECUTION_CONTENT_BINDING_SHA256",
+        "OPL_PACKAGE_USE_BOUNDARY_ID",
+        "OPL_ROOT_PACKAGE_ID",
+        "OPL_ROOT_PACKAGE_CONTENT_DIGEST"
+      ],
       "bounded_analysis_producer_finalizer_attempt_env_sources": [
         "OPL_STAGE_ATTEMPT_REF",
         "OPL_EXECUTION_CONTENT_BINDING_SHA256",
@@ -118,7 +127,10 @@
             "display"
           ],
           "binding_kind": "controller_required",
-          "executor_may_select_lane": false
+          "executor_may_select_lane": false,
+          "producer_finalizer_ref": "src/med_autoscience/authority_handlers/_stage_attempt_review_snapshot.py#finalize_manuscript_authoring_producer_snapshot_closeout",
+          "producer_attempt_local": true,
+          "lane_fallback": false
         }
       },
       "source_refs_by_member_id_must_exactly_match_review_scope": true,
