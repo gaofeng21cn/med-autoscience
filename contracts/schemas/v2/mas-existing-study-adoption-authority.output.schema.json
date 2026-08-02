@@ -464,6 +464,7 @@
         "operations_sha256",
         "materialization_scope_sha256",
         "absent_relative_path_preconditions",
+        "satisfied_gate_ids",
         "authorized",
         "single_use",
         "qualification_only",
@@ -515,6 +516,11 @@
           "items": {
             "$ref": "#/$defs/workspace_relative_path"
           }
+        },
+        "satisfied_gate_ids": {
+          "const": [
+            "mas_existing_study_adoption_authority"
+          ]
         },
         "authorized": {
           "const": true

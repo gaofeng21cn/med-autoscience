@@ -324,6 +324,9 @@ def test_absent_domain_projections_authorize_exact_atomic_adoption_bytes() -> No
         "opl_domain_artifact_cas_materialization.v1"
     )
     assert host_request["authorization_ref"] == authorization["authorization_ref"]
+    assert authorization["satisfied_gate_ids"] == [
+        "mas_existing_study_adoption_authority"
+    ]
     assert host_request["operations_sha256"] == authorization["operations_sha256"]
     assert host_request["materialization_scope_sha256"] == authorization[
         "materialization_scope_sha256"
