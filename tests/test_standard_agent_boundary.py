@@ -12,6 +12,7 @@ ALLOWED_MAS_SOURCE_REF_PREFIXES = (
 ALLOWED_MAS_MODULE_REF_PREFIXES = (
     "med_autoscience.authority_handlers.candidate_admission",
     "med_autoscience.authority_handlers.build_dependency_currentness",
+    "med_autoscience.authority_handlers.existing_study_adoption",
     "med_autoscience.authority_handlers.paper_mission",
     "med_autoscience.authority_handlers.qualification_work_item_provisioning",
     "med_autoscience.authority_handlers.self_evolution_closeout",
@@ -32,7 +33,7 @@ CANONICAL_RETIRED_DEFAULT_SURFACE_IDS = [
 def _load(relative_path: str) -> dict[str, object]:
     return json.loads((ROOT / relative_path).read_text(encoding="utf-8"))
 
-def test_action_catalog_exposes_six_hosted_stages_and_five_internal_handlers() -> None:
+def test_action_catalog_exposes_six_hosted_stages_and_six_internal_handlers() -> None:
     catalog = _load("contracts/action_catalog.json")
     registry = _load("contracts/domain_handler_registry.json")
     actions = catalog["actions"]
@@ -71,6 +72,7 @@ def test_action_catalog_exposes_six_hosted_stages_and_five_internal_handlers() -
     )
     assert [action["action_id"] for action in authority_actions] == [
         "qualification_work_item_provisioning_authority_evaluate",
+        "study_work_item_adoption_authority_evaluate",
         "study_lifecycle_reactivation_authority_evaluate",
         "candidate_admission_authority_evaluate",
         "build_dependency_currentness_authority_evaluate",
@@ -82,6 +84,9 @@ def test_action_catalog_exposes_six_hosted_stages_and_five_internal_handlers() -
     } == {
         "qualification_work_item_provisioning_authority_evaluate": (
             "handler:mas.qualification-work-item-provisioning-authority-evaluate"
+        ),
+        "study_work_item_adoption_authority_evaluate": (
+            "handler:mas.study-work-item-adoption-authority-evaluate"
         ),
         "study_lifecycle_reactivation_authority_evaluate": (
             "handler:mas.study-lifecycle-reactivation-authority-evaluate"
@@ -97,6 +102,7 @@ def test_action_catalog_exposes_six_hosted_stages_and_five_internal_handlers() -
     assert {item["handler_id"] for item in registry["handlers"]}.issuperset(
         {
             "mas.qualification-work-item-provisioning-authority-evaluate",
+            "mas.study-work-item-adoption-authority-evaluate",
             "mas.study-lifecycle-reactivation-authority-evaluate",
             "mas.candidate-admission-authority-evaluate",
             "mas.build-dependency-currentness-authority-evaluate",
@@ -108,6 +114,9 @@ def test_action_catalog_exposes_six_hosted_stages_and_five_internal_handlers() -
         for action in authority_actions
     } == {
         "qualification_work_item_provisioning_authority_evaluate": {
+            "kind": "none",
+        },
+        "study_work_item_adoption_authority_evaluate": {
             "kind": "none",
         },
         "study_lifecycle_reactivation_authority_evaluate": {
@@ -150,7 +159,7 @@ def test_generated_surfaces_are_opl_owned_and_private_surfaces_are_forbidden() -
     assert audit["status"] == (
         "standard_domain_pack_and_registry_bound_authority_function_only"
     )
-    assert len(audit["modules"]) == 6
+    assert len(audit["modules"]) == 7
     assert all(
         module["classification"] == "minimal_authority_function"
         for module in audit["modules"]
@@ -181,6 +190,10 @@ def test_generated_surfaces_are_opl_owned_and_private_surfaces_are_forbidden() -
     assert (
         ROOT
         / "src/med_autoscience/authority_handlers/qualification_work_item_provisioning.py"
+    ).is_file()
+    assert (
+        ROOT
+        / "src/med_autoscience/authority_handlers/existing_study_adoption.py"
     ).is_file()
     assert (
         ROOT
@@ -227,7 +240,7 @@ def test_primary_skill_routes_research_intent_before_lifecycle_and_excludes_clin
     assert "Do not route patient-specific clinical-care requests to MAS" in skill
     assert "Route funding-call strategy and grant application authoring to MAG" in skill
     assert "do not begin with package lifecycle or environment commands" in skill
-    assert "`qualification_work_item_provisioning_authority_evaluate`, `study_lifecycle_reactivation_authority_evaluate`, `candidate_admission_authority_evaluate`, `build_dependency_currentness_authority_evaluate`, and `paper_mission_authority_evaluate` are internal" in skill
+    assert "`qualification_work_item_provisioning_authority_evaluate`, `study_work_item_adoption_authority_evaluate`, `study_lifecycle_reactivation_authority_evaluate`, `candidate_admission_authority_evaluate`, `build_dependency_currentness_authority_evaluate`, and `paper_mission_authority_evaluate` are internal" in skill
     assert "A qualification-only work item may prove Full VM identity and lifecycle transport only" in skill
     assert "runtime activity alone never reactivates MAS business truth" in skill
     assert "Retry, review, and repair limits are quality budgets" in skill

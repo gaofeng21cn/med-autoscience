@@ -116,6 +116,31 @@
       "semantic_equivalence_status": "registry_declared_opl_integration_dependency"
     },
     {
+      "module_id": "mas.study_work_item_adoption_authority",
+      "classification": "minimal_authority_function",
+      "standardization_layer": "authority_function_inventory",
+      "code_paths": [
+        "src/med_autoscience/authority_handlers/existing_study_adoption.py",
+        "contracts/existing_study_adoption_contract.json",
+        "contracts/domain_handler_registry.json"
+      ],
+      "active_callers": [
+        "OPL-hosted existing-study adoption authority binding"
+      ],
+      "active_caller_status": "registry_declared_framework_materialization_integration_pending",
+      "migration_action": "retain deterministic MAS existing-study identity, inactive lifecycle initialization, and owner receipt authority behind OPL-hosted journaled CAS materialization",
+      "retention_reason": "The function validates exact user authority, exact existing-study evidence, and the read-only OPL topology inventory before signing exact MAS inventory, lifecycle, submission-status, history, and adoption-receipt bytes.",
+      "cannot_absorb_reason": "OPL may prove topology identity and atomically persist exact bytes, but cannot adopt an existing project as MAS domain truth, initialize its business lifecycle, or sign the adoption receipt.",
+      "retained_domain_authority": [
+        "existing_study_identity_adoption",
+        "inactive_lifecycle_initialization",
+        "mas_inventory_cas_mutation_authorization",
+        "adoption_owner_receipt",
+        "typed_blocker"
+      ],
+      "semantic_equivalence_status": "registry_declared_opl_integration_dependency"
+    },
+    {
       "module_id": "mas.build_dependency_currentness_authority",
       "classification": "minimal_authority_function",
       "standardization_layer": "authority_function_inventory",

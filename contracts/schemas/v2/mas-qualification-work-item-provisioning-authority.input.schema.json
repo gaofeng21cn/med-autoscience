@@ -178,7 +178,7 @@
           "type": "boolean"
         },
         "workspace_index_ref": {
-          "const": "workspace_index.json"
+          "const": "runtime/artifacts/mas_workspace_index/latest.json"
         },
         "workspace_index_sha256": {
           "oneOf": [
@@ -290,7 +290,7 @@
       ],
       "properties": {
         "surface_kind": {
-          "const": "workspace_index"
+          "const": "mas_workspace_index"
         },
         "schema_version": {
           "const": "mas.workspace_index.v1"

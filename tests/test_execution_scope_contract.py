@@ -50,7 +50,7 @@ def _refs(value: Any) -> list[str]:
 
 def _workspace_index() -> dict[str, Any]:
     return {
-        "surface_kind": "workspace_index",
+        "surface_kind": "mas_workspace_index",
         "schema_version": "mas.workspace_index.v1",
         "generated_at": "2026-07-22T00:00:00Z",
         "studies": [

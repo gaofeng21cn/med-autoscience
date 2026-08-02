@@ -158,7 +158,7 @@
             {
               "projection_id": "workspace_index",
               "root": "workspace",
-              "relative_path": "workspace_index.json",
+              "relative_path": "runtime/artifacts/mas_workspace_index/latest.json",
               "required": true,
               "media_type": "application/json"
             },
@@ -345,7 +345,7 @@
             {
               "projection_id": "workspace_index",
               "root": "workspace",
-              "relative_path": "workspace_index.json",
+              "relative_path": "runtime/artifacts/mas_workspace_index/latest.json",
               "required": true,
               "media_type": "application/json"
             },
@@ -532,7 +532,7 @@
             {
               "projection_id": "workspace_index",
               "root": "workspace",
-              "relative_path": "workspace_index.json",
+              "relative_path": "runtime/artifacts/mas_workspace_index/latest.json",
               "required": true,
               "media_type": "application/json"
             },
@@ -719,7 +719,7 @@
             {
               "projection_id": "workspace_index",
               "root": "workspace",
-              "relative_path": "workspace_index.json",
+              "relative_path": "runtime/artifacts/mas_workspace_index/latest.json",
               "required": true,
               "media_type": "application/json"
             },
@@ -907,7 +907,7 @@
             {
               "projection_id": "workspace_index",
               "root": "workspace",
-              "relative_path": "workspace_index.json",
+              "relative_path": "runtime/artifacts/mas_workspace_index/latest.json",
               "required": true,
               "media_type": "application/json"
             },
@@ -1098,7 +1098,7 @@
             {
               "projection_id": "workspace_index",
               "root": "workspace",
-              "relative_path": "workspace_index.json",
+              "relative_path": "runtime/artifacts/mas_workspace_index/latest.json",
               "required": true,
               "media_type": "application/json"
             },
@@ -1210,6 +1210,82 @@
         "supported_surfaces_null_is_not_runtime_access_control": true,
         "handler_raw_byte_self_validation_required": true,
         "opl_can_derive_or_choose_study_id": false,
+        "opl_can_write_domain_truth_without_exact_mas_authorization": false,
+        "opl_can_sign_owner_receipt": false,
+        "opl_can_create_typed_blocker": false,
+        "authorizes_stage_body": false,
+        "authorizes_business_action": false,
+        "authorizes_publication": false,
+        "authorizes_submission": false,
+        "provider_completion_is_domain_completion": false
+      }
+    },
+    {
+      "action_id": "study_work_item_adoption_authority_evaluate",
+      "title": "Existing study work item adoption authority evaluation",
+      "summary": "Validate exact user authority, existing-study identity/evidence, current OPL topology inventory, and current or absent MAS projections before authorizing one inactive MAS lifecycle adoption through OPL-hosted journaled all-or-rollback CAS.",
+      "owner": "MedAutoScience",
+      "effect": "read_only",
+      "execution_binding": {
+        "kind": "handler_ref",
+        "handler_ref": "handler:mas.study-work-item-adoption-authority-evaluate"
+      },
+      "execution_scope": {
+        "kind": "none"
+      },
+      "input_schema_ref": "contracts/schemas/v2/mas-existing-study-adoption-authority.input.schema.json",
+      "output_schema_ref": "contracts/schemas/v2/mas-existing-study-adoption-authority.output.schema.json",
+      "required_fields": [
+        "surface_kind",
+        "schema_version",
+        "authority_context",
+        "adoption_authority",
+        "existing_study_identity",
+        "current_mas_workspace_index",
+        "current_workspace_lifecycle"
+      ],
+      "optional_fields": [],
+      "workspace_locator_fields": [],
+      "human_gate_ids": [],
+      "supported_surfaces": {
+        "cli": null,
+        "mcp": null,
+        "skill": null,
+        "product_entry": null,
+        "openai": null,
+        "ai_sdk": null
+      },
+      "authority_boundary": {
+        "domain_truth_owner": "MedAutoScience",
+        "work_item_identity_owner": "MedAutoScience",
+        "lifecycle_initialization_owner": "MedAutoScience",
+        "handler_role": "authorize_one_existing_study_adoption_and_exact_cas_bytes",
+        "host_materialization_contract": {
+          "capability_id": "opl_domain_artifact_cas_materialization.v1",
+          "request_output_field": "opl_host_materialization_request",
+          "authorization_output_field": "mas_study_work_item_adoption_cas_mutation_authorization",
+          "receipt_output_field": "adoption_receipt",
+          "receipt_content_binding_output_field": "adoption_receipt_content_binding",
+          "materialization_scope_sha256_field": "materialization_scope_sha256",
+          "absent_relative_path_preconditions_field": "absent_relative_path_preconditions"
+        },
+        "mas_inventory_target": "runtime/artifacts/mas_workspace_index/latest.json",
+        "opl_topology_inventory_is_read_only_evidence": true,
+        "initial_lifecycle_state": "delivered_paused",
+        "initial_lifecycle_generation": 1,
+        "single_use": true,
+        "qualification_only": false,
+        "performs_filesystem_io": false,
+        "performs_network_io": false,
+        "spawns_process_or_executor": false,
+        "owns_queue_session_dag_or_attempt_lifecycle": false,
+        "owns_runtime_ledger": false,
+        "persists_artifact_or_receipt": false,
+        "selects_scientific_stage": false,
+        "handler_result_alone_is_effective_authority": false,
+        "public_action": false,
+        "supported_surfaces_null_is_not_runtime_access_control": true,
+        "handler_raw_byte_self_validation_required": true,
         "opl_can_write_domain_truth_without_exact_mas_authorization": false,
         "opl_can_sign_owner_receipt": false,
         "opl_can_create_typed_blocker": false,

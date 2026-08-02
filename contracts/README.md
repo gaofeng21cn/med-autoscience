@@ -23,6 +23,7 @@ Machine boundary: 本目录是 machine-readable contracts。本文只做索引�
 | `schemas/v2/mas-paper-mission-authority.input.schema.json` | 内部 authority callable 的 closed input schema |
 | `schemas/v2/mas-paper-mission-authority.output.schema.json` | 内部 authority callable 的 closed output schema |
 | `qualification_work_item_provisioning_contract.json` | exact qualification authority bytes 派生单次 study_id、qualification-only lifecycle、receipt 与 OPL journaled CAS 合同 |
+| `existing_study_adoption_contract.json` | exact user authority、existing-study evidence 与 OPL topology inventory 驱动的既有 study MAS lifecycle adoption 和原子 CAS 合同 |
 | `schemas/v2/mas-qualification-work-item-provisioning-authority.input.schema.json` | scope-none provisioning handler 的 raw-byte authority 与 current/absent workspace index closed input schema |
 | `schemas/v2/mas-qualification-work-item-provisioning-authority.output.schema.json` | qualification-only identity、receipt content binding、CAS authorization 与 exact-bytes host request schema |
 | `study_lifecycle_reactivation_contract.json` | inactive study 显式用户唤醒、revision intake、exact projection 与 OPL 原子物化合同 |

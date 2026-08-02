@@ -1,7 +1,7 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://one-person-lab.local/med-autoscience/mas-qualification-work-item-provisioning-authority.output.schema.json",
-  "title": "MAS qualification work item provisioning authority result",
+  "$id": "https://one-person-lab.local/med-autoscience/mas-existing-study-adoption-authority.output.schema.json",
+  "title": "MAS existing study adoption authority result",
   "type": "object",
   "additionalProperties": false,
   "required": [
@@ -9,9 +9,9 @@
     "schema_version",
     "status",
     "study_identity",
-    "provisioning_receipt",
-    "provisioning_receipt_content_binding",
-    "mas_qualification_work_item_cas_mutation_authorization",
+    "adoption_receipt",
+    "adoption_receipt_content_binding",
+    "mas_study_work_item_adoption_cas_mutation_authorization",
     "opl_host_materialization_request",
     "typed_blocker",
     "error",
@@ -21,7 +21,7 @@
   ],
   "properties": {
     "surface_kind": {
-      "const": "mas_qualification_work_item_provisioning_authority_result"
+      "const": "mas_study_work_item_adoption_authority_result"
     },
     "schema_version": {
       "const": 1
@@ -43,27 +43,27 @@
         }
       ]
     },
-    "provisioning_receipt": {
+    "adoption_receipt": {
       "oneOf": [
         {
-          "$ref": "#/$defs/provisioning_receipt"
+          "$ref": "#/$defs/adoption_receipt"
         },
         {
           "type": "null"
         }
       ]
     },
-    "provisioning_receipt_content_binding": {
+    "adoption_receipt_content_binding": {
       "oneOf": [
         {
-          "$ref": "#/$defs/receipt_content_binding"
+          "$ref": "#/$defs/content_binding"
         },
         {
           "type": "null"
         }
       ]
     },
-    "mas_qualification_work_item_cas_mutation_authorization": {
+    "mas_study_work_item_adoption_cas_mutation_authorization": {
       "oneOf": [
         {
           "$ref": "#/$defs/authorization"
@@ -108,10 +108,10 @@
     },
     "decision_id": {
       "type": "string",
-      "pattern": "^mas-qualification-work-item-provisioning-decision:[a-f0-9]{64}$"
+      "pattern": "^mas-study-work-item-adoption-decision:[a-f0-9]{64}$"
     },
     "decision_fingerprint": {
-      "$ref": "#/$defs/prefixed_sha256"
+      "$ref": "#/$defs/sha256"
     }
   },
   "allOf": [
@@ -128,13 +128,13 @@
           "study_identity": {
             "$ref": "#/$defs/study_identity"
           },
-          "provisioning_receipt": {
-            "$ref": "#/$defs/provisioning_receipt"
+          "adoption_receipt": {
+            "$ref": "#/$defs/adoption_receipt"
           },
-          "provisioning_receipt_content_binding": {
-            "$ref": "#/$defs/receipt_content_binding"
+          "adoption_receipt_content_binding": {
+            "$ref": "#/$defs/content_binding"
           },
-          "mas_qualification_work_item_cas_mutation_authorization": {
+          "mas_study_work_item_adoption_cas_mutation_authorization": {
             "$ref": "#/$defs/authorization"
           },
           "opl_host_materialization_request": {
@@ -162,13 +162,13 @@
           "study_identity": {
             "$ref": "#/$defs/study_identity"
           },
-          "provisioning_receipt": {
+          "adoption_receipt": {
             "type": "null"
           },
-          "provisioning_receipt_content_binding": {
+          "adoption_receipt_content_binding": {
             "type": "null"
           },
-          "mas_qualification_work_item_cas_mutation_authorization": {
+          "mas_study_work_item_adoption_cas_mutation_authorization": {
             "type": "null"
           },
           "opl_host_materialization_request": {
@@ -196,13 +196,13 @@
           "study_identity": {
             "type": "null"
           },
-          "provisioning_receipt": {
+          "adoption_receipt": {
             "type": "null"
           },
-          "provisioning_receipt_content_binding": {
+          "adoption_receipt_content_binding": {
             "type": "null"
           },
-          "mas_qualification_work_item_cas_mutation_authorization": {
+          "mas_study_work_item_adoption_cas_mutation_authorization": {
             "type": "null"
           },
           "opl_host_materialization_request": {
@@ -224,29 +224,19 @@
       "minLength": 1,
       "pattern": ".*\\S.*"
     },
-    "raw_sha256": {
+    "study_id": {
       "type": "string",
-      "pattern": "^[a-f0-9]{64}$"
+      "minLength": 1,
+      "maxLength": 128,
+      "pattern": "^[a-z0-9]+(?:[._-][a-z0-9]+)*$"
     },
-    "prefixed_sha256": {
+    "sha256": {
       "type": "string",
       "pattern": "^sha256:[a-f0-9]{64}$"
-    },
-    "canonical_workspace_root": {
-      "type": "string",
-      "pattern": "^/(?!$)(?!.*//)(?!.*(?:^|/)\\.{1,2}(?:/|$))[^\\\\]+$"
     },
     "workspace_relative_path": {
       "type": "string",
       "pattern": "^(?!/)(?!.*//)(?!.*(?:^|/)\\.{1,2}(?:/|$))[^\\\\]+$"
-    },
-    "study_id": {
-      "type": "string",
-      "pattern": "^qualification-[a-f0-9]{64}$"
-    },
-    "canonical_study_root": {
-      "type": "string",
-      "pattern": "^studies/qualification-[a-f0-9]{64}$"
     },
     "study_identity": {
       "type": "object",
@@ -254,10 +244,12 @@
       "required": [
         "domain_owner",
         "domain_id",
-        "canonical_workspace_root",
         "study_id",
+        "canonical_workspace_root",
         "canonical_study_root",
+        "display_name",
         "lifecycle_relative_path",
+        "submission_status_relative_path",
         "receipt_relative_path"
       ],
       "properties": {
@@ -267,57 +259,59 @@
         "domain_id": {
           "const": "medautoscience"
         },
-        "canonical_workspace_root": {
-          "$ref": "#/$defs/canonical_workspace_root"
-        },
         "study_id": {
           "$ref": "#/$defs/study_id"
         },
+        "canonical_workspace_root": {
+          "$ref": "#/$defs/text"
+        },
         "canonical_study_root": {
-          "$ref": "#/$defs/canonical_study_root"
+          "$ref": "#/$defs/workspace_relative_path"
+        },
+        "display_name": {
+          "$ref": "#/$defs/text"
         },
         "lifecycle_relative_path": {
-          "type": "string",
-          "pattern": "^studies/qualification-[a-f0-9]{64}/control/lifecycle\\.json$"
+          "$ref": "#/$defs/workspace_relative_path"
+        },
+        "submission_status_relative_path": {
+          "$ref": "#/$defs/workspace_relative_path"
         },
         "receipt_relative_path": {
-          "type": "string",
-          "pattern": "^studies/qualification-[a-f0-9]{64}/artifacts/controller/qualification/provisioning-receipt\\.json$"
+          "$ref": "#/$defs/workspace_relative_path"
         }
       }
     },
-    "provisioning_receipt": {
+    "adoption_receipt": {
       "type": "object",
-      "additionalProperties": false,
+      "additionalProperties": true,
       "required": [
         "surface_kind",
         "schema_version",
         "domain_owner",
         "domain_id",
-        "canonical_workspace_root",
         "study_id",
         "canonical_study_root",
         "lifecycle_state",
         "lifecycle_generation",
-        "qualification_scope",
-        "qualification_authority_ref",
-        "qualification_authority_sha256",
-        "qualification_authority_byte_size",
-        "handler_call_ref",
-        "owner_ledger_ref",
-        "workspace_index_ref",
-        "workspace_index_before_sha256",
-        "workspace_index_after_sha256",
+        "user_authority_ref",
+        "user_authority_sha256",
+        "existing_study_evidence_ref",
+        "existing_study_evidence_sha256",
+        "opl_topology_ref",
+        "opl_topology_sha256",
+        "mas_workspace_index_ref",
+        "workspace_lifecycle_ref",
         "lifecycle_relative_path",
-        "lifecycle_sha256",
+        "submission_status_relative_path",
         "receipt_relative_path",
-        "issued_at",
         "single_use",
         "qualification_only",
-        "stage_body_authorized",
-        "business_action_authorized",
-        "publication_authorized",
-        "submission_authorized",
+        "authorizes_lifecycle_initialization",
+        "authorizes_stage_body",
+        "authorizes_business_action",
+        "authorizes_publication",
+        "authorizes_submission",
         "requires_opl_cas_materialization_receipt",
         "materialization_semantics",
         "provider_completion_is_domain_completion",
@@ -326,7 +320,7 @@
       ],
       "properties": {
         "surface_kind": {
-          "const": "mas_qualification_work_item_provisioning_receipt"
+          "const": "mas_study_work_item_adoption_receipt"
         },
         "schema_version": {
           "const": 1
@@ -337,85 +331,70 @@
         "domain_id": {
           "const": "medautoscience"
         },
-        "canonical_workspace_root": {
-          "$ref": "#/$defs/canonical_workspace_root"
-        },
         "study_id": {
           "$ref": "#/$defs/study_id"
         },
         "canonical_study_root": {
-          "$ref": "#/$defs/canonical_study_root"
+          "$ref": "#/$defs/workspace_relative_path"
         },
         "lifecycle_state": {
-          "const": "active"
+          "const": "delivered_paused"
         },
         "lifecycle_generation": {
           "const": 1
         },
-        "qualification_scope": {
-          "const": "standard_agent_full_vm_qualification"
-        },
-        "qualification_authority_ref": {
+        "user_authority_ref": {
           "$ref": "#/$defs/text"
         },
-        "qualification_authority_sha256": {
-          "$ref": "#/$defs/raw_sha256"
+        "user_authority_sha256": {
+          "$ref": "#/$defs/sha256"
         },
-        "qualification_authority_byte_size": {
-          "type": "integer",
-          "minimum": 1
-        },
-        "handler_call_ref": {
+        "existing_study_evidence_ref": {
           "$ref": "#/$defs/text"
         },
-        "owner_ledger_ref": {
+        "existing_study_evidence_sha256": {
+          "$ref": "#/$defs/sha256"
+        },
+        "opl_topology_ref": {
           "$ref": "#/$defs/text"
         },
-        "workspace_index_ref": {
+        "opl_topology_sha256": {
+          "$ref": "#/$defs/sha256"
+        },
+        "mas_workspace_index_ref": {
           "const": "runtime/artifacts/mas_workspace_index/latest.json"
         },
-        "workspace_index_before_sha256": {
-          "oneOf": [
-            {
-              "$ref": "#/$defs/raw_sha256"
-            },
-            {
-              "type": "null"
-            }
-          ]
-        },
-        "workspace_index_after_sha256": {
-          "$ref": "#/$defs/prefixed_sha256"
+        "workspace_lifecycle_ref": {
+          "const": "runtime/artifacts/study_lifecycle_control/latest.json"
         },
         "lifecycle_relative_path": {
           "$ref": "#/$defs/workspace_relative_path"
         },
-        "lifecycle_sha256": {
-          "$ref": "#/$defs/prefixed_sha256"
+        "submission_status_relative_path": {
+          "$ref": "#/$defs/workspace_relative_path"
         },
         "receipt_relative_path": {
           "$ref": "#/$defs/workspace_relative_path"
-        },
-        "issued_at": {
-          "type": "string",
-          "format": "date-time"
         },
         "single_use": {
           "const": true
         },
         "qualification_only": {
+          "const": false
+        },
+        "authorizes_lifecycle_initialization": {
           "const": true
         },
-        "stage_body_authorized": {
+        "authorizes_stage_body": {
           "const": false
         },
-        "business_action_authorized": {
+        "authorizes_business_action": {
           "const": false
         },
-        "publication_authorized": {
+        "authorizes_publication": {
           "const": false
         },
-        "submission_authorized": {
+        "authorizes_submission": {
           "const": false
         },
         "requires_opl_cas_materialization_receipt": {
@@ -429,14 +408,14 @@
         },
         "receipt_ref": {
           "type": "string",
-          "pattern": "^mas-qualification-work-item-provisioning:[a-f0-9]{64}$"
+          "pattern": "^mas-study-work-item-adoption:[a-f0-9]{64}$"
         },
         "receipt_fingerprint": {
-          "$ref": "#/$defs/prefixed_sha256"
+          "$ref": "#/$defs/sha256"
         }
       }
     },
-    "receipt_content_binding": {
+    "content_binding": {
       "type": "object",
       "additionalProperties": false,
       "required": [
@@ -449,20 +428,19 @@
       ],
       "properties": {
         "surface_kind": {
-          "const": "mas_qualification_work_item_provisioning_receipt_content_binding"
+          "const": "mas_study_work_item_adoption_receipt_content_binding"
         },
         "schema_version": {
           "const": 1
         },
         "receipt_ref": {
-          "type": "string",
-          "pattern": "^mas-qualification-work-item-provisioning:[a-f0-9]{64}$"
+          "$ref": "#/$defs/text"
         },
         "target_relative_path": {
           "$ref": "#/$defs/workspace_relative_path"
         },
         "sha256": {
-          "$ref": "#/$defs/prefixed_sha256"
+          "$ref": "#/$defs/sha256"
         },
         "byte_size": {
           "type": "integer",
@@ -472,7 +450,7 @@
     },
     "authorization": {
       "type": "object",
-      "additionalProperties": false,
+      "additionalProperties": true,
       "required": [
         "surface_kind",
         "version",
@@ -481,9 +459,6 @@
         "domain_owner",
         "domain_id",
         "study_id",
-        "canonical_study_root",
-        "qualification_authority_ref",
-        "qualification_authority_sha256",
         "authority_receipt_ref",
         "authority_receipt_content_sha256",
         "operations_sha256",
@@ -492,19 +467,20 @@
         "authorized",
         "single_use",
         "qualification_only",
-        "stage_body_authorized",
-        "business_action_authorized",
-        "publication_authorized",
-        "submission_authorized",
+        "authorizes_lifecycle_initialization",
+        "authorizes_stage_body",
+        "authorizes_business_action",
+        "authorizes_publication",
+        "authorizes_submission",
         "authorization_ref",
         "authorization_fingerprint"
       ],
       "properties": {
         "surface_kind": {
-          "const": "mas_qualification_work_item_cas_mutation_authorization"
+          "const": "mas_study_work_item_adoption_cas_mutation_authorization"
         },
         "version": {
-          "const": "mas-qualification-work-item-cas-mutation-authorization.v1"
+          "const": "mas-study-work-item-adoption-cas-mutation-authorization.v1"
         },
         "capability_id": {
           "const": "opl_domain_artifact_cas_materialization.v1"
@@ -521,27 +497,17 @@
         "study_id": {
           "$ref": "#/$defs/study_id"
         },
-        "canonical_study_root": {
-          "$ref": "#/$defs/canonical_study_root"
-        },
-        "qualification_authority_ref": {
+        "authority_receipt_ref": {
           "$ref": "#/$defs/text"
         },
-        "qualification_authority_sha256": {
-          "$ref": "#/$defs/raw_sha256"
-        },
-        "authority_receipt_ref": {
-          "type": "string",
-          "pattern": "^mas-qualification-work-item-provisioning:[a-f0-9]{64}$"
-        },
         "authority_receipt_content_sha256": {
-          "$ref": "#/$defs/prefixed_sha256"
+          "$ref": "#/$defs/sha256"
         },
         "operations_sha256": {
-          "$ref": "#/$defs/prefixed_sha256"
+          "$ref": "#/$defs/sha256"
         },
         "materialization_scope_sha256": {
-          "$ref": "#/$defs/prefixed_sha256"
+          "$ref": "#/$defs/sha256"
         },
         "absent_relative_path_preconditions": {
           "type": "array",
@@ -557,26 +523,29 @@
           "const": true
         },
         "qualification_only": {
+          "const": false
+        },
+        "authorizes_lifecycle_initialization": {
           "const": true
         },
-        "stage_body_authorized": {
+        "authorizes_stage_body": {
           "const": false
         },
-        "business_action_authorized": {
+        "authorizes_business_action": {
           "const": false
         },
-        "publication_authorized": {
+        "authorizes_publication": {
           "const": false
         },
-        "submission_authorized": {
+        "authorizes_submission": {
           "const": false
         },
         "authorization_ref": {
           "type": "string",
-          "pattern": "^mas-qualification-work-item-cas-authorization:[a-f0-9]{64}$"
+          "pattern": "^mas-study-work-item-adoption-cas-authorization:[a-f0-9]{64}$"
         },
         "authorization_fingerprint": {
-          "$ref": "#/$defs/prefixed_sha256"
+          "$ref": "#/$defs/sha256"
         }
       }
     },
@@ -612,14 +581,13 @@
           "const": "medautoscience"
         },
         "authorization_ref": {
-          "type": "string",
-          "pattern": "^mas-qualification-work-item-cas-authorization:[a-f0-9]{64}$"
+          "$ref": "#/$defs/text"
         },
         "operations_sha256": {
-          "$ref": "#/$defs/prefixed_sha256"
+          "$ref": "#/$defs/sha256"
         },
         "materialization_scope_sha256": {
-          "$ref": "#/$defs/prefixed_sha256"
+          "$ref": "#/$defs/sha256"
         },
         "absent_relative_path_preconditions": {
           "type": "array",
@@ -630,8 +598,8 @@
         },
         "operations": {
           "type": "array",
-          "minItems": 3,
-          "maxItems": 3,
+          "minItems": 8,
+          "maxItems": 8,
           "items": {
             "$ref": "#/$defs/operation"
           }
@@ -667,7 +635,7 @@
                   "const": "existing_exact"
                 },
                 "sha256": {
-                  "$ref": "#/$defs/raw_sha256"
+                  "$ref": "#/$defs/sha256"
                 },
                 "byte_size": {
                   "type": "integer",
@@ -695,7 +663,7 @@
           "contentEncoding": "base64"
         },
         "replacement_sha256": {
-          "$ref": "#/$defs/prefixed_sha256"
+          "$ref": "#/$defs/sha256"
         },
         "replacement_byte_size": {
           "type": "integer",
@@ -715,20 +683,21 @@
         "domain_id",
         "study_id",
         "canonical_study_root",
-        "qualification_authority_ref",
-        "qualification_authority_sha256"
+        "user_authority_ref",
+        "user_authority_sha256"
       ],
       "properties": {
         "surface_kind": {
-          "const": "mas_qualification_work_item_provisioning_typed_blocker"
+          "const": "mas_study_work_item_adoption_typed_blocker"
         },
         "schema_version": {
           "const": 1
         },
         "reason_code": {
           "enum": [
-            "qualification_authority_already_consumed",
-            "derived_work_item_identity_collision"
+            "existing_study_missing_from_opl_topology",
+            "existing_study_topology_identity_collision",
+            "existing_study_already_adopted"
           ]
         },
         "resume_condition": {
@@ -744,13 +713,13 @@
           "$ref": "#/$defs/study_id"
         },
         "canonical_study_root": {
-          "$ref": "#/$defs/canonical_study_root"
+          "$ref": "#/$defs/workspace_relative_path"
         },
-        "qualification_authority_ref": {
+        "user_authority_ref": {
           "$ref": "#/$defs/text"
         },
-        "qualification_authority_sha256": {
-          "$ref": "#/$defs/raw_sha256"
+        "user_authority_sha256": {
+          "$ref": "#/$defs/sha256"
         }
       }
     },
