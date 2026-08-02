@@ -200,6 +200,14 @@ def test_stage_manifest_declares_deterministic_review_snapshot_lane_bindings() -
         "display",
     ]
     assert authoring_transport["executor_may_select_lane"] is False
+    assert authoring_transport["lane_fallback"] is False
+    assert authoring_transport["producer_attempt_local_finalizer_ref"].endswith(
+        "#finalize_manuscript_authoring_producer_snapshot_closeout"
+    )
+    assert authoring_transport["producer_finalizer_applies_when"] == (
+        "complete_frozen_manuscript_artifact_inventory_and_exact_"
+        "controller_lane_locator_map_available"
+    )
 
 
 def test_publication_handoff_requires_one_exact_generation_package_sequence() -> None:
