@@ -465,6 +465,61 @@ def test_artifact_iteration_policy_is_packaged_and_used_by_stage_prompts() -> No
     assert "Projection happens only after a current MAS owner" in normalized_execution
 
 
+def test_meta_review_primary_only_closeout_contract_is_explicit() -> None:
+    profile = _load("contracts/stage_quality_cycle_policy.json")
+    contract = profile["meta_review_policy"][
+        "primary_only_meta_review_closeout_contract"
+    ]
+    review_prompt = (
+        ROOT / "agent/prompts/review_and_quality_gate.md"
+    ).read_text(encoding="utf-8")
+    normalized_prompt = " ".join(review_prompt.split())
+
+    assert contract == {
+        "surface_kind": "stage_attempt_closeout_packet",
+        "legacy_surface_aliases_allowed": False,
+        "closeout_refs_required": True,
+        "closeout_ref_metadata_allowed_fields": [
+            "ref_kind",
+            "kind",
+            "uri",
+            "sha256",
+            "ref",
+            "size_bytes",
+            "artifact_identity_receipt_ref",
+        ],
+        "progress_terminal_route_field": "route_impact.stage_route_decision",
+        "stage_route_recommendation_allowed": False,
+        "persisted_packet_must_be_exact_byte_hydratable": True,
+    }
+    assert 'surface_kind `stage_attempt_closeout_packet`' in normalized_prompt
+    assert '`opl_stage_attempt_closeout_packet` is invalid' in normalized_prompt
+    assert "`route_impact.stage_route_decision`" in normalized_prompt
+    assert "`stage_route_recommendation` is invalid" in normalized_prompt
+    assert "Only `ref_kind`, `kind`, `uri`, `sha256`, `ref`, `size_bytes`," in (
+        normalized_prompt
+    )
+
+
+def test_stage_quality_cycle_policies_match_framework_v1_exact_fields() -> None:
+    profile = _load("contracts/stage_quality_cycle_policy.json")
+    expected_fields = {
+        "surface_kind",
+        "version",
+        "enabled",
+        "stage_prompt_ref",
+        "role_prompt_refs",
+        "quality_rubric_refs",
+        "in_thread_refinement",
+        "formal_review",
+        "budget_exhaustion",
+        "attempt_boundary",
+    }
+
+    for stage_id, stage_policy in profile["stage_policies"].items():
+        assert set(stage_policy) == expected_fields, stage_id
+
+
 def test_all_six_stages_bind_quality_policy_and_budget_exhaustion() -> None:
     profile = _load("contracts/stage_quality_cycle_policy.json")
     manifest = _load("agent/stages/manifest.json")

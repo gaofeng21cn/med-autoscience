@@ -120,3 +120,26 @@ artifacts inline.
 
 The route decision is only for a progress-terminal result. A typed blocker or
 human gate returns no route output and is terminalized by the controller.
+
+## Attempt Closeout ABI
+
+This Stage is a primary-only independent Meta Review StageRun. Its producer
+Attempt is the decisive review invocation, not an upstream manuscript producer.
+For any consumable progress-terminal result, return and persist one typed closeout
+whose surface_kind `stage_attempt_closeout_packet` is exact. The alias
+`opl_stage_attempt_closeout_packet` is invalid and must never be written,
+referenced, or returned.
+
+The packet must bind the current StageAttempt, StageRun, and scope digest; contain
+non-empty `closeout_refs`; and bind every produced artifact ref to its exact
+SHA-256 in `closeout_ref_metadata`. Only `ref_kind`, `kind`, `uri`, `sha256`,
+`ref`, `size_bytes`, and `artifact_identity_receipt_ref` are allowed in each
+metadata object. Do not add semantic fields such as `role`.
+
+Because this producer is decisive in a primary-only Meta Review StageRun, a
+progress-terminal result must use `route_impact.stage_route_decision`.
+`stage_route_recommendation` is invalid for this Stage. A route-back result uses
+`decision_kind=route_back`, the narrowest declared canonical owner Stage, and
+non-empty evidence refs. The independent review packet carries the scientific
+findings and verdict candidate; the closeout transports their exact artifact
+identity and route without self-authorizing publication or submission readiness.
