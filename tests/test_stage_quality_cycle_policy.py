@@ -232,6 +232,43 @@ def test_quality_cycle_declares_role_bound_review_transport_production_path() ->
     assert "page-hash evidence candidate" in re_reviewer
 
 
+def test_stage_specific_fail_closed_finalizer_overrides_generic_quality_debt_fallback() -> None:
+    roles = (ROOT / "agent/quality_gates/stage_quality_cycle_roles.md").read_text(
+        encoding="utf-8"
+    )
+    authoring = (ROOT / "agent/prompts/manuscript_authoring.md").read_text(
+        encoding="utf-8"
+    )
+    manifest = _load("agent/stages/manifest.json")
+    authoring_stage = next(
+        stage for stage in manifest["stages"] if stage["stage_id"] == "manuscript_authoring"
+    )
+    transport = authoring_stage["stage_contract_extension"][
+        "review_input_snapshot_transport"
+    ]
+    normalized_roles = " ".join(roles.split())
+    normalized_authoring = " ".join(authoring.split())
+
+    assert (
+        "the current Stage has no stage-specific required fail-closed snapshot finalizer"
+        in normalized_roles
+    )
+    assert (
+        "For a Stage that declares a required fail-closed snapshot finalizer"
+        in normalized_roles
+    )
+    assert (
+        "must fail closed before closeout: do not generate a closeout packet or quality/readiness claim"
+        in normalized_roles
+    )
+    assert transport["review_lane_binding"] == "controller_required"
+    assert transport["lane_fallback"] is False
+    assert transport["missing_binding_effect"] == "fail_closed"
+    assert "fail closed before it can materialize a request or return a closeout packet" in (
+        normalized_authoring
+    )
+
+
 def test_quality_cycle_adopts_framework_epistemic_currentness_and_scope_budget() -> None:
     profile = _load("contracts/stage_quality_cycle_policy.json")
     adoption = profile["epistemic_review_currentness_adoption"]
