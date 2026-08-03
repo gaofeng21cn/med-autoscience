@@ -7,6 +7,7 @@ from typing import Any
 
 import pytest
 
+import med_autoscience.authority_handlers._stage_attempt_review_snapshot as snapshot_module
 from med_autoscience.authority_handlers._generation_manifest import (
     build_generation_manifest_v2,
 )
@@ -120,6 +121,7 @@ def test_manuscript_authoring_finalizer_injects_request_and_owner_authority(tmp_
     assert result["review_lane"] == "reference"
     assert bundle["manifest_scope"] == "manuscript_generation"
     assert request["schema_version"] == 2
+    assert request["review_lane"] == "reference"
     assert request["producer_attempt_ref"] == "opl://stage_attempts/" + ATTEMPT_ID
     assert request["execution_content_binding_sha256"] == _digest(b"execution binding")
     assert request["owner_authority_ref"]["kind"] == "mas_review_input_snapshot_authority"
@@ -304,7 +306,7 @@ def test_manuscript_authoring_finalizer_rejects_hash_drift_symlink_and_missing_m
     external_link = (tmp_path / "external-link.txt").resolve()
     external_link.symlink_to(paths[member])
     source_refs[member] = external_link.as_uri()
-    with pytest.raises(RequestShapeError, match="symlink"):
+    with pytest.raises(RequestShapeError, match="(?:symlink|escapes OPL_WORKSPACE_ROOT)"):
         finalize_manuscript_authoring_producer_snapshot_closeout(
             closeout_packet=_closeout(),
             artifacts=artifacts,
@@ -327,6 +329,94 @@ def test_manuscript_authoring_finalizer_rejects_hash_drift_symlink_and_missing_m
             source_refs_by_member_id=source_refs,
             environ=environ,
         )
+
+
+def test_manuscript_authoring_finalizer_rejects_locator_swap_between_stat_and_open(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    artifacts, source_refs, environ, paths = _case(tmp_path)
+    member = next(iter(source_refs))
+    source_path = paths[member]
+    replacement = source_path.with_name("replacement.txt")
+    replacement.write_bytes(source_path.read_bytes())
+    original_stat = snapshot_module.os.stat
+    swapped = False
+
+    def swap_after_stat(path_value: Any, *args: Any, **kwargs: Any):
+        nonlocal swapped
+        result = original_stat(path_value, *args, **kwargs)
+        if (
+            not swapped
+            and path_value == source_path.name
+            and kwargs.get("dir_fd") is not None
+            and kwargs.get("follow_symlinks") is False
+        ):
+            source_path.unlink()
+            source_path.symlink_to(replacement)
+            swapped = True
+        return result
+
+    monkeypatch.setattr(snapshot_module.os, "stat", swap_after_stat)
+    monkeypatch.setattr(
+        snapshot_module.os,
+        "supports_dir_fd",
+        set(snapshot_module.os.supports_dir_fd) | {swap_after_stat},
+    )
+    monkeypatch.setattr(
+        snapshot_module.os,
+        "supports_follow_symlinks",
+        set(snapshot_module.os.supports_follow_symlinks) | {swap_after_stat},
+    )
+    with pytest.raises(RequestShapeError, match="changed while its bytes were inspected"):
+        finalize_manuscript_authoring_producer_snapshot_closeout(
+            closeout_packet=_closeout(),
+            artifacts=artifacts,
+            generation_id=f"manuscript-generation:{ATTEMPT_ID}",
+            generation_ref="workspace://study/manuscript/generation-manifest.json",
+            review_lane="medical",
+            source_refs_by_member_id=source_refs,
+            environ=environ,
+        )
+    assert swapped is True
+
+
+@pytest.mark.parametrize(
+    ("location", "value"),
+    [
+        (("route_impact", "hard_stop_class"), "authority_boundary_violation"),
+        (("route_impact", "blocked_reason"), "owner_authority_missing"),
+        (("route_impact", "typed_blocker_refs"), ["mas://typed-blocker/review"]),
+        (("route_impact", "human_gate_refs"), ["mas://human-gate/review"]),
+        (
+            ("route_impact", "stage_quality_cycle", "hard_stop_class"),
+            "authority_boundary_violation",
+        ),
+        (
+            ("route_impact", "stage_quality_cycle", "typed_blocker_refs"),
+            ["mas://typed-blocker/review"],
+        ),
+        (
+            ("route_impact", "stage_quality_cycle", "human_gate_refs"),
+            ["mas://human-gate/review"],
+        ),
+        (("route_impact", "stage_quality_cycle", "outcome"), "blocked"),
+        (("route_impact", "stage_quality_cycle", "outcome"), "human_gate"),
+    ],
+)
+def test_manuscript_authoring_finalizer_rejects_hard_stop_closeout(
+    tmp_path: Path,
+    location: tuple[str, ...],
+    value: Any,
+) -> None:
+    closeout = _closeout()
+    cursor: dict[str, Any] = closeout
+    for key in location[:-1]:
+        cursor = cursor[key]
+    cursor[location[-1]] = value
+
+    with pytest.raises(RequestShapeError, match="hard-stop closeout"):
+        _finalize(tmp_path, closeout=closeout)
 
 
 def test_manuscript_authoring_finalizer_rejects_conflicting_request_or_metadata(tmp_path: Path) -> None:

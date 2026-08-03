@@ -236,6 +236,7 @@ def build_review_input_snapshot_materialization_request(
     return {
         "surface_kind": "opl_reviewer_input_snapshot_materialization_request",
         "schema_version": 2,
+        "review_lane": lane,
         "owner_authority_ref": _review_input_snapshot_authority_record_ref(
             authority_record
         ),

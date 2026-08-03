@@ -112,21 +112,9 @@ def _workspace_source_path(
             candidate = workspace_root / candidate
 
     absolute_candidate = Path(os.path.abspath(candidate))
-    current = Path(absolute_candidate.anchor)
-    for component in absolute_candidate.parts[1:]:
-        current /= component
-        if current.is_symlink():
-            raise RequestShapeError(f"{field} must not reference a symlink")
-
-    try:
-        resolved = candidate.resolve(strict=True)
-    except (OSError, RuntimeError) as error:
-        raise RequestShapeError(f"{field} must reference a readable file") from error
-    if not resolved.is_relative_to(workspace_root):
+    if not absolute_candidate.is_relative_to(workspace_root):
         raise RequestShapeError(f"{field} escapes OPL_WORKSPACE_ROOT")
-    if not resolved.is_file():
-        raise RequestShapeError(f"{field} must reference a regular file")
-    return resolved
+    return absolute_candidate
 
 
 def _file_identity(
@@ -362,6 +350,30 @@ def _inject_snapshot_bundle(
         route_impact.get("stage_quality_cycle", {}),
         "closeout_packet.route_impact.stage_quality_cycle",
     )
+    for field, value in (
+        ("hard_stop_class", route_impact.get("hard_stop_class")),
+        ("blocked_reason", route_impact.get("blocked_reason")),
+        ("typed_blocker_refs", route_impact.get("typed_blocker_refs")),
+        ("human_gate_refs", route_impact.get("human_gate_refs")),
+        ("stage_quality_cycle.hard_stop_class", quality_cycle.get("hard_stop_class")),
+        ("stage_quality_cycle.blocked_reason", quality_cycle.get("blocked_reason")),
+        (
+            "stage_quality_cycle.typed_blocker_refs",
+            quality_cycle.get("typed_blocker_refs"),
+        ),
+        ("stage_quality_cycle.human_gate_refs", quality_cycle.get("human_gate_refs")),
+    ):
+        if value not in (None, "", [], {}):
+            raise RequestShapeError(
+                "hard-stop closeout cannot carry a review input snapshot "
+                f"materialization request ({field})"
+            )
+    outcome = quality_cycle.get("outcome")
+    if outcome in {"blocked", "human_gate"}:
+        raise RequestShapeError(
+            "hard-stop closeout cannot carry a review input snapshot "
+            f"materialization request (stage_quality_cycle.outcome={outcome})"
+        )
     request = bundle["review_input_snapshot_materialization_request"]
     existing_request = quality_cycle.get(
         "review_input_snapshot_materialization_request"
