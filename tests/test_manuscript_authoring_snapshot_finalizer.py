@@ -238,6 +238,22 @@ def test_manuscript_authoring_finalizer_rejects_hash_drift_symlink_and_missing_m
             environ=environ,
         )
 
+    artifacts, source_refs, environ, paths = _case(tmp_path / "external-symlink")
+    member = next(iter(source_refs))
+    external_link = (tmp_path / "external-link.txt").resolve()
+    external_link.symlink_to(paths[member])
+    source_refs[member] = external_link.as_uri()
+    with pytest.raises(RequestShapeError, match="symlink"):
+        finalize_manuscript_authoring_producer_snapshot_closeout(
+            closeout_packet=_closeout(),
+            artifacts=artifacts,
+            generation_id=f"manuscript-generation:{ATTEMPT_ID}",
+            generation_ref="workspace://study/manuscript/generation-manifest.json",
+            review_lane="medical",
+            source_refs_by_member_id=source_refs,
+            environ=environ,
+        )
+
     artifacts, source_refs, environ, _ = _case(tmp_path / "missing")
     source_refs.pop(next(iter(source_refs)))
     with pytest.raises(RequestShapeError, match="exactly match"):
