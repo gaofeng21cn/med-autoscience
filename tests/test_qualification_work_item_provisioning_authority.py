@@ -76,7 +76,7 @@ def _request(
         "qualification_authority": _bound_json(record, "authority"),
         "current_workspace_index": {
             "exists": False,
-            "workspace_index_ref": "runtime/artifacts/mas_workspace_index/latest.json",
+            "workspace_index_ref": "workspace_index.json",
             "workspace_index_sha256": None,
             "workspace_index_bytes_base64": None,
             "workspace_index_byte_size": None,
@@ -86,7 +86,7 @@ def _request(
     if workspace_index is not None:
         request["current_workspace_index"] = {
             "exists": True,
-            "workspace_index_ref": "runtime/artifacts/mas_workspace_index/latest.json",
+            "workspace_index_ref": "workspace_index.json",
             **_bound_json(workspace_index, "workspace_index"),
         }
     return request
@@ -162,7 +162,7 @@ def test_absent_inventory_authorizes_exact_qualification_only_cas_bytes() -> Non
     ]
     assert host_request["absent_relative_path_preconditions"] == sorted(
         [
-            "runtime/artifacts/mas_workspace_index/latest.json",
+            "workspace_index.json",
             f"{study_root}/control/lifecycle.json",
             (
                 f"{study_root}/artifacts/controller/qualification/"
@@ -171,9 +171,7 @@ def test_absent_inventory_authorizes_exact_qualification_only_cas_bytes() -> Non
         ]
     )
 
-    index = _operation_payload(
-        result, "runtime/artifacts/mas_workspace_index/latest.json"
-    )
+    index = _operation_payload(result, "workspace_index.json")
     assert index["studies"] == [
         {
             "study_id": study_id,
@@ -260,7 +258,7 @@ def test_receipt_surface_and_exact_content_binding_are_closed_for_consumers() ->
 
 def test_present_inventory_is_exact_cas_preserved_and_extended_once() -> None:
     current = {
-        "surface_kind": "mas_workspace_index",
+        "surface_kind": "workspace_index",
         "schema_version": "mas.workspace_index.v1",
         "canonical_workspace_root": "/private/tmp/opl-full-vm/workspace",
         "host_extension": {"preserve": True},
@@ -279,8 +277,7 @@ def test_present_inventory_is_exact_cas_preserved_and_extended_once() -> None:
     index_operation = next(
         item
         for item in result["opl_host_materialization_request"]["operations"]
-        if item["target_relative_path"]
-        == "runtime/artifacts/mas_workspace_index/latest.json"
+        if item["target_relative_path"] == "workspace_index.json"
     )
     assert index_operation["precondition"] == {
         "kind": "existing_exact",
@@ -318,7 +315,7 @@ def test_inventory_collision_returns_typed_blocker_without_cas() -> None:
     digest = initial_request["qualification_authority"]["authority_sha256"]
     study_id = f"qualification-{digest}"
     current = {
-        "surface_kind": "mas_workspace_index",
+        "surface_kind": "workspace_index",
         "schema_version": "mas.workspace_index.v1",
         "studies": [
             {
@@ -346,7 +343,7 @@ def test_inventory_collision_returns_typed_blocker_without_cas() -> None:
 
 def test_noncanonical_existing_identity_mapping_is_invalid_host_input() -> None:
     current = {
-        "surface_kind": "mas_workspace_index",
+        "surface_kind": "workspace_index",
         "schema_version": "mas.workspace_index.v1",
         "studies": [
             {

@@ -59,7 +59,7 @@ def test_domain_descriptor_exposes_generic_standard_agent_interface() -> None:
     assert "manifest_command_template" not in interface["workspace_binding"]
     assert interface["inventory_projection"] == {
         "source_kind": "workspace_relative_json",
-            "relative_path": "runtime/artifacts/mas_workspace_index/latest.json",
+        "relative_path": "workspace_index.json",
         "items_pointer": "/studies",
         "work_item_root_template": "studies/{study_id}",
         "field_map": {

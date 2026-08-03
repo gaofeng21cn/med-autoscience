@@ -372,7 +372,7 @@
           "$ref": "#/$defs/text"
         },
         "workspace_index_ref": {
-          "const": "runtime/artifacts/mas_workspace_index/latest.json"
+          "const": "workspace_index.json"
         },
         "workspace_index_before_sha256": {
           "oneOf": [

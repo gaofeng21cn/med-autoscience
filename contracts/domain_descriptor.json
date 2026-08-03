@@ -69,7 +69,7 @@
     },
     "inventory_projection": {
       "source_kind": "workspace_relative_json",
-      "relative_path": "runtime/artifacts/mas_workspace_index/latest.json",
+      "relative_path": "workspace_index.json",
       "items_pointer": "/studies",
       "work_item_root_template": "studies/{study_id}",
       "field_map": {
@@ -149,23 +149,10 @@
     "domain_identity_alias": "study_id",
     "work_item_kind": "mas_study",
     "inventory": {
-      "ref": "runtime/artifacts/mas_workspace_index/latest.json#/studies",
+      "ref": "workspace_index.json#/studies",
       "schema_ref": "contracts/schemas/v2/mas-workspace-index.schema.json",
       "id_field": "study_id",
       "root_field": "canonical_study_root"
-    },
-    "existing_study_adoption": {
-      "owner": "MedAutoScience",
-      "action_id": "study_work_item_adoption_authority_evaluate",
-      "execution_scope_kind": "none",
-      "contract_ref": "contracts/existing_study_adoption_contract.json",
-      "opl_topology_inventory_role": "read_only_exact_byte_evidence",
-      "mas_inventory_target": "runtime/artifacts/mas_workspace_index/latest.json",
-      "initial_lifecycle_state": "delivered_paused",
-      "initial_lifecycle_generation": 1,
-      "stage_body_authorized": false,
-      "publication_authorized": false,
-      "submission_authorized": false
     },
     "qualification_work_item_provisioning": {
       "owner": "MedAutoScience",
@@ -228,7 +215,6 @@
     "generated_surface_handoff": "contracts/generated_surface_handoff.json",
     "pack_compiler_input": "contracts/pack_compiler_input.json",
     "private_functional_surface_policy": "contracts/private_functional_surface_policy.json",
-    "existing_study_adoption_contract": "contracts/existing_study_adoption_contract.json",
     "qualification_work_item_provisioning_contract": "contracts/qualification_work_item_provisioning_contract.json",
     "runtime_environment_requirement_profile": "contracts/runtime_environment_requirements.json",
     "study_lifecycle_reactivation_contract": "contracts/study_lifecycle_reactivation_contract.json",

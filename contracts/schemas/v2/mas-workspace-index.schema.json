@@ -13,7 +13,7 @@
   ],
   "properties": {
     "surface_kind": {
-      "const": "mas_workspace_index"
+      "const": "workspace_index"
     },
     "schema_version": {
       "const": "mas.workspace_index.v1"

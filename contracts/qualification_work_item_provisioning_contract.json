@@ -40,10 +40,10 @@
     "other_identity_collision_effect": "derived_work_item_identity_collision"
   },
   "workspace_binding": {
-    "inventory_ref": "runtime/artifacts/mas_workspace_index/latest.json#/studies",
+    "inventory_ref": "workspace_index.json#/studies",
     "workspace_index_schema_ref": "contracts/schemas/v2/mas-workspace-index.schema.json",
     "canonical_study_root_template": "studies/{study_id}",
-    "workspace_index_target": "runtime/artifacts/mas_workspace_index/latest.json",
+    "workspace_index_target": "workspace_index.json",
     "lifecycle_target_template": "studies/{study_id}/control/lifecycle.json",
     "receipt_target_template": "studies/{study_id}/artifacts/controller/qualification/provisioning-receipt.json",
     "all_targets_workspace_relative_and_contained": true,

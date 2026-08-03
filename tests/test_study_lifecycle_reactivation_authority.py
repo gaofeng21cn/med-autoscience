@@ -192,7 +192,7 @@ def _lifecycle(state: str = "paused") -> dict[str, Any]:
 def _workspace_index(state: str) -> dict[str, Any]:
     return {
         "schema_version": "mas.workspace_index.v1",
-        "surface_kind": "mas_workspace_index",
+        "surface_kind": "workspace_index",
         "recorded_at": "2026-07-20T00:00:00Z",
         "status_counts": {state: 1},
         "studies": [
@@ -323,8 +323,8 @@ def _request(state: str = "paused") -> dict[str, Any]:
         {
             "projection_id": "workspace_index",
             "root": "workspace",
-            "relative_path": "runtime/artifacts/mas_workspace_index/latest.json",
-            "ref": "file:///workspace/runtime/artifacts/mas_workspace_index/latest.json",
+            "relative_path": "workspace_index.json",
+            "ref": "file:///workspace/workspace_index.json",
             "record": _workspace_index(state),
         },
         {
@@ -421,10 +421,7 @@ def _request_with_all_optional_projections() -> dict[str, Any]:
                 "ref": "file:///workspace/reports/studies_index.json",
                 "sha256": _digest("workspace-studies-index-g1"),
                 "byte_size": 1200,
-                "record": {
-                    **_workspace_index("paused"),
-                    "surface_kind": "workspace_index",
-                },
+                "record": _workspace_index("paused"),
             },
             "workspace_latest_status": {
                 "projection_id": "workspace_latest_status",
@@ -747,7 +744,7 @@ def test_all_projection_sources_share_handler_order_and_are_authorized() -> None
     assert [item["target_relative_path"] for item in operations[:8]] == [
         f"studies/{STUDY_ID}/control/lifecycle.json",
         "runtime/artifacts/study_lifecycle_control/latest.json",
-        "runtime/artifacts/mas_workspace_index/latest.json",
+        "workspace_index.json",
         "reports/studies_index.json",
         "reports/latest_status.json",
         f"studies/{STUDY_ID}/submission/STATUS.json",
@@ -1319,7 +1316,7 @@ def test_registry_catalog_and_stage_admission_are_internal_and_closed() -> None:
     catalog = json.loads(
         (ROOT / "contracts/action_catalog.json").read_text(encoding="utf-8")
     )
-    assert len(catalog["actions"]) == 12
+    assert len(catalog["actions"]) == 11
     assert [item["action_id"] for item in catalog["actions"]] == [
         "direction_and_route_selection",
         "baseline_and_evidence_setup",
@@ -1328,7 +1325,6 @@ def test_registry_catalog_and_stage_admission_are_internal_and_closed() -> None:
         "review_and_quality_gate",
         "finalize_and_publication_handoff",
         "qualification_work_item_provisioning_authority_evaluate",
-        "study_work_item_adoption_authority_evaluate",
         "study_lifecycle_reactivation_authority_evaluate",
         "candidate_admission_authority_evaluate",
         "build_dependency_currentness_authority_evaluate",
@@ -1380,7 +1376,7 @@ def test_registry_catalog_and_stage_admission_are_internal_and_closed() -> None:
     assert lifecycle_contract["authority_boundary"][
         "supported_surfaces_null_is_not_runtime_access_control"
     ] is True
-    build_currentness = catalog["actions"][10]
+    build_currentness = catalog["actions"][9]
     assert build_currentness["execution_binding"] == {
         "kind": "handler_ref",
         "handler_ref": "handler:mas.build-dependency-currentness-authority-evaluate",
@@ -1418,7 +1414,7 @@ def test_registry_catalog_and_stage_admission_are_internal_and_closed() -> None:
     assert build_boundary[
         "malicious_host_complete_self_consistent_forgery_resistance"
     ] is False
-    paper_mission = catalog["actions"][11]
+    paper_mission = catalog["actions"][10]
     assert paper_mission["optional_fields"] == [
         "selected_build_currentness_authority",
         "revision_consumption",

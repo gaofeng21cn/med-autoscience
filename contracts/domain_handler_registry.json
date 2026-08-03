@@ -11,14 +11,6 @@
       }
     },
     {
-      "handler_id": "mas.study-work-item-adoption-authority-evaluate",
-      "binding": {
-        "kind": "python_callable",
-        "module": "med_autoscience.authority_handlers.existing_study_adoption",
-        "callable": "evaluate_study_work_item_adoption_authority"
-      }
-    },
-    {
       "handler_id": "mas.paper-mission-authority-evaluate",
       "binding": {
         "kind": "python_callable",

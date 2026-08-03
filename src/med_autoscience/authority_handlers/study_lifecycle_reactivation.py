@@ -1028,7 +1028,7 @@ def _projection_target_path(role: str, study_id: str) -> str:
     expected = {
         "study_lifecycle_current": f"studies/{study_id}/control/lifecycle.json",
         "workspace_lifecycle_latest": "runtime/artifacts/study_lifecycle_control/latest.json",
-        "workspace_index": "runtime/artifacts/mas_workspace_index/latest.json",
+        "workspace_index": "workspace_index.json",
         "submission_status": f"studies/{study_id}/submission/STATUS.json",
         "publication_current_package_status": (
             f"studies/{study_id}/publication/current_package/STATUS.json"
@@ -1366,10 +1366,7 @@ def _update_workspace_index(
     )
     if payload.get("schema_version") != "mas.workspace_index.v1":
         raise ProjectionCurrentnessError(f"{role} schema is unsupported")
-    expected_surface_kind = (
-        "mas_workspace_index" if role == "workspace_index" else "workspace_index"
-    )
-    if payload.get("surface_kind") != expected_surface_kind:
+    if payload.get("surface_kind") != "workspace_index":
         raise ProjectionCurrentnessError(f"{role} surface is unsupported")
     _timestamp(payload["recorded_at"], f"{role} recorded_at")
     studies = sequence(payload.get("studies"), "workspace index studies")

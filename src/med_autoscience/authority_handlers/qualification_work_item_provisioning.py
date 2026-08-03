@@ -29,7 +29,6 @@ DOMAIN_ID = "medautoscience"
 DOMAIN_OWNER = "MedAutoScience"
 QUALIFICATION_SCOPE = "standard_agent_full_vm_qualification"
 HOST_CAPABILITY_ID = "opl_domain_artifact_cas_materialization.v1"
-MAS_INVENTORY_PATH = "runtime/artifacts/mas_workspace_index/latest.json"
 
 _SAFE_STUDY_ID = re.compile(r"^[a-z0-9]+(?:[._-][a-z0-9]+)*$")
 _SHA256 = re.compile(r"^[a-f0-9]{64}$")
@@ -339,9 +338,9 @@ def _normalize_workspace_index(value: Any, *, workspace_root: str) -> dict[str, 
         },
         field,
     )
-    if payload.get("workspace_index_ref") != MAS_INVENTORY_PATH:
+    if payload.get("workspace_index_ref") != "workspace_index.json":
         raise RequestShapeError(
-            f"{field}.workspace_index_ref must be {MAS_INVENTORY_PATH}"
+            f"{field}.workspace_index_ref must be workspace_index.json"
         )
     exists = payload.get("exists")
     if not isinstance(exists, bool):
@@ -359,12 +358,12 @@ def _normalize_workspace_index(value: Any, *, workspace_root: str) -> dict[str, 
             )
         return {
             "exists": False,
-            "workspace_index_ref": MAS_INVENTORY_PATH,
+            "workspace_index_ref": "workspace_index.json",
             "workspace_index_sha256": None,
             "workspace_index_bytes_base64": None,
             "workspace_index_byte_size": None,
             "record": {
-                "surface_kind": "mas_workspace_index",
+                "surface_kind": "workspace_index",
                 "schema_version": "mas.workspace_index.v1",
                 "studies": [],
             },
@@ -381,7 +380,7 @@ def _normalize_workspace_index(value: Any, *, workspace_root: str) -> dict[str, 
         supplied_record=payload.get("record"),
         field=field,
     )
-    if record.get("surface_kind") != "mas_workspace_index":
+    if record.get("surface_kind") != "workspace_index":
         raise RequestShapeError(f"{field}.record.surface_kind is unsupported")
     if record.get("schema_version") != "mas.workspace_index.v1":
         raise RequestShapeError(f"{field}.record.schema_version is unsupported")
@@ -401,7 +400,7 @@ def _normalize_workspace_index(value: Any, *, workspace_root: str) -> dict[str, 
     normalized_record["studies"] = studies
     return {
         "exists": True,
-        "workspace_index_ref": MAS_INVENTORY_PATH,
+        "workspace_index_ref": "workspace_index.json",
         "workspace_index_sha256": sha256,
         "workspace_index_bytes_base64": encoded,
         "workspace_index_byte_size": byte_size,
@@ -555,7 +554,7 @@ def _provisioning_receipt(
         "qualification_authority_byte_size": authority["authority_byte_size"],
         "handler_call_ref": context["handler_call_ref"],
         "owner_ledger_ref": context["owner_ledger_ref"],
-        "workspace_index_ref": MAS_INVENTORY_PATH,
+        "workspace_index_ref": "workspace_index.json",
         "workspace_index_before_sha256": current_index[
             "workspace_index_sha256"
         ],
@@ -604,7 +603,7 @@ def _materialization_operations(
         index_precondition = {"kind": "absent"}
     return [
         _operation(
-            MAS_INVENTORY_PATH,
+            "workspace_index.json",
             workspace_index_bytes,
             precondition=index_precondition,
         ),
