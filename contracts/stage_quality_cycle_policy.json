@@ -102,7 +102,8 @@
         "OPL_EXECUTION_CONTENT_BINDING_SHA256",
         "OPL_PACKAGE_USE_BOUNDARY_ID",
         "OPL_ROOT_PACKAGE_ID",
-        "OPL_ROOT_PACKAGE_CONTENT_DIGEST"
+        "OPL_ROOT_PACKAGE_CONTENT_DIGEST",
+        "OPL_REVIEW_LANE_BINDING"
       ],
       "bounded_analysis_producer_finalizer_attempt_env_sources": [
         "OPL_STAGE_ATTEMPT_REF",
@@ -130,7 +131,9 @@
           "executor_may_select_lane": false,
           "producer_finalizer_ref": "src/med_autoscience/authority_handlers/_stage_attempt_review_snapshot.py#finalize_manuscript_authoring_producer_snapshot_closeout",
           "producer_attempt_local": true,
-          "lane_fallback": false
+          "lane_fallback": false,
+          "review_lane_binding_env_source": "OPL_REVIEW_LANE_BINDING",
+          "missing_binding_effect": "fail_closed"
         }
       },
       "source_refs_by_member_id_must_exactly_match_review_scope": true,

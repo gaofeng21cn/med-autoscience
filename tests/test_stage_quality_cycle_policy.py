@@ -77,6 +77,17 @@ def test_quality_cycle_declares_role_bound_review_transport_production_path() ->
         "OPL_ROOT_PACKAGE_ID",
         "OPL_ROOT_PACKAGE_CONTENT_DIGEST",
     ]
+    assert snapshot["manuscript_authoring_producer_finalizer_attempt_env_sources"] == [
+        "OPL_STAGE_ATTEMPT_REF",
+        "OPL_EXECUTION_CONTENT_BINDING_SHA256",
+        "OPL_PACKAGE_USE_BOUNDARY_ID",
+        "OPL_ROOT_PACKAGE_ID",
+        "OPL_ROOT_PACKAGE_CONTENT_DIGEST",
+        "OPL_REVIEW_LANE_BINDING",
+    ]
+    assert pack_input["source_refs"][
+        "manuscript_authoring_review_lane_binding_env_source"
+    ] == "OPL_REVIEW_LANE_BINDING"
     assert snapshot[
         "zero_artifact_or_hard_boundary_snapshot_fabrication_allowed"
     ] is False
@@ -102,6 +113,8 @@ def test_quality_cycle_declares_role_bound_review_transport_production_path() ->
         ),
         "producer_attempt_local": True,
         "lane_fallback": False,
+        "review_lane_binding_env_source": "OPL_REVIEW_LANE_BINDING",
+        "missing_binding_effect": "fail_closed",
     }
     assert snapshot[
         "source_refs_by_member_id_must_exactly_match_review_scope"

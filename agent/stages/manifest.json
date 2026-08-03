@@ -1462,7 +1462,8 @@
           "producer_attempt_local_finalizer_ref": "src/med_autoscience/authority_handlers/_stage_attempt_review_snapshot.py#finalize_manuscript_authoring_producer_snapshot_closeout",
           "producer_finalizer_applies_when": "complete_frozen_manuscript_artifact_inventory_and_exact_controller_lane_locator_map_available",
           "source_locator_policy": "explicit_source_refs_by_member_id_exact_scope",
-          "missing_binding_effect": "quality_debt_without_quality_or_readiness_claim",
+          "review_lane_binding_env_source": "OPL_REVIEW_LANE_BINDING",
+          "missing_binding_effect": "fail_closed",
           "executor_may_select_lane": false,
           "lane_fallback": false
         },

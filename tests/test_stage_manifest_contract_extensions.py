@@ -201,6 +201,10 @@ def test_stage_manifest_declares_deterministic_review_snapshot_lane_bindings() -
     ]
     assert authoring_transport["executor_may_select_lane"] is False
     assert authoring_transport["lane_fallback"] is False
+    assert authoring_transport["review_lane_binding_env_source"] == (
+        "OPL_REVIEW_LANE_BINDING"
+    )
+    assert authoring_transport["missing_binding_effect"] == "fail_closed"
     assert authoring_transport["producer_attempt_local_finalizer_ref"].endswith(
         "#finalize_manuscript_authoring_producer_snapshot_closeout"
     )

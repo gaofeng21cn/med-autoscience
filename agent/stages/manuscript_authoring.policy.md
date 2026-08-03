@@ -98,10 +98,12 @@ The controller must provide exactly one of the declared `medical`, `statistical`
 `reference`, or `display` lanes; the executor may not choose, infer, or fall
 back to a lane. The finalizer binds the request to the current
 `OPL_STAGE_ATTEMPT_REF`, the exact attempt environment, the frozen
-`manuscript_generation` inventory, and an explicit
-`source_refs_by_member_id` map. It injects the v2 request at
+`manuscript_generation` inventory, the controller-issued
+`OPL_REVIEW_LANE_BINDING` environment value, and an explicit
+`source_refs_by_member_id` map. The environment lane must be present, one of
+the declared lanes, and exactly equal to `review_lane`. It injects the v2 request at
 `route_impact.stage_quality_cycle.review_input_snapshot_materialization_request`
 and the canonical MAS owner authority metadata into the formal closeout packet,
-not a sidecar. Missing members, byte/hash drift, symlinks, wrong stage or
-attempt, or conflicting request/authority metadata fail closed before closeout
-mutation.
+not a sidecar. Missing lane binding, missing members, byte/hash drift, symlinks,
+wrong stage or attempt, or conflicting request/authority metadata fail closed
+before closeout mutation.

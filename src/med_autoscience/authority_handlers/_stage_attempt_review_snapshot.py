@@ -483,10 +483,23 @@ def finalize_manuscript_authoring_producer_snapshot_closeout(
         environ,
         expected_stage_id=MANUSCRIPT_AUTHORING_STAGE_ID,
     )
+    controller_lane = text(
+        (os.environ if environ is None else environ).get("OPL_REVIEW_LANE_BINDING"),
+        "environment.OPL_REVIEW_LANE_BINDING",
+    )
+    if controller_lane not in MANUSCRIPT_AUTHORING_REVIEW_LANES:
+        raise RequestShapeError(
+            "environment.OPL_REVIEW_LANE_BINDING must be one of the "
+            "controller-bound manuscript_authoring lanes"
+        )
     normalized_lane = text(review_lane, "review_lane")
     if normalized_lane not in MANUSCRIPT_AUTHORING_REVIEW_LANES:
         raise RequestShapeError(
             "review_lane must be one of the controller-bound manuscript_authoring lanes"
+        )
+    if normalized_lane != controller_lane:
+        raise RequestShapeError(
+            "review_lane must match environment.OPL_REVIEW_LANE_BINDING"
         )
     generation_manifest = build_generation_manifest_v2(
         artifacts=artifacts,

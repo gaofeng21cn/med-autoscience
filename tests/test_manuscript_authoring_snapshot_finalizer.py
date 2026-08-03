@@ -82,6 +82,7 @@ def _case(workspace_root: Path, *, lane: str = "medical") -> tuple[
         "OPL_PACKAGE_USE_BOUNDARY_ID": "package-use:manuscript-producer-001",
         "OPL_ROOT_PACKAGE_ID": "mas",
         "OPL_ROOT_PACKAGE_CONTENT_DIGEST": _digest(b"mas package content"),
+        "OPL_REVIEW_LANE_BINDING": lane,
         "OPL_WORKSPACE_ROOT": str(workspace_root),
     }
     return artifacts, source_refs, environ, paths
@@ -205,6 +206,66 @@ def test_manuscript_authoring_finalizer_rejects_lane_fallback_or_unknown_lane(tm
             source_refs_by_member_id=source_refs,
             environ=environ,
         )
+
+
+def test_manuscript_authoring_finalizer_requires_controller_lane_binding(
+    tmp_path: Path,
+) -> None:
+    artifacts, source_refs, environ, _ = _case(tmp_path / "missing")
+    environ.pop("OPL_REVIEW_LANE_BINDING")
+    with pytest.raises(RequestShapeError, match="OPL_REVIEW_LANE_BINDING"):
+        finalize_manuscript_authoring_producer_snapshot_closeout(
+            closeout_packet=_closeout(),
+            artifacts=artifacts,
+            generation_id=f"manuscript-generation:{ATTEMPT_ID}",
+            generation_ref="workspace://study/manuscript/generation-manifest.json",
+            review_lane="medical",
+            source_refs_by_member_id=source_refs,
+            environ=environ,
+        )
+
+    artifacts, source_refs, environ, _ = _case(tmp_path / "mismatch")
+    environ["OPL_REVIEW_LANE_BINDING"] = "reference"
+    with pytest.raises(RequestShapeError, match="must match"):
+        finalize_manuscript_authoring_producer_snapshot_closeout(
+            closeout_packet=_closeout(),
+            artifacts=artifacts,
+            generation_id=f"manuscript-generation:{ATTEMPT_ID}",
+            generation_ref="workspace://study/manuscript/generation-manifest.json",
+            review_lane="medical",
+            source_refs_by_member_id=source_refs,
+            environ=environ,
+        )
+
+    artifacts, source_refs, environ, _ = _case(tmp_path / "unknown")
+    environ["OPL_REVIEW_LANE_BINDING"] = "publication"
+    with pytest.raises(RequestShapeError, match="OPL_REVIEW_LANE_BINDING"):
+        finalize_manuscript_authoring_producer_snapshot_closeout(
+            closeout_packet=_closeout(),
+            artifacts=artifacts,
+            generation_id=f"manuscript-generation:{ATTEMPT_ID}",
+            generation_ref="workspace://study/manuscript/generation-manifest.json",
+            review_lane="medical",
+            source_refs_by_member_id=source_refs,
+            environ=environ,
+        )
+
+
+def test_manuscript_authoring_finalizer_normalizes_controller_lane_binding(
+    tmp_path: Path,
+) -> None:
+    artifacts, source_refs, environ, _ = _case(tmp_path)
+    environ["OPL_REVIEW_LANE_BINDING"] = "  medical  "
+    result = finalize_manuscript_authoring_producer_snapshot_closeout(
+        closeout_packet=_closeout(),
+        artifacts=artifacts,
+        generation_id=f"manuscript-generation:{ATTEMPT_ID}",
+        generation_ref="workspace://study/manuscript/generation-manifest.json",
+        review_lane=" medical ",
+        source_refs_by_member_id=source_refs,
+        environ=environ,
+    )
+    assert result["review_lane"] == "medical"
 
 
 def test_manuscript_authoring_finalizer_rejects_hash_drift_symlink_and_missing_member(tmp_path: Path) -> None:
