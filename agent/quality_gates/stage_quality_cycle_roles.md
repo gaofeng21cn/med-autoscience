@@ -79,10 +79,11 @@ owner refs remain in MAS-owned records and are opaque to Framework. Copy the
 same four-field `owner_authority_ref` object into
 `closeout_packet.closeout_ref_metadata[]`; use `ref`, not the legacy `uri` spelling.
 If the exact
-map is unavailable, do not invent a request: record lane quality debt and
-continue the hosted action without a quality, publication, export, submission,
-or ready claim. Once you return a request, every member identity, locator, hash,
-and size is an exact claim. An invalid,
+map is unavailable and the current Stage has no stage-specific required
+fail-closed snapshot finalizer, do not invent a request: record lane quality
+debt and continue the hosted action without a quality, publication, export,
+submission, or ready claim. Once you return a request, every member identity,
+locator, hash, and size is an exact claim. An invalid,
 out-of-workspace, mismatched, or unmaterializable present request fails closed
 as a transport contract error; never relabel it as ordinary quality debt or
 forge a MAS typed blocker. A reviewer or re-reviewer that receives a
@@ -127,10 +128,13 @@ Bind snapshot authority to the exact
 resulting request at
 `route_impact.stage_quality_cycle.review_input_snapshot_materialization_request`
 and append its owner-authority exact-ref entry to
-`closeout_packet.closeout_ref_metadata[]`. If the exact manifest inventory,
-locator map, or controller-bound lane is unavailable, omit the request, record
-lane quality debt, and make no quality or readiness claim. Never call a
-snapshot finalizer for a zero-artifact or hard-boundary producer.
+`closeout_packet.closeout_ref_metadata[]`. For a Stage that declares a required
+fail-closed snapshot finalizer, a missing or mismatched manifest inventory,
+locator map, or controller-bound lane must fail closed before closeout: do not
+generate a closeout packet or quality/readiness claim. The generic omit-and-
+record-quality-debt fallback applies only to Stages without that
+stage-specific finalizer. Never call a snapshot finalizer for a zero-artifact
+or hard-boundary producer.
 
 ## Reviewer
 

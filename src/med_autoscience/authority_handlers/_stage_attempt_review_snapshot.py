@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import hashlib
 import os
+import stat
 from collections.abc import Mapping
 from copy import deepcopy
 from pathlib import Path
@@ -24,6 +25,10 @@ from ._record_validation import (
 
 BOUNDED_ANALYSIS_STAGE_ID = "bounded_analysis_campaign"
 BOUNDED_ANALYSIS_REVIEW_LANE = "statistical"
+MANUSCRIPT_AUTHORING_STAGE_ID = "manuscript_authoring"
+MANUSCRIPT_AUTHORING_REVIEW_LANES = frozenset(
+    {"medical", "statistical", "reference", "display"}
+)
 _ATTEMPT_BINDING_ENV_KEYS = (
     "OPL_STAGE_ATTEMPT_REF",
     "OPL_EXECUTION_CONTENT_BINDING_SHA256",
@@ -35,12 +40,14 @@ _ATTEMPT_BINDING_ENV_KEYS = (
 
 def _attempt_environment(
     environ: Mapping[str, str] | None,
+    *,
+    expected_stage_id: str = BOUNDED_ANALYSIS_STAGE_ID,
 ) -> tuple[Path, dict[str, str]]:
     source = os.environ if environ is None else environ
     stage_id = text(source.get("OPL_STAGE_ID"), "environment.OPL_STAGE_ID")
-    if stage_id != BOUNDED_ANALYSIS_STAGE_ID:
+    if stage_id != expected_stage_id:
         raise RequestShapeError(
-            "environment.OPL_STAGE_ID must be bounded_analysis_campaign"
+            f"environment.OPL_STAGE_ID must be {expected_stage_id}"
         )
     try:
         workspace_root = Path(
@@ -104,53 +111,160 @@ def _workspace_source_path(
         if not candidate.is_absolute():
             candidate = workspace_root / candidate
 
-    try:
-        resolved = candidate.resolve(strict=True)
-    except (OSError, RuntimeError) as error:
-        raise RequestShapeError(f"{field} must reference a readable file") from error
-    if not resolved.is_relative_to(workspace_root):
+    absolute_candidate = Path(os.path.abspath(candidate))
+    if not absolute_candidate.is_relative_to(workspace_root):
         raise RequestShapeError(f"{field} escapes OPL_WORKSPACE_ROOT")
-    if not resolved.is_file():
-        raise RequestShapeError(f"{field} must reference a regular file")
-    return resolved
+    return absolute_candidate
 
 
-def _file_identity(path: Path, field: str) -> tuple[int, str]:
-    before = path.stat()
-    digest = hashlib.sha256()
-    size_bytes = 0
-    with path.open("rb") as stream:
-        while chunk := stream.read(1024 * 1024):
+def _file_identity(
+    workspace_root: Path,
+    path: Path,
+    field: str,
+) -> tuple[int, str]:
+    no_follow = getattr(os, "O_NOFOLLOW", None)
+    directory_flag = getattr(os, "O_DIRECTORY", None)
+    if (
+        no_follow is None
+        or directory_flag is None
+        or os.open not in os.supports_dir_fd
+        or os.stat not in os.supports_dir_fd
+        or os.stat not in os.supports_follow_symlinks
+    ):
+        raise RequestShapeError(f"{field} cannot be inspected without no-follow support")
+    try:
+        relative = path.relative_to(workspace_root)
+    except ValueError as error:
+        raise RequestShapeError(f"{field} escapes OPL_WORKSPACE_ROOT") from error
+    parts = relative.parts
+    if not parts or any(part in {"", ".", ".."} for part in parts):
+        raise RequestShapeError(f"{field} must use a normalized workspace path")
+
+    directory_descriptors: list[int] = []
+    descriptor: int | None = None
+    try:
+        root_before = workspace_root.lstat()
+        if not stat.S_ISDIR(root_before.st_mode) or stat.S_ISLNK(root_before.st_mode):
+            raise RequestShapeError("OPL_WORKSPACE_ROOT must be a physical directory")
+        root_descriptor = os.open(
+            workspace_root,
+            os.O_RDONLY | directory_flag | no_follow,
+        )
+        directory_descriptors.append(root_descriptor)
+        root_opened = os.fstat(root_descriptor)
+        if (root_opened.st_dev, root_opened.st_ino) != (
+            root_before.st_dev,
+            root_before.st_ino,
+        ):
+            raise RequestShapeError(f"{field} workspace root changed while it was opened")
+
+        for component in parts[:-1]:
+            before_directory = os.stat(
+                component,
+                dir_fd=directory_descriptors[-1],
+                follow_symlinks=False,
+            )
+            if stat.S_ISLNK(before_directory.st_mode):
+                raise RequestShapeError(f"{field} must not reference a symlink")
+            if not stat.S_ISDIR(before_directory.st_mode):
+                raise RequestShapeError(f"{field} must reference a regular file")
+            next_directory = os.open(
+                component,
+                os.O_RDONLY | directory_flag | no_follow,
+                dir_fd=directory_descriptors[-1],
+            )
+            opened_directory = os.fstat(next_directory)
+            if (opened_directory.st_dev, opened_directory.st_ino) != (
+                before_directory.st_dev,
+                before_directory.st_ino,
+            ):
+                os.close(next_directory)
+                raise RequestShapeError(f"{field} changed while its path was opened")
+            directory_descriptors.append(next_directory)
+
+        filename = parts[-1]
+        before = os.stat(
+            filename,
+            dir_fd=directory_descriptors[-1],
+            follow_symlinks=False,
+        )
+        if stat.S_ISLNK(before.st_mode):
+            raise RequestShapeError(f"{field} must not reference a symlink")
+        if not stat.S_ISREG(before.st_mode):
+            raise RequestShapeError(f"{field} must reference a regular file")
+        descriptor = os.open(
+            filename,
+            os.O_RDONLY | no_follow,
+            dir_fd=directory_descriptors[-1],
+        )
+        opened = os.fstat(descriptor)
+        if (opened.st_dev, opened.st_ino) != (before.st_dev, before.st_ino):
+            raise RequestShapeError(f"{field} changed while it was opened")
+
+        digest = hashlib.sha256()
+        size_bytes = 0
+        while chunk := os.read(descriptor, 1024 * 1024):
             digest.update(chunk)
             size_bytes += len(chunk)
-    after = path.stat()
-    before_identity = (
-        before.st_dev,
-        before.st_ino,
-        before.st_size,
-        before.st_mtime_ns,
-    )
-    after_identity = (
-        after.st_dev,
-        after.st_ino,
-        after.st_size,
-        after.st_mtime_ns,
-    )
-    if before_identity != after_identity or size_bytes != after.st_size:
-        raise RequestShapeError(f"{field} changed while its bytes were inspected")
-    return size_bytes, f"sha256:{digest.hexdigest()}"
+
+        after = os.fstat(descriptor)
+        path_after = os.stat(
+            filename,
+            dir_fd=directory_descriptors[-1],
+            follow_symlinks=False,
+        )
+        stable_opened = (
+            opened.st_dev,
+            opened.st_ino,
+            opened.st_size,
+            opened.st_mtime_ns,
+            opened.st_ctime_ns,
+        )
+        stable_after = (
+            after.st_dev,
+            after.st_ino,
+            after.st_size,
+            after.st_mtime_ns,
+            after.st_ctime_ns,
+        )
+        stable_path_after = (
+            path_after.st_dev,
+            path_after.st_ino,
+            path_after.st_size,
+            path_after.st_mtime_ns,
+            path_after.st_ctime_ns,
+        )
+        if (
+            not stat.S_ISREG(after.st_mode)
+            or stat.S_ISLNK(path_after.st_mode)
+            or stable_after != stable_opened
+            or stable_path_after != stable_opened
+            or size_bytes != after.st_size
+        ):
+            raise RequestShapeError(f"{field} changed while its bytes were inspected")
+        return size_bytes, f"sha256:{digest.hexdigest()}"
+    except RequestShapeError:
+        raise
+    except OSError as error:
+        raise RequestShapeError(f"{field} changed while its bytes were inspected") from error
+    finally:
+        if descriptor is not None:
+            os.close(descriptor)
+        for directory_descriptor in reversed(directory_descriptors):
+            os.close(directory_descriptor)
 
 
-def _statistical_source_refs(
+def _scope_source_refs(
     *,
     generation_manifest: dict[str, Any],
     workspace_root: Path,
+    review_lane: str,
     source_refs_by_member_id: Mapping[str, str],
 ) -> dict[str, str]:
     scope = next(
         item
         for item in generation_manifest["review_scopes"]
-        if item["review_lane"] == BOUNDED_ANALYSIS_REVIEW_LANE
+        if item["review_lane"] == review_lane
     )
     supplied = mapping(source_refs_by_member_id, "source_refs_by_member_id")
     normalized: dict[str, str] = {}
@@ -177,14 +291,14 @@ def _statistical_source_refs(
         if extra:
             details.append("extra: " + ", ".join(extra))
         raise RequestShapeError(
-            "source_refs_by_member_id must exactly match the statistical review scope; "
+            "source_refs_by_member_id must exactly match the selected review scope; "
             + "; ".join(details)
         )
 
     for member_id, member in expected_members.items():
         field = f"source_refs_by_member_id.{member_id}"
         path = _workspace_source_path(workspace_root, normalized[member_id], field)
-        observed_size, observed_sha256 = _file_identity(path, field)
+        observed_size, observed_sha256 = _file_identity(workspace_root, path, field)
         if (
             observed_size != member["size_bytes"]
             or observed_sha256 != member["sha256"]
@@ -193,6 +307,20 @@ def _statistical_source_refs(
                 f"{field} bytes do not match the frozen MAS artifact identity"
             )
     return normalized
+
+
+def _statistical_source_refs(
+    *,
+    generation_manifest: dict[str, Any],
+    workspace_root: Path,
+    source_refs_by_member_id: Mapping[str, str],
+) -> dict[str, str]:
+    return _scope_source_refs(
+        generation_manifest=generation_manifest,
+        workspace_root=workspace_root,
+        review_lane=BOUNDED_ANALYSIS_REVIEW_LANE,
+        source_refs_by_member_id=source_refs_by_member_id,
+    )
 
 
 def _inject_snapshot_bundle(
@@ -222,6 +350,30 @@ def _inject_snapshot_bundle(
         route_impact.get("stage_quality_cycle", {}),
         "closeout_packet.route_impact.stage_quality_cycle",
     )
+    for field, value in (
+        ("hard_stop_class", route_impact.get("hard_stop_class")),
+        ("blocked_reason", route_impact.get("blocked_reason")),
+        ("typed_blocker_refs", route_impact.get("typed_blocker_refs")),
+        ("human_gate_refs", route_impact.get("human_gate_refs")),
+        ("stage_quality_cycle.hard_stop_class", quality_cycle.get("hard_stop_class")),
+        ("stage_quality_cycle.blocked_reason", quality_cycle.get("blocked_reason")),
+        (
+            "stage_quality_cycle.typed_blocker_refs",
+            quality_cycle.get("typed_blocker_refs"),
+        ),
+        ("stage_quality_cycle.human_gate_refs", quality_cycle.get("human_gate_refs")),
+    ):
+        if value not in (None, "", [], {}):
+            raise RequestShapeError(
+                "hard-stop closeout cannot carry a review input snapshot "
+                f"materialization request ({field})"
+            )
+    outcome = quality_cycle.get("outcome")
+    if outcome in {"blocked", "human_gate"}:
+        raise RequestShapeError(
+            "hard-stop closeout cannot carry a review input snapshot "
+            f"materialization request (stage_quality_cycle.outcome={outcome})"
+        )
     request = bundle["review_input_snapshot_materialization_request"]
     existing_request = quality_cycle.get(
         "review_input_snapshot_materialization_request"
@@ -266,7 +418,10 @@ def finalize_bounded_analysis_producer_snapshot_closeout(
 ) -> dict[str, Any]:
     """Build and inject one statistical snapshot request for a producer Attempt."""
 
-    workspace_root, authority_issuer = _attempt_environment(environ)
+    workspace_root, authority_issuer = _attempt_environment(
+        environ,
+        expected_stage_id=BOUNDED_ANALYSIS_STAGE_ID,
+    )
     generation_manifest = build_generation_manifest_v2(
         artifacts=artifacts,
         generation_id=generation_id,
@@ -315,8 +470,134 @@ def finalize_bounded_analysis_producer_snapshot_closeout(
     }
 
 
+def finalize_manuscript_authoring_producer_snapshot_closeout(
+    *,
+    closeout_packet: Mapping[str, Any],
+    artifacts: list[dict[str, Any]],
+    generation_id: str,
+    generation_ref: str,
+    review_lane: str,
+    source_refs_by_member_id: Mapping[str, str],
+    professional_skill_invocations: list[dict[str, Any]] | None = None,
+    first_draft_quality_application: dict[str, Any] | None = None,
+    selected_build_binding: dict[str, Any] | None = None,
+    reviewer_response_sync: dict[str, Any] | None = None,
+    environ: Mapping[str, str] | None = None,
+) -> dict[str, Any]:
+    """Finalize a controller-selected manuscript authoring review snapshot.
+
+    The lane is intentionally required at the producer boundary.  The
+    manuscript stage is controller-bound and must never silently fall back to
+    a fixed lane or infer one from the artifact inventory.
+    """
+
+    workspace_root, authority_issuer = _attempt_environment(
+        environ,
+        expected_stage_id=MANUSCRIPT_AUTHORING_STAGE_ID,
+    )
+    controller_lane = text(
+        (os.environ if environ is None else environ).get("OPL_REVIEW_LANE_BINDING"),
+        "environment.OPL_REVIEW_LANE_BINDING",
+    )
+    if controller_lane not in MANUSCRIPT_AUTHORING_REVIEW_LANES:
+        raise RequestShapeError(
+            "environment.OPL_REVIEW_LANE_BINDING must be one of the "
+            "controller-bound manuscript_authoring lanes"
+        )
+    normalized_lane = text(review_lane, "review_lane")
+    if normalized_lane not in MANUSCRIPT_AUTHORING_REVIEW_LANES:
+        raise RequestShapeError(
+            "review_lane must be one of the controller-bound manuscript_authoring lanes"
+        )
+    if normalized_lane != controller_lane:
+        raise RequestShapeError(
+            "review_lane must match environment.OPL_REVIEW_LANE_BINDING"
+        )
+    generation_manifest = build_generation_manifest_v2(
+        artifacts=artifacts,
+        generation_id=generation_id,
+        manifest_scope="manuscript_generation",
+        professional_skill_invocations=(
+            deepcopy(professional_skill_invocations)
+            if professional_skill_invocations is not None
+            else None
+        ),
+        first_draft_quality_application=(
+            deepcopy(first_draft_quality_application)
+            if first_draft_quality_application is not None
+            else None
+        ),
+        selected_build_binding=(
+            deepcopy(selected_build_binding)
+            if selected_build_binding is not None
+            else None
+        ),
+        reviewer_response_sync=(
+            deepcopy(reviewer_response_sync)
+            if reviewer_response_sync is not None
+            else None
+        ),
+    )
+    normalized_source_refs = _scope_source_refs(
+        generation_manifest=generation_manifest,
+        workspace_root=workspace_root,
+        review_lane=normalized_lane,
+        source_refs_by_member_id=source_refs_by_member_id,
+    )
+    bundle = build_stage_review_input_snapshot_bundle(
+        stage_id=MANUSCRIPT_AUTHORING_STAGE_ID,
+        artifacts=generation_manifest["artifacts"],
+        generation_id=generation_manifest["generation_id"],
+        generation_ref=generation_ref,
+        workspace_root=str(workspace_root),
+        source_refs_by_member_id=normalized_source_refs,
+        authority_issuer=authority_issuer,
+        review_lane=normalized_lane,
+        professional_skill_invocations=(
+            deepcopy(professional_skill_invocations)
+            if professional_skill_invocations is not None
+            else None
+        ),
+        first_draft_quality_application=(
+            deepcopy(first_draft_quality_application)
+            if first_draft_quality_application is not None
+            else None
+        ),
+        selected_build_binding=(
+            deepcopy(selected_build_binding)
+            if selected_build_binding is not None
+            else None
+        ),
+        reviewer_response_sync=(
+            deepcopy(reviewer_response_sync)
+            if reviewer_response_sync is not None
+            else None
+        ),
+    )
+    if bundle["generation_manifest"] != generation_manifest:
+        raise RequestShapeError(
+            "stage snapshot bundle changed the frozen generation manifest"
+        )
+    finalized_closeout = _inject_snapshot_bundle(
+        closeout_packet,
+        bundle,
+        producer_attempt_ref=authority_issuer["stage_attempt_ref"],
+    )
+    return {
+        "surface_kind": "mas_manuscript_authoring_producer_snapshot_finalization",
+        "schema_version": 1,
+        "stage_id": MANUSCRIPT_AUTHORING_STAGE_ID,
+        "review_lane": normalized_lane,
+        "snapshot_bundle": bundle,
+        "closeout_packet": finalized_closeout,
+    }
+
+
 __all__ = [
     "BOUNDED_ANALYSIS_REVIEW_LANE",
     "BOUNDED_ANALYSIS_STAGE_ID",
     "finalize_bounded_analysis_producer_snapshot_closeout",
+    "MANUSCRIPT_AUTHORING_REVIEW_LANES",
+    "MANUSCRIPT_AUTHORING_STAGE_ID",
+    "finalize_manuscript_authoring_producer_snapshot_closeout",
 ]

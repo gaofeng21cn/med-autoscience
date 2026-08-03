@@ -80,6 +80,7 @@ def test_build_snapshot_request_projects_exact_scope_in_canonical_order(
     assert request == {
         "surface_kind": "opl_reviewer_input_snapshot_materialization_request",
         "schema_version": 2,
+        "review_lane": "display",
         "owner_authority_ref": {
             "kind": "mas_review_input_snapshot_authority",
             "ref": (
