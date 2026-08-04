@@ -25,10 +25,6 @@ from ._record_validation import (
 
 BOUNDED_ANALYSIS_STAGE_ID = "bounded_analysis_campaign"
 BOUNDED_ANALYSIS_REVIEW_LANE = "statistical"
-MANUSCRIPT_AUTHORING_STAGE_ID = "manuscript_authoring"
-MANUSCRIPT_AUTHORING_REVIEW_LANES = frozenset(
-    {"medical", "statistical", "reference", "display"}
-)
 _ATTEMPT_BINDING_ENV_KEYS = (
     "OPL_STAGE_ATTEMPT_REF",
     "OPL_EXECUTION_CONTENT_BINDING_SHA256",
@@ -40,14 +36,12 @@ _ATTEMPT_BINDING_ENV_KEYS = (
 
 def _attempt_environment(
     environ: Mapping[str, str] | None,
-    *,
-    expected_stage_id: str = BOUNDED_ANALYSIS_STAGE_ID,
 ) -> tuple[Path, dict[str, str]]:
     source = os.environ if environ is None else environ
     stage_id = text(source.get("OPL_STAGE_ID"), "environment.OPL_STAGE_ID")
-    if stage_id != expected_stage_id:
+    if stage_id != BOUNDED_ANALYSIS_STAGE_ID:
         raise RequestShapeError(
-            f"environment.OPL_STAGE_ID must be {expected_stage_id}"
+            "environment.OPL_STAGE_ID must be bounded_analysis_campaign"
         )
     try:
         workspace_root = Path(
@@ -254,17 +248,16 @@ def _file_identity(
             os.close(directory_descriptor)
 
 
-def _scope_source_refs(
+def _statistical_source_refs(
     *,
     generation_manifest: dict[str, Any],
     workspace_root: Path,
-    review_lane: str,
     source_refs_by_member_id: Mapping[str, str],
 ) -> dict[str, str]:
     scope = next(
         item
         for item in generation_manifest["review_scopes"]
-        if item["review_lane"] == review_lane
+        if item["review_lane"] == BOUNDED_ANALYSIS_REVIEW_LANE
     )
     supplied = mapping(source_refs_by_member_id, "source_refs_by_member_id")
     normalized: dict[str, str] = {}
@@ -291,7 +284,7 @@ def _scope_source_refs(
         if extra:
             details.append("extra: " + ", ".join(extra))
         raise RequestShapeError(
-            "source_refs_by_member_id must exactly match the selected review scope; "
+            "source_refs_by_member_id must exactly match the statistical review scope; "
             + "; ".join(details)
         )
 
@@ -307,20 +300,6 @@ def _scope_source_refs(
                 f"{field} bytes do not match the frozen MAS artifact identity"
             )
     return normalized
-
-
-def _statistical_source_refs(
-    *,
-    generation_manifest: dict[str, Any],
-    workspace_root: Path,
-    source_refs_by_member_id: Mapping[str, str],
-) -> dict[str, str]:
-    return _scope_source_refs(
-        generation_manifest=generation_manifest,
-        workspace_root=workspace_root,
-        review_lane=BOUNDED_ANALYSIS_REVIEW_LANE,
-        source_refs_by_member_id=source_refs_by_member_id,
-    )
 
 
 def _inject_snapshot_bundle(
@@ -418,10 +397,7 @@ def finalize_bounded_analysis_producer_snapshot_closeout(
 ) -> dict[str, Any]:
     """Build and inject one statistical snapshot request for a producer Attempt."""
 
-    workspace_root, authority_issuer = _attempt_environment(
-        environ,
-        expected_stage_id=BOUNDED_ANALYSIS_STAGE_ID,
-    )
+    workspace_root, authority_issuer = _attempt_environment(environ)
     generation_manifest = build_generation_manifest_v2(
         artifacts=artifacts,
         generation_id=generation_id,
@@ -470,134 +446,8 @@ def finalize_bounded_analysis_producer_snapshot_closeout(
     }
 
 
-def finalize_manuscript_authoring_producer_snapshot_closeout(
-    *,
-    closeout_packet: Mapping[str, Any],
-    artifacts: list[dict[str, Any]],
-    generation_id: str,
-    generation_ref: str,
-    review_lane: str,
-    source_refs_by_member_id: Mapping[str, str],
-    professional_skill_invocations: list[dict[str, Any]] | None = None,
-    first_draft_quality_application: dict[str, Any] | None = None,
-    selected_build_binding: dict[str, Any] | None = None,
-    reviewer_response_sync: dict[str, Any] | None = None,
-    environ: Mapping[str, str] | None = None,
-) -> dict[str, Any]:
-    """Finalize a controller-selected manuscript authoring review snapshot.
-
-    The lane is intentionally required at the producer boundary.  The
-    manuscript stage is controller-bound and must never silently fall back to
-    a fixed lane or infer one from the artifact inventory.
-    """
-
-    workspace_root, authority_issuer = _attempt_environment(
-        environ,
-        expected_stage_id=MANUSCRIPT_AUTHORING_STAGE_ID,
-    )
-    controller_lane = text(
-        (os.environ if environ is None else environ).get("OPL_REVIEW_LANE_BINDING"),
-        "environment.OPL_REVIEW_LANE_BINDING",
-    )
-    if controller_lane not in MANUSCRIPT_AUTHORING_REVIEW_LANES:
-        raise RequestShapeError(
-            "environment.OPL_REVIEW_LANE_BINDING must be one of the "
-            "controller-bound manuscript_authoring lanes"
-        )
-    normalized_lane = text(review_lane, "review_lane")
-    if normalized_lane not in MANUSCRIPT_AUTHORING_REVIEW_LANES:
-        raise RequestShapeError(
-            "review_lane must be one of the controller-bound manuscript_authoring lanes"
-        )
-    if normalized_lane != controller_lane:
-        raise RequestShapeError(
-            "review_lane must match environment.OPL_REVIEW_LANE_BINDING"
-        )
-    generation_manifest = build_generation_manifest_v2(
-        artifacts=artifacts,
-        generation_id=generation_id,
-        manifest_scope="manuscript_generation",
-        professional_skill_invocations=(
-            deepcopy(professional_skill_invocations)
-            if professional_skill_invocations is not None
-            else None
-        ),
-        first_draft_quality_application=(
-            deepcopy(first_draft_quality_application)
-            if first_draft_quality_application is not None
-            else None
-        ),
-        selected_build_binding=(
-            deepcopy(selected_build_binding)
-            if selected_build_binding is not None
-            else None
-        ),
-        reviewer_response_sync=(
-            deepcopy(reviewer_response_sync)
-            if reviewer_response_sync is not None
-            else None
-        ),
-    )
-    normalized_source_refs = _scope_source_refs(
-        generation_manifest=generation_manifest,
-        workspace_root=workspace_root,
-        review_lane=normalized_lane,
-        source_refs_by_member_id=source_refs_by_member_id,
-    )
-    bundle = build_stage_review_input_snapshot_bundle(
-        stage_id=MANUSCRIPT_AUTHORING_STAGE_ID,
-        artifacts=generation_manifest["artifacts"],
-        generation_id=generation_manifest["generation_id"],
-        generation_ref=generation_ref,
-        workspace_root=str(workspace_root),
-        source_refs_by_member_id=normalized_source_refs,
-        authority_issuer=authority_issuer,
-        review_lane=normalized_lane,
-        professional_skill_invocations=(
-            deepcopy(professional_skill_invocations)
-            if professional_skill_invocations is not None
-            else None
-        ),
-        first_draft_quality_application=(
-            deepcopy(first_draft_quality_application)
-            if first_draft_quality_application is not None
-            else None
-        ),
-        selected_build_binding=(
-            deepcopy(selected_build_binding)
-            if selected_build_binding is not None
-            else None
-        ),
-        reviewer_response_sync=(
-            deepcopy(reviewer_response_sync)
-            if reviewer_response_sync is not None
-            else None
-        ),
-    )
-    if bundle["generation_manifest"] != generation_manifest:
-        raise RequestShapeError(
-            "stage snapshot bundle changed the frozen generation manifest"
-        )
-    finalized_closeout = _inject_snapshot_bundle(
-        closeout_packet,
-        bundle,
-        producer_attempt_ref=authority_issuer["stage_attempt_ref"],
-    )
-    return {
-        "surface_kind": "mas_manuscript_authoring_producer_snapshot_finalization",
-        "schema_version": 1,
-        "stage_id": MANUSCRIPT_AUTHORING_STAGE_ID,
-        "review_lane": normalized_lane,
-        "snapshot_bundle": bundle,
-        "closeout_packet": finalized_closeout,
-    }
-
-
 __all__ = [
     "BOUNDED_ANALYSIS_REVIEW_LANE",
     "BOUNDED_ANALYSIS_STAGE_ID",
     "finalize_bounded_analysis_producer_snapshot_closeout",
-    "MANUSCRIPT_AUTHORING_REVIEW_LANES",
-    "MANUSCRIPT_AUTHORING_STAGE_ID",
-    "finalize_manuscript_authoring_producer_snapshot_closeout",
 ]

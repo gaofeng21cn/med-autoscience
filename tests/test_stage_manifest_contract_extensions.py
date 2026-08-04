@@ -200,18 +200,18 @@ def test_stage_manifest_declares_deterministic_review_snapshot_lane_bindings() -
         "display",
     ]
     assert authoring_transport["executor_may_select_lane"] is False
-    assert authoring_transport["lane_fallback"] is False
-    assert authoring_transport["review_lane_binding_env_source"] == (
-        "OPL_REVIEW_LANE_BINDING"
+    assert authoring_transport["missing_binding_effect"] == (
+        "quality_debt_without_quality_or_readiness_claim"
     )
-    assert authoring_transport["missing_binding_effect"] == "fail_closed"
-    assert authoring_transport["producer_attempt_local_finalizer_ref"].endswith(
-        "#finalize_manuscript_authoring_producer_snapshot_closeout"
+    assert authoring_transport["author_review_package_mode"] == (
+        "current_revision_projection"
     )
-    assert authoring_transport["producer_finalizer_applies_when"] == (
-        "complete_frozen_manuscript_artifact_inventory_and_exact_"
-        "controller_lane_locator_map_available"
+    assert authoring_transport["content_change_effect"] == (
+        "generate_new_revision_and_refresh_projection"
     )
+    assert authoring_transport["review_result_binding"] == "selected_revision_id"
+    assert authoring_transport["byte_hash_size_or_locator_drift_blocks_refresh"] is False
+    assert "producer_attempt_local_finalizer_ref" not in authoring_transport
 
 
 def test_publication_handoff_requires_one_exact_generation_package_sequence() -> None:

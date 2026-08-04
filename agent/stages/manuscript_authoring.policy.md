@@ -89,21 +89,19 @@ unavailable executor, wrong-target identity/currentness, authority/safety/
 permission boundary, irreversible action, or real human decision remains a
 hard stop.
 
-## Producer review-input snapshot closeout
+## Current author-review projection
 
-Before returning a manuscript-authoring producer `stage_attempt_closeout_packet`
-that is eligible for independent review, the producer must call
-`src/med_autoscience/authority_handlers/_stage_attempt_review_snapshot.py#finalize_manuscript_authoring_producer_snapshot_closeout`.
-The controller must provide exactly one of the declared `medical`, `statistical`,
-`reference`, or `display` lanes; the executor may not choose, infer, or fall
-back to a lane. The finalizer binds the request to the current
-`OPL_STAGE_ATTEMPT_REF`, the exact attempt environment, the frozen
-`manuscript_generation` inventory, the controller-issued
-`OPL_REVIEW_LANE_BINDING` environment value, and an explicit
-`source_refs_by_member_id` map. The environment lane must be present, one of
-the declared lanes, and exactly equal to `review_lane`. It injects the v2 request at
-`route_impact.stage_quality_cycle.review_input_snapshot_materialization_request`
-and the canonical MAS owner authority metadata into the formal closeout packet,
-not a sidecar. Missing lane binding, missing members, byte/hash drift, symlinks,
-wrong stage or attempt, or conflicting request/authority metadata fail closed
-before closeout mutation.
+The author-review package always projects the newest reviewable manuscript
+revision. A material update to manuscript text, figures, tables, references, or
+another reviewed input creates a new generation and refreshes the projection;
+it does not wait for or compare against the prior package's bytes. Any review
+already in progress remains bound to its selected revision and becomes
+provenance for that revision only.
+
+Build a review request with the generic stage bundle builder for the
+controller-selected `medical`, `statistical`, `reference`, or `display` lane.
+Missing lane or locator input is ordinary quality debt: omit the request and
+continue producing the manuscript without a quality or readiness claim. Do not
+use byte/hash/size equality, symlink or file-identity inspection, frozen
+inventory, or an Attempt-local finalizer as a manuscript closeout gate. Hashes
+and sizes are non-authorizing transport, cache, deduplication, and stale hints.

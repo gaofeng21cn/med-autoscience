@@ -77,17 +77,6 @@ def test_quality_cycle_declares_role_bound_review_transport_production_path() ->
         "OPL_ROOT_PACKAGE_ID",
         "OPL_ROOT_PACKAGE_CONTENT_DIGEST",
     ]
-    assert snapshot["manuscript_authoring_producer_finalizer_attempt_env_sources"] == [
-        "OPL_STAGE_ATTEMPT_REF",
-        "OPL_EXECUTION_CONTENT_BINDING_SHA256",
-        "OPL_PACKAGE_USE_BOUNDARY_ID",
-        "OPL_ROOT_PACKAGE_ID",
-        "OPL_ROOT_PACKAGE_CONTENT_DIGEST",
-        "OPL_REVIEW_LANE_BINDING",
-    ]
-    assert pack_input["source_refs"][
-        "manuscript_authoring_review_lane_binding_env_source"
-    ] == "OPL_REVIEW_LANE_BINDING"
     assert snapshot[
         "zero_artifact_or_hard_boundary_snapshot_fabrication_allowed"
     ] is False
@@ -106,15 +95,11 @@ def test_quality_cycle_declares_role_bound_review_transport_production_path() ->
         ],
         "binding_kind": "controller_required",
         "executor_may_select_lane": False,
-        "producer_finalizer_ref": (
-            "src/med_autoscience/authority_handlers/"
-            "_stage_attempt_review_snapshot.py#"
-            "finalize_manuscript_authoring_producer_snapshot_closeout"
-        ),
-        "producer_attempt_local": True,
-        "lane_fallback": False,
-        "review_lane_binding_env_source": "OPL_REVIEW_LANE_BINDING",
-        "missing_binding_effect": "fail_closed",
+        "missing_binding_effect": "quality_debt_without_quality_or_readiness_claim",
+        "author_review_package_mode": "current_revision_projection",
+        "content_change_effect": "generate_new_revision_and_refresh_projection",
+        "review_result_binding": "selected_revision_id",
+        "byte_hash_size_or_locator_drift_blocks_refresh": False,
     }
     assert snapshot[
         "source_refs_by_member_id_must_exactly_match_review_scope"
@@ -232,7 +217,7 @@ def test_quality_cycle_declares_role_bound_review_transport_production_path() ->
     assert "page-hash evidence candidate" in re_reviewer
 
 
-def test_stage_specific_fail_closed_finalizer_overrides_generic_quality_debt_fallback() -> None:
+def test_manuscript_authoring_uses_current_projection_without_release_gate() -> None:
     roles = (ROOT / "agent/quality_gates/stage_quality_cycle_roles.md").read_text(
         encoding="utf-8"
     )
@@ -246,27 +231,21 @@ def test_stage_specific_fail_closed_finalizer_overrides_generic_quality_debt_fal
     transport = authoring_stage["stage_contract_extension"][
         "review_input_snapshot_transport"
     ]
-    normalized_roles = " ".join(roles.split())
+    handler = (
+        ROOT
+        / "src/med_autoscience/authority_handlers/_stage_attempt_review_snapshot.py"
+    ).read_text(encoding="utf-8")
     normalized_authoring = " ".join(authoring.split())
 
-    assert (
-        "the current Stage has no stage-specific required fail-closed snapshot finalizer"
-        in normalized_roles
-    )
-    assert (
-        "For a Stage that declares a required fail-closed snapshot finalizer"
-        in normalized_roles
-    )
-    assert (
-        "must fail closed before closeout: do not generate a closeout packet or quality/readiness claim"
-        in normalized_roles
-    )
     assert transport["review_lane_binding"] == "controller_required"
-    assert transport["lane_fallback"] is False
-    assert transport["missing_binding_effect"] == "fail_closed"
-    assert "fail closed before it can materialize a request or return a closeout packet" in (
+    assert transport["author_review_package_mode"] == "current_revision_projection"
+    assert transport["byte_hash_size_or_locator_drift_blocks_refresh"] is False
+    assert "create a new `generation_id` / revision and refresh" in normalized_authoring
+    assert "they are not author-review update or closeout authority" in (
         normalized_authoring
     )
+    assert "finalize_manuscript_authoring_producer_snapshot_closeout" not in handler
+    assert "OPL_REVIEW_LANE_BINDING" not in handler
 
 
 def test_quality_cycle_adopts_framework_epistemic_currentness_and_scope_budget() -> None:

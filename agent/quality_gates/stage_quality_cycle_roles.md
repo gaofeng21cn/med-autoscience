@@ -78,9 +78,7 @@ binding, explicit transport locators, hashes, and sizes. Lane, scope, role, and
 owner refs remain in MAS-owned records and are opaque to Framework. Copy the
 same four-field `owner_authority_ref` object into
 `closeout_packet.closeout_ref_metadata[]`; use `ref`, not the legacy `uri` spelling.
-If the exact
-map is unavailable and the current Stage has no stage-specific required
-fail-closed snapshot finalizer, do not invent a request: record lane quality
+If the exact map is unavailable, do not invent a request: record lane quality
 debt and continue the hosted action without a quality, publication, export,
 submission, or ready claim. Once you return a request, every member identity,
 locator, hash, and size is an exact claim. An invalid,
@@ -128,13 +126,16 @@ Bind snapshot authority to the exact
 resulting request at
 `route_impact.stage_quality_cycle.review_input_snapshot_materialization_request`
 and append its owner-authority exact-ref entry to
-`closeout_packet.closeout_ref_metadata[]`. For a Stage that declares a required
-fail-closed snapshot finalizer, a missing or mismatched manifest inventory,
-locator map, or controller-bound lane must fail closed before closeout: do not
-generate a closeout packet or quality/readiness claim. The generic omit-and-
-record-quality-debt fallback applies only to Stages without that
-stage-specific finalizer. Never call a snapshot finalizer for a zero-artifact
-or hard-boundary producer.
+`closeout_packet.closeout_ref_metadata[]`. If the manifest inventory, locator
+map, or controller-bound lane is unavailable, omit the request, record lane
+quality debt, and make no quality or readiness claim. Never call a snapshot
+finalizer for a zero-artifact or hard-boundary producer.
+
+For `manuscript_authoring`, the author-review package is a current revision
+projection. Content changes create a new generation and refresh that projection;
+an earlier review remains bound to its earlier generation. Do not make prior
+byte/hash/size, path, locator, symlink, or file-identity equality a refresh or
+closeout gate. These fields remain transport and stale-hint metadata only.
 
 ## Reviewer
 
