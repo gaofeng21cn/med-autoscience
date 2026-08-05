@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import ast
 import importlib
 from importlib.metadata import PackageNotFoundError, version
 import json
@@ -10,21 +11,27 @@ ROOT = Path(__file__).resolve().parents[1]
 
 
 def test_carrier_root_descriptor_projects_owner_identity_without_lifecycle_authority() -> None:
-    owner_descriptor = json.loads(
-        (ROOT / "contracts/opl_agent_package_manifest.json").read_text(
-            encoding="utf-8"
-        )
-    )
+    owner_manifest_path = ROOT / "contracts/opl_agent_package_manifest.json"
+    root_manifest_path = ROOT / "opl-package.json"
+    assert root_manifest_path.read_bytes() == owner_manifest_path.read_bytes()
+
+    owner_descriptor = json.loads(owner_manifest_path.read_text(encoding="utf-8"))
+    root_descriptor = json.loads(root_manifest_path.read_text(encoding="utf-8"))
     carrier_descriptor = json.loads(
         (ROOT / "plugins/med-autoscience/opl-package.json").read_text(
             encoding="utf-8"
         )
     )
-    plugin = json.loads(
+    nested_plugin = json.loads(
         (ROOT / "plugins/med-autoscience/.codex-plugin/plugin.json").read_text(
             encoding="utf-8"
         )
     )
+    root_plugin = json.loads(
+        (ROOT / ".codex-plugin/plugin.json").read_text(encoding="utf-8")
+    )
+
+    assert root_descriptor == owner_descriptor
 
     projected_owner_fields = {
         "surface_kind",
@@ -73,7 +80,19 @@ def test_carrier_root_descriptor_projects_owner_identity_without_lifecycle_autho
     assert carrier_descriptor["carrier_source_role"] == (
         "codex_plugin_default_carrier_not_package_truth"
     )
-    assert carrier_descriptor["codex_surface"]["plugin_id"] == plugin["name"]
+    assert (
+        carrier_descriptor["codex_surface"]["plugin_id"]
+        == root_plugin["name"]
+        == nested_plugin["name"]
+    )
+    assert (
+        carrier_descriptor["version"]
+        == root_plugin["version"]
+        == nested_plugin["version"]
+    )
+    assert carrier_descriptor["codex_surface"]["configured_codex_plugin_carrier"] == (
+        root_descriptor["codex_surface"]["configured_codex_plugin_carrier"]
+    )
 
     def nested_keys(value: object) -> set[str]:
         if isinstance(value, dict):
@@ -162,15 +181,23 @@ def test_package_plugin_and_python_versions_are_one_semver() -> None:
             encoding="utf-8"
         )
     )
-    plugin = json.loads(
+    root_plugin = json.loads(
+        (ROOT / ".codex-plugin/plugin.json").read_text(encoding="utf-8")
+    )
+    nested_plugin = json.loads(
         (
             ROOT
             / "plugins/med-autoscience/.codex-plugin/plugin.json"
         ).read_text(encoding="utf-8")
     )
 
-    assert package["version"] == pyproject["project"]["version"] == plugin["version"]
-    assert package["version"] == "0.2.24"
+    assert (
+        package["version"]
+        == pyproject["project"]["version"]
+        == root_plugin["version"]
+        == nested_plugin["version"]
+    )
+    assert package["version"] == "0.2.25"
     assert "distribution_payload" not in package
     assert package["agent_id"] == package["package_id"] == "mas"
     assert package["codex_surface"]["plugin_id"] == "med-autoscience"
@@ -188,23 +215,30 @@ def test_package_plugin_and_python_versions_are_one_semver() -> None:
             "med_autoscience.authority_handlers.foundry_owner_gate:main"
         )
     }
-    assert plugin["name"] == "med-autoscience"
-    assert plugin["repository"] == "https://github.com/gaofeng21cn/med-autoscience"
-    assert plugin["skills"] == "./skills/"
-    assert "mcpServers" not in plugin
-    assert plugin["interface"]["displayName"] == "Med Auto Science"
-    assert plugin["interface"]["composerIcon"] == plugin["interface"]["logo"]
-    plugin_root = ROOT / "plugins/med-autoscience"
-    assert (plugin_root / plugin["interface"]["composerIcon"]).is_file()
-    assert (plugin_root / "skills/med-autoscience/agents/openai.yaml").is_file()
-    assert not (plugin_root / "bin/medautosci-mcp").exists()
+    assert root_plugin["name"] == nested_plugin["name"] == "med-autoscience"
+    assert root_plugin["repository"] == nested_plugin["repository"] == (
+        "https://github.com/gaofeng21cn/med-autoscience"
+    )
+    assert root_plugin["skills"] == "./plugins/med-autoscience/skills/"
+    assert nested_plugin["skills"] == "./skills/"
+    for plugin_root, plugin in (
+        (ROOT, root_plugin),
+        (ROOT / "plugins/med-autoscience", nested_plugin),
+    ):
+        assert "mcpServers" not in plugin
+        assert plugin["interface"]["displayName"] == "Med Auto Science"
+        assert plugin["interface"]["composerIcon"] == plugin["interface"]["logo"]
+        assert (plugin_root / plugin["interface"]["composerIcon"]).is_file()
+        prompt_text = json.dumps(plugin["interface"]["defaultPrompt"]).lower()
+        assert "doctor" not in prompt_text
+        assert "controller" not in prompt_text
+
+    nested_plugin_root = ROOT / "plugins/med-autoscience"
+    assert (nested_plugin_root / "skills/med-autoscience/agents/openai.yaml").is_file()
+    assert not (nested_plugin_root / "bin/medautosci-mcp").exists()
     assert not (ROOT / "plugins/mas").exists()
     assert not any((ROOT / "src/med_autoscience/cli").glob("*.py"))
     assert not (ROOT / "scripts/install-codex-plugin.sh").exists()
-
-    prompt_text = json.dumps(plugin["interface"]["defaultPrompt"]).lower()
-    assert "doctor" not in prompt_text
-    assert "controller" not in prompt_text
 
 
 def test_repo_marketplace_exposes_only_the_codex_plugin_carrier() -> None:
@@ -214,10 +248,7 @@ def test_repo_marketplace_exposes_only_the_codex_plugin_carrier() -> None:
         )
     )
     plugin = json.loads(
-        (
-            ROOT
-            / "plugins/med-autoscience/.codex-plugin/plugin.json"
-        ).read_text(encoding="utf-8")
+        (ROOT / ".codex-plugin/plugin.json").read_text(encoding="utf-8")
     )
     marketplace = json.loads(
         (ROOT / ".agents/plugins/marketplace.json").read_text(encoding="utf-8")
@@ -230,7 +261,7 @@ def test_repo_marketplace_exposes_only_the_codex_plugin_carrier() -> None:
             "name": "med-autoscience",
             "source": {
                 "source": "local",
-                "path": "./plugins/med-autoscience",
+                "path": "./",
             },
             "policy": {
                 "installation": "AVAILABLE",
@@ -247,6 +278,81 @@ def test_repo_marketplace_exposes_only_the_codex_plugin_carrier() -> None:
     assert entry["category"] == plugin["interface"]["category"]
     assert package["package_id"] == "mas"
     assert "products" not in entry["policy"]
+
+
+def test_root_plugin_source_contains_the_complete_hosted_runtime_closure() -> None:
+    package_path = ROOT / "opl-package.json"
+    owner_manifest_path = ROOT / "contracts/opl_agent_package_manifest.json"
+    package = json.loads(package_path.read_text(encoding="utf-8"))
+    plugin = json.loads(
+        (ROOT / ".codex-plugin/plugin.json").read_text(encoding="utf-8")
+    )
+    marketplace = json.loads(
+        (ROOT / ".agents/plugins/marketplace.json").read_text(encoding="utf-8")
+    )
+
+    assert package_path.read_bytes() == owner_manifest_path.read_bytes()
+    assert marketplace["plugins"][0]["source"] == {
+        "source": "local",
+        "path": "./",
+    }
+    assert plugin["skills"] == "./plugins/med-autoscience/skills/"
+
+    for relative_path in (
+        package["domain_descriptor_ref"],
+        package["action_catalog_ref"],
+        "contracts/domain_handler_registry.json",
+        "agent/stages/manifest.json",
+        "src/med_autoscience/__init__.py",
+    ):
+        assert (ROOT / relative_path.split("#", 1)[0]).is_file(), relative_path
+
+    action_catalog = json.loads(
+        (ROOT / package["action_catalog_ref"]).read_text(encoding="utf-8")
+    )
+    stage_manifest = json.loads(
+        (ROOT / "agent/stages/manifest.json").read_text(encoding="utf-8")
+    )
+    stage_actions = {
+        action["action_id"]
+        for action in action_catalog["actions"]
+        if action["execution_binding"]["kind"] == "stage_binding"
+    }
+    assert stage_actions == {stage["stage_id"] for stage in stage_manifest["stages"]}
+    for stage in stage_manifest["stages"]:
+        for ref in (
+            stage["policy_ref"],
+            stage["prompt_ref"],
+            *stage["knowledge_refs"],
+            *stage["quality_gate_refs"],
+        ):
+            assert (ROOT / ref).is_file(), ref
+
+    registry = json.loads(
+        (ROOT / "contracts/domain_handler_registry.json").read_text(encoding="utf-8")
+    )
+    handlers = {
+        entry["handler_id"]: entry["binding"] for entry in registry["handlers"]
+    }
+    handler_refs = {
+        action["execution_binding"]["handler_ref"].removeprefix("handler:")
+        for action in action_catalog["actions"]
+        if action["execution_binding"]["kind"] == "handler_ref"
+    }
+    assert handler_refs <= handlers.keys()
+    for handler_id in handlers:
+        binding = handlers[handler_id]
+        module_path = ROOT / "src" / Path(*binding["module"].split("."))
+        source_path = module_path.with_suffix(".py")
+        if not source_path.is_file():
+            source_path = module_path / "__init__.py"
+        assert source_path.is_file(), binding["module"]
+        module = ast.parse(source_path.read_text(encoding="utf-8"))
+        assert any(
+            isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef))
+            and node.name == binding["callable"]
+            for node in ast.walk(module)
+        ), (binding["module"], binding["callable"])
 
 
 def test_package_import_and_hosted_entry_sources_resolve() -> None:
@@ -308,12 +414,12 @@ def test_validator_release_set_preserves_managed_provenance_gate() -> None:
         (ROOT / "contracts/action_catalog.json").read_text(encoding="utf-8")
     )
 
-    assert release["release_set_id"] == "mas-validator-0.2.24"
-    assert release["package_version"] == package["version"] == "0.2.24"
+    assert release["release_set_id"] == "mas-validator-0.2.25"
+    assert release["package_version"] == package["version"] == "0.2.25"
     assert package["release_set_receipt_ref"] == (
         "contracts/mas_validator_release_set_receipt.json"
     )
-    assert release["source_ref"] == "refs/tags/v0.2.24"
+    assert release["source_ref"] == "refs/tags/v0.2.25"
     assert "source_commit" not in release
     assert release["supported_scope"]["kind"] == "exact_byte_domain_validator"
     assert (
