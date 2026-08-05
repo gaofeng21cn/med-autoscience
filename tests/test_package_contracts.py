@@ -170,13 +170,13 @@ def test_package_plugin_and_python_versions_are_one_semver() -> None:
     )
 
     assert package["version"] == pyproject["project"]["version"] == plugin["version"]
-    assert package["version"] == "0.2.23"
+    assert package["version"] == "0.2.24"
     assert "distribution_payload" not in package
     assert package["agent_id"] == package["package_id"] == "mas"
     assert package["codex_surface"]["plugin_id"] == "med-autoscience"
     assert package["codex_surface"]["configured_codex_plugin_carrier"] == {
         "kind": "codex_plugin_manager",
-        "plugin_selector": "med-autoscience@med-autoscience-local",
+        "plugin_selector": "med-autoscience@med-autoscience",
         "executor_route": "codex_cli",
         "marketplace_source": "gaofeng21cn/med-autoscience",
         "publication_ref": (
@@ -308,12 +308,12 @@ def test_validator_release_set_preserves_managed_provenance_gate() -> None:
         (ROOT / "contracts/action_catalog.json").read_text(encoding="utf-8")
     )
 
-    assert release["release_set_id"] == "mas-validator-0.2.23"
-    assert release["package_version"] == package["version"] == "0.2.23"
+    assert release["release_set_id"] == "mas-validator-0.2.24"
+    assert release["package_version"] == package["version"] == "0.2.24"
     assert package["release_set_receipt_ref"] == (
         "contracts/mas_validator_release_set_receipt.json"
     )
-    assert release["source_ref"] == "refs/tags/v0.2.23"
+    assert release["source_ref"] == "refs/tags/v0.2.24"
     assert "source_commit" not in release
     assert release["supported_scope"]["kind"] == "exact_byte_domain_validator"
     assert (
