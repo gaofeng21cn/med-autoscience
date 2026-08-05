@@ -3,7 +3,7 @@
 Owner: `MedAutoScience`
 Purpose: `active_truth_and_acceptance_index`
 State: `active_support`
-Machine boundary: 人读索引。机器真相归 declarative pack、contracts、三个 registry-bound authority functions、OPL runtime ledgers、study workspaces、publication artifacts 与 owner receipts。
+Machine boundary: 人读索引。机器真相归 declarative pack、contracts、closed registry 当前绑定的六个 authority callables、OPL runtime ledgers、study workspaces、publication artifacts 与 owner receipts。
 
 本目录只承接唯一 Active Truth 与仍有效的验收边界。当前摘要、开放差距和下一轮
 Agent prompt 的唯一 owner 是
@@ -21,7 +21,7 @@ private-control-plane、runtime implementation 和 dated proof 流水归 Git 或
 
 | 层次 | Owner | 当前作用 |
 | --- | --- | --- |
-| Repo/source 结构 | MAS maintainers | 保持 declarative pack + three minimal authority functions，阻止 private runtime/wrapper 复活 |
+| Repo/source 结构 | MAS maintainers | 保持 declarative pack + six registry-bound authority callables，阻止 private runtime/wrapper 复活 |
 | Generated/runtime platform | OPL | CLI/MCP/Skill/status/workbench、StageRun/Attempt、StateIndex、lifecycle、provider/package transport |
 | Domain authority | MAS | 医学 truth、quality/publication/artifact/memory 判断与 owner answer |
 | Live Evidence | MAS + OPL owner surfaces | 真实 StageRun、paper artifact、independent Review、publication/release readback |

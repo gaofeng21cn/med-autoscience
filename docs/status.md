@@ -15,7 +15,7 @@ MAS 不再持有私有 scheduler、runner、queue、session store、lifecycle/SQ
 StateIndex、status/workbench、CLI/MCP/product wrapper、provider/package transport、
 NextAction、PaperRecovery、stage terminalizer 或私有 quality validator。通用能力由
 OPL Pack / Connect / Runway / Ledger / Workspace / Console 提供；医学专业能力由
-declarative pack、ScholarSkills、独立 Review 与三个最小 authority functions 提供，未作
+declarative pack、ScholarSkills、独立 Review 与六个 registry-bound authority callables 提供，未作
 功能降级。
 
 这项结论只覆盖结构和 source closure，不等于 live runtime、paper progress、
@@ -27,16 +27,16 @@ publication/submission ready 或 production ready。
 | --- | --- |
 | Identity | canonical agent/package id `mas`；machine domain id `medautoscience`；`med-autoscience` 只作 repo/package/plugin locator |
 | Package target | MAS 是 `OPL Package(kind=agent)`；owner 独立发布完整 bytes 到自身 GHCR `latest-stable`。当前 `MAS required capability dependency` 标签表示 `mas-scholar-skills` 硬依赖；普通 readiness 只检查 identity presence 与所需 capability callability，缺失只阻断 MAS |
-| Package transition | repo manifest 当前仍声明 SemVer `0.2.24`、ScholarSkills version range/ABI、activation receipt、lock/atomic closure 与 Release Set refs；这些是待兼容迁移的机器事实，不是目标 composition 规则，也不能证明 GHCR independent latest-stable 已落地 |
+| Package transition | repo manifest 当前声明 source version `0.2.24`、required presence edge、配置的 Codex Plugin carrier，以及仍待迁移的 ScholarSkills version range/ABI、activation materialization/receipt 与 validator Release Set ref；这些是当前机器事实，不是目标 composition 规则，也不能证明 owner GHCR `latest-stable` 或完整 carrier installed/callable currentness |
 | Declarative pack | `agent/` 持有 primary skill、六个 Stage、prompts、knowledge 与 quality gates；plugin skill 是字节一致的分发镜像 |
-| Action catalog | `family-action-catalog.v2`：六个公开 Stage action + 三个无用户 surface 的内部 authority actions |
+| Action catalog | `family-action-catalog.v2`：六个公开 Stage action + 五个无用户 surface 的 host-only authority actions |
 | Generated surfaces | CLI、MCP、Skill、product-entry、status、workbench 与 default domain-handler surface 全由 OPL 生成或托管 |
 | Runtime | StageRun、Attempt、Temporal、session、retry、StateIndex、storage/lifecycle、observability 与 transition materialization 全归 OPL |
 | Route owner | decisive Codex Attempt 决定领域 route；OPL StageRun controller 只校验并物化 transition |
 | Provider/resource | OPL Connect / Pack 生成 exact-path、digest-bound receipt；MAS 只消费 receipt 并作医学判断 |
 | Publication handoff | `publication_generation` 强制同代绑定 package、submission status、publication evaluation、next action 与 projection manifest；MAS owner receipt 授权 OPL Pack 原子投影完整 submission tree，但不授权 publication/submission ready |
-| Retained code | `evaluate_study_lifecycle_reactivation_authority`、`evaluate_candidate_admission_authority`、`evaluate_paper_mission_authority` 与 `evaluate_agent_lab_self_evolution_closeout` 是仅有的非声明式 authority functions；reactivation handler 只决定 MAS lifecycle 语义并输出 exact-bytes CAS 授权，不持有 runtime、session 或物化权限 |
-| Source morphology | `src/med_autoscience/` 只保留 package init、四个 authority handlers、共享纯校验 helper 与 CSL assets |
+| Retained code | closed registry 绑定 qualification work-item provisioning、study lifecycle reactivation、candidate admission、build-dependency currentness、paper mission 与 self-evolution closeout 共六个非声明式 authority callables；这些 callable 只消费 host 注入的 exact refs 并返回领域裁决，不持有 runtime、session、transport 或物化权限 |
+| Source morphology | `src/med_autoscience/authority_handlers/` 保留上述六个 registry target 与共享纯校验 helper，另有 package init 和 CSL assets |
 
 ## 0.2.24 validator Release Set 边界
 

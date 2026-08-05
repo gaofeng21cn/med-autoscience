@@ -1,5 +1,16 @@
 {
   "surface_kind": "standard_agent_source_closure_audit",
   "version": "standard-agent-source-closure-audit.v1",
-  "entries": []
+  "entries": [
+    {
+      "file": "src/med_autoscience/authority_handlers/foundry_owner_gate.py",
+      "symbol": "_read_physical_receipt",
+      "source_digest": "sha256:3a298995e498b4fcacbac886e0f91f5ee14fad5788edf30877585de53c96d7c5",
+      "allowed_effects": [
+        "filesystem_write"
+      ],
+      "role": "minimal_authority_function",
+      "allowed_targets": []
+    }
+  ]
 }

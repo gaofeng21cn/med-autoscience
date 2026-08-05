@@ -14,9 +14,9 @@ MAS 描述医学研究阶段、知识、质量门、六个公开 Stage action、
 ## 当前可交付形态
 
 - `agent/` 是 MAS declarative pack：primary skill、stages、knowledge、prompts 与 quality gates。
-- `contracts/action_catalog.json` 是 closed V2 catalog：六个公开 action 与六个 canonical Stage 一一对应；candidate admission 与 paper mission 作为两个无用户 surface 的内部 authority actions。
-- `contracts/domain_handler_registry.json` 绑定 candidate admission、paper mission 与 self-evolution closeout 三个纯 callable；旧 domain entry、status/read-model、queue 和 transport caller 已从 active source 物理退役。
-- 三个最小非声明式实现只校验 host 注入的 exact refs，并返回对应医学 authority result；它们不持有文件、网络、进程、session、lifecycle 或 transition authority。
+- `contracts/action_catalog.json` 是 closed V2 catalog：六个公开 action 与六个 canonical Stage 一一对应；另有 qualification work-item provisioning、study lifecycle reactivation、candidate admission、build-dependency currentness 与 paper mission 五个无用户 surface 的 host-only authority actions。
+- `contracts/domain_handler_registry.json` 绑定上述五个 catalog action 与 self-evolution closeout，共六个纯 callable；旧 domain entry、status/read-model、queue 和 transport caller 已从 active source 物理退役。
+- 六个最小非声明式实现只校验 host 注入的 exact refs，并返回对应医学 authority result；它们不持有文件、网络、进程、session、lifecycle 或 transition authority。
 - `contracts/runtime_environment_requirements.json` 只声明 MAS 的运行环境需求；环境解析、安装和运行归 OPL `env prepare/run`。
 - OPL 持有通用 runtime、queue、attempt ledger、retry/dead-letter、StateIndex、lifecycle/storage、observability 和 hosted workbench。
 

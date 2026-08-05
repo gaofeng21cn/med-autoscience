@@ -17,7 +17,7 @@ MAS declarative pack
   -> MAS owner consumes domain result
 ```
 
-`src/med_autoscience/` 只保留 package init、三个 registry-bound authority handler 与 CSL assets。旧 scheduler、runner、queue、session store、lifecycle/SQLite、StateIndex、status/workbench、provider/package transport、NextAction、PaperRecovery 与 private validator只在 Git/history provenance 中读取。
+`src/med_autoscience/authority_handlers/` 保留 closed registry 当前绑定的六个 authority targets 与共享纯校验 helper，另有 package init 和 CSL assets。旧 scheduler、runner、queue、session store、lifecycle/SQLite、StateIndex、status/workbench、provider/package transport、NextAction、PaperRecovery 与 private validator只在 Git/history provenance 中读取。
 
 ## 当前入口
 

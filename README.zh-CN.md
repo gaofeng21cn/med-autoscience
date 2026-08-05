@@ -156,9 +156,9 @@ AI 可以协助整理数据、执行分析、组织证据和汇报进度；临�
 - MAS Package 的用户生命周期统一使用 `opl packages install mas`、`opl packages update mas` 和 `opl packages uninstall mas`。MAS 必需依赖 `mas-scholar-skills`；普通 readiness 只检查该 identity 存在且所需能力可调用。依赖缺失或不可调用只阻断 MAS 并进入托管安装/修复，不阻断无关 Package，也不能将该依赖降级为 optional。
 - 目标分发形态是 MAS owner 将完整 Package bytes 独立发布到自身 GHCR `latest-stable`，Codex Plugin materialization 只是一个 carrier projection。当前机器合同和 readback 在迁移期间仍可能暴露旧 version range、ABI、lock、payload、digest、atomic closure、receipt 或共享 Release Set 字段；这些字段不能证明目标模型已经实现。
 - 当前兼容标签“必需的 `mas-scholar-skills` 依赖闭包”在迁移期只表示 required identity/callability edge，不表示目标 readiness 需要版本求解、锁定或跨包原子闭包。
-- 单独 clone 本仓只会得到 MAS declarative pack，不会安装 OPL runtime。OPL 读取 `contracts/domain_descriptor.json`，编译六个公开 Stage action 与一个内部 authority handler binding，并生成 CLI/MCP/Skill/product surface 与托管 runtime/workbench。
+- 单独 clone 本仓只会得到 MAS declarative pack，不会安装 OPL runtime。OPL 读取 `contracts/domain_descriptor.json`，编译六个公开 Stage action，并通过 closed registry 托管五个无用户 surface 的 host-only authority action 与 self-evolution closeout callable；CLI/MCP/Skill/product surface 和 runtime/workbench 均由 OPL 生成或托管。
 - canonical domain id 是 `mas`；`med-autoscience` 只作为 repo、package 与 plugin locator。
-- 根层 `agent/` pack 与 action schemas 是 interface source。公开执行只走六个 OPL-hosted Stage action；`paper_mission_authority_evaluate` 是 registry-bound MAS 内部 authority callable，不是用户命令。
+- 根层 `agent/` pack 与 action schemas 是 interface source。公开执行只走六个 OPL-hosted Stage action；qualification work-item provisioning、study lifecycle reactivation、candidate admission、build-dependency currentness 与 paper mission evaluation 是 registry-bound MAS 内部 authority callable，不是用户命令。
 - Runtime environment 由 OPL 根据 `contracts/runtime_environment_requirements.json` 准备；MAS 不再从 import、workspace bootstrap 或 installer 安装 Python/R/plugin 依赖。
 - 当前唯一 stage-route authority 是 `Codex CLI selected declared stage`。`StageOutcome`、旧 `NextActionEnvelope`、Queue、attempt、provider、status 与 workbench 只提供非绑定上下文或观测，不能选择下一 Stage，也不能证明论文进展。
 - MAS 可通过 Codex skill 或 OPL hosted interface 使用；两条路径都回到同一套 MAS 医学 truth、quality、publication 与 artifact authority surface。

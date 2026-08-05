@@ -81,7 +81,7 @@ Machine boundary: Human-readable runtime-governance policy only; runtime truth r
   - 由 OPL owner surface 定义 workspace binding、runtime profile、environment preparation 和 operator context
 - generated-entry matrix
   - OPL 从 MAS V2 action catalog/schema/Stage manifest 生成 CLI、MCP、Skill、product-entry、status 与 workbench
-  - 六个公开 action 绑定 Stage manifest；两个 host-only authority actions 与 self-evolution closeout 通过 closed handler registry 托管；MAS 只保留三个最小 pure authority functions
+  - 六个公开 action 绑定 Stage manifest；五个 host-only authority actions 与 self-evolution closeout 通过 closed handler registry 托管；MAS 只保留六个最小 pure authority callables
 - stage pack
   - 把医学前验、stage packet、质量约束和 route-back 规则放在 MAS `agent/` pack
 - portfolio / studies / runtime artifacts

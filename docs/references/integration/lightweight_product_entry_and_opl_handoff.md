@@ -11,8 +11,8 @@ MAS 不再维护 repo-local product-entry builder、status/workbench shell、CLI
 
 当前 machine-readable 输入是：
 
-- `contracts/action_catalog.json`：六个公开 Stage actions、两个 host-only authority actions、schema 与 authority boundary；
-- `contracts/domain_handler_registry.json`：三个无用户 surface 的最小 authority callable bindings；
+- `contracts/action_catalog.json`：六个公开 Stage actions、五个 host-only authority actions、schema 与 authority boundary；
+- `contracts/domain_handler_registry.json`：五个 catalog authority actions 与 self-evolution closeout 共六个最小 authority callable bindings；
 - `contracts/generated_surface_handoff.json`：generated surface owner 与 forbidden writes；
 - `contracts/domain_descriptor.json`、`contracts/pack_compiler_input.json`：package/compiler input；
 - `agent/`：MAS stage、skill、prompt、knowledge 和 quality-gate semantics。
@@ -23,7 +23,7 @@ MAS 不再维护 repo-local product-entry builder、status/workbench shell、CLI
 agent/stages/manifest.json#<canonical_stage_id>
 ```
 
-内部 `candidate_admission_authority_evaluate` 与 `paper_mission_authority_evaluate` 只通过 closed handler refs 解析到纯 callables；registry 另绑定 self-evolution closeout handler。旧 `MedAutoScienceDomainEntry.dispatch` 已物理退役，不再是 V2 generated/default target，也没有 active caller。
+五个 host-only authority actions 只通过 closed handler refs 解析到纯 callables；registry 另绑定 self-evolution closeout handler。旧 `MedAutoScienceDomainEntry.dispatch` 已物理退役，不再是 V2 generated/default target，也没有 active caller。
 
 `product-entry-status`、`workspace-cockpit`、`product-entry-manifest`、`progress-projection`、`build-product-entry` 和旧 `medautosci product build-entry` 不是当前 MAS action id，也不是 repo-local executable truth。它们只能作为 OPL generated/hosted surface identity、retired migration identity 或 provenance 出现。
 
@@ -57,7 +57,7 @@ agent/stages/manifest.json#<canonical_stage_id>
 - `manuscript_authoring`：形成或修订可审阅稿件增量；
 - `review_and_quality_gate`：独立 cross-Stage Meta Review 与 defect-owner route；
 - `finalize_and_publication_handoff`：收口出版交付与外部 human gate；
-- `candidate_admission_authority_evaluate`、`paper_mission_authority_evaluate`：host-only authority actions，无 CLI/MCP/Skill/product surface；self-evolution closeout 仅为 closed-registry handler，不形成第三个 catalog action。
+- qualification work-item provisioning、study lifecycle reactivation、candidate admission、build-dependency currentness 与 paper mission evaluation：host-only authority actions，无 CLI/MCP/Skill/product/OpenAI/AI SDK surface；self-evolution closeout 仅为 closed-registry handler，不形成 catalog action。
 
 V1 `submit_study_task`、`launch_study`、`study_progress`、`paper_mission`、`mainline_*` 与 `domain_handler_export/dispatch` 不再是 public/default action。遗留内部 caller 必须通过 source-closure 与 physical-retirement gate 迁移，不得通过文档恢复为用户命令。
 

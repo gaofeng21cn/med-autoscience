@@ -13,11 +13,11 @@ MAS 不维护 repo-local product shell。产品入口由 OPL 从 MAS pack 生成
 - status read model / workbench drilldown；
 - action transport 与 functional harness。
 
-MAS 提供六个公开 Stage action、candidate admission 与 paper mission 两个无用户 surface 的内部 registry-bound authority actions、V2 schemas、body-free refs、owner receipts、typed blockers 与 authority refs。self-evolution closeout 只通过 closed handler registry 托管，不形成用户入口。
+MAS 提供六个公开 Stage action，以及 qualification work-item provisioning、study lifecycle reactivation、candidate admission、build-dependency currentness 与 paper mission 五个无用户 surface 的 host-only authority actions、V2 schemas、body-free refs、owner receipts、typed blockers 与 authority refs。self-evolution closeout 只通过 closed handler registry 托管，不形成 catalog action 或用户入口。
 
 ## 默认论文入口
 
-公开论文推进从六个 OPL-hosted Stage action 中选择；candidate admission、paper mission 与 self-evolution closeout handlers 只供 host 内部调用，不是用户命令。默认控制链是：
+公开论文推进从六个 OPL-hosted Stage action 中选择；五个 catalog authority action 与 self-evolution closeout handler 只供 host 内部调用，不是用户命令。默认控制链是：
 
 `Codex CLI selected stage -> nonbinding route context -> OPL readback -> MAS owner consumption`
 

@@ -23,7 +23,7 @@ StageRun、queue、attempt ledger、retry/dead-letter、StateIndex、lifecycle/s
 
 ## D-05 Medical authority
 
-MAS 的 declarative policy、ScholarSkills 与独立 Review 持有 study/source、quality、publication、artifact 与 memory 语义；三个 registry-bound authority functions 形成 owner receipt、route-back、quality debt、typed blocker 或 human gate。OPL 只传输和投影这些结果。
+MAS 的 declarative policy、ScholarSkills 与独立 Review 持有 study/source、quality、publication、artifact 与 memory 语义；closed registry 当前绑定六个 authority callables，形成 owner receipt、route-back、quality debt、typed blocker 或 human gate。OPL 只传输和投影这些结果。
 
 ## D-06 Next-action authority
 
@@ -89,7 +89,7 @@ Canonical `scripts/verify.sh` 默认运行一次只读 tracked-path/no-resurrect
 
 ## D-21 私有控制面物理退役
 
-MAS active source 只保留 package init、candidate admission、paper mission、self-evolution closeout 三个 registry-bound authority handlers、共享纯校验 helper 与 CSL assets。CLI/MCP/Skill/default domain-handler wrapper、scheduler、runner、queue、session store、lifecycle/SQLite、StateIndex、status/workbench、provider/package transport、NextAction、PaperRecovery、stage terminalizer 和私有 quality validator 全部物理退役。Canonical primary skill 与 plugin carrier 是声明源/分发镜像；authority handlers 是领域裁决函数，均不构成第二控制面。
+MAS active source 只保留 package init、qualification work-item provisioning、study lifecycle reactivation、candidate admission、build-dependency currentness、paper mission、self-evolution closeout 六个 registry-bound authority targets、共享纯校验 helper 与 CSL assets。CLI/MCP/Skill/default domain-handler wrapper、scheduler、runner、queue、session store、lifecycle/SQLite、StateIndex、status/workbench、provider/package transport、NextAction、PaperRecovery、stage terminalizer 和私有 quality validator 全部物理退役。Canonical primary skill 与 plugin carrier 是声明源/分发镜像；authority handlers 是领域裁决函数，均不构成第二控制面。
 
 ## D-19 Provider 与 dispatch transport
 
