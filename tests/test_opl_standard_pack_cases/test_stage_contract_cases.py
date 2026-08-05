@@ -118,22 +118,26 @@ def test_paper_study_stage_catalog_declares_stable_localized_display_names() -> 
         assert stage["display_name"] == display_names["en-US"]
 
 
-def test_package_manifest_routes_interface_and_lifecycle_to_opl_packages() -> None:
+def test_package_manifest_routes_interface_to_the_configured_native_carrier() -> None:
     manifest = _read_contract("opl_agent_package_manifest")
 
     assert manifest["agent_id"] == "mas"
     assert manifest["package_id"] == "mas"
     assert manifest["codex_surface"]["plugin_id"] == "med-autoscience"
     assert manifest["domain_descriptor_ref"] == "contracts/domain_descriptor.json"
+    assert manifest["codex_surface"]["configured_codex_plugin_carrier"] == {
+        "kind": "codex_plugin_manager",
+        "plugin_selector": "med-autoscience@med-autoscience",
+        "executor_route": "codex_cli",
+        "marketplace_source": "gaofeng21cn/med-autoscience",
+        "publication_ref": (
+            "ghcr.io/gaofeng21cn/one-person-lab-packages/mas:latest-stable"
+        ),
+    }
     dependency = manifest["capability_dependencies"][0]
-    assert all(
-        command.startswith("opl packages status --package-id mas")
-        for command in dependency["status_command_templates"].values()
-    )
-    assert all(
-        command.startswith("opl packages repair mas")
-        for command in dependency["repair_command_templates"].values()
-    )
+    assert "status_command_templates" not in dependency
+    assert "repair_command_templates" not in dependency
+    assert "activation_materialization" not in dependency
 
 
 def test_pack_compiler_input_declares_python_helper_boundary_without_generic_runtime() -> None:

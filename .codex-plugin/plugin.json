@@ -1,7 +1,7 @@
 {
   "name": "med-autoscience",
   "version": "0.2.25",
-  "description": "Codex skill carrier for the MedAutoScience medical research domain pack.",
+  "description": "Codex plugin carrier for the complete MedAutoScience medical research domain pack.",
   "author": {
     "name": "Gao Feng",
     "url": "https://github.com/gaofeng21cn"
@@ -15,11 +15,11 @@
     "codex",
     "domain-agent"
   ],
-  "skills": "./skills/",
+  "skills": "./plugins/med-autoscience/skills/",
   "interface": {
     "displayName": "Med Auto Science",
     "shortDescription": "Medical research domain pack for Codex.",
-    "longDescription": "Installs the MedAutoScience domain skill; OPL hosts generated interfaces while MAS keeps medical research policy and authority.",
+    "longDescription": "Installs the complete MedAutoScience domain pack; OPL hosts generated interfaces while MAS keeps medical research policy and authority.",
     "developerName": "Gao Feng",
     "category": "Research",
     "capabilities": [
@@ -27,8 +27,8 @@
       "Write"
     ],
     "websiteURL": "https://github.com/gaofeng21cn/med-autoscience",
-    "composerIcon": "./assets/icon.png",
-    "logo": "./assets/icon.png",
+    "composerIcon": "./plugins/med-autoscience/assets/icon.png",
+    "logo": "./plugins/med-autoscience/assets/icon.png",
     "defaultPrompt": [
       "Select the MAS Stage action for this research question.",
       "Review the available evidence and return the next owner route.",
