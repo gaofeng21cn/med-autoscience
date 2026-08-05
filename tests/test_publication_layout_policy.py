@@ -78,13 +78,14 @@ def test_package_and_stage_surfaces_consume_the_single_layout_policy() -> None:
     capability_map = read_json("contracts/capability_map.json")
     dependency = package["capability_dependencies"][0]
 
+    assert package["requires"] == [
+        {"package_id": "mas-scholar-skills", "presence": "required"}
+    ]
     assert dependency["package_id"] == "mas-scholar-skills"
-    assert dependency["version_requirement"] == ">=0.2.12 <0.3.0"
     assert dependency["required"] is True
-    assert dependency["dependency_kind"] == "hard_runtime_dependency"
-    assert dependency["missing_or_incompatible_policy"] == (
-        "fail_closed_to_doctor_and_repair"
-    )
+    assert dependency["capability_abi"] == "mas-scholar-skills.v1"
+    assert "medical-submission-prep" in dependency["required_export_ids"]
+    assert "mas-scholar-skills.submit" in dependency["required_module_ids"]
     assert pack_input["required_domain_pack_paths"].count(POLICY_REF) == 1
     assert pack_input["source_refs"]["publication_layout_policy_ref"] == POLICY_REF
     assert pack_input["source_refs"]["required_domain_pack_paths"].count(POLICY_REF) == 1

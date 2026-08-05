@@ -126,6 +126,28 @@ def test_carrier_root_descriptor_projects_owner_identity_without_lifecycle_autho
     }
     assert nested_keys(carrier_descriptor).isdisjoint(legacy_authority_keys)
 
+    forbidden_owner_lifecycle_keys = {
+        "activation_materialization",
+        "carrier_source_commit",
+        "codex_distribution",
+        "consumer_profile_id",
+        "dependency_kind",
+        "developer_distribution",
+        "install_owner",
+        "install_update_source",
+        "missing_or_incompatible_policy",
+        "opl_distribution",
+        "provider_manifest_ref",
+        "release_set_receipt_ref",
+        "repair_command_templates",
+        "required_for",
+        "status_command_templates",
+        "sync_command_refs",
+        "sync_scopes",
+        "version_requirement",
+    }
+    assert nested_keys(owner_descriptor).isdisjoint(forbidden_owner_lifecycle_keys)
+
 
 def test_package_manifest_owns_home_presentation_bytes() -> None:
     package = json.loads(
@@ -401,7 +423,7 @@ def test_package_import_and_hosted_entry_sources_resolve() -> None:
             assert (ROOT / binding["stage_manifest_ref"]).is_file()
 
 
-def test_validator_release_set_preserves_managed_provenance_gate() -> None:
+def test_historical_validator_release_set_stays_out_of_package_currentness() -> None:
     package = json.loads(
         (ROOT / "contracts/opl_agent_package_manifest.json").read_text(encoding="utf-8")
     )
@@ -414,12 +436,11 @@ def test_validator_release_set_preserves_managed_provenance_gate() -> None:
         (ROOT / "contracts/action_catalog.json").read_text(encoding="utf-8")
     )
 
-    assert release["release_set_id"] == "mas-validator-0.2.25"
-    assert release["package_version"] == package["version"] == "0.2.25"
-    assert package["release_set_receipt_ref"] == (
-        "contracts/mas_validator_release_set_receipt.json"
-    )
-    assert release["source_ref"] == "refs/tags/v0.2.25"
+    assert package["version"] == "0.2.25"
+    assert "release_set_receipt_ref" not in package
+    assert release["release_set_id"] == "mas-validator-0.2.24"
+    assert release["package_version"] == "0.2.24"
+    assert release["source_ref"] == "refs/tags/v0.2.24"
     assert "source_commit" not in release
     assert release["supported_scope"]["kind"] == "exact_byte_domain_validator"
     assert (
@@ -506,7 +527,7 @@ def test_stage_route_contract_has_one_canonical_package_source() -> None:
     ) == 1
 
 
-def test_scholarskills_is_a_managed_hard_dependency_not_a_sixth_agent() -> None:
+def test_scholarskills_is_required_presence_and_callability_not_a_sixth_agent() -> None:
     package = json.loads(
         (ROOT / "contracts/opl_agent_package_manifest.json").read_text(
             encoding="utf-8"
@@ -519,11 +540,17 @@ def test_scholarskills_is_a_managed_hard_dependency_not_a_sixth_agent() -> None:
     ]
     dependency = dependencies[0]
     assert dependency["package_id"] == "mas-scholar-skills"
-    assert dependency["kind"] == "framework_capability_package"
     assert dependency["required"] is True
-    assert dependency["dependency_kind"] == "hard_runtime_dependency"
-    assert dependency["version_requirement"] == ">=0.2.12 <0.3.0"
-    assert dependency["consumer_profile_id"] == "mas-medical-paper.v1"
+    assert dependency["capability_abi"] == "mas-scholar-skills.v1"
+    assert set(dependency) == {
+        "module_id",
+        "package_id",
+        "required",
+        "capability_abi",
+        "required_export_ids",
+        "required_module_ids",
+        "authority_boundary",
+    }
     assert package["codex_surface"]["standalone_distribution"] == (
         "repo_carrier_source"
     )
@@ -599,19 +626,12 @@ def test_scholarskills_is_a_managed_hard_dependency_not_a_sixth_agent() -> None:
     assert package["codex_surface"]["required_capability_package_ids"] == [
         "mas-scholar-skills"
     ]
-    assert dependency["required_for"] == [
-        "workspace_or_quest_codex_discovery",
-        "mas_operational_readiness",
-        "all_mas_medical_research_workflows",
-    ]
-    assert dependency["activation_materialization"]["required"] is True
-    assert dependency["activation_materialization"]["receipt_required"] is True
-    assert dependency["activation_materialization"]["readiness_policy"] == (
-        "all_core_skills_current_for_active_scope"
-    )
-    assert dependency["missing_or_incompatible_policy"] == (
-        "fail_closed_to_doctor_and_repair"
-    )
+    assert dependency["authority_boundary"] == {
+        "can_write_domain_truth": False,
+        "can_sign_owner_receipt": False,
+        "can_create_typed_blocker": False,
+        "can_write_runtime_queue": False,
+    }
 
 
 def test_submission_resources_are_host_or_package_provisioned_without_fallback() -> None:
