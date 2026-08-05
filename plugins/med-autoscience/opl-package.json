@@ -35,7 +35,7 @@
     ]
   },
   "publisher": "one-person-lab",
-  "version": "0.2.22",
+  "version": "0.2.23",
   "source": "first_party_repo_local",
   "carrier_source_role": "codex_plugin_default_carrier_not_package_truth",
   "domain_descriptor_ref": "contracts/domain_descriptor.json",
@@ -53,6 +53,13 @@
   "codex_surface": {
     "plugin_id": "med-autoscience",
     "standalone_distribution": "repo_carrier_source",
+    "configured_codex_plugin_carrier": {
+      "kind": "codex_plugin_manager",
+      "plugin_selector": "med-autoscience@med-autoscience-local",
+      "executor_route": "codex_cli",
+      "marketplace_source": "gaofeng21cn/med-autoscience",
+      "publication_ref": "ghcr.io/gaofeng21cn/one-person-lab-packages/mas:latest-stable"
+    },
     "required_skill_ids": [
       "med-autoscience"
     ],
