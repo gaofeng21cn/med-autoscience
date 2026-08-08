@@ -82,9 +82,9 @@ Required actions: 逐项比较理想态与机器面；将差距分类为 structu
 owner 与 no-active-caller evidence 成立时退役 stale surface；将仍开放项和下一 baton
 写回本计划。
 
-Verification commands: scripts/verify.sh；opl-doc-doctor doctor . --format json；
-运行全仓 Markdown 相对链接扫描；git diff --check。涉及 OPL-owned runtime/package
-claim 时另做对应 fresh readback，不从 repo checkout 反推。
+Verification commands: scripts/verify.sh；运行全仓 Markdown 相对链接扫描；
+git diff --check。涉及 OPL-owned runtime/package claim 时另做对应 fresh readback，
+不从 repo checkout 反推。
 
 Completion gate: 每个变更 claim 都有 machine/live evidence；本计划只含当前摘要、开放
 差距和下一 baton；canonical docs 不再持有冲突的 handler/action/package 口径；相对
