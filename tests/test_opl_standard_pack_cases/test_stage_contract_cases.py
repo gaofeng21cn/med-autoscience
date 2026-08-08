@@ -140,29 +140,33 @@ def test_package_manifest_routes_interface_to_the_configured_native_carrier() ->
     assert "activation_materialization" not in dependency
 
 
-def test_pack_compiler_input_declares_python_helper_boundary_without_generic_runtime() -> None:
+def test_pack_compiler_input_references_framework_profiles_without_copying_them() -> None:
     materialized = _read_contract("pack_compiler_input")
-    profile = materialized["implementation_profile"]
 
     assert materialized["canonical_agent_id"] == "mas"
     assert materialized["domain_id"] == "medautoscience"
-    assert profile["profile_id"] == "opl.standard_domain_agent.v1"
-    assert profile["agent_identity"] == "declarative_standard_agent_pack"
-    assert profile["pack_formats"] == ["markdown", "json"]
-    assert profile["generated_surfaces_owner"] == "one-person-lab"
-    helpers = profile["helpers"]
-    assert helpers["optional"] is True
-    assert helpers["language_is_identity"] is False
-    assert helpers["rust_policy"] == "framework_hot_path_only"
-
-    helper_implementations = helpers["entries"]
-    assert {entry["language"] for entry in helper_implementations} == {"python"}
-    assert {entry["role"] for entry in helper_implementations} == {"authority_function"}
-    for entry in helper_implementations:
-        assert entry["source_roots"]
-        for source_root in entry["source_roots"]:
-            assert source_root.endswith("/"), source_root
-            assert (REPO_ROOT / source_root).is_dir(), source_root
+    assert materialized["implementation_profile"] == {
+        "base_profile_ref": (
+            "contracts/opl-framework/"
+            "standard-agent-implementation-profile.schema.json"
+        ),
+        "helpers": {
+            "entries": [
+                {
+                    "language": "python",
+                    "role": "authority_function",
+                    "source_roots": ["src/med_autoscience/authority_handlers/"],
+                }
+            ]
+        },
+    }
+    assert materialized["standard_agent_pack_abi"] == {
+        "authority_ref": (
+            "contracts/opl-framework/"
+            "standard-domain-agent-skeleton-contract.json"
+            "#/agent_pack_contract/standard_agent_pack_abi"
+        )
+    }
 
 
 def test_owner_answer_uses_the_hosted_stage_run_contract_without_private_dispatch_abi() -> None:

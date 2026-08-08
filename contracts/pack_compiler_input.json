@@ -65,14 +65,8 @@
   },
   "generated_surface_owner": "one-person-lab",
   "implementation_profile": {
-    "profile_id": "opl.standard_domain_agent.v1",
-    "agent_identity": "declarative_standard_agent_pack",
-    "pack_formats": [
-      "markdown",
-      "json"
-    ],
+    "base_profile_ref": "contracts/opl-framework/standard-agent-implementation-profile.schema.json",
     "helpers": {
-      "optional": true,
       "entries": [
         {
           "language": "python",
@@ -81,11 +75,8 @@
             "src/med_autoscience/authority_handlers/"
           ]
         }
-      ],
-      "language_is_identity": false,
-      "rust_policy": "framework_hot_path_only"
-    },
-    "generated_surfaces_owner": "one-person-lab"
+      ]
+    }
   },
   "generated_surfaces_requested": [
     "cli",
@@ -442,113 +433,7 @@
     }
   ],
   "standard_agent_pack_abi": {
-    "authority_boundary": {
-      "abi_can_claim_domain_ready": false,
-      "abi_can_claim_l5_complete": false,
-      "abi_can_claim_quality_or_export": false,
-      "opl_can_mutate_domain_artifact_body": false,
-      "opl_can_write_domain_truth": false,
-      "opl_can_write_memory_body": false
-    },
-    "baseline_status": "frozen_machine_verifiable_baseline",
-    "l4_entry_gate": {
-      "can_claim_domain_ready": false,
-      "can_claim_l5": false,
-      "entry_level": "L4_structural_baseline",
-      "required_gates": [
-        "repo_layout_declared",
-        "stage_pack_v2_required",
-        "stage_prompt_skill_knowledge_quality_gate_refs_resolve",
-        "tool_affordance_boundary_declared",
-        "receipt_schema_declared",
-        "minimal_authority_functions_declared",
-        "generated_surface_handoff_declared",
-        "no_forbidden_write_contract_declared"
-      ]
-    },
-    "l5_entry_gate": {
-      "app_projection_counts_as_l5": false,
-      "conformance_pass_counts_as_l5": false,
-      "contract_validation_counts_as_l5": false,
-      "entry_level": "L5_production_operating_maturity",
-      "evidence_required": [
-        "real_user_path",
-        "long_soak_recovery",
-        "release_install_evidence",
-        "owner_acceptance",
-        "direct_and_opl_hosted_parity_at_scale"
-      ],
-      "provider_completion_counts_as_l5": false
-    },
-    "owner": "one-person-lab",
-    "required_repo_layout": [
-      {
-        "path": "agent/",
-        "required": true,
-        "role": "declarative_domain_pack"
-      },
-      {
-        "path": "contracts/",
-        "required": true,
-        "role": "machine_readable_contracts"
-      },
-      {
-        "path": "runtime/authority_functions/",
-        "required": true,
-        "role": "minimal_authority_functions"
-      }
-    ],
-    "required_stage_pack_shape": {
-      "knowledge_refs": {
-        "accepted_ref_prefixes": [
-          "agent/knowledge/"
-        ],
-        "required": true
-      },
-      "prompt_refs": {
-        "accepted_ref_prefixes": [
-          "agent/prompts/"
-        ],
-        "required": true
-      },
-      "quality_gate_refs": {
-        "accepted_ref_prefixes": [
-          "agent/quality_gates/"
-        ],
-        "required": true
-      },
-      "receipt_schema": {
-        "accepted_ref_prefixes": [
-          "contracts/"
-        ],
-        "default_source_ref": "contracts/owner_receipt_contract.json",
-        "required": true
-      },
-      "skill_refs": {
-        "accepted_ref_kinds": [
-          "repo_path",
-          "skill_id"
-        ],
-        "accepted_ref_prefixes": [
-          "agent/skills/"
-        ],
-        "required": true
-      },
-      "tool_affordance_boundary": {
-        "required": true,
-        "required_ref_fields": [
-          "capability_refs",
-          "permission_scope_refs",
-          "credential_boundary_refs",
-          "write_scope_refs",
-          "side_effect_risk_refs",
-          "forbidden_authority_refs"
-        ],
-        "role": "available_affordance_catalog_not_workflow_script"
-      }
-    },
-    "surface_kind": "opl_standard_agent_pack_abi",
-    "version": "standard-agent-pack-abi.v1"
+    "authority_ref": "contracts/opl-framework/standard-domain-agent-skeleton-contract.json#/agent_pack_contract/standard_agent_pack_abi"
   },
   "standard_stage_gate_output_model": {
     "executor_output": "stage_work_artifact_source_evidence_refs_and_execution_receipt",
