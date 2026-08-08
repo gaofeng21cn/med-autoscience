@@ -157,6 +157,7 @@ def test_absent_inventory_authorizes_exact_qualification_only_cas_bytes() -> Non
     )
     assert host_request["authorization_ref"] == authorization["authorization_ref"]
     assert host_request["operations_sha256"] == authorization["operations_sha256"]
+    assert authorization["satisfied_gate_ids"] == []
     assert host_request["materialization_scope_sha256"] == authorization[
         "materialization_scope_sha256"
     ]
