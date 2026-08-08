@@ -8,7 +8,7 @@
       "name": "med-autoscience",
       "source": {
         "source": "local",
-        "path": "./"
+        "path": "./plugins/med-autoscience"
       },
       "policy": {
         "installation": "AVAILABLE",

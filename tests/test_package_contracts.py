@@ -10,7 +10,7 @@ import tomllib
 ROOT = Path(__file__).resolve().parents[1]
 
 
-def test_carrier_root_descriptor_projects_owner_identity_without_lifecycle_authority() -> None:
+def test_native_carrier_descriptor_projects_owner_identity_without_lifecycle_authority() -> None:
     owner_manifest_path = ROOT / "contracts/opl_agent_package_manifest.json"
     root_manifest_path = ROOT / "opl-package.json"
     assert root_manifest_path.read_bytes() == owner_manifest_path.read_bytes()
@@ -72,7 +72,10 @@ def test_carrier_root_descriptor_projects_owner_identity_without_lifecycle_autho
             == owner_descriptor["codex_surface"][field]
         )
 
-    assert carrier_descriptor["capability_dependencies"] == []
+    assert (
+        carrier_descriptor["capability_dependencies"]
+        == owner_descriptor["capability_dependencies"]
+    )
     assert carrier_descriptor["requires"] == [
         {"package_id": "mas-scholar-skills", "presence": "required"}
     ]
@@ -105,7 +108,6 @@ def test_carrier_root_descriptor_projects_owner_identity_without_lifecycle_autho
 
     legacy_authority_keys = {
         "activation_materialization",
-        "capability_abi",
         "consumer_profile_id",
         "dependency_kind",
         "install_owner",
@@ -283,7 +285,7 @@ def test_repo_marketplace_exposes_only_the_codex_plugin_carrier() -> None:
             "name": "med-autoscience",
             "source": {
                 "source": "local",
-                "path": "./",
+                "path": "./plugins/med-autoscience",
             },
             "policy": {
                 "installation": "AVAILABLE",
@@ -302,12 +304,14 @@ def test_repo_marketplace_exposes_only_the_codex_plugin_carrier() -> None:
     assert "products" not in entry["policy"]
 
 
-def test_root_plugin_source_contains_the_complete_hosted_runtime_closure() -> None:
+def test_nested_native_carrier_keeps_hosted_runtime_owned_by_the_repo() -> None:
     package_path = ROOT / "opl-package.json"
     owner_manifest_path = ROOT / "contracts/opl_agent_package_manifest.json"
     package = json.loads(package_path.read_text(encoding="utf-8"))
     plugin = json.loads(
-        (ROOT / ".codex-plugin/plugin.json").read_text(encoding="utf-8")
+        (ROOT / "plugins/med-autoscience/.codex-plugin/plugin.json").read_text(
+            encoding="utf-8"
+        )
     )
     marketplace = json.loads(
         (ROOT / ".agents/plugins/marketplace.json").read_text(encoding="utf-8")
@@ -316,9 +320,9 @@ def test_root_plugin_source_contains_the_complete_hosted_runtime_closure() -> No
     assert package_path.read_bytes() == owner_manifest_path.read_bytes()
     assert marketplace["plugins"][0]["source"] == {
         "source": "local",
-        "path": "./",
+        "path": "./plugins/med-autoscience",
     }
-    assert plugin["skills"] == "./plugins/med-autoscience/skills/"
+    assert plugin["skills"] == "./skills/"
 
     for relative_path in (
         package["domain_descriptor_ref"],
