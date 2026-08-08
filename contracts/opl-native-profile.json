@@ -43,37 +43,6 @@
     "pyproject.toml"
   ],
   "managed_by_plugins": {
-    "opl-doc": {
-      "authority_boundary": {
-        "doctor_role": "lightweight_risk_map_only",
-        "does_not_own": [
-          "repo_truth",
-          "runtime_truth",
-          "domain_truth",
-          "artifact_authority",
-          "quality_verdicts",
-          "owner_receipts",
-          "production_readiness",
-          "foundry_agent_truth_set"
-        ],
-        "family_plan_role": "workflow_plan_only",
-        "native_profile_role": "profile_sync_and_drift_check_only",
-        "support_repos_role": "extension_only_not_default_foundry_agent_truth_set"
-      },
-      "does_not_own": [
-        "repo_truth",
-        "domain_truth",
-        "runtime_truth",
-        "artifact_authority",
-        "owner_receipts",
-        "quality_verdicts",
-        "production_readiness"
-      ],
-      "managed_surfaces": [
-        "contracts/opl-native-profile.json"
-      ],
-      "management": "profile_check_and_sync"
-    },
     "opl-flow": {
       "does_not_own": [
         "repo_specific_guidance",
