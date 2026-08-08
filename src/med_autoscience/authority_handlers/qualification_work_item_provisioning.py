@@ -666,6 +666,7 @@ def _cas_authorization(
         "operations_sha256": operations_sha256,
         "materialization_scope_sha256": materialization_scope_sha256,
         "absent_relative_path_preconditions": absent_paths,
+        "satisfied_gate_ids": [],
         "authorized": True,
         "single_use": True,
         "qualification_only": True,

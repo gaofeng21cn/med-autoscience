@@ -118,6 +118,7 @@
       "study_lifecycle",
       "provisioning_receipt"
     ],
+    "satisfied_gate_ids": [],
     "preconditions": "workspace index is absent or exact-CAS; lifecycle and receipt are absent",
     "semantics": "journaled_all_or_rollback",
     "successful_handler_result_alone_is_effective_authority": false,
