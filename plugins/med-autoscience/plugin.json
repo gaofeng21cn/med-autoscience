@@ -1,0 +1,43 @@
+{
+  "$schema": "https://agent-plugins.org/schemas/1.0.0/plugin.schema.json",
+  "name": "med-autoscience",
+  "version": "0.2.26",
+  "description": "Codex skill carrier for the MedAutoScience medical research domain pack.",
+  "author": {
+    "name": "Gao Feng",
+    "url": "https://github.com/gaofeng21cn"
+  },
+  "homepage": "https://github.com/gaofeng21cn/med-autoscience",
+  "repository": "https://github.com/gaofeng21cn/med-autoscience",
+  "license": "Apache-2.0",
+  "keywords": [
+    "medical-research",
+    "deepscientist",
+    "codex",
+    "domain-agent"
+  ],
+  "extensions": {
+    "com.openai": {
+      "interface": {
+        "displayName": "Med Auto Science",
+        "shortDescription": "Medical research domain pack for Codex.",
+        "longDescription": "Installs the MedAutoScience domain skill; OPL hosts generated interfaces while MAS keeps medical research policy and authority.",
+        "developerName": "Gao Feng",
+        "category": "Research",
+        "capabilities": [
+          "Interactive",
+          "Write"
+        ],
+        "websiteURL": "https://github.com/gaofeng21cn/med-autoscience",
+        "composerIcon": "./assets/icon.png",
+        "logo": "./assets/icon.png",
+        "defaultPrompt": [
+          "Select the MAS Stage action for this research question.",
+          "Review the available evidence and return the next owner route.",
+          "Prepare a publication handoff with explicit quality debt and blockers."
+        ],
+        "brandColor": "#1F7A8C"
+      }
+    }
+  }
+}

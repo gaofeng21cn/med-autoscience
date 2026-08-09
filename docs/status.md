@@ -27,7 +27,7 @@ publication/submission ready 或 production ready。
 | --- | --- |
 | Identity | canonical agent/package id `mas`；machine domain id `medautoscience`；`med-autoscience` 只作 repo/package/plugin locator |
 | Package target | MAS 是 `OPL Package(kind=agent)`；owner 独立发布完整 bytes 到自身 GHCR `latest-stable`。当前 `MAS required capability dependency` 标签表示 `mas-scholar-skills` 硬依赖；普通 readiness 只检查 identity presence 与所需 capability callability，缺失只阻断 MAS |
-| Package transition | repo manifest 当前声明 source version `0.2.25`、required presence/callability edge、必要 capability ABI/exports/modules 与配置的 repo-root Codex Plugin carrier；普通 Package currentness 只依赖 owner OCI、native carrier 与 fresh readback，不读取 Release Set、lifecycle receipt 或 Framework materialization state |
+| Package transition | repo manifest 当前声明 source version `0.2.26`、required presence/callability edge、必要 capability ABI/exports/modules 与配置的 repo-root Codex Plugin carrier；普通 Package currentness 只依赖 owner OCI、native carrier 与 fresh readback，不读取 Release Set、lifecycle receipt 或 Framework materialization state |
 | Declarative pack | `agent/` 持有 primary skill、六个 Stage、prompts、knowledge 与 quality gates；plugin skill 是字节一致的分发镜像 |
 | Action catalog | `family-action-catalog.v2`：六个公开 Stage action + 五个无用户 surface 的 host-only authority actions |
 | Generated surfaces | CLI、MCP、Skill、product-entry、status、workbench 与 default domain-handler surface 全由 OPL 生成或托管 |
@@ -44,7 +44,7 @@ publication/submission ready 或 production ready。
 qualification work-item provisioning、candidate admission、paper mission 与 Stage minimum-scope 记录必须在 ref、size、SHA、
 generation、receipt inventory 和 typed verdict 上一致。机器 receipt 见
 `contracts/mas_validator_release_set_receipt.json`，canonical source ref 为
-`refs/tags/v0.2.24`。该历史 receipt 不属于当前 0.2.25 普通 Package manifest。
+`refs/tags/v0.2.24`。该历史 receipt 不属于当前 0.2.26 普通 Package manifest。
 
 该 Release Set 仅绑定本次 validator artifact 与 exact-byte qualification，不是普通 Package
 安装、依赖 readiness 或更新 currentness 的权威，也不要求 MAS、ScholarSkills、Base 或 App

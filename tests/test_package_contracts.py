@@ -27,6 +27,9 @@ def test_native_carrier_descriptor_projects_owner_identity_without_lifecycle_aut
             encoding="utf-8"
         )
     )
+    portable_plugin = json.loads(
+        (ROOT / "plugins/med-autoscience/plugin.json").read_text(encoding="utf-8")
+    )
     root_plugin = json.loads(
         (ROOT / ".codex-plugin/plugin.json").read_text(encoding="utf-8")
     )
@@ -87,11 +90,13 @@ def test_native_carrier_descriptor_projects_owner_identity_without_lifecycle_aut
         carrier_descriptor["codex_surface"]["plugin_id"]
         == root_plugin["name"]
         == nested_plugin["name"]
+        == portable_plugin["name"]
     )
     assert (
         carrier_descriptor["version"]
         == root_plugin["version"]
         == nested_plugin["version"]
+        == portable_plugin["version"]
     )
     assert carrier_descriptor["codex_surface"]["configured_codex_plugin_carrier"] == (
         root_descriptor["codex_surface"]["configured_codex_plugin_carrier"]
@@ -214,14 +219,18 @@ def test_package_plugin_and_python_versions_are_one_semver() -> None:
             / "plugins/med-autoscience/.codex-plugin/plugin.json"
         ).read_text(encoding="utf-8")
     )
+    portable_plugin = json.loads(
+        (ROOT / "plugins/med-autoscience/plugin.json").read_text(encoding="utf-8")
+    )
 
     assert (
         package["version"]
         == pyproject["project"]["version"]
         == root_plugin["version"]
         == nested_plugin["version"]
+        == portable_plugin["version"]
     )
-    assert package["version"] == "0.2.25"
+    assert package["version"] == "0.2.26"
     assert "distribution_payload" not in package
     assert package["agent_id"] == package["package_id"] == "mas"
     assert package["codex_surface"]["plugin_id"] == "med-autoscience"
@@ -245,6 +254,25 @@ def test_package_plugin_and_python_versions_are_one_semver() -> None:
     )
     assert root_plugin["skills"] == "./plugins/med-autoscience/skills/"
     assert nested_plugin["skills"] == "./skills/"
+    assert portable_plugin["$schema"] == (
+        "https://agent-plugins.org/schemas/1.0.0/plugin.schema.json"
+    )
+    assert set(portable_plugin) <= {
+        "$schema",
+        "name",
+        "version",
+        "description",
+        "author",
+        "homepage",
+        "repository",
+        "license",
+        "keywords",
+        "extensions",
+    }
+    assert portable_plugin["extensions"]["com.openai"]["interface"] == (
+        nested_plugin["interface"]
+    )
+    assert not (ROOT / "plugins/med-autoscience/mcp.json").exists()
     for plugin_root, plugin in (
         (ROOT, root_plugin),
         (ROOT / "plugins/med-autoscience", nested_plugin),
@@ -297,6 +325,7 @@ def test_repo_marketplace_exposes_only_the_codex_plugin_carrier() -> None:
 
     entry = marketplace["plugins"][0]
     plugin_root = ROOT / entry["source"]["path"]
+    assert (plugin_root / "plugin.json").is_file()
     assert (plugin_root / ".codex-plugin/plugin.json").is_file()
     assert entry["name"] == plugin["name"] == package["codex_surface"]["plugin_id"]
     assert entry["category"] == plugin["interface"]["category"]
@@ -440,7 +469,7 @@ def test_historical_validator_release_set_stays_out_of_package_currentness() -> 
         (ROOT / "contracts/action_catalog.json").read_text(encoding="utf-8")
     )
 
-    assert package["version"] == "0.2.25"
+    assert package["version"] == "0.2.26"
     assert "release_set_receipt_ref" not in package
     assert release["release_set_id"] == "mas-validator-0.2.24"
     assert release["package_version"] == "0.2.24"
