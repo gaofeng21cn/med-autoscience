@@ -1362,12 +1362,12 @@ def _update_workspace_index(
     _require_projection_fields(
         payload,
         role,
-        {"schema_version", "surface_kind", "recorded_at", "status_counts", "studies"},
+        {"surface_kind", "recorded_at", "status_counts", "studies"},
     )
-    if payload.get("schema_version") != "mas.workspace_index.v1":
-        raise ProjectionCurrentnessError(f"{role} schema is unsupported")
-    if payload.get("surface_kind") != "workspace_index":
-        raise ProjectionCurrentnessError(f"{role} surface is unsupported")
+    if not _supported_workspace_index_envelope(payload):
+        raise ProjectionCurrentnessError(
+            f"{role} workspace index envelope is unsupported"
+        )
     _timestamp(payload["recorded_at"], f"{role} recorded_at")
     studies = sequence(payload.get("studies"), "workspace index studies")
     matches = [
@@ -1432,6 +1432,18 @@ def _update_workspace_index(
     )
     payload["recorded_at"] = after["recorded_at"]
     return payload
+
+
+def _supported_workspace_index_envelope(payload: Mapping[str, Any]) -> bool:
+    return (
+        payload.get("surface_kind") == "workspace_index"
+        and payload.get("schema_version") == "mas.workspace_index.v1"
+        and "version" not in payload
+    ) or (
+        payload.get("surface_kind") == "opl_workspace_index"
+        and payload.get("version") == "workspace-index.v1"
+        and "schema_version" not in payload
+    )
 
 
 def _update_workspace_latest_status(

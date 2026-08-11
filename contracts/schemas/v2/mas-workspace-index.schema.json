@@ -2,21 +2,38 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://opl.onepersonlab/contracts/mas-workspace-index.schema.json",
   "title": "MAS workspace study inventory compatibility schema",
-  "description": "Non-enforcing compatibility definition for MAS-owned study inventory rows. It validates the existing study_id and canonical_study_root shapes while allowing current consumer fields and future host projection extensions. This schema does not declare host enforcement or require an OPL execution-scope contract.",
-  "$comment": "The stable domain identity remains study_id. A host may map it to its own work-item identity after host authority exists; no host-owned identity field is required here.",
+  "description": "Non-enforcing compatibility definition for MAS-owned study inventory rows. OPL initialization may create identity-only rows with study_id and canonical_study_root; MAS lifecycle authority adds business status, stage, package, and lifecycle fields when those truths exist. The schema allows host envelope extensions and does not declare host enforcement.",
+  "$comment": "The stable domain identity remains study_id. Structural initialization is not a lifecycle or publication verdict, and absent MAS-owned lifecycle fields must remain absent rather than be inferred by a host.",
   "type": "object",
   "additionalProperties": true,
-  "required": [
-    "surface_kind",
-    "schema_version",
-    "studies"
+  "required": ["surface_kind", "studies"],
+  "oneOf": [
+    {
+      "required": ["schema_version"],
+      "not": { "required": ["version"] },
+      "properties": {
+        "surface_kind": { "const": "workspace_index" },
+        "schema_version": { "const": "mas.workspace_index.v1" }
+      }
+    },
+    {
+      "required": ["version"],
+      "not": { "required": ["schema_version"] },
+      "properties": {
+        "surface_kind": { "const": "opl_workspace_index" },
+        "version": { "const": "workspace-index.v1" }
+      }
+    }
   ],
   "properties": {
     "surface_kind": {
-      "const": "workspace_index"
+      "enum": ["workspace_index", "opl_workspace_index"]
     },
     "schema_version": {
       "const": "mas.workspace_index.v1"
+    },
+    "version": {
+      "const": "workspace-index.v1"
     },
     "studies": {
       "type": "array",
@@ -61,12 +78,7 @@
       "additionalProperties": true,
       "required": [
         "study_id",
-        "canonical_study_root",
-        "status",
-        "current_stage_id",
-        "current_stage_status",
-        "package_status",
-        "lifecycle_ref"
+        "canonical_study_root"
       ],
       "properties": {
         "study_id": {

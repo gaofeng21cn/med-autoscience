@@ -80,6 +80,8 @@ MAS/OPL 的理想论文 workspace 必须同时表达两层结构：
 
 `contracts/domain_descriptor.json#/standard_agent_interface/inventory_projection` 是 OPL 读取这份 inventory 的 refs-only 映射。v1 必需映射直接来自 `workspace_index.json#/studies`；index 还可提供结构化 `display_name` 与 `stage_index_ref`，旧 index 缺少显示名时消费者人类化 `study_id`。OPL/Temporal 的 execution、attempt、heartbeat 与 Token telemetry 必须在平台账本中独立维护，不得写回 `workspace_index.json`，也不得在缺少 runtime 记录时删除或改名任何 study。
 
+OPL 初始化只可根据 descriptor 物化 `studies/<study_id>/` 并投影 `study_id` / `canonical_study_root` 结构身份。MAS 原生 index 使用 `surface_kind=workspace_index` / `schema_version=mas.workspace_index.v1`；由 OPL 托管的同一根索引可使用 `surface_kind=opl_workspace_index` / `version=workspace-index.v1`，但必须仍在根层提供 `/studies`。`status`、`current_stage_*`、`package_status`、`lifecycle_ref` 与 `next_action` 等业务真相必须由 MAS lifecycle/authority 产生；未产生时保持缺省，不得由 host 猜测填充。
+
 ## Study Workspace
 
 单篇论文的目标结构：

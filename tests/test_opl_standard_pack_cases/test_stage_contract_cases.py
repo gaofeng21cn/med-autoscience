@@ -49,6 +49,7 @@ def test_domain_descriptor_exposes_generic_standard_agent_interface() -> None:
         "workspace_kind": "medical_research_workspace",
         "project_kind": "study",
         "project_collection_label": "studies",
+        "project_collection_path": "studies",
         "default_workspace_id": "research-workspace",
         "default_project_id": "medical-research-portfolio",
         "locator_surface_kind": "med_autoscience_workspace_profile",

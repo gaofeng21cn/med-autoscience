@@ -617,7 +617,6 @@ def test_paused_reactivation_returns_deterministic_atomic_cas_authority() -> Non
     assert host_request["version"] == "opl-domain-artifact-cas-materialization.v1"
     assert host_request["authorization_ref"] == authorization["authorization_ref"]
     assert authorization["authority_receipt_ref"] == receipt["receipt_ref"]
-
     operations = host_request["operations"]
     absent_paths = [
         "reports/studies_index.json",
@@ -680,6 +679,28 @@ def test_paused_reactivation_returns_deterministic_atomic_cas_authority() -> Non
     assert submission["publication_verdict"] == "not_ready"
     assert submission["reason"] == "reviewer_revision_reactivation"
     assert submission["recorded_at"] == "2026-07-21T01:00:00Z"
+
+
+def test_reactivation_preserves_an_opl_workspace_index_envelope() -> None:
+    request = _request()
+    target = _projection_target(request, "workspace_index")
+    target["record"].pop("schema_version")
+    target["record"]["surface_kind"] = "opl_workspace_index"
+    target["record"]["version"] = "workspace-index.v1"
+    _rebind_projection_target(target)
+
+    result = evaluate_study_lifecycle_reactivation_authority(request)
+    operation = next(
+        item
+        for item in result["opl_host_materialization_request"]["operations"]
+        if item["target_relative_path"] == "workspace_index.json"
+    )
+    updated = _operation_payload(operation)
+
+    assert updated["surface_kind"] == "opl_workspace_index"
+    assert updated["version"] == "workspace-index.v1"
+    assert "schema_version" not in updated
+    assert updated["studies"][0]["lifecycle_state"] == "active"
 
 
 def test_requested_run_id_is_bound_through_receipt_and_authorization() -> None:

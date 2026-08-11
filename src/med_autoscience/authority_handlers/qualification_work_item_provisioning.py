@@ -380,10 +380,10 @@ def _normalize_workspace_index(value: Any, *, workspace_root: str) -> dict[str, 
         supplied_record=payload.get("record"),
         field=field,
     )
-    if record.get("surface_kind") != "workspace_index":
-        raise RequestShapeError(f"{field}.record.surface_kind is unsupported")
-    if record.get("schema_version") != "mas.workspace_index.v1":
-        raise RequestShapeError(f"{field}.record.schema_version is unsupported")
+    if not _supported_workspace_index_envelope(record):
+        raise RequestShapeError(
+            f"{field}.record workspace index envelope is unsupported"
+        )
     if "studies" not in record:
         raise RequestShapeError(f"{field}.record missing fields: studies")
     if "canonical_workspace_root" in record:
@@ -406,6 +406,18 @@ def _normalize_workspace_index(value: Any, *, workspace_root: str) -> dict[str, 
         "workspace_index_byte_size": byte_size,
         "record": normalized_record,
     }
+
+
+def _supported_workspace_index_envelope(record: Mapping[str, Any]) -> bool:
+    return (
+        record.get("surface_kind") == "workspace_index"
+        and record.get("schema_version") == "mas.workspace_index.v1"
+        and "version" not in record
+    ) or (
+        record.get("surface_kind") == "opl_workspace_index"
+        and record.get("version") == "workspace-index.v1"
+        and "schema_version" not in record
+    )
 
 
 def _normalize_existing_studies(value: Any, field: str) -> list[dict[str, Any]]:
