@@ -291,6 +291,41 @@ def test_present_inventory_is_exact_cas_preserved_and_extended_once() -> None:
     assert len(after["studies"]) == 2
 
 
+def test_opl_workspace_envelope_is_preserved_when_mas_extends_studies() -> None:
+    current = {
+        "surface_kind": "opl_workspace_index",
+        "version": "workspace-index.v1",
+        "workspace_id": "cardiometabolic-frailty",
+        "projects": [
+            {
+                "project_id": "existing-study",
+                "project_root": "studies/existing-study",
+            }
+        ],
+        "studies": [
+            {
+                "study_id": "existing-study",
+                "canonical_study_root": "studies/existing-study",
+            }
+        ],
+    }
+
+    result = evaluate_qualification_work_item_provisioning_authority(
+        _request(workspace_index=current)
+    )
+    operation = next(
+        item
+        for item in result["opl_host_materialization_request"]["operations"]
+        if item["target_relative_path"] == "workspace_index.json"
+    )
+    after = json.loads(base64.b64decode(operation["replacement_bytes_base64"]))
+
+    assert after["surface_kind"] == "opl_workspace_index"
+    assert after["version"] == "workspace-index.v1"
+    assert after["projects"] == current["projects"]
+    assert len(after["studies"]) == 2
+
+
 def test_exact_authority_bytes_deterministically_derive_identity() -> None:
     first_request = _request()
     first = evaluate_qualification_work_item_provisioning_authority(first_request)

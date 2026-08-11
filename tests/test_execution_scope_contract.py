@@ -133,6 +133,47 @@ def test_workspace_index_schema_is_non_enforcing_and_extensible() -> None:
     validator.validate(extended)
 
 
+def test_workspace_index_accepts_opl_identity_only_initialization_without_business_truth() -> None:
+    validator = Draft202012Validator(_load(WORKSPACE_SCHEMA_PATH))
+    index = {
+        "surface_kind": "opl_workspace_index",
+        "version": "workspace-index.v1",
+        "studies": [
+            {
+                "study_id": "study-001",
+                "canonical_study_root": "studies/study-001",
+            }
+        ],
+    }
+
+    validator.validate(index)
+    study = index["studies"][0]
+    for mas_owned_field in (
+        "status",
+        "current_stage_id",
+        "current_stage_status",
+        "package_status",
+        "lifecycle_ref",
+        "next_action",
+    ):
+        assert mas_owned_field not in study
+
+    invalid_hybrid = deepcopy(index)
+    invalid_hybrid["schema_version"] = "mas.workspace_index.v1"
+    assert not validator.is_valid(invalid_hybrid)
+
+
+def test_domain_descriptor_declares_the_canonical_study_collection_path() -> None:
+    descriptor = _load("contracts/domain_descriptor.json")
+    interface = descriptor["standard_agent_interface"]
+
+    assert interface["workspace_binding"]["project_collection_path"] == "studies"
+    assert interface["inventory_projection"]["items_pointer"] == "/studies"
+    assert interface["inventory_projection"]["work_item_root_template"] == (
+        "studies/{study_id}"
+    )
+
+
 @pytest.mark.parametrize(
     ("field", "value"),
     [
