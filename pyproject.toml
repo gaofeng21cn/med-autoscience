@@ -19,7 +19,7 @@ mas-foundry-owner-gate = "med_autoscience.authority_handlers.foundry_owner_gate:
 [dependency-groups]
 dev = [
   "jsonschema>=4.23,<5",
-  "pytest>=8.0",
+  "pytest>=9.0.3",
 ]
 
 [tool.setuptools.packages.find]
