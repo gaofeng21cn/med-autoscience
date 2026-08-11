@@ -10,8 +10,8 @@
       "en-US": "Med Auto Science"
     },
     "description_i18n": {
-      "zh-CN": "用于科研选题、文献分析、数据分析、论文写作、审稿、返修和投稿。",
-      "en-US": "For research planning, literature review, data analysis, manuscript writing, peer review, revision, and submission."
+      "zh-CN": "医学研究选题、文献分析、数据分析、论文写作、审稿、返修与投稿。",
+      "en-US": "Medical research planning, literature review, data analysis, manuscript writing, peer review, revision, and submission."
     },
     "session_routing_summary_i18n": {
       "zh-CN": "科研、论文、数据分析、审稿、返修和投稿",
@@ -35,7 +35,7 @@
     ]
   },
   "publisher": "one-person-lab",
-  "version": "0.2.26",
+  "version": "0.2.27",
   "source": "first_party_repo_local",
   "carrier_source_role": "codex_plugin_default_carrier_not_package_truth",
   "schema_ref": "one-person-lab/contracts/opl-framework/agent-package-manifest.schema.json",

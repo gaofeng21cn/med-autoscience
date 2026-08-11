@@ -27,7 +27,7 @@ projection；MAS 持有医学语义声明、专业能力依赖、独立 Review p
 | Action catalog | `contracts/action_catalog.json` 持有六个公开 Stage action 与五个无用户 surface 的 host-only authority actions | public/generated surface currentness 仍归 OPL readback；host-only action 的 CLI/MCP/Skill/product/OpenAI/AI SDK surface 均为 `null` |
 | Authority registry | `contracts/domain_handler_registry.json` 绑定五个 catalog authority action 与 self-evolution closeout，共六个纯 callable | callable 只作领域裁决，不拥有 runtime、transport、session 或 transition |
 | Source morphology | `src/med_autoscience/authority_handlers/` 保留上述六个 registry target 与共享纯校验 helper，另有 package init 和 CSL assets | source closure 不等于 runtime、paper 或 publication ready |
-| Package / ScholarSkills dependency | `contracts/opl_agent_package_manifest.json` 当前声明 MAS source version `0.2.26`、required dependency presence/callability edge、必要 capability ABI/exports/modules 与配置的 repo-root Codex Plugin carrier；出版版式由 ScholarSkills 单一目录提供，MAS 只消费 selection ref | 普通路径固定为 owner OCI `latest-stable` -> native carrier -> fresh readback。Release Set、lifecycle receipt、Framework materialization、status/repair command templates 与安装同步字段不属于普通 Package currentness 或新 lifecycle 实现依据 |
+| Package / ScholarSkills dependency | `contracts/opl_agent_package_manifest.json` 当前声明 MAS source version `0.2.27`、required dependency presence/callability edge、必要 capability ABI/exports/modules 与配置的 repo-root Codex Plugin carrier；出版版式由 ScholarSkills 单一目录提供，MAS 只消费 selection ref | 普通路径固定为 owner OCI `latest-stable` -> native carrier -> fresh readback。Release Set、lifecycle receipt、Framework materialization、status/repair command templates 与安装同步字段不属于普通 Package currentness 或新 lifecycle 实现依据 |
 
 ## Current-State vs Ideal-State Gaps
 

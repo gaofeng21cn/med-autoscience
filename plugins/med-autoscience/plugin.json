@@ -1,8 +1,8 @@
 {
   "$schema": "https://agent-plugins.org/schemas/1.0.0/plugin.schema.json",
   "name": "med-autoscience",
-  "version": "0.2.26",
-  "description": "Codex skill carrier for the MedAutoScience medical research domain pack.",
+  "version": "0.2.27",
+  "description": "Medical research planning, literature review, data analysis, manuscript writing, peer review, revision, and submission.",
   "author": {
     "name": "Gao Feng",
     "url": "https://github.com/gaofeng21cn"
