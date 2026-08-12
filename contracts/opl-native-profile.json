@@ -54,7 +54,7 @@
       ],
       "managed_surfaces": [],
       "management": "workflow_profile_pointer",
-      "version": "0.1.19"
+      "version": "0.1.46"
     }
   },
   "owned_by_repo": [
