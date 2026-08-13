@@ -40,6 +40,15 @@ policy; never claim a Review receipt from this conversation.
   but cannot be promoted as claim-bearing evidence until these prerequisites hold.
 - If the evidence changes the scientific question, endpoint, cohort, or intended
   claim, route back to direction instead of silently adopting the change.
+- When governed narrative clinical notes are required to define or validate a
+  cohort, endpoint, exposure, or covariate, route the bounded abstraction task
+  through Scholar Skills `medical-methodology-planner` to
+  `medical-clinical-note-abstraction`. Require one note per abstraction call, an
+  explicit field schema, exact verbatim spans, explicit nulls, assertion context,
+  terminology-validation status, completeness refs, and a chart-review
+  validation candidate. Consume only the returned refs-only candidates; source
+  truth, phenotype validity, terminology acceptance, and downstream claim use
+  remain MAS/data-owner decisions.
 - Use `medical_research_execution.md` for professional methods and specialist
   routing. Tool order is flexible inside the above scientific dependencies.
 
@@ -48,7 +57,9 @@ policy; never claim a Review receipt from this conversation.
 File presence, script or provider completion, queue state, tests, and specialist
 output do not establish source readiness. Do not replace canonical source refs
 with prose summaries or advance a changed claim boundary without decision or
-human authority.
+human authority. Never treat note abstraction as diagnosis, writeback to the
+clinical record, automatic cohort admission, or proof that a terminology code
+is correct.
 
 ## Research Trajectory
 

@@ -4,7 +4,7 @@
   "domain_id": "medautoscience",
   "owner": "MedAutoScience",
   "state": "active_refs_only_external_capability_map",
-  "updated_at": "2026-07-03",
+  "updated_at": "2026-08-13",
   "purpose": "Route OMA and Agent Lab feedback targets to the MAS Scholar Skills professional skill source of truth without externalizing MAS stage prompts or owner authority.",
   "source_of_truth": [
     "user_request:2026-07-03",
@@ -14,7 +14,9 @@
     "external_repo:mas-scholar-skills/contracts/domain_descriptor.json",
     "external_repo:mas-scholar-skills/contracts/capability_map.json",
     "external_repo:HughYau/AcademicForge@54a2f333973147a1fd703caea6f12252e1f227d6",
-    "contracts/academicforge_claude_science_learning_adoption.json"
+    "contracts/academicforge_claude_science_learning_adoption.json",
+    "external_repo:anthropics/healthcare@744278a1fe63fd5eb99fe9961db0a73c0cb3280c",
+    "external_repo:mas-scholar-skills@814acce7dc0d5dcb6b56a1983af90c685822b840"
   ],
   "failure_token_registry_ref": "opl-framework:contracts/opl-framework/agent-lab-failure-token-registry.json",
   "oma_external_suite_main_guard": {
@@ -1199,6 +1201,147 @@
         "runtime_queues",
         "provider_attempts",
         "paper_bodies"
+      ],
+      "owner_closeout_boundary": {
+        "owner": "mas-scholar-skills",
+        "required_return_shapes": [
+          "owner_receipt_ref",
+          "typed_blocker_ref",
+          "human_gate_ref",
+          "route_back_ref"
+        ],
+        "can_write_owner_receipt_body": false,
+        "can_create_typed_blocker": false,
+        "can_write_domain_truth": false,
+        "can_claim_publication_ready": false,
+        "can_claim_current_package_authority": false,
+        "mas_owner_surface_acceptance_required": true
+      },
+      "exposure_layer": "framework_capability_plugin_pack",
+      "codex_default_exposure": false,
+      "allowed_exposure_scopes": [
+        "workspace",
+        "quest",
+        "project_explicit",
+        "codex_explicit"
+      ],
+      "codex_visibility_policy": "not_registered_as_global_codex_skill_by_default",
+      "exposure_owner": "opl_connect_mas_scholar_skills_profile"
+    },
+    {
+      "capability_id": "medical-clinical-note-abstraction",
+      "surface_role": "professional_skill",
+      "capability_kind": "professional_skill",
+      "canonical_owner": "mas-scholar-skills",
+      "physical_source_ref": {
+        "ref_kind": "external_capability_ref",
+        "ref": "external_repo:mas-scholar-skills/skills/medical-clinical-note-abstraction/SKILL.md",
+        "role": "external_optional_named_specialist_skill_source"
+      },
+      "runtime_projection_refs": [
+        {
+          "ref_kind": "external_capability_ref",
+          "ref": "external_repo:mas-scholar-skills/skills/medical-clinical-note-abstraction/SKILL.md",
+          "role": "workspace_or_quest_skill_sync_candidate"
+        }
+      ],
+      "sync_policy": "external_pack_default_materialization_task_selected_only",
+      "externalization_reason": "MAS owns baseline, source, study, artifact, and receipt authority; the reusable refs-only clinical-note abstraction playbook is single-sourced as an optional named specialist in MAS Scholar Skills.",
+      "specialist_classification": "optional_named_specialty",
+      "router_skill_id": "medical-methodology-planner",
+      "applicable_stage_ids": [
+        "baseline_and_evidence_setup"
+      ],
+      "required_candidate_ref_families": [
+        "abstraction_schema_ref",
+        "note_level_candidate_refs",
+        "span_provenance_ref",
+        "assertion_context_ref",
+        "terminology_validation_ref",
+        "completeness_ref",
+        "chart_review_validation_candidate_ref",
+        "candidate_refs",
+        "route_back_candidate",
+        "owner_gate_handoff_ref"
+      ],
+      "routing_boundaries": {
+        "one_note_per_invocation": true,
+        "explicit_schema_required": true,
+        "unsupported_values_are_explicit_nulls": true,
+        "verbatim_span_and_assertion_context_required_when_evidenced": true,
+        "terminology_mapping_requires_separate_current_source_validation": true,
+        "chart_review_validation_remains_candidate_until_owner_consumption": true,
+        "adds_active_module_id": false,
+        "adds_runtime_or_provider": false,
+        "becomes_required_core_export": false
+      },
+      "clean_room_learning_provenance": {
+        "source_ref": "external_repo:anthropics/healthcare@744278a1fe63fd5eb99fe9961db0a73c0cb3280c",
+        "source_status_at_review": "experimental_no_standard_open_source_license_observed",
+        "local_absorption": "behavioral_patterns_only_no_source_code_templates_or_regulatory_wording_copied",
+        "source_is_runtime_or_authority": false
+      },
+      "improvement_tokens": [
+        "medical-clinical-note-abstraction",
+        "clinical_note_abstraction",
+        "chart_abstraction",
+        "verbatim_span",
+        "assertion_context",
+        "terminology_validation",
+        "chart_review_validation"
+      ],
+      "failure_tokens": [
+        "clinical_note_abstraction",
+        "abstraction_schema_missing",
+        "note_span_provenance_missing",
+        "terminology_validation_missing",
+        "chart_review_validation_missing"
+      ],
+      "canonical_paths": [
+        "external_repo:mas-scholar-skills/skills/medical-clinical-note-abstraction/SKILL.md",
+        "agent/prompts/baseline_and_evidence_setup.md",
+        "agent/skills/medical_research_execution.md",
+        "contracts/capability_map.json"
+      ],
+      "target_repo_file_hints": [
+        "external_repo:mas-scholar-skills/skills/medical-clinical-note-abstraction/SKILL.md",
+        "contracts/capability_map.json"
+      ],
+      "verification_refs": [
+        "external_repo:mas-scholar-skills/contracts/capability_map.json#/optional_specialist_skills",
+        "external_repo:mas-scholar-skills/scripts/verify.sh",
+        "tests/test_clinical_note_abstraction_routing.py"
+      ],
+      "authority_boundary": {
+        "can_write_domain_truth": false,
+        "can_write_memory_body": false,
+        "can_mutate_artifact_body": false,
+        "can_sign_owner_receipt": false,
+        "can_create_typed_blocker": false,
+        "can_authorize_quality_or_export": false,
+        "can_claim_domain_ready": false,
+        "can_claim_production_ready": false,
+        "can_write_mas_truth": false,
+        "can_write_current_package": false,
+        "can_close_owner_loop": false,
+        "closeout_requires_mas_owner_surface": true
+      },
+      "owner_closeout_boundary_ref": "contracts/capability_map.json#/owner_closeout_boundary",
+      "canonical_target_paths": [
+        "external_repo:mas-scholar-skills/skills/medical-clinical-note-abstraction/SKILL.md",
+        "agent/prompts/baseline_and_evidence_setup.md",
+        "agent/skills/medical_research_execution.md",
+        "contracts/capability_map.json"
+      ],
+      "forbidden_surfaces": [
+        "Yang authority/current_package/publication_eval/controller_decisions",
+        "owner_receipts",
+        "typed_blockers",
+        "human_gates",
+        "runtime_queues",
+        "provider_attempts",
+        "paper_bodies",
+        "clinical_record_writeback"
       ],
       "owner_closeout_boundary": {
         "owner": "mas-scholar-skills",

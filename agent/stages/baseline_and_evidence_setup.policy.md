@@ -15,3 +15,16 @@ stop rules. An unresolved required construct mapping or identity-preserving
 linkage is not estimable and cannot be replaced with a proxy.
 
 For hypothesis portfolio inputs, this stage must preserve candidate assumptions, sub-assumptions, supporting and contradicting evidence refs, novelty/source provenance refs, testability/safety refs, and negative failed-path refs as body-free evidence-pack refs. Advisory ranking or proximity cannot suppress failed evidence, missing source readiness, independent reviewer requirements, or human gate boundaries.
+
+When narrative clinical notes are in scope, this stage routes schema-bound,
+one-note abstraction through Scholar Skills `medical-clinical-note-abstraction`.
+The stage consumes `abstraction_schema_ref`, `note_level_candidate_refs`,
+`span_provenance_ref`, `assertion_context_ref`,
+`terminology_validation_ref`, `completeness_ref`, and
+`chart_review_validation_candidate_ref` as refs-only candidates. Exact spans,
+explicit nulls, and deterministic shape checks do not establish clinical truth,
+terminology validity, cohort validity, source readiness, or analysis approval.
+Data access and PHI handling stay with the data owner and data-governance route;
+semantic disagreement, double-review sampling, agreement, adjudication, gold-set
+maintenance, and error-stratified validation stay explicit before claim-bearing
+use.

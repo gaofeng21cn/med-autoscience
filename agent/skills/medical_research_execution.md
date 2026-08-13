@@ -50,6 +50,25 @@ The executor must treat all medical research work as claim-boundary work. A coho
 - External and specialist outputs are refs-only candidates until consumed by the
   MAS owner path; they never become source, quality, artifact, or submission
   authority by installation or execution alone.
+- During `baseline_and_evidence_setup`, when governed narrative notes are needed
+  for cohort, endpoint, exposure, or covariate evidence, route through
+  `medical-methodology-planner` to `medical-clinical-note-abstraction`. Supply
+  exactly one note and one explicit abstraction schema per invocation. Consume
+  `abstraction_schema_ref`, `note_level_candidate_refs`,
+  `span_provenance_ref`, `assertion_context_ref`,
+  `terminology_validation_ref`, `completeness_ref`, and
+  `chart_review_validation_candidate_ref`; route governed source handling to
+  `medical-data-governance`, phenotype use to `medical-cohort-phenotyping`, and
+  quantitative validation to `medical-statistical-review`.
+- Note abstraction remains candidate evidence: unsupported values stay explicit
+  nulls, positive/negative/possible assertions stay bound to exact verbatim
+  spans and patient/temporality/experiencer context, and terminology proposals
+  remain unvalidated until checked against a current authoritative terminology
+  source and accepted by the proper owner. A deterministic helper may check
+  shape, offsets, enum values, null consistency, and counts only; it cannot judge
+  medical meaning. Claim-bearing use requires risk-proportionate double review,
+  agreement assessment, adjudication, a versioned gold set, and error-stratified
+  validation candidates consumed by MAS.
 
 ## Artifact Iteration Efficiency
 
@@ -163,6 +182,13 @@ When a registry signal is in scope, the output must name the consumed
 frozen `clinical-gap` or `data-audit` identity, the executed validation and
 sensitivity refs, explicit waiver ref, or claim-downgrade ref that governs
 interpretation, and the MAS owner or reviewer outcome that consumes those refs.
+
+When clinical-note abstraction is in scope, the output must name the governed
+note and schema refs, the note-level candidate, span, assertion, terminology,
+completeness, and chart-review validation refs, any route-back candidate, and
+the MAS/data-owner outcome that consumes them. It must not include unauthorized
+note bodies or turn abstraction success into diagnosis, terminology, phenotype,
+source-readiness, or analysis authority.
 
 When no consumable scientific delta exists, emit a no-output/failure diagnostic,
 preserve failed-path lineage, and let Codex select advance, repeat, reverse, or

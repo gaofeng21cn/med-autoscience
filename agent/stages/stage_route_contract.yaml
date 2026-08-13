@@ -305,6 +305,7 @@ route_contracts:
     hard_success_gate:
       - baseline or comparator setup is reproducible and scoped to the active claim
       - baseline readout reveals whether the line is strong enough to continue
+      - when narrative clinical notes support the baseline, their abstraction candidates remain schema-bound and span-provenanced with an explicit terminology and chart-review validation route
       - unresolved blockers are small enough for analysis-campaign or decision
     durable_outputs_minimum:
       - baseline artifact set or equivalent reproducible baseline record
@@ -320,11 +321,13 @@ route_contracts:
     route_back_triggers:
       - baseline result cannot support the active claim
       - comparator or cohort definition changes materially
+      - note boundaries, abstraction schema, governed access, exact supporting spans, or clinical adjudication are insufficient for the intended claim
       - reviewer-first scan finds missing baseline proof
     knowledge_input_obligations:
       - stage_knowledge_packet_ref
       - data_source_contract
       - cohort_definition_and_inclusion_exclusion
+      - clinical_note_abstraction_schema_and_governed_note_refs_when_applicable
       - endpoint_definition_and_measurement_window
       - comparator_definition_and_reference_baseline
       - startup_run_context
