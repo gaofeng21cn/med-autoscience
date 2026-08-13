@@ -287,7 +287,7 @@ def test_quality_cycle_adopts_framework_epistemic_currentness_and_scope_budget()
         "surface_kind": "opl_stage_quality_scope_budget",
         "version": "opl-stage-quality-scope-budget.v1",
         "max_attempts": 3,
-        "max_elapsed_ms": 21600000,
+        "max_elapsed_ms": None,
         "max_tokens": None,
         "token_cap_activation": "explicit_owner_or_user_configuration_only",
         "token_budget_requires_observed_usage": True,
