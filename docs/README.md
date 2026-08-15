@@ -17,8 +17,8 @@ Machine boundary: 本文是人读导航。机器真相归 `agent/`、`contracts/
 
 ## 面向用户
 
-- [MAS 白皮书（在线阅读）](https://gaofeng21cn.github.io/med-autoscience/latest/whitepapers/mas-whitepaper.html)：解释 MAS 的设计理念、研究线、证据链、独立审阅与人机边界。
-- [MAS 白皮书（PDF）](https://gaofeng21cn.github.io/med-autoscience/latest/whitepapers/mas-whitepaper.pdf)：适合离线阅读与转发。
+- [MAS 白皮书（在线阅读）](https://gaofeng21cn.github.io/one-person-lab/latest/whitepapers/mas-whitepaper.html)：解释 MAS 的设计理念、研究线、证据链、独立审阅与人机边界。
+- [MAS 白皮书（PDF）](https://gaofeng21cn.github.io/one-person-lab/latest/whitepapers/mas-whitepaper.pdf)：适合离线阅读与转发。
 
 ## 当前计划
 

@@ -13,15 +13,9 @@ on:
       - docs/status.md
       - .github/workflows/whitepaper.yml
   workflow_dispatch:
-    inputs:
-      publish:
-        description: Publish the approved build to GitHub Pages
-        required: true
-        default: false
-        type: boolean
 
 permissions:
-  contents: write
+  contents: read
 
 jobs:
   whitepaper:
@@ -29,5 +23,5 @@ jobs:
     with:
       profile: contracts/whitepaper_profile.json
       output_name: mas-whitepaper
-      publish: ${{ github.event_name == 'workflow_dispatch' && inputs.publish }}
+      publish: false
     secrets: inherit

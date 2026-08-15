@@ -12,7 +12,7 @@ MAS 白皮书采用 OPL-family 统一本地生成路径：
 - 从 OPL checkout 运行 `node --experimental-strip-types scripts/run-domain-whitepaper.ts --repo-root <MAS repo> --profile contracts/whitepaper_profile.json`。
 - 本地 HTML/PDF/v2 verification 生成到 ignored 的 `docs/site/latest/whitepapers/`，视觉证据生成到 ignored 的 `tmp/pdfs/`。
 - `push main` 只在 Actions 构建 immutable bundle；不会自动发布。
-- 只有从 `main` 手动运行 `MAS Whitepaper` workflow 并选择 `publish=true` 才发布同一 bundle，随后执行公开 HTML/PDF exact-byte readback。
+- OPL Framework 将 MAS 与其余四篇白皮书组成统一品牌 bundle，并从 One Person Lab 的公开入口发布和回读。
 - 发布回读生成 `publication-receipt.json` Actions artifact；不在仓库跟踪第二份 verification 或 receipt。
 
 ## 证据边界
@@ -21,11 +21,10 @@ OPL renderer 从同一份 Markdown 与 Profile 生成 HTML、PDF、v2 verificati
 rendered pages。它们在本地是 ignored output，在 CI 是 source SHA 绑定的候选
 artifact；Profile、测试通过或候选 artifact 都不能单独证明已发布。
 
-`push main` 只构建候选。维护者从 `main` 手动运行 `MAS Whitepaper` workflow 并
-选择 `publish=true` 后，publish job 才使用 build job 的同一 bundle 更新
-`gh-pages`，对公开 HTML/PDF 做 exact-byte readback，并把
-`publication-receipt.json` 保存为 Actions artifact。仓库不跟踪手工刷新的
-verification 或 publication receipt。
+`push main` 只构建候选。Framework 的五篇白皮书统一发布工作流绑定各仓精确
+source ref，形成同一品牌 bundle，更新 One Person Lab 的 `gh-pages`，对公开
+HTML/PDF 做 exact-byte readback，并把 `publication-receipt.json` 保存为 Actions
+artifact。仓库不跟踪手工刷新的 verification 或 publication receipt。
 
 本地复核从 OPL checkout 调用唯一 runner：
 
@@ -42,7 +41,7 @@ node --experimental-strip-types scripts/run-domain-whitepaper.ts \
 
 - [mas-whitepaper.md](./mas-whitepaper.md)
 
-公开 latest：
+公开品牌入口：
 
-- [在线阅读](https://gaofeng21cn.github.io/med-autoscience/latest/whitepapers/mas-whitepaper.html)
-- [PDF](https://gaofeng21cn.github.io/med-autoscience/latest/whitepapers/mas-whitepaper.pdf)
+- [在线阅读](https://gaofeng21cn.github.io/one-person-lab/latest/whitepapers/mas-whitepaper.html)
+- [PDF](https://gaofeng21cn.github.io/one-person-lab/latest/whitepapers/mas-whitepaper.pdf)

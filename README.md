@@ -214,8 +214,8 @@ into current MAS authority.
 
 ## Further Reading
 
-- [MAS Whitepaper (HTML)](https://gaofeng21cn.github.io/med-autoscience/latest/whitepapers/mas-whitepaper.html)
-- [MAS Whitepaper (PDF)](https://gaofeng21cn.github.io/med-autoscience/latest/whitepapers/mas-whitepaper.pdf)
+- [MAS Whitepaper (HTML)](https://gaofeng21cn.github.io/one-person-lab/latest/whitepapers/mas-whitepaper.html)
+- [MAS Whitepaper (PDF)](https://gaofeng21cn.github.io/one-person-lab/latest/whitepapers/mas-whitepaper.pdf)
 - [Docs Guide](./docs/README.md)
 - [Project](./docs/project.md)
 - [Status](./docs/status.md)

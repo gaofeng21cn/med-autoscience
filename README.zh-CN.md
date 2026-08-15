@@ -169,8 +169,8 @@ AI 可以协助整理数据、执行分析、组织证据和汇报进度；临�
 
 ## 延伸阅读
 
-- [MAS 白皮书（在线阅读）](https://gaofeng21cn.github.io/med-autoscience/latest/whitepapers/mas-whitepaper.html)
-- [MAS 白皮书（PDF）](https://gaofeng21cn.github.io/med-autoscience/latest/whitepapers/mas-whitepaper.pdf)
+- [MAS 白皮书（在线阅读）](https://gaofeng21cn.github.io/one-person-lab/latest/whitepapers/mas-whitepaper.html)
+- [MAS 白皮书（PDF）](https://gaofeng21cn.github.io/one-person-lab/latest/whitepapers/mas-whitepaper.pdf)
 - [文档索引](./docs/README.md)
 - [项目概览](./docs/project.md)
 - [当前状态](./docs/status.md)
