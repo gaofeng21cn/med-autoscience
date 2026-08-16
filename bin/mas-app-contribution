@@ -1,0 +1,4 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+exec "$(dirname "$0")/../plugins/med-autoscience/bin/mas-app-contribution"

@@ -68,7 +68,45 @@
     "required_capability_package_ids": [
       "mas-scholar-skills"
     ],
-    "user_install_action_count": 1
+    "user_install_action_count": 1,
+    "app_contribution_abi": {
+      "schema_version": "opl-package-app-contribution-cli.v1",
+      "transport": "stdin_json_stdout_json",
+      "argv": [
+        "./bin/mas-app-contribution"
+      ],
+      "request_schema": "opl-package-app-contribution-request.v1",
+      "response_schema": "opl-package-app-contribution-response.v1"
+    }
+  },
+  "app_contributions": {
+    "schema_version": "opl-app-contributions.v1",
+    "views": [
+      {
+        "view_id": "mas.runtime-detail",
+        "view_type": "activity_log",
+        "title_i18n": {
+          "zh-CN": "论文任务详情",
+          "en-US": "Paper mission detail"
+        },
+        "data_ref": "mas.runtime-detail.v1#current",
+        "empty_state_i18n": {
+          "zh-CN": "当前论文任务没有可投影的 MAS 状态",
+          "en-US": "No MAS state is available for the selected paper mission"
+        }
+      }
+    ],
+    "ui": [
+      {
+        "contribution_id": "mas.runtime-detail",
+        "slot": "runtime.detail",
+        "contribution_kind": "view",
+        "trust_tier": "declarative",
+        "scope": "work_item",
+        "sort_order": 100,
+        "view_id": "mas.runtime-detail"
+      }
+    ]
   },
   "capability_dependencies": [
     {

@@ -52,6 +52,7 @@ def test_native_carrier_descriptor_projects_owner_identity_without_lifecycle_aut
         "view_refs",
         "requires",
         "presentation",
+        "app_contributions",
     }
     assert set(carrier_descriptor) == projected_owner_fields | {
         "capability_dependencies",
@@ -67,6 +68,7 @@ def test_native_carrier_descriptor_projects_owner_identity_without_lifecycle_aut
         "required_skill_ids",
         "standalone_distribution",
         "user_install_action_count",
+        "app_contribution_abi",
     }
     assert set(carrier_descriptor["codex_surface"]) == projected_codex_fields
     for field in projected_codex_fields:

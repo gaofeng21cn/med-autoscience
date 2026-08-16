@@ -1,0 +1,67 @@
+{
+  "surface_kind": "mas_runtime_detail_contribution_contract",
+  "version": "mas-runtime-detail-contribution-contract.v1",
+  "owner": "MedAutoScience",
+  "package_id": "mas",
+  "slot": "runtime.detail",
+  "scope": "work_item",
+  "view_type": "activity_log",
+  "data_ref": "mas.runtime-detail.v1#current",
+  "producer": {
+    "abi": "opl-package-app-contribution-cli.v1",
+    "command": "plugins/med-autoscience/bin/mas-app-contribution",
+    "transport": "stdin_json_stdout_json",
+    "workspace_source": "OPL_PROFILE_WORKSPACE",
+    "workspace_index_ref": "workspace_index.json",
+    "trajectory_ref_template": "studies/{work_item_id}/artifacts/research_trajectory/snapshot.json",
+    "writes": false
+  },
+  "required_host_input": {
+    "field": "input.work_item_identity",
+    "required_fields": [
+      "agent_id",
+      "domain_id",
+      "work_item_id",
+      "domain_work_item_id",
+      "work_item_scope_id",
+      "identity_state"
+    ],
+    "binding": "agent_id_mas_and_domain_id_medautoscience_and_resolved_work_item_id_exact_domain_work_item_id_exact_study_id",
+    "opaque_work_item_scope_id_is_validated_as_present_but_not_echoed_by_mas": true
+  },
+  "result_fields": [
+    "identity",
+    "agent",
+    "current_owner",
+    "phase",
+    "work.active",
+    "work.queued",
+    "work.pending",
+    "hypotheses",
+    "roadmap",
+    "source_refs",
+    "authority_boundary"
+  ],
+  "source_authority": {
+    "business_phase_and_owner": "workspace_index.json selected study row",
+    "active_and_queued_work": "workspace_index.json current stage and next action",
+    "hypotheses_and_roadmap": "MAS research trajectory snapshot selected by exact study identity",
+    "app_or_studio_may_write_or_infer_state": false
+  },
+  "current_consumer_blocker": {
+    "status": "producer_complete_consumer_projection_blocked",
+    "framework_request_input_is_generic_only": true,
+    "app_runtime_detail_selected_work_item_identity_injected": false,
+    "app_generic_declarative_view_result_renderer_available": false,
+    "required_owner": "one-person-lab-app",
+    "required_delta_ref": "docs/references/integration/mas-runtime-detail-contribution.md#required-app-contract-delta"
+  },
+  "authority_boundary": {
+    "projection_is_authority": false,
+    "can_write_domain_truth": false,
+    "can_write_runtime_queue": false,
+    "can_create_owner_receipt": false,
+    "can_create_typed_blocker": false,
+    "can_authorize_publication_or_submission": false
+  }
+}

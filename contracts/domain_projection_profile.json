@@ -15,6 +15,7 @@
     "contracts/stage_run_kernel_profile.json",
     "contracts/action_catalog.json",
     "contracts/research_trajectory_contract.json",
+    "contracts/runtime_detail_contribution_contract.json",
     "contracts/domain_descriptor.json#/work_item_scope_binding"
   ],
   "generic_fields": [
