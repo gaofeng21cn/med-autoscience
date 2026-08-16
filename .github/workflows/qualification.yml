@@ -1,0 +1,70 @@
+name: MAS Qualification
+
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: '37 19 * * 0'
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  standard-agent:
+    runs-on: macos-latest
+    name: Verify MAS pack, authority handler, and OPL-hosted interfaces
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+
+      - name: Set up Node.js 24
+        uses: actions/setup-node@v7
+        with:
+          node-version: '24'
+
+      - name: Checkout and build OPL Framework
+        run: |
+          git clone --depth=1 --filter=blob:none https://github.com/gaofeng21cn/one-person-lab.git ../one-person-lab
+          npm ci --prefix ../one-person-lab --ignore-scripts
+          npm run --prefix ../one-person-lab build
+          echo "OPL_BIN=$GITHUB_WORKSPACE/../one-person-lab/bin/opl" >> "$GITHUB_ENV"
+
+      - name: Set up Python 3.12
+        uses: actions/setup-python@v7
+        with:
+          python-version: '3.12'
+
+      - name: Set up uv
+        uses: astral-sh/setup-uv@v9.0.0
+        with:
+          enable-cache: true
+          cache-dependency-glob: |
+            uv.lock
+            pyproject.toml
+
+      - name: Link current OPL Framework package lifecycle
+        run: |
+          "$OPL_BIN" packages link-framework --agent-root "$GITHUB_WORKSPACE" --json
+
+      - name: Run MAS repository verification
+        run: scripts/verify.sh full
+
+      - name: Compile standard Agent pack and hosted interfaces
+        run: |
+          family_root="$(mktemp -d "${RUNNER_TEMP}/mas-family.XXXXXX")"
+          trap 'rm -rf "$family_root"' EXIT
+          ln -s "$GITHUB_WORKSPACE" "$family_root/med-autoscience"
+          OPL_FAMILY_WORKSPACE_ROOT="$family_root" "$OPL_BIN" agents pack-compiler --family-defaults --json
+          "$OPL_BIN" agents interfaces --repo-dir "$GITHUB_WORKSPACE" --json
+          "$OPL_BIN" agents conformance --agent "mas=$GITHUB_WORKSPACE" --json
+          "$OPL_BIN" agents default-callers --agent "mas=$GITHUB_WORKSPACE" --json
+          "$OPL_BIN" agents source-closure --agent "mas=$GITHUB_WORKSPACE" --json
+          "$OPL_BIN" agents residue-decisions --agent "mas=$GITHUB_WORKSPACE" --json
+
+      - name: Build sdist and wheel
+        run: uv build --out-dir "${RUNNER_TEMP}/mas-dist"

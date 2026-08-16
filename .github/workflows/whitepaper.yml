@@ -1,17 +1,6 @@
 name: MAS Whitepaper
 
 on:
-  push:
-    branches: [main]
-    paths:
-      - docs/whitepapers/**
-      - contracts/whitepaper_profile.json
-      - docs/project.md
-      - docs/architecture.md
-      - docs/invariants.md
-      - docs/decisions.md
-      - docs/status.md
-      - .github/workflows/whitepaper.yml
   workflow_dispatch:
 
 permissions:
