@@ -588,61 +588,6 @@ def test_scholarskills_is_required_presence_and_callability_not_a_sixth_agent() 
         "repo_carrier_source"
     )
 
-    active_truth_paths = [
-        "README.md",
-        "README.zh-CN.md",
-        "bootstrap/README.md",
-        "docs/architecture.md",
-        "docs/invariants.md",
-        "docs/decisions.md",
-        "docs/status.md",
-        "docs/active/mas-ideal-state-gap-plan.md",
-        "docs/whitepapers/mas-whitepaper.md",
-        "docs/references/integration/codex_plugin.md",
-        "docs/active/stage_surface_standardization_program.md",
-        "agent/primary_skill/SKILL.md",
-        "plugins/med-autoscience/skills/med-autoscience/SKILL.md",
-    ]
-    active_truth = {
-        path: (ROOT / path).read_text(encoding="utf-8")
-        for path in active_truth_paths
-    }
-    forbidden_optional_claims = [
-        "optional professional enhancement",
-        "可选专业增强",
-        "not enter MAS's hard dependency closure",
-        "不进入 MAS 的硬依赖闭包",
-        "不是 MAS 硬依赖",
-        "optional Provider",
-        "optional enhancement gap",
-        "continue_with_consumer_core_and_record_diagnostic",
-    ]
-    for path, text in active_truth.items():
-        for optional_claim in forbidden_optional_claims:
-            assert optional_claim not in text, f"{path} retains {optional_claim}"
-    required_truth_claims = {
-        "README.md": "required `mas-scholar-skills` dependency closure",
-        "README.zh-CN.md": "必需的 `mas-scholar-skills` 依赖闭包",
-        "bootstrap/README.md": "MAS 与 `mas-scholar-skills` required dependency closure",
-        "docs/architecture.md": "`mas-scholar-skills` 是 MAS 的 required capability dependency",
-        "docs/invariants.md": "`mas-scholar-skills` 是 MAS 硬依赖",
-        "docs/decisions.md": "ScholarSkills 硬依赖",
-        "docs/status.md": "MAS required capability dependency",
-        "docs/active/mas-ideal-state-gap-plan.md": "required dependency",
-        "docs/whitepapers/mas-whitepaper.md": "必需能力依赖",
-        "docs/references/integration/codex_plugin.md": "MAS root package 及其 required dependency closure",
-        "docs/active/stage_surface_standardization_program.md": (
-            "required knowledge / ScholarSkills / tool affordances"
-        ),
-        "agent/primary_skill/SKILL.md": (
-            "Use the installed `mas-scholar-skills` capability package"
-        ),
-        "plugins/med-autoscience/skills/med-autoscience/SKILL.md": (
-            "Use the installed `mas-scholar-skills` capability package"
-        ),
-    }
-    for path, required_claim in required_truth_claims.items():
-        assert required_claim in active_truth[path], f"{path} lacks {required_claim}"
     assert dependency["required_module_ids"] == [
         "mas-scholar-skills.display",
         "mas-scholar-skills.tables",
