@@ -190,7 +190,7 @@ def test_package_manifest_owns_home_presentation_bytes() -> None:
             {
                 "shortcut_id": "research",
                 "label_i18n": {
-                    "zh-CN": "科研",
+                    "zh-CN": "开展科研工作",
                     "en-US": "Research",
                 },
                 "default_visible": True,
