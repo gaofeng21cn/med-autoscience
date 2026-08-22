@@ -162,7 +162,7 @@ AI 可以协助整理数据、执行分析、组织证据和汇报进度；临�
 - Runtime environment 由 OPL 根据 `contracts/runtime_environment_requirements.json` 准备；MAS 不再从 import、workspace bootstrap 或 installer 安装 Python/R/plugin 依赖。
 - 当前唯一 stage-route authority 是 `Codex CLI selected declared stage`。`StageOutcome`、旧 `NextActionEnvelope`、Queue、attempt、provider、status 与 workbench 只提供非绑定上下文或观测，不能选择下一 Stage，也不能证明论文进展。
 - MAS 可通过 Codex skill 或 OPL hosted interface 使用；两条路径都回到同一套 MAS 医学 truth、quality、publication 与 artifact authority surface。
-- V2 public/default command cutover 已完成结构落地；旧 `domain_entry`、status/read-model 与 queue-oriented 内部 caller 仍需 OPL primitive parity、source-closure、caller migration 和物理退役授权。runtime、真实 paper line、publication 与 production readiness 仍是独立 Live evidence claim。
+- V2 public/default command cutover、私有控制面物理退役和 source closure 已完成；runtime、真实 paper line、publication 与 production readiness 仍需独立 live evidence。
 - 改 package 或 runtime 边界前，先读 [Bootstrap](./bootstrap/README.md)、[架构](./docs/architecture.md) 与 [当前状态](./docs/status.md)。
 
 </details>

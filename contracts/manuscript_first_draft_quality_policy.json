@@ -1,6 +1,6 @@
 {
   "surface_kind": "mas_manuscript_first_draft_quality_policy",
-  "version": "mas-manuscript-first-draft-quality-policy.v4",
+  "version": "mas-manuscript-first-draft-quality-policy.v5",
   "owner": "MedAutoScience",
   "stage_id": "manuscript_authoring",
   "purpose": "Raise first-draft scientific quality by binding exact upstream closure, prediction-model diagnostics, specialist receipts, claim guardrails, and composed reader bytes before any first-draft-ready claim.",
@@ -261,8 +261,7 @@
           "reader_facing_surface_inventory",
           "scientific_evidence_gap_and_author_supplied_objective_fact_classification",
           "inline_annotation_closure",
-          "author_input_todo_projection_ref",
-          "defensive_workflow_language_lint_status"
+          "author_input_todo_projection_ref"
         ],
         "author_supplied_objective_fact_disposition": "preserve_ideal_manuscript_structure_and_insert_minimum_local_author_input_annotation",
         "scientific_evidence_gap_may_be_reclassified_as_author_input": false,

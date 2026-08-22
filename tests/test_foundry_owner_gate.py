@@ -239,7 +239,9 @@ def test_installed_process_entrypoint_is_physical_read_only_and_fails_closed(
     shutil.copytree(
         REPO_ROOT,
         build_source,
-        ignore=shutil.ignore_patterns(".git", ".venv", "*.egg-info", "__pycache__"),
+        ignore=shutil.ignore_patterns(
+            ".git", ".codegraph", ".venv", "*.egg-info", "__pycache__"
+        ),
     )
     wheel_dir = tmp_path / "wheel"
     build = subprocess.run(

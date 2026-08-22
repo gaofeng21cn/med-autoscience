@@ -207,7 +207,7 @@ into current MAS authority.
 - Runtime environments are prepared by OPL from `contracts/runtime_environment_requirements.json`; MAS does not install Python/R packages or plugins from its import path or workspace bootstrap.
 - The only current stage-route authority is `Codex CLI selected declared stage`. `StageOutcome`, legacy `NextActionEnvelope`, queue, attempt, provider, status, and workbench state are nonbinding context or observation; they cannot select the next stage or prove paper progress.
 - MAS may be used through its Codex skill or an OPL-hosted interface. Both routes return to the same MAS medical truth, quality, publication, and artifact authority surfaces.
-- The V2 public/default command cutover is structurally landed. Legacy internal `domain_entry`, status/read-model, and queue-oriented callers still require OPL primitive parity, source-closure proof, caller migration, and physical-retirement authorization. Runtime, paper-line, publication, and production readiness remain separate live-evidence claims.
+- The V2 public/default command cutover, private control-plane retirement, and source closure are complete. Runtime, paper-line, publication, and production readiness remain separate live-evidence claims.
 - Read [Bootstrap](./bootstrap/README.md), [Architecture](./docs/architecture.md), and [Status](./docs/status.md) before changing package or runtime boundaries.
 
 </details>

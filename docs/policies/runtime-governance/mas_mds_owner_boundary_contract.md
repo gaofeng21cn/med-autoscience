@@ -1,6 +1,6 @@
-# MAS/MDS Owner Boundary Refactor Plan
+# MAS/MDS Owner Boundary Policy
 
-Status: `active contract`  
+Status: `active policy`
 Date: `2026-05-04`
 Owner: `MedAutoScience`
 Purpose: `Define stable MAS runtime governance, dependency, owner-boundary, and stabilization policy.`
@@ -9,9 +9,9 @@ Machine boundary: Human-readable runtime-governance policy only; runtime truth r
 
 ## 结论
 
-结构性重复 authority 风险已经确认。当前 MAS/MDS 不是简单的“模块多”，而是多类模块会在不同层面读取、解释或投影同一组事实：runtime liveness、study next action、publication gate、artifact delivery、manuscript quality、operator progress。只要没有硬 owner matrix，entry projection、observability、MDS oracle、runtime adapter 都可能越权变成第二判断者，形成表面上更完整、实际更混乱的系统。
+MAS 持有 study truth、医学质量与 publication、canonical artifact mutation 以及 owner receipt；OPL 持有通用 runtime、lifecycle、transport、generated interface 和 read model。MDS/DeepScientist 只作为 historical source、fixture、显式 archive import 或 parity reference，不是默认依赖或 authority。
 
-本计划的修复方向是：用 owner matrix 固定 authority，用 strangler refactor 逐面吸收 MDS 能力，用 architecture_fitness_functions 把边界变成测试和结构门禁。允许重构，但不做 big-bang rewrite；每个 surface 先证明 owner、parity proof、rollback surface 与 quality-not-relaxed，再 promotion 或 absorb。
+本文只记录当前 owner 边界。机器事实以 contracts、source、runtime readback、artifact 和 owner receipt 为准。
 
 ## 当前重叠风险
 
@@ -31,11 +31,11 @@ Machine boundary: Human-readable runtime-governance policy only; runtime truth r
 | `domain_authority_refs` | MAS | authority refs | owner receipt、typed blocker、runtime-domain refs、canonical domain action refs |
 | `entry_projection` | MAS | projection | no authority；只投影 MAS durable truth |
 | `observability_os` | MAS | observability | no authority；只提供 evidence、calibration、analytics |
-| `mds_backend` | MDS | controlled backend / oracle | no MAS authority；只提供 daemon、quest layout、native runtime events 与 mechanical oracle |
+| `mds_backend` | MDS | historical backend / parity fixture | no MAS authority；只提供显式 archive、fixture 或 parity 语义 |
 
 ## 文档 / Reference 一致性 Guard
 
-README、status、policy、runtime reference 与 program reference 都是人读面，但它们不能各自长出新的 owner truth。当前机器 owner 是 `docs/references/med-deepscientist/source_provenance.json` 与 `med_autoscience.controllers.mds_capability_parity`；它们把 MDS 引用语义固定为以下几类：
+README、status、policy、runtime reference 与 program reference 都是人读面，不能各自长出新的 owner truth。MDS 的机器分类以 `docs/references/med-deepscientist/source_provenance.json` 为准：
 
 - 受约束的文档族：`README`、`docs/README`、`docs/status`、`docs/active`、`docs/policies`、`docs/runtime`、`docs/references`
 - 允许的 MDS 角色：`frozen_source_archive`、`historical_fixture_ref`、`explicit_archive_import_ref`、`source_provenance`、`parity_oracle`、`upstream_intake_source`
@@ -45,34 +45,28 @@ README、status、policy、runtime reference 与 program reference 都是人读�
 
 这条 guard 的目标是让文档更新继续跟随真实 MAS/MDS contract，而不是反过来让 README/status/policy 自己生成第二套 truth。
 
-## 外部工程依据
+## 当前控制
 
-- `strangler_fig`：成熟 legacy 替换通常采用逐步包裹、迁移和切换，适合 MDS deconstruction；在本项目中体现为 capability-by-capability promotion，而不是一次性 monorepo absorb。
-- `architecture_fitness_functions`：架构约束应进入自动化检查；在本项目中体现为 `tests/test_standard_agent_boundary.py`、source closure、tracked-path hygiene、`opl quality details` 与 no-resurrection scan。
-- `team_topologies_cognitive_load`：复杂系统需要按职责和认知负载划边界；在本项目中体现为 MAS 只承接医学 research/product authority，MDS 只承接 runtime/backend/oracle。
-- `private_owned_data`：owner state 只能通过稳定接口消费；在本项目中体现为 durable truth surfaces 的 owner-private 规则，projection 不能写回或替代 authority。
+1. Owner matrix 由 `contracts/private_functional_surface_policy.json` 和
+   `contracts/functional_privatization_audit.json` 持有，并由
+   `tests/test_standard_agent_boundary.py` 覆盖。
 
-## 修复程序
+2. OPL generated CLI/MCP/product/status/workbench 只能消费 StageRun/current-control
+   和 MAS owner truth，不做第二判断；legacy `study_progress` 只作 internal
+   diagnostic projection。
 
-1. `freeze_authority_matrix`
-   - 已落地：`contracts/private_functional_surface_policy.json` 与 `contracts/functional_privatization_audit.json`。
-   - 验证：`tests/test_standard_agent_boundary.py`。
+3. MDS surface 只能使用 `source_provenance.json` 声明的分类；带有
+   publication、submission、user-progress、medical-evidence 或 runtime authority
+   的外部 surface 不得成为 MAS 默认 owner。
 
-2. `guard_projection_surfaces`
-   - OPL generated CLI/MCP/product/status/workbench 只能消费 StageRun/current-control 与 MAS owner truth，不做第二判断；legacy `study_progress` 只作 internal diagnostic projection。
-   - 后续新增 projection 必须声明 consumed authority surface。
+4. 新增 bridge、projection、oracle 或 runtime adapter 时，必须先写明当前
+   owner、authority surface 和可验证的切换证据；否则保持为 reference 或 fixture。
 
-3. `strangle_mds_authority_residue`
-   - MDS surface 的机器分类只允许 `mas_owned`、`rewrite_in_mas`、`fixture_only`、`retire`、`external_source_archive_only` 五档。
-   - 任何带 publication/submission/user-progress/medical-evidence authority 的 MDS surface 必须 fail-closed。
+## 验证
 
-4. `block_big_bang_absorb`
-   - physical absorb 只在 parity proof、owner cutover、rollback surface 与 quality-not-relaxed gate 成立后进行。
-   - 当前目标是减少混乱和 owner drift，不是把所有代码搬进一个目录。
-
-## 验收
-
-- `scripts/verify.sh full` 必须覆盖 owner-boundary report 与文档入口。
-- 结构 drilldown 由 `opl quality details` 提供；MAS 不保留 strict alias、独立 line-budget 或第二个结构工具。
-- MDS `scripts/verify.sh docs` 必须覆盖 runtime protocol / transition contract / strangler registry。
-- 任何新增 MAS/MDS bridge、projection、oracle、runtime adapter，都必须能说明：当前 owner、目标 owner、authority surface、promotion gate、parity proof、rollback surface。
+- `tests/test_standard_agent_boundary.py` 检查 active source boundary 和 retired
+  callable 的残留引用。
+- `scripts/verify.sh` 运行 tracked-path hygiene 与 pytest；`full` 另外运行 OPL
+  source-hygiene。
+- Runtime、paper progress、publication 和 production claim 仍需 fresh live
+  readback、artifact 或 owner receipt；文档和测试本身不构成这些结论。

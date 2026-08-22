@@ -42,8 +42,8 @@ policy; never claim a Review receipt from this conversation.
   receives the minimum local `[AUTHOR INPUT: ...]` annotation. Bind every such
   annotation through one `author_input_registry_ref`, derive the human To-Do
   projection from that registry, and materialize
-  `author_stance_integrity_ref`. Pending author facts never justify defensive
-  workflow prose in the manuscript.
+  `author_stance_integrity_ref`. Keep pending author facts as local annotations
+  or quality debt; do not put workflow explanations in the manuscript.
 - Follow `contracts/manuscript_first_draft_quality_policy.json`. Before a current
   first-draft-ready claim, materialize application schema v2 and consume the
   exact `medical_initial_draft_preflight_candidate_ref`. Every canonical
