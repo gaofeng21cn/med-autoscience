@@ -8,7 +8,7 @@ permissions:
 
 jobs:
   whitepaper:
-    uses: gaofeng21cn/one-person-lab/.github/workflows/reusable-whitepaper.yml@main
+    uses: gaofeng21cn/one-person-lab/.github/workflows/reusable-whitepaper.yml@6a8007482c9d8f078b0aca6a1e43d8f7f2304947 # main as of 2026-08-25
     with:
       profile: contracts/whitepaper_profile.json
       output_name: mas-whitepaper
