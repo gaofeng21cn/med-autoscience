@@ -297,7 +297,7 @@ def test_v2_application_and_skill_receipts_are_exact_and_readback_visible() -> N
     assert set(semantic["policy_ids"]) == {
         "scholarskills_medical_initial_draft_preflight.v3",
         "scholarskills_medical_initial_draft_preflight.v2",
-        "scholarskills_linked_prediction_performance.v2",
+        "scholarskills_linked_prediction_performance.v3",
     }
     invocation_contract = policy["professional_invocation_contract"]
     assert invocation_contract[
@@ -306,7 +306,7 @@ def test_v2_application_and_skill_receipts_are_exact_and_readback_visible() -> N
     assert set(invocation_contract["semantic_policy_ids"]) == {
         "scholarskills_medical_initial_draft_preflight.v3",
         "scholarskills_medical_initial_draft_preflight.v2",
-        "scholarskills_linked_prediction_performance.v2",
+        "scholarskills_linked_prediction_performance.v3",
     }
     assert invocation_contract["umbrella_policy_validators"] == {
         "active_reference_currentness": "audit_active_reference_currentness",

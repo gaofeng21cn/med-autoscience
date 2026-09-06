@@ -387,6 +387,53 @@ def test_selected_build_scholar_v2_semantic_bindings_are_exact_and_complete(
     assert "duplicate target/skill receipts" in result["error"]["detail"]
 
 
+@pytest.mark.parametrize(
+    ("field", "legacy_value", "expected_detail"),
+    [
+        (
+            "semantic_policy_id",
+            "scholarskills_linked_prediction_performance.v2",
+            "must bind the current Scholar policy",
+        ),
+        (
+            "validator_id",
+            "validate_linked_prediction_performance",
+            "must bind the current Scholar validator",
+        ),
+    ],
+)
+def test_current_prediction_build_requires_study_scoped_statistics_validation(
+    authority_records: Any,
+    field: str,
+    legacy_value: str,
+    expected_detail: str,
+) -> None:
+    request = authority_records.paper_request()
+    manifest = request["generation_manifest"]
+    binding = next(
+        item
+        for item in manifest["first_draft_quality_application"][
+            "scholar_v2_semantic_policy_bindings"
+        ]
+        if item["skill_id"] == "medical-statistical-review"
+    )
+    assert binding["semantic_policy_id"] == (
+        "scholarskills_linked_prediction_performance.v3"
+    )
+    assert binding["validator_id"] == "validate_linked_prediction_performance_v2"
+    assert not list(
+        _schema_validator("mas-evidence-generation-manifest.schema.json").iter_errors(
+            manifest
+        )
+    )
+    assert _evaluate(request)["status"] == "owner_receipt"
+
+    binding[field] = legacy_value
+    result = _evaluate(request)
+    assert result["status"] == "invalid_host_input"
+    assert expected_detail in result["error"]["detail"]
+
+
 def test_selected_build_rejects_legacy_or_orphan_scholar_v2_invocation(
     authority_records: Any,
 ) -> None:

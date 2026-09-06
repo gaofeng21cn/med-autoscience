@@ -1,7 +1,7 @@
 {
   "$schema": "https://agent-plugins.org/schemas/1.0.0/plugin.schema.json",
   "name": "med-autoscience",
-  "version": "0.2.27",
+  "version": "0.2.28",
   "description": "Medical research planning, literature review, data analysis, manuscript writing, peer review, revision, and submission.",
   "author": {
     "name": "Gao Feng",

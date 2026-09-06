@@ -146,8 +146,8 @@ SCHOLAR_V2_SEMANTIC_POLICY_BY_SKILL = {
         "candidate_surface_kind": "medical_initial_draft_preflight_candidate_ref",
     },
     "medical-statistical-review": {
-        "policy_id": "scholarskills_linked_prediction_performance.v2",
-        "validator_id": "validate_linked_prediction_performance",
+        "policy_id": "scholarskills_linked_prediction_performance.v3",
+        "validator_id": "validate_linked_prediction_performance_v2",
         "candidate_ref_field": "linked_prediction_performance_ref",
         "candidate_surface_kind": "linked_prediction_performance_ref",
     },

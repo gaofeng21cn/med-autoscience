@@ -361,7 +361,7 @@
           "policy_ids": [
             "scholarskills_medical_initial_draft_preflight.v3",
             "scholarskills_medical_initial_draft_preflight.v2",
-            "scholarskills_linked_prediction_performance.v2"
+            "scholarskills_linked_prediction_performance.v3"
           ],
           "reference_and_display_reuse_preflight_umbrella_policy": true,
           "exact_invocation_receipt_policy_and_candidate_member_required": true,

@@ -21,13 +21,21 @@ declarative pack、ScholarSkills、独立 Review 与六个 registry-bound author
 这项结论只覆盖结构和 source closure，不等于 live runtime、paper progress、
 publication/submission ready 或 production ready。
 
+`0.2.28` 的当前 manuscript selected build 消费 ScholarSkills 的
+`scholarskills_linked_prediction_performance.v3` 和
+`validate_linked_prediction_performance_v2`：统计解释绑定具体 study、intended use、
+当前 metric refs 与专业评估；数学、单位、精确引用和不虚构临床效用的边界保留。
+MAS 继续核对 policy、validator、candidate、invocation 与 receipt 的同代精确绑定，
+不会把旧固定阈值验证冒充当前评估。历史 schema 仍可读取，当前构建须使用新版语义。
+主 Skill 的六个公开 actions、条件化图形路由和领域权限保持原有边界。
+
 ## 当前机器形态
 
 | Surface | Current state |
 | --- | --- |
 | Identity | canonical agent/package id `mas`；machine domain id `medautoscience`；`med-autoscience` 只作 repo/package/plugin locator |
 | Package target | MAS 是 `OPL Package(kind=agent)`；owner 独立发布完整 bytes 到自身 GHCR `latest-stable`。当前 `MAS required capability dependency` 标签表示 `mas-scholar-skills` 硬依赖；普通 readiness 只检查 identity presence 与所需 capability callability，缺失只阻断 MAS |
-| Package transition | repo manifest 当前声明 source version `0.2.27`、required presence/callability edge、必要 capability ABI/exports/modules 与配置的 repo-root Codex Plugin carrier；普通 Package currentness 只依赖 owner OCI、native carrier 与 fresh readback，不读取 Release Set、lifecycle receipt 或 Framework materialization state |
+| Package transition | repo manifest 当前声明 source version `0.2.28`、required presence/callability edge、必要 capability ABI/exports/modules 与配置的 repo-root Codex Plugin carrier；普通 Package currentness 只依赖 owner OCI、native carrier 与 fresh readback，不读取 Release Set、lifecycle receipt 或 Framework materialization state |
 | Declarative pack | `agent/` 持有 primary skill、六个 Stage、prompts、knowledge 与 quality gates；plugin skill 是字节一致的分发镜像 |
 | Action catalog | `family-action-catalog.v2`：六个公开 Stage action + 五个无用户 surface 的 host-only authority actions |
 | Generated surfaces | CLI、MCP、Skill、product-entry、status、workbench 与 default domain-handler surface 全由 OPL 生成或托管 |
@@ -44,7 +52,7 @@ publication/submission ready 或 production ready。
 qualification work-item provisioning、candidate admission、paper mission 与 Stage minimum-scope 记录必须在 ref、size、SHA、
 generation、receipt inventory 和 typed verdict 上一致。机器 receipt 见
 `contracts/mas_validator_release_set_receipt.json`，canonical source ref 为
-`refs/tags/v0.2.24`。该历史 receipt 不属于当前 0.2.27 普通 Package manifest。
+`refs/tags/v0.2.24`。该历史 receipt 不属于当前 0.2.28 普通 Package manifest。
 
 该 Release Set 仅绑定本次 validator artifact 与 exact-byte qualification，不是普通 Package
 安装、依赖 readiness 或更新 currentness 的权威，也不要求 MAS、ScholarSkills、Base 或 App

@@ -509,7 +509,7 @@
     "semantic_policy_ids": [
       "scholarskills_medical_initial_draft_preflight.v3",
       "scholarskills_medical_initial_draft_preflight.v2",
-      "scholarskills_linked_prediction_performance.v2"
+      "scholarskills_linked_prediction_performance.v3"
     ],
     "umbrella_policy_validators": {
       "active_reference_currentness": "audit_active_reference_currentness",
