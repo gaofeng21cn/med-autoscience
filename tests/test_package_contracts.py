@@ -451,7 +451,7 @@ def test_package_import_and_hosted_entry_sources_resolve() -> None:
     catalog = json.loads(
         (ROOT / "contracts/action_catalog.json").read_text(encoding="utf-8")
     )
-    assert len(catalog["actions"]) == 11
+    assert len(catalog["actions"]) == 12
     for action in catalog["actions"]:
         binding = action["execution_binding"]
         if binding["kind"] == "stage_binding":

@@ -186,7 +186,7 @@
           "const": "opl-domain-lifecycle-admission.v1"
         },
         "mode": {
-          "const": "materialized_receipt"
+          "enum": ["materialized_receipt", "initialization_receipt"]
         },
         "domain_authority_result_ref": {
           "$ref": "#/$defs/file_url"

@@ -1,0 +1,68 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://opl.onepersonlab/contracts/mas-study-initialization-authority.input.schema.json",
+  "title": "MAS first-use study initialization authority input",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["authority_context", "work_item_identity", "current_inventory"],
+  "properties": {
+    "authority_context": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "action_id", "handler_call_ref", "owner_ledger_ref",
+        "original_admission_request_ref", "original_admission_request_sha256",
+        "admission_scope_id", "requested_action_id", "requested_run_id",
+        "original_invocation_sha256", "requested_at"
+      ],
+      "properties": {
+        "action_id": { "const": "study_initialization_authority_evaluate" },
+        "handler_call_ref": { "$ref": "#/$defs/text" },
+        "owner_ledger_ref": { "$ref": "#/$defs/file_url" },
+        "original_admission_request_ref": { "$ref": "#/$defs/file_url" },
+        "original_admission_request_sha256": { "$ref": "#/$defs/sha256" },
+        "admission_scope_id": { "type": "string", "pattern": "^lifecycle-initialization:[a-f0-9]{64}$" },
+        "requested_action_id": { "$ref": "#/$defs/text" },
+        "requested_run_id": { "$ref": "#/$defs/text" },
+        "original_invocation_sha256": { "$ref": "#/$defs/sha256" },
+        "requested_at": { "type": "string", "format": "date-time" }
+      }
+    },
+    "work_item_identity": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "work_item_id", "canonical_workspace_root", "canonical_work_item_root",
+        "work_item_root_ref", "descriptor_domain_id"
+      ],
+      "properties": {
+        "work_item_id": { "type": "string", "maxLength": 128, "pattern": "^[a-z0-9]+(?:[._-][a-z0-9]+)*$" },
+        "canonical_workspace_root": { "type": "string", "pattern": "^/" },
+        "canonical_work_item_root": { "type": "string", "pattern": "^studies/[a-z0-9]+(?:[._-][a-z0-9]+)*$" },
+        "work_item_root_ref": { "$ref": "#/$defs/file_url" },
+        "descriptor_domain_id": { "const": "medautoscience" }
+      }
+    },
+    "current_inventory": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "inventory_ref", "inventory_sha256", "inventory_bytes_base64",
+        "inventory_byte_size", "record", "selected_item_index"
+      ],
+      "properties": {
+        "inventory_ref": { "const": "workspace_index.json" },
+        "inventory_sha256": { "$ref": "#/$defs/sha256" },
+        "inventory_bytes_base64": { "type": "string", "minLength": 1 },
+        "inventory_byte_size": { "type": "integer", "minimum": 1 },
+        "record": { "type": "object" },
+        "selected_item_index": { "type": "integer", "minimum": 0 }
+      }
+    }
+  },
+  "$defs": {
+    "text": { "type": "string", "minLength": 1 },
+    "file_url": { "type": "string", "pattern": "^file:///.+" },
+    "sha256": { "type": "string", "pattern": "^(?:sha256:)?[a-f0-9]{64}$" }
+  }
+}

@@ -3,6 +3,14 @@
   "version": "domain-handler-registry.v1",
   "handlers": [
     {
+      "handler_id": "mas.study-initialization-authority-evaluate",
+      "binding": {
+        "kind": "python_callable",
+        "module": "med_autoscience.authority_handlers.study_initialization",
+        "callable": "evaluate_study_initialization_authority"
+      }
+    },
+    {
       "handler_id": "mas.qualification-work-item-provisioning-authority-evaluate",
       "binding": {
         "kind": "python_callable",

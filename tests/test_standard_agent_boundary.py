@@ -15,6 +15,7 @@ ALLOWED_MAS_MODULE_REF_PREFIXES = (
     "med_autoscience.authority_handlers.paper_mission",
     "med_autoscience.authority_handlers.qualification_work_item_provisioning",
     "med_autoscience.authority_handlers.self_evolution_closeout",
+    "med_autoscience.authority_handlers.study_initialization",
     "med_autoscience.authority_handlers.study_lifecycle_reactivation",
 )
 CANONICAL_RETIRED_DEFAULT_SURFACE_IDS = [
@@ -32,7 +33,7 @@ CANONICAL_RETIRED_DEFAULT_SURFACE_IDS = [
 def _load(relative_path: str) -> dict[str, object]:
     return json.loads((ROOT / relative_path).read_text(encoding="utf-8"))
 
-def test_action_catalog_exposes_six_hosted_stages_and_five_internal_handlers() -> None:
+def test_action_catalog_exposes_six_hosted_stages_and_six_internal_handlers() -> None:
     catalog = _load("contracts/action_catalog.json")
     registry = _load("contracts/domain_handler_registry.json")
     actions = catalog["actions"]
@@ -71,6 +72,7 @@ def test_action_catalog_exposes_six_hosted_stages_and_five_internal_handlers() -
     )
     assert [action["action_id"] for action in authority_actions] == [
         "qualification_work_item_provisioning_authority_evaluate",
+        "study_initialization_authority_evaluate",
         "study_lifecycle_reactivation_authority_evaluate",
         "candidate_admission_authority_evaluate",
         "build_dependency_currentness_authority_evaluate",
@@ -82,6 +84,9 @@ def test_action_catalog_exposes_six_hosted_stages_and_five_internal_handlers() -
     } == {
         "qualification_work_item_provisioning_authority_evaluate": (
             "handler:mas.qualification-work-item-provisioning-authority-evaluate"
+        ),
+        "study_initialization_authority_evaluate": (
+            "handler:mas.study-initialization-authority-evaluate"
         ),
         "study_lifecycle_reactivation_authority_evaluate": (
             "handler:mas.study-lifecycle-reactivation-authority-evaluate"
@@ -97,6 +102,7 @@ def test_action_catalog_exposes_six_hosted_stages_and_five_internal_handlers() -
     assert {item["handler_id"] for item in registry["handlers"]}.issuperset(
         {
             "mas.qualification-work-item-provisioning-authority-evaluate",
+            "mas.study-initialization-authority-evaluate",
             "mas.study-lifecycle-reactivation-authority-evaluate",
             "mas.candidate-admission-authority-evaluate",
             "mas.build-dependency-currentness-authority-evaluate",
@@ -109,6 +115,10 @@ def test_action_catalog_exposes_six_hosted_stages_and_five_internal_handlers() -
     } == {
         "qualification_work_item_provisioning_authority_evaluate": {
             "kind": "none",
+        },
+        "study_initialization_authority_evaluate": {
+            "kind": "work_item",
+            "alias_fields": ["work_item_identity.work_item_id"],
         },
         "study_lifecycle_reactivation_authority_evaluate": {
             "kind": "work_item",

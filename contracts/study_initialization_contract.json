@@ -1,0 +1,74 @@
+{
+  "surface_kind": "mas_study_initialization_contract",
+  "schema_version": 1,
+  "contract_id": "mas.study-initialization.v1",
+  "owner": "MedAutoScience",
+  "action_id": "study_initialization_authority_evaluate",
+  "handler_ref": "handler:mas.study-initialization-authority-evaluate",
+  "input_schema_ref": "contracts/schemas/v2/mas-study-initialization-authority.input.schema.json",
+  "output_schema_ref": "contracts/schemas/v2/mas-study-initialization-authority.output.schema.json",
+  "purpose": "Initialize the MAS lifecycle of an existing identity-only study so the requested research Stage can make progress without inferring a quality or publication verdict.",
+  "before_state": "uninitialized",
+  "before_generation": 0,
+  "target_state": "active",
+  "target_generation": 1,
+  "inventory": {
+    "relative_path": "workspace_index.json",
+    "items_pointer": "/studies",
+    "work_item_id_field": "study_id",
+    "work_item_root_field": "canonical_study_root",
+    "identity_and_root_unique": true,
+    "exact_bytes_and_record_must_match": true,
+    "preserve_envelope_and_non_target_rows": true,
+    "preserve_unrelated_target_fields": true,
+    "replace_existing_lifecycle_or_business_truth": false,
+    "promote_qualification_only_work_item": false
+  },
+  "progress_policy": {
+    "unknown_or_low_quality_blocks_research_stage": false,
+    "quality_verdict_created": false,
+    "stage_body_authorized": true,
+    "publication_authorized": false,
+    "submission_authorized": false,
+    "submission_ready": false,
+    "package_status": "not_ready"
+  },
+  "materialization": {
+    "capability_id": "opl_domain_artifact_cas_materialization.v1",
+    "semantics": "journaled_all_or_rollback",
+    "operations": [
+      { "target": "workspace_index.json", "precondition": "existing_exact" },
+      { "target": "studies/{study_id}/control/lifecycle.json", "precondition": "absent" },
+      { "target": "studies/{study_id}/artifacts/controller/lifecycle_control/initialization-receipt.json", "precondition": "absent" }
+    ],
+    "concurrent_inventory_change_aborts": true,
+    "existing_lifecycle_or_receipt_aborts": true,
+    "handler_result_without_materialization_is_admission": false,
+    "replay_owner": "OPL deterministic child run and exact-byte CAS"
+  },
+  "stage_admission": {
+    "capability_id": "opl_domain_lifecycle_admission.v1",
+    "stage_input_field": "lifecycle_admission",
+    "receipt_mode": "initialization_receipt",
+    "initialization_action_id": "study_initialization_authority_evaluate",
+    "initialization_receipt_output_field": "initialization_receipt",
+    "initialization_materialization_authorization_output_field": "mas_lifecycle_cas_mutation_authorization",
+    "initialization_request_input_field_map": {
+      "authority_context": "/authority_context",
+      "work_item_identity": "/work_item_identity",
+      "current_inventory": "/current_inventory"
+    },
+    "receipt_binds_original_request_and_invocation": true,
+    "receipt_binds_current_lifecycle_bytes_and_generation": true,
+    "stage_selection_owner": "caller and canonical MAS route"
+  },
+  "authority_boundary": {
+    "domain_truth_owner": "MedAutoScience",
+    "host_materialization_owner": "one-person-lab",
+    "performs_filesystem_io": false,
+    "performs_network_io": false,
+    "persists_artifact_or_receipt": false,
+    "opl_can_sign_mas_receipt": false,
+    "provider_completion_is_domain_truth": false
+  }
+}

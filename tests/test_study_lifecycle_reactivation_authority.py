@@ -1337,7 +1337,7 @@ def test_registry_catalog_and_stage_admission_are_internal_and_closed() -> None:
     catalog = json.loads(
         (ROOT / "contracts/action_catalog.json").read_text(encoding="utf-8")
     )
-    assert len(catalog["actions"]) == 11
+    assert len(catalog["actions"]) == 12
     assert [item["action_id"] for item in catalog["actions"]] == [
         "direction_and_route_selection",
         "baseline_and_evidence_setup",
@@ -1346,6 +1346,7 @@ def test_registry_catalog_and_stage_admission_are_internal_and_closed() -> None:
         "review_and_quality_gate",
         "finalize_and_publication_handoff",
         "qualification_work_item_provisioning_authority_evaluate",
+        "study_initialization_authority_evaluate",
         "study_lifecycle_reactivation_authority_evaluate",
         "candidate_admission_authority_evaluate",
         "build_dependency_currentness_authority_evaluate",
@@ -1397,7 +1398,10 @@ def test_registry_catalog_and_stage_admission_are_internal_and_closed() -> None:
     assert lifecycle_contract["authority_boundary"][
         "supported_surfaces_null_is_not_runtime_access_control"
     ] is True
-    build_currentness = catalog["actions"][9]
+    build_currentness = next(
+        item for item in catalog["actions"]
+        if item["action_id"] == "build_dependency_currentness_authority_evaluate"
+    )
     assert build_currentness["execution_binding"] == {
         "kind": "handler_ref",
         "handler_ref": "handler:mas.build-dependency-currentness-authority-evaluate",
@@ -1435,7 +1439,10 @@ def test_registry_catalog_and_stage_admission_are_internal_and_closed() -> None:
     assert build_boundary[
         "malicious_host_complete_self_consistent_forgery_resistance"
     ] is False
-    paper_mission = catalog["actions"][10]
+    paper_mission = next(
+        item for item in catalog["actions"]
+        if item["action_id"] == "paper_mission_authority_evaluate"
+    )
     assert paper_mission["optional_fields"] == [
         "selected_build_currentness_authority",
         "revision_consumption",
