@@ -29,6 +29,13 @@ MAS 继续核对 policy、validator、candidate、invocation 与 receipt 的同�
 不会把旧固定阈值验证冒充当前评估。历史 schema 仍可读取，当前构建须使用新版语义。
 主 Skill 的六个公开 actions、条件化图形路由和领域权限保持原有边界。
 
+总体 capability ABI 保持兼容，但当前 selected prediction build 还要求上述 v2
+callable。`agent/skills/medical_research_execution.md` 要求 Codex Attempt 在调用前
+加载实际 provider module 并探测符号；旧包或损坏安装返回
+`scholar_validator_unavailable` 诊断，不能调用缺失函数或把历史回执改称当前回执。
+Framework 的 Package/Skill presence readback 本身不执行函数级探测，也不证明该
+selected build 已满足此要求；普通 Package 依赖不重新引入版本锁或 Release Set。
+
 ## 当前机器形态
 
 | Surface | Current state |

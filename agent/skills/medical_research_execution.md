@@ -50,6 +50,21 @@ The executor must treat all medical research work as claim-boundary work. A coho
 - External and specialist outputs are refs-only candidates until consumed by the
   MAS owner path; they never become source, quality, artifact, or submission
   authority by installation or execution alone.
+- Before producing `linked_prediction_performance_ref` for a current selected
+  prediction build, resolve the active installed or materialized Scholar
+  provider's `skills/medical-statistical-review/kernel.py`, load that exact
+  module, and check
+  `callable(getattr(kernel, "validate_linked_prediction_performance_v2", None))`.
+  Package/Skill presence and the shared capability ABI do not prove this symbol
+  is callable; this probe belongs to the current Codex Attempt, not Framework
+  package readiness. If the module cannot load or the symbol is absent, return
+  a `scholar_validator_unavailable` dependency diagnostic with the observed
+  provider/source refs, required symbol, load error when present, and an
+  installed-provider update or repair action. Do not invoke the absent symbol,
+  fabricate its receipt, or substitute the historical unversioned validator.
+  Pause the dependent validation and ready claim while continuing work that
+  does not need it. After repair, probe the actual provider again before calling
+  the function. Keep the legacy entry available for historical consumers.
 - During `baseline_and_evidence_setup`, when governed narrative notes are needed
   for cohort, endpoint, exposure, or covariate evidence, route through
   `medical-methodology-planner` to `medical-clinical-note-abstraction`. Supply
