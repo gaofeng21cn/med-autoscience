@@ -1,49 +1,38 @@
 # Canonical Artifact Contract
 
 Owner: `MedAutoScience`
-Purpose: `Explain MAS runtime contract and stage-surface boundaries for human maintainers.`
+Purpose: `canonical_source_and_derived_artifact_boundary`
 State: `active_runtime_support`
-Machine boundary: Human-readable runtime contract support only; enforceable runtime truth remains in machine-readable contracts, source, tests, CLI/read-model output, runtime ledgers, and owner receipts.
+Machine boundary: artifact contracts、generation manifest、owner receipts 与真实 workspace bytes 持有机器事实。
 
-Artifact OS 的目标是让 manuscript、figures、tables 和 submission package 全部从 canonical sources 与 AI reviewer quality decision 重建。派生产物可以交付给人看，但不能反向成为 edit source 或 quality authority。
+## 编辑源与交付物
 
-Artifact OS 的 owner split 固定为：OPL / shared family layer 持有通用 locator/index、lifecycle transport、restore/retention shell、attempt/workbench projection 和 artifact refs 展示；MAS 持有医学 artifact authority，包括 artifact mutation authorization、canonical-source rebuild proof、publication-route memory decision、AI reviewer / publication gate 解释、package freshness interpretation 和 current package authority。OPL 可以把 artifact refs、lifecycle refs、restore proof refs 或 typed blocker refs 交回 MAS；它不能直接决定 artifact mutation、publication quality、submission readiness 或 `current_package` 更新。
+`manuscript/` 持有可编辑论文 source；charter、analysis、evidence、claim 和 reference
+材料各自在 canonical owner 下维护。DOCX/PDF、ZIP 和 `submission/` 是派生产物，
+不能反向成为编辑源或 quality authority。修订先回到缺陷所属 Stage 的 canonical source，
+重建后重新评估受影响 review scope。
 
-当交付包需要 ZIP、tree inventory、SHA-256 sidecar、exact-byte verification 或原子 projection 时，机制 owner 是 OPL Framework 的 `publication_package` 和 `pack materialize-artifact-projection` 接口；MAS 只提供同代冻结时间、授权成员清单和 artifact mutation authorization。study 不得保留这些通用功能的私有 writer、verifier 或 publisher。
+`submission-package.v2` 内的 `audit/` 与 `reproducibility/` 仅提供来源和复现投影。
+source signature、source path/hash inventory、analysis/software manifest 和 lineage
+graph 帮助定位与重建，不能取代医学、统计、引用或 publication verdict。
 
-## Layers
+## Owner 与发布投影
 
-1. canonical sources：study charter、evidence ledger、analysis outputs、AI reviewer quality decision、canonical blueprint。
-2. derived manuscript：从 canonical sources 与 AI reviewer quality decision 生成 manuscript、tables、figures。
-3. submission package：controller-authorized delivery projection。
-4. human handoff mirror：给人工审阅或提交使用的只读镜像。
+MAS 持有 artifact mutation、quality/publication 与 memory authority。
+OPL Framework 提供通用 tree inventory、ZIP、hash、transport、retention 和原子 projection；
+它不能决定医学质量或签发 submission readiness。
 
-## Rule
+Final Handoff 仅封装 exact reviewed bytes。MAS owner receipt 绑定 publication generation、
+status、evaluation、next-action 与 projection manifest 后，Framework 才运输授权的完整树。
+失败不能留下半填充的 preferred submission root；transport 成功也不提升领域 verdict。
 
-`manuscript/current_package/`、`artifacts/final/`、`current_package.zip`、`submission_minimal/` 都不是 edit source，也不是 quality authority。任何 revision 或 reviewer feedback 必须回到 canonical sources 和 MAS quality/runtime chain，由 AI reviewer quality decision 重新授权后再生成派生产物。
+## 重建与保留
 
-在 `submission-package.v2` layout 下，`audit/*` 与 `reproducibility/*` 是交付包内的 traceability projection，用于核查来源、审计和复现索引；它们不把交付包提升为 edit source、quality authority 或 dispatch authority。
+每次 artifact 变化记录 source、analysis/environment、evidence/claim、review 与 generation
+lineage；缺失证明时显式记录质量债、route-back 或真实 authority blocker。
+研究进展不等于 publication/submission acceptance。
 
-`submission-package.v2` 的 reproducibility bundle 固定包含：
-
-- `source_signature.json`：记录 source contract 与 sha256-grade package fingerprint；它只作 locator、rebuild/stale hint 和 package provenance，不是 manuscript、analysis、claim、reference 或 reviewer currentness authority。
-- `source_relative_paths.json`：记录 canonical/package source 相对路径与每个 source file 的 sha256。
-- `analysis_manifest.json`：记录 analysis result refs、analysis source sha256、software/environment ref 与 lineage graph ref。
-- `software_environment.json`：记录 repo/runtime/software env refs；它是复现索引，不是 runtime truth。
-- `artifact_lineage_graph.json`：固定 `canonical_source -> analysis_result -> evidence_ledger -> claim_map -> manuscript_table_figure -> submission_package`。
-
-上述 graph 只是 lineage projection。`current_package`、DOCX/PDF、ZIP、`audit/` 和 `reproducibility/` 都不能成为 edit source、quality authority 或 dispatch authority。
-
-## Rebuild Requirements
-
-- manuscript 必须从 canonical sources + AI reviewer quality decision 重建。
-- figures 必须从 canonical sources + AI reviewer quality decision 重建。
-- tables 必须从 canonical sources + AI reviewer quality decision 重建。
-- submission package 必须从 canonical sources + AI reviewer quality decision 重建。
-- reviewer / writer sprint、analysis campaign、gate replay 或 artifact handoff 后的 positive path 必须留下 research evidence pack refs、negative / failed-path ledger refs、decision trace refs、artifact lineage / reproducibility refs。缺任一 ref family 时，Artifact OS 只能返回 stable typed blocker，并命名缺失 ref family、route-back owner 和 no-forbidden-write proof。下一层目标是把这些 ref family 进入 read-model projection 和 schema validation：read-model 显示 availability，schema validation 对缺失 ref、placeholder ref、forbidden write 或 owner-route mismatch fail closed，DM002 canary 给出 evidence available 或 stable typed blocker；这仍不授权 publication-ready、artifact mutation 或 `current_package` 更新。
-
-派生 projection 可以作为人读 handoff、提交镜像或 traceability output 使用；不能作为后续编辑、质量关闭、投稿授权的根。
-
-`artifact_rebuild_integrity_contract` 固定每类生成产物的 rebuild proof：`source_refs`、`fingerprint_refs`、`quality_decision_ref`、`controller_decision_ref` 和 `generated_artifact_role` 必须同时存在。缺任何一项只能说明 rebuild proof 不完整，不能把当前包、DOCX/PDF、zip 或 `submission_minimal/` 提升成质量或投稿 authority。
-
-终局止损后的文件精简不改变这条 authority 规则。即使 `study_macro_state` 已进入不可重开 `TerminalAbandon`，canonical source、data release、audit log 与 human handoff mirror 仍保持在线；runtime ephemeral 只能在 manifest、sha256、restore index 与 restore proof 成立后进入后续 archive/compact apply。派生 projection 的移除也必须先证明 canonical source 可重建。
+论文关闭后的返修依照 [Submission Revision](../../policies/study-workflow/submission_revision_operating_contract.md)
+和 [Lifecycle](../../source/study_lifecycle_control.md) 进入受控新 revision。
+数据保留和清理依照 [Artifact Retention](./artifact_retention_operations_contract.md)；
+删除派生产物前证明 canonical source 可重建，保留独立的 restore/retention 证据。

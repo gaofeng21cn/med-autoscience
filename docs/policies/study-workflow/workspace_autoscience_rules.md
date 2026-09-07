@@ -13,7 +13,7 @@ Machine boundary: Human-readable study-workflow policy only; study truth remains
 
 ## 默认目标
 
-- 以 Q2+ 医学论文为第一目标
+- 以具体研究目标和临床意义为首要标准；期刊档次服从用户目标与实际证据
 - MAS 做医学研究 domain owner
 - Codex CLI 做 stage 内默认 concrete executor
 - OPL 可以作为外层 stage-led runtime framework 承担唤醒、队列、恢复、审批和投影
@@ -30,4 +30,4 @@ Machine boundary: Human-readable study-workflow policy only; study truth remains
 - OPL provider / App / projection 可以显示 refs、freshness、attempt 和 blocker，但不能把 provider completion、file presence、package freshness、test pass、read model 或 inventory 解释为 MAS paper closure、domain ready、quality verdict 或 artifact authority。
 - workspace literature、data asset registry、ToolUniverse 输出、provider ranking、cache hit 或 quest-local materialization 只能作为 source refs / readiness input / blocker refs；source readiness、publication quality、submission readiness、artifact authority 和 `current_package` 更新继续由 MAS owner surfaces 授权
 
-当前这份规则是从 NF-PitNET workspace 中抽出的第一版通用摘要，后续会继续规范化。
+研究类型、资料访问与真实投稿要求由各 workspace 的当前合同明确，不从历史示例推导。

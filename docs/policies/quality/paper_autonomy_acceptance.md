@@ -2,7 +2,7 @@
 
 Owner: `MedAutoScience`
 Purpose: `paper_autonomy_acceptance_contract`
-State: `active_support`
+State: `active_policy`
 Machine boundary: 本文只定义真实论文线验收；机器事实归 workspace artifacts、independent Review receipts、MAS authority results 与 OPL StageRun/readback。
 
 ## 目标
@@ -34,8 +34,8 @@ Provider completion、queue empty、tests green、projection current、candidate
 - ordinary observation不重开循环；required finding必须进入 repair closure。
 - publication/export/submission/ready claim 必须由对应 owner verdict关闭。
 
-## Evidence tail
+## 证据要求
 
-Repo结构已关闭；本文件剩余工作只来自真实 paper lines：StageRun replay、provider
-long-soak、artifact delta、Review receipt、owner acceptance、publication/submission
-readback。缺失 evidence时输出 typed blocker或保持未验证，不恢复 MAS-local runtime。
+真实 paper-line 验收读取 StageRun replay、provider long-soak、artifact delta、Review
+receipt、owner acceptance 与 publication/submission readback。缺失 evidence 时保持
+未验证并说明接收 owner；具体开放项仅由 active plan 维护。

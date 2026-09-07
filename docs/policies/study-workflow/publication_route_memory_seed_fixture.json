@@ -15,9 +15,9 @@
     "can_write_study_truth": false
   },
   "workspace_targets": {
-    "memory_pack_locator": "portfolio/research_memory/publication_route_memory",
-    "seed_apply_receipts": "portfolio/research_memory/publication_route_memory/migration_receipts",
-    "writeback_receipts": "portfolio/research_memory/publication_route_memory/writeback_receipts"
+    "memory_pack_locator": "memory/portfolio/research_memory/publication_route_memory",
+    "seed_apply_receipts": "memory/portfolio/research_memory/publication_route_memory/migration_receipts",
+    "writeback_receipts": "memory/portfolio/research_memory/publication_route_memory/writeback_receipts"
   },
   "seed_memory_refs": [
     {

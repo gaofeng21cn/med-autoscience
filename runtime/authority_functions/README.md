@@ -1,21 +1,19 @@
 # MAS Authority Functions
 
 Owner: `med-autoscience`
-Purpose: `minimal_authority_function_catalog`
+Purpose: `authority_declaration_directory`
 State: `declaration_surface`
-Machine boundary: This directory declares MAS-owned authority functions for OPL stage-pack consumption. It is not a generic runner, scheduler, queue, attempt ledger, runtime state root, cache, or artifact body store.
+Machine boundary: This directory declares authority boundaries; bindings are owned by
+`contracts/domain_handler_registry.json`, not by this README.
 
-## Retained Authority
+MAS retains medical owner judgment, receipts and forbidden-write validation.
+Open-ended scientific and quality judgments are made by the declared Stage roles.
+Registry handlers consume exact host inputs and return domain results or authorized
+CAS requests; Framework performs the generic transport and lifecycle operation.
 
-MAS retains the medical criteria and authority for owner receipts, typed blockers, research truth, publication quality, source integrity, artifact mutation, route decisions, and memory acceptance. Open-ended judgments are made by the decisive producer/reviewer roles declared in `agent/`; they are not implemented as repository-local validator functions.
+The current handler map and private attempt-local snapshot adapter are documented
+once in [Agent Runtime Interface](../../docs/runtime/contracts/agent_runtime_interface.md).
+The executable App contribution is a separate read-only producer, not a registry handler.
 
-## OPL Boundary
-
-OPL generated surfaces may consume body-free refs, manifests, lineage refs, and receipts through these boundaries. They must not write medical research truth, clinical truth, manuscript bodies, figure bodies, owner receipt bodies, typed blocker bodies, runtime state, queues, caches, or generated artifacts from this declaration.
-
-## Function Ref
-
-- `med_autoscience.authority_handlers.paper_mission.evaluate_paper_mission_authority`: pure, registry-bound evaluation of exact OPL-hosted refs. It performs no filesystem, network, process, runtime, package, or lifecycle operation. The callable does not replace independent reviewer/re_reviewer judgment and cannot materialize a Stage transition.
-- `med_autoscience.authority_handlers.qualification_work_item_provisioning.evaluate_qualification_work_item_provisioning_authority`: pure, scope-none, registry-bound derivation of one collision-checked study identity from exact qualification authority bytes. It emits qualification-only lifecycle, receipt, and workspace-index CAS bytes for OPL journaled materialization, but performs no I/O and authorizes no Stage body, business action, publication, or submission.
-- `med_autoscience.authority_handlers.study_lifecycle_reactivation.evaluate_study_lifecycle_reactivation_authority`: pure, registry-bound validation of durable user-instruction evidence, reviewer-revision intake, inactive lifecycle bytes, and declared projections. It emits MAS transition authority plus an OPL exact-bytes CAS request, but performs no I/O and cannot admit a Stage until OPL materialization is current.
-- `src/med_autoscience/authority_handlers/_stage_attempt_review_snapshot.py#finalize_bounded_analysis_producer_snapshot_closeout`: private attempt-local adapter used only by a bounded analysis producer. It reads declared workspace bytes to verify exact statistical member identities, calls the MAS-owned snapshot builder, and returns closeout refs; it does not write OPL runtime state, issue a verdict, or materialize a Stage transition.
+This directory is not a runner, scheduler, queue, session ledger, cache or artifact store.
+Declaration presence does not prove runtime readiness, study progress or publication.

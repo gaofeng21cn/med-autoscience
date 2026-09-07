@@ -1,135 +1,23 @@
-# 当前状态
+# 当前验证边界
 
-Owner: `MedAutoScience`
-Purpose: `current_status_summary`
-State: `active_current_truth`
-Machine boundary: 本文只总结 repo current state。具体 study/runtime 状态必须 fresh 读取 OPL StageRun/readback、MAS owner results、workspace artifacts 与 receipts。
+本文区分源码事实与必须现场读取的状态，不保存发布版本、handler 计数、历史 receipt 或论文进展快照。
 
-## 结论
+## 源码可证明的事实
 
-MAS 的 repo/source/control-plane 已收敛为标准 OPL Agent：
+MAS 使用 `agent/` 声明研究阶段、专业知识与质量要求；公开动作和内部 authority bindings 分别由 `contracts/action_catalog.json`、`contracts/domain_handler_registry.json` 持有。具体组件与职责见 [架构](./architecture.md)。
 
-> `Declarative Medical Research Pack + OPL generated/hosted surfaces + registry-bound minimal authority functions`
+验证入口是 `scripts/verify.sh`；`full` 额外读取 OPL source-hygiene。测试通过只覆盖本次源码和所用 Framework 环境，不证明安装或线上运行状态。
 
-MAS 不再持有私有 scheduler、runner、queue、session store、lifecycle/SQLite、
-StateIndex、status/workbench、CLI/MCP/product wrapper、provider/package transport、
-NextAction、PaperRecovery、stage terminalizer 或私有 quality validator。通用能力由
-OPL Pack / Connect / Runway / Ledger / Workspace / Console 提供；医学专业能力由
-declarative pack、ScholarSkills、独立 Review 与六个 registry-bound authority callables 提供，未作
-功能降级。
+## 需要现场证明的状态
 
-这项结论只覆盖结构和 source closure，不等于 live runtime、paper progress、
-publication/submission ready 或 production ready。
-
-`0.2.28` 的当前 manuscript selected build 消费 ScholarSkills 的
-`scholarskills_linked_prediction_performance.v3` 和
-`validate_linked_prediction_performance_v2`：统计解释绑定具体 study、intended use、
-当前 metric refs 与专业评估；数学、单位、精确引用和不虚构临床效用的边界保留。
-MAS 继续核对 policy、validator、candidate、invocation 与 receipt 的同代精确绑定，
-不会把旧固定阈值验证冒充当前评估。历史 schema 仍可读取，当前构建须使用新版语义。
-主 Skill 的六个公开 actions、条件化图形路由和领域权限保持原有边界。
-
-总体 capability ABI 保持兼容，但当前 selected prediction build 还要求上述 v2
-callable。`agent/skills/medical_research_execution.md` 要求 Codex Attempt 在调用前
-加载实际 provider module 并探测符号；旧包或损坏安装返回
-`scholar_validator_unavailable` 诊断，不能调用缺失函数或把历史回执改称当前回执。
-Framework 的 Package/Skill presence readback 本身不执行函数级探测，也不证明该
-selected build 已满足此要求；普通 Package 依赖不重新引入版本锁或 Release Set。
-
-## 当前机器形态
-
-| Surface | Current state |
+| 结论 | 必须读取的证据 |
 | --- | --- |
-| Identity | canonical agent/package id `mas`；machine domain id `medautoscience`；`med-autoscience` 只作 repo/package/plugin locator |
-| Package target | MAS 是 `OPL Package(kind=agent)`；owner 独立发布完整 bytes 到自身 GHCR `latest-stable`。当前 `MAS required capability dependency` 标签表示 `mas-scholar-skills` 硬依赖；普通 readiness 只检查 identity presence 与所需 capability callability，缺失只阻断 MAS |
-| Package transition | repo manifest 当前声明 source version `0.2.28`、required presence/callability edge、必要 capability ABI/exports/modules 与配置的 repo-root Codex Plugin carrier；普通 Package currentness 只依赖 owner OCI、native carrier 与 fresh readback，不读取 Release Set、lifecycle receipt 或 Framework materialization state |
-| Declarative pack | `agent/` 持有 primary skill、六个 Stage、prompts、knowledge 与 quality gates；plugin skill 是字节一致的分发镜像 |
-| Action catalog | `family-action-catalog.v2`：六个公开 Stage action + 五个无用户 surface 的 host-only authority actions |
-| Generated surfaces | CLI、MCP、Skill、product-entry、status、workbench 与 default domain-handler surface 全由 OPL 生成或托管 |
-| Runtime | StageRun、Attempt、Temporal、session、retry、StateIndex、storage/lifecycle、observability 与 transition materialization 全归 OPL |
-| Route owner | decisive Codex Attempt 决定领域 route；OPL StageRun controller 只校验并物化 transition |
-| Provider/resource | OPL Connect / Pack 生成 exact-path、digest-bound receipt；MAS 只消费 receipt 并作医学判断 |
-| Publication handoff | `publication_generation` 强制同代绑定 package、submission status、publication evaluation、next action 与 projection manifest；MAS owner receipt 授权 OPL Pack 原子投影完整 submission tree，但不授权 publication/submission ready |
-| Retained code | closed registry 绑定 qualification work-item provisioning、study lifecycle reactivation、candidate admission、build-dependency currentness、paper mission 与 self-evolution closeout 共六个非声明式 authority callables；这些 callable 只消费 host 注入的 exact refs 并返回领域裁决，不持有 runtime、session、transport 或物化权限 |
-| Source morphology | `src/med_autoscience/authority_handlers/` 保留上述六个 registry target 与共享纯校验 helper，另有 package init 和 CSL assets |
+| Package 已安装且可用 | OPL Package 聚合状态、实际 carrier readback、ScholarSkills 所需能力可调用性 |
+| Runtime 正常 | 同一 workspace/study 的 StageRun、Attempt、provider 与恢复结果 |
+| 论文取得进展 | canonical artifact 的语义变化、MAS owner receipt、明确 route-back、human gate 或 typed blocker |
+| 质量与投稿要求满足 | 当前独立 reviewer/auditor receipt、六域 review currentness、publication owner verdict 与当前 generation 产物 |
+| 投稿或部署完成 | 对应外部系统或部署目标的正式回执 |
 
-## 历史 0.2.24 validator Release Set 边界
+旧版本 validator qualification receipt 仅说明其冻结 artifact 的验证，不定义当前普通 Package readiness。Exact hash 一致不认证 issuer 身份；host 输入必须有 Framework managed authority-attempt 与 owner-ledger provenance。
 
-`mas-validator-0.2.24` 只支持 exact-byte domain validation：generation manifest、
-qualification work-item provisioning、candidate admission、paper mission 与 Stage minimum-scope 记录必须在 ref、size、SHA、
-generation、receipt inventory 和 typed verdict 上一致。机器 receipt 见
-`contracts/mas_validator_release_set_receipt.json`，canonical source ref 为
-`refs/tags/v0.2.24`。该历史 receipt 不属于当前 0.2.28 普通 Package manifest。
-
-该 Release Set 仅绑定本次 validator artifact 与 exact-byte qualification，不是普通 Package
-安装、依赖 readiness 或更新 currentness 的权威，也不要求 MAS、ScholarSkills、Base 或 App
-锁步发布。它也不是独立 trust root。自洽 hash 只能证明输入记录内部字节一致，不能证明
-issuer 身份；若恶意 host 同时伪造完整 adjudicator、currentness、review 与 owner-ledger
-记录，repo-local validator 本身不能识别。正式消费必须由 OPL Framework 提供 managed
-authority-attempt 与 owner-ledger provenance gate，缺失时 fail closed。因此 package
-validator ready 不等于 authoring、launch、publication 或 submission clearance；DM003
-在 platform provenance gate 和 installed managed-source currentness 完成前仍不得启动
-authoring。
-
-## 结构验收
-
-当前结构 readback 必须同时满足：
-
-- generated/default interfaces 全部 ready；
-- 8/8 default-caller retirement gates closed，active deletion worklist 为零；
-- conformance passed；
-- private-platform residue decision item 为零且 state 为 `verified_zero`；
-- source closure unresolved edge、audit mismatch 与 unreachable/private generic residue 全为零；
-- primary skill 与 plugin carrier 字节一致；
-- repo hygiene 与 no-resurrection scan 通过。
-
-OPL read model 不替 MAS 签发物理删除权，因此
-`default_caller_delete_ready=false` 与 `no_further_opl_default_caller_delete_work=true`
-可以同时成立：前者冻结 false-authority，后者证明已无结构工作单。
-
-## MAS 保留 authority
-
-MAS 保留的是领域语义，不是平台实现：
-
-- medical study/source truth 与 evidence acceptance；
-- independent Review 的医学质量判断；
-- publication、submission、artifact 与 memory authority；
-- owner receipt、route-back、quality debt、typed blocker 与 human gate。
-
-这些能力通过声明、专业 Skill、review outcome 和 registry-bound authority result
-进入 OPL，不通过 MAS-local runtime/controller 实现。
-
-## Live evidence tail
-
-State: `partial_deferred`
-
-以下 claim 仍须 fresh owner/live evidence，当前不得声明 ready：
-
-- OPL StageRun/Attempt same-identity readback 与 provider long-soak；
-- 真实 paper line 的 owner receipt、stable typed blocker、human gate 或 artifact semantic delta；
-- independent reviewer/auditor receipt 与 publication owner verdict；
-- managed authority-attempt / owner-ledger provenance gate，证明 receipt issuer 不是
-  developer checkout 或 host 自行声明；
-- submission/current-package authority；
-- restart/retry/dead-letter 与 production no-forbidden-write evidence。
-
-contracts、tests、descriptor ready、projection clean、queue empty、candidate package 与
-docs 不替代上述证据。
-
-## 维护入口
-
-- [项目概览](./project.md)
-- [架构](./architecture.md)
-- [不可变约束](./invariants.md)
-- [关键决策](./decisions.md)
-- [Active plan](./active/mas-ideal-state-gap-plan.md)
-- [私有控制面退役记录](./history/standard-agent-private-control-plane-retirement.md)
-
-## Agent Lab 自进化 closeout
-
-MAS declarative pack 现已提供 SHA 绑定的 `write` Stage completion policy
-projection、high-risk owner-gated mechanism promotion policy，以及
-registry-bound target-owner closeout handler。这补齐了 fresh re-evaluation 的
-MAS 语义与 owner consumption 缺口，但不表示 DM003 或任何论文已达到
-publication/submission ready；被阻断的医学 scorecard 在 re-evaluation 中必须继续
-保持 blocked。
+开放验收条件见 [证据差距](./active/mas-ideal-state-gap-plan.md)。本页不推断任何具体 study、已安装版本或生产实例的当前状态。

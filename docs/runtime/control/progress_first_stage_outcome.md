@@ -87,6 +87,6 @@ Synthetic fixtures 与 focused tests只证明 shape。真实 progress 必须 fre
 ## 相关入口
 
 - [Runtime boundary](../contracts/runtime_boundary.md)
-- [Controllers](./controllers.md)
+- [Runtime Boundary](../contracts/runtime_boundary.md)
 - [Invariants](../../invariants.md)
 - [Active plan](../../active/mas-ideal-state-gap-plan.md)

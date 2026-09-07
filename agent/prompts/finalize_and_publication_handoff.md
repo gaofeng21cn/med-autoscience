@@ -113,8 +113,6 @@ reasons, and do not expose packaging internals or infer beyond cited evidence.
 
 The progress write neither starts nor waits for independent review; formal
 publication quality remains governed by the existing quality gate.
-`research_trajectory_delta_ref` remains nullable v1 read compatibility and is
-not the v2 write gate; the current v2 Stage output returns it as `null`.
 
 ## Handoff
 

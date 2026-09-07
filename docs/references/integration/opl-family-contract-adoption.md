@@ -1,76 +1,32 @@
 # MAS Adoption of OPL Family Contracts
 
 Owner: `MedAutoScience`
-Purpose: `Support MAS integration and OPL handoff understanding.`
+Purpose: `family_contract_consumer_mapping`
 State: `support_reference`
-Machine boundary: Human-readable integration reference only; callable and generated-surface truth remains in manifests, contracts, source, tests, OPL handoff contracts, and read-model output.
+Machine boundary: 本页映射 MAS 消费入口；Framework 合同和真实 consumer 持有平台实现。
 
-## Purpose
+## 消费边界
 
-这份薄适配声明说明 `MAS` 如何满足 `OPL` family runtime / quality / incident / operator projection 合同。它不把 `OPL` 变成医学研究 owner，也不把 family 合同复制成第二套 MAS runtime。
+| MAS 声明 | Framework 消费内容 | MAS 保留的 authority |
+| --- | --- | --- |
+| `contracts/domain_descriptor.json` | Package/domain identity、workspace binding、inventory projection | 论文库存、业务状态、study root |
+| `contracts/action_catalog.json` 与 handler registry | Stage interface 与 closed authority dispatch | 医学结果、receipt 与 forbidden-write 判断 |
+| `contracts/stage_quality_cycle_policy.json` | Attempt 角色、预算、Review protocol | rubric、finding、领域路由和 quality 判断 |
+| `contracts/memory_descriptor.json` | policy/body locator、body-free metadata、receipt refs | memory 正文、accept/reject 与研究策略 |
+| `contracts/runtime_detail_contribution_contract.json` | selected-work-item identity 与 activity-log 结果 | 研究 trajectory 与业务状态 |
+| `contracts/foundry_agent_series.json` | canonical policy refs、fingerprint 与领域 delta | 医学领域扩展 |
 
-## Runtime Attempt Projection
+Framework 持有通用 runtime、provider、telemetry、Package aggregation 和 hosted projection；
+MAS 不再从私有 progress projection、AI doctor、autonomy incident store 或本地
+controller 构造第二套平台真相。
 
-`MAS` 通过以下 domain-owned surface 映射 `opl_family_runtime_attempt_contract.v1`：
+## 验收
 
-- `progress_projection`
-- `domain_diagnostic_report`
-- `controller_decisions/latest.json`
+结构验证检查 descriptor、Schema、binding 和 forbidden writes。
+真实运行需 same-identity StageRun/Attempt、Review、MAS owner result 和 artifact。
+历史 Temporal residency、memory migration 或 App projection receipt 不证明当前部署；
+必须在实际 consumer 上重新读取。
 
-这些 surface 可以向 `OPL` 投影 attempt state、attempt count、retry/backoff、workspace boundary、failure reason、reconciliation status 和 last observed projection。2026-05-16 起，MAS adoption contract 还接受 `opl_family_runtime_attempt_contract.v1` 的 stability projection 字段：`control_loop_summary`、`usage_projection`、`resource_pressure` 和 `observability_export`。这些字段只能作为 read-only operator stability projection；它们不能执行 domain action、切换 executor、自动降级、写 study truth / memory body、授权 domain ready 或关闭 quality verdict。`OPL Runtime Manager` 只能读取和索引；study runtime truth、controller decision、workspace write authority 继续由 `MAS` 持有。
-
-
-## Quality Projection
-
-`MAS` 通过以下医学质量 surface 映射 `opl_family_domain_quality_projection_contract.v1`：
-
-- `study_charter`
-- `evidence_ledger`
-- `review_ledger`
-- AI reviewer-backed `publication_eval/latest.json`
-
-`publication_eval/latest.json` 是医学论文质量投影的关键出口，但只有 AI reviewer-backed 记录可以关闭 reviewer-first ready / finalize-ready 判断。`claim-only ready`、generic persona QA、non-medical QA gate、OPL projection-only 状态都不能成为 MAS medical paper quality authority。
-
-OPL 托管 stage attempt 时也必须保持 executor/reviewer 分离：执行 agent 只产生 stage work、execution receipt 和 artifact/source refs；reviewer/auditor agent 必须以独立 invocation 读取这些 refs，使用独立 context/task record 生成 AI reviewer / audit receipt。把同一 executor 的“执行后自评”包装成 reviewer record 不能关闭 MAS quality projection。
-
-## Incident Projection
-
-`MAS` 通过 `domain_diagnostic_report`、`artifacts/autonomy/slo_status/latest.json`、`artifacts/autonomy/ai_doctor_requests/*.json`、`artifacts/autonomy/ai_doctor_diagnoses/*.json`、`artifacts/autonomy/repair_actions/*.json`、autonomy incident records 和 `controller_decisions/latest.json` 映射 `opl_family_incident_learning_loop.v1`。真实 incident 必须回流成 guard、test、contract、runbook、taxonomy update 或 operator projection；domain-specific failure 必须有 MAS-owned closure ref。`OPL` 可以消费 runtime_slo_observer、ai_doctor_request 与 repair_action 投影，但不持有 MAS 医学 truth 或 repair closure。
-
-## Product Operator Projection
-
-`MAS` 通过 Stage output、owner refs 与迁移期 internal projection 映射 `opl_family_product_operator_projection.v1`。OPL generated product/status/workbench surface 必须以 StageRun/current-control identity 为根，并保留 source refs、freshness、owner split、next surface ref、human gate reason、autonomy_slo、ai_doctor_state、repair_recommendation，以及 `control_loop_summary`、`usage_projection`、`resource_pressure` 和 `observability_export` 字段。旧 `study_progress`、`study_state_matrix`、`paper_mission` 与 `domain_handler_export` 不再是 public action refs。
-
-`opl runtime observability-export` 是 OPL-owned read-only export surface，MAS 只消费 source refs、freshness、owner split、domain-owned projection refs、owner receipt refs 和 typed blocker refs。它不能被 MAS 解释成 domain action authorization、executor switch authorization、auto-degrade authorization、domain truth write、memory body write、publication quality verdict 或 paper/artifact closure。
-
-## Domain Memory Descriptor
-
-`MAS` 通过 product-entry manifest 的 `domain_memory_descriptor` 暴露 `publication_route_memory` 的 OPL family locator。这个 descriptor 指向 MAS-owned policy、Markdown canonical body ref、seed index、workspace memory locator、`stage_knowledge_packet`、`stage_memory_closeout_packet`、`memory_write_router_receipt` 和 `stage_recall_index`。
-
-2026-05-12 fresh OPL read model 已解析 `mas_publication_route_memory`，并把 MAS 的 `migration_readiness.status` 读为 `workspace_apply_closure_ready`。这说明 MAS 侧 Markdown canonical library、seed index、workspace apply、workspace memory pack locator、stage entry refs、typed closeout writeback 和 writeback receipt locator 已能作为 domain-owned memory surface 被 OPL 发现。
-
-`OPL` 可以读取、索引、投影和携带这个 locator 进入 stage attempt；MAS 继续持有 route-memory 正文、retrieval、writeback accept/reject、publication route decision、evidence/review/controller truth、publication gate 和 artifact/package authority。维护者从 canonical Markdown library、seed index 与 workspace body-free inventory refs 检查当前 memory；旧 `medautosci publication route-memory-inventory` 已退役，正文审查必须留在 MAS owner 语境。
-
-当前 OPL family-runtime 的 production required provider 是 `temporal`；fresh read model 已把默认 provider 选到 Temporal，并证明 managed service / worker residency 可用。`local_sqlite` 只在显式选择时作为 dev/CI/offline diagnostic baseline，不能替代 production provider、domain daemon replacement 或 paper-line readiness。MAS domain memory 可以被 OPL 以 body-free locator / refs 投影和索引，但真实 memory body、writeback accept/reject、paper-line live apply、human gate/resume 和 publication authority 继续由 MAS owner surfaces 持有。
-
-## Monolith And Companion Retirement Projection
-
-`MAS` 已完成 no-history physical absorb 与 default-runtime-retirement closeout。OPL family contract adoption 读取的是 MAS-owned projections 和 retained capability surfaces，不要求外部 `med-deepscientist` checkout 作为默认运行依赖。
-
-MDS / DeepScientist 相关引用只能作为以下显式 refs 暴露：
-
-- backend audit target
-- legacy restore/import diagnostic
-- upstream intake source
-- parity oracle fixture
-
-任何未来继续吸收 MDS / DeepScientist 能力的 lane 都必须先记录 source ref/hash、snapshot checksum、license refs、capability classification、MAS owner、authority boundary、tests、parity proof 与 no-history contributor audit。
-
-## Boundaries
-
-- `OPL` 只消费 MAS projection，不持有 study truth。
-- `OPL` 不关闭 `publication_eval/latest.json`。
-- `OPL` 不拥有 `publication_route_memory` 正文，也不接受或拒绝 memory writeback。
-- `OPL` 不替代 evidence ledger、review ledger 或 medical reviewer judgment。
-- `Hermes-Agent`、Symphony scheduler、Linear 或外部 issue tracker 都不是 MAS 必需入口。
-- 外部 `med-deepscientist` checkout 也不是 MAS 默认 operation 依赖；只保留 MAS 显式声明的 diagnostic / intake / oracle refs。
+App 具体输入与渲染要求见 [Runtime Detail](./mas-runtime-detail-contribution.md)，
+memory 规则见 [Memory Policy](../../policies/study-workflow/publication_route_memory_policy.md)，
+外部来源边界见 [MAS/MDS](../../policies/runtime-governance/mas_mds_owner_boundary_contract.md)。

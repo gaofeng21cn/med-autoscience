@@ -32,7 +32,7 @@ OPL 读取：
 - `contracts/generated_surface_handoff.json`
 - `agent/`
 
-canonical domain id 是 `mas`。`med-autoscience` 仅作为 repo/package/plugin locator。
+canonical agent/package id 是 `mas`，machine domain id 是 `medautoscience`。`med-autoscience` 仅作为 repo/package/plugin locator。
 
 用户与 operator 只使用 OPL Package lifecycle：
 
@@ -47,8 +47,7 @@ opl packages repair mas --json
 MAS 与 ScholarSkills 分别执行其原生 install/update/remove，并以 fresh physical
 installed/callable readback 作为结果；Framework 只聚合状态和 projected actions，不
 建立跨 Package version/ABI resolver、exact lock、payload、atomic closure、lifecycle
-receipt、LKG、materialization 或 rollback manager。当前 CLI 输出中仍存在的上述字段
-只是兼容实现，不是新增 consumer 的目标接口。上述命令都不写 MAS domain truth、不
+receipt、LKG、materialization 或 rollback manager。上述命令都不写 MAS domain truth、不
 生成 MAS owner receipt，也不授权 domain 或 production ready。
 
 ## Python packaging
@@ -92,7 +91,7 @@ Study workspace lifecycle、locator、StateIndex、retention/restore 与 hosted 
 
 ## 验收
 
-- OPL 能解析 descriptor、pack、7-action V2 catalog 与 schemas；
+- OPL 能解析 descriptor、pack、当前 V2 action catalog 与 schemas；
 - OPL 能解析 runtime requirement profile；
 - MAS import 不依赖 checkout path mutation；
 - generated interfaces 不依赖 repo-local installer/workspace initializer；

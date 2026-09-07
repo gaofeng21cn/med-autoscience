@@ -6,7 +6,7 @@
   "state": "active_contract",
   "purpose": "Machine-readable operating contract for MAS data assets across body, contract, registry-lineage, and study-binding planes.",
   "machine_boundary": "This contract defines MAS data asset ownership, refs-only lineage, rebuildable projections, study binding, OPL substrate boundary, retention exclusion, and SQLite compact accounting. It cannot move, delete, compact, or rewrite dataset body files, study truth, publication verdicts, artifact authority, owner receipts, typed blockers, runtime current-control, or workspace data body.",
-  "source_decision_ref": "docs/decisions.md#2026-06-10-data-asset-v2-four-plane-runtime-retention-boundary",
+  "source_decision_ref": "docs/source/medical_data_asset_target_operating_model.md",
   "planes": {
     "body": {
       "plane_id": "body",

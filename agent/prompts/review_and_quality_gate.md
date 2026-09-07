@@ -100,8 +100,6 @@ the earlier route and state why the conclusion or route changed.
 Use medical Results and Discussion wording and make no inference beyond the
 reviewed evidence. This Stage keeps its independent quality role, but the
 trajectory file update itself requires no separate acceptance receipt.
-`research_trajectory_delta_ref` remains nullable v1 read compatibility and is
-not the v2 write gate; the current v2 Stage output returns it as `null`.
 
 ## Handoff
 

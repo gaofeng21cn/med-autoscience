@@ -1,74 +1,28 @@
 # Academic Research Skills Learning Intake
 
 Owner: `MedAutoScience`
-Purpose: `external_pattern_learning_reference`
-State: `active_support`
-Machine boundary: 人读 refs-only 学习记录。需要被当前 Stage 消费的内容进入 `agent/knowledge/`、`agent/skills/` 或 ScholarSkills；通用 projection、worker 与 adoption 合同归 OPL Framework，MAS 不保留私有 callable 或复制的 Framework contract。
-
-Landing boundary: 本 reference 记录 ARS pattern 与 MAS-native projection；它不单独证明 worker / executor / owner callable 已落地。是否可写成 landed，按 [External Learning Adoption Closure Runbook](../../runtime/control/external_learning_adoption_closure.md) 的 landing status 判断；缺 owner surface、read-model consumer、worker/sidecar slot、callable/action catalog 或验证时必须继续标为 gap。
+Purpose: `ars_pattern_provenance`
+State: `support_reference`
+Machine boundary: 本页只保存来源和模式，当前执行归 MAS pack、ScholarSkills 与 Framework。
 
 ## 来源
 
-- Source: `https://github.com/Imbad0202/academic-research-skills`
-- Snapshot: `d564d26da39de039ba71d9b51f43e6a25fe9b149`
-- Observed release context: `v3.8.0`
+`https://github.com/Imbad0202/academic-research-skills`，
+observed snapshot `d564d26da39de039ba71d9b51f43e6a25fe9b149`，
+release context `v3.8.0`。这是历史检查对象，不是当前上游版本声明。
 
-该项目本轮只作为 external pattern source。MAS 不引入它作为 runtime dependency、skill dependency、paper-writing owner、publication gate、citation body store 或 reviewer authority。
+## 保留的模式
 
-## 吸收范围
+| 模式 | 当前使用边界 |
+| --- | --- |
+| claim/citation support audit | MAS evidence 与 independent Review；不由 metadata 签 quality |
+| data access / oversight metadata | 记录 permission、source readiness 与 human decision refs；不授予 raw-data access |
+| evidence handoff passport | Stage handoff 传递 exact evidence、finding 和 owner refs |
+| source rejection log | 外部工具必须区分逐条拒绝与整体失败，不能静默写领域 truth |
 
-MAS 只吸收四类模式：
+专业判断进入 `agent/knowledge/`、`agent/skills/` 或 ScholarSkills。
+通用 provider、transport 和 body-free projection 归 Framework。
+MAS 不保留 ARS projection builder、passport builder 或 source adapter 私有实现；
+外部 passport 不能代替 canonical evidence、memory、publication 或 artifact authority。
 
-1. `claim_citation_support_audit`
-   - 映射为 MAS 的 claim/evidence support projection。
-   - 权威输入继续来自 `study_charter`、`evidence_ledger`、`review_ledger` 和 AI reviewer-backed `publication_eval/latest.json`。
-   - OPL 只能消费 refs、metadata、freshness、typed blockers 和 owner boundary。
-
-2. `data_access_and_oversight_metadata`
-   - 映射为 stage / source readiness / human gate 可读 metadata。
-   - 权威输入继续来自 `study_charter`、`evidence_ledger`、`review_ledger`、`progress_projection` 和 `domain_diagnostic_report`。
-   - 该 metadata 不授予 OPL raw data access、source body access 或 write permission。
-
-3. `evidence_handoff_passport`
-   - 映射为 body-free evidence handoff ref pack。
-   - MAS 使用 `stage_knowledge_packet`、`stage_memory_closeout_packet`、`memory_write_router_receipt`、`controller_decisions/latest.json` 和 `domain_diagnostic_report` 表达 handoff / closeout / receipt。
-   - ARS passport 不成为 MAS truth，也不导出 passport body。
-
-4. `medical_material_passport_source_handoff`
-   - 映射为 MAS-native `medical_material_passport` refs-only projection 与 source adapter rejection-log contract。
-   - passport 只携带 `source_readiness_refs`、`claim_evidence_refs`、`review_contract_refs`、`artifact_rebuild_refs`、`human_decision_refs` 和 `owner_receipt_refs`。
-   - source adapter 只能产出 records 与 `rejection_log`；entry-level reject 进入 log 后继续，adapter-level failure 必须 loud fail，不写 MAS truth。
-
-## OPL 边界
-
-OPL 对应的上收目标是通用 `family-stage-integrity-metadata.v1` primitive：stage-level integrity、citation-support、evidence-handoff、data-access 和 human-checkpoint metadata。这个 primitive 应归 OPL Framework；MAS 只发布医学研究 domain projection / thin adapter。
-
-OPL 可以：
-
-- index refs
-- display missing support
-- carry typed blockers
-- route human checkpoints
-- transport handoff receipts
-
-OPL 不可以：
-
-- 写 `publication_eval/latest.json`
-- 写 `controller_decisions/latest.json`
-- 写 evidence / review ledger body
-- 读取或迁移 MAS memory body
-- 生成 publication quality verdict
-- 授权 submission readiness
-- 修改 manuscript / package / artifact body
-- 替代 MAS direct app skill path
-
-## 当前落点
-
-- `build_ars_learning_projection()` 生成 MAS-owned projection。
-- `build_medical_material_passport()` 生成 refs-only source/workspace evidence handoff projection；`build_source_adapter_output()` 固定 records + rejection-log 输出边界。
-- Product-entry manifest 暴露 `ars_learning_projection`。
-- Family stage control-plane descriptor 内嵌同一 projection，供 OPL stage discovery 读取。
-- Sidecar export 暴露同一 projection，供 OPL provider/workbench 读取。
-- `family-contract-adoption.json` 固定 source snapshot、absorbed pattern ids、source adapter rejection-log contract、allowed export、forbidden export 和 authority boundary。
-
-该状态表示模式吸收和边界投影已经落地；它不表示 claim-support audit 的所有医学执行路径已经完成，也不表示 OPL 已拥有 domain truth。
+采纳证据见 [Learning Closure](../../runtime/control/external_learning_adoption_closure.md)。

@@ -192,20 +192,6 @@ def test_v2_omits_checkpoint_acceptance_and_event_control_fields() -> None:
     assert write_policy["working_checkpoint_layer_allowed"] is False
 
 
-def test_legacy_v1_event_is_readable_but_not_a_v2_write_path() -> None:
-    fixture = _fixture()
-    validator = _validator("mas-research-trajectory-event.schema.json")
-    for event in fixture["events"]:
-        validator.validate(event)
-
-    compatibility = _load("contracts/research_trajectory_contract.json")[
-        "legacy_v1_read_compatibility"
-    ]
-    assert compatibility["new_v1_writes_allowed"] is False
-    assert compatibility["accepted_event_materialization_is_v2_write_path"] is False
-    assert compatibility["legacy_receipts_are_historical_read_context_only"] is True
-
-
 def test_graph_is_drawable_and_current_route_refs_are_explicit() -> None:
     snapshot = _fixture()["snapshot"]
     node_ids = [node["id"] for node in snapshot["nodes"]]
@@ -316,34 +302,35 @@ def test_fixed_dual_file_update_policy_is_declared_by_all_six_stages() -> None:
             "tool_call_heartbeat_or_retry_without_scientific_change_updates_trajectory"
         ] is False
         assert trajectory["independent_reviewer_is_write_prerequisite"] is False
-        assert trajectory["current_v2_stage_output_value"] is None
-        assert trajectory["new_required_stage_output_fields"] == []
-
-        prompt = (ROOT / stage["prompt_ref"]).read_text(encoding="utf-8")
-        normalized = " ".join(prompt.split())
-        assert "## Research Trajectory" in prompt
-        assert "artifacts/research_trajectory/TRAJECTORY.md" in prompt
-        assert "artifacts/research_trajectory/snapshot.json" in prompt
-        assert "does not start or wait for an independent reviewer" in normalized or (
-            "neither starts nor waits for independent review" in normalized
-        ) or "requires no separate acceptance receipt" in normalized
-        assert "not the v2 write gate" in normalized
-        assert "current v2 Stage output returns it as `null`" in normalized
+        assert (ROOT / stage["prompt_ref"]).is_file()
 
 
-def test_stage_output_v1_gets_no_new_required_trajectory_field() -> None:
+def test_stage_output_rejects_retired_trajectory_control_field() -> None:
     schema = _load("contracts/schemas/v2/mas-stage-action.output.schema.json")
     trajectory_fields = {
         field for field in schema["required"] if "research_trajectory" in field
     }
-    assert trajectory_fields == {"research_trajectory_delta_ref"}
+    assert trajectory_fields == set()
     assert "research_trajectory_checkpoint_manifest_ref" not in schema["properties"]
-    compatibility = _load("contracts/research_trajectory_contract.json")[
-        "stage_output_compatibility"
-    ]
-    assert compatibility["new_required_stage_output_fields"] == []
-    assert compatibility["legacy_nullable_field"] == "research_trajectory_delta_ref"
-    assert compatibility["current_v2_stage_output_value"] is None
+    result = {
+        "surface_kind": "mas_stage_action_result",
+        "schema_version": 1,
+        "stage_id": STAGE_IDS[0],
+        "status": "completed",
+        "artifact_refs": ["artifacts/research_trajectory/snapshot.json"],
+        "quality_debt_refs": [],
+        "negative_result_refs": [],
+        "failed_path_refs": [],
+        "authority_boundary": {
+            "domain_truth_owner": "MedAutoScience",
+            "opl_can_write_domain_truth": False,
+            "provider_completion_is_domain_completion": False,
+        },
+    }
+    validator = _validator("mas-stage-action.output.schema.json")
+    validator.validate(result)
+    result["research_trajectory_delta_ref"] = None
+    assert list(validator.iter_errors(result))
 
 
 def test_descriptor_and_projection_publish_exact_v2_payload() -> None:

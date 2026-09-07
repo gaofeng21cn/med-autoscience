@@ -76,8 +76,7 @@ Distinguish a validation that could not run from a completed validation that
 does not support the hypothesis and from evidence too limited for a determinate
 judgment. Do not update for tool calls, heartbeats, retries, or runtime activity
 without scientific change. The write neither starts nor waits for independent
-review. `research_trajectory_delta_ref` remains nullable v1 read compatibility
-and is not the v2 write gate; the current v2 Stage output returns it as `null`.
+review.
 
 ## Handoff
 

@@ -12,7 +12,7 @@ Machine boundary: 人读边界说明。机器真相继续归 `contracts/capabili
 | Surface | 职责 | 不承担 |
 | --- | --- | --- |
 | `agent/primary_skill/SKILL.md` | MAS 标准 OPL primary skill canonical source。`contracts/capability_map.json#/capabilities?surface_role=primary_skill` 以它作为 `canonical_source`。 | 不直接写 study truth、paper body、owner receipt、typed blocker、publication verdict、current package 或 runtime queue。 |
-| `plugins/med-autoscience/skills/med-autoscience/SKILL.md` | Codex plugin install carrier 的 materialized full skill copy / compat mirror。Codex plugin 安装需要真实 `SKILL.md` 文件，所以这里保留物理文件，而不是 stub、symlink 或纯指针。 | 不定义第二套 MAS 业务能力，不持有 agent membership / status 权威，不覆盖 canonical source，也不写 domain truth、owner receipt、typed blocker、publication verdict、current package 或 runtime queue。 |
+| `plugins/med-autoscience/skills/med-autoscience/SKILL.md` | Codex plugin install carrier 的 materialized full skill copy。Codex plugin 安装需要真实 `SKILL.md` 文件，所以这里保留物理文件，而不是 stub、symlink 或纯指针。 | 不定义第二套 MAS 业务能力，不持有 agent membership / status 权威，不覆盖 canonical source，也不写 domain truth、owner receipt、typed blocker、publication verdict、current package 或 runtime queue。 |
 
 `contracts/capability_map.json` 的 `med-autoscience.primary_skill.carrier_projection_contract` 是机器可读边界：`canonical_source=agent/primary_skill/SKILL.md`，`carrier_materialization=materialized_full_skill_copy`，`codex_install_requires_real_skill_md=true`，`carrier_role=transport_install_detail_not_agent_membership_or_status`，`authority=false`。
 

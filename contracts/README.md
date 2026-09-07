@@ -11,14 +11,12 @@ Machine boundary: 本目录是 machine-readable contracts。本文只做索引�
 | --- | --- |
 | `domain_descriptor.json` | canonical agent/package id、machine domain id、package role、refs-only work-item inventory mapping、generated surface owner 与 authority boundary |
 | `pack_compiler_input.json` | OPL pack compiler 输入与 MAS runtime role |
-| `action_catalog.json` | V2 closed catalog：六个公开 Stage action + 五个内部 authority action |
+| `action_catalog.json` | V2 closed catalog：六个公开 Stage action + 六个内部 authority action |
 | `domain_handler_registry.json` | closed minimal-authority callable binding；不提供用户 surface |
 | `schemas/v2/mas-stage-action.input.schema.json` | 六个公开 Stage action 的 closed input schema |
 | `schemas/v2/mas-stage-action.output.schema.json` | 六个公开 Stage action 的 closed output schema |
 | `research_trajectory_contract.json` | MAS 运行中科研路线的轻量双文件更新、医学化表述、路线图与读取边界 |
 | `schemas/v2/mas-research-trajectory-snapshot-v2.schema.json` | 当前 MAS Attempt 直接更新、供 App 绘图的轻量科研路线 snapshot |
-| `schemas/v2/mas-research-trajectory-event.schema.json` | 历史 v1 科研轨迹 event 只读兼容 |
-| `schemas/v2/mas-research-trajectory-snapshot.schema.json` | 历史 v1 event 投影 snapshot 只读兼容 |
 | `schemas/v2/mas-medical-narrative.schema.json` | 面向医生、教授和科研人员的医学论文式人读叙事字段 |
 | `schemas/v2/mas-paper-mission-authority.input.schema.json` | 内部 authority callable 的 closed input schema |
 | `schemas/v2/mas-paper-mission-authority.output.schema.json` | 内部 authority callable 的 closed output schema |

@@ -1,67 +1,13 @@
-# Source 文档
+# 数据与研究工作区
 
-Owner: `MedAutoScience`
-Purpose: `medical_source_workspace_support`
-State: `active_support`
-Machine boundary: 人读索引。Source truth 继续归 study workspaces、external-source ledgers、canonical data、manifests、source contracts 与 owner receipts。
+本目录负责 MAS 数据、study workspace 与业务生命周期的语义。机器来源是 domain descriptor、数据合同、workspace inventory、canonical manifests 和 MAS owner receipts；通用运行、存储与 provider transport 归 OPL。
 
-本目录承接 MAS study workspace、source readiness、external research intake、source provenance 和 source truth consumption 支撑。通用 workspace/source shell 候选应记录为 MAS-to-OPL 上收候选。
+- [数据资产模型](./medical_data_asset_target_operating_model.md)：release body、manifest、lineage 与 study binding。
+- [Study 工作区](./study_workspace_target_state.md)：canonical manuscript、Stage evidence 与 submission projection 的职责。
+- [Study 生命周期](./study_lifecycle_control.md)：暂停、交付暂停、停止与重新激活。
+- [存储与保留](../runtime/data_asset_storage_retention.md)：数据资产与运行缓存分账。
+- [文献与知识](../runtime/contracts/workspace_knowledge_and_literature_contract.md)：共享来源、study 采用与执行副本。
 
-本文是 source support 索引，不是 source readiness verdict、provider success ledger 或 external-learning backlog。当前 source truth 归 study workspaces、source contracts、provider/source ledgers、canonical data/manifests 和 owner receipts；通用 locator、workspace shell、cold-store、lineage projection 或 workbench projection 只能写成 OPL/shared-family 候选，不迁出 MAS 医学 source authority。
+联网文献查询由 OPL Connect 提供；MAS 不维护 Semantic Scholar、PubMed、CrossRef 或 PMC 私有 adapter。Provider receipt 只证明查询和传输；文献真实性、claim support 与 source acceptance 由 MAS 解释，专业方法通过 ScholarSkills 调用。
 
-当前入口先看：
-
-- [架构](../architecture.md)
-- [当前状态](../status.md)
-- [Study Workspace Target State](./study_workspace_target_state.md)
-- [Study Lifecycle Control](./study_lifecycle_control.md)
-- [Medical Data Asset Target Operating Model](./medical_data_asset_target_operating_model.md)
-- [Data Asset Storage Retention Runbook](../runtime/data_asset_storage_retention.md)
-- [References](../references/README.md)
-- [Workspace Knowledge And Literature Contract](../runtime/contracts/workspace_knowledge_and_literature_contract.md)
-
-## Medical Data Asset Boundary
-
-[Medical Data Asset Target Operating Model](./medical_data_asset_target_operating_model.md) 是 MAS 数据资产 v3 的 canonical 人读入口。它把医学数据资产拆为 body、contract、registry-lineage 和 study-binding 四个 plane：`data/datasets/**` 保存 release body，`dataset_manifest.yaml` 保存 release contract，`memory/portfolio/data_assets/**` 保存 controller-derived registry / lineage / impact / readiness projection，study contract 只绑定可消费 release 并把 study-local cohort / event / sensitivity artifacts 留在 study analysis tree。
-
-通用 runtime storage retention、payload externalization、restore-proof compaction 和 SQLite compact 只治理 runtime / attempt / refs-index / historical payload 面。它们不得把 `data/datasets/**` 的真实数据 body 当作冗余过程体处理；数据 release 的保留、冷归档、移动或删除必须回到 dataset manifest、source readiness、study impact 和 MAS owner-authorized data asset command。OPL 可以持有 generic locator、cold-store、lineage event、quality-result index 和 workbench projection；MAS 继续持有 access tier、direct study consumption、clinical semantic mapping、source readiness、study binding、owner receipt 与 typed blocker。具体存储分账、cold-store / SQLite compact 边界和 `manifest_refs` 重建读法见 [Data Asset Storage Retention Runbook](../runtime/data_asset_storage_retention.md)。
-
-## Standard Agent Source Boundary
-
-标准 OPL Domain Agent skeleton 只把 repo-source 语义面固定到 `agent/`、`contracts/`、`runtime/` 和 `docs/` 这些 anchors。它不会把 workspace source body、provider raw response body、publication-route memory body、artifact body、quality verdict 或 submission package 纳入仓库。
-
-MAS 继续持有 source truth、source readiness verdict、medical grounding、source provenance 和 owner receipt。OPL generated / hosted surfaces 可以消费 source refs、locator refs、provider readiness、currentness/freshness proof 和 typed blocker refs，但不能写 MAS source truth，也不能把 source-provider 查询成功、metadata enrichment、cache hit、candidate ranking 或 descriptor readiness 升级成 source readiness verdict。
-
-## Literature Provider Runtime
-
-`Semantic Scholar` 是 MAS `literature_provider_runtime` 必需 provider 的仓内可执行 adapter/source。它的角色是把 Semantic Scholar 查询、论文元数据、引用图谱和候选文献结果物化为 MAS 可审计的 source record；它不是外部 hosted provider service、不是 production long-soak 证明，也不是医学 grounding authority。
-
-该 provider surface 必须保持 read-model-only。Semantic Scholar adapter/materializer 可以产出 provider readiness、candidate source refs、metadata/citation enrichment、screening input 和 blocker refs；不能授权 source readiness verdict、publication quality、submission readiness、finalize readiness、artifact mutation、controller decision 或 publication gate 通过。
-
-每次 provider 查询和物化都必须保留可追溯 ledger，而不是只保存整理后的候选列表。最低可审计信息包括 raw provider response ledger、credential scope、rate-limit state、cache key/status、query fingerprint、citation ledger refs、screening reason、currentness/freshness proof、dedupe/crosswalk decision 和 typed blocker。缺这些 refs 时，stage knowledge packet、workspace canonical literature 或 study reference context 只能 fail closed 或 route to source repair。
-
-`PubMed`、`CrossRef` 和 `PMC` 继续承担医学 grounding、DOI/PMID/PMCID crosswalk、full-text / metadata reconciliation 和 provenance 校准。Semantic Scholar 可以扩展 discovery、citation-neighborhood 和 metadata enrichment，但不能替代 PubMed/CrossRef/PMC 的医学证据 grounding，也不能把 provider ranking、citation count、abstract match 或 cache 命中写成医学结论。
-
-## Life Science Source Discovery Pack
-
-OpenAI Life Science Research 插件的可学习内容已按 clean-room pattern 吸收到 MAS `life_science_source_discovery_pack` 和 refs-only source adapter output。它提供实体规范化、多 evidence lane 路由、公共数据库 / 文献 / 数据集 discovery、cross-source conflict 和 evidence gap synthesis 的 source helper 纪律；不成为 MAS runtime provider、默认 skill source、source readiness authority、publication authority 或质量 verdict owner。
-
-进入 MAS 的输出只能是 source refs、query fingerprint、currentness proof、limitation/caveat refs、typed blocker、source repair route 或 reviewer input refs。完整 intake 见 [Life Science Research Learning Intake](../references/mainline/life_science_research_learning_intake.md)。
-
-## AutoSci / OmegaWiki Research Lifecycle Intake
-
-`skyllwt/AutoSci` 的可学习内容已按 clean-room pattern 吸收到 MAS `autosci_learning_projection` 和 stage quality pack extension contracts。MAS 采用的是 typed knowledge graph、proposal/action source discovery split、negative research memory、experiment deploy/collect/eval receipts、independent reviewer verdict mapping 和 source-DAG render QA 这些 contract 形状；不采用 AutoSci 的 Claude slash skills、remote GPU runner、prompt-only permission policy、partial authoritative ingest success 或通用 CS wiki taxonomy。
-
-进入 MAS 的输出只能是 source candidate refs、semantic/citation/provenance edge refs、dedup/currentness proof、memory writeback proposal/ref、experiment design/deploy/monitor/collect/eval refs、reviewer verdict refs、render QA refs、typed blocker 或 owner receipt。完整 intake 见 [AutoSci Learning Intake](../references/mainline/autosci_learning_intake.md)。
-
-## Co-Scientist Hypothesis Portfolio Intake
-
-Co-Scientist 的可学习内容已按 clean-room pattern 进入 MAS `hypothesis portfolio / evidence pack` 叙事。MAS 采用的是候选假设组合、source/evidence refs、反思与演化记录、相邻/重复假设聚类、negative / failed-path ledger、decision trace 和独立 reviewer / human gate closeout 这些 contract shape；不采用外部 Co-Scientist runtime，也不把 Elo、ranking、proximity 或 novelty score 写成 source readiness、医学质量或 publication authority。
-
-进入 MAS 的输出只能是 hypothesis refs、source refs、evidence pack refs、candidate comparison advisory、proximity cluster advisory、reviewer input refs、human/expert gate refs、typed blocker 或 owner receipt。完整 intake 见 [Co-Scientist Hypothesis Portfolio Intake](../references/mainline/co_scientist_hypothesis_portfolio_intake.md)。
-
-## ARK Research Workflow Intake
-
-`kaust-ark/ARK` 的可学习内容已按 clean-room pattern 转译为 MAS reviewer issue/progress ledger、display artifact manifest、source citation authority pack 和 progress-first external learning contract。MAS 学习的是 review loop、goal anchor、issue repair validation、API-first citation、figure manifest、page adjustment、human-intervention UX、micro-study canary、operator preview、real-run closeout、compiled visual QA 和 citation lifecycle queue 的 contract shape；不采用 ARK runtime、SQLite authority、conda project model、Telegram/webapp service、agent prompt、代码或依赖。
-
-进入 MAS 的输出只能是 reviewer issue refs、goal-anchor currentness proof、typed repair work unit、platform repair work unit、source-refresh work unit、artifact/layout QA work unit、operator preview ref、typed blocker、reviewer/auditor input 或 owner receipt。完整 intake 见 [ARK Research Workflow Intake](../references/mainline/ark_learning_intake.md)。
+外部方法的来源与采纳理由留在 [参考资料](../references/README.md)，不在本索引累计外部项目、已实现投影或执行 backlog。

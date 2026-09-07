@@ -9,9 +9,7 @@ Machine boundary: 本文定义 external executor/backend 的引用边界；runti
 
 External runtime 不是 MAS 默认可用性的前置。MAS 当前是 OPL standard domain agent；OPL 持有 hosted runtime，MAS 持有医学 authority。
 
-`Hermes-Agent`、MedDeepScientist/DeepScientist 与 external workspace 只允许以下角色：
-
-- explicit non-default executor/proof lane；
+MedDeepScientist/DeepScientist 与 external workspace 只允许以下参考角色：
 - historical backend audit；
 - explicit archive import；
 - upstream learning/provenance；
@@ -52,10 +50,6 @@ MAS owner 必须按当前 contract消费这些 refs，才能影响 study truth�
 | credentials/human approval | explicit human gate |
 
 Repo-side contract/test只能证明引用边界和 fail-closed behavior；不能生成外部部署、credential、live provider或真实 workspace evidence。
-
-## Historical blocker
-
-`EXTERNAL_RUNTIME_DEPENDENCY_BLOCKED_AFTER_ABSORB` 只作为旧 cutover blocker provenance保留，不得作为当前 MAS 默认状态。当前状态读 [Status](../../status.md) 与 fresh owner/runtime surfaces。
 
 ## Live evidence
 

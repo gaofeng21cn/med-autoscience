@@ -3,44 +3,22 @@
 Owner: `MedAutoScience`
 Purpose: `runtime_boundary_index`
 State: `active_index`
-Machine boundary: MAS 只声明 domain Stage、policy、quality 与 authority inputs/results；StageRun、Attempt、Temporal、queue、session、retry、StateIndex、lifecycle、provider transport 与 hosted read model归 OPL。
+Machine boundary: 本页导航到当前 contract 说明，不维护能力清单或运行状态。
 
-## 当前结论
-
-MAS 没有 repo-local runtime control plane。当前链路只有：
-
-```text
-MAS declarative pack
-  -> OPL generated interface / hosted StageRun
-  -> decisive Codex Attempt
-  -> OPL controller materializes transition
-  -> MAS owner consumes domain result
-```
-
-`src/med_autoscience/authority_handlers/` 保留 closed registry 当前绑定的六个 authority targets 与共享纯校验 helper，另有 package init 和 CSL assets。旧 scheduler、runner、queue、session store、lifecycle/SQLite、StateIndex、status/workbench、provider/package transport、NextAction、PaperRecovery 与 private validator只在 Git/history provenance 中读取。
-
-## 当前入口
-
-- [Runtime boundary](./contracts/runtime_boundary.md)：OPL runtime 与 MAS authority 的总边界。
-- [Research Integrity Layer](./contracts/research_integrity_layer.md)：OPL Connect receipt、declarative gate 与 independent Review 的输入链。
-- [Stage / Route / Handoff](./stage_route_handoff_standard.md)：六 Stage、decisive Attempt 与 controller materialization。
-- [External learning closure](./control/external_learning_adoption_closure.md)：外部模式只能进入 refs、Skill、OPL hosted surface 或 owner consumption。
-- [Domain Authority Refs / StateIndex boundary](./domain_authority_refs_index_guard.md)：禁止 MAS-local index/lifecycle 复活。
-- [Study truth kernel](./projections/study_truth_kernel.md)：body-free projection 与 false-authority 边界。
-
-## 目录职责
-
-| 目录 | 角色 |
+| 问题 | 入口 |
 | --- | --- |
-| `contracts/` | runtime-facing owner split、receipt/input shape 与 false-authority boundary |
-| `control/` | 当前 Stage/route/owner consumption 规则；不得承载私有 runner |
-| `projections/` | body-free read model；不得授权 domain action或 mutation |
-| `designs/` | 尚有当前设计价值的支撑材料；已完成或退役内容进入 history |
+| Runtime 与 domain 权限 | [Runtime Boundary](./contracts/runtime_boundary.md) |
+| Action 与 registry binding | [Agent Interface](./contracts/agent_runtime_interface.md) |
+| Stage、Review、路由与 Handoff | [Stage Standard](./stage_route_handoff_standard.md) |
+| Review scope 与 revision 消费 | [Quality Loop](./control/progress_first_quality_loop.md) |
+| Stage outcome 与进展 | [Stage Outcome](./control/progress_first_stage_outcome.md) |
+| 引用和研究完整性 | [Research Integrity](./contracts/research_integrity_layer.md) |
+| 正文与交付派生面 | [Canonical Artifact](./contracts/canonical_artifact_contract.md) |
+| 数据冷归档和保留 | [Data Retention](./data_asset_storage_retention.md) |
+| Artifact 保留操作 | [Artifact Retention](./contracts/artifact_retention_operations_contract.md) |
+| Knowledge 和 literature 边界 | [Knowledge Contract](./contracts/workspace_knowledge_and_literature_contract.md) |
+| refs index 的权威边界 | [Domain Authority Refs](./domain_authority_refs_index_guard.md) |
+| 外部学习验收层级 | [Learning Closure](./control/external_learning_adoption_closure.md) |
 
-## 验收边界
-
-Repo/source/control-plane 结构用 fast/meta、repo hygiene、source closure、interfaces、conformance、default-callers 与 residue-decisions 验证。Live runtime、paper progress、publication、submission 或 production claim必须有 fresh StageRun/Attempt、independent Review receipt、MAS owner result与真实 artifact evidence。
-
-## 历史
-
-旧 runtime implementation、private control plane、MDS daemon、workspace-local service 与迁移记录归 [history/runtime](../history/runtime/)。History 只解释来源，不恢复 active caller或兼容面。
+源码检查入口见 [CI Preflight](../policies/repo-ops/repository_ci_preflight.md)。
+真实执行、质量与投稿结果分别读取 Framework、MAS owner 和研究 artifact 的当前证据。

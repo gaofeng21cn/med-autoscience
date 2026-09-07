@@ -1594,8 +1594,6 @@
         "agent/knowledge/",
         "contracts/domain_descriptor.json",
         "contracts/research_trajectory_contract.json",
-        "contracts/schemas/v2/mas-research-trajectory-event.schema.json",
-        "contracts/schemas/v2/mas-research-trajectory-snapshot.schema.json",
         "contracts/schemas/v2/mas-research-trajectory-snapshot-v2.schema.json",
         "contracts/schemas/v2/mas-medical-narrative.schema.json"
       ],
@@ -1618,8 +1616,6 @@
         "agent/knowledge/",
         "contracts/domain_descriptor.json",
         "contracts/research_trajectory_contract.json",
-        "contracts/schemas/v2/mas-research-trajectory-event.schema.json",
-        "contracts/schemas/v2/mas-research-trajectory-snapshot.schema.json",
         "contracts/schemas/v2/mas-research-trajectory-snapshot-v2.schema.json",
         "contracts/schemas/v2/mas-medical-narrative.schema.json"
       ],

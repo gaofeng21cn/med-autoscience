@@ -34,6 +34,18 @@ Reviewer / re-reviewer 只在 `route_impact.stage_quality_cycle.outcome` 返回 
 
 只有 MAS owner surface 能把这些结果消费成 publication/submission decision、owner receipt、typed blocker、human gate、artifact mutation authorization 或 route-back。Provider receipt、review input、tests green 与 docs 均不能替代该 authority。
 
+## Provider 与投稿资源
+
+需要联网核验已知 DOI/PMID/PMCID 时，MAS 只返回
+`opl_connect_reference_verification` request，消费 host 注入的 exact provider receipt。
+静态 `provider_evidence` 可以作为纯输入，但不证明联网 transport 或 currentness。
+广义文献发现由 literature specialist 与 OPL Connect search 提供。
+
+Frontiers CSL 使用 package-bundled 文件或 host exact path；
+Word 稿件/补充模板使用 host-provisioned exact path。
+缺失时返回 `opl_pack_provision_submission_resource` request，无网络 fallback。
+这些资源规则由 `contracts/submission-resource-requirements.json` 持有。
+
 ## 验证
 
 ```bash

@@ -7,7 +7,7 @@ Machine boundary: 人读目标态。机器真相继续归 `data/datasets/**/data
 
 ## 读法
 
-本文定义 MAS 医学数据资产 v3 操作口径。它不以当前 DPCC 实现为上限，但 DPCC 的 `restricted_raw -> deidentified_longitudinal -> standardized_longitudinal` 是当前 canonical 实例。
+本文定义医学数据资产的事实分层。DPCC 的 `restricted_raw -> deidentified_longitudinal -> standardized_longitudinal` 仅作为命名示例；真实 release 状态必须读取目标 workspace。
 
 当前 canonical 在线路径是：
 
@@ -15,8 +15,6 @@ Machine boundary: 人读目标态。机器真相继续归 `data/datasets/**/data
 - 数据资产 registry / impact / mutation / startup readiness：`memory/portfolio/data_assets/**`
 - study 绑定：`studies/<study-id>/study.yaml` 或 controller-authorized study contract
 - study 派生 cohort、index event、sensitivity set 和 model-ready matrix：`studies/<study-id>/analysis/**`
-
-旧根层 `datasets/` 和 `portfolio/data_assets/` 只作为 legacy/provenance 或兼容扫描输入，不再作为新 workspace、文档、study YAML 或 runbook 的默认生成路径。若旧 manifest、mutation receipt 或历史 prune record 仍含这些短路径，它们只能解释历史来源和迁移关系，不能重新定义当前生成位置。
 
 v3 runbook 的操作者结论：
 
@@ -43,7 +41,7 @@ MAS 数据资产 v3 按 body、contract、registry-lineage 和 study-binding 四
 
 `data/datasets/<family>/<version>/` 只保存数据 release body 与随 release 固化的主输出。这个目录接近 immutable：已有 release 不静默改写；任何纠错、刷新、标准化或派生都生成新 version。
 
-DPCC 当前推荐形状：
+DPCC 分层示例：
 
 ```text
 data/datasets/
@@ -87,7 +85,7 @@ data/datasets/
 每个 release 必须有 `dataset_manifest.yaml`，其中 `release_contract` 是机器 contract 来源。最低字段应覆盖：
 
 - identity：`dataset_id`、`family_id`、`version`、`raw_snapshot`
-- ownership：owner、steward、生成脚本或 controller、生成时间
+- ownership：owner、steward、生成脚本或受权 StageAttempt、生成时间
 - access：privacy tier、direct identifiers、direct study consumption policy、restricted field exposure
 - body inventory：main outputs、declared output presence、size/count/hash summary
 - lineage：parent datasets、transform job、input refs、output refs、source snapshot、supersedes
@@ -110,7 +108,7 @@ Manifest 可以继续用 YAML 维护，但 controller 应把它规范化为 JSON
 - `startup/latest_startup_data_readiness.json` 只描述 startup data readiness，不授权 study truth、publication verdict 或 artifact authority。
 - `mutations/*.json` 是正式审计链，记录原始 payload、mutation result、refresh result 和失败边界。
 - `lineage/**` 应采用 OpenLineage-like refs-only event shape：dataset input/output、job/run id、code ref、parameters fingerprint、schema fingerprint、quality result refs 和 artifact refs。
-- `lineage/manifest_refs.json` 是 controller 生成的 refs-only 聚合文件，可以保存 manifest snapshot refs、projection refs 或 compatibility migration refs；不得复制 release body。
+- `lineage/manifest_refs.json` 是 controller 生成的 refs-only 聚合文件，可以保存 manifest snapshot refs、projection refs；不得复制 release body。
 
 `manifest_refs` 的 v3 读法：
 
@@ -156,90 +154,10 @@ MAS 必须继续拥有：
 
 这个分工的目标是让 MAG、RCA、OMA 等 domain agent 复用同一 OPL data asset substrate，同时各自保留 domain-specific release contract。
 
-## Runtime Retention / Payload / SQLite Compact 边界
+## 保留与实际调用
 
-历史 runtime storage governance、payload retention 和 SQLite compact 不适用于把 dataset body 当作冗余过程体处理。
-
-- `runtime/`、`.ds` legacy bucket、attempt ledger、provider payload、large JSONL、archive/report snapshots 和 runtime lifecycle SQLite 属于运行态治理面；它们可以进入 restore-proof compaction、payload externalization、SQLite integrity/compact 或 cold-store retention。
-- `data/datasets/**` 属于数据资产 body plane。它的保留、冷归档、重建或删除必须由 dataset manifest、source readiness、access tier、lineage 和 study impact 共同授权。
-- 数据 release 内的 SQLite，例如分析用 `*.sqlite` working copy，是 release body 输出或 rebuildable sidecar。它不能替代 manifest authority，也不能被 runtime SQLite compact 当作 lifecycle refs index 处理。
-- runtime lifecycle / domain authority SQLite 只索引 refs、receipt、cursor、summary 和 projection cache；它不能生成 dataset authority、publication verdict、study truth 或 artifact mutation authorization。
-- cold store 可以承载 dataset archive body，但必须有 dataset-level cold ref、manifest/proof、restore command 和 study impact policy。不能因为通用 storage audit 看到体积大就裸删、压缩或移动 release body。
-
-因此，“workspace 在线体积大”需要先分账。若大头来自 `data/datasets/**`，下一步是数据资产 contract / retention / study impact 审计；若大头来自 runtime payload、legacy archive 或 refs index，则走 runtime storage retention / SQLite compact surface。
-
-分账口径固定为四桶：
-
-| 桶 | 包含 | 可用治理入口 | 禁止读法 |
-| --- | --- | --- | --- |
-| Online workspace | 当前 study truth、paper/product views、runtime refs、receipts、restore proof、manifest、必要运行依赖 | workspace inventory、runtime retention、artifact/source owner surface | 不能把总大小直接写成可清理残留 |
-| Dataset assets | `data/datasets/**` release body、release-local manifest、release-local quality/audit/index 输出 | dataset manifest、data asset impact、source readiness、owner-authorized data command | 不能走 runtime residue cleanup 或 payload compaction |
-| Cold store | verified cold body、semantic capsule、cold refs、restore/capsule policy | cold-store reference audit、dedupe、semantic retention、dataset-level restore | 不能裸删 referenced cold object |
-| Remaining non-dataset large files | 非 dataset 的 archive/report/runtime payload/cache/venv 等 | runtime payload retention、SQLite integrity/compact、bootstrap/cache lifecycle | 不能借 dataset policy 处理 runtime residue |
-
-运行态 SQLite compact 只处理 runtime lifecycle / refs index 的 DB 文件和 payload refs。数据 release 内的 `indexed_working_copy.sqlite` 是 release body 或 rebuildable sidecar，是否保留、重建、冷归档或删除必须由 `dataset_manifest.yaml` 的 output contract 与 study impact 决定。
-
-
-更细的 runtime retention 操作口径见 [Data Asset Storage Retention Runbook](../runtime/data_asset_storage_retention.md)。
-
-## DPCC 当前实例
-
-DM-CVD workspace 的 DPCC 已处理数据按 `data/datasets` layer 管理，因为它同时承载了三类不同 authority：
-
-- `restricted_raw` 保留用户提供原始导出、真实诊断机构和直接标识符，只用于 provenance 与受限审计。
-- `deidentified_longitudinal` 保留去标识后、7 天 visit-episode 合并后的源语义 release，支持字段来源、缺失和 episode collapse 回溯。
-- `standardized_longitudinal` 是当前普通分析和 manuscript work 的默认入口，包含 standardized table、medication detail long table、dictionary、value audit、numeric / medication variable contracts、standardization report 和 indexed SQLite working copy。
-
-这些内容不能继续用旧根层短路径表达，也不能被 runtime retention 误当成可清理残留。DPCC 当前层级代表 body plane；`dataset_manifest.yaml` 代表 contract plane；`memory/portfolio/data_assets/**` 代表 registry-lineage plane；各 study 的 `study.yaml` / analysis tree 代表 study-binding plane。
-
-DPCC 迁移和使用规则：
-
-1. 新 release 只写入 `data/datasets/dpcc/<family>/<version>/`，不得回写旧根层 `datasets/`。
-2. 每个 release 先完成 `dataset_manifest.yaml`，再由 controller 重建 registry / impact / readiness projection。
-3. Study `dataset_inputs` 只绑定 direct-consumption allowed 的 `standardized_longitudinal` release。
-4. `restricted_raw` 只作为受限 provenance 和必要审计输入，不进入 ordinary analysis。
-5. `deidentified_longitudinal` 保留为标准化层父 release 和 episode/source-field traceability，不直接作为默认 manuscript analysis table。
-6. Study-local cohort、index event、follow-up window、sensitivity set 和 model-ready matrix 写入 `studies/<study-id>/analysis/**`，并反向引用 parent release/version/manifest。
-7. 需要减少 DPCC 在线体积时，先产出 data asset impact report 和 dataset-level retention proposal；不能用 `runtime maintain-storage`、historical retention 或 SQLite compact 直接处理 release body。
-
-## 为什么剩余不能继续安全精简
-
-当前 DPCC 已经删掉早期中间 release，只保留可审计最小链路：受限原始层、去标识 episode 层、标准化分析层，以及 runtime drain 期间仍可能被旧绝对路径引用的上一版 standardized release。继续精简会触碰以下风险：
-
-- 删除 `restricted_raw` 会丢失原始来源、真实机构/患者/记录 provenance 和重建链路，且无法用去标识层反推。
-- 删除 `deidentified_longitudinal` 会丢失标准化层的父 release、episode collapse 证据和源字段语义。
-- 删除 `standardized_longitudinal` 的 CSV、dictionary、audit、contract 或 SQLite working copy 任一主输出，都会破坏当前 analysis entry 或 manifest-declared output presence。
-- 移动 body 会让现有 manifest、mutation receipt、diff report、study refs 或仍在 drain 的 managed runtime absolute path 失效。
-- 用 generic runtime retention 或 SQLite compact 处理 dataset body 会绕过 access tier、source readiness、study impact 和 publication traceability。
-
-后续若要进一步减少在线体积，正确路径是先新增 dataset-level retention contract、cold ref、restore proof、study impact report 和 controller mutation，再由 owner-authorized data asset command 执行。不能手工移动或删除真实数据 body。
-
-## 理想调用面
-
-长期调用面收敛为两层：
-
-- MAS internal authority functions：`data_assets_status`、`startup_data_readiness`、`apply_data_asset_update` 及 release/impact explain helpers 持有医学数据语义、source readiness、study impact 与 mutation receipt。
-- OPL generic owner surface：负责 workspace/file lifecycle、index rebuild/integrity、lineage display、cold restore、conformance 和 operator projection。
-
-这些 MAS functions 当前不在 V2 public Stage action catalog 中，因此旧 `medautosci data ...` 只作为 retired/provenance command identity，不是可运行入口。需要公开调用时，必须先在 `contracts/action_catalog.json` 和 input/output schemas 增加 action id，再由 OPL 生成 surface；不得恢复 repo-local parser 或 wrapper。
-
-## 近期落地顺序
-
-1. Path currentness：所有 active policy、quickstart、workspace architecture 和 live workspace pointers 统一到 `data/datasets` 与 `memory/portfolio/data_assets`。
-2. Manifest schema hardening：为 `release_contract` 增加 repo-level schema / focused tests，至少覆盖 access tier、direct consumption、main outputs、lineage、quality gate refs、retention policy。
-3. Lineage event shape：新增 refs-only lineage event projection，先兼容 existing `generated_by` / `source_release`，再扩到 input/output/job/run/facet。
-4. Quality result projection：不直接引入 Great Expectations 依赖，先定义 MAS-native expectation/result/doc refs contract；需要时再接 GX-like renderer。
-5. Study-derived boundary：让 `study.yaml` 和 data asset impact report 明确区分 shared release 与 study-local cohort/event artifacts。
-6. OPL substrate adoption：在 OPL State Index Kernel 上新增 data asset family conformance，MAS 只投影 refs 和 authority result。
-7. UI/workbench：先 body-free 展示 data asset currentness、quality status、study impact、lineage graph 和 next owner，不提供手工编辑 registry。
-
-## 禁止路径
-
-- 不把 `runtime/`、attempt ledger 或 OPL queue 当作数据主存储。
-- 不把 runtime lifecycle SQLite 或 domain authority refs SQLite 当作 dataset body authority。
-- 不让 Codex 手写 `memory/portfolio/data_assets/private/registry.json` 代替 manifest/controller mutation。
-- 不把受限原始数据直接作为 study `dataset_inputs`。
-- 不在共享 release 目录内写 study-specific cohort。
-- 不把 public dataset 的存在写成 hard blocker；只有 study contract 明确要求时才升级。
-- 不为 DPCC 的 family 名称写全局硬编码；DPCC 是实例，不是 MAS 数据资产模型本身。
-- 不用 generic storage cleanup、payload retention 或 SQLite compact 裸删、移动或瘦身 `data/datasets/**`。
+数据 release body 与运行 payload 的保留职责见
+[Data Asset Storage Retention](../runtime/data_asset_storage_retention.md)。
+本页不持有真实 workspace 清理快照、私有 data action 清单或实现 backlog。
+公开 Stage 能力和 handler 以 [Agent Interface](../runtime/contracts/agent_runtime_interface.md) 为准；
+受权 StageAttempt 使用可发现工具维护数据，OPL 仅提供通用 transport 和 lifecycle。

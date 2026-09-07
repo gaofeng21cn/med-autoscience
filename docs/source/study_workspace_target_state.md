@@ -1,342 +1,37 @@
-# Study Workspace Target State
+# Study 工作区职责
 
-Owner: `MedAutoScience`
-Purpose: `study_workspace_target_state`
-State: `active_support`
-Machine boundary: 本文是人读 target-state reference。机器真相继续归 workspace profile、study manifests、stage manifests、runtime/controller surfaces、owner receipts、typed blockers、schemas、CLI/MCP 行为和真实 study workspace artifacts。本文不授权直接手改 study truth、paper body、publication eval、controller decision、runtime state 或 current package。
+本文只解释当前 workspace/study 对象和目录职责；实际路径由 domain descriptor、study contracts 与当前 manifest 决定。目录存在本身不授予质量、来源或发表权限。
 
-## 结论
+## Workspace 与 study
 
-MAS/OPL 的理想论文 workspace 必须同时表达两层结构：
+`workspace_index.json#/studies` 持有研究线清单；每条记录以 `study_id` 和 `canonical_study_root` 指向 `studies/<study_id>/`。OPL 通过 `contracts/domain_descriptor.json#/standard_agent_interface/inventory_projection` 只读投影该清单。业务状态由 MAS lifecycle/authority 生成，不能从 provider、Temporal 或缺失 telemetry 推断。
 
-1. `studies/<study_id>/` 是单篇论文的唯一 canonical 用户入口。
-2. `artifacts/stage_outputs/<stage_id>/` 是 Stage Native 的唯一 stage-owned artifact 目录。
+Workspace 的数据资产布局见 [数据资产模型](./medical_data_asset_target_operating_model.md)；共享文献与记忆见 [知识合同](../runtime/contracts/workspace_knowledge_and_literature_contract.md)。这些共享资源不能被某个 study 的派生结果静默覆盖。
 
-`paper/`、`analysis/`、`evidence/`、`publication/` 是论文产品视图，方便用户检查当前稿件、分析、证据和投稿包。它们不是 Stage Native 运行目录。Stage 是否完成、卡住或能否进入下一阶段，只能由对应 stage folder 内的 `stage_manifest.json`、role artifacts、`receipts/owner_receipt.json` 或 `receipts/typed_blocker.json` 证明。
+## 单篇论文的职责分层
 
-如果只整理出 `paper/analysis/evidence/publication`，但没有 stage folder、stage index 和 receipt/blocker，目录看起来会干净，系统仍会继续依赖散落 read-model 和 runtime residue 推断进度。这不是目标态。
+| 对象 | 职责 |
+| --- | --- |
+| `control/lifecycle.json` | MAS 业务生命周期与显式唤醒权限 |
+| `manuscript/` | 当前可编辑稿件的 canonical source |
+| `analysis/` | study 特有 cohort、分析代码、参数、结果与验证 |
+| `artifacts/stage_outputs/` | consumed/produced refs、阶段产物、审阅、lineage 与诊断 |
+| `artifacts/research_trajectory/snapshot.json` | MAS 科研轨迹 projection，供选中 study 的 typed view 读取 |
+| `submission/` | 当前 owner 授权、同 generation 的完整交付投影 |
+| 运行账本 | OPL 持有的 StageRun/Attempt、retry、provider、usage 与执行 evidence |
 
-## Disease Workspace
+正文与交付的详细规则由 [修订与投稿合同](../policies/study-workflow/submission_revision_operating_contract.md) 持有；不把历史 `paper/` 路径恢复为新 workspace 默认入口。
 
-病种级 workspace 管共享资源，不承载单篇论文当前真相：
+Canonical Stage identity 来自 `agent/stages/manifest.json`；论文物理阶段与 artifact role 来自 `contracts/mas-paper-study-stage-pack.json` 和 artifact-kernel adoption。不要从手写编号目录推断 Stage identity 或新增另一张阶段图。
 
-```text
-<disease-workspace>/
-  README.md
-  WORKSPACE_STATUS.md
-  workspace.yaml
-  workspace_index.json
+## Stage evidence 与产品视图
 
-  data/
-    catalog.yaml
-    raw_restricted/
-    derived/
-    external/
-    locks/
+Stage evidence 记录输入、输出、作者/审阅角色、exact refs 与 lineage；产品视图提供当前可读 manuscript、分析结果与 submission。两者通过 manifest/ref 关联，不互相取代。
 
-  literature/
-    corpus/
-    searches/
-    screening/
-    summaries/
+未形成 ready receipt 时，可保留部分、阴性或失败分析产物和质量债，供下一 Stage 继续推理；不得把文件夹或 manifest 存在解释为 owner acceptance。真正的权限、身份、来源、安全或 human gate 必须保持阻断，详见 [Stage handoff](../runtime/stage_route_handoff_standard.md)。
 
-  memory/
-    disease_level/
-    methods/
-    journal_targets/
-    prior_decisions/
+暂停、交付暂停、停止状态的 current stage 必须为空；恢复条件由 [生命周期](./study_lifecycle_control.md) 决定。旧 runtime residue 不能重新激活 study。
 
-  studies/
-    <study_id>/
+## 迁移
 
-  runtime/
-    artifacts/
-      study_lifecycle_control/
-        latest.json
-        history/
-    quests/
-      <study_id>/
-
-  reports/
-    workspace_dashboard.md
-    studies_index.json
-    latest_status.json
-
-  archive/
-    legacy_mds/
-    old_runtime/
-    old_paper_surfaces/
-```
-
-病种级 `workspace_index.json` 至少应能回答：
-
-- 当前有哪些 study。
-- 每个 study 的结构化显示名；缺失时消费者可以人类化 `study_id`，不得从 Markdown 猜标题。
-- 每个 study 的 canonical root 在哪里。
-- 每个 study 当前 stage 是什么。
-- runtime/provenance root 在哪里。
-- 用户检查入口在哪里。
-- 哪些 archive 只作 provenance，不能作为 current truth。
-
-`contracts/domain_descriptor.json#/standard_agent_interface/inventory_projection` 是 OPL 读取这份 inventory 的 refs-only 映射。v1 必需映射直接来自 `workspace_index.json#/studies`；index 还可提供结构化 `display_name` 与 `stage_index_ref`，旧 index 缺少显示名时消费者人类化 `study_id`。OPL/Temporal 的 execution、attempt、heartbeat 与 Token telemetry 必须在平台账本中独立维护，不得写回 `workspace_index.json`，也不得在缺少 runtime 记录时删除或改名任何 study。
-
-OPL 初始化只可根据 descriptor 物化 `studies/<study_id>/` 并投影 `study_id` / `canonical_study_root` 结构身份。MAS 原生 index 使用 `surface_kind=workspace_index` / `schema_version=mas.workspace_index.v1`；由 OPL 托管的同一根索引可使用 `surface_kind=opl_workspace_index` / `version=workspace-index.v1`，但必须仍在根层提供 `/studies`。`status`、`current_stage_*`、`package_status`、`lifecycle_ref` 与 `next_action` 等业务真相必须由 MAS lifecycle/authority 产生；未产生时保持缺省，不得由 host 猜测填充。
-
-## Study Workspace
-
-单篇论文的目标结构：
-
-```text
-studies/<study_id>/
-  STUDY_STATUS.md
-  study.yaml
-  paper.yaml
-
-  control/
-    lifecycle.json
-    current_stage.json
-    next_action.json
-    stage_index.json
-    blockers.json
-    owner_route.json
-
-  artifacts/
-    stage_outputs/
-      01-intake_and_scope/
-      02-source_and_literature_readiness/
-      03-analysis_contract/
-      04-analysis_execution/
-      05-figures_and_tables/
-      06-manuscript_writing/
-      07-independent_review_and_revision/
-      08-publication_gate_and_package/
-    immutable_refs/
-    package_refs/
-
-  paper/
-    draft.md
-    medical_manuscript_blueprint.json
-    claim_evidence_map.json
-    review/
-      review_ledger.json
-    figures/
-      figure_catalog.json
-    tables/
-      table_catalog.json
-
-  analysis/
-    analysis_plan.md
-    scripts/
-    results/
-    validation/
-
-  evidence/
-    source_refs.json
-    evidence_ledger.json
-    reviewer_refs.json
-    gate_refs.json
-
-  publication/
-    current_package/
-    inspection_package/
-    submission_package/
-    journal_requirements/
-    ro-crate-metadata.json
-
-  _archive/
-    legacy_surfaces/
-    migration_manifest/
-```
-
-这组目录的分工是固定的：
-
-| 路径 | 职责 | Truth 级别 |
-| --- | --- | --- |
-| `study.yaml` | study identity、scope、profile binding | study identity truth |
-| `paper.yaml` | paper-facing metadata、journal route、current package refs | paper metadata truth |
-| `control/lifecycle.json` | 用户可理解的 `active/paused/delivered_paused/stopped` durable truth、恢复策略与 package milestone 语义 | lifecycle truth |
-| `control/` | 当前 stage、下一动作、owner、blocker、用户检查入口 | control/read-model projection |
-| `artifacts/stage_outputs/` | Stage Native stage-owned artifacts、receipts、blockers、lineage | progress / claim evidence carrier; no transition authority |
-| `paper/` | 当前可读论文正文、表图目录、review ledger | canonical product surface |
-| `analysis/` | 分析计划、脚本、结果、验证 | analysis product surface |
-| `evidence/` | source/evidence/reviewer/gate refs | evidence product surface |
-| `publication/` | 当前检查包、投稿包、RO-Crate metadata | delivery product surface |
-| `_archive/` | 旧面、迁移记录、provenance | non-current provenance |
-
-## Stage Native Folder
-
-每个 Stage 必须有单独目录，且目录内必须能独立回答“这个 stage 消费了什么、产出了什么、谁关闭了它、为什么能进下一步或为什么卡住”。
-
-```text
-artifacts/stage_outputs/06-manuscript_writing/
-  stage_manifest.json
-
-  inputs/
-    consumed_artifact_refs.json
-    source_fingerprint.json
-
-  outputs/
-    draft_delta.md
-    writing_plan.json
-    claim_evidence_delta.json
-
-  role_artifacts/
-    executor_closeout.json
-    reviewer_input.json
-    auditor_input.json
-
-  receipts/
-    owner_receipt.json
-    typed_blocker.json
-
-  lineage/
-    prov.json
-    openlineage_event.json
-
-  projection/
-    current_owner_delta.json
-```
-
-规则：
-
-- `outputs/` 说明 stage 做出了哪些 evidence。
-- `role_artifacts/` 说明 executor、reviewer、auditor 或 human gate 分别留下了什么。
-- `receipts/owner_receipt.json` 是 owner/quality/ready claim 的强证据，不是推进到下一 stage 的前置凭证。
-- `receipts/typed_blocker.json` 只记录 executor unavailable、权限/安全/authority、wrong-target identity/currentness、不可逆动作或显式 human decision 的稳定阻断凭证。
-- `projection/current_owner_delta.json` 只给 CLI/App/用户读，不拥有 truth。
-- 没有 receipt 时 stage folder 不能升级 owner/quality/ready claim，但 raw/partial/negative output 或 no-output diagnostic 仍以质量债完成本轮并供下一 stage 消费。
-
-## Product Views vs Stage Outputs
-
-Stage folder 和产品视图不能混成一套目录。
-
-Stage folder 是过程证据和 claim-evidence carrier；Codex CLI 仍是唯一 transition authority：
-
-```text
-artifacts/stage_outputs/06-manuscript_writing/outputs/draft_delta.md
-artifacts/stage_outputs/06-manuscript_writing/receipts/owner_receipt.json
-```
-
-产品视图是用户检查当前成果：
-
-```text
-paper/draft.md
-paper/claim_evidence_map.json
-publication/current_package/
-```
-
-二者通过 manifest/ref 绑定，而不是靠用户猜测路径关系。典型绑定写在：
-
-```text
-control/stage_index.json
-artifacts/stage_outputs/<stage_id>/stage_manifest.json
-paper.yaml
-```
-
-如果某个 stage 修改了 `paper/draft.md`，stage folder 应记录 produced ref、hash、lineage 和 receipt；`paper/draft.md` 仍是当前正文入口。这样用户看 `paper/` 能检查正文，看 `artifacts/stage_outputs/<stage_id>/` 能检查推进证据。
-
-## Lifecycle Precedence
-
-论文业务 lifecycle 不等于 runtime stage。`control/lifecycle.json` 是 MAS domain-owned user truth；`runtime/artifacts/study_lifecycle_control/latest.json` 是病种 workspace 的聚合 ledger。具体状态与恢复门禁见 [Study Lifecycle Control](./study_lifecycle_control.md)。
-
-当 lifecycle 为 `paused`、`delivered_paused` 或 `stopped` 时，`workspace_index.json`、`study-state-matrix`、`study-progress` 与 `paper-mission inspect` 必须统一投影 `current_stage_id=null`。旧 stage、runtime attempt、heartbeat、Token telemetry 和 archive residue只能进入诊断层，不能覆盖 lifecycle，也不能把已暂停或已停止论文翻译成“系统阻塞”。
-
-## Current Stage Index
-
-`control/stage_index.json` 是用户和机器共同定位 stage 的入口。最低字段：
-
-```json
-{
-  "schema_version": "mas.study_stage_index.v1",
-  "study_id": "002-dm-china-us-mortality-attribution",
-  "canonical_study_root": "studies/002-dm-china-us-mortality-attribution",
-  "current_stage_id": "06-manuscript_writing",
-  "stage_outputs_root": "artifacts/stage_outputs",
-  "stages": [
-    {
-      "stage_id": "06-manuscript_writing",
-      "stage_root": "artifacts/stage_outputs/06-manuscript_writing",
-      "manifest": "artifacts/stage_outputs/06-manuscript_writing/stage_manifest.json",
-      "status": "typed_blocked",
-      "receipt_ref": null,
-      "typed_blocker_ref": "artifacts/stage_outputs/06-manuscript_writing/receipts/typed_blocker.json",
-      "product_refs": [
-        "paper/draft.md",
-        "paper/claim_evidence_map.json"
-      ]
-    }
-  ]
-}
-```
-
-这个 index 不能替代 stage receipt/blocker。它只是定位和投影。
-
-## Runtime Boundary
-
-`runtime/quests/<study_id>/` 不是论文主目录。它只保留：
-
-- OPL/MAS execution state。
-- attempt、lease、worker、queue、retry、event log。
-- provider closeout。
-- runtime receipt。
-- historical provenance。
-- restore/archive refs。
-
-用户检查论文进度时，默认入口永远是：
-
-```text
-studies/<study_id>/STUDY_STATUS.md
-studies/<study_id>/control/next_action.json
-studies/<study_id>/control/stage_index.json
-studies/<study_id>/publication/current_package/
-```
-
-如果某条运行态 evidence 对论文仍重要，必须以 opaque ref 或 provenance ref 进入 stage manifest / lineage / receipt，不能让用户直接去 runtime 目录里找 current truth。
-
-## Clean-Room Migration
-
-旧 workspace 太脏时，合理做法是从 current artifacts 重建干净 study root，而不是在旧 runtime residue 上继续解释。
-
-clean-room migration 必须先生成 manifest：
-
-```text
-_archive/migration_manifest/
-  current_truth_map.json
-  legacy_provenance_map.json
-  target_path_map.json
-  materialization_plan.json
-  validation_result.json
-```
-
-manifest 至少证明：
-
-- `paper/draft.md`、claim/evidence map、review ledger、figure/table catalog、blueprint、package artifacts 的 current 去向。
-- legacy MDS、runtime residue、旧 submission mirror、supervision artifacts 的 archive/provenance 去向。
-- 哪些路径被复制，哪些路径只记录 ref，哪些路径降级为 archive。
-- `studies/<study_id>/` 是唯一 canonical study root。
-- `runtime/quests/<study_id>/` 未被当成 current paper root。
-- 每个 current stage 至少有 stage folder、manifest 和 receipt/blocker 状态。
-
-## External Practice Mapping
-
-MAS/OPL 不直接复制外部项目结构，只吸收稳定工程原则：
-
-| 外部经验 | 可吸收原则 | MAS/OPL 映射 |
-| --- | --- | --- |
-| [BIDS folder/files](https://bids.neuroimaging.io/getting_started/folders_and_files/folders.html) | 标准目录、稳定命名、metadata sidecar 让研究数据可复用、可自动处理。 | `workspace.yaml`、`study.yaml`、controlled `study_id`、固定 stage/product directories。 |
-| [Kedro Data Catalog](https://docs.kedro.org/en/stable/data/data_catalog.html) | 数据源由 catalog 声明，不靠代码或人工猜路径。 | `data/catalog.yaml`、`workspace_index.json`、`source_refs.json`。 |
-| [DVC pipelines](https://dvc.org/doc/user-guide/pipelines) | stage、依赖、输出和复现关系显式化。 | `stage_manifest.json`、`inputs/consumed_artifact_refs.json`、`lineage/prov.json`。 |
-| [RO-Crate](https://www.researchobject.org/ro-crate/specification/1.1/introduction.html) | 研究对象和交付包用 metadata 描述文件、实体、作者、工具和 provenance。 | `publication/ro-crate-metadata.json`、`publication/current_package/`、package refs。 |
-
-## Acceptance Criteria
-
-一个 clean-room study workspace 只有同时满足以下条件，才算目录治理完成：
-
-1. 用户从 `studies/<study_id>/STUDY_STATUS.md` 能看懂当前论文状态。
-2. `control/next_action.json` 指向一个具体 owner、stage、blocked surface 或 safe action。
-3. `control/stage_index.json` 能定位 current stage folder。
-4. current stage folder 有 `stage_manifest.json`，并有 `owner_receipt.json` 或 `typed_blocker.json`。
-5. `paper/`、`analysis/`、`evidence/`、`publication/` 只承载当前产品视图，不混入 runtime residue。
-6. `_archive/` 或 workspace-level `archive/` 只承载 non-current provenance，并有 migration manifest。
-7. `runtime/quests/<study_id>/` 从用户视角降级为 runtime/provenance。
-8. MAS validator/CLI 能 fail closed 检测错误 canonical root、缺 stage manifest、runtime root 被误用为 paper root、archive 被误用为 current truth。
+实际 workspace 迁移须有用户授权、当前 artifact/identity 清单、目标路径、保留来源、可回退方式和目标侧 readback。当前 manuscript、revision、独立 review 与 quality debt 必须完整迁移；旧目录仅保留有价值的 provenance。没有真实迁移操作时，本文不宣称任何 workspace 已完成目录整理。

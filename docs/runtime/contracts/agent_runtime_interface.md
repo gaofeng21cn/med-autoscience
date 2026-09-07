@@ -1,52 +1,21 @@
 # Agent Runtime Interface
 
-Owner: `MedAutoScience`
-Purpose: `agent_runtime_entry_and_boundary`
-State: `active_support`
-Machine boundary: 可执行真相归 V2 action catalog、Stage manifest、closed handler registry、OPL generated interfaces与 OPL StageRun/Attempt ledger；医学真相归 MAS owner results与 canonical artifacts。
+本文只说明 MAS 声明与 OPL host 的可调用边界。可执行来源是 `contracts/action_catalog.json`、`agent/stages/manifest.json` 和 `contracts/domain_handler_registry.json`。
 
-## Current topology
+## 公开与内部入口
 
-| Layer | Owner | Responsibility |
-| --- | --- | --- |
-| Declarative medical pack | MAS | six Stage semantics、prompts、knowledge、quality policy、schemas与 environment requirements |
-| Generic execution | OPL Runway / Temporal | StageRun、Attempt、session、retry、resume、queue、human-gate transport与 transition materialization |
-| Provider/package/workspace | OPL Connect / Pack / Workspace | provider receipts、Package identity/capability presence、carrier readback/materialization、locator、StateIndex与 lifecycle shell |
-| Medical authority | MAS | study/source semantics、quality/publication/artifact/memory decisions、owner receipt、typed blocker、human gate与 route-back |
+公开执行由六个 canonical Stage action 承载：direction、baseline、analysis、manuscript、review、handoff 的完整 action id 以 catalog 为准。CLI/MCP/Skill/product spelling 由 OPL 生成；MAS 不维护另一份命令 parser 或 JSON-RPC transport。
 
-`Codex CLI` 是第一公民 executor。其他 executor 只能通过显式 OPL adapter接入，不承诺行为或质量等价。Package identity、business work item与 typed views不属于 Codex；Codex Plugin只是 carrier projection。
+当前 catalog 另含 study initialization、qualification work-item provisioning、study lifecycle reactivation、candidate admission、build-dependency currentness 和 paper mission 六个 host-only authority action。它们的用户 surfaces 为 null。Registry 另绑定 Agent Lab self-evolution closeout，完整 binding 以 registry 为准。
 
-## Stable entries
+Handler 消费 host 提供的身份、exact refs、authority context 和当前证据，返回领域 result 或受限物化授权；不负责文件、网络、进程、session、runtime lifecycle 或 Stage transition。Host 执行受权物化必须回传 receipt，不能自造 MAS verdict。
 
-用户可见 action 只有：
+## 调用与回读
 
-- `direction_and_route_selection`
-- `baseline_and_evidence_setup`
-- `bounded_analysis_campaign`
-- `manuscript_authoring`
-- `review_and_quality_gate`
-- `finalize_and_publication_handoff`
+Host 在创建 StageRun/Attempt 前解析 workspace/study identity，并执行 lifecycle admission。初始化与重新激活的规则分别归 `contracts/study_initialization_contract.json` 与 `contracts/study_lifecycle_reactivation_contract.json`。
 
-具体 CLI/MCP/Skill/product UI 由 OPL 从 catalog/schema/manifest 生成。`paper_mission_authority_evaluate` 是 closed registry 内部 action，没有用户 surface。MAS 不维护 parser、JSON-RPC transport、workspace wrapper、status shell或 workbench renderer。
+Attempt 的 route/review 协议见 [Stage / Route / Handoff](../stage_route_handoff_standard.md)。OPL 负责持久执行、独立 session、receipt 物化和只读状态展示；MAS 负责医学语义与 owner consumption。
 
-## Attempt and route contract
+Package 使用 `opl packages` 公开生命周期入口。ScholarSkills 缺失或所需能力不可调用只阻断 MAS；具体 selected build 还须探测其 validator 符号，不能把 Package presence 当作函数级验证。
 
-每个 StageRun 由 OPL 持有 durable invocation/spec identity。Primary-only Stage 的 producer或 formal Review 的终局 reviewer/re-reviewer是 decisive Attempt；其余角色只能给 recommendation。Attempt 只返回 artifact/source/rubric/lineage refs、quality outcome与 route impact。OPL controller只校验并物化 declared transition，不拥有医学 route approval。
-
-Review 必须是独立 Attempt/session，并绑定 exact artifact hashes与 no-context-inheritance evidence。Attempt 不生成 review receipt verdict；controller负责 receipt materialization。
-
-## Authority handler
-
-`contracts/domain_handler_registry.json` 只绑定 `evaluate_paper_mission_authority`。该函数校验 host 注入的 exact refs并返回医学 owner result；它不访问文件或网络、不 spawn进程、不维护 session/lifecycle/storage、不提交 provider request，也不物化 Stage transition。
-
-## Readback
-
-OPL status/workbench可以展示 StageRun、Attempt、package/provider receipts、artifact refs、owner results、typed blockers与 human gates。Projection不得写 MAS truth、artifact/memory body、publication verdict或 current package，也不得把 queue/provider completion解释成 paper progress。
-
-## Package and workspace
-
-安装、更新、修复与 carrier materialization 使用 `opl packages install|update|status|repair`。`mas-scholar-skills` 是 MAS required hard dependency；普通 readiness 只检查 identity presence 与所需 capability callability，缺失只阻断 MAS。Workspace/quest locator 与 lifecycle 归 OPL；MAS 只消费显式 profile/study/source/artifact refs。不存在 repo-local bootstrap、environment builder、runtime service 或 install fallback。
-
-## Verification
-
-运行 `scripts/verify.sh full`，并在冻结 OPL Framework读取 pack-compiler、interfaces、conformance、default-callers、residue-decisions与 source-closure。Live claim仍需 fresh StageRun、Review receipt、MAS owner result与 artifact evidence。
+[验证入口](../../policies/repo-ops/repository_ci_preflight.md) 证明源码合同；真实进展需要 StageRun、independent Review、MAS owner result 与当前 artifact evidence。

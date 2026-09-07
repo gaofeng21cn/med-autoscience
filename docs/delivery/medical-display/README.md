@@ -10,7 +10,7 @@ Machine boundary: 本文是人读入口。机器真相归 V2 Stage action catalo
 Medical display 遵循标准 OPL Agent 边界：
 
 - MAS 持有医学 figure intent、claim/data refs、quality gate、visual audit与 artifact/publication authority。
-- OPL 持有通用 pack install/registry/cache/lock、renderer transport、generated interfaces、StageRun与 hosted workbench。
+- OPL 持有通用 Package discovery/activation 聚合、renderer transport、generated interfaces、StageRun 与 hosted workbench；实际 carrier 持有安装生命周期。
 - ScholarSkills/display pack source提供通用模板与专业能力；不得写 MAS claim/data/statistics truth。
 
 MAS 不维护 repo-local display CLI、catalog generator、installer或 workbench shell。
@@ -48,8 +48,7 @@ Template resolved、render success、golden match、layout QC、workbench visibl
 - [Audit guide](./contracts/medical_display_audit_guide.md)
 - [Visual audit protocol](./contracts/medical_display_visual_audit_protocol.md)
 - [Figure route cookbook](./catalogs/medical_figure_route_cookbook.md)
-- [Template backlog](./catalogs/medical_display_template_backlog.md)
-- [Family roadmap](./portfolio/medical_display_family_roadmap.md)
+- [Medical Display Research Families](portfolio/medical_display_family_roadmap.md)
 - [Dependency environment boundary](./contracts/display_dependency_environment_os_target.md)
 - [Architecture](../../architecture.md)
 - [Runtime boundary](../../runtime/contracts/runtime_boundary.md)

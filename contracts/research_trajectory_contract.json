@@ -175,13 +175,6 @@
     ],
     "review_may_follow_but_must_not_block_recording_current_progress": true
   },
-  "stage_output_compatibility": {
-    "stage_action_output_schema_version": 1,
-    "new_required_stage_output_fields": [],
-    "legacy_nullable_field": "research_trajectory_delta_ref",
-    "legacy_field_status": "read_only_compatibility_not_v2_write_gate",
-    "current_v2_stage_output_value": null
-  },
   "framework_projection_mapping": {
     "raw_detail_view_kind": "research_trajectory",
     "view_id": "scientific-reasoning",
@@ -192,14 +185,6 @@
     "framework_role": "validate_read_and_transport_exact_mas_authored_snapshot",
     "framework_can_accept_reject_or_rewrite_medical_judgment": false,
     "app_can_accept_reject_summarize_translate_or_rewrite_medical_judgment": false
-  },
-  "legacy_v1_read_compatibility": {
-    "new_v1_writes_allowed": false,
-    "event_schema": "contracts/schemas/v2/mas-research-trajectory-event.schema.json",
-    "snapshot_schema": "contracts/schemas/v2/mas-research-trajectory-snapshot.schema.json",
-    "view_schema_version": "scientific-reasoning-map.v1",
-    "accepted_event_materialization_is_v2_write_path": false,
-    "legacy_receipts_are_historical_read_context_only": true
   },
   "session_reconciliation": {
     "codex_may_update_from_linked_session": true,

@@ -24,4 +24,4 @@ Fresh intake 基于 `Yuan1z0825/nature-skills` observed commit `1cb9070fdd94929d
 
 ## Current verification
 
-Repo-level boundary由 `tests/test_stage_quality_cycle_policy.py`、`tests/test_standard_agent_boundary.py`、fast/meta与冻结 Framework admission保护。真实论文图件仍需 exact artifact、independent Review receipt与 MAS owner result。
+Repo-level boundary由 `tests/test_stage_quality_cycle_policy.py`、`tests/test_standard_agent_boundary.py`、`scripts/verify.sh`与Framework admission readback保护。真实论文图件仍需 exact artifact、independent Review receipt与 MAS owner result。

@@ -56,4 +56,4 @@ OPL从 MAS V2 catalog与 descriptor生成 CLI/MCP/Skill/product-entry/status/wor
 
 ## Verification
 
-结构使用 MAS fast/meta与 OPL pack/interfaces/conformance/source-closure验证；workspace可运行、paper progress、restore成功与 artifact ready必须用对应 fresh locator/receipt/owner evidence验证。
+结构使用 MAS `scripts/verify.sh`与 OPL pack/interfaces/conformance/source-closure验证；workspace可运行、paper progress、restore成功与 artifact ready必须用对应 fresh locator/receipt/owner evidence验证。

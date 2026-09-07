@@ -36,7 +36,7 @@ Contract、reference、prompt、catalog、focused test 或 projection 单独存�
 ## 当前 owner 路由
 
 - 通用 source/provider/tool discovery、credential、remote compute 与 receipt transport归 OPL Connect / Runway。
-- package、Skill materialization、dependency closure、currentness 与 rollback归 OPL Pack。
+- Package discovery 和 installed aggregation 归 Framework；实际 carrier 持有 Skill materialization、currentness 与原生生命周期。
 - writing、review、figure、statistics、tables、literature、submission 与 data-governance 专业能力归 MAS ScholarSkills。
 - 医学 source readiness、claim/evidence acceptance、publication、artifact、memory 与 owner result归 MAS。
 - OPL 只托管 execution、receipt 与 projection，不写 MAS truth 或 owner verdict。

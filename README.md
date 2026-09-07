@@ -128,89 +128,23 @@ Medical papers do not finish in one generation. The system can keep multiple cla
 - Clinical framing, claim acceptance, and final submission decisions stay with researchers and PIs.
 - Journal submission and external system interaction stay under human supervision.
 
-<details>
-  <summary><strong>Technical boundary for operators</strong></summary>
-
-- `Med Auto Science` is a medical research domain agent and Foundry Agent. It can be called directly by Codex, and it can also be discovered and hosted as an OPL-compatible package under `OPL Framework`.
-- MAS owns the medical work itself: study intake, workspace context, evidence progression, progress explanation, manuscript quality judgment, runtime-facing owner receipts/projections, artifact authority, and manuscript-facing delivery.
-- `OPL Framework` is the upper stage-led framework. It owns the generic runtime platform: stage attempts, queues, wakeups, recovery, approvals, receipts, state-machine execution, and cross-domain projection. MAS keeps medical conclusions, manuscript quality, domain transition semantics, artifact authority, and submission-facing judgment.
-- MAS-local schedulers, runners, session stores, status shells, installers, and workbench wrappers are retired or tombstone/provenance only. New MAS program surfaces must justify a medical authority role and return owner receipts, typed blockers, domain refs, or safe action refs.
-- In the OPL framework, a `Stage` is a large task step such as scouting, analysis, writing, reviewer repair, or delivery. An Agent executor is the minimum execution unit inside a stage; `Codex CLI` is the current first-class executor.
-- A MAS stage pack gives the executor a goal, context, authority boundary, available affordances, knowledge refs, and quality gate. During the attempt, the executor decides what to read first, which tools to call, whether to run in parallel, whether to generate multiple candidates, and when to route back or request a reviewer; OPL route orchestration does not pre-script that reasoning.
-- Candidate generation, reflection, review, and meta-review are Stage-internal execution strategies and evidence refs. They can guide exploration and review pressure, but they do not become a hardcoded workflow and cannot close a Stage without a MAS owner receipt, stable typed blocker, or independent reviewer/auditor receipt where quality is at stake.
-- MAS tool declarations follow a Tool Affordance Boundary: they declare capability, permission, credential boundary, write scope, side effects, forbidden authority, and evidence entry points. They do not freeze the executor's literature reading, statistical checks, candidate generation, route comparison, or question-asking order into an out-of-prompt workflow script.
-- MAS has completed monolith closeout. `MedDeepScientist` / `DeepScientist` remains available as provenance, explicit archive import, backend audit, upstream learning, and parity reference.
-- Long-running OPL-hosted production execution is Temporal-backed. Temporal is the required production provider for OPL durable stage attempts, signal/query, retry/dead-letter, and workflow history. `Hermes-Agent` is not the target session/wakeup substrate, but it remains available as an explicit Agent executor adapter / proof lane that promises connectivity and auditability, not behavior or quality equivalence with `Codex CLI`.
-
-</details>
-
 ## How To Read This Repository
 
 1. Potential users and medical experts should start here, then continue to the [Docs Guide](./docs/README.md).
 2. Technical readers and planners should read [Project](./docs/project.md), [Status](./docs/status.md), [Architecture](./docs/architecture.md), [Invariants](./docs/invariants.md), and [Decisions](./docs/decisions.md).
 3. Developers and maintainers should continue from the [Docs Guide](./docs/README.md) into `docs/active/`, `docs/runtime/`, `docs/delivery/`, `docs/references/`, and `docs/policies/`.
 
-## For Codex / Agents
+## Install And Start
 
-This repository includes a Codex Plugin marketplace for the existing
-`med-autoscience` carrier. From a clone of this repository, add the marketplace,
-inspect the available entry, install it, and verify the installed snapshot:
+Use `opl packages install mas` for the OPL Package. MAS requires
+`mas-scholar-skills`; installing a Plugin carrier alone does not prove that the
+complete Package or managed runtime is ready.
 
-```bash
-repo_root="$(git rev-parse --show-toplevel)"
-codex plugin marketplace add "${repo_root}"
-codex plugin marketplace list
-codex plugin list --marketplace med-autoscience --available --json
-codex plugin add med-autoscience@med-autoscience
-codex plugin list --marketplace med-autoscience --json
-```
-
-In the Codex App, open **Plugins**, select **Med Auto Science**, and install it.
-Start a new task after installation so the App or CLI loads the installed plugin
-snapshot. To remove the carrier and its marketplace configuration:
-
-```bash
-codex plugin remove med-autoscience@med-autoscience
-codex plugin marketplace remove med-autoscience
-```
-
-These commands prove only that Codex can discover, install, and load the Plugin
-carrier. The OPL Package id remains `mas`; the Codex Plugin id remains
-`med-autoscience`. A carrier install does not prove that the complete OPL
-Package, managed runtime, study workspace, or publication surface is ready, and
-it does not make the required `mas-scholar-skills` dependency optional.
-
-Use OPL-owned readbacks for the complete Package and hosted work-item state:
-
-```bash
-opl packages status --package-id mas --json
-opl packages status --package-id mas --scope workspace --target-workspace <absolute_path> --json
-opl workspace work-item readback --workspace <absolute_path> --work-item <id> --agent mas --profile full
-```
-
-Those readbacks report current Package, required-dependency, carrier, runtime,
-and hosted work-item evidence. They do not create a MAS owner receipt, accept a
-medical claim, authorize publication, or turn legacy transaction/receipt fields
-into current MAS authority.
-
-## Agent And Operator Quick Start
-
-<details>
-  <summary><strong>Start here if you are handing this repo to Codex or another agent</strong></summary>
-
-- Install, update, or remove the MAS package with `opl packages install mas`, `opl packages update mas`, or `opl packages uninstall mas`. MAS requires `mas-scholar-skills`; ordinary readiness checks that its identity exists and required capabilities are callable. Missing capability blocks MAS and routes to managed install/repair, but does not block unrelated packages and cannot be treated as optional.
-- The target distribution is independently owner-published complete MAS bytes in its own GHCR `latest-stable`; Codex Plugin materialization is only one carrier projection. Current machine contracts and readbacks may still expose legacy version-range, ABI, lock, payload, digest, atomic-closure, receipt, or shared Release Set fields while migration is in progress; these fields do not prove the target model is implemented.
-- The current compatibility label "required `mas-scholar-skills` dependency closure" means the required identity/callability edge during migration; it does not make version solving, locking, or an atomic cross-package closure part of the target readiness model.
-- Cloning this repository provides the MAS declarative pack, not an OPL runtime installation. OPL discovers `contracts/domain_descriptor.json`, compiles six public Stage actions, and uses the closed registry to host five internal authority actions plus the self-evolution closeout callable. OPL generates the CLI/MCP/Skill/product surfaces and hosts runtime/workbench behavior.
-- The canonical domain id is `mas`. `med-autoscience` is only the repository, package, and plugin locator.
-- The repo-root `agent/` pack and action schemas are the interface source. Public execution uses six OPL-hosted Stage actions. Qualification work-item provisioning, lifecycle reactivation, candidate admission, build-dependency currentness, and paper-mission authority evaluation are internal registry-bound MAS callables, not user commands.
-- Runtime environments are prepared by OPL from `contracts/runtime_environment_requirements.json`; MAS does not install Python/R packages or plugins from its import path or workspace bootstrap.
-- The only current stage-route authority is `Codex CLI selected declared stage`. `StageOutcome`, legacy `NextActionEnvelope`, queue, attempt, provider, status, and workbench state are nonbinding context or observation; they cannot select the next stage or prove paper progress.
-- MAS may be used through its Codex skill or an OPL-hosted interface. Both routes return to the same MAS medical truth, quality, publication, and artifact authority surfaces.
-- The V2 public/default command cutover, private control-plane retirement, and source closure are complete. Runtime, paper-line, publication, and production readiness remain separate live-evidence claims.
-- Read [Bootstrap](./bootstrap/README.md), [Architecture](./docs/architecture.md), and [Status](./docs/status.md) before changing package or runtime boundaries.
-
-</details>
+[Codex Plugin Setup](./docs/references/integration/codex_plugin.md) owns native
+Codex marketplace installation, removal and installed-state checks.
+[Workspace Quickstart](./docs/references/workspace/disease_workspace_quickstart.md)
+covers study binding and first use. Technical ownership and verification are
+documented in [Architecture](./docs/architecture.md) and [Status](./docs/status.md).
 
 ## Further Reading
 

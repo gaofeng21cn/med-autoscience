@@ -37,7 +37,7 @@ MAS memory is managed as one family of owner-controlled memory surfaces, not as 
 | layer | scope | canonical body | structured surfaces | executor entry |
 | --- | --- | --- | --- | --- |
 | Domain memory | reusable MAS medical knowledge across workspaces, such as publication-route experience, route-bias prose, reviewer-pattern lessons, and figure/table rationale | repo Markdown under `docs/policies/**` when the knowledge is natural language | seed indexes, locator refs, workspace packs, inventories, receipts | direct Markdown reading when rich context is needed; stage packets carry small refs/summaries |
-| Workspace memory | disease workspace knowledge across multiple studies, such as topic landscape, dataset-question map, venue intelligence, literature coverage, and cross-study recall | `portfolio/research_memory/*.md` for human/Codex prose | `registry.yaml`, literature JSONL/BibTeX/coverage JSON, workspace memory packs | `stage_knowledge_packet.input_refs` and `high_signal_memory` |
+| Workspace memory | disease workspace knowledge across multiple studies, such as topic landscape, dataset-question map, venue intelligence, literature coverage, and cross-study recall | `memory/portfolio/research_memory/*.md` for human/Codex prose | `registry.yaml`, literature JSONL/BibTeX/coverage JSON, workspace memory packs | `stage_knowledge_packet.input_refs` and `high_signal_memory` |
 | Study memory | one paper line's reusable context, such as failed paths, selected/rejected lines, reviewer lessons, claim-boundary decisions, and route-back rationale | study artifacts may include Markdown notes, but study truth remains in controller/evidence/review surfaces | `study_charter`, evidence ledger, review ledger, controller decisions, publication eval, claim/display maps | `stage_knowledge_packet.input_refs` plus stage-specific obligations |
 | Stage memory | stage-local input and closeout handoff | stage notes can be Markdown, but closeout routing is structured | `stage_knowledge_packet`, `stage_memory_closeout_packet`, `memory_write_router_receipt`, `stage_recall_index` | executor payload gets `input_contract.required_refs.stage_knowledge_packet` |
 | Projection memory | OPL/Aion/family display and provider handoff | no body ownership | body-free refs, freshness, receipt counts, accepted/rejected refs | read-only projection; no writeback acceptance or memory body mutation |
@@ -55,27 +55,6 @@ The canonical pattern is:
 5. OPL/Aion receives refs, status, freshness, grouped inventory, and receipts only; it does not own or mutate MAS memory prose.
 
 This keeps Codex CLI free to reason over rich prose without turning exploratory medical research into a rigid recipe engine.
-
-## Current MAS Audit
-
-The current repo-tracked structured files relevant to memory are:
-
-| file | classification | action |
-| --- | --- | --- |
-| `docs/policies/study-workflow/publication_route_memory_seed_fixture.json` | seed index / locator | kept as JSON index; canonical body moved to `publication_route_memory_library.md`. |
-| `docs/references/med-deepscientist/source_provenance.json` | source provenance manifest | keep JSON; it records external source provenance and capability refs, not the natural-language memory body. |
-| retired console clean-room oracle fixture | test oracle fixture | keep JSON only in history/provenance context; it supports deterministic tests and is not an active memory body. |
-
-Memory-like runtime surfaces in `portfolio/research_memory/**`, `artifacts/stage_knowledge/**`, receipts, and OPL projections remain structured because they are generated owner surfaces, body-free projections, or runtime proof. They should not become the primary maintainer editing interface for natural-language experience.
-
-The previous non-Markdown-first agent-context residues have been migrated:
-
-| current canonical body | machine consumer |
-| --- | --- |
-| `docs/policies/study-workflow/study_archetypes.md` | MAS Stage prompt / knowledge refs；需要结构字段时由 declarative contract 明确声明 |
-| `docs/policies/study-workflow/research_route_bias_policy.md` | decisive Codex Attempt 的人读专业约束；OPL controller 不解析 prose 决定 route |
-
-`agent/stages/stage_route_contract.yaml` is still structured because it is the MAS route/stage contract source, not a natural-language memory body. It defines route ids, entry modes, gates, durable outputs, route-back triggers, stage knowledge obligations, and derived OPL/family descriptors. It may later gain a richer Markdown projection for human reading, but replacing the contract with Markdown would move route authority into prose and break current stage-surface tests.
 
 ## Publication Route Memory Entry
 

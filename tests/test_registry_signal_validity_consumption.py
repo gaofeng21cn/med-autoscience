@@ -89,9 +89,6 @@ def test_first_draft_skill_routing_is_declared_without_template_substitution() -
 
 
 def test_revision_uses_existing_stage_action_and_workspace_authority() -> None:
-    policy = _read(
-        "docs/policies/study-workflow/submission_revision_operating_contract.md"
-    )
     catalog = json.loads(_read("contracts/action_catalog.json"))
     action_ids = [action["action_id"] for action in catalog["actions"]]
     manuscript_action = next(
@@ -100,11 +97,6 @@ def test_revision_uses_existing_stage_action_and_workspace_authority() -> None:
         if action["action_id"] == "manuscript_authoring"
     )
 
-    assert "Workspace `manuscript/` is the controller-authorized canonical" in policy
-    assert "Workspace `submission/`" in policy
-    assert "legacy compatibility alias or provenance surface" in policy
-    assert "`revision_intake_wake_host_binding_missing`" in policy
-    assert "must all start from controller-authorized `paper/` sources" not in policy
     assert "revision_intake_wake" not in action_ids
     assert len(action_ids) == 12
     assert {"user_intent", "input_refs", "route_context_refs"}.issubset(

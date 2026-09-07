@@ -21,4 +21,4 @@ MAS 不保留 AutoSci worker、daily cron、SSH runner、project DB、wiki runti
 
 ## Verification
 
-结构回归使用 fast/meta、standard-agent boundary与冻结 Framework admission。真实 experiment/source/artifact progress必须有 fresh OPL receipt、independent Review与 MAS owner result。
+结构回归使用 `scripts/verify.sh`、standard-agent boundary与Framework admission readback。真实 experiment/source/artifact progress必须有 fresh OPL receipt、independent Review与 MAS owner result。

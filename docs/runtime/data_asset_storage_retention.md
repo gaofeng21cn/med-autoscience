@@ -63,7 +63,7 @@ Generic cold-store reference audit 只能判断 object 是否被 ref 引用。�
 
 ## SQLite Compact 分账
 
-SQLite 有两类完全不同的角色：
+SQLite 按 authority 区分以下角色：
 
 | SQLite 类型 | 例子 | 处理方式 |
 | --- | --- | --- |
@@ -87,9 +87,9 @@ SQLite 有两类完全不同的角色：
 
 OPL 可以消费 `manifest_refs` 做 locator/workbench projection；MAS 保留 release contract、access tier、source readiness、direct study consumption 和 study binding authority。
 
-## DPCC 操作口径
+## DPCC 分层示例
 
-DPCC release 当前按三层读取：
+DPCC release 可按三层读取；实际状态由目标 workspace manifest 证明：
 
 - `restricted_raw`：原始受限 release，只作 provenance 和受限审计。
 - `deidentified_longitudinal`：去标识 episode/source-semantics release，保留 episode collapse 和字段来源链。

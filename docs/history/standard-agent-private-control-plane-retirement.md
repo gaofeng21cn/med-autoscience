@@ -3,6 +3,7 @@
 Owner: `MedAutoScience`
 Purpose: `retired_private_control_plane_provenance`
 State: `history_tombstone`
+Snapshot: `2026-07-17`; 下文保留当时退役记录，handler 数量与目录不作为当前清单。
 Machine boundary: 本文只记录退役分类和替代 owner，不是 runtime、route、receipt、readiness 或兼容接口。
 
 ## 退役结论
@@ -24,7 +25,7 @@ Machine boundary: 本文只记录退役分类和替代 owner，不是 runtime、
 
 `skill` 与 `domain_handler` 出现在默认 surface 退役清单中，指的是 MAS
 repo-local wrapper / default caller 已退役，不是删除领域输入。Canonical primary
-skill 继续作为 declarative pack source 并由 OPL 生成/托管；closed registry 当前绑定
+skill 继续作为 declarative pack source 并由 OPL 生成/托管；当时 closed registry 绑定
 candidate admission、paper mission 与 self-evolution closeout 三个医学 authority
 functions。它们都不拥有 CLI、MCP、session、lifecycle、transport 或 transition
 materialization。

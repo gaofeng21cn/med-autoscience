@@ -56,9 +56,7 @@ heartbeats, retries, or runtime activity without scientific change.
 
 The trajectory write does not start or wait for an independent reviewer. A
 major route switch may enter the existing independent-review lifecycle after it
-has been recorded. `research_trajectory_delta_ref` remains nullable v1 read
-compatibility and is not the v2 write gate; the current v2 Stage output returns
-it as `null`.
+has been recorded.
 
 ## Handoff
 

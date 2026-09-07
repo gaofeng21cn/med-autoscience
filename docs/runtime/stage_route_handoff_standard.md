@@ -31,9 +31,37 @@ Attempt 只返回：
 
 OPL controller 只验证角色资格、declared target、identity、lineage 与 exact hashes，然后记录 transition。它不解释或改写医学语义。MAS authority function只处理 host 注入的医学 owner boundary，不启动 runtime、不写 session、不物化 transition。
 
+## 独立质量循环
+
+产生开放领域判断或 canonical bytes 的前四个 Stage 启用 formal Review；
+producer 同线程的写后检查仅是 `in_thread_refinement`。
+reviewer、repairer 与 re-reviewer 均使用新 Attempt/session，输入只有 exact
+artifact/source/rubric 和必要 lineage refs，不继承 producer conversation。
+
+默认最多三轮 `repairer + re_reviewer`，provider/dispatch retry 和协议补全不占
+语义修复预算。Attempt 的 outcome 仅为 `pass`、`repair_required`、
+`quality_debt`、`blocked` 或 `human_gate`；
+Framework receipt 才将后两者映射为 `hard_stop`。
+
+`review_and_quality_gate` 是独立 cross-Stage Meta Review，不递归创建 Review，
+也不在 reviewer 会话内修改稿件。`finalize_and_publication_handoff` 是
+primary-only 机械 inspection packaging，不签 quality/export/publication/ready。
+二者各自的 producer 是 decisive Attempt，但 Handoff 的 route 权不扩张交付 authority。
+内容缺陷回到最早 owner Stage，变化后重新完成受影响 Stage Review 和 Meta Review。
+`strategy_retrospective` 只提供非权威方法学习，不替代上述 Review。
+
 ## Handoff
 
 Handoff 是 body-free refs 与 evidence 的交接，不是 MAS 私有 queue 或 runner。OPL 可以据此启动目标 StageRun、记录 Attempt、传输 receipt/blocker/human gate并投影 status；不能写 MAS study truth、publication verdict、artifact body、memory body或 current package。
+
+Handoff 的 `publication_generation` 绑定 exact package bytes、
+`submission/STATUS.json`、`artifacts/publication_eval/latest.json`、
+`control/next_action.json` 与 projection manifest。MAS owner receipt 只有在这些
+成员与六域 review currentness 属于同一 generation 时，才输出
+`artifact_projection_transport` authorization。
+Framework `opl_pack_materialize_artifact_projection` 在 sibling staging 校验
+完整树后整树切换 `submission/`，不先建立 preferred root 再逐文件填充；
+transport 成功不生成或提升领域 verdict。
 
 ## Hard stop 与 progress
 

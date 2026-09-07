@@ -31,8 +31,7 @@ current hypothesis, evidence judgment, route, and next step.
 Do not create a candidate event, accepted-event log, checkpoint submission,
 checkpoint manifest, binding, working-checkpoint layer, or trajectory-specific
 receipt. Do not wait for an independent reviewer before recording current
-progress. The nullable Stage output field `research_trajectory_delta_ref` is
-v1 read compatibility only and is not a v2 write gate.
+progress.
 
 ## Meaningful Scientific Changes
 

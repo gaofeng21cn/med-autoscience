@@ -222,9 +222,6 @@
           ],
           "tool_call_heartbeat_or_retry_without_scientific_change_updates_trajectory": false,
           "independent_reviewer_is_write_prerequisite": false,
-          "legacy_nullable_output_ref_field": "research_trajectory_delta_ref",
-          "current_v2_stage_output_value": null,
-          "new_required_stage_output_fields": [],
           "user_projection_uses_mas_authored_medical_narrative_only": true
         },
         "cohort_query_refs": [
@@ -627,9 +624,6 @@
           ],
           "tool_call_heartbeat_or_retry_without_scientific_change_updates_trajectory": false,
           "independent_reviewer_is_write_prerequisite": false,
-          "legacy_nullable_output_ref_field": "research_trajectory_delta_ref",
-          "current_v2_stage_output_value": null,
-          "new_required_stage_output_fields": [],
           "user_projection_uses_mas_authored_medical_narrative_only": true
         },
         "cohort_query_refs": [
@@ -1031,9 +1025,6 @@
           ],
           "tool_call_heartbeat_or_retry_without_scientific_change_updates_trajectory": false,
           "independent_reviewer_is_write_prerequisite": false,
-          "legacy_nullable_output_ref_field": "research_trajectory_delta_ref",
-          "current_v2_stage_output_value": null,
-          "new_required_stage_output_fields": [],
           "user_projection_uses_mas_authored_medical_narrative_only": true
         },
         "review_input_snapshot_transport": {
@@ -1442,9 +1433,6 @@
           "ordinary_prose_citation_formatting_or_layout_updates_trajectory": false,
           "tool_call_heartbeat_or_retry_without_scientific_change_updates_trajectory": false,
           "independent_reviewer_is_write_prerequisite": false,
-          "legacy_nullable_output_ref_field": "research_trajectory_delta_ref",
-          "current_v2_stage_output_value": null,
-          "new_required_stage_output_fields": [],
           "user_projection_uses_mas_authored_medical_narrative_only": true
         },
         "review_input_snapshot_transport": {
@@ -2034,9 +2022,6 @@
           ],
           "tool_call_heartbeat_or_retry_without_scientific_change_updates_trajectory": false,
           "independent_reviewer_is_write_prerequisite": false,
-          "legacy_nullable_output_ref_field": "research_trajectory_delta_ref",
-          "current_v2_stage_output_value": null,
-          "new_required_stage_output_fields": [],
           "user_projection_uses_mas_authored_medical_narrative_only": true
         },
         "cohort_query_refs": [
@@ -2681,9 +2666,6 @@
           "mechanical_packaging_hashing_or_transport_updates_trajectory": false,
           "tool_call_heartbeat_or_retry_without_scientific_change_updates_trajectory": false,
           "independent_reviewer_is_write_prerequisite": false,
-          "legacy_nullable_output_ref_field": "research_trajectory_delta_ref",
-          "current_v2_stage_output_value": null,
-          "new_required_stage_output_fields": [],
           "user_projection_uses_mas_authored_medical_narrative_only": true
         },
         "cohort_query_refs": [

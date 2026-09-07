@@ -47,7 +47,6 @@ stage_native_semantic_pack:
       - typed_blocker_ref
       - human_gate_ref
       - route_back_ref
-      - research_trajectory_delta_ref
     authority_boundary:
       opl_can_decide_domain_completion: false
       provider_completion_counts_as_stage_complete: false
@@ -96,9 +95,6 @@ stage_native_semantic_pack:
       - existing_stage_end_review_policy
       - major_scientific_route_switch
       - formal_manuscript_or_publication_quality_gate
-    legacy_nullable_output_ref_field: research_trajectory_delta_ref
-    current_v2_stage_output_value: null
-    new_required_stage_output_fields: []
     user_projection_policy: mas_authored_medical_manuscript_narrative_only
     framework_can_infer_medical_wording: false
   global_authority_boundary:

@@ -90,19 +90,14 @@ Owner request至少绑定：
 
 ## Wakeup Gate
 
-- `paused` 与 `delivered_paused`：`launch-study` 必须收到 `explicit_user_wakeup=true`。
-- `stopped`：必须同时收到 `explicit_user_wakeup=true` 与 `allow_stopped_relaunch=true`。
-- `force` 不能绕过 lifecycle gate。
-- 合法唤醒会先记录 study truth event，再把 lifecycle 正式转换为 `active`，随后才允许 OPL attempt admission。
+`contracts/study_lifecycle_reactivation_contract.json` 与对应 registry handler
+校验显式用户指令、revision intake、inactive lifecycle bytes 和 identity，
+返回 exact-bytes CAS request。Framework 完成受权物化并 fresh readback 后才可
+进入新的 Stage admission；历史唤醒命令和 force 参数不构成旁路。
 
 ## Readback Contract
 
-以下 readback 必须消费 lifecycle truth：
-
-- `study-state-matrix`
-- `study-progress`
-- `paper-mission inspect`
-- `launch-study`
-- `workspace_index.json`
-
-非 active study 的 readback 必须保持：无当前 stage、无 active run、无 runtime route admission、明确下一动作、明确恢复策略、明确 `submission_ready=false`。
+读取 `control/lifecycle.json`、`workspace_index.json`、Framework Work Item 和
+StageRun/Attempt readback。非 active study 必须没有当前 active Stage 和
+自动 route admission；业务状态、历史用量和研究 trajectory 分别展示。
+MAS App contribution 只消费已解析的 selected work-item identity，不回退到默认论文。

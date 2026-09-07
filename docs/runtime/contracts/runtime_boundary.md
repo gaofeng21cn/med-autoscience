@@ -70,6 +70,5 @@ Contract/schema、focused tests、descriptor ready、projection clean、queue em
 ## 相关入口
 
 - [Architecture](../../architecture.md)
-- [Controllers](../control/controllers.md)
 - [Stage outcome](../control/progress_first_stage_outcome.md)
 - [Active plan](../../active/mas-ideal-state-gap-plan.md)

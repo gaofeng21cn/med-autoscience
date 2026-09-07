@@ -3,22 +3,11 @@
 Owner: `MedAutoScience`
 Purpose: `history_archive_index`
 State: `history_index`
-Machine boundary: 本目录是人读历史/provenance 索引。当前机器真相继续归 `agent/`、`contracts/`、源码、CLI/MCP/API 行为、runtime/controller durable surfaces、真实 workspace artifact、owner receipts 和当前 owner docs。
+Machine boundary: 归档只作历史证据，不能提供当前命令、兼容入口或运行权威。
 
-本目录保存 repo-tracked 历史材料：dated snapshot、provenance、退役 board、归档 implementation plan 和过程稿。
+保留的独特退役证据：
+[Standard Agent Private Control Plane Retirement](./standard-agent-private-control-plane-retirement.md)。
 
-History 是只读语境，不拥有 active backlog、runtime truth、controller decision、publication readiness、artifact authority 或 policy truth。
-
-NextAction supersession notice：history 中出现的 `current_executable_owner_action`、PaperRecovery、domain transition、provider admission、OPL queue / attempt、current-work-unit 或 current-execution-envelope 只能按 historical provenance、diagnostic、migration input 或 no-resurrection guard 读取。当前 route/transition 边界只读 [Stage / Route / Handoff](../runtime/stage_route_handoff_standard.md)、Stage manifest 与 OPL controller receipt；缺当前 owner result 时不得从历史 surface 补一个隐式 next action。
-
-MAS monolith closeout 之后，旧 MDS / DeepScientist / Hermes-first / 外部 runtime cutover / WebUI / daemon 文档若没有明确 active owner，只能在本目录或 `docs/references/` 中作为 provenance、parity、explicit archive import、backend audit 或历史决策材料保留。读者需要当前状态时，应回到 `docs/status.md`、`docs/architecture.md`、`docs/decisions.md`、`docs/active/mas-ideal-state-gap-plan.md` 和 durable runtime/controller surfaces。
-
-| archive | contents |
-| --- | --- |
-| [program](./program/README.md) | Closeout、activation package、退役 board 和 dated intake snapshot。 |
-| [runtime](./runtime/README.md) | 已完成 runtime implementation plan 和 legacy runtime boundary 记录。 |
-| [positioning](./positioning/README.md) | 旧 Domain Harness OS / Open Harness OS / Research Foundry 定位材料；只作历史参考。 |
-| [capabilities](./capabilities/README.md) | 能力族历史和退役 medical-display 记录。 |
-| [omx](./omx/README.md) | OMX worktree 启动/收尾历史。 |
-
-当前真相从 [文档索引](../README.md)、核心五件套、runtime contracts、policies、`docs/active/` 和 durable runtime/controller surfaces 开始。
+重复阶段清单、过程账本和旧定位说明由 Git 历史保存，不保留空目录索引或跳转页。
+当前状态从 [文档索引](../README.md) 开始；归档准入规则由
+[文档生命周期](../docs_portfolio_consolidation.md) 持有。

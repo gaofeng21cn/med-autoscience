@@ -88,7 +88,7 @@ OPL 可以在其 owner contract 下增加 runtime/quest/restore/index 目录；�
 - OPL provider-backed stage runtime 持有 attempt、queue、worker residency、retry/dead-letter、resume 与 operator projection。
 - OPL generated/hosted surface 消费 MAS action schemas、body-free refs、owner receipts 和 typed blockers。
 - `MedDeepScientist` 只作为 frozen source archive、historical fixture、explicit archive import、backend audit 或 parity oracle reference。
-- `Hermes-Agent` 只可指外部 runtime 项目/服务、显式 proof lane 或历史 provenance。
+- 已退役 executor 只保留历史 provenance；新 adapter 通过 Framework 当前公开合同验证。
 
 Workspace 已创建、profile 可解析或 generated interface ready 都不证明 runtime live、paper progress、publication-ready、artifact mutation authority 或 domain ready。Live evidence 必须从对应 OPL runtime readback、MAS owner receipt/quality gate/typed blocker/human gate 和真实 artifact 读取。
 

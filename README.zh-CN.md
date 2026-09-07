@@ -126,46 +126,22 @@ AI 可以协助整理数据、执行分析、组织证据和汇报进度；临�
 - 临床问题界定、结论采用和最终投稿决策由研究者与课题负责人把关。
 - 期刊投稿和外部系统交互由人工监督完成。
 
-<details>
-  <summary><strong>给技术操作者看的边界说明</strong></summary>
-
-- `Med Auto Science` 是医学研究领域智能体和 Foundry Agent，可以由 Codex 直接调用，也可以作为 OPL-compatible package 被 `OPL Framework` 发现和托管。
-- MAS 负责医学研究本身：课题进入、工作区语境、证据推进、进度说明、论文质量判断、runtime-facing owner receipt/projection、artifact authority 和稿件交付。
-- `OPL Framework` 是上层 stage-led 框架：负责通用运行平台，包括任务阶段、队列、唤醒、恢复、审批、记录、状态机执行和跨领域状态展示；医学结论、论文质量、domain transition 语义、artifact authority 和投稿判断由 MAS 的医学研究面继续持有。
-- 旧 MAS-local scheduler、runner、session store、status shell、installer 和 workbench wrapper 已退役或只保留 tombstone/provenance。新增 MAS 程序面必须说明医学 authority 理由，并只返回 owner receipt、typed blocker、domain ref 或 safe action ref。
-- 在 OPL 框架里，`Stage` 表示一次较大的研究步骤，例如选题、分析、写作、审稿修复或交付；Agent executor 是 stage 内最小执行单位，`Codex CLI` 是当前第一公民 executor。
-- MAS stage pack 给 executor 提供目标、上下文、authority boundary、可用 affordance、knowledge refs 和 quality gate；executor 在 attempt 内自主决定先读什么、调用哪些工具、是否并行、是否生成多个候选、是否 route back 或请求 reviewer，不由 OPL route 编排预先写死。
-- candidate generation、reflection、review 和 meta-review 是 Stage 内执行策略与证据 refs。它们可以影响探索顺序和审阅压力，但不能变成硬编码 workflow；涉及质量关闭时，仍必须有 MAS owner receipt、stable typed blocker 或独立 reviewer/auditor receipt。
-- MAS 工具声明遵循 Tool Affordance Boundary：声明能力、权限、凭据边界、可写范围、side effect、forbidden authority 和证据入口；不把 executor 的文献阅读、统计检查、候选生成、路线比较或追问顺序固化成 prompt 外的流程脚本。
-- MAS 已完成单仓收敛。`MedDeepScientist` / `DeepScientist` 现在作为历史来源、显式归档导入、后端审计、上游学习和能力对照材料保留。
-- OPL 托管的长期在线生产能力按 Temporal-backed runtime 推进。Temporal 是 OPL durable stage attempt、signal/query、retry/dead-letter 和 workflow history 的生产必需 provider；`Hermes-Agent` 不再是目标 session/wakeup substrate，但可作为显式 Agent executor adapter / proof lane 保留。当前只保证能接入、能回执、可审计，不保证行为或质量效果与 `Codex CLI` 等价。
-
-</details>
-
 ## 这个仓库应该怎么读
 
 1. 潜在用户、医生和医学专家先看当前首页，再继续看 [文档索引](./docs/README.md)。
 2. 技术规划、架构判断和方向同步，继续读 [项目概览](./docs/project.md)、[当前状态](./docs/status.md)、[架构](./docs/architecture.md)、[不可变约束](./docs/invariants.md)、[关键决策](./docs/decisions.md)。
 3. 开发者和维护者继续从 [文档索引](./docs/README.md) 进入 `docs/active/`、`docs/runtime/`、`docs/delivery/`、`docs/references/` 与 `docs/policies/`。
 
-## 给 Agent 和技术操作者的快速入口
+## 安装与开始
 
-<details>
-  <summary><strong>如果你准备把这个仓直接交给 Codex 或其他 Agent，先看这里</strong></summary>
+OPL Package 使用 `opl packages install mas` 安装。MAS 必需依赖
+`mas-scholar-skills`；单独安装 Plugin carrier 不能证明完整 Package 或受管运行环境就绪。
 
-- MAS Package 的用户生命周期统一使用 `opl packages install mas`、`opl packages update mas` 和 `opl packages uninstall mas`。MAS 必需依赖 `mas-scholar-skills`；普通 readiness 只检查该 identity 存在且所需能力可调用。依赖缺失或不可调用只阻断 MAS 并进入托管安装/修复，不阻断无关 Package，也不能将该依赖降级为 optional。
-- 目标分发形态是 MAS owner 将完整 Package bytes 独立发布到自身 GHCR `latest-stable`，Codex Plugin materialization 只是一个 carrier projection。当前机器合同和 readback 在迁移期间仍可能暴露旧 version range、ABI、lock、payload、digest、atomic closure、receipt 或共享 Release Set 字段；这些字段不能证明目标模型已经实现。
-- 当前兼容标签“必需的 `mas-scholar-skills` 依赖闭包”在迁移期只表示 required identity/callability edge，不表示目标 readiness 需要版本求解、锁定或跨包原子闭包。
-- 单独 clone 本仓只会得到 MAS declarative pack，不会安装 OPL runtime。OPL 读取 `contracts/domain_descriptor.json`，编译六个公开 Stage action，并通过 closed registry 托管五个无用户 surface 的 host-only authority action 与 self-evolution closeout callable；CLI/MCP/Skill/product surface 和 runtime/workbench 均由 OPL 生成或托管。
-- canonical domain id 是 `mas`；`med-autoscience` 只作为 repo、package 与 plugin locator。
-- 根层 `agent/` pack 与 action schemas 是 interface source。公开执行只走六个 OPL-hosted Stage action；qualification work-item provisioning、study lifecycle reactivation、candidate admission、build-dependency currentness 与 paper mission evaluation 是 registry-bound MAS 内部 authority callable，不是用户命令。
-- Runtime environment 由 OPL 根据 `contracts/runtime_environment_requirements.json` 准备；MAS 不再从 import、workspace bootstrap 或 installer 安装 Python/R/plugin 依赖。
-- 当前唯一 stage-route authority 是 `Codex CLI selected declared stage`。`StageOutcome`、旧 `NextActionEnvelope`、Queue、attempt、provider、status 与 workbench 只提供非绑定上下文或观测，不能选择下一 Stage，也不能证明论文进展。
-- MAS 可通过 Codex skill 或 OPL hosted interface 使用；两条路径都回到同一套 MAS 医学 truth、quality、publication 与 artifact authority surface。
-- V2 public/default command cutover、私有控制面物理退役和 source closure 已完成；runtime、真实 paper line、publication 与 production readiness 仍需独立 live evidence。
-- 改 package 或 runtime 边界前，先读 [Bootstrap](./bootstrap/README.md)、[架构](./docs/architecture.md) 与 [当前状态](./docs/status.md)。
-
-</details>
+[Codex Plugin 接入](./docs/references/integration/codex_plugin.md) 统一提供原生
+Codex marketplace 安装、移除和已安装状态检查；
+[Workspace Quickstart](./docs/references/workspace/disease_workspace_quickstart.md)
+说明研究绑定与首次使用。实现分工和验证范围分别见
+[架构](./docs/architecture.md) 与 [状态](./docs/status.md)。
 
 ## 延伸阅读
 

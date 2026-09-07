@@ -160,9 +160,7 @@ pivot reasons, distinguish non-support from insufficient evidence, and cite
 recognizable study evidence rather than runtime mechanics.
 
 The progress write neither starts nor waits for independent review; the existing
-manuscript quality gate remains separate. `research_trajectory_delta_ref`
-remains nullable v1 read compatibility and is not the v2 write gate; the current
-v2 Stage output returns it as `null`.
+manuscript quality gate remains separate.
 
 ## Current Author Review Projection
 

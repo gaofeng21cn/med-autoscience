@@ -11,23 +11,22 @@ This guide defines the current deterministic lower-bound audit surface for MAS m
 
 A display counts as current implemented inventory only when it is present in the active pack descriptors and can be reached through the current registry/schema/materialization/QC path.
 
-Current `fenggaolab.org.medical-display-core` inventory is generated, not hand-maintained:
+Paths below are relative to the OPL family workspace; installed use resolves the ScholarSkills Package descriptor. Current `fenggaolab.org.medical-display-core` inventory is generated, not hand-maintained:
 
-- current counts and human visual Gallery: ScholarSkills compact review package at `/Users/gaofeng/workspace/mas-scholar-skills/gallery/medical-display/`;
-- full descriptor inventory: `/Users/gaofeng/workspace/mas-scholar-skills/packs/medical-display-core/canonical_template_catalog.json`;
+- current counts and human visual Gallery: ScholarSkills compact review package at `mas-scholar-skills/gallery/medical-display/`;
+- full descriptor inventory: `mas-scholar-skills/packs/medical-display-core/canonical_template_catalog.json`;
 - compact capability index: the same ScholarSkills canonical catalog and Gallery package.
 
 Python evidence templates are absent from current inventory, hidden defaults, explicit-request inventory, Gallery comparison cards, and runtime fallback templates unless a future current audited template proves advantage over R/ggplot2.
 
 ## Source Of Truth
 
-- `/Users/gaofeng/workspace/mas-scholar-skills/packs/medical-display-core/templates/*/template.toml`
-- `/Users/gaofeng/workspace/mas-scholar-skills/packs/medical-display-core/canonical_template_catalog.json`
-- `/Users/gaofeng/workspace/mas-scholar-skills/packs/medical-display-core/renderer_migration_ledger.json`
+- `mas-scholar-skills/packs/medical-display-core/templates/*/template.toml`
+- `mas-scholar-skills/packs/medical-display-core/canonical_template_catalog.json`
 - `contracts/capability_map.json`
 - `contracts/stage_quality_cycle_policy.json`
 - `agent/prompts/`
-- ScholarSkills gallery manifest / snapshot under `/Users/gaofeng/workspace/mas-scholar-skills/gallery/medical-display/`
+- ScholarSkills gallery manifest / snapshot under `mas-scholar-skills/gallery/medical-display/`
 
 The Markdown catalog is an on-demand local snapshot produced through the current isolated Python execution surface; it is not tracked inventory truth. The human Gallery is the ScholarSkills compact review package; it includes page-level recipes, visible design/flow shells, and R/ggplot2 evidence figure starters.
 
@@ -35,8 +34,8 @@ The Markdown catalog is an on-demand local snapshot produced through the current
 
 Medical display maintenance uses three separate surfaces:
 
-- `/Users/gaofeng/workspace/mas-scholar-skills/packs/medical-display-core/` is the versioned template pack. It contains descriptors, renderer source, shared R helpers, and dependency requirement declarations.
-- `/Users/gaofeng/workspace/mas-scholar-skills/gallery/medical-display/` is the compact human review package. MAS no longer commits gallery build output or single-figure gallery assets under `docs/delivery/medical-display/examples/`.
+- `mas-scholar-skills/packs/medical-display-core/` is the versioned template pack. It contains descriptors, renderer source, shared R helpers, and dependency requirement declarations.
+- `mas-scholar-skills/gallery/medical-display/` is the compact human review package. MAS no longer commits gallery build output or single-figure gallery assets under `docs/delivery/medical-display/examples/`.
 - OPL Runtime Environment Substrate owns dependency preparation. MAS consumes dependency run-context refs and fails closed when a required prepared receipt, profile, binary, or managed R library is missing.
 
 `--package-only` is valid for document packaging, title/index changes, and PDF regeneration from existing assets. It is not evidence that renderer source, dependency environment, or real paper payloads were freshly rendered. Fresh rendering evidence requires render cache readback, layout sidecars, dependency run-context readback, and artifact inspection.

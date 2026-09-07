@@ -25,4 +25,4 @@ MAS 不保留私有 source adapter、provider runtime、external skill router、
 
 ## Verification
 
-当前结构门是 `tests/test_standard_agent_boundary.py`、Stage quality-cycle tests、fast/meta与冻结 Framework source-closure/interfaces/conformance readback。真实 source acceptance仍需 MAS owner evidence。
+当前结构门是 `tests/test_standard_agent_boundary.py`、Stage quality-cycle tests、`scripts/verify.sh`与Framework source-closure/interfaces/conformance readback。真实 source acceptance仍需 MAS owner evidence。
