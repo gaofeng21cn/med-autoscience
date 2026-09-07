@@ -8,6 +8,12 @@
   "handler_ref": "handler:mas.qualification-work-item-provisioning-authority-evaluate",
   "input_schema_ref": "contracts/schemas/v2/mas-qualification-work-item-provisioning-authority.input.schema.json",
   "output_schema_ref": "contracts/schemas/v2/mas-qualification-work-item-provisioning-authority.output.schema.json",
+  "host_validation_profile": {
+    "version": "opl-qualification-provisioning-host.v1",
+    "identity_output_field": "study_identity",
+    "work_item_id_field": "study_id",
+    "work_item_root_field": "canonical_study_root"
+  },
   "purpose": "Provision exactly one domain-owned qualification-only active work item so a standard-agent Full VM harness can bind a real MAS study_id without authorizing a research Stage body or business action.",
   "admission": {
     "execution_scope": "none",
@@ -42,7 +48,7 @@
   "workspace_binding": {
     "inventory_ref": "workspace_index.json#/studies",
     "workspace_index_schema_ref": "contracts/schemas/v2/mas-workspace-index.schema.json",
-    "canonical_study_root_template": "studies/{study_id}",
+    "work_item_root_template": "studies/{study_id}",
     "workspace_index_target": "workspace_index.json",
     "lifecycle_target_template": "studies/{study_id}/control/lifecycle.json",
     "receipt_target_template": "studies/{study_id}/artifacts/controller/qualification/provisioning-receipt.json",

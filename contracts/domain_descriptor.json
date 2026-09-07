@@ -25,6 +25,17 @@
   "generated_surface_owner": "one-person-lab",
   "package_role": "opl_standard_domain_agent",
   "schema_version": 1,
+  "dispatch_evidence_projection": {
+    "work_item_id_field": "study_id",
+    "result_collections": [{
+      "field": "paper_line_owner_chain_results",
+      "ref_fields": {
+        "domain_receipt_refs": ["owner_receipt_refs"],
+        "typed_blocker_refs": ["stable_typed_blocker_refs"],
+        "owner_chain_refs": ["progress_delta_refs", "ai_reviewer_gate_receipt_refs", "artifact_movement_refs", "human_gate_or_resume_refs", "no_forbidden_write_proof_ref"]
+      }
+    }]
+  },
   "action_catalog_ref": "contracts/action_catalog.json",
   "task_provider": {
     "inventory_ref": "contracts/domain_descriptor.json#/standard_agent_interface/inventory_projection",

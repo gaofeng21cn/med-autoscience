@@ -30,6 +30,10 @@ Codex Plugin 是分发投影，Codex CLI 是当前正式 executor，二者不定
 决定 MAS composition readiness；完整 Package 安装需实际 carrier readback，
 不能从 plugin 文件存在、共享 release snapshot 或文档推导。
 
+`contracts/runtime_environment_requirements.json` 的 `runtime_profile_sources.display`
+声明 Scholar Skills 中的 renderer dependency Profile。普通 `opl env prepare --domain mas --profile display`
+由 Framework 解析这份领域声明；医学绘图依赖的包内位置不再写在通用 CLI 中。
+
 MAS 只消费 host 注入的 runtime/provider payload，校验 study、route、Attempt 与 authority
 identity；不启动私有 runtime、解析 OPL binary 或自行发起 provider transport。
 Framework Python helper 来自 `OPL_FRAMEWORK_PYTHON_ROOT` 指向的 Framework

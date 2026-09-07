@@ -488,6 +488,33 @@ def test_output_schema_rejects_route_authorization_tampering() -> None:
         assert not validator.is_valid(tampered)
 
 
+def test_host_contract_pin_and_paths_match_the_owner_result() -> None:
+    catalog = json.loads((ROOT / "contracts/action_catalog.json").read_text())
+    action = next(
+        item for item in catalog["actions"]
+        if item["action_id"] == "qualification_work_item_provisioning_authority_evaluate"
+    )
+    binding = action["authority_boundary"]["qualification_provisioning_contract"]
+    raw = (ROOT / binding["ref"]).read_bytes()
+    assert hashlib.sha256(raw).hexdigest() == binding["sha256"]
+    contract = json.loads(raw)
+    assert contract["input_schema_ref"] == action["input_schema_ref"]
+    assert contract["output_schema_ref"] == action["output_schema_ref"]
+    profile = contract["host_validation_profile"]
+    result = evaluate_qualification_work_item_provisioning_authority(_request())
+    identity = result[profile["identity_output_field"]]
+    values = {profile["work_item_id_field"]: identity[profile["work_item_id_field"]]}
+    workspace = contract["workspace_binding"]
+    assert workspace["work_item_root_template"].format_map(values) == identity[profile["work_item_root_field"]]
+    assert [
+        operation["target_relative_path"]
+        for operation in result["opl_host_materialization_request"]["operations"]
+    ] == [
+        workspace[field].format_map(values)
+        for field in ("workspace_index_target", "lifecycle_target_template", "receipt_target_template")
+    ]
+
+
 def test_handler_source_has_no_io_runtime_or_process_surface() -> None:
     source = (
         ROOT

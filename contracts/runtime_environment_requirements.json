@@ -3,6 +3,12 @@
   "version": "opl-runtime-environment-requirement-profile.v1",
   "domain_id": "medautoscience",
   "profile_id": "analysis-display",
+  "runtime_profile_sources": {
+    "display": {
+      "package_id": "mas-scholar-skills",
+      "relative_path": "packs/medical-display-core/renderer_dependency_profile.json"
+    }
+  },
   "ownership_boundary": {
     "profile_owner": "MedAutoScience",
     "runtime_environment_owner": "OPL Framework",
