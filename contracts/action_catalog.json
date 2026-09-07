@@ -1231,6 +1231,10 @@
         "domain_truth_owner": "MedAutoScience",
         "work_item_identity_owner": "MedAutoScience",
         "handler_role": "authorize_one_qualification_only_work_item_and_exact_cas_bytes",
+        "qualification_provisioning_contract": {
+          "ref": "contracts/qualification_work_item_provisioning_contract.json",
+          "sha256": "880f2dd2336cee6fb756d0e86d6643a1033ac9877662c92436c7ec98b5b65d54"
+        },
         "host_materialization_contract": {
           "capability_id": "opl_domain_artifact_cas_materialization.v1",
           "request_output_field": "opl_host_materialization_request",

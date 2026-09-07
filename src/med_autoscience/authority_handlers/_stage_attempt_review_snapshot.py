@@ -2,14 +2,17 @@
 
 from __future__ import annotations
 
-import hashlib
 import os
-import stat
 from collections.abc import Mapping
 from copy import deepcopy
 from pathlib import Path
 from typing import Any
 from urllib.parse import unquote, urlparse
+
+from opl_framework.artifact_inspection import (
+    ContainedFileReadError,
+    fingerprint_contained_regular_file,
+)
 
 from ._generation_manifest import (
     build_generation_manifest_v2,
@@ -116,136 +119,22 @@ def _file_identity(
     path: Path,
     field: str,
 ) -> tuple[int, str]:
-    no_follow = getattr(os, "O_NOFOLLOW", None)
-    directory_flag = getattr(os, "O_DIRECTORY", None)
-    if (
-        no_follow is None
-        or directory_flag is None
-        or os.open not in os.supports_dir_fd
-        or os.stat not in os.supports_dir_fd
-        or os.stat not in os.supports_follow_symlinks
-    ):
-        raise RequestShapeError(f"{field} cannot be inspected without no-follow support")
     try:
         relative = path.relative_to(workspace_root)
     except ValueError as error:
         raise RequestShapeError(f"{field} escapes OPL_WORKSPACE_ROOT") from error
-    parts = relative.parts
-    if not parts or any(part in {"", ".", ".."} for part in parts):
-        raise RequestShapeError(f"{field} must use a normalized workspace path")
-
-    directory_descriptors: list[int] = []
-    descriptor: int | None = None
     try:
-        root_before = workspace_root.lstat()
-        if not stat.S_ISDIR(root_before.st_mode) or stat.S_ISLNK(root_before.st_mode):
-            raise RequestShapeError("OPL_WORKSPACE_ROOT must be a physical directory")
-        root_descriptor = os.open(
-            workspace_root,
-            os.O_RDONLY | directory_flag | no_follow,
-        )
-        directory_descriptors.append(root_descriptor)
-        root_opened = os.fstat(root_descriptor)
-        if (root_opened.st_dev, root_opened.st_ino) != (
-            root_before.st_dev,
-            root_before.st_ino,
-        ):
-            raise RequestShapeError(f"{field} workspace root changed while it was opened")
-
-        for component in parts[:-1]:
-            before_directory = os.stat(
-                component,
-                dir_fd=directory_descriptors[-1],
-                follow_symlinks=False,
-            )
-            if stat.S_ISLNK(before_directory.st_mode):
-                raise RequestShapeError(f"{field} must not reference a symlink")
-            if not stat.S_ISDIR(before_directory.st_mode):
-                raise RequestShapeError(f"{field} must reference a regular file")
-            next_directory = os.open(
-                component,
-                os.O_RDONLY | directory_flag | no_follow,
-                dir_fd=directory_descriptors[-1],
-            )
-            opened_directory = os.fstat(next_directory)
-            if (opened_directory.st_dev, opened_directory.st_ino) != (
-                before_directory.st_dev,
-                before_directory.st_ino,
-            ):
-                os.close(next_directory)
-                raise RequestShapeError(f"{field} changed while its path was opened")
-            directory_descriptors.append(next_directory)
-
-        filename = parts[-1]
-        before = os.stat(
-            filename,
-            dir_fd=directory_descriptors[-1],
-            follow_symlinks=False,
-        )
-        if stat.S_ISLNK(before.st_mode):
-            raise RequestShapeError(f"{field} must not reference a symlink")
-        if not stat.S_ISREG(before.st_mode):
-            raise RequestShapeError(f"{field} must reference a regular file")
-        descriptor = os.open(
-            filename,
-            os.O_RDONLY | no_follow,
-            dir_fd=directory_descriptors[-1],
-        )
-        opened = os.fstat(descriptor)
-        if (opened.st_dev, opened.st_ino) != (before.st_dev, before.st_ino):
-            raise RequestShapeError(f"{field} changed while it was opened")
-
-        digest = hashlib.sha256()
-        size_bytes = 0
-        while chunk := os.read(descriptor, 1024 * 1024):
-            digest.update(chunk)
-            size_bytes += len(chunk)
-
-        after = os.fstat(descriptor)
-        path_after = os.stat(
-            filename,
-            dir_fd=directory_descriptors[-1],
-            follow_symlinks=False,
-        )
-        stable_opened = (
-            opened.st_dev,
-            opened.st_ino,
-            opened.st_size,
-            opened.st_mtime_ns,
-            opened.st_ctime_ns,
-        )
-        stable_after = (
-            after.st_dev,
-            after.st_ino,
-            after.st_size,
-            after.st_mtime_ns,
-            after.st_ctime_ns,
-        )
-        stable_path_after = (
-            path_after.st_dev,
-            path_after.st_ino,
-            path_after.st_size,
-            path_after.st_mtime_ns,
-            path_after.st_ctime_ns,
-        )
-        if (
-            not stat.S_ISREG(after.st_mode)
-            or stat.S_ISLNK(path_after.st_mode)
-            or stable_after != stable_opened
-            or stable_path_after != stable_opened
-            or size_bytes != after.st_size
-        ):
-            raise RequestShapeError(f"{field} changed while its bytes were inspected")
-        return size_bytes, f"sha256:{digest.hexdigest()}"
-    except RequestShapeError:
-        raise
-    except OSError as error:
-        raise RequestShapeError(f"{field} changed while its bytes were inspected") from error
-    finally:
-        if descriptor is not None:
-            os.close(descriptor)
-        for directory_descriptor in reversed(directory_descriptors):
-            os.close(directory_descriptor)
+        return fingerprint_contained_regular_file(workspace_root, relative)
+    except ContainedFileReadError as error:
+        detail = {
+            "safe_open_unsupported": "cannot be inspected without no-follow support",
+            "ref_not_contained": "must use a normalized workspace path",
+            "ref_symlink": "must not reference a symlink",
+            "ref_not_directory": "must reference a regular file",
+            "not_regular_file": "must reference a regular file",
+            "root_not_directory": "OPL_WORKSPACE_ROOT must be a physical directory",
+        }.get(error.code, "changed while its bytes were inspected")
+        raise RequestShapeError(f"{field} {detail}") from error
 
 
 def _statistical_source_refs(

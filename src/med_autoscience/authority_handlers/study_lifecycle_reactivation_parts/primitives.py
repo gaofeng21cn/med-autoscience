@@ -3,15 +3,17 @@
 from __future__ import annotations
 
 from datetime import datetime, timezone
-import base64
-import binascii
 import hashlib
 import json
-import math
 import re
 from typing import Any
 
-from .._record_validation import RequestShapeError, integer, mapping, text
+from opl_framework.exact_refs import (
+    json_deep_equal as _json_deep_equal,
+    normalize_exact_json_object,
+)
+
+from .._record_validation import RequestShapeError, text
 
 
 def _normalize_exact_json_object(
@@ -22,84 +24,14 @@ def _normalize_exact_json_object(
     supplied_record: Any,
     field: str,
 ) -> tuple[str, int, dict[str, Any]]:
-    if not isinstance(encoded_value, str) or not encoded_value:
-        raise RequestShapeError(f"{field} bytes_base64 must be a non-empty string")
-    try:
-        raw_bytes = base64.b64decode(encoded_value, validate=True)
-    except (binascii.Error, ValueError) as error:
-        raise RequestShapeError(f"{field} bytes_base64 is malformed") from error
-    if base64.b64encode(raw_bytes).decode("ascii") != encoded_value:
-        raise RequestShapeError(f"{field} bytes_base64 must be canonical base64")
-
-    byte_size = integer(byte_size_value, f"{field} byte_size")
-    if byte_size < 1:
-        raise RequestShapeError(f"{field} byte_size must be positive")
-    if len(raw_bytes) != byte_size:
-        raise RequestShapeError(f"{field} byte_size does not match decoded bytes")
-    if hashlib.sha256(raw_bytes).hexdigest() != expected_sha256:
-        raise RequestShapeError(f"{field} sha256 does not match decoded bytes")
-
-    try:
-        json_text = raw_bytes.decode("utf-8", errors="strict")
-    except UnicodeDecodeError as error:
-        raise RequestShapeError(f"{field} bytes must be strict UTF-8") from error
-    try:
-        parsed = json.loads(
-            json_text,
-            object_pairs_hook=_json_object_without_duplicate_keys,
-            parse_constant=_reject_json_constant,
-            parse_float=_strict_json_float,
-        )
-    except (json.JSONDecodeError, ValueError) as error:
-        raise RequestShapeError(
-            f"{field} bytes must contain one strict JSON object: {error}"
-        ) from error
-    if not isinstance(parsed, dict):
-        raise RequestShapeError(f"{field} bytes must contain a JSON object")
-
-    record = mapping(supplied_record, f"{field}.record")
-    if not _json_deep_equal(parsed, record):
-        raise RequestShapeError(
-            f"{field} decoded JSON must deep-equal the supplied record"
-        )
-    return encoded_value, byte_size, parsed
-
-
-def _json_object_without_duplicate_keys(
-    pairs: list[tuple[str, Any]],
-) -> dict[str, Any]:
-    result: dict[str, Any] = {}
-    for key, value in pairs:
-        if key in result:
-            raise ValueError(f"duplicate JSON object key {key!r}")
-        result[key] = value
-    return result
-
-
-def _reject_json_constant(value: str) -> None:
-    raise ValueError(f"non-standard JSON constant {value!r}")
-
-
-def _strict_json_float(value: str) -> float:
-    parsed = float(value)
-    if not math.isfinite(parsed):
-        raise ValueError(f"non-finite JSON number {value!r}")
-    return parsed
-
-
-def _json_deep_equal(left: Any, right: Any) -> bool:
-    if type(left) is not type(right):
-        return False
-    if isinstance(left, dict):
-        return left.keys() == right.keys() and all(
-            _json_deep_equal(left[key], right[key]) for key in left
-        )
-    if isinstance(left, list):
-        return len(left) == len(right) and all(
-            _json_deep_equal(left_item, right_item)
-            for left_item, right_item in zip(left, right, strict=True)
-        )
-    return bool(left == right)
+    return normalize_exact_json_object(
+        encoded_value=encoded_value,
+        byte_size_value=byte_size_value,
+        expected_sha256=expected_sha256,
+        supplied_record=supplied_record,
+        field=field,
+        error_type=RequestShapeError,
+    )
 
 
 def _timestamp(value: Any, field: str) -> str:

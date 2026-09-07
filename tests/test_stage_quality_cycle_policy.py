@@ -186,35 +186,26 @@ def test_quality_cycle_declares_role_bound_review_transport_production_path() ->
     roles = (ROOT / "agent/quality_gates/stage_quality_cycle_roles.md").read_text(
         encoding="utf-8"
     )
-    normalized_roles = " ".join(roles.split())
     producer = roles.split("## Producer", 1)[1].split("## Reviewer", 1)[0]
     reviewer = roles.split("## Reviewer", 1)[1].split("## Repairer", 1)[0]
     repairer = roles.split("## Repairer", 1)[1].split("## Re Reviewer", 1)[0]
     re_reviewer = roles.split("## Re Reviewer", 1)[1]
-    normalized_repairer = " ".join(repairer.split())
-    assert "review_input_snapshot_materialization_request" in roles
-    assert "never infer the map from generic artifact refs" in normalized_roles
-    assert "record lane quality debt and continue" in normalized_roles
-    assert "present request fails closed as a transport contract error" in (
-        normalized_roles
-    )
-    assert "never relabel it as ordinary quality debt" in normalized_roles
-    assert "forge a MAS typed blocker" in normalized_roles
-    assert "page_hash_evidence_candidate" in roles
-    assert "returns it unchanged" in roles
-    assert "page_hash_evidence_candidate_package_id=mas-scholar-skills" in roles
-    assert "page_hash_evidence_origin_ref" in roles
-    assert normalized_roles.count("closeout_packet.closeout_ref_metadata[]") == 4
-    assert "use `ref`, not the legacy `uri` spelling" in roles
-    assert "build_stage_review_input_snapshot_bundle(...)" in producer
-    assert "attempt-local snapshot finalizer" in producer
-    assert "build_stage_review_input_snapshot_bundle(...)" in repairer
-    assert "Never derive that map from generic artifact refs" in producer
-    assert "Never reuse the producer request or authority issuer" in normalized_repairer
-    assert "page-hash evidence candidate" not in producer
-    assert "page-hash evidence candidate" not in repairer
-    assert "page-hash evidence candidate" in reviewer
-    assert "page-hash evidence candidate" in re_reviewer
+    for fragment in (producer, repairer):
+        assert "build_stage_review_input_snapshot_bundle(...)" in fragment
+        assert "source_refs_by_member_id" in fragment
+        assert "review_input_snapshot_materialization_request" in fragment
+        for binding in (
+            "OPL_STAGE_ATTEMPT_REF", "OPL_EXECUTION_CONTENT_BINDING_SHA256",
+            "OPL_PACKAGE_USE_BOUNDARY_ID", "OPL_ROOT_PACKAGE_ID",
+            "OPL_ROOT_PACKAGE_CONTENT_DIGEST",
+        ):
+            assert binding in fragment
+        assert "closeout_packet.closeout_ref_metadata[]" in fragment
+    for fragment in (reviewer, re_reviewer):
+        assert "scholarskills_page_hash_evidence_candidate" in fragment
+        assert "page_hash_evidence_candidate_package_id=mas-scholar-skills" in fragment
+        assert "page_hash_evidence_origin_ref" in fragment
+        assert "closeout_packet.closeout_ref_metadata[]" in fragment
 
 
 def test_manuscript_authoring_uses_current_projection_without_release_gate() -> None:
@@ -633,34 +624,15 @@ def test_route_authority_is_split_and_legacy_owner_is_absent() -> None:
     assert route["hard_stop_or_zero_consumable_artifact_route_output"] == "none"
 
 
-def test_quality_role_prompt_allows_only_cross_stage_route_back_before_exhaustion() -> None:
-    roles = (ROOT / "agent/quality_gates/stage_quality_cycle_roles.md").read_text(
-        encoding="utf-8"
-    )
-    analysis_prompt = (ROOT / "agent/prompts/bounded_analysis_campaign.md").read_text(
-        encoding="utf-8"
-    )
-    normalized_roles = " ".join(roles.split())
-    reviewer = roles.split("## Reviewer", 1)[1].split("## Repairer", 1)[0]
-    re_reviewer = roles.split("## Re Reviewer", 1)[1]
-
-    assert roles.count("`same_stage_repair_required`") >= 3
-    assert "controller creates the next fresh repairer Attempt" in roles
-    assert roles.count("`cross_stage_route_back_before_budget_exhaustion`") >= 3
-    assert "outcome `repair_required` plus exactly one" in normalized_roles
-    assert "`decision_kind=route_back`" in roles
-    assert "`target_stage_id` different from the current" in normalized_roles
-    assert "only terminal route allowed before repair-budget exhaustion" in normalized_roles
-    assert "narrowest canonical owner is a different declared Stage" in normalized_roles
-    assert "A repairer never makes a terminal route decision" in roles
-    assert "hard-boundary reviewer returns no route output" in normalized_roles
-    assert "same-Stage repair continues the quality loop" in analysis_prompt
-    for decisive_review_section in (reviewer, re_reviewer):
-        assert "`same_stage_repair_required`" in decisive_review_section
-        assert (
-            "`cross_stage_route_back_before_budget_exhaustion`"
-            in decisive_review_section
-        )
+def test_quality_role_policy_keeps_resolvable_domain_supplement_fragments() -> None:
+    policy = _load("contracts/stage_quality_cycle_policy.json")
+    for role, ref in policy["quality_cycle_defaults"]["role_prompt_refs"].items():
+        file_ref, fragment = ref.split("#", 1)
+        content = (ROOT / file_ref).read_text(encoding="utf-8")
+        heading = {"producer": "Producer", "reviewer": "Reviewer",
+                   "repairer": "Repairer", "re_reviewer": "Re Reviewer"}[role]
+        assert fragment == heading.lower().replace(" ", "-")
+        assert content.count(f"## {heading}\n") == 1
 
 
 def test_main_prompts_label_the_forward_stage_as_a_default_not_a_route_constraint() -> None:

@@ -57,6 +57,10 @@ Package、carrier 与 executor 分离：
 
 Pack 只声明需求和能力，不实现通用 transport、installer、workspace bootstrap、runtime shell 或 workbench。
 
+`contracts/runtime_environment_requirements.json` 的 `runtime_profile_sources.display`
+声明 Scholar Skills 中的 renderer dependency Profile。普通 `opl env prepare --domain mas --profile display`
+由 Framework 解析这份领域声明；医学绘图依赖的包内位置不再写在通用 CLI 中。
+
 `mas-scholar-skills` 是 MAS 的 required capability dependency（硬依赖），不是第六个 Agent。独立仓库形成开发、发布和 owner 边界。普通 composition 只要求 `mas-scholar-skills` identity 存在且 MAS 需要的能力可调用，不做跨包版本范围、ABI 或依赖图求解；缺失或不可调用时仅 MAS readiness fail-closed 并进入托管安装/修复，无关 Package 继续可用。该依赖不得降级为 optional。用户仍通过 `opl packages install/update/uninstall mas` 使用统一入口；MAS 不维护私有安装器或第二套 package lifecycle。
 
 Foundry 系列 policy 只由唯一 OPL Framework 持有。MAS 的 `contracts/foundry_agent_series.json` 是 refs-only consumer contract，只记录 canonical contract refs、policy fingerprint、MAS domain delta 与 false-authority envelope；MAS 不复制 OPL policy body，也不声明本地 Framework 依赖。
