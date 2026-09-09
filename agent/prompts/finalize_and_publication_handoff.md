@@ -30,7 +30,7 @@ route output.
 
 - Consume current independent review, source readiness, controller decision,
   journal requirement, canonical manuscript, artifact, and package refs.
-- Use `medical_research_execution.md` only to interpret existing specialist,
+- Use `agent/skills/medical_research_execution.md` only to interpret existing specialist,
   review, and submission refs; never start writing, analysis, table/figure, or
   citation repair inside this Handoff.
 - Produce only deterministic inspection packaging, manifests, hashes, and
@@ -102,7 +102,7 @@ gates, or artifact authority.
 
 ## Research Trajectory
 
-Follow `research_trajectory_medical_narrative.md`. When a terminal research or
+Follow `agent/knowledge/research_trajectory_medical_narrative.md`. When a terminal research or
 publication route is decided, or the reader-visible scientific conclusion,
 limitation, route, or next research step materially changes, the current MAS
 Attempt immediately updates `artifacts/research_trajectory/TRAJECTORY.md` and

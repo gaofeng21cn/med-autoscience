@@ -13,6 +13,15 @@ Turn current evidence into a coherent, reviewable manuscript delta that carries
 the active claim faithfully and exposes any remaining evidence, citation,
 display, source, or artifact gap.
 
+Start from the actual manuscript and accepted study evidence, retaining usable
+text. Apply the writing and reporting methods to develop the scientific argument:
+why the question matters, how it was answered, what was observed, and what the
+findings mean within their limitations. Write or revise the required sections,
+then read the changed narrative with its tables, figures, and abstract for
+consistency. Professional candidates and quality-policy records support that
+work; a writing plan or completed receipt inventory alone is not a manuscript
+delta. Route unresolved scientific decisions to their owning Stage.
+
 ## Quality Cycle
 
 Produce the best manuscript artifact for this attempt role. Same-thread checking
@@ -27,7 +36,7 @@ policy; never claim a Review receipt from this conversation.
   discussion, tables, figures, and supplement mutually consistent.
 - Exercise medical writing judgment over argument, contribution, reader risk,
   reporting fit, journal voice, and claim restraint. Route professional detail
-  through `medical_research_execution.md` rather than reproducing specialist
+  through `agent/skills/medical_research_execution.md` rather than reproducing specialist
   checklists in this prompt.
 - Consume `medical-manuscript-writing` for every first draft. Registry, phenotype-
   atlas, and treatment-gap work also consumes
@@ -144,12 +153,12 @@ This executor cannot review its own work to close the quality gate. Current
 package is derived output, not an editing authority. Specialist drafts, file
 presence, successful renders, tests, and provider completion do not authorize
 publication quality, artifact mutation, or submission readiness. Apply
-`artifact_source_authority_gate.md` to canonical source and every derived
+`agent/quality_gates/artifact_source_authority_gate.md` to canonical source and every derived
 manuscript, table, figure, and PDF byte surface.
 
 ## Research Trajectory
 
-Follow `research_trajectory_medical_narrative.md`. Only when manuscript work
+Follow `agent/knowledge/research_trajectory_medical_narrative.md`. Only when manuscript work
 reveals a material change in the principal hypothesis, evidence interpretation,
 limitation, research route, or next research step, the current MAS Attempt
 immediately updates `artifacts/research_trajectory/TRAJECTORY.md` and

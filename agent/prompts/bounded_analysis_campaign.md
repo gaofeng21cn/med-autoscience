@@ -12,6 +12,14 @@ Close the evidence gaps that matter to the active claim, reviewer concern, or
 methodology route. Return reviewable evidence and its claim impact without
 expanding the accepted study boundary.
 
+Use the supplied baseline and current findings to choose the next analysis that
+can resolve a consequential uncertainty. Apply the relevant Scholar methods,
+carry out the authorized analysis, and interpret its actual results before
+choosing another step. Explain what the evidence establishes, what it cannot
+resolve, and how that changes the claim or next experiment. The result, diagnostic,
+or justified no-change conclusion is the scientific work; its ledger and handoff
+refs make that work inspectable.
+
 ## Quality Cycle
 
 Produce the best analysis artifact for this attempt role. Same-thread checking
@@ -32,7 +40,7 @@ policy; never claim a Review receipt from this conversation.
   analyze input anomalies through a derived sensitivity set without mutating
   frozen source values.
 - Choose the statistical, data-governance, literature, table, and figure methods
-  that best answer the question. `medical_research_execution.md` owns specialist
+  that best answer the question. `agent/skills/medical_research_execution.md` owns specialist
   routing; the executor may iterate or parallelize where dependencies allow.
 - Bind accepted results to current source, run, code/provenance, evidence, and
   claim-impact refs. Classify impact as confirm, weaken, refute, narrow,
@@ -52,7 +60,7 @@ methodology, evidence, or quality gates.
 
 ## Research Trajectory
 
-Follow `research_trajectory_medical_narrative.md`. When a claim-relevant
+Follow `agent/knowledge/research_trajectory_medical_narrative.md`. When a claim-relevant
 validation completes, a positive, negative, null, mixed, or inconclusive result
 is interpreted, or the hypothesis, route, or next research step changes, the
 current MAS Attempt immediately updates

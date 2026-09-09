@@ -30,7 +30,7 @@ policy; never claim a Review receipt from this conversation.
   failed-path refs. Do not silently relaunch a consumed failed path.
 - Allow data-feasibility exploration to refine the direction. A formal route must
   still identify the study and claim boundary before claim-bearing work begins.
-- Use professional methods and tools through `medical_research_execution.md`.
+- Use professional methods and tools through `agent/skills/medical_research_execution.md`.
   Their choice, order, and safe parallelism are executor decisions unless a
   professional, evidence, permission, or authority dependency requires order.
 
@@ -44,7 +44,7 @@ separate reviewer/auditor invocation.
 
 ## Research Trajectory
 
-Follow `research_trajectory_medical_narrative.md`. When this Stage proposes or
+Follow `agent/knowledge/research_trajectory_medical_narrative.md`. When this Stage proposes or
 revises the principal hypothesis, selects or leaves a scientific route, changes
 a stop condition, or materially changes the next research step, the current MAS
 Attempt immediately updates `artifacts/research_trajectory/TRAJECTORY.md` and

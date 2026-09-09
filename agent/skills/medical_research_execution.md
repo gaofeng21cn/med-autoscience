@@ -6,7 +6,21 @@ Machine boundary: this policy guides executor behavior. It does not own study tr
 
 ## Execution Scope
 
-Use this skill when Codex is executing MAS stage work in `direction_and_route_selection`, `baseline_and_evidence_setup`, `bounded_analysis_campaign`, `manuscript_authoring`, or `finalize_and_publication_handoff`. The executor may inspect MAS-owned refs, reason over them, run allowlisted MAS tasks, and emit execution receipts, evidence refs, artifact/source refs, route-back reasons, human gate requests, or typed blockers.
+Use this policy for the six MAS Stages declared in `agent/stages/manifest.json`,
+including independent `review_and_quality_gate`. The current Stage main prompt
+owns its scientific question, substantive task, professional dependencies,
+accepted result, and continuation judgment. Select the applicable methods through
+the required `mas-scholar-skills` Provider; this policy supplies MAS consumption
+and authority boundaries rather than a second professional workflow.
+
+The executor may inspect MAS-owned refs, reason over them, run allowlisted MAS
+tasks, and emit execution receipts, evidence refs, artifact/source refs,
+route-back reasons, human gate requests, or typed blockers. A refs-only handoff
+must point to actual scientific work or a meaningful diagnostic in its authorized
+workspace. It does not replace analysis, manuscript content, or independent
+review with a list of proposed actions. In review, use only the authorized
+immutable review context; in finalization, interpret existing specialist results
+without restarting scientific work.
 
 The executor must treat all medical research work as claim-boundary work. A cohort change, endpoint change, source substitution, model target change, external validation change, or journal-route change is a route decision, not a local implementation detail.
 

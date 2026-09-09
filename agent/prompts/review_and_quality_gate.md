@@ -25,8 +25,8 @@ route another canonical Stage can act on; do not repair the artifact here.
   upstream conversation transcript or resume an upstream thread.
 - Review current canonical manuscript, claim-evidence, source/provenance,
   citation, statistical, table/figure, artifact-rebuild, controller, memory, and
-  reporting/journal refs. Use `ai_reviewer_auditor_gate.md` as the quality floor
-  and `medical_research_execution.md` for specialist routing.
+  reporting/journal refs. Use `agent/quality_gates/ai_reviewer_auditor_gate.md` as the quality floor
+  and `agent/skills/medical_research_execution.md` for specialist routing.
 - Independently evaluate every applicable
   `initial_draft_evidence_integrity_requirements` entry in
   `contracts/manuscript_first_draft_quality_policy.json`. Verify its exact
@@ -88,7 +88,7 @@ controller hard stop: return the typed blocker or human gate evidence and neithe
 
 ## Research Trajectory
 
-Follow `research_trajectory_medical_narrative.md`. When independent review
+Follow `agent/knowledge/research_trajectory_medical_narrative.md`. When independent review
 materially changes the evidence interpretation, claim boundary, limitation,
 research route, or next research step, the current MAS Attempt immediately
 updates `artifacts/research_trajectory/TRAJECTORY.md` and

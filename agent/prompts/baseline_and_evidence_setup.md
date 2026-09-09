@@ -49,7 +49,7 @@ policy; never claim a Review receipt from this conversation.
   validation candidate. Consume only the returned refs-only candidates; source
   truth, phenotype validity, terminology acceptance, and downstream claim use
   remain MAS/data-owner decisions.
-- Use `medical_research_execution.md` for professional methods and specialist
+- Use `agent/skills/medical_research_execution.md` for professional methods and specialist
   routing. Tool order is flexible inside the above scientific dependencies.
 
 ## Boundaries
@@ -63,7 +63,7 @@ is correct.
 
 ## Research Trajectory
 
-Follow `research_trajectory_medical_narrative.md`. When the cohort, endpoint,
+Follow `agent/knowledge/research_trajectory_medical_narrative.md`. When the cohort, endpoint,
 comparator, source boundary, validation method, principal hypothesis, evidence
 judgment, route, or next research step changes materially, the current MAS
 Attempt immediately updates `artifacts/research_trajectory/TRAJECTORY.md` and
