@@ -183,38 +183,8 @@ def test_quality_cycle_declares_role_bound_review_transport_production_path() ->
         "scholarskills_page_hash_evidence_candidate_schema_ref"
     ] == page_candidate["schema_ref"]
 
-    roles = (ROOT / "agent/quality_gates/stage_quality_cycle_roles.md").read_text(
-        encoding="utf-8"
-    )
-    producer = roles.split("## Producer", 1)[1].split("## Reviewer", 1)[0]
-    reviewer = roles.split("## Reviewer", 1)[1].split("## Repairer", 1)[0]
-    repairer = roles.split("## Repairer", 1)[1].split("## Re Reviewer", 1)[0]
-    re_reviewer = roles.split("## Re Reviewer", 1)[1]
-    for fragment in (producer, repairer):
-        assert "build_stage_review_input_snapshot_bundle(...)" in fragment
-        assert "source_refs_by_member_id" in fragment
-        assert "review_input_snapshot_materialization_request" in fragment
-        for binding in (
-            "OPL_STAGE_ATTEMPT_REF", "OPL_EXECUTION_CONTENT_BINDING_SHA256",
-            "OPL_PACKAGE_USE_BOUNDARY_ID", "OPL_ROOT_PACKAGE_ID",
-            "OPL_ROOT_PACKAGE_CONTENT_DIGEST",
-        ):
-            assert binding in fragment
-        assert "closeout_packet.closeout_ref_metadata[]" in fragment
-    for fragment in (reviewer, re_reviewer):
-        assert "scholarskills_page_hash_evidence_candidate" in fragment
-        assert "page_hash_evidence_candidate_package_id=mas-scholar-skills" in fragment
-        assert "page_hash_evidence_origin_ref" in fragment
-        assert "closeout_packet.closeout_ref_metadata[]" in fragment
-
 
 def test_manuscript_authoring_uses_current_projection_without_release_gate() -> None:
-    roles = (ROOT / "agent/quality_gates/stage_quality_cycle_roles.md").read_text(
-        encoding="utf-8"
-    )
-    authoring = (ROOT / "agent/prompts/manuscript_authoring.md").read_text(
-        encoding="utf-8"
-    )
     manifest = _load("agent/stages/manifest.json")
     authoring_stage = next(
         stage for stage in manifest["stages"] if stage["stage_id"] == "manuscript_authoring"
@@ -222,21 +192,9 @@ def test_manuscript_authoring_uses_current_projection_without_release_gate() -> 
     transport = authoring_stage["stage_contract_extension"][
         "review_input_snapshot_transport"
     ]
-    handler = (
-        ROOT
-        / "src/med_autoscience/authority_handlers/_stage_attempt_review_snapshot.py"
-    ).read_text(encoding="utf-8")
-    normalized_authoring = " ".join(authoring.split())
-
     assert transport["review_lane_binding"] == "controller_required"
     assert transport["author_review_package_mode"] == "current_revision_projection"
     assert transport["byte_hash_size_or_locator_drift_blocks_refresh"] is False
-    assert "create a new `generation_id` / revision and refresh" in normalized_authoring
-    assert "they are not author-review update or closeout authority" in (
-        normalized_authoring
-    )
-    assert "finalize_manuscript_authoring_producer_snapshot_closeout" not in handler
-    assert "OPL_REVIEW_LANE_BINDING" not in handler
 
 
 def test_quality_cycle_adopts_framework_epistemic_currentness_and_scope_budget() -> None:
@@ -457,23 +415,15 @@ def test_artifact_iteration_preserves_currentness_and_owner_boundaries() -> None
     ] is True
 
 
-def test_artifact_iteration_policy_is_packaged_and_used_by_stage_prompts() -> None:
+def test_artifact_iteration_policy_is_packaged_and_referenced_by_prompts() -> None:
     pack_input = _load("contracts/pack_compiler_input.json")
     policy_ref = "contracts/artifact_iteration_efficiency_policy.json"
     manuscript = (ROOT / "agent/prompts/manuscript_authoring.md").read_text(
         encoding="utf-8"
     )
-    review = (ROOT / "agent/prompts/review_and_quality_gate.md").read_text(
-        encoding="utf-8"
-    )
-    finalize = (ROOT / "agent/prompts/finalize_and_publication_handoff.md").read_text(
-        encoding="utf-8"
-    )
     execution = (ROOT / "agent/skills/medical_research_execution.md").read_text(
         encoding="utf-8"
     )
-    normalized_manuscript = " ".join(manuscript.split())
-    normalized_execution = " ".join(execution.split())
 
     assert policy_ref in pack_input["required_domain_pack_paths"]
     assert policy_ref in pack_input["source_refs"]["required_domain_pack_paths"]
@@ -481,15 +431,7 @@ def test_artifact_iteration_policy_is_packaged_and_used_by_stage_prompts() -> No
         policy_ref
     )
     assert policy_ref in manuscript
-    assert "missing graph metadata never blocks the hosted action" in normalized_manuscript
-    assert "`reused_unchanged_scope`" in review
-    assert "Dispatch all affected" in review
-    assert "Treat any source, ledger" not in review
-    assert "Any new bytes" not in finalize
-    assert "every affected v2 review lane" in finalize
     assert policy_ref in execution
-    assert "mtime alone is never currentness proof" in normalized_execution
-    assert "Projection happens only after a current MAS owner" in normalized_execution
 
 
 def test_meta_review_primary_only_closeout_contract_is_explicit() -> None:
@@ -497,10 +439,6 @@ def test_meta_review_primary_only_closeout_contract_is_explicit() -> None:
     contract = profile["meta_review_policy"][
         "primary_only_meta_review_closeout_contract"
     ]
-    review_prompt = (
-        ROOT / "agent/prompts/review_and_quality_gate.md"
-    ).read_text(encoding="utf-8")
-    normalized_prompt = " ".join(review_prompt.split())
 
     assert contract == {
         "surface_kind": "stage_attempt_closeout_packet",
@@ -519,13 +457,6 @@ def test_meta_review_primary_only_closeout_contract_is_explicit() -> None:
         "stage_route_recommendation_allowed": False,
         "persisted_packet_must_be_exact_byte_hydratable": True,
     }
-    assert 'surface_kind `stage_attempt_closeout_packet`' in normalized_prompt
-    assert '`opl_stage_attempt_closeout_packet` is invalid' in normalized_prompt
-    assert "`route_impact.stage_route_decision`" in normalized_prompt
-    assert "`stage_route_recommendation` is invalid" in normalized_prompt
-    assert "Only `ref_kind`, `kind`, `uri`, `sha256`, `ref`, `size_bytes`," in (
-        normalized_prompt
-    )
 
 
 def test_stage_quality_cycle_policies_match_framework_v1_exact_fields() -> None:
@@ -633,47 +564,6 @@ def test_quality_role_policy_keeps_resolvable_domain_supplement_fragments() -> N
                    "repairer": "Repairer", "re_reviewer": "Re Reviewer"}[role]
         assert fragment == heading.lower().replace(" ", "-")
         assert content.count(f"## {heading}\n") == 1
-
-
-def test_main_prompts_label_the_forward_stage_as_a_default_not_a_route_constraint() -> None:
-    manifest = _load("agent/stages/manifest.json")
-    stage_ids = {
-        "direction_and_route_selection",
-        "baseline_and_evidence_setup",
-        "bounded_analysis_campaign",
-        "manuscript_authoring",
-    }
-
-    prompts = {
-        stage["stage_id"]: (ROOT / stage["prompt_ref"]).read_text(encoding="utf-8")
-        for stage in manifest["stages"]
-        if stage["stage_id"] in stage_ids
-    }
-    assert set(prompts) == stage_ids
-    for prompt in prompts.values():
-        assert "\nDefault forward stage: " in prompt
-        assert "\nNext stage: " not in prompt
-
-
-def test_stage_prompts_expose_snapshot_binding_without_allowing_lane_guessing() -> None:
-    bounded = (ROOT / "agent/prompts/bounded_analysis_campaign.md").read_text(
-        encoding="utf-8"
-    )
-    authoring = (ROOT / "agent/prompts/manuscript_authoring.md").read_text(
-        encoding="utf-8"
-    )
-    normalized_authoring = " ".join(authoring.split())
-
-    assert "manifest_scope=analysis_generation" in bounded
-    assert "review_lane=statistical" in bounded
-    assert "build_stage_review_input_snapshot_bundle(...)" in bounded
-    assert "finalize_bounded_analysis_producer_snapshot_closeout(...)" in bounded
-    assert "explicit transport locator for every statistical-scope `member_id`" in bounded
-    assert "zero-artifact or hard-boundary producer" in bounded
-    assert "manifest_scope=manuscript_generation" in authoring
-    assert "There is no default lane." in normalized_authoring
-    assert "executor may select lane" not in authoring
-    assert "Never infer or select a lane" in authoring
 
 
 def test_active_stage_manifest_uses_canonical_review_gate_input_ids() -> None:

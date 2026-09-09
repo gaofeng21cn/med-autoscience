@@ -10,6 +10,7 @@ from typing import Any
 from .._record_validation import (
     RequestShapeError,
     enum_text,
+    exact_json_object,
     exact_keys,
     exact_ref,
     integer,
@@ -35,7 +36,6 @@ from .primitives import (
     _file_ref,
     _json_deep_equal,
     _json_fingerprint,
-    _normalize_exact_json_object,
     _normalized_instruction_text,
     _relative_path,
     _required_false,
@@ -411,7 +411,7 @@ def _normalize_current_lifecycle(value: Any) -> dict[str, Any]:
         payload["lifecycle_sha256"], f"{field}.lifecycle_sha256"
     )
     lifecycle_bytes_base64, lifecycle_byte_size, raw_record = (
-        _normalize_exact_json_object(
+        exact_json_object(
             encoded_value=payload["lifecycle_bytes_base64"],
             byte_size_value=payload["lifecycle_byte_size"],
             expected_sha256=lifecycle_sha256,
@@ -523,7 +523,7 @@ def _normalize_revision_intake(value: Any) -> dict[str, Any]:
         payload["intake_sha256"], f"{field}.intake_sha256"
     )
     intake_bytes_base64, intake_byte_size, raw_record = (
-        _normalize_exact_json_object(
+        exact_json_object(
             encoded_value=payload["intake_bytes_base64"],
             byte_size_value=payload["intake_byte_size"],
             expected_sha256=intake_sha256,
@@ -650,7 +650,7 @@ def _normalize_user_authority(value: Any) -> dict[str, Any]:
         payload["authority_sha256"], f"{field}.authority_sha256"
     )
     authority_bytes_base64, authority_byte_size, raw_record = (
-        _normalize_exact_json_object(
+        exact_json_object(
             encoded_value=payload["authority_bytes_base64"],
             byte_size_value=payload["authority_byte_size"],
             expected_sha256=authority_sha256,
@@ -848,7 +848,7 @@ def _normalize_projection_target(value: Any, field: str, *, study_id: str) -> di
     )
     current_sha256 = _digest_text(payload.get("sha256"), f"{field}.sha256")
     current_bytes_base64, current_byte_size, current_payload = (
-        _normalize_exact_json_object(
+        exact_json_object(
             encoded_value=payload.get("bytes_base64"),
             byte_size_value=payload.get("byte_size"),
             expected_sha256=current_sha256,

@@ -9,7 +9,14 @@ import re
 from typing import Any
 from urllib.parse import unquote, urlsplit
 
-from ._record_validation import RequestShapeError, exact_keys, integer, mapping, text
+from ._record_validation import (
+    RequestShapeError,
+    exact_json_object,
+    exact_keys,
+    integer,
+    mapping,
+    text,
+)
 from .study_lifecycle_reactivation_parts.constants import (
     HOST_CAPABILITY_ID,
     _PUBLIC_STAGE_ACTION_IDS,
@@ -22,7 +29,6 @@ from .study_lifecycle_reactivation_parts.materialization import (
 from .study_lifecycle_reactivation_parts.primitives import (
     _digest_text,
     _file_ref,
-    _normalize_exact_json_object,
     _relative_path,
     _strict_fingerprint,
     _timestamp,
@@ -215,7 +221,7 @@ def _normalize_request(request: Mapping[str, Any]) -> dict[str, Any]:
     if inventory_ref != "workspace_index.json":
         raise RequestShapeError("inventory_ref must be the MAS workspace_index.json")
     inventory_sha256 = _digest_text(inventory["inventory_sha256"], "current_inventory.inventory_sha256")
-    _, byte_size, record = _normalize_exact_json_object(
+    _, byte_size, record = exact_json_object(
         encoded_value=inventory["inventory_bytes_base64"],
         byte_size_value=inventory["inventory_byte_size"],
         expected_sha256=inventory_sha256,

@@ -8,6 +8,7 @@ from typing import Any
 from opl_framework.exact_refs import (
     canonical_json_bytes_v1,
     fingerprint_v1,
+    normalize_exact_json_object,
     normalize_exact_ref,
     normalize_exact_ref_list,
     normalize_sha256,
@@ -88,6 +89,24 @@ def optional_sha256(value: Any, field: str) -> str | None:
     return sha256(value, field)
 
 
+def exact_json_object(
+    *,
+    encoded_value: Any,
+    byte_size_value: Any,
+    expected_sha256: str,
+    supplied_record: Any,
+    field: str,
+) -> tuple[str, int, dict[str, Any]]:
+    return normalize_exact_json_object(
+        encoded_value=encoded_value,
+        byte_size_value=byte_size_value,
+        expected_sha256=expected_sha256,
+        supplied_record=supplied_record,
+        field=field,
+        error_type=RequestShapeError,
+    )
+
+
 def typed_ref(value: Any, field: str, expected_kind: str) -> dict[str, str]:
     return normalize_typed_ref(
         value,
@@ -162,6 +181,7 @@ __all__ = [
     "canonical_json_bytes",
     "dedupe",
     "enum_text",
+    "exact_json_object",
     "exact_ref",
     "exact_ref_list",
     "exact_keys",

@@ -8,30 +8,9 @@ import json
 import re
 from typing import Any
 
-from opl_framework.exact_refs import (
-    json_deep_equal as _json_deep_equal,
-    normalize_exact_json_object,
-)
+from opl_framework.exact_refs import json_deep_equal as _json_deep_equal
 
 from .._record_validation import RequestShapeError, text
-
-
-def _normalize_exact_json_object(
-    *,
-    encoded_value: Any,
-    byte_size_value: Any,
-    expected_sha256: str,
-    supplied_record: Any,
-    field: str,
-) -> tuple[str, int, dict[str, Any]]:
-    return normalize_exact_json_object(
-        encoded_value=encoded_value,
-        byte_size_value=byte_size_value,
-        expected_sha256=expected_sha256,
-        supplied_record=supplied_record,
-        field=field,
-        error_type=RequestShapeError,
-    )
 
 
 def _timestamp(value: Any, field: str) -> str:

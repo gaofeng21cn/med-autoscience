@@ -12,9 +12,13 @@ import posixpath
 import re
 from typing import Any
 
-from opl_framework.exact_refs import normalize_exact_json_object
-
-from ._record_validation import RequestShapeError, exact_keys, mapping, text
+from ._record_validation import (
+    RequestShapeError,
+    exact_json_object,
+    exact_keys,
+    mapping,
+    text,
+)
 
 
 REQUEST_KIND = "mas_qualification_work_item_provisioning_authority_request"
@@ -254,7 +258,7 @@ def _normalize_qualification_authority(value: Any) -> dict[str, Any]:
     authority_sha256 = _raw_digest(
         payload.get("authority_sha256"), f"{field}.authority_sha256"
     )
-    encoded, byte_size, record = _normalize_exact_json_object(
+    encoded, byte_size, record = exact_json_object(
         encoded_value=payload.get("authority_bytes_base64"),
         byte_size_value=payload.get("authority_byte_size"),
         expected_sha256=authority_sha256,
@@ -373,7 +377,7 @@ def _normalize_workspace_index(value: Any, *, workspace_root: str) -> dict[str, 
         payload.get("workspace_index_sha256"),
         f"{field}.workspace_index_sha256",
     )
-    encoded, byte_size, record = _normalize_exact_json_object(
+    encoded, byte_size, record = exact_json_object(
         encoded_value=payload.get("workspace_index_bytes_base64"),
         byte_size_value=payload.get("workspace_index_byte_size"),
         expected_sha256=sha256,
@@ -786,24 +790,6 @@ def _finalize(
         ),
         "decision_fingerprint": decision_fingerprint,
     }
-
-
-def _normalize_exact_json_object(
-    *,
-    encoded_value: Any,
-    byte_size_value: Any,
-    expected_sha256: str,
-    supplied_record: Any,
-    field: str,
-) -> tuple[str, int, dict[str, Any]]:
-    return normalize_exact_json_object(
-        encoded_value=encoded_value,
-        byte_size_value=byte_size_value,
-        expected_sha256=expected_sha256,
-        supplied_record=supplied_record,
-        field=field,
-        error_type=RequestShapeError,
-    )
 
 
 def _raw_digest(value: Any, field: str) -> str:
