@@ -232,7 +232,7 @@ def test_package_plugin_and_python_versions_are_one_semver() -> None:
         == nested_plugin["version"]
         == portable_plugin["version"]
     )
-    assert package["version"] == "0.2.28"
+    assert package["version"] == "0.2.29"
     assert "distribution_payload" not in package
     assert package["agent_id"] == package["package_id"] == "mas"
     assert package["codex_surface"]["plugin_id"] == "med-autoscience"
@@ -471,7 +471,7 @@ def test_historical_validator_release_set_stays_out_of_package_currentness() -> 
         (ROOT / "contracts/action_catalog.json").read_text(encoding="utf-8")
     )
 
-    assert package["version"] == "0.2.28"
+    assert package["version"] == "0.2.29"
     assert "release_set_receipt_ref" not in package
     assert release["release_set_id"] == "mas-validator-0.2.24"
     assert release["package_version"] == "0.2.24"
