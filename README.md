@@ -134,17 +134,20 @@ Medical papers do not finish in one generation. The system can keep multiple cla
 2. Technical readers and planners should read [Project](./docs/project.md), [Status](./docs/status.md), [Architecture](./docs/architecture.md), [Invariants](./docs/invariants.md), and [Decisions](./docs/decisions.md).
 3. Developers and maintainers should continue from the [Docs Guide](./docs/README.md) into `docs/active/`, `docs/runtime/`, `docs/delivery/`, `docs/references/`, and `docs/policies/`.
 
-## Install And Start
+## Installation
 
-Use `opl packages install mas` for the OPL Package. MAS requires
-`mas-scholar-skills`; installing a Plugin carrier alone does not prove that the
-complete Package or managed runtime is ready.
+Install through the standard OPL Package entry:
 
-[Codex Plugin Setup](./docs/references/integration/codex_plugin.md) owns native
-Codex marketplace installation, removal and installed-state checks.
-[Workspace Quickstart](./docs/references/workspace/disease_workspace_quickstart.md)
-covers study binding and first use. Technical ownership and verification are
-documented in [Architecture](./docs/architecture.md) and [Status](./docs/status.md).
+```bash
+opl packages install mas --json
+opl packages status --package-id mas --json
+```
+
+The publication channel is `ghcr.io/gaofeng21cn/one-person-lab-packages/mas`. Immutable versions identify exact releases; `latest-stable` selects the current version. OPL and the native plugin manager handle installation and updates. Separate GitHub Release pages and attachments are not used for distribution.
+
+Runtime use requires `mas-scholar-skills`, resolved through the declared Package dependency.
+
+Start a new task after installation to load the professional skills. Package installation, runtime callability, and domain acceptance remain separate; see [Current Status](./docs/status.md).
 
 ## Further Reading
 

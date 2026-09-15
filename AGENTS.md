@@ -22,3 +22,5 @@
 - 定义、调用、影响范围和代码路径等结构检索优先使用 CodeGraph；字面文本检索使用 `rg`。
 - 索引缺失或过期时运行 `codegraph init .` 或 `codegraph sync .`。
 <!-- CODEGRAPH_END -->
+
+- 软件包发布统一使用 OPL OCI 流程和标准安装入口，不创建或保留独立 GitHub Release 页面及附件。共享规则由 Framework 的 docs/delivery/artifact-package-lifecycle-boundary.md 持有。

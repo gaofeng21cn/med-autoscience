@@ -132,16 +132,20 @@ AI 可以协助整理数据、执行分析、组织证据和汇报进度；临�
 2. 技术规划、架构判断和方向同步，继续读 [项目概览](./docs/project.md)、[当前状态](./docs/status.md)、[架构](./docs/architecture.md)、[不可变约束](./docs/invariants.md)、[关键决策](./docs/decisions.md)。
 3. 开发者和维护者继续从 [文档索引](./docs/README.md) 进入 `docs/active/`、`docs/runtime/`、`docs/delivery/`、`docs/references/` 与 `docs/policies/`。
 
-## 安装与开始
+## 安装
 
-OPL Package 使用 `opl packages install mas` 安装。MAS 必需依赖
-`mas-scholar-skills`；单独安装 Plugin carrier 不能证明完整 Package 或受管运行环境就绪。
+通过 OPL 的标准软件包入口安装：
 
-[Codex Plugin 接入](./docs/references/integration/codex_plugin.md) 统一提供原生
-Codex marketplace 安装、移除和已安装状态检查；
-[Workspace Quickstart](./docs/references/workspace/disease_workspace_quickstart.md)
-说明研究绑定与首次使用。实现分工和验证范围分别见
-[架构](./docs/architecture.md) 与 [状态](./docs/status.md)。
+```bash
+opl packages install mas --json
+opl packages status --package-id mas --json
+```
+
+正式发布渠道为 `ghcr.io/gaofeng21cn/one-person-lab-packages/mas`，不可变版本用于精确引用，`latest-stable` 指向当前版本。OPL 与原生插件管理器负责安装和更新；不通过独立 GitHub Release 页面或附件分发。
+
+运行需要 `mas-scholar-skills`；安装时由软件包依赖关系处理。
+
+安装后新建任务以加载专业技能。软件包安装、运行可用性和领域验收分别记录；具体边界见[当前状态](./docs/status.md)。
 
 ## 延伸阅读
 
