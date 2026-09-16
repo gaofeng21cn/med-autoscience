@@ -28,8 +28,8 @@
     "owner": "one-person-lab",
     "requirement_profile_ref": "contracts/runtime_environment_requirements.json",
     "substrate_contract_ref": "one-person-lab:contracts/opl-framework/runtime-environment-substrate-contract.json",
-    "prepare_command": "opl env prepare --domain mas --profile analysis-display --platform <platform> --requirement-profile contracts/runtime_environment_requirements.json --artifact-root <artifact_root> --apply --json",
-    "run_command": "opl env run --domain mas --profile analysis-display --artifact-root <artifact_root> -- <command>",
+    "prepare_command": "opl env prepare --domain mas --profile analysis-display --platform <platform> --requirement-profile contracts/runtime_environment_requirements.json --requirement-profile-id analysis-display --artifact-root <artifact_root> --apply --json",
+    "run_command": "opl env run --domain mas --profile analysis-display --requirement-profile contracts/runtime_environment_requirements.json --requirement-profile-id analysis-display --artifact-root <artifact_root> -- <command>",
     "mas_can_provision_environment": false,
     "profile_counts_as_domain_ready": false
   },

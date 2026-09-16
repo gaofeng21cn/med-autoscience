@@ -20,7 +20,7 @@
   "profiles": [
     {
       "profile_id": "analysis-display",
-      "purpose": "R dependencies required by MAS analysis and medical display handlers.",
+      "purpose": "R interpreter for ordinary MAS analysis. Each analysis declares its own external packages; display templates select Scholar requirement profiles.",
       "runtime_binaries": [
         {
           "name": "Rscript",
@@ -28,15 +28,7 @@
         }
       ],
       "language_packages": {
-        "r": [
-          {
-            "name": "ComplexHeatmap",
-            "required": true,
-            "source": {
-              "type": "bioconductor"
-            }
-          }
-        ],
+        "r": [],
         "python": []
       }
     }

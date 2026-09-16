@@ -37,7 +37,7 @@ current owner delta + claim/data refs
   -> publication-facing refs
 ```
 
-R/Bioconductor requirement由 `contracts/runtime_environment_requirements.json` 声明，环境准备归 OPL `env prepare/run`。
+普通分析由 `contracts/runtime_environment_requirements.json` 绑定 Rscript；绘图读取当前 Scholar 模板的 `requirement_profile_ids`，将对应配置的完整并集交给 OPL `env run` 自动准备或复用。具体执行约定见 [环境边界](contracts/display_dependency_environment_os_target.md)。
 
 ## Ready boundary
 

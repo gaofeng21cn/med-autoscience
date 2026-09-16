@@ -99,6 +99,52 @@ The executor must treat all medical research work as claim-boundary work. A coho
   agreement assessment, adjudication, a versioned gold set, and error-stratified
   validation candidates consumed by MAS.
 
+## Task Environment Routing
+
+Resolve the task's actual dependencies before starting code. Ordinary R analysis
+selects `analysis-display` from `contracts/runtime_environment_requirements.json`,
+which requires only `Rscript`. Declare any external analysis packages in a task
+requirement profile and pass that exact file and its selected profile IDs to OPL;
+Python analysis declares its interpreter and packages in the same way. Do not
+install an analysis-wide heatmap or other specialist stack by default.
+
+For displays, resolve the active installed Scholar provider's template descriptor,
+read its `requirement_profile_ids`, and select those IDs from that provider's
+`packs/medical-display-core/renderer_dependency_profile.json`. Do not maintain a
+MAS template-to-package table. Pass one `--requirement-profile-id <id>` per selected
+ID to `opl env run --domain mas --profile display --requirement-profile <resolved-file>
+--artifact-root <task-root> -- <command>`. Multiple templates in the same task use
+the normalized union of all their IDs, not the first match. Missing declarations
+or conflicting requirements need a dependency diagnostic before rendering; do not
+silently select every provider profile or install packages inside the renderer.
+
+`opl env run` prepares on demand and reuses cached environments. Use `opl env
+prepare --apply` only when the task has already selected its requirements and
+advance preparation removes a known wait; use the same file and complete ID set
+for prepare and run. Do not prepare on App startup or before every command. The
+preparation timeout is independently configurable with `--prepare-timeout-ms`
+(default ten minutes); `--timeout-ms` limits the actual command. Preserve preparation
+failure versus analysis failure when recording a failed path.
+
+Keep a single analysis phase's data loading, calculation, and plotting in one
+script where dependencies allow, so heavy libraries are not imported repeatedly.
+For multiple independent figures in the same task and prepared environment, use
+the installed Scholar renderer's `--batch <request.json>` only when its matching
+validation evidence proves output consistency and state recovery and shows at
+least 20 percent lower total time for a representative ten-figure task. Until
+that evidence is available, keep the single-figure entry as default. Follow the
+provider's request schema; preserve per-figure requests, output refs, layout
+results, and failed/skipped outcomes. A partial batch is not complete, and batch
+execution does not change any analysis dependency or figure quality requirement.
+
+Inside each analysis or render command, bind the supplied `OPL_ENV_EXECUTION_ID`
+and `OPL_ENV_MANIFEST_REF` to its result/provenance refs. Never find the current run
+by selecting the newest record file. If execution bypassed OPL or bindings are
+absent, record that absence without inventing refs. Reuse the prepared version
+manifest; do not freeze all dependencies or hash all inputs merely to execute
+another temporary command. Existing scientific input freezing and review
+requirements still apply at their declared MAS stages.
+
 ## Artifact Iteration Efficiency
 
 - Apply `contracts/artifact_iteration_efficiency_policy.json` whenever work

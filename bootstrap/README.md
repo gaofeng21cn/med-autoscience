@@ -56,26 +56,32 @@ receipt、LKG、materialization 或 rollback manager。上述命令都不写 MAS
 
 ## Runtime environment
 
-MAS 的环境声明在 `contracts/runtime_environment_requirements.json`。当前 `analysis-display` profile 包含 R 与 Bioconductor requirement；环境 owner 是 OPL Framework。
+MAS 的环境声明在 `contracts/runtime_environment_requirements.json`。默认 `analysis-display`
+只要求 Rscript；额外分析包由具体任务声明。绘图使用当前 Scholar provider 的模板
+`requirement_profile_ids`，不合并所有绘图配置。环境 owner 是 OPL Framework。
 
-标准 handoff：
+普通 R 分析的标准入口：
 
 ```bash
-opl env prepare \
-  --domain mas \
-  --profile analysis-display \
-  --platform <platform> \
-  --requirement-profile contracts/runtime_environment_requirements.json \
-  --artifact-root <artifact_root> \
-  --apply \
-  --json
-
 opl env run \
   --domain mas \
   --profile analysis-display \
+  --requirement-profile contracts/runtime_environment_requirements.json \
+  --requirement-profile-id analysis-display \
   --artifact-root <artifact_root> \
-  -- <command>
+  -- Rscript <analysis_script>
 ```
+
+绘图把 `--profile` 设为 `display`，`--requirement-profile` 设为当前 Scholar provider 的
+`packs/medical-display-core/renderer_dependency_profile.json`，并为选中模板声明的每个
+ID 重复传入 `--requirement-profile-id <id>`。同一任务的多个模板使用配置 ID 并集。
+临时分析则传入本次分析自己的 profile 文件与 ID；不要在脚本里安装依赖。
+
+`env run` 会自动准备或复用缓存。仅当已知本任务需求且提前准备有收益时，以相同参数
+调用 `opl env prepare --apply`；不要在每次执行前重复 prepare。准备阶段默认超时十分钟，
+可通过 `--prepare-timeout-ms` 延长；`--timeout-ms` 独立限制命令执行。
+结果读取 `OPL_ENV_EXECUTION_ID`、`OPL_ENV_MANIFEST_REF` 绑定本次执行与环境版本。
+任务内批量执行与科学边界见 [执行策略](../agent/skills/medical_research_execution.md#task-environment-routing)。
 
 Requirement profile 或 prepare success 不等于 MAS domain ready、paper progress、visual quality 或 production ready。
 
