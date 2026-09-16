@@ -128,14 +128,17 @@ failure versus analysis failure when recording a failed path.
 
 Keep a single analysis phase's data loading, calculation, and plotting in one
 script where dependencies allow, so heavy libraries are not imported repeatedly.
-For multiple independent figures in the same task and prepared environment, use
-the installed Scholar renderer's `--batch <request.json>` only when its matching
-validation evidence proves output consistency and state recovery and shows at
-least 20 percent lower total time for a representative ten-figure task. Until
-that evidence is available, keep the single-figure entry as default. Follow the
-provider's request schema; preserve per-figure requests, output refs, layout
-results, and failed/skipped outcomes. A partial batch is not complete, and batch
-execution does not change any analysis dependency or figure quality requirement.
+For multiple independent figures in the same task and prepared environment,
+default to the qualified Scholar renderer's `--batch <request.json>` route. The
+[environment boundary](../../docs/delivery/medical-display/contracts/display_dependency_environment_os_target.md)
+records its ten-figure consistency and performance qualification. Resolve the
+installed provider's batch entry before use; an older provider without that entry
+keeps the single-figure path until updated. If renderer or runtime changes invalidate
+that qualification, use the single-figure path until the provider benchmark again
+proves consistency, state recovery, and at least 20 percent lower total time.
+Follow the provider's request schema; preserve per-figure requests, output refs,
+layout results, and failed/skipped outcomes. A partial batch is not complete, and
+batch execution does not change analysis dependencies or figure quality requirements.
 
 Inside each analysis or render command, bind the supplied `OPL_ENV_EXECUTION_ID`
 and `OPL_ENV_MANIFEST_REF` to its result/provenance refs. Never find the current run
