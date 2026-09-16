@@ -14,8 +14,9 @@ MAS 的 `analysis-display` 默认只绑定 Rscript；具体分析显式声明外
 [执行策略](../../../../agent/skills/medical_research_execution.md#task-environment-routing)
 说明；批量执行本身不改变单图医学与视觉审阅义务。
 
-2026-09-16 已验证 Scholar 的任务内批量入口：macOS arm64、R 4.6.0、暖依赖环境，
-每轮十张图、三轮对比，逐图总耗时中位数 8.792 秒，批量 3.464 秒，减少 60.6%。
+2026-09-16 已验证 Scholar 的任务内批量入口：macOS arm64、R 4.6.0、OPL 管理的
+暖依赖环境，每轮十张图、三轮对比，逐图总耗时中位数 14.697 秒，批量 5.873 秒，
+减少 60.04%。
 十张 PNG 与布局结果一致；失败隔离、输出冲突、取消保留进度和执行绑定均通过。
 因此匹配该实现的已安装 provider 对同一任务内的独立多图默认使用批量入口。
 可复验入口归 Scholar：`packs/medical-display-core/tests/benchmark_render_batch.py`；
