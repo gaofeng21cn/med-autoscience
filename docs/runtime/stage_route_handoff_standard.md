@@ -14,7 +14,7 @@ Machine boundary: 机器真相归 `agent/stages/manifest.json`、`agent/stages/s
 5. `review_and_quality_gate`
 6. `finalize_and_publication_handoff`
 
-旧 physical route、domain-transition、NextAction、PaperRecovery、owner-route wrapper 与 queue hydration 不形成第二 Stage graph，也不再是 active caller。
+已退役的 route 与 transition surface 不形成第二 Stage graph，也不再是 active caller；清单见 [不变量](../invariants.md#退役与兼容)。
 
 ## Authority split
 

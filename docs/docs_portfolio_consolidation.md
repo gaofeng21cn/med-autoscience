@@ -1,6 +1,8 @@
 # MAS 文档生命周期
 
-本文只负责文档的职责、更新与退役规则。`docs/README.md` 负责导航；机器事实归 contracts、源码及实际 owner readback。
+[`one-person-lab`](https://github.com/gaofeng21cn/one-person-lab/blob/main/docs/policies/docs-lifecycle-policy.md)
+持有 OPL 家族文档生命周期规则；本文只承载 MAS 对该规则的应用、职责、更新与退役约定。
+`docs/README.md` 负责导航；机器事实归 contracts、源码及实际 owner readback。
 
 ## 主题归属
 

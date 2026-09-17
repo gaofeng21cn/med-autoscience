@@ -7,7 +7,7 @@ Machine boundary: Human-readable runtime-governance policy only; runtime truth r
 
 ## 当前结论
 
-MAS 已退役 repo-local CLI/MCP/runtime supervision/installer/workbench wrapper。本清单只核对 current generated action surface、MAS authority output 与 OPL runtime readback，不把旧命令当作人工验收入口。
+MAS repo-local CLI/MCP/runtime supervision/installer/workbench wrapper 均已退役，清单见 [不变量](../../invariants.md#退役与兼容)。本清单只核对 current generated action surface、MAS authority output 与 OPL runtime readback，不把旧命令当作人工验收入口。
 
 MDS / DeepScientist 只作为 historical fixture、explicit archive import、backend audit、upstream learning 或 parity oracle reference；已退役 executor 仅保留历史 provenance，不恢复 proof lane。
 

@@ -41,8 +41,11 @@ Machine boundary: 本文是人读约束；机器事实以 contracts、source、r
 
 ## 退役与兼容
 
-- 已被 OPL 或标准工具替代的 MAS-local wrapper、facade、installer、workspace initializer、runtime shell 和旧 next-action producer 直接退役；不新增 compatibility shim、alias 或聚合测试。
-- 旧 provider admission、current work unit、PaperRecovery 与 domain-action request 只允许 tombstone/provenance/no-resurrection guard，不得恢复 current caller。
+本节持有 MAS 已退役 surface 的通用 no-resurrection 清单。主题文档（plugin carrier、workspace 接入、runtime 边界等）可以保留本主题实际需要的旧名称与禁止动作，但不复制这份通用清单。
+
+- 已被 OPL 或标准工具替代的 MAS-local wrapper、facade、installer、workspace initializer、bootstrap shell、runtime shell/supervision、workbench shell 和旧 next-action producer 直接退役；不新增 compatibility shim、alias 或聚合测试。
+- repo-local CLI 与 MCP transport（`medautosci`、`medautosci-mcp`、MCP `init_workspace`、CLI `init-workspace`/`workspace init|bootstrap`、`ops/medautoscience/bin/*`、`storage-audit` wrapper）不再是执行入口，只保留旧 workspace 的 provenance/retirement 说明。
+- 旧 provider admission、current work unit、PaperRecovery、domain-action request、domain-entry dispatch、direct file-edit command，以及旧 physical route、domain-transition、NextAction、owner-route wrapper 与 queue hydration 只允许 tombstone/provenance/no-resurrection guard；不得恢复 current caller，也不形成第二 Stage graph。
 - MDS/DeepScientist 只作 provenance、explicit archive import、backend audit、upstream learning 与 parity oracle。
 - 已退役 executor 只保留来源记录；新增 executor 必须通过当前 Framework adapter 合同和独立验证，不恢复历史 proof lane。
 

@@ -40,7 +40,7 @@ MAS 不返回或维护通用 queue mutation、attempt lease、retry policy、Sta
 
 `Codex CLI selected stage -> nonbinding route context -> OPL transport/readback -> MAS owner consumption`
 
-OPL receipt 证明 transport，不替代 MAS owner answer。旧 provider admission、current work unit、PaperRecovery、domain action request和 repo-local next-action materializer 已退役或 tombstone-only。
+OPL receipt 证明 transport，不替代 MAS owner answer。已退役的 MAS-local control surface 不在此形成第二执行入口；清单与 no-resurrection 规则见 [不变量](../../invariants.md#退役与兼容)。
 
 ## Environment
 
