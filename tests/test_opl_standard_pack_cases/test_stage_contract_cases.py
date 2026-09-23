@@ -46,6 +46,12 @@ def test_domain_descriptor_exposes_generic_standard_agent_interface() -> None:
     assert interface["version"] == "opl_standard_agent_interface.v1"
     assert interface["workspace_binding"] == {
         "default_profile_id": "portfolio",
+        "shared_resources": [
+            {"path": "data", "role": "dataset_root"},
+            {"path": "literature", "role": "literature_root"},
+            {"path": "memory", "role": "memory_root"},
+            {"path": "shared/sources", "role": "source_intake"},
+        ],
         "workspace_kind": "medical_research_workspace",
         "project_kind": "study",
         "project_collection_label": "studies",
