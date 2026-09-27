@@ -108,6 +108,7 @@ EXPECTED_STANDARD_AGENT_INTERNAL_SOURCE_FILES = frozenset(
         "src/med_autoscience/authority_handlers/study_lifecycle_reactivation_parts/__init__.py",
         "src/med_autoscience/authority_handlers/study_lifecycle_reactivation_parts/constants.py",
         "src/med_autoscience/authority_handlers/study_lifecycle_reactivation_parts/materialization.py",
+        "src/med_autoscience/authority_handlers/study_lifecycle_reactivation_parts/projection.py",
         "src/med_autoscience/authority_handlers/study_lifecycle_reactivation_parts/primitives.py",
         "src/med_autoscience/authority_handlers/study_lifecycle_reactivation_parts/request.py",
         "src/med_autoscience/authority_handlers/study_lifecycle_reactivation_parts/result.py",
