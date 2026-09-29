@@ -633,6 +633,7 @@
         "input_refs",
         "route_context_refs",
         "human_gate_refs",
+        "review_lane",
         "lifecycle_admission"
       ],
       "workspace_locator_fields": [
