@@ -8,11 +8,16 @@ from typing import Any
 from .._generation_manifest import normalize_generation_manifest
 from .._record_validation import (
     RequestShapeError,
+    enum_text,
     exact_keys,
     mapping,
+    optional_text,
 )
 from .._record_validation import (
     exact_ref as _exact_ref,
+)
+from .._record_validation import (
+    typed_ref_list as _typed_ref_list,
 )
 from .adjudicator import (
     _normalize_adjudicator_context,
@@ -28,7 +33,7 @@ from .currentness import (
     _normalize_currentness_receipt,
     _validate_currentness_receipt_ref,
 )
-from .policy import REQUEST_KIND, SCHEMA_VERSION
+from .policy import _HARD_GATE_KINDS, REQUEST_KIND, SCHEMA_VERSION
 
 
 def _normalize_request(request: Mapping[str, Any]) -> dict[str, Any]:
@@ -108,9 +113,6 @@ def _normalize_hard_gate(value: Any) -> dict[str, Any]:
         {"kind", "reason_code", "evidence_refs", "next_owner", "resume_condition"},
         field,
     )
-    from .._record_validation import enum_text, optional_text, typed_ref_list
-    from .policy import _HARD_GATE_KINDS
-
     kind = enum_text(
         payload.get("kind"),
         "hard_gate.kind",
@@ -121,7 +123,7 @@ def _normalize_hard_gate(value: Any) -> dict[str, Any]:
         "reason_code": optional_text(
             payload.get("reason_code"), "hard_gate.reason_code"
         ),
-        "evidence_refs": typed_ref_list(
+        "evidence_refs": _typed_ref_list(
             payload.get("evidence_refs"), "hard_gate.evidence_refs", "mas_gate_evidence"
         ),
         "next_owner": optional_text(payload.get("next_owner"), "hard_gate.next_owner"),

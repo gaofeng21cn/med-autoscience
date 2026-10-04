@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from typing import Any, cast
+from typing import Any
 
 from .._record_validation import (
     RequestShapeError,
@@ -103,7 +103,7 @@ def normalize_candidate_admission_receipt(
             f"{field}.requires_host_exact_byte_persistence must be true"
         )
 
-    core = {
+    core: dict[str, Any] = {
         "receipt_kind": "mas_candidate_admission_receipt",
         "schema_version": 2,
         "owner": "MedAutoScience",
@@ -159,8 +159,7 @@ def normalize_candidate_admission_receipt(
     }
     expected_fingerprint = fingerprint(core)
     expected_size = len(canonical_json_bytes(core))
-    candidate_ref = cast(dict[str, Any], core["candidate_ref"])
-    if core["candidate_size_bytes"] != candidate_ref["size_bytes"]:
+    if core["candidate_size_bytes"] != core["candidate_ref"]["size_bytes"]:
         raise RequestShapeError(
             f"{field}.candidate_size_bytes does not match candidate_ref"
         )
