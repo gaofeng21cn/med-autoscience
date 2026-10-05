@@ -136,6 +136,22 @@ def test_action_catalog_exposes_six_hosted_stages_and_six_internal_handlers() ->
     }
 
 
+def test_stage_action_field_declarations_match_shared_input_schema() -> None:
+    catalog = _load("contracts/action_catalog.json")
+    schema = _load("contracts/schemas/v2/mas-stage-action.input.schema.json")
+    schema_required = set(schema["required"])
+    schema_optional = set(schema["properties"]) - schema_required
+    stage_actions = [
+        action
+        for action in catalog["actions"]
+        if action["execution_binding"]["kind"] == "stage_binding"
+    ]
+    assert len(stage_actions) == 6
+    for action in stage_actions:
+        assert set(action["required_fields"]) == schema_required, action["action_id"]
+        assert set(action["optional_fields"]) == schema_optional, action["action_id"]
+
+
 def test_generated_surfaces_are_opl_owned_and_private_surfaces_are_forbidden() -> None:
     handoff = _load("contracts/generated_surface_handoff.json")
     policy = _load("contracts/private_functional_surface_policy.json")
