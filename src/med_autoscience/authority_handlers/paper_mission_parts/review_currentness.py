@@ -392,4 +392,3 @@ def _normalize_reuse_provenance(value: Any, field: str) -> dict[str, Any]:
             "mas_candidate_admission_receipt",
         ),
     }
-

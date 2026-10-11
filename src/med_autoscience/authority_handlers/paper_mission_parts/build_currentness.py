@@ -223,4 +223,3 @@ def _normalize_reviewer_response_authority_currentness(
                 f"{field} external synthesis must bind original frozen response bytes"
             )
     return normalized
-

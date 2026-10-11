@@ -157,4 +157,3 @@ def _normalize_epistemic_change(
             _EPISTEMIC_IGNORED_REASONS,
         )
     return normalized
-

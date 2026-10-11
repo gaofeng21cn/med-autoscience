@@ -111,4 +111,3 @@ def _normalize_hard_gate(value: Any) -> dict[str, Any]:
     if missing:
         raise RequestShapeError("hard gate missing: " + ", ".join(missing))
     return normalized
-
