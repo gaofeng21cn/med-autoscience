@@ -435,7 +435,10 @@
             "role": "mas_guarded_action_trigger_candidates"
           }
         ]
-      }
+      },
+      "policy_refs": [
+        "agent/policies/medical-research-policy.md"
+      ]
     },
     {
       "stage_id": "baseline_and_evidence_setup",
@@ -833,7 +836,10 @@
             "role": "mas_guarded_action_trigger_candidates"
           }
         ]
-      }
+      },
+      "policy_refs": [
+        "agent/policies/medical-research-policy.md"
+      ]
     },
     {
       "stage_id": "bounded_analysis_campaign",
@@ -1243,7 +1249,10 @@
             "role": "mas_guarded_action_trigger_candidates"
           }
         ]
-      }
+      },
+      "policy_refs": [
+        "agent/policies/medical-research-policy.md"
+      ]
     },
     {
       "stage_id": "manuscript_authoring",
@@ -1830,7 +1839,10 @@
           ],
           "version": "typed-cognitive-subpacket-gate.v1"
         }
-      }
+      },
+      "policy_refs": [
+        "agent/policies/medical-research-policy.md"
+      ]
     },
     {
       "stage_id": "review_and_quality_gate",
@@ -2439,13 +2451,16 @@
             }
           }
         ]
-      }
+      },
+      "policy_refs": [
+        "agent/policies/medical-research-policy.md"
+      ]
     },
     {
       "stage_id": "finalize_and_publication_handoff",
       "stage_kind": "packaging",
       "handoff_review_boundary": {
-        "artifact_effect": "mechanical_repackaging_of_reviewed_bytes",
+        "artifact_effect": "reviewed_immutable_refs_only",
         "freezes_canonical_artifact_bytes": false,
         "issues_quality_export_publication_or_ready_claim": false,
         "downstream_owner_retains_acceptance": true
@@ -2480,12 +2495,6 @@
         "publication_handoff_receipt_or_typed_blocker_recorded"
       ],
       "next_stage_refs": [],
-      "handoff_review_boundary": {
-        "artifact_effect": "reviewed_immutable_refs_only",
-        "freezes_canonical_artifact_bytes": false,
-        "issues_quality_export_publication_or_ready_claim": false,
-        "downstream_owner_retains_acceptance": true
-      },
       "artifact_projection_transport": {
         "surface_kind": "mas_stage_artifact_projection_transport_contract",
         "version": "artifact-projection-transport.v1",
@@ -3087,7 +3096,10 @@
             }
           }
         ]
-      }
+      },
+      "policy_refs": [
+        "agent/policies/medical-research-policy.md"
+      ]
     }
   ],
   "authority_boundary": {

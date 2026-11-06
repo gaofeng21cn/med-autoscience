@@ -1818,6 +1818,77 @@
         "can_claim_current_package_authority": false,
         "mas_owner_surface_acceptance_required": true
       }
+    },
+    {
+      "capability_id": "med-autoscience.authority.policy_pack",
+      "surface_role": "policy_pack",
+      "capability_kind": "reference_pack",
+      "canonical_owner": "MedAutoScience",
+      "physical_source_ref": {
+        "ref_kind": "repo_path",
+        "ref": "agent/policies/medical-research-policy.md",
+        "role": "domain_policy_pack"
+      },
+      "runtime_projection_refs": [
+        {
+          "ref_kind": "repo_path",
+          "ref": "agent/policies/medical-research-policy.md",
+          "role": "policy_pack"
+        }
+      ],
+      "sync_policy": "domain_agent_builtin_refs_only",
+      "externalization_reason": "domain_agent_builtin",
+      "canonical_target_paths": [
+        "agent/policies/medical-research-policy.md"
+      ],
+      "improvement_tokens": [
+        "policy_pack_quality",
+        "authority_boundary_traceability"
+      ],
+      "stage_refs": [
+        "direction_and_route_selection",
+        "baseline_and_evidence_setup",
+        "bounded_analysis_campaign",
+        "manuscript_authoring",
+        "review_and_quality_gate",
+        "finalize_and_publication_handoff"
+      ],
+      "authority_boundary": {
+        "can_write_domain_truth": false,
+        "can_write_memory_body": false,
+        "can_mutate_artifact_body": false,
+        "can_sign_owner_receipt": false,
+        "can_create_typed_blocker": false,
+        "can_authorize_quality_or_export": false,
+        "can_claim_domain_ready": false,
+        "can_claim_production_ready": false
+      },
+      "verification_refs": [
+        "scripts/verify.sh",
+        "opl agents check --repo <repo-dir> --json"
+      ],
+      "forbidden_surfaces": [
+        "domain_truth",
+        "memory_body",
+        "artifact_body",
+        "owner_receipt_body",
+        "typed_blocker_body",
+        "quality_or_export_verdict"
+      ],
+      "owner_closeout_boundary": {
+        "owner": "MedAutoScience",
+        "required_return_shapes": [
+          "owner_receipt_ref",
+          "typed_blocker_ref",
+          "human_gate_ref",
+          "route_back_ref"
+        ],
+        "can_write_owner_receipt_body": false,
+        "can_create_typed_blocker": false,
+        "can_write_domain_truth": false,
+        "can_claim_domain_ready": false,
+        "can_claim_production_ready": false
+      }
     }
   ],
   "resolver_index": {

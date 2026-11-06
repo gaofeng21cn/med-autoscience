@@ -243,7 +243,9 @@
     "agent/stages/review_and_quality_gate.policy.md",
     "agent/stages/stage_native_semantic_pack.yaml",
     "agent/stages/stage_route_contract.yaml",
-    "agent/tools/domain_affordances.md"
+    "agent/tools/domain_affordances.md",
+    "agent/policies/medical-research-policy.md",
+    "contracts/durable_knowledge_catalog.json"
   ],
   "requires_ai_first_record": true,
   "runtime_enforcement_status": "opl_hosted_stage_quality_receipt_and_registry_bound_authority_handler",

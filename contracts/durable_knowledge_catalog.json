@@ -1,0 +1,174 @@
+{
+  "surface_kind": "opl_durable_knowledge_catalog",
+  "version": "durable-knowledge-catalog.v1",
+  "owner": "one-person-lab",
+  "domain_id": "medautoscience",
+  "items": [
+    {
+      "surface_kind": "opl_durable_knowledge_item",
+      "version": "durable-knowledge-item.v1",
+      "knowledge_id": "medautoscience.medical_research_truth",
+      "title": "Medical Research Truth",
+      "layer": "agent_pack",
+      "owner": "MedAutoScience",
+      "body_ref": {
+        "kind": "repo_path",
+        "ref": "agent/knowledge/medical_research_truth.md",
+        "sha256": "sha256:0ed04babe5d612fa8be4c941befb2a59b1c5978c185cc924883059b78492f1bf"
+      },
+      "applicability": {
+        "domains": [
+          "medautoscience"
+        ],
+        "stages": [
+          "direction_and_route_selection",
+          "baseline_and_evidence_setup",
+          "bounded_analysis_campaign",
+          "manuscript_authoring",
+          "review_and_quality_gate",
+          "finalize_and_publication_handoff"
+        ]
+      },
+      "status": "active",
+      "reviewed_at": "2026-11-06T00:00:00+08:00",
+      "next_review_at": "2027-05-06T00:00:00+08:00",
+      "freshness_policy": "migration_preserves_existing_domain_semantics",
+      "authority_boundary": {
+        "semantic_body_owner": "MedAutoScience",
+        "opl_role": "catalog_recall_and_receipt_projection_only"
+      }
+    },
+    {
+      "surface_kind": "opl_durable_knowledge_item",
+      "version": "durable-knowledge-item.v1",
+      "knowledge_id": "medautoscience.hypothesis_portfolio_evidence_pack",
+      "title": "Hypothesis Portfolio Evidence Pack",
+      "layer": "agent_pack",
+      "owner": "MedAutoScience",
+      "body_ref": {
+        "kind": "repo_path",
+        "ref": "agent/knowledge/hypothesis_portfolio_evidence_pack.md",
+        "sha256": "sha256:2615e16f6939b82b76c14c2d14d069f1cc49d70d4f3193a7caaec106301201a8"
+      },
+      "applicability": {
+        "domains": [
+          "medautoscience"
+        ],
+        "stages": [
+          "direction_and_route_selection",
+          "bounded_analysis_campaign"
+        ]
+      },
+      "status": "active",
+      "reviewed_at": "2026-11-06T00:00:00+08:00",
+      "next_review_at": "2027-05-06T00:00:00+08:00",
+      "freshness_policy": "migration_preserves_existing_domain_semantics",
+      "authority_boundary": {
+        "semantic_body_owner": "MedAutoScience",
+        "opl_role": "catalog_recall_and_receipt_projection_only"
+      }
+    },
+    {
+      "surface_kind": "opl_durable_knowledge_item",
+      "version": "durable-knowledge-item.v1",
+      "knowledge_id": "medautoscience.publication_route_memory",
+      "title": "Publication Route Memory",
+      "layer": "agent_pack",
+      "owner": "MedAutoScience",
+      "body_ref": {
+        "kind": "repo_path",
+        "ref": "agent/knowledge/publication_route_memory.md",
+        "sha256": "sha256:6ae2fecd8bd51be9a065d4983bda64bce811b7d0977851296a6ba00ec1875f1a"
+      },
+      "applicability": {
+        "domains": [
+          "medautoscience"
+        ],
+        "stages": [
+          "direction_and_route_selection",
+          "manuscript_authoring",
+          "review_and_quality_gate",
+          "finalize_and_publication_handoff"
+        ]
+      },
+      "status": "active",
+      "reviewed_at": "2026-11-06T00:00:00+08:00",
+      "next_review_at": "2027-05-06T00:00:00+08:00",
+      "freshness_policy": "migration_preserves_existing_domain_semantics",
+      "authority_boundary": {
+        "semantic_body_owner": "MedAutoScience",
+        "opl_role": "catalog_recall_and_receipt_projection_only"
+      }
+    },
+    {
+      "surface_kind": "opl_durable_knowledge_item",
+      "version": "durable-knowledge-item.v1",
+      "knowledge_id": "medautoscience.research_trajectory_medical_narrative",
+      "title": "Research Trajectory Medical Narrative",
+      "layer": "agent_pack",
+      "owner": "MedAutoScience",
+      "body_ref": {
+        "kind": "repo_path",
+        "ref": "agent/knowledge/research_trajectory_medical_narrative.md",
+        "sha256": "sha256:390500560e8f585383dea24fc120a3707bd5cce7264616c8a14afea30ca8a388"
+      },
+      "applicability": {
+        "domains": [
+          "medautoscience"
+        ],
+        "stages": [
+          "direction_and_route_selection",
+          "baseline_and_evidence_setup",
+          "bounded_analysis_campaign",
+          "manuscript_authoring",
+          "review_and_quality_gate",
+          "finalize_and_publication_handoff"
+        ]
+      },
+      "status": "active",
+      "reviewed_at": "2026-11-06T00:00:00+08:00",
+      "next_review_at": "2027-05-06T00:00:00+08:00",
+      "freshness_policy": "migration_preserves_existing_domain_semantics",
+      "authority_boundary": {
+        "semantic_body_owner": "MedAutoScience",
+        "opl_role": "catalog_recall_and_receipt_projection_only"
+      }
+    },
+    {
+      "surface_kind": "opl_durable_knowledge_item",
+      "version": "durable-knowledge-item.v1",
+      "knowledge_id": "medautoscience.source_readiness_and_artifact_authority",
+      "title": "Source Readiness And Artifact Authority",
+      "layer": "agent_pack",
+      "owner": "MedAutoScience",
+      "body_ref": {
+        "kind": "repo_path",
+        "ref": "agent/knowledge/source_readiness_and_artifact_authority.md",
+        "sha256": "sha256:f2f3310c4aac1cf6beb8cf66b44da211b73951f0c9ea7e09626c1a9ce3c4900d"
+      },
+      "applicability": {
+        "domains": [
+          "medautoscience"
+        ],
+        "stages": [
+          "baseline_and_evidence_setup",
+          "bounded_analysis_campaign",
+          "manuscript_authoring",
+          "review_and_quality_gate",
+          "finalize_and_publication_handoff"
+        ]
+      },
+      "status": "active",
+      "reviewed_at": "2026-11-06T00:00:00+08:00",
+      "next_review_at": "2027-05-06T00:00:00+08:00",
+      "freshness_policy": "migration_preserves_existing_domain_semantics",
+      "authority_boundary": {
+        "semantic_body_owner": "MedAutoScience",
+        "opl_role": "catalog_recall_and_receipt_projection_only"
+      }
+    }
+  ],
+  "workspace_catalog_ref": "memory/opl_durable_knowledge_catalog.json",
+  "project_catalog_ref": "memory/opl_durable_knowledge_catalog.json",
+  "dated_state_catalog_ref": "state/opl_durable_knowledge_catalog.json"
+}
