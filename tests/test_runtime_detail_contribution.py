@@ -169,6 +169,15 @@ def test_owner_and_carrier_manifest_declare_one_runtime_detail_surface() -> None
     )
     assert owner["app_contributions"] == carrier["app_contributions"]
     assert owner["codex_surface"]["app_contribution_abi"] == carrier["codex_surface"]["app_contribution_abi"]
+    assert owner["codex_surface"]["app_contribution_adapter"] == carrier["codex_surface"]["app_contribution_adapter"]
+    adapter = json.loads((ROOT / "app-contribution-adapter.json").read_text(encoding="utf-8"))
+    carrier_adapter = json.loads(
+        (ROOT / "plugins/med-autoscience/app-contribution-adapter.json").read_text(encoding="utf-8")
+    )
+    assert adapter == carrier_adapter
+    assert set(adapter["reads"]) == {"mas.runtime-detail.v1#current"}
+    assert adapter["reads"]["mas.runtime-detail.v1#current"]["stdin"] == "request_json"
+    assert adapter["reads"]["mas.runtime-detail.v1#current"]["passthrough"] is True
     assert owner["app_contributions"]["ui"][0] == {
         "contribution_id": "mas.runtime-detail",
         "slot": "runtime.detail",

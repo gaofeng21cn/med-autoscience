@@ -12,9 +12,10 @@ work. A next owner action is projected under `work.pending`.
 
 ## Required App contract delta
 
-The MAS contract records the consumer requirements and its last integration
-blocker. That marker is a MAS integration record, not fresh proof of App behavior.
-End-to-end acceptance must verify the current App consumer:
+The MAS contract records the consumer requirements and the remaining integration
+gap. Framework implements selection forwarding and generic result rendering;
+real Host rendering remains unverified. End-to-end acceptance must verify the
+current App consumer:
 
 1. Pass the selected resolved work item under `input.work_item_identity` with
    `agent_id`, `domain_id`, `work_item_id`, `domain_work_item_id`,

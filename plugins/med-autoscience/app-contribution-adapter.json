@@ -1,0 +1,25 @@
+{
+  "schema_version": "opl-package-app-contribution-adapter.v1",
+  "reads": {
+    "mas.runtime-detail.v1#current": {
+      "kind": "command",
+      "cwd": "package",
+      "argv": ["./bin/mas-app-contribution"],
+      "stdin": "request_json",
+      "passthrough": true,
+      "input_schema": {
+        "type": "object",
+        "required": ["work_item_identity"],
+        "properties": {
+          "work_item_identity": {
+            "type": "object",
+            "title": "Selected MAS study",
+            "description": "Resolved OPL work-item identity for the study whose current state should be read."
+          }
+        },
+        "additionalProperties": false
+      }
+    }
+  },
+  "actions": {}
+}

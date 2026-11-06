@@ -69,6 +69,7 @@ def test_native_carrier_descriptor_projects_owner_identity_without_lifecycle_aut
         "standalone_distribution",
         "user_install_action_count",
         "app_contribution_abi",
+        "app_contribution_adapter",
     }
     assert set(carrier_descriptor["codex_surface"]) == projected_codex_fields
     for field in projected_codex_fields:
