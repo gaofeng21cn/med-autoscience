@@ -49,10 +49,10 @@
     "app_or_studio_may_write_or_infer_state": false
   },
   "current_consumer_blocker": {
-    "status": "producer_complete_consumer_projection_blocked",
-    "framework_request_input_is_generic_only": true,
-    "app_runtime_detail_selected_work_item_identity_injected": false,
-    "app_generic_declarative_view_result_renderer_available": false,
+    "status": "framework_consumer_implemented_host_rendering_unverified",
+    "framework_request_input_is_generic_only": false,
+    "app_runtime_detail_selected_work_item_identity_injected": true,
+    "app_generic_declarative_view_result_renderer_available": true,
     "required_owner": "one-person-lab-app",
     "required_delta_ref": "docs/references/integration/mas-runtime-detail-contribution.md#required-app-contract-delta"
   },

@@ -71,10 +71,17 @@
       "schema_version": "opl-package-app-contribution-cli.v1",
       "transport": "stdin_json_stdout_json",
       "argv": [
-        "./bin/mas-app-contribution"
+        "opl",
+        "app",
+        "contribution",
+        "adapter",
+        "--stdin"
       ],
       "request_schema": "opl-package-app-contribution-request.v1",
       "response_schema": "opl-package-app-contribution-response.v1"
+    },
+    "app_contribution_adapter": {
+      "manifest": "app-contribution-adapter.json"
     }
   },
   "app_contributions": {
