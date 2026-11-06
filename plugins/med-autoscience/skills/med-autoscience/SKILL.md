@@ -65,3 +65,20 @@ Choose the earliest unresolved owning Stage action from the installed OPL-genera
 - `contracts/runtime_environment_requirements.json`
 - `contracts/owner_receipt_contract.json`
 - `contracts/domain_handler_registry.json`
+
+## Durable Knowledge And Workspace Memory
+
+Use OPL knowledge recall with --repo <agent-root> --domain <domain-id>
+--stage <stage-id> and the authorized --workspace and --project roots.
+The hosted StageRun binds this selection once for producer, reviewer and
+repair roles. Read selected bodies and cite knowledge IDs, layers and digests.
+Agent knowledge lives in agent/knowledge/, indexed by
+contracts/durable_knowledge_catalog.json. Owner/team constraints and accepted
+cross-project lessons live in shared/memory/; project decisions and lessons
+live in the authorized project's memory/; dated facts live in its state/.
+Each workspace layer uses opl_durable_knowledge_catalog.json.
+Review freshness and keep superseded entries out of active recall. A project
+result is a candidate lesson until its domain or project owner accepts the
+evidence and scope. Private project content is never automatically promoted
+into the distributable Agent package. OPL owns validation, scoped recall and
+receipts; domain owners retain semantic acceptance.

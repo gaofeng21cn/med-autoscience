@@ -245,7 +245,8 @@
     "agent/stages/stage_route_contract.yaml",
     "agent/tools/domain_affordances.md",
     "agent/policies/medical-research-policy.md",
-    "contracts/durable_knowledge_catalog.json"
+    "contracts/durable_knowledge_catalog.json",
+    "agent/knowledge/publication_strategy_library.md"
   ],
   "requires_ai_first_record": true,
   "runtime_enforcement_status": "opl_hosted_stage_quality_receipt_and_registry_bound_authority_handler",
@@ -263,7 +264,7 @@
     "generated_surface_handoff_source_ref": "contracts/generated_surface_handoff.json",
     "execution_scope_snapshot_schema_ref": "contracts/opl-framework/execution-scope-snapshot.schema.json",
     "hosted_action_runtime_contract_ref": "contracts/opl-framework/standard-agent-hosted-action-runtime-contract.json",
-    "memory_descriptor": "contracts/memory_descriptor.json",
+    "durable_knowledge_catalog": "contracts/durable_knowledge_catalog.json",
     "owner_answer_schema_source_ref": "contracts/opl-framework/owner-answer.schema.json",
     "runtime_environment_requirement_profile": "contracts/runtime_environment_requirements.json",
     "research_trajectory_contract_ref": "contracts/research_trajectory_contract.json",

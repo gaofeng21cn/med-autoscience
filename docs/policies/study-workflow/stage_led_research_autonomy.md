@@ -8,7 +8,7 @@ Codex 在当前 Stage 目标、用户意图、数据权限和医学约束内形�
 
 非 ML 研究可以探索临床问题、人群/表型、数据能回答的问题、文献缺口、endpoint 与 claim 强度。ML/AI 研究还须先明确 clinical bottleneck、医学先验、数据划分、评价和可改模型范围；算法创新不能只追逐 benchmark 分数。
 
-选择需要说明 clinical relevance、source/data fit、可检验性、预期证据收益、成本、已否定路线和停止条件。研究路线经验见 [策略记忆库](./publication_route_memory_library.md)，它只提供参考。
+选择需要说明 clinical relevance、source/data fit、可检验性、预期证据收益、成本、已否定路线和停止条件。研究路线经验见 [策略记忆库](../../../agent/knowledge/publication_strategy_library.md)，它只提供参考。
 
 ## 证据与变化
 

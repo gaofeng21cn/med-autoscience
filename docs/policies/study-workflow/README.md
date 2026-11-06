@@ -14,9 +14,9 @@ Machine boundary: 本页仅导航，研究状态由 canonical workspace 与 owne
 | 投稿后修订流程 | [Submission Revision](./submission_revision_operating_contract.md) |
 | 经验正文与机器投影分工 | [Domain Memory](../domain_memory_markdown_first_policy.md) |
 | 出版策略记忆治理 | [Memory Policy](./publication_route_memory_policy.md) |
-| 可复用策略正文 | [Memory Library](./publication_route_memory_library.md) |
+| 可复用策略正文 | [Memory Library](../../../agent/knowledge/publication_strategy_library.md) |
 | 研究路线分类 | [Study Archetypes](./study_archetypes.md) |
-| 种子 identity 与 locator | [Seed Index](./publication_route_memory_seed_fixture.json) |
+| 种子 identity 与 locator | [Seed Index](../../../contracts/durable_knowledge_catalog.json) |
 
-工作区 memory locator 的机器来源是 `contracts/memory_descriptor.json`。
+工作区 memory locator 的机器来源是 `contracts/durable_knowledge_catalog.json`。
 本页不重复 card 库存、真实 workspace 快照、初始化说明或未来工作清单。

@@ -51,7 +51,8 @@
         "agent/knowledge/medical_research_truth.md",
         "agent/knowledge/hypothesis_portfolio_evidence_pack.md",
         "agent/knowledge/publication_route_memory.md",
-        "agent/knowledge/research_trajectory_medical_narrative.md"
+        "agent/knowledge/research_trajectory_medical_narrative.md",
+        "agent/knowledge/publication_strategy_library.md"
       ],
       "quality_gate_refs": [
         "agent/quality_gates/artifact_source_authority_gate.md"
@@ -858,7 +859,8 @@
         "agent/knowledge/medical_research_truth.md",
         "agent/knowledge/hypothesis_portfolio_evidence_pack.md",
         "agent/knowledge/source_readiness_and_artifact_authority.md",
-        "agent/knowledge/research_trajectory_medical_narrative.md"
+        "agent/knowledge/research_trajectory_medical_narrative.md",
+        "agent/knowledge/publication_strategy_library.md"
       ],
       "quality_gate_refs": [
         "agent/quality_gates/artifact_source_authority_gate.md"
@@ -1271,7 +1273,8 @@
         "agent/knowledge/medical_research_truth.md",
         "agent/knowledge/publication_route_memory.md",
         "agent/knowledge/source_readiness_and_artifact_authority.md",
-        "agent/knowledge/research_trajectory_medical_narrative.md"
+        "agent/knowledge/research_trajectory_medical_narrative.md",
+        "agent/knowledge/publication_strategy_library.md"
       ],
       "quality_gate_refs": [
         "agent/quality_gates/ai_reviewer_auditor_gate.md",
@@ -1862,7 +1865,8 @@
         "agent/knowledge/medical_research_truth.md",
         "agent/knowledge/publication_route_memory.md",
         "agent/knowledge/source_readiness_and_artifact_authority.md",
-        "agent/knowledge/research_trajectory_medical_narrative.md"
+        "agent/knowledge/research_trajectory_medical_narrative.md",
+        "agent/knowledge/publication_strategy_library.md"
       ],
       "quality_gate_refs": [
         "agent/quality_gates/ai_reviewer_auditor_gate.md",

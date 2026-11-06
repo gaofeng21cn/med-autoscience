@@ -32,7 +32,7 @@
       "status": "active",
       "reviewed_at": "2026-11-06T00:00:00+08:00",
       "next_review_at": "2027-05-06T00:00:00+08:00",
-      "freshness_policy": "migration_preserves_existing_domain_semantics",
+      "freshness_policy": "review_when_sources_or_applicability_change; exclude_after_next_review_at",
       "authority_boundary": {
         "semantic_body_owner": "MedAutoScience",
         "opl_role": "catalog_recall_and_receipt_projection_only"
@@ -62,7 +62,7 @@
       "status": "active",
       "reviewed_at": "2026-11-06T00:00:00+08:00",
       "next_review_at": "2027-05-06T00:00:00+08:00",
-      "freshness_policy": "migration_preserves_existing_domain_semantics",
+      "freshness_policy": "review_when_sources_or_applicability_change; exclude_after_next_review_at",
       "authority_boundary": {
         "semantic_body_owner": "MedAutoScience",
         "opl_role": "catalog_recall_and_receipt_projection_only"
@@ -78,7 +78,7 @@
       "body_ref": {
         "kind": "repo_path",
         "ref": "agent/knowledge/publication_route_memory.md",
-        "sha256": "sha256:6ae2fecd8bd51be9a065d4983bda64bce811b7d0977851296a6ba00ec1875f1a"
+        "sha256": "sha256:1ca2cc6827a9d01fa0c5edf00d7d6ab062bc6607e1939d0277c47b4312cc13a8"
       },
       "applicability": {
         "domains": [
@@ -94,7 +94,7 @@
       "status": "active",
       "reviewed_at": "2026-11-06T00:00:00+08:00",
       "next_review_at": "2027-05-06T00:00:00+08:00",
-      "freshness_policy": "migration_preserves_existing_domain_semantics",
+      "freshness_policy": "review_when_sources_or_applicability_change; exclude_after_next_review_at",
       "authority_boundary": {
         "semantic_body_owner": "MedAutoScience",
         "opl_role": "catalog_recall_and_receipt_projection_only"
@@ -128,7 +128,7 @@
       "status": "active",
       "reviewed_at": "2026-11-06T00:00:00+08:00",
       "next_review_at": "2027-05-06T00:00:00+08:00",
-      "freshness_policy": "migration_preserves_existing_domain_semantics",
+      "freshness_policy": "review_when_sources_or_applicability_change; exclude_after_next_review_at",
       "authority_boundary": {
         "semantic_body_owner": "MedAutoScience",
         "opl_role": "catalog_recall_and_receipt_projection_only"
@@ -161,14 +161,43 @@
       "status": "active",
       "reviewed_at": "2026-11-06T00:00:00+08:00",
       "next_review_at": "2027-05-06T00:00:00+08:00",
-      "freshness_policy": "migration_preserves_existing_domain_semantics",
+      "freshness_policy": "review_when_sources_or_applicability_change; exclude_after_next_review_at",
+      "authority_boundary": {
+        "semantic_body_owner": "MedAutoScience",
+        "opl_role": "catalog_recall_and_receipt_projection_only"
+      }
+    },
+    {
+      "surface_kind": "opl_durable_knowledge_item",
+      "version": "durable-knowledge-item.v1",
+      "knowledge_id": "medautoscience.publication-strategy-library",
+      "title": "Publication strategy patterns",
+      "layer": "agent_pack",
+      "owner": "MedAutoScience",
+      "body_ref": {
+        "kind": "repo_path",
+        "ref": "agent/knowledge/publication_strategy_library.md",
+        "sha256": "sha256:7f9b813567207691cd1b74afa1d25d907191450f4cebd6e593f9f4b0abf2ad6b"
+      },
+      "applicability": {
+        "domains": [
+          "medautoscience"
+        ],
+        "stages": [
+          "direction_and_route_selection",
+          "bounded_analysis_campaign",
+          "manuscript_authoring",
+          "review_and_quality_gate"
+        ]
+      },
+      "status": "active",
+      "reviewed_at": "2026-11-06T00:00:00+08:00",
+      "next_review_at": "2027-05-06T00:00:00+08:00",
+      "freshness_policy": "review_when_sources_or_applicability_change; exclude_after_next_review_at",
       "authority_boundary": {
         "semantic_body_owner": "MedAutoScience",
         "opl_role": "catalog_recall_and_receipt_projection_only"
       }
     }
-  ],
-  "workspace_catalog_ref": "memory/opl_durable_knowledge_catalog.json",
-  "project_catalog_ref": "memory/opl_durable_knowledge_catalog.json",
-  "dated_state_catalog_ref": "state/opl_durable_knowledge_catalog.json"
+  ]
 }

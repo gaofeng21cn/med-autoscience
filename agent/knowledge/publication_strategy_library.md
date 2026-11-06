@@ -3,17 +3,17 @@
 Status: active canonical Markdown-first Publication Strategy Memory body
 Owner: MedAutoScience
 Purpose: human-maintained Markdown-first publication strategy memory for MAS stage-led Codex execution.
-State: canonical repo source for seed cards; workspace application requires MAS owner acceptance.
-Machine boundary: this file is the human and Codex-readable strategy memory body. JSON fixtures, workspace packs, inventories, receipts, and OPL projections are indexes or generated surfaces, not the canonical prose source.
+State: versioned Agent knowledge; project-specific lessons remain in the authorized workspace.
+Machine boundary: this file is the human and Codex-readable strategy memory body. The OPL catalog, inventories, receipts, and projections are indexes or generated surfaces, not the canonical prose source.
 
 ## Reading Boundary
 
-- Lifecycle and writeback rules are owned by [Memory Policy](./publication_route_memory_policy.md). This page owns only reusable strategy cards.
+- Lifecycle and writeback rules are owned by [Memory Policy](../../docs/policies/study-workflow/publication_route_memory_policy.md). This page owns only reusable strategy cards.
 - Keep each card rich enough for Codex CLI to reason with: fit, poor fit, evidence package, analysis/display pattern, claim boundary, reviewer risks, pivot/stop rules, stage guidance, examples, and failure modes.
 - Treat cards as reference-only prompt context for stage reasoning.
 - Do not turn cards into a recipe engine, route scorer, evidence gate, fixed workflow, publication gate, route-control system, or controller decision source.
-- Each `publication_route_memory_*` heading is a card identity referenced by the seed index. Update consumers together when changing an identity; do not leave compatibility cards or duplicate bodies.
-- OPL may index, locate, project refs, and expose receipts for this memory family. OPL must not read/copy the card body, accept or reject writebacks, decide publication routes, or control MAS route execution.
+- Each `publication_route_memory_*` heading is a stable card anchor linked by the method overview. Update consumers together when changing an identity; do not leave compatibility cards or duplicate bodies.
+- OPL may index, locate, project refs, and expose receipts for this memory family. OPL binds selected body bytes as Stage context. MAS retains semantic acceptance and research-route decisions.
 - Keep JSON surfaces generated, indexed, or receipt-like unless they represent runtime truth or machine contracts.
 
 ## publication_route_memory_seed__clinical_classifier

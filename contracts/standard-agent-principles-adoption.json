@@ -68,7 +68,7 @@
         "contracts/mas-paper-study-stage-pack.json",
         "contracts/action_catalog.json",
         "contracts/artifact_locator_contract.json",
-        "contracts/memory_descriptor.json"
+        "contracts/durable_knowledge_catalog.json"
       ]
     }
   },

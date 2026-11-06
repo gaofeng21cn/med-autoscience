@@ -40,7 +40,7 @@ Only MAS reviewer/auditor or route authority can accept or reject publication-ro
 - Do not use memory as a substitute for literature search, source readiness, evidence, citation integrity, AI reviewer quality, or publication verdict.
 - Do not copy memory body into current study truth without an accept/reject record.
 - Do not treat memory locator presence as readiness.
-- Do not let OPL generated surfaces read or mutate memory body.
+- OPL may bind selected body bytes as scoped Stage context; semantic acceptance remains with MAS.
 
 ## Route Impact
 

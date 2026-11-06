@@ -19,7 +19,7 @@ MAS-local StateIndex、SQLite lifecycle、body-free adapter、inspection/replay 
 
 ## 当前入口
 
-- `contracts/memory_descriptor.json`
+- `contracts/durable_knowledge_catalog.json`
 - `contracts/state_index_kernel_adoption.json`
 - `contracts/generated_surface_handoff.json`
 - `contracts/functional_privatization_audit.json`

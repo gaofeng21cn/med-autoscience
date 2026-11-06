@@ -10,7 +10,7 @@
 | StageAttempt | 显式 consumed refs、当前工作副本、closeout 与 writeback proposal |
 | OPL projection | body-free locator、receipt、currentness 与执行关联，不拥有医学正文 |
 
-Workspace 布局和 memory locator 以当前 profile、`contracts/memory_descriptor.json` 和 workspace artifact 为准。不能从 quest-local cache 反推出共享来源，也不能把空 working set 解释为所有文献缺失。
+Workspace 布局和 memory locator 以当前 profile、`contracts/durable_knowledge_catalog.json` 和 workspace artifact 为准。不能从 quest-local cache 反推出共享来源，也不能把空 working set 解释为所有文献缺失。
 
 文献采用必须绑定来源身份、当前内容与所支撑 claim；provider API success、引用次数、ranking、cache hit 和记忆摘要都不是医学 acceptance。source retrieval 由 OPL Connect 托管，专业检索和审阅方法归 ScholarSkills，source/claim 判断归 MAS。
 

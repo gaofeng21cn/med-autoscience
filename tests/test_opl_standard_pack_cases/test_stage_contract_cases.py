@@ -322,7 +322,7 @@ def test_machine_identity_fields_match_the_framework_registry_semantics() -> Non
         "contracts/domain_route_profile.json": "domain_id",
         "contracts/foundry_agent_series.json": "domain_id",
         "contracts/generated_surface_handoff.json": "domain_id",
-        "contracts/memory_descriptor.json": "target_domain_id",
+        "contracts/durable_knowledge_catalog.json": "domain_id",
         "contracts/owner_receipt_contract.json": "domain_id",
         "contracts/pack_compiler_input.json": "domain_id",
         "contracts/private_functional_surface_policy.json": "domain_id",

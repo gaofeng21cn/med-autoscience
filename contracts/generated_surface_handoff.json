@@ -152,7 +152,7 @@
     "handoff_role": "refs_only_generated_surface_and_authority_locator_input",
     "memory_authority_ref": {
       "body_included": false,
-      "ref": "contracts/memory_descriptor.json",
+      "ref": "contracts/durable_knowledge_catalog.json",
       "role": "mas_memory_authority_locator"
     },
     "owner_receipt_authority_ref": {

@@ -12,7 +12,7 @@ Machine boundary: 本页映射 MAS 消费入口；Framework 合同和真实 cons
 | `contracts/domain_descriptor.json` | Package/domain identity、workspace binding、inventory projection | 论文库存、业务状态、study root |
 | `contracts/action_catalog.json` 与 handler registry | Stage interface 与 closed authority dispatch | 医学结果、receipt 与 forbidden-write 判断 |
 | `contracts/stage_quality_cycle_policy.json` | Attempt 角色、预算、Review protocol | rubric、finding、领域路由和 quality 判断 |
-| `contracts/memory_descriptor.json` | policy/body locator、body-free metadata、receipt refs | memory 正文、accept/reject 与研究策略 |
+| `contracts/durable_knowledge_catalog.json` | policy/body locator、body-free metadata、receipt refs | memory 正文、accept/reject 与研究策略 |
 | `contracts/runtime_detail_contribution_contract.json` | selected-work-item identity 与 activity-log 结果 | 研究 trajectory 与业务状态 |
 | `contracts/foundry_agent_series.json` | canonical policy refs、fingerprint 与领域 delta | 医学领域扩展 |
 
