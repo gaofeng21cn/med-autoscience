@@ -141,6 +141,8 @@ def _hypotheses(trajectory: dict[str, Any]) -> list[dict[str, Any]]:
             "status": node.get("status"),
             "label": node.get("label"),
             "summary": node.get("summary"),
+            "details": node.get("details", {}),
+            "source_refs": node.get("source_refs", []),
         }
         for node in nodes
         if isinstance(node, dict) and node.get("kind") == "hypothesis"
@@ -192,6 +194,7 @@ def _result(identity: dict[str, str]) -> dict[str, Any]:
         },
         "work": _work(study),
         "hypotheses": _hypotheses(trajectory),
+        "trajectory": trajectory,
         "roadmap": {
             "trajectory_revision": trajectory.get("revision"),
             "trajectory_status": trajectory.get("status"),

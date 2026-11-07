@@ -188,3 +188,19 @@ def test_owner_and_carrier_manifest_declare_one_runtime_detail_surface() -> None
         "view_id": "mas.runtime-detail",
     }
     assert owner["app_contributions"]["views"][0]["view_type"] == "activity_log"
+
+
+def test_contribution_preserves_full_owner_trajectory(tmp_path: Path) -> None:
+    root = _workspace(tmp_path)
+    study_id = "002-dm-china-us-mortality-attribution"
+    snapshot_file = root / "studies" / study_id / "artifacts/research_trajectory/snapshot.json"
+    snapshot = json.loads(snapshot_file.read_text())
+    snapshot["nodes"][0]["details"] = {"evidence_judgment": "Not established", "review_refs": ["review:1"]}
+    snapshot["nodes"][0]["source_refs"] = [{"kind": "evidence", "ref": "evidence:1"}]
+    snapshot_file.write_text(json.dumps(snapshot))
+    request = {**REQUEST_PREFIX, "input": {"work_item_identity": {
+        "agent_id": "mas", "domain_id": "medautoscience", "work_item_id": study_id,
+        "domain_work_item_id": study_id, "work_item_scope_id": "scope:fixture", "identity_state": "resolved"}}}
+    result = subprocess.run([str(PRODUCER)], input=json.dumps(request), text=True, capture_output=True,
+                            env={**os.environ, "OPL_PROFILE_WORKSPACE": str(root)}, check=True)
+    assert json.loads(result.stdout)["result"]["trajectory"] == snapshot

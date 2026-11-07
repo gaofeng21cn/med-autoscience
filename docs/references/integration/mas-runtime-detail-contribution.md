@@ -12,18 +12,19 @@ work. A next owner action is projected under `work.pending`.
 
 ## Required App contract delta
 
-The MAS contract records the consumer requirements and the remaining integration
-gap. Framework implements selection forwarding and generic result rendering;
-real Host rendering remains unverified. End-to-end acceptance must verify the
-current App consumer:
+The shared MCP App consumes the selected resolved identity under
+`input.work_item_identity`, including `agent_id`, `domain_id`, `work_item_id`,
+`domain_work_item_id`, `work_item_scope_id`, and `identity_state`. Framework
+validates selection before invocation. MAS independently rejects unresolved,
+mismatched, missing, or non-inventory identity and never selects a default study.
 
-1. Pass the selected resolved work item under `input.work_item_identity` with
-   `agent_id`, `domain_id`, `work_item_id`, `domain_work_item_id`,
-   `work_item_scope_id`, and `identity_state`.
-2. Render the admitted `activity_log` view from the producer response without
-   inferring MAS state or creating a private renderer contract.
+The `trajectory` field preserves the complete selected snapshot. Hypothesis
+summaries also retain `details` and `source_refs`. Supporting, opposing and
+inconclusive relationships, failed routes and review sources remain MAS-authored.
+The host-neutral Framework workbench renders this contract in Codex and Studio;
+Studio provides the standard DSH MCP Apps plugin and no MAS-specific renderer.
+Missing evidence stays missing; execution completion does not imply support.
 
-Framework validates selected identity before invocation. MAS independently
-rejects unresolved, mismatched, missing, or non-inventory identity and never
-falls back to a default study. Producer tests and Host CLI readback do not prove
-current App rendering, installed Package state, release, or deployment.
+Source tests and browser fixtures cover rendering, identity, source selection,
+conditional revisions and human confirmation. Installed Package currentness,
+App installation and publication require their own delivery evidence.
