@@ -84,6 +84,11 @@ EXPECTED_STANDARD_AGENT_SOURCE_FILES = frozenset(
 )
 EXPECTED_STANDARD_AGENT_INTERNAL_SOURCE_FILES = frozenset(
     {
+        "src/med_autoscience/authority_handlers/qualification_provisioning_parts/__init__.py",
+        "src/med_autoscience/authority_handlers/qualification_provisioning_parts/values.py",
+        "src/med_autoscience/authority_handlers/qualification_provisioning_parts/request.py",
+        "src/med_autoscience/authority_handlers/qualification_provisioning_parts/records.py",
+        "src/med_autoscience/authority_handlers/qualification_provisioning_parts/result.py",
         "src/med_autoscience/authority_handlers/_generation_manifest_parts/__init__.py",
         "src/med_autoscience/authority_handlers/_generation_manifest_parts/constants.py",
         "src/med_autoscience/authority_handlers/_generation_manifest_parts/currentness.py",
