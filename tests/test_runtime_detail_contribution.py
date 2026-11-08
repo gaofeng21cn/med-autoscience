@@ -204,3 +204,49 @@ def test_contribution_preserves_full_owner_trajectory(tmp_path: Path) -> None:
     result = subprocess.run([str(PRODUCER)], input=json.dumps(request), text=True, capture_output=True,
                             env={**os.environ, "OPL_PROFILE_WORKSPACE": str(root)}, check=True)
     assert json.loads(result.stdout)["result"]["trajectory"] == snapshot
+
+
+def test_current_study_progress_is_available_before_trajectory_exists(tmp_path: Path) -> None:
+    root = _workspace(tmp_path)
+    trajectory = root / "studies" / _identity()["work_item_id"] / "artifacts/research_trajectory/snapshot.json"
+    trajectory.unlink()
+    result = _run(root, _identity())
+    assert result.returncode == 0, result.stdout
+    detail = json.loads(result.stdout)["result"]
+    assert detail["phase"]["business_status"] == "delivered_paused"
+    assert detail["work"]["pending"][0]["status"] == "waiting"
+    assert detail["trajectory"] is None
+    assert detail["trajectory_status"] == "not_available"
+    assert detail["artifacts"] == []
+    assert detail["source_refs"] == ["workspace_index.json"]
+
+    trajectory.write_text("broken JSON")
+    result = _run(root, _identity())
+    assert result.returncode == 2
+    assert "unavailable or invalid" in json.loads(result.stdout)["error"]["message"]
+
+
+def test_artifacts_preserve_owner_evidence_without_claiming_acceptance(tmp_path: Path) -> None:
+    root = _workspace(tmp_path)
+    path = root / "studies" / _identity()["work_item_id"] / "artifacts/research_trajectory/snapshot.json"
+    snapshot = json.loads(path.read_text())
+    artifact = {
+        "id": "draft-manuscript",
+        "kind": "artifact",
+        "label": "Manuscript draft",
+        "status": "produced",
+        "summary": "Draft available for review",
+        "details": {"evidence_judgment": "Not assessed"},
+        "source_refs": [{"kind": "manuscript", "ref": "manuscript/draft.md"}],
+    }
+    snapshot["nodes"].append(artifact)
+    path.write_text(json.dumps(snapshot))
+    result = _run(root, _identity())
+    assert result.returncode == 0, result.stdout
+    detail = json.loads(result.stdout)["result"]
+    assert detail["artifacts"] == [{
+        "artifact_id": artifact["id"], "title": artifact["label"],
+        "status": "produced", "summary": artifact["summary"],
+        "details": artifact["details"], "source_refs": artifact["source_refs"],
+    }]
+    assert detail["trajectory"] == snapshot

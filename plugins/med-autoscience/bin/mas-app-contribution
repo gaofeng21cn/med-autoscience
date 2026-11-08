@@ -157,10 +157,14 @@ def _result(identity: dict[str, str]) -> dict[str, Any]:
         Path(str(study["canonical_study_root"]))
         / "artifacts/research_trajectory/snapshot.json"
     )
-    trajectory = _load_json(root / trajectory_ref, str(trajectory_ref))
-    if trajectory.get("study_id") != identity["work_item_id"]:
+    trajectory_path = root / trajectory_ref
+    trajectory = (
+        _load_json(trajectory_path, str(trajectory_ref))
+        if trajectory_path.exists() else None
+    )
+    if trajectory is not None and trajectory.get("study_id") != identity["work_item_id"]:
         raise ContributionError("research trajectory study_id does not match work_item_id")
-    if trajectory.get("study_ref") != {
+    if trajectory is not None and trajectory.get("study_ref") != {
         "kind": "mas_study",
         "ref": f"mas-study:{identity['work_item_id']}",
     }:
@@ -168,7 +172,10 @@ def _result(identity: dict[str, str]) -> dict[str, Any]:
 
     next_action = study.get("next_action")
     current_owner = next_action.get("owner") if isinstance(next_action, dict) else None
-    summary = _record(trajectory.get("summary"), "research trajectory summary")
+    summary = (
+        _record(trajectory.get("summary"), "research trajectory summary")
+        if trajectory is not None else {}
+    )
     return {
         "surface_kind": "mas_runtime_detail_contribution",
         "version": "mas-runtime-detail-contribution.v1",
@@ -193,19 +200,32 @@ def _result(identity: dict[str, str]) -> dict[str, Any]:
             "stage_status": study.get("current_stage_status"),
         },
         "work": _work(study),
-        "hypotheses": _hypotheses(trajectory),
+        "hypotheses": _hypotheses(trajectory) if trajectory is not None else [],
         "trajectory": trajectory,
+        "trajectory_status": "available" if trajectory is not None else "not_available",
+        "artifacts": [
+            {
+                "artifact_id": node["id"],
+                "title": node.get("label"),
+                "status": node.get("status"),
+                "summary": node.get("summary"),
+                "details": node.get("details", {}),
+                "source_refs": node.get("source_refs", []),
+            }
+            for node in (trajectory or {}).get("nodes", [])
+            if isinstance(node, dict) and node.get("kind") == "artifact" and node.get("id")
+        ],
         "roadmap": {
-            "trajectory_revision": trajectory.get("revision"),
-            "trajectory_status": trajectory.get("status"),
-            "current_focus": trajectory.get("current_focus"),
-            "active_branch": trajectory.get("active_branch"),
+            "trajectory_revision": (trajectory or {}).get("revision"),
+            "trajectory_status": (trajectory or {}).get("status"),
+            "current_focus": (trajectory or {}).get("current_focus"),
+            "active_branch": (trajectory or {}).get("active_branch"),
             "current_judgment": summary.get("current_judgment"),
             "next_research_step": summary.get("next_research_step"),
         },
         "source_refs": [
             "workspace_index.json",
-            trajectory_ref.as_posix(),
+            *([trajectory_ref.as_posix()] if trajectory is not None else []),
         ],
         "authority_boundary": {
             "projection_only": True,

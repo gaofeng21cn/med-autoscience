@@ -10,13 +10,24 @@ Paused or delivered studies have empty `work.active` and `work.queued` arrays.
 Scientific trajectory can retain an active branch; that does not make it runtime
 work. A next owner action is projected under `work.pending`.
 
-## Required App contract delta
+## Current study and usable output
 
 The shared MCP App consumes the selected resolved identity under
 `input.work_item_identity`, including `agent_id`, `domain_id`, `work_item_id`,
 `domain_work_item_id`, `work_item_scope_id`, and `identity_state`. Framework
 validates selection before invocation. MAS independently rejects unresolved,
 mismatched, missing, or non-inventory identity and never selects a default study.
+The shared host supplies this identity and the registered workspace; the user does
+not enter status, trajectory or manifest paths. Starting or continuing research
+uses the existing Framework task actions rather than a second MAS execution loop.
+
+Study progress remains available before the first research trajectory is written.
+A missing snapshot is reported as `trajectory_status=not_available`; an invalid
+or mismatched snapshot remains an error. The read-only `artifacts` collection is
+projected directly from owner-authored trajectory nodes of kind `artifact`,
+preserving their labels, status, details and source references. It does not scan
+workspace directories, select a latest file or promote an output to accepted
+research or publication quality.
 
 The `trajectory` field preserves the complete selected snapshot. Hypothesis
 summaries also retain `details` and `source_refs`. Supporting, opposing and

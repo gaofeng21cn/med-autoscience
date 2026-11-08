@@ -16,6 +16,12 @@
     "trajectory_ref_template": "studies/{work_item_id}/artifacts/research_trajectory/snapshot.json",
     "writes": false
   },
+  "partial_progress": {
+    "missing_trajectory": "return_workspace_progress_with_not_available_trajectory_status",
+    "invalid_or_mismatched_trajectory": "error",
+    "artifact_source": "owner_trajectory_nodes_of_kind_artifact",
+    "artifact_directory_scan": false
+  },
   "required_host_input": {
     "field": "input.work_item_identity",
     "required_fields": [
@@ -40,6 +46,8 @@
     "hypotheses",
     "roadmap",
     "trajectory",
+    "trajectory_status",
+    "artifacts",
     "source_refs",
     "authority_boundary"
   ],
@@ -55,7 +63,7 @@
     "app_runtime_detail_selected_work_item_identity_injected": true,
     "app_generic_declarative_view_result_renderer_available": true,
     "required_owner": "one-person-lab-app",
-    "required_delta_ref": "docs/references/integration/mas-runtime-detail-contribution.md#required-app-contract-delta"
+    "required_delta_ref": "docs/references/integration/mas-runtime-detail-contribution.md#current-study-and-usable-output"
   },
   "authority_boundary": {
     "projection_is_authority": false,
