@@ -1,0 +1,76 @@
+# 不可变约束
+
+Owner: `MedAutoScience`
+Purpose: `project_invariants`
+State: `active_current_truth`
+Machine boundary: 本文是人读约束；机器事实以 contracts、source、runtime durable surfaces、artifact 与 owner receipts 为准。
+
+## 身份与 owner
+
+- canonical agent/package id 是 `mas`；machine `domain_id` / `target_domain_id` 是 `medautoscience`；repo/package/plugin locator 是 `med-autoscience`。
+- MAS 是 `Declarative Medical Research Pack + minimal registry-bound authority functions`；OPL 持有 generated/hosted platform surfaces。
+- OPL 不得写 MAS study truth、quality/publication verdict、canonical artifact body、memory body 或 owner receipt。
+- MAS 不得重新拥有 generic runtime、queue、attempt ledger、StateIndex、lifecycle/storage、observability、installer、CLI/MCP transport 或 workbench shell。
+- MAS 只输出 typed runtime request / route handoff并消费 OPL host 注入的 canonical payload；不得解析 OPL binary、spawn CLI、主动 probe runtime 或把缺失 host receipt 解释为 submission success。
+
+## Pack 与 generated surfaces
+
+- `agent/` 是 canonical rich pack source；plugin carrier mirror 是分发要求，不是重复实现。
+- MAS 是 `OPL Package(kind=agent)`。Package identity、capabilities、dependency identity、business work item、Temporal refs 与 typed views 必须 executor-neutral；Codex Plugin 只是 carrier projection，Codex CLI 只是当前默认 executor。carrier/executor 切换不得改变 MAS identity、要求重装完整 Package 或丢失业务状态。
+- V2 action catalog 当前包含六个公开 Stage action，以及 qualification work-item provisioning、study initialization、study lifecycle reactivation、candidate admission、build-dependency currentness、paper mission 六个无用户 surface 的 host-only authority actions。closed handler registry 绑定这六个 action 并另绑定 self-evolution closeout，共七个 callable。普通 interface 从 catalog/schema 生成，不在 MAS 新增手写 parser、JSON-RPC glue 或 duplicate descriptor。
+- V2 generated/default interface 只绑定 Stage manifest 与 closed handler registry。旧 `domain_entry` 及其 status/read-model/queue caller 已物理退役，不得以 compatibility、diagnostic 或 test fixture 名义恢复为 active source。
+- Foundry 系列 policy 归唯一 OPL Framework；MAS 只保留 canonical refs、policy fingerprint、domain delta 与 false-authority envelope，不复制 policy body，也不安装 Framework policy carrier。
+- 环境依赖在 `contracts/runtime_environment_requirements.json` 声明；prepare/run 归 OPL。普通分析默认仅绑定 Rscript，外部包由具体任务声明；绘图消费 Scholar 模板的 `requirement_profile_ids` 并显式选择完整并集。临时任务以缓存复用和低启动开销为先，使用 `opl env run` 自动准备/复用 uv、renv 环境；结果绑定 OPL 提供的执行 ID 与环境清单引用，运行记录引用已生成的环境版本清单，不要求每次完整冻结科研输入。MAS 可保留 `mas_provisioning_allowed=false` 的只读环境检查/投影，但不在 import、workspace 或 installer 中安装、修复环境，也不授权 ready。
+- `mas-scholar-skills` 是 MAS 硬依赖，但不是第六个 Agent，也不取得 MAS domain authority。普通 composition 只检查 identity presence 与所需 capability callability；缺失或不可调用时 MAS `operational_ready=false` 并进入托管安装/修复，不得降级为 optional，也不得阻断无关 Package。跨包版本范围、ABI、lock、payload、digest、原子 closure、共享 Release Set 与跨包求解不得成为普通 readiness 门。
+- MAS owner 独立发布完整 Package bytes 到自身 GHCR `latest-stable`。Exact ref/digest 只服务单次 release artifact、传输完整性与离线/Full/集成测试/QA 快照；Codex Plugin-only 安装和共享 Release Set 都不能单独证明完整 Package installed/current。
+
+## Authority
+
+- 领域 route 语义只由 decisive Codex Attempt 决定；OPL StageRun controller 只校验并物化 transition。Formal Review StageRun 的 producer/repairer/`same_stage_repair_required` reviewer 不得获得终局 route authority；primary-only StageRun 的 producer可以成为 decisive Attempt；`cross_stage_route_back_before_budget_exhaustion` reviewer/re-reviewer 只在最窄 canonical owner 是另一个 declared Stage 时成为终局 decisive Attempt。
+- OPL transport/readback 只有传输权；同 identity 的 MAS owner consumption 才能解释 domain result。
+- AI-first quality gate 必须消费独立 reviewer/auditor invocation 与 receipt；executor 不得自审并关闭质量门。
+- publication、submission、artifact mutation、memory accept/reject 与 source readiness 必须由对应 MAS owner surface裁决。
+- refs-only projection、schema、validator、test、workbench 可见性和 inventory presence 都不等于 authority verdict。
+
+## Stage prompt 与专业顺序
+
+- Stage 主提示词只承载本 Stage 的目标、好结果、关键专业依赖、authority 边界与 handoff 语义；专业方法细节归 `agent/skills/`、ScholarSkills 与 quality gate，工具能力归 affordance catalog。
+- Codex 可自主选择工具、迭代、替代和安全并行，但不得颠倒会破坏 claim/estimand、source 或 failed-path provenance、fresh review/artifact proof、owner/human authority 或不可逆动作安全性的依赖顺序。
+- 新外部 Skill 只用于明确或已证明的能力缺口；sync 前必须检查 identity、provenance、permissions、data/credential scope 与 compatibility。已安装且已检查的兼容 Skill 可直接复用，不要求重复固定搜索流程。
+- 可消费 delta 在质量预算耗尽时以 `completed_with_quality_debt` 前进；成功物化的 no-output/failure diagnostic 本身可作为进展 artifact，字面上仍无任何可消费 artifact 时则硬停止。quality debt 阻断 quality/publication/export/submission-ready claim，不阻断普通 Stage transition。只有 executor unavailable、真实 authority/safety/identity/currentness/credential/irreversible/human decision 或零可消费 artifact 才成为硬 blocker。
+
+## 退役与兼容
+
+本节持有 MAS 已退役 surface 的通用 no-resurrection 清单。主题文档（plugin carrier、workspace 接入、runtime 边界等）可以保留本主题实际需要的旧名称与禁止动作，但不复制这份通用清单。
+
+- 已被 OPL 或标准工具替代的 MAS-local wrapper、facade、installer、workspace initializer、bootstrap shell、runtime shell/supervision、workbench shell 和旧 next-action producer 直接退役；不新增 compatibility shim、alias 或聚合测试。
+- repo-local CLI 与 MCP transport（`medautosci`、`medautosci-mcp`、MCP `init_workspace`、CLI `init-workspace`/`workspace init|bootstrap`、`ops/medautoscience/bin/*`、`storage-audit` wrapper）不再是执行入口，只保留旧 workspace 的 provenance/retirement 说明。
+- 旧 provider admission、current work unit、PaperRecovery、domain-action request、domain-entry dispatch、direct file-edit command，以及旧 physical route、domain-transition、NextAction、owner-route wrapper 与 queue hydration 只允许 tombstone/provenance/no-resurrection guard；不得恢复 current caller，也不形成第二 Stage graph。
+- MDS/DeepScientist 只作 provenance、explicit archive import、backend audit、upstream learning 与 parity oracle。
+- 已退役 executor 只保留来源记录；新增 executor 必须通过当前 Framework adapter 合同和独立验证，不恢复历史 proof lane。
+
+## Durable truth
+
+- study/publication/display domain truth 归 MAS declarative policy、authority result 与 canonical artifact；runtime/transition truth 归 OPL durable surface；docs 只解释和导航。
+- SQLite/index/read model 是可重建投影，不得替代 canonical files、owner receipts 或 artifact authority。
+- status/workbench 只能读取 body-free refs、receipts、blockers 与 diagnostics，不得授权执行或变更 artifact。
+- workspace 不依赖 MAS checkout 内 `.venv`；环境由 OPL substrate 和标准 package tooling 准备。
+
+## External learning
+
+- 外部框架默认是 pattern source/provenance。只有进入 MAS owner surface 或 OPL callable/generated surface并有 allowed/forbidden authority evidence，才可写成 landed。
+- Scientific Capability Registry 与 advisory workers 是 refs-only/fail-open support，不是 admission layer、第二 route table、quality owner、artifact authority 或 publication gate。
+
+## Evidence
+
+- repo/source/control-plane 完成由 diff、contract/schema、focused tests 与 no-active-caller proof 支持。
+- live/runtime/readiness claim 必须有 fresh OPL readback、MAS owner receipt、stable typed blocker、human gate、independent reviewer/auditor receipt或真实 artifact semantic delta。
+- docs、tests、descriptor ready、queue empty、projection clean、candidate package 和 dry-run 不得升级为 paper progress、publication ready、runtime ready、domain ready 或 production ready。
+- Live evidence 可以后置，但后置不能被解释为已经 ready，也不能反向恢复已退役的 MAS private platform。
+
+## 工程约束
+
+- 删除优先；不为已退役系统再建审计、投影和专测体系。
+- source、tests 和文档按真实职责拆分；长度只提示复核，不代替语义判断。
+- 测试使用 pytest 原生递归收集，不恢复 wildcard aggregate/re-export plumbing。
+- Python packaging 信任标准安装/OPL workspace override，不在 import 时改写 `sys.path`、`__path__` 或 `sys.modules`。

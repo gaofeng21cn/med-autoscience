@@ -1,0 +1,87 @@
+{
+  "surface_kind": "opl_domain_private_functional_surface_admission_policy",
+  "schema_version": 2,
+  "domain_id": "medautoscience",
+  "default_posture": "forbidden",
+  "allowed_domain_surfaces": [
+    "declarative_medical_research_pack",
+    "registry_bound_paper_mission_authority_function",
+    "registry_bound_qualification_work_item_provisioning_authority_function",
+    "registry_bound_study_lifecycle_reactivation_authority_function",
+    "package_bundled_domain_styles"
+  ],
+  "allowed_developer_surfaces": [
+    "developer_proof",
+    "repo_verification"
+  ],
+  "forbidden_generic_owner_roles": [
+    "generic_scheduler_owner",
+    "generic_runner_owner",
+    "generic_attempt_ledger_owner",
+    "generic_session_store_owner",
+    "generic_workspace_source_intake_owner",
+    "generic_artifact_lifecycle_owner",
+    "generic_review_repair_transport_owner",
+    "generic_cli_mcp_product_wrapper_owner",
+    "generic_status_workbench_owner",
+    "generic_domain_entry_runtime_owner",
+    "generic_provider_transport_owner",
+    "generic_package_provisioner_owner",
+    "generated_surface_owner_in_domain_repo"
+  ],
+  "no_second_control_plane_gate": {
+    "repo_local_cli_allowed": false,
+    "repo_local_mcp_allowed": false,
+    "repo_local_domain_entry_runtime_allowed": false,
+    "repo_local_runtime_allowed": false,
+    "repo_local_scheduler_allowed": false,
+    "repo_local_session_store_allowed": false,
+    "repo_local_provider_transport_allowed": false,
+    "repo_local_package_provisioner_allowed": false,
+    "repo_local_workbench_allowed": false,
+    "compatibility_alias_allowed": false,
+    "fallback_runtime_allowed": false
+  },
+  "source_morphology": {
+    "allowed_python_roots": [
+      "src/med_autoscience/authority_handlers/"
+    ],
+    "allowed_package_data_roots": [
+      "src/med_autoscience/styles/"
+    ],
+    "package_initializers_are_declaration_only": true,
+    "all_other_med_autoscience_python_surfaces_forbidden": true,
+    "verification_ref": "scripts/repo_hygiene_audit.py"
+  },
+  "decisive_review_boundary": {
+    "criteria_owner": "MedAutoScience",
+    "criteria_refs": [
+      "agent/quality_gates/",
+      "agent/knowledge/",
+      "agent/stages/manifest.json",
+      "contracts/stage_quality_cycle_policy.json"
+    ],
+    "decision_roles": [
+      "reviewer",
+      "re_reviewer"
+    ],
+    "attempt_outcome_path": "route_impact.stage_quality_cycle.outcome",
+    "review_receipt_materializer_owner": "opl_stage_run_controller",
+    "repository_local_callable_validator_allowed": false
+  },
+  "retirement_policy": {
+    "active_caller_alone_retains_surface": false,
+    "compatibility_shim_allowed": false,
+    "history_or_provenance_can_restore_runtime": false,
+    "retired_surface_provenance_ref": "docs/history/standard-agent-private-control-plane-retirement.md"
+  },
+  "authority_boundary": {
+    "policy_can_write_domain_truth": false,
+    "policy_can_write_memory_body": false,
+    "policy_can_mutate_domain_artifact_body": false,
+    "policy_can_sign_owner_receipt": false,
+    "opl_can_write_domain_truth": false,
+    "opl_can_authorize_quality_or_export": false,
+    "provider_completion_is_domain_completion": false
+  }
+}

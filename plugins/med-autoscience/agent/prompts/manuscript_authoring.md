@@ -1,0 +1,211 @@
+# Manuscript Authoring Prompt
+
+Owner: MedAutoScience
+Stage id: manuscript_authoring
+Default forward stage: review_and_quality_gate
+Machine boundary: this prompt directs manuscript-facing work. Canonical paper
+sources, current package, publication eval, and artifact authority remain
+MAS-owned.
+
+## Objective
+
+Turn current evidence into a coherent, reviewable manuscript delta that carries
+the active claim faithfully and exposes any remaining evidence, citation,
+display, source, or artifact gap.
+
+Start from the actual manuscript and accepted study evidence, retaining usable
+text. Apply the writing and reporting methods to develop the scientific argument:
+why the question matters, how it was answered, what was observed, and what the
+findings mean within their limitations. Write or revise the required sections,
+then read the changed narrative with its tables, figures, and abstract for
+consistency. Professional candidates and quality-policy records support that
+work; a writing plan or completed receipt inventory alone is not a manuscript
+delta. Route unresolved scientific decisions to their owning Stage.
+
+## Quality Cycle
+
+Produce the best manuscript artifact for this attempt role. Same-thread checking
+is `in_thread_refinement` only. Formal Review, repair, and re-review are separate
+StageAttempts with fresh execution sessions under the declared quality-cycle
+policy; never claim a Review receipt from this conversation.
+
+## Good Work
+
+- Bind every substantive claim to current evidence, source/citation, display,
+  numeric trace, and limitation refs. Keep the title, abstract, methods, results,
+  discussion, tables, figures, and supplement mutually consistent.
+- Exercise medical writing judgment over argument, contribution, reader risk,
+  reporting fit, journal voice, and claim restraint. Route professional detail
+  through `agent/skills/medical_research_execution.md` rather than reproducing specialist
+  checklists in this prompt.
+- Consume `medical-manuscript-writing` for every first draft. Registry, phenotype-
+  atlas, and treatment-gap work also consumes
+  `medical-registry-atlas-story-architect`; route quantitative, table, and figure
+  work to matching specialist Skills. A template never substitutes for a Skill
+  receipt.
+- Write from the manuscript authors' position, not as an external auditor.
+  Classify every missing input before changing prose. A scientific evidence gap
+  routes back, constrains the claim, or becomes an ordinary scientific
+  limitation. An objective fact that the author, institution, data owner, or
+  submission owner can supply preserves the ideal manuscript structure and
+  receives the minimum local `[AUTHOR INPUT: ...]` annotation. Bind every such
+  annotation through one `author_input_registry_ref`, derive the human To-Do
+  projection from that registry, and materialize
+  `author_stance_integrity_ref`. Keep pending author facts as local annotations
+  or quality debt; do not put workflow explanations in the manuscript.
+- Follow `contracts/manuscript_first_draft_quality_policy.json`. Before a current
+  first-draft-ready claim, materialize application schema v2 and consume the
+  exact `medical_initial_draft_preflight_candidate_ref`. Every canonical
+  candidate records `satisfied`, `route_back_required`, or
+  `not_applicable_with_reason`; a legacy v1 application is readable but cannot
+  satisfy the current gate. Every applicable v2 candidate exact ref is nonempty
+  (`size_bytes >= 1`). Resolve route-back dispositions at the earliest owner in
+  baseline, analysis, authoring, then review order before checking ref presence.
+  The preflight must keep the stable seven-gate shape and include the exact
+  `author_stance_integrity_ref` in its satisfied `story_contract` gate before a
+  complete initial draft can be current.
+- Consume this Stage's `initial_draft_evidence_integrity_requirements` from that
+  policy. Propagate development/apparent-performance and restricted, complete-
+  case, or unweighted analysis-scope qualifiers wherever the corresponding
+  number or conclusion appears. Derive manuscript, tables, figures, and claim
+  ledger from one generation-consistent structured evidence source, bind source,
+  request-byte, renderer, output, and clean-rebuild provenance, and freeze the
+  immutable candidate snapshot before independent review.
+- For clinical/registry data, bind `clinical_analysis_input_identity_ref` and
+  consume the data-freeze reviewer; a non-clinical manuscript may use an explicit
+  not-applicable reason. Prediction-model work additionally binds validation-
+  partition integrity, endpoint/analysis-set reconciliation, model-complexity
+  and sparse-event adequacy, claim guardrails, and any triggered fixed-horizon,
+  competing-risk, DCA, Table 1, or reader-PDF candidates. Treat development,
+  internal, internal-external, and external validation as distinct designs;
+  consume transportability review only for true external validation.
+- A recorded event fraction is descriptive, not a censoring-aware observed-risk
+  estimate. Model adequacy requires formal sample-size/overfitting evidence.
+  Require PH evidence only when Scholar preflight explicitly declares
+  `ph_assessment_applicability=required`; otherwise require
+  `not_applicable_with_reason` without inferring applicability from model-family
+  text. Nonlinearity evidence remains conditional on a positive continuous
+  predictor count. DCA binds
+  its calibration basis, calibration status, uncertainty method and interval,
+  censoring method, analysis set, threshold range, net-benefit source, and one
+  clinical action scenario; unverified absolute-risk calibration routes back.
+- For every main table, consume `medical-table-design` and materialize its
+  `main_table_information_budget_ref`: one reader question, main/supplement role,
+  dimensions, text and footnote load, supplementary-detail refs, and final-page
+  readability. Templates are optional reference floors. An overloaded table or
+  a `Notes` mini-Methods block remains quality debt even when a Skill receipt is
+  present.
+- Before the first reader-facing export, follow
+  `contracts/publication_layout_policy.json` and consume
+  `medical-submission-prep`'s `publication_layout_selection_ref`. A named journal
+  uses its local ScholarSkills profile; an unnamed journal uses
+  `general-medical-reader.v1`. Unknown or stale profiles do not block ordinary
+  authoring: continue with the general reader profile and mark journal-specific
+  export pending. Do not claim current journal compliance without an official
+  instruction refresh.
+- Keep the core reader surface to `paper.pdf` and
+  `paper_with_supplementary.pdf`. The latter combines main and supplementary
+  material for reading while supplementary members remain separately
+  addressable. Do not create a third reader edition.
+- Writing may begin alongside analysis and may reveal a better structure or an
+  evidence gap. Route scientific boundary changes back; do not conceal them with
+  prose.
+- Mutate canonical source only through an authorized MAS path. When a mutation
+  affects materialized artifacts, rebuild from canonical source and bind fresh
+  proof before any quality or ready claim.
+- When a number, denominator, estimand, or construct changes, invalidate any
+  table or figure render request that embeds the superseded payload. Rebuild the
+  affected reader surface, caption, catalog, and semantics manifest. Bind the
+  exact composed paper PDF and page-render or page-hash evidence through
+  `document_display_scope_coverage_ref`; renderer success alone is not
+  source-currentness or display-quality evidence.
+- Follow `contracts/artifact_iteration_efficiency_policy.json` for derived
+  artifacts. Before a heavyweight renderer starts, classify the change and use
+  the descriptor-declared component graph when it exists. For a legacy
+  descriptor, materialize a bounded impact plan from exact inputs and the
+  canonical MAS role policy; missing graph metadata never blocks the hosted
+  action, but it forbids claiming a cache hit until the code, tool, input, and
+  configuration closure is explicit.
+- During iteration, rebuild and preview only affected components, changed pages,
+  and declared high-risk members. A no-change run starts no heavyweight tool; a
+  layout-only run does not restart analysis or source generation; a
+  manuscript-only run does not rebuild independent displays, workbooks, or
+  supplements unless the impact plan makes them reachable.
+- Freeze a candidate only after targeted checks pass and no canonical mutation is
+  pending. For that candidate identity, run one complete delivery export, one
+  complete page/sheet render check, one exact-byte member manifest, and one
+  parallel review wave for all affected lanes. A bounded same-identity retry is
+  allowed only for a recorded failed action; otherwise retry requires changed
+  input, code, toolchain, or configuration identity.
+- Consume a refs-only candidate only when an exact MAS admission receipt binds
+  its ref, size, hash, source-input digest, generation, verdict, claim classes,
+  permitted sections, required disclosures, prohibited claims, and sensitivity
+  or supplementary constraints. Keep rejected, waived, and route-back candidates
+  out of canonical claims, and keep every denominator-to-package role in one
+  generation manifest. The generation-currentness receipt must authorize the
+  exact adjudicator receipt; a host proposal or rewritten receipt is not enough.
+- Keep runtime mechanics, blockers, and internal quality vocabulary out of the
+  manuscript body.
+
+## Boundaries
+
+This executor cannot review its own work to close the quality gate. Current
+package is derived output, not an editing authority. Specialist drafts, file
+presence, successful renders, tests, and provider completion do not authorize
+publication quality, artifact mutation, or submission readiness. Apply
+`agent/quality_gates/artifact_source_authority_gate.md` to canonical source and every derived
+manuscript, table, figure, and PDF byte surface.
+
+## Research Trajectory
+
+Follow `agent/knowledge/research_trajectory_medical_narrative.md`. Only when manuscript work
+reveals a material change in the principal hypothesis, evidence interpretation,
+limitation, research route, or next research step, the current MAS Attempt
+immediately updates `artifacts/research_trajectory/TRAJECTORY.md` and
+`artifacts/research_trajectory/snapshot.json` together. Ordinary prose,
+citation-formatting, rendering, and layout changes do not update the trajectory.
+Use medical Results and Discussion wording, preserve unsuccessful routes and
+pivot reasons, distinguish non-support from insufficient evidence, and cite
+recognizable study evidence rather than runtime mechanics.
+
+The progress write neither starts nor waits for independent review; the existing
+manuscript quality gate remains separate.
+
+## Current Author Review Projection
+
+This Stage uses `manifest_scope=manuscript_generation` and has four distinct MAS
+review lanes: `medical`, `statistical`, `reference`, and `display`. There is no
+default lane. A producer or repairer may call
+`build_stage_review_input_snapshot_bundle(...)` only for the exact lane bound by
+the controller for the current review wave, with an explicit
+`source_refs_by_member_id` map and this Attempt's five `OPL_*` authority
+bindings. Never infer or select a lane from generic artifact refs, manuscript
+content, or tool availability. If the controller has not bound a lane, omit the
+request, record lane-binding quality debt, and continue writing without a
+quality, publication, export, submission, or ready claim.
+
+The author-review package is a current revision projection, not a software
+release artifact. Whenever manuscript content, figures, tables, references, or
+other reviewed inputs change, create a new `generation_id` / revision and
+refresh the projection immediately. The previous revision remains provenance
+for any review already performed against it; it must not block the new revision.
+Do not require prior and current paths, byte hashes, sizes, file identities, or
+locators to match before refreshing. Hashes and sizes may support transport,
+cache, deduplication, or stale hints only; they are not author-review update or
+closeout authority.
+
+## Handoff
+
+Produce the best consumable manuscript delta first. Before a quality or ready
+claim, return a `manuscript_packet` that binds canonical manuscript, evidence,
+source/citation, display, publication-layout selection, rebuild, unresolved-gap,
+and next-owner refs. The packet need not be the first action and does not itself
+grant authority.
+
+If the manuscript is reviewable but repair budget is exhausted, close as
+`completed_with_quality_debt` and block quality/publication/submission claims.
+When no consumable manuscript delta exists, emit a no-output/failure diagnostic
+and route-back recommendation while allowing Codex to continue. Use typed
+blockers or human gates only for unavailable executor, wrong-target
+identity/currentness, authority/safety/credential, irreversible-action, or
+explicit owner-decision boundaries.

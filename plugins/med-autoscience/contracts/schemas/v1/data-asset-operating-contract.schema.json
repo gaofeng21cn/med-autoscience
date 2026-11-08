@@ -1,0 +1,88 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "contracts/schemas/v1/data-asset-operating-contract.schema.json",
+  "title": "MAS Data Asset Operating Contract",
+  "type": "object",
+  "required": [
+    "surface_kind",
+    "version",
+    "owner",
+    "state",
+    "purpose",
+    "machine_boundary",
+    "planes",
+    "opl_substrate_boundary",
+    "runtime_retention_boundary",
+    "sqlite_compact_accounting",
+    "forbidden_global_claims"
+  ],
+  "properties": {
+    "surface_kind": {
+      "const": "mas_data_asset_operating_contract"
+    },
+    "version": {
+      "type": "string"
+    },
+    "owner": {
+      "const": "MedAutoScience"
+    },
+    "state": {
+      "const": "active_contract"
+    },
+    "purpose": {
+      "type": "string"
+    },
+    "machine_boundary": {
+      "type": "string"
+    },
+    "planes": {
+      "type": "object",
+      "required": [
+        "body",
+        "contract",
+        "registry_lineage",
+        "study_binding"
+      ]
+    },
+    "opl_substrate_boundary": {
+      "type": "object",
+      "required": [
+        "opl_allowed_roles",
+        "opl_forbidden_roles",
+        "mas_retained_authority",
+        "substrate_can_store_dataset_body",
+        "substrate_can_redefine_data_asset_authority"
+      ]
+    },
+    "runtime_retention_boundary": {
+      "type": "object",
+      "required": [
+        "dataset_body_plane_ref",
+        "dataset_body_is_runtime_residue",
+        "runtime_storage_retention_may_cleanup_dataset_body",
+        "payload_externalization_may_move_dataset_body",
+        "restore_proof_compaction_may_compact_dataset_body"
+      ]
+    },
+    "sqlite_compact_accounting": {
+      "type": "object",
+      "required": [
+        "role",
+        "generic_sqlite_compact_can_index_refs",
+        "generic_sqlite_compact_can_compact_dataset_body",
+        "generic_sqlite_compact_can_store_dataset_body",
+        "allowed_sqlite_payload_roles",
+        "forbidden_sqlite_payloads",
+        "accounting_ledgers"
+      ]
+    },
+    "forbidden_global_claims": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "minItems": 1
+    }
+  },
+  "additionalProperties": true
+}

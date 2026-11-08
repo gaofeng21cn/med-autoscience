@@ -1,0 +1,11 @@
+{
+  "surface_kind": "mas_live_runtime_evidence_rollup_redirect",
+  "version": "mas-live-runtime-evidence-rollup-redirect.v2",
+  "state": "retired_redirect",
+  "replacement_ref": "opl:runtime-evidence-readback",
+  "mas_live_work_order_generation": "retired",
+  "mas_live_evidence_intake": "retired",
+  "completion_claim_allowed": false,
+  "live_runtime_readiness_claim_allowed": false,
+  "physical_delete_allowed": false
+}

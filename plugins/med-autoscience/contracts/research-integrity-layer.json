@@ -1,0 +1,108 @@
+{
+  "surface_kind": "mas_research_integrity_layer",
+  "version": "mas-research-integrity-layer.v2",
+  "schema_version": 2,
+  "owner": "MedAutoScience",
+  "state": "declarative_domain_quality_contract",
+  "purpose": "Declare the medical reference, claim-support, and manuscript-consistency obligations consumed by independent Review without embedding provider transport or a private validator runtime.",
+  "provider_lookup_boundary": {
+    "owner": "OPL Connect",
+    "request_action_id": "opl_connect_reference_verification",
+    "receipt_surface_kind": "opl_connect_reference_verification_receipt",
+    "receipt_role": "read_only_provider_evidence_candidate",
+    "required_receipt_fields": [
+      "surface_kind",
+      "request_id",
+      "provider_id",
+      "source_ref",
+      "content_sha256",
+      "observed_at",
+      "provider_status"
+    ],
+    "mas_role": "consume_exact_receipt_refs_and_apply_medical_judgment_in_independent_review",
+    "missing_receipt_effect": "return_request_only_provider_resolution_action",
+    "mas_can_invoke_provider": false,
+    "mas_can_persist_provider_transport_receipt": false,
+    "provider_receipt_is_reference_authenticity_verdict": false,
+    "provider_receipt_is_publication_or_owner_receipt": false
+  },
+  "quality_obligations": [
+    {
+      "obligation_id": "reference_authenticity",
+      "required_evidence_refs": [
+        "provider_receipt_refs",
+        "canonical_identifier_refs",
+        "source_refs"
+      ],
+      "judgment_owner": "independent_reviewer_or_re_reviewer"
+    },
+    {
+      "obligation_id": "claim_citation_support",
+      "required_evidence_refs": [
+        "claim_map_ref",
+        "evidence_ledger_ref",
+        "citation_support_ref"
+      ],
+      "judgment_owner": "independent_reviewer_or_re_reviewer"
+    },
+    {
+      "obligation_id": "manuscript_consistency",
+      "required_evidence_refs": [
+        "reviewed_artifact_ref",
+        "analysis_result_refs",
+        "table_and_figure_refs"
+      ],
+      "judgment_owner": "independent_reviewer_or_re_reviewer"
+    }
+  ],
+  "stage_hook_obligation": {
+    "contract_ref": "contracts/research-integrity-layer.json#/stage_hook_obligation",
+    "target_stage_ids": [
+      "review_and_quality_gate",
+      "finalize_and_publication_handoff"
+    ],
+    "stage_policy_ref": "contracts/stage_quality_cycle_policy.json",
+    "hook_role": "required_domain_quality_input",
+    "hook_is_private_runtime": false
+  },
+  "stage_launch_required_input": {
+    "provider_resolution_action": "opl_connect_reference_verification",
+    "required_gate_input_ids": [
+      "reference_authenticity",
+      "claim_citation_support",
+      "manuscript_consistency"
+    ],
+    "required_before_publication_or_submission_claim": true,
+    "missing_input_blocks_ordinary_stage_progress": false,
+    "missing_input_blocks_quality_publication_or_submission_claim": true
+  },
+  "owner_split": {
+    "opl_connect_owns": [
+      "provider_invocation",
+      "credential_scope",
+      "retry_and_cache",
+      "provider_receipt_transport"
+    ],
+    "mas_owns": [
+      "medical_reference_interpretation",
+      "claim_support_policy",
+      "manuscript_consistency_policy",
+      "publication_quality_consumption"
+    ],
+    "independent_review_owns": [
+      "quality_outcome",
+      "finding_classification",
+      "repair_or_route_recommendation"
+    ]
+  },
+  "authority_boundary": {
+    "contract_can_create_quality_verdict": false,
+    "contract_can_create_owner_receipt": false,
+    "contract_can_create_typed_blocker": false,
+    "contract_can_create_human_gate": false,
+    "opl_can_interpret_medical_reference_quality": false,
+    "mas_can_own_provider_transport": false,
+    "mas_can_write_runtime_queue_or_attempt": false,
+    "provider_receipt_can_authorize_publication_or_submission": false
+  }
+}

@@ -20,6 +20,7 @@ if [[ ! -f "${OPL_FRAMEWORK_PYTHON_ROOT}/opl_framework/exact_refs.py" ]]; then
   exit 1
 fi
 export PYTHONPATH="${repo_root}/src:${OPL_FRAMEWORK_PYTHON_ROOT}"
+python3 scripts/materialize_plugin_carrier.py --check
 git ls-files -z | python3 scripts/repo_hygiene_audit.py
 
 if git grep -n -I -E '^(<<<<<<< |=======|>>>>>>> |\|\|\|\|\|\|\| )' -- .; then

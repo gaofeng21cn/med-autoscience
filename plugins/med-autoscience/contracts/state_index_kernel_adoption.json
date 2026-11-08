@@ -1,0 +1,101 @@
+{
+  "surface_kind": "opl_state_index_kernel_adoption",
+  "version": "opl-state-index-kernel-adoption.v2",
+  "schema_version": 2,
+  "agent_id": "mas",
+  "domain_id": "medautoscience",
+  "owner": "one-person-lab",
+  "domain_repo_role": "declarative_refs_source_only",
+  "kernel_contract_ref": "contracts/opl-framework/state-index-kernel-contract.json",
+  "sqlite_role": "rebuildable_refs_only_sidecar_index",
+  "physical_truth_role": "stage_folder_manifest_receipt_artifact_body_file_truth",
+  "required_index_databases": [
+    "queue",
+    "lifecycle_index",
+    "artifact_index",
+    "operator_read_model"
+  ],
+  "required_ref_fields": [
+    "domain_id",
+    "program_id",
+    "stage_id",
+    "attempt_id",
+    "surface_id",
+    "source_ref",
+    "receipt_ref",
+    "content_hash",
+    "observed_at",
+    "indexed_at",
+    "index_version",
+    "rebuild_epoch"
+  ],
+  "domain_ref_sources": [
+    "contracts/stage_run_kernel_profile.json",
+    "contracts/generated_surface_handoff.json",
+    "contracts/action_catalog.json",
+    "contracts/research_trajectory_contract.json"
+  ],
+  "projection_source_refs": [
+    "contracts/domain_descriptor.json",
+    "contracts/stage_run_kernel_profile.json",
+    "agent/stages/manifest.json"
+  ],
+  "allowed_ref_families": [
+    "stage_run_refs",
+    "stage_attempt_refs",
+    "artifact_refs",
+    "owner_receipt_refs",
+    "typed_blocker_refs",
+    "human_gate_refs",
+    "route_decision_refs",
+    "research_trajectory_event_refs",
+    "research_trajectory_snapshot_refs"
+  ],
+  "execution_scope_binding": {
+    "binding_contract_ref": "contracts/domain_descriptor.json#/work_item_scope_binding",
+    "snapshot_schema_ref": "contracts/opl-framework/execution-scope-snapshot.schema.json",
+    "scope_snapshot_owner": "one-person-lab",
+    "binding_mode": "exact_same_scope_digest",
+    "index_scope_binding_source": "referenced_opl_execution_scope_snapshot",
+    "index_scope_fields_are_host_projection_only": true,
+    "index_rows_may_not_infer_scope_from_workspace_or_path": true,
+    "cross_scope_pointer_or_receipt_join_allowed": false,
+    "legacy_unscoped_index_row_state": "identity_unresolved",
+    "legacy_unscoped_index_row_can_be_current_or_resumable": false,
+    "mas_payload_carries_opaque_scope_ids": false
+  },
+  "compaction_policy": {
+    "small_file_runtime_refs_may_be_indexed": true,
+    "large_payload_strategy": "store_preview_hash_and_refs_never_body",
+    "index_rebuild_source": "physical_stage_folder_manifest_receipt_refs",
+    "app_reads_projection_not_sqlite_directly": true
+  },
+  "maintenance_policy": {
+    "journal_mode": "WAL",
+    "busy_timeout_ms": 5000,
+    "checkpoint_required": true,
+    "backup_required": true,
+    "integrity_check_required": true,
+    "optimize_required": true,
+    "network_filesystem_multi_writer_supported": false
+  },
+  "authority_boundary": {
+    "sqlite_sidecar_source_of_truth": false,
+    "sqlite_record_counts_as_stage_complete": false,
+    "opl_can_write_domain_truth": false,
+    "opl_can_write_memory_body": false,
+    "opl_can_write_artifact_body": false,
+    "opl_can_store_large_artifact_blob_in_sqlite": false,
+    "opl_can_create_domain_owner_receipt": false,
+    "opl_can_authorize_quality_or_export": false,
+    "domain_repo_can_own_generic_sqlite_persistence_engine": false,
+    "domain_repo_owns_generic_index": false,
+    "domain_repo_owns_sqlite_lifecycle": false,
+    "index_is_rebuildable_projection": true,
+    "index_is_domain_truth": false,
+    "index_can_store_artifact_body": false,
+    "index_can_create_owner_receipt": false,
+    "index_can_authorize_quality_or_publication": false,
+    "index_can_select_or_materialize_stage_route": false
+  }
+}

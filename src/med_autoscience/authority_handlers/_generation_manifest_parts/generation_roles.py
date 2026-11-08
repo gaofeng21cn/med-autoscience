@@ -249,4 +249,3 @@ ALLOWED_ROLES_BY_SCOPE = {
     scope: roles | OPTIONAL_ROLES_BY_SCOPE[scope]
     for scope, roles in REQUIRED_ROLES_BY_SCOPE.items()
 }
-

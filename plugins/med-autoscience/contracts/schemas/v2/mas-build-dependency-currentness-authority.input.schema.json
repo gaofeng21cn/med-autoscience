@@ -1,0 +1,217 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://one-person-lab.local/med-autoscience/mas-build-dependency-currentness-authority.input.schema.json",
+  "title": "MAS build dependency currentness authority input",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "surface_kind",
+    "schema_version",
+    "authority_context",
+    "dependency_manifest_ref",
+    "dependency_currentness",
+    "reviewer_response_currentness"
+  ],
+  "properties": {
+    "surface_kind": {
+      "const": "mas_build_dependency_currentness_authority_request"
+    },
+    "schema_version": {
+      "const": 1
+    },
+    "authority_context": {
+      "$ref": "#/$defs/authority_context"
+    },
+    "dependency_manifest_ref": {
+      "$ref": "#/$defs/mas_artifact_exact_ref"
+    },
+    "dependency_currentness": {
+      "enum": [
+        "current",
+        "stale",
+        "open"
+      ]
+    },
+    "reviewer_response_currentness": {
+      "$ref": "#/$defs/reviewer_response_currentness"
+    }
+  },
+  "$defs": {
+    "non_empty_text": {
+      "type": "string",
+      "minLength": 1,
+      "pattern": ".*\\S.*"
+    },
+    "sha256": {
+      "type": "string",
+      "pattern": "^(?:sha256:)?[0-9a-fA-F]{64}$"
+    },
+    "typed_ref": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "kind",
+        "ref",
+        "sha256"
+      ],
+      "properties": {
+        "kind": {
+          "const": "opl_stage_attempt"
+        },
+        "ref": {
+          "$ref": "#/$defs/non_empty_text"
+        },
+        "sha256": {
+          "$ref": "#/$defs/sha256"
+        }
+      }
+    },
+    "exact_ref": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "kind",
+        "ref",
+        "size_bytes",
+        "sha256"
+      ],
+      "properties": {
+        "kind": {
+          "enum": [
+            "opl_action_output",
+            "mas_artifact"
+          ]
+        },
+        "ref": {
+          "$ref": "#/$defs/non_empty_text"
+        },
+        "size_bytes": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "sha256": {
+          "$ref": "#/$defs/sha256"
+        }
+      }
+    },
+    "mas_artifact_exact_ref": {
+      "allOf": [
+        {
+          "$ref": "#/$defs/exact_ref"
+        },
+        {
+          "type": "object",
+          "properties": {
+            "kind": {
+              "const": "mas_artifact"
+            }
+          }
+        }
+      ]
+    },
+    "opl_action_output_exact_ref": {
+      "allOf": [
+        {
+          "$ref": "#/$defs/exact_ref"
+        },
+        {
+          "type": "object",
+          "properties": {
+            "kind": {
+              "const": "opl_action_output"
+            }
+          }
+        }
+      ]
+    },
+    "nullable_mas_artifact_exact_ref": {
+      "anyOf": [
+        {
+          "type": "null"
+        },
+        {
+          "$ref": "#/$defs/mas_artifact_exact_ref"
+        }
+      ]
+    },
+    "reviewer_response_currentness": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "generation_id",
+        "candidate_state",
+        "response_ref",
+        "prior_frozen_response_ref",
+        "post_freeze_disposition",
+        "external_synthesis_ref",
+        "new_revision_ref",
+        "owner_ledger_history_ref"
+      ],
+      "properties": {
+        "generation_id": {
+          "$ref": "#/$defs/non_empty_text"
+        },
+        "candidate_state": {
+          "enum": [
+            "pre_freeze",
+            "frozen"
+          ]
+        },
+        "response_ref": {
+          "$ref": "#/$defs/mas_artifact_exact_ref"
+        },
+        "prior_frozen_response_ref": {
+          "$ref": "#/$defs/nullable_mas_artifact_exact_ref"
+        },
+        "post_freeze_disposition": {
+          "enum": [
+            "not_started",
+            "external_synthesis_bound",
+            "scientific_change_requires_new_revision"
+          ]
+        },
+        "external_synthesis_ref": {
+          "$ref": "#/$defs/nullable_mas_artifact_exact_ref"
+        },
+        "new_revision_ref": {
+          "$ref": "#/$defs/nullable_mas_artifact_exact_ref"
+        },
+        "owner_ledger_history_ref": {
+          "$ref": "#/$defs/opl_action_output_exact_ref"
+        }
+      }
+    },
+    "authority_context": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "action_id",
+        "authority_epoch",
+        "managed_authority_attempt_ref",
+        "generation_producer_attempt_ref",
+        "managed_authority_attempt_receipt_ref",
+        "owner_ledger_ref"
+      ],
+      "properties": {
+        "action_id": {
+          "const": "build_dependency_currentness_authority_evaluate"
+        },
+        "authority_epoch": {
+          "$ref": "#/$defs/non_empty_text"
+        },
+        "managed_authority_attempt_ref": {
+          "$ref": "#/$defs/typed_ref"
+        },
+        "generation_producer_attempt_ref": {
+          "$ref": "#/$defs/typed_ref"
+        },
+        "managed_authority_attempt_receipt_ref": {
+          "$ref": "#/$defs/opl_action_output_exact_ref"
+        },
+        "owner_ledger_ref": {
+          "$ref": "#/$defs/opl_action_output_exact_ref"
+        }
+      }
+    }
+  }
+}

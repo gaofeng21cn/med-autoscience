@@ -1,0 +1,246 @@
+{
+  "authority_boundary": {
+    "domain_owns_truth_quality_artifact_memory_and_receipts": true,
+    "domain_truth_owner": "MedAutoScience",
+    "opl_can_authorize_quality_or_export": false,
+    "opl_can_write_domain_truth": false,
+    "opl_can_write_memory_body": false
+  },
+  "kind": "agent",
+  "agent_id": "mas",
+  "package_id": "mas",
+  "domain_id": "medautoscience",
+  "domain_label": "Med Auto Science",
+  "domain_repo_can_own_generated_surface": false,
+  "domain_repo_runtime_role": "domain_handler_target_and_authority_functions",
+  "generated_descriptor_surfaces": [
+    "cli",
+    "mcp",
+    "skill",
+    "product_entry_manifest",
+    "domain_handler",
+    "status_read_model",
+    "workbench_drilldown"
+  ],
+  "generated_surface_owner": "one-person-lab",
+  "package_role": "opl_standard_domain_agent",
+  "schema_version": 1,
+  "dispatch_evidence_projection": {
+    "work_item_id_field": "study_id",
+    "result_collections": [{
+      "field": "paper_line_owner_chain_results",
+      "ref_fields": {
+        "domain_receipt_refs": ["owner_receipt_refs"],
+        "typed_blocker_refs": ["stable_typed_blocker_refs"],
+        "owner_chain_refs": ["progress_delta_refs", "ai_reviewer_gate_receipt_refs", "artifact_movement_refs", "human_gate_or_resume_refs", "no_forbidden_write_proof_ref"]
+      }
+    }]
+  },
+  "action_catalog_ref": "contracts/action_catalog.json",
+  "task_provider": {
+    "inventory_ref": "contracts/domain_descriptor.json#/standard_agent_interface/inventory_projection",
+    "business_lifecycle_owner": "MedAutoScience",
+    "temporal_execution_ref": {
+      "source_kind": "opaque_framework_execution_scope",
+      "join_field": "work_item_scope_id"
+    },
+    "views": [
+      {
+        "view_id": "research-roadmap",
+        "view_kind": "research-roadmap",
+        "title": "Research roadmap",
+        "schema_ref": "contracts/schemas/v2/mas-research-trajectory-snapshot-v2.schema.json",
+        "source_kind": "work_item_relative_json",
+        "relative_path": "artifacts/research_trajectory/snapshot.json",
+        "revision_pointer": "/revision",
+        "owner_task_binding": {
+          "task_id_pointer": "/study_id",
+          "task_ref_pointer": "/study_ref/ref",
+          "task_ref_template": "mas-study:{task_id}"
+        }
+      }
+    ]
+  },
+  "standard_agent_interface": {
+    "version": "opl_standard_agent_interface.v1",
+    "workspace_binding": {
+      "default_profile_id": "portfolio",
+      "shared_resources": [
+        { "path": "data", "role": "dataset_root" },
+        { "path": "literature", "role": "literature_root" },
+        { "path": "memory", "role": "memory_root" },
+        { "path": "shared/sources", "role": "source_intake" }
+      ],
+      "workspace_kind": "medical_research_workspace",
+      "project_kind": "study",
+      "project_collection_label": "studies",
+      "project_collection_path": "studies",
+      "default_workspace_id": "research-workspace",
+      "default_project_id": "medical-research-portfolio",
+      "locator_surface_kind": "med_autoscience_workspace_profile",
+      "required_locator_fields": [
+        "profile_ref"
+      ],
+      "optional_locator_fields": [
+        "workspace_root"
+      ]
+    },
+    "inventory_projection": {
+      "source_kind": "workspace_relative_json",
+      "relative_path": "workspace_index.json",
+      "items_pointer": "/studies",
+      "work_item_root_template": "studies/{study_id}",
+      "field_map": {
+        "work_item_id": "study_id",
+        "display_name": "display_name",
+        "work_item_root": "canonical_study_root",
+        "business_status": "status",
+        "current_stage_id": "current_stage_id",
+        "current_stage_status": "current_stage_status",
+        "package_status": "package_status",
+        "lifecycle_ref": "lifecycle_ref",
+        "next_action": "next_action",
+        "stage_index_ref": "stage_index_ref"
+      }
+    },
+    "domain_detail_views": [
+      {
+        "view_id": "scientific-reasoning",
+        "view_kind": "scientific_reasoning_map",
+        "schema_version": "scientific-reasoning-map.v2",
+        "source_kind": "work_item_relative_json",
+        "relative_path": "artifacts/research_trajectory/snapshot.json"
+      }
+    ],
+    "stage_catalog": {
+      "source_kind": "agent_repo_relative_json",
+      "relative_path": "contracts/mas-paper-study-stage-pack.json",
+      "items_pointer": "/stages",
+      "field_map": {
+        "stage_id": "stage_id",
+        "display_name": "display_name",
+        "display_names": "display_names"
+      }
+    },
+    "runtime": {
+      "runtime_domain_id": "medautoscience",
+      "registration_ref": "contracts/domain_route_profile.json"
+    },
+    "progress": {
+      "deliverable_delta_aliases": [
+        "paper_progress_delta",
+        "paper_work_progress"
+      ],
+      "platform_delta_aliases": [
+        "runtime_transport_delta",
+        "provider_attempt_delta"
+      ]
+    },
+    "routing": {
+      "explicit_aliases": [
+        "mas",
+        "medautoscience",
+        "med-autoscience",
+        "med_auto_science",
+        "study"
+      ],
+      "workstream_ids": [
+        "medical_research"
+      ],
+      "intent_signals": [
+        "medical research",
+        "clinical study",
+        "manuscript",
+        "publication",
+        "医学研究",
+        "临床研究",
+        "论文",
+        "投稿"
+      ],
+      "ambiguity_policy": "require_explicit_domain_selection_when_multiple_standard_agents_match"
+    }
+  },
+  "work_item_scope_binding": {
+    "surface_kind": "mas_work_item_scope_binding",
+    "schema_version": 1,
+    "execution_scope_kind": "work_item",
+    "domain_identity_alias": "study_id",
+    "work_item_kind": "mas_study",
+    "inventory": {
+      "ref": "workspace_index.json#/studies",
+      "schema_ref": "contracts/schemas/v2/mas-workspace-index.schema.json",
+      "id_field": "study_id",
+      "root_field": "canonical_study_root"
+    },
+    "qualification_work_item_provisioning": {
+      "owner": "MedAutoScience",
+      "action_id": "qualification_work_item_provisioning_authority_evaluate",
+      "execution_scope_kind": "none",
+      "contract_ref": "contracts/qualification_work_item_provisioning_contract.json",
+      "study_id_source": "sha256_of_exact_raw_qualification_authority_bytes",
+      "single_use": true,
+      "qualification_only": true,
+      "stage_body_authorized": false,
+      "business_action_authorized": false,
+      "publication_authorized": false,
+      "submission_authorized": false
+    },
+    "canonical_root": {
+      "template_ref": "contracts/domain_descriptor.json#/standard_agent_interface/inventory_projection/work_item_root_template",
+      "workspace_relative": true,
+      "path_is_locator_not_identity": true
+    },
+    "launch_resolution": {
+      "timing": "before_stage_run_or_handler_attempt_creation",
+      "required_checks": [
+        "study_id_present",
+        "study_id_unique_in_inventory",
+        "canonical_study_root_present",
+        "canonical_study_root_unique_in_inventory",
+        "canonical_study_root_matches_template",
+        "canonical_study_root_stays_within_workspace",
+        "host_binding_matches_domain_alias"
+      ],
+      "failure_effect": "reject_launch",
+      "legacy_unbound_state": "identity_unresolved",
+      "legacy_unbound_can_be_current_or_resumed_or_closed_out": false
+    },
+    "opaque_scope_boundary": {
+      "owner": "one-person-lab",
+      "snapshot_surface_kind": "opl_execution_scope_snapshot",
+      "snapshot_schema_ref": "contracts/opl-framework/execution-scope-snapshot.schema.json",
+      "current_snapshot_version": "opl-execution-scope-snapshot.v2",
+      "legacy_snapshot_versions": [
+        "opl-execution-scope-snapshot.v1"
+      ],
+      "legacy_snapshot_projection_state": "identity_unresolved",
+      "legacy_snapshot_can_be_current_or_resumed_or_woken_or_closed_out": false,
+      "mas_accepts_opaque_scope_ids": false,
+      "mas_generates_opaque_scope_ids": false,
+      "domain_payload_embeds_scope_snapshot": false
+    }
+  },
+  "standard_contract_refs": {
+    "action_catalog": "contracts/action_catalog.json",
+    "domain_handler_registry": "contracts/domain_handler_registry.json",
+    "hosted_action_runtime": "contracts/opl-framework/standard-agent-hosted-action-runtime-contract.json",
+    "owner_answer_schema": "contracts/opl-framework/owner-answer.schema.json",
+    "stage_run_kernel_profile": "contracts/stage_run_kernel_profile.json",
+    "domain_projection_profile": "contracts/domain_projection_profile.json",
+    "domain_route_profile": "contracts/domain_route_profile.json",
+    "foundry_agent_series": "contracts/foundry_agent_series.json",
+    "functional_privatization_audit": "contracts/functional_privatization_audit.json",
+    "generated_surface_handoff": "contracts/generated_surface_handoff.json",
+    "pack_compiler_input": "contracts/pack_compiler_input.json",
+    "private_functional_surface_policy": "contracts/private_functional_surface_policy.json",
+    "qualification_work_item_provisioning_contract": "contracts/qualification_work_item_provisioning_contract.json",
+    "runtime_environment_requirement_profile": "contracts/runtime_environment_requirements.json",
+    "study_lifecycle_reactivation_contract": "contracts/study_lifecycle_reactivation_contract.json",
+    "source_closure_audit": "contracts/source_closure_audit.json",
+    "submission_resource_requirements": "contracts/submission-resource-requirements.json",
+    "workspace_index_schema": "contracts/schemas/v2/mas-workspace-index.schema.json",
+    "work_item_scope_binding": "contracts/domain_descriptor.json#/work_item_scope_binding",
+    "stage_control_plane": "opl-generated:family_stage_control_plane"
+  },
+  "surface_kind": "domain_agent_descriptor"
+}

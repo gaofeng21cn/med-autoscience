@@ -1,0 +1,89 @@
+{
+  "surface_kind": "mas_publication_layout_consumption_policy.v1",
+  "schema_version": 1,
+  "policy_id": "mas-publication-layout-routing.v1",
+  "owner": "MedAutoScience",
+  "purpose": "Select one locally available medical publication layout for authoring and produce exactly two core reader PDFs without turning template freshness into a general research blocker.",
+  "provider_contract": {
+    "package_id": "mas-scholar-skills",
+    "minimum_version": "0.2.12",
+    "module_id": "mas-scholar-skills.submit",
+    "professional_skill_id": "medical-submission-prep",
+    "catalog_ref": "external_package:mas-scholar-skills/packs/medical-publication-layouts/publication_layout_catalog.json",
+    "catalog_schema_ref": "external_package:mas-scholar-skills/contracts/publication-layout-profile.schema.json",
+    "selection_surface_kind": "scholarskills_publication_layout_selection_candidate.v1",
+    "template_source_policy": "scholarskills_is_the_single_template_and_journal_profile_source_mas_does_not_vendor_or_fork_assets"
+  },
+  "user_modes": [
+    {
+      "mode": "target_journal_specified",
+      "selection": "consume_matching_local_journal_profile",
+      "ordinary_authoring_effect": "continue_with_local_profile_without_network",
+      "formal_submission_effect": "refresh_current_official_instructions_before_journal_compliance_claim"
+    },
+    {
+      "mode": "target_journal_unspecified",
+      "selection": "consume_general-medical-reader.v1",
+      "ordinary_authoring_effect": "render_publication_grade_reader_outputs",
+      "formal_submission_effect": "resolve_target_journal_then_refresh_official_instructions"
+    }
+  ],
+  "selection_consumption": {
+    "consumer_stage_ids": [
+      "manuscript_authoring",
+      "finalize_and_publication_handoff"
+    ],
+    "selection_ref": "publication_layout_selection_ref",
+    "select_before": "first_reader_facing_export",
+    "bind_to": [
+      "manuscript_packet",
+      "publication_generation",
+      "medical-submission-prep_receipt"
+    ],
+    "unknown_journal_effect": "continue_with_general_reader_profile_and_mark_journal_specific_export_pending",
+    "stale_profile_effect": "continue_ordinary_authoring_and_require_refresh_only_before_formal_submission",
+    "missing_catalog_or_asset_effect": "continue_canonical_authoring_and_record_reader_export_quality_debt",
+    "ordinary_authoring_may_be_blocked_by_profile_freshness": false,
+    "unknown_journal_may_be_claimed_as_resolved": false
+  },
+  "delivery_contract": {
+    "core_pdf_outputs": [
+      {
+        "file_name": "paper.pdf",
+        "artifact_role": "selected_layout_main_manuscript",
+        "includes_supplementary": false
+      },
+      {
+        "file_name": "paper_with_supplementary.pdf",
+        "artifact_role": "reader_combined_main_and_supplementary",
+        "includes_supplementary": true
+      }
+    ],
+    "separate_supplementary_members_required_when_present": true,
+    "combined_reader_pdf_is_automatically_a_submission_upload": false,
+    "third_reader_edition_allowed": false,
+    "output_names_are_stable_user_surface": true
+  },
+  "freshness_and_network_policy": {
+    "ordinary_authoring_network_requirement": "none",
+    "local_profile_is_authoring_quality_floor": true,
+    "official_refresh_trigger": "formal_submission_or_explicit_current_journal_compliance_request",
+    "refresh_scope": [
+      "article_type",
+      "word_and_display_limits",
+      "abstract_structure",
+      "required_statements_and_declarations",
+      "file_formats",
+      "portal_specific_rules"
+    ],
+    "refresh_failure_effect": "keep_authoring_deliverables_and_route_formal_submission_compliance_to_human_or_owner_review"
+  },
+  "authority_boundary": {
+    "template_selection_can_authorize_manuscript_quality": false,
+    "template_selection_can_authorize_journal_compliance": false,
+    "template_selection_can_authorize_submission_readiness": false,
+    "combined_reader_pdf_can_authorize_submission_upload": false,
+    "formal_submission_authority_remains_human_or_mas_owner": true,
+    "runtime_authority": false
+  }
+}

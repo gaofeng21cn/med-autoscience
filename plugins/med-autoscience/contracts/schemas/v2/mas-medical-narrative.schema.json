@@ -1,0 +1,105 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://opl.onepersonlab/contracts/mas-medical-narrative.schema.json",
+  "title": "MAS medical research narrative",
+  "description": "MAS-authored, user-visible medical research wording for clinicians, professors, and researchers. Machine provenance and runtime terminology are out of scope.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "surface_kind",
+    "version",
+    "audience",
+    "style",
+    "language",
+    "title",
+    "research_question",
+    "current_hypothesis",
+    "validation_method",
+    "main_findings",
+    "evidence_judgment",
+    "route_adjustment",
+    "next_research_step",
+    "limitations",
+    "sources_and_basis"
+  ],
+  "properties": {
+    "surface_kind": {
+      "const": "mas_medical_research_narrative"
+    },
+    "version": {
+      "const": "mas-medical-narrative.v1"
+    },
+    "audience": {
+      "const": "clinical_and_scientific_readers"
+    },
+    "style": {
+      "const": "medical_manuscript"
+    },
+    "language": {
+      "enum": [
+        "zh-CN",
+        "en-US"
+      ]
+    },
+    "title": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 180,
+      "description": "Concise medical or scientific title; never a runtime status label."
+    },
+    "research_question": {
+      "$ref": "#/$defs/nullable_narrative"
+    },
+    "current_hypothesis": {
+      "$ref": "#/$defs/nullable_narrative"
+    },
+    "validation_method": {
+      "$ref": "#/$defs/nullable_narrative"
+    },
+    "main_findings": {
+      "$ref": "#/$defs/nullable_narrative"
+    },
+    "evidence_judgment": {
+      "$ref": "#/$defs/nullable_narrative"
+    },
+    "route_adjustment": {
+      "$ref": "#/$defs/nullable_narrative"
+    },
+    "next_research_step": {
+      "$ref": "#/$defs/nullable_narrative"
+    },
+    "limitations": {
+      "type": "array",
+      "maxItems": 12,
+      "items": {
+        "type": "string",
+        "minLength": 1,
+        "maxLength": 1000
+      }
+    },
+    "sources_and_basis": {
+      "type": "array",
+      "maxItems": 50,
+      "description": "Human-readable study, evidence, table, figure, guideline, or literature citations. Raw paths, hashes, and attempt identifiers belong only in machine refs.",
+      "items": {
+        "type": "string",
+        "minLength": 1,
+        "maxLength": 500
+      }
+    }
+  },
+  "$defs": {
+    "nullable_narrative": {
+      "oneOf": [
+        {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 3000
+        },
+        {
+          "type": "null"
+        }
+      ]
+    }
+  }
+}

@@ -1,0 +1,33 @@
+# 这是病种级 workspace profile，不是单篇论文配置。
+name = "my-disease-workspace"
+
+# 病种 workspace 根目录。
+workspace_root = "/ABS/PATH/TO/MEDICAL-WORKSPACE"
+
+# MAS-owned runtime quest 根目录；新 workspace 默认使用普通目录，不使用 quest Git。
+runtime_root = "/ABS/PATH/TO/OPL-STAGE-LOCATOR"
+
+# 当前 workspace 的多 study 根目录。
+studies_root = "/ABS/PATH/TO/MEDICAL-WORKSPACE/studies"
+
+# 当前 workspace 的病种级 portfolio 根目录。
+portfolio_root = "/ABS/PATH/TO/MEDICAL-WORKSPACE/portfolio"
+
+# 外部 Hermes-Agent 源码仓库；只用于显式非默认 executor adapter、proof lane、diagnostic 或历史参考。
+hermes_agent_repo_root = "/ABS/PATH/TO/hermes-agent"
+
+# Hermes-Agent 的 state / config / gateway home，默认通常是 ~/.hermes。
+hermes_home_root = "~/.hermes"
+default_publication_profile = "general_medical_journal"
+default_citation_style = "frontiers_harvard_csl"
+research_route_bias_policy = "high_plasticity_medical"
+preferred_study_archetypes = ["clinical_classifier", "clinical_subtype_reconstruction", "external_validation_model_update", "gray_zone_triage", "llm_agent_clinical_task", "mechanistic_sidecar_extension"]
+[source_provenance]
+source_role = "frozen_source_archive_or_historical_fixture"
+runtime_root = "/ABS/PATH/TO/MEDICAL-WORKSPACE/runtime"
+
+[historical_fixture_ref]
+runtime_root = "/ABS/PATH/TO/MEDICAL-WORKSPACE/runtime"
+
+[explicit_archive_import_ref]
+controlled_backend_repo_root = ""

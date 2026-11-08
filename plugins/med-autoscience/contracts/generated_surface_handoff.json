@@ -1,0 +1,183 @@
+{
+  "agent_pack_ref_source": "contracts/pack_compiler_input.json#/required_domain_pack_paths",
+  "consumes_agent_pack_refs": true,
+  "domain_id": "medautoscience",
+  "domain_repo_can_own_generated_surface": false,
+  "generated_surface_owner": "one-person-lab",
+  "generated_surface_policy": {
+    "may_compile": [
+      "cli_descriptors",
+      "mcp_tool_descriptors",
+      "skill_descriptors",
+      "product_entry_descriptors",
+      "status_and_workbench_projection_descriptors"
+    ],
+    "must_dispatch_to": "OPL-hosted MAS stage actions and registry-bound MAS minimal authority functions",
+    "must_not_write": [
+      "MAS study truth",
+      "publication-route memory body",
+      "AI reviewer verdict",
+      "publication verdict",
+      "artifact authority",
+      "source body",
+      "current_package"
+    ],
+    "must_read_semantics_from": "agent/"
+  },
+  "runtime_environment_handoff": {
+    "owner": "one-person-lab",
+    "requirement_profile_ref": "contracts/runtime_environment_requirements.json",
+    "substrate_contract_ref": "one-person-lab:contracts/opl-framework/runtime-environment-substrate-contract.json",
+    "prepare_command": "opl env prepare --domain mas --profile analysis-display --platform <platform> --requirement-profile contracts/runtime_environment_requirements.json --requirement-profile-id analysis-display --artifact-root <artifact_root> --apply --json",
+    "run_command": "opl env run --domain mas --profile analysis-display --requirement-profile contracts/runtime_environment_requirements.json --requirement-profile-id analysis-display --artifact-root <artifact_root> -- <command>",
+    "mas_can_provision_environment": false,
+    "profile_counts_as_domain_ready": false
+  },
+  "generated_surfaces": [
+    {
+      "domain_repo_can_own_generated_surface": false,
+      "owner": "one-person-lab",
+      "status": "descriptor_source_available",
+      "surface_id": "cli"
+    },
+    {
+      "domain_repo_can_own_generated_surface": false,
+      "owner": "one-person-lab",
+      "status": "descriptor_source_available",
+      "surface_id": "mcp"
+    },
+    {
+      "domain_repo_can_own_generated_surface": false,
+      "owner": "one-person-lab",
+      "status": "descriptor_source_available",
+      "surface_id": "skill"
+    },
+    {
+      "domain_repo_can_own_generated_surface": false,
+      "owner": "one-person-lab",
+      "status": "descriptor_source_available",
+      "surface_id": "product_entry_manifest"
+    },
+    {
+      "domain_repo_can_own_generated_surface": false,
+      "owner": "one-person-lab",
+      "status": "descriptor_source_available",
+      "surface_id": "domain_handler"
+    },
+    {
+      "domain_repo_can_own_generated_surface": false,
+      "owner": "one-person-lab",
+      "status": "descriptor_source_available",
+      "surface_id": "status_read_model"
+    },
+    {
+      "domain_repo_can_own_generated_surface": false,
+      "owner": "one-person-lab",
+      "status": "descriptor_source_available",
+      "surface_id": "workbench_drilldown"
+    }
+  ],
+  "oma_agent_evidence_handoff": {
+    "agent_lab_handoff_ref": {
+      "body_included": false,
+      "ref": "contracts/agent_lab_handoff.json",
+      "role": "domain_agent_lab_production_evidence_handoff"
+    },
+    "artifact_authority_ref": {
+      "body_included": false,
+      "ref": "contracts/artifact_locator_contract.json",
+      "role": "mas_artifact_authority_locator"
+    },
+    "consumer_id": "opl-meta-agent.agent:evidence",
+    "consumer_policy": {
+      "oma_may_consume_refs": true,
+      "oma_may_emit_candidate_patch_work_order": true,
+      "oma_may_sign_owner_receipt": false,
+      "oma_may_write_artifact_body": false,
+      "oma_may_write_memory_body": false,
+      "oma_may_write_quality_verdict": false
+    },
+    "editable_surface_hints": [
+      {
+        "body_included": false,
+        "ref": "agent/prompts",
+        "role": "declarative_stage_prompt_surface"
+      },
+      {
+        "body_included": false,
+        "ref": "agent/skills",
+        "role": "declarative_stage_skill_policy_surface"
+      },
+      {
+        "body_included": false,
+        "ref": "agent/knowledge",
+        "role": "declarative_domain_knowledge_ref_surface"
+      },
+      {
+        "body_included": false,
+        "ref": "agent/quality_gates",
+        "role": "declarative_quality_gate_ref_surface"
+      },
+      {
+        "body_included": false,
+        "ref": "contracts/pack_compiler_input.json",
+        "role": "pack_compiler_input_surface"
+      },
+      {
+        "body_included": false,
+        "ref": "contracts/generated_surface_handoff.json",
+        "role": "generated_surface_handoff_surface"
+      },
+      {
+        "body_included": false,
+        "ref": "contracts/agent_lab_handoff.json",
+        "role": "agent_evidence_suite_seed_surface"
+      },
+      {
+        "body_included": false,
+        "ref": "contracts/production_acceptance/mas-production-acceptance.json",
+        "role": "production_acceptance_ref_surface"
+      },
+      {
+        "body_included": false,
+        "ref": "tests/test_standard_agent_boundary.py",
+        "role": "standard_pack_contract_test_surface"
+      },
+      {
+        "body_included": false,
+        "ref": "tests/test_opl_standard_pack_cases/test_stage_contract_cases.py",
+        "role": "agent_evidence_handoff_contract_test_surface"
+      }
+    ],
+    "handoff_role": "refs_only_generated_surface_and_authority_locator_input",
+    "memory_authority_ref": {
+      "body_included": false,
+      "ref": "contracts/durable_knowledge_catalog.json",
+      "role": "mas_memory_authority_locator"
+    },
+    "owner_receipt_authority_ref": {
+      "body_included": false,
+      "ref": "contracts/owner_receipt_contract.json",
+      "role": "mas_owner_receipt_authority"
+    },
+    "production_acceptance_ref": {
+      "body_included": false,
+      "ref": "contracts/production_acceptance/mas-production-acceptance.json",
+      "role": "mas_domain_owned_production_acceptance"
+    },
+    "quality_authority_ref": {
+      "body_included": false,
+      "ref": "publication_eval/latest.json",
+      "role": "mas_quality_publication_authority"
+    }
+  },
+  "required_domain_handoff": [
+    "owner_receipt_schema",
+    "typed_blocker_schema",
+    "minimal_authority_function_refs",
+    "no_forbidden_write_evidence"
+  ],
+  "schema_version": 1,
+  "source_contract_ref": "contracts/pack_compiler_input.json",
+  "surface_kind": "opl_generated_surface_handoff"
+}

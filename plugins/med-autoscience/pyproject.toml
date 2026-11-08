@@ -1,0 +1,35 @@
+[build-system]
+requires = ["setuptools>=69"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "med-autoscience"
+version = "0.2.32"
+description = "Medical research domain agent with OPL stage-led framework integration surfaces."
+readme = "README.md"
+requires-python = ">=3.12"
+authors = [
+  { name = "Gao Feng" }
+]
+dependencies = []
+
+[project.scripts]
+mas-foundry-owner-gate = "med_autoscience.authority_handlers.foundry_owner_gate:main"
+
+[dependency-groups]
+dev = [
+  "jsonschema>=4.23,<5",
+  "pytest>=9.0.3",
+]
+
+[tool.setuptools.packages.find]
+where = ["src"]
+include = ["med_autoscience*"]
+
+[tool.setuptools.package-data]
+"med_autoscience.styles" = ["*.csl"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+cache_dir = "/tmp/mas-pytest-cache"
+addopts = ["--import-mode=importlib"]

@@ -1,0 +1,252 @@
+{
+  "surface_kind": "functional_privatization_audit",
+  "schema_version": 1,
+  "domain_id": "medautoscience",
+  "target_domain_id": "medautoscience",
+  "owner": "med-autoscience",
+  "status": "standard_domain_pack_and_registry_bound_authority_function_only",
+  "classification_policy": {
+    "rule": "MAS declares only non-declarative medical authority implementations; OPL owns generic runtime, lifecycle, transport, generated surfaces, and transition materialization.",
+    "accepted_migration_classes": [
+      "minimal_authority_function"
+    ]
+  },
+  "modules": [
+    {
+      "module_id": "mas.paper_mission_authority",
+      "classification": "minimal_authority_function",
+      "standardization_layer": "authority_function_inventory",
+      "code_paths": [
+        "src/med_autoscience/authority_handlers/paper_mission.py",
+        "contracts/domain_handler_registry.json"
+      ],
+      "active_callers": [
+        "OPL-hosted paper_mission authority binding"
+      ],
+      "active_caller_status": "registry_bound_pure_domain_authority_function",
+      "migration_action": "retain deterministic MAS authority evaluation behind OPL-hosted StageRun",
+      "retention_reason": "The function validates exact host-injected medical refs and returns MAS owner receipt, route-back, quality-debt, typed-blocker, or human-gate records without owning transport or lifecycle.",
+      "cannot_absorb_reason": "Absorbing the medical acceptance decision into OPL would transfer domain truth and owner-receipt authority to the framework.",
+      "retained_domain_authority": [
+        "medical_evidence_acceptance",
+        "claim_evidence_alignment",
+        "generation_manifest_currentness",
+        "independent_review_invalidation",
+        "owner_receipt",
+        "typed_blocker",
+        "human_gate",
+        "route_back"
+      ],
+      "semantic_equivalence_status": "cleared_by_registry_bound_hosted_boundary"
+    },
+    {
+      "module_id": "mas.candidate_admission_authority",
+      "classification": "minimal_authority_function",
+      "standardization_layer": "authority_function_inventory",
+      "code_paths": [
+        "src/med_autoscience/authority_handlers/candidate_admission.py",
+        "contracts/domain_handler_registry.json"
+      ],
+      "active_callers": [
+        "OPL-hosted candidate admission authority binding"
+      ],
+      "active_caller_status": "registry_bound_pure_domain_authority_function",
+      "migration_action": "retain deterministic pre-authoring candidate disposition behind OPL-hosted execution",
+      "retention_reason": "The function validates a current independent MAS adjudicator receipt and binds accept, reject, route-back, waiver, blocker, or human-gate disposition to exact candidate/evidence members, source digest, generation manifest, and structured claim constraints.",
+      "cannot_absorb_reason": "OPL and OMA may transport refs-only candidates but cannot accept medical candidates or authorize their manuscript use.",
+      "retained_domain_authority": [
+        "candidate_acceptance",
+        "candidate_rejection",
+        "candidate_route_back",
+        "candidate_typed_waiver",
+        "candidate_structured_claim_scope",
+        "typed_blocker",
+        "human_gate"
+      ],
+      "semantic_equivalence_status": "registry_bound_pre_authoring_authority"
+    },
+    {
+      "module_id": "mas.study_lifecycle_reactivation_authority",
+      "classification": "minimal_authority_function",
+      "standardization_layer": "authority_function_inventory",
+      "code_paths": [
+        "src/med_autoscience/authority_handlers/study_lifecycle_reactivation.py",
+        "contracts/study_lifecycle_reactivation_contract.json",
+        "contracts/domain_handler_registry.json"
+      ],
+      "active_callers": [
+        "OPL-hosted inactive-study lifecycle admission binding"
+      ],
+      "active_caller_status": "registry_bound_pure_domain_authority_function",
+      "migration_action": "retain deterministic MAS lifecycle reactivation authority behind OPL-hosted admission and CAS materialization",
+      "retention_reason": "The function validates one MAS-recorded durable user-instruction evidence record whose source owner is the user, a durable reviewer_revision intake, the exact inactive lifecycle, and every current projection before authorizing exact replacement bytes.",
+      "cannot_absorb_reason": "OPL may read, transport, and atomically persist exact bytes, but it cannot originate the user-authority evidence, interpret MAS lifecycle semantics, or sign the MAS lifecycle transition receipt.",
+      "retained_domain_authority": [
+        "explicit_user_wakeup_evidence_validation",
+        "inactive_study_reactivation",
+        "lifecycle_projection_semantics",
+        "lifecycle_cas_mutation_authorization",
+        "typed_blocker"
+      ],
+      "semantic_equivalence_status": "registry_bound_authority_and_opl_hosted_materialization"
+    },
+    {
+      "module_id": "mas.qualification_work_item_provisioning_authority",
+      "classification": "minimal_authority_function",
+      "standardization_layer": "authority_function_inventory",
+      "code_paths": [
+        "src/med_autoscience/authority_handlers/qualification_work_item_provisioning.py",
+        "contracts/qualification_work_item_provisioning_contract.json",
+        "contracts/domain_handler_registry.json"
+      ],
+      "active_callers": [
+        "OPL-hosted standard-agent Full VM qualification binding"
+      ],
+      "active_caller_status": "registry_declared_framework_materialization_integration_pending",
+      "migration_action": "retain deterministic MAS work-item identity and qualification-only lifecycle authority behind OPL-hosted journaled CAS materialization",
+      "retention_reason": "The function derives one collision-checked MAS study_id from exact qualification authority bytes and signs exact workspace-index, qualification-only lifecycle, and receipt bytes without owning persistence or runtime lifecycle.",
+      "cannot_absorb_reason": "OPL may host the scope-none attempt and atomically persist exact bytes, but cannot derive MAS work-item identity, originate MAS lifecycle truth, or sign the provisioning receipt.",
+      "retained_domain_authority": [
+        "qualification_work_item_identity",
+        "qualification_only_lifecycle",
+        "workspace_index_cas_mutation_authorization",
+        "provisioning_receipt",
+        "typed_blocker"
+      ],
+      "semantic_equivalence_status": "registry_declared_opl_integration_dependency"
+    },
+    {
+      "module_id": "mas.build_dependency_currentness_authority",
+      "classification": "minimal_authority_function",
+      "standardization_layer": "authority_function_inventory",
+      "code_paths": [
+        "src/med_autoscience/authority_handlers/build_dependency_currentness.py",
+        "contracts/domain_handler_registry.json"
+      ],
+      "active_callers": [
+        "OPL-managed build dependency currentness authority attempt binding"
+      ],
+      "active_caller_status": "registry_declared_runtime_integration_pending",
+      "migration_action": "retain deterministic MAS owner authority issuance behind an OPL-managed distinct attempt",
+      "retention_reason": "The function binds dependency currentness to exact managed-attempt, attempt-receipt, owner-ledger, epoch, and dependency refs without owning execution or persistence.",
+      "cannot_absorb_reason": "OPL may host the managed attempt and inject exact output refs, but cannot originate MAS build-dependency currentness authority.",
+      "retained_domain_authority": [
+        "build_dependency_currentness",
+        "managed_authority_attempt_provenance",
+        "owner_authority_exact_ref"
+      ],
+      "semantic_equivalence_status": "registry_declared_opl_integration_dependency"
+    },
+    {
+      "module_id": "mas.agent_lab_self_evolution_closeout",
+      "classification": "minimal_authority_function",
+      "standardization_layer": "authority_function_inventory",
+      "code_paths": [
+        "src/med_autoscience/authority_handlers/self_evolution_closeout.py",
+        "contracts/agent_lab_self_evolution_policy.json",
+        "contracts/domain_handler_registry.json"
+      ],
+      "active_callers": [
+        "OPL work-order target_owner_closeout_hook"
+      ],
+      "active_caller_status": "registry_bound_target_owner_authority_function",
+      "migration_action": "retain deterministic MAS mechanism closeout behind OPL-hosted work-order execution",
+      "retention_reason": "The function consumes an execution receipt draft and fresh Agent Lab result, then returns only a refs-only target-owner accepted, waived, or blocked shape.",
+      "cannot_absorb_reason": "OPL cannot sign the target-domain owner answer or convert mechanism evidence into medical publication authority.",
+      "retained_domain_authority": [
+        "target_agent_mechanism_acceptance",
+        "target_agent_mechanism_waiver",
+        "target_agent_mechanism_typed_blocker"
+      ],
+      "semantic_equivalence_status": "declarative_policy_and_registry_bound"
+    }
+  ],
+  "retired_generated_surface_provenance": [
+    {
+      "surface_id": "mas_private_cli_mcp_product_wrappers",
+      "replacement_ref": "opl_generated:standard_agent_interfaces",
+      "provenance_refs": [
+        "docs/history/standard-agent-private-control-plane-retirement.md"
+      ]
+    },
+    {
+      "surface_id": "mas_private_runtime_lifecycle_and_workbench",
+      "replacement_ref": "opl_hosted:stage_run_controller_and_generated_workbench",
+      "provenance_refs": [
+        "docs/history/standard-agent-private-control-plane-retirement.md"
+      ]
+    },
+    {
+      "surface_id": "mas_private_provider_and_package_transport",
+      "replacement_ref": "opl_hosted:connect_and_pack_receipts",
+      "provenance_refs": [
+        "docs/history/standard-agent-private-control-plane-retirement.md"
+      ]
+    },
+    {
+      "surface_id": "mas_private_quality_validators",
+      "replacement_ref": "opl_hosted:independent_reviewer_and_re_reviewer_attempts",
+      "provenance_refs": [
+        "docs/history/standard-agent-private-control-plane-retirement.md"
+      ]
+    }
+  ],
+  "bridge_exit_gate": {
+    "physical_delete_authorization_refs": [
+      "docs/history/standard-agent-private-control-plane-retirement.md"
+    ],
+    "no_forbidden_write_refs": [
+      "contracts/standard_agent_conformance_profile.json#/physical_morphology/required_parity_gates"
+    ],
+    "provenance_refs": [
+      "docs/history/standard-agent-private-control-plane-retirement.md"
+    ]
+  },
+  "forbidden_generic_owner_roles": [
+    "generic_scheduler_owner",
+    "generic_daemon_owner",
+    "generic_lifecycle_owner",
+    "generic_queue_owner",
+    "generic_attempt_ledger_owner",
+    "generic_state_machine_runner_owner",
+    "generic_cli_mcp_product_wrapper_owner",
+    "generic_sidecar_owner",
+    "generic_session_store_owner",
+    "generic_status_workbench_owner",
+    "generic_workspace_source_intake_owner",
+    "generic_memory_transport_owner",
+    "generic_artifact_gallery_owner",
+    "generic_operator_workbench_owner",
+    "generic_observability_slo_owner",
+    "generic_persistence_engine_owner",
+    "generic_sqlite_lifecycle_owner",
+    "generic_native_helper_envelope_owner",
+    "generic_review_repair_transport_owner",
+    "generated_surface_owner_in_domain_repo"
+  ],
+  "default_surface_boundary": {
+    "state": "physically_absent",
+    "owner": "one-person-lab",
+    "domain_repo_can_own_default_surface": false,
+    "verification_ref": "scripts/repo_hygiene_audit.py"
+  },
+  "retired_default_surface_ids": [
+    "cli",
+    "mcp",
+    "skill",
+    "product_entry",
+    "product_status",
+    "product_session",
+    "domain_handler",
+    "workbench"
+  ],
+  "authority_boundary": {
+    "opl_can_write_domain_truth": false,
+    "opl_can_write_memory_body": false,
+    "opl_can_mutate_domain_artifact_body_without_mas_authority": false,
+    "opl_can_authorize_quality_or_export": false,
+    "domain_can_claim_generic_runtime_owner": false,
+    "domain_repo_can_own_generated_surface": false,
+    "provider_completion_is_domain_completion": false
+  }
+}

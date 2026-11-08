@@ -1,0 +1,186 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "med-autoscience/contracts/schemas/v1/product-entry-manifest.schema.json",
+  "title": "MedAutoScience Product Entry Manifest",
+  "type": "object",
+  "required": [
+    "schema_version",
+    "manifest_version",
+    "surface_kind",
+    "manifest_kind",
+    "schema_ref",
+    "target_domain_id",
+    "workspace_locator",
+    "single_project_boundary",
+    "domain_entry_contract",
+    "user_interaction_contract",
+    "product_entry_surface",
+    "operator_loop_surface"
+  ],
+  "properties": {
+    "surface_kind": {
+      "const": "product_entry_manifest"
+    },
+    "schema_ref": {
+      "const": "contracts/schemas/v1/product-entry-manifest.schema.json"
+    },
+    "domain_entry_contract": {
+      "$ref": "#/$defs/domainEntryContract"
+    },
+    "single_project_boundary": {
+      "$ref": "#/$defs/singleProjectBoundary"
+    },
+    "user_interaction_contract": {
+      "$ref": "#/$defs/userInteractionContract"
+    }
+  },
+  "$defs": {
+    "singleProjectBoundary": {
+      "type": "object",
+      "required": [
+        "surface_kind",
+        "summary",
+        "mas_owner_modules",
+        "mds_retained_roles",
+        "post_gate_only",
+        "not_now"
+      ],
+      "properties": {
+        "surface_kind": {
+          "const": "single_project_boundary"
+        },
+        "summary": {
+          "type": "string"
+        },
+        "mas_owner_modules": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "type": "string"
+          }
+        },
+        "mds_retained_roles": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "type": "object",
+            "required": ["role_id", "title", "summary"],
+            "properties": {
+              "role_id": {"type": "string"},
+              "title": {"type": "string"},
+              "summary": {"type": "string"}
+            }
+          }
+        },
+        "land_now": {
+          "type": "array",
+          "items": {"type": "string"}
+        },
+        "post_gate_only": {
+          "type": "array",
+          "minItems": 1,
+          "items": {"type": "string"}
+        },
+        "not_now": {
+          "type": "array",
+          "minItems": 1,
+          "items": {"type": "string"}
+        }
+      }
+    },
+    "domainEntryContract": {
+      "type": "object",
+      "required": [
+        "entry_adapter",
+        "service_safe_surface_kind",
+        "product_entry_builder_command",
+        "supported_entry_modes",
+        "supported_commands",
+        "command_contracts"
+      ],
+      "properties": {
+        "entry_adapter": {
+          "type": "string"
+        },
+        "service_safe_surface_kind": {
+          "type": "string"
+        },
+        "product_entry_builder_command": {
+          "type": "string"
+        },
+        "supported_entry_modes": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "supported_commands": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "enum": [
+              "mainline-status",
+              "product-entry-status",
+              "product-preflight",
+              "product-start",
+              "product-entry-manifest",
+              "skill-catalog",
+              "study-progress",
+              "progress-projection",
+              "launch-study",
+              "submit-study-task",
+              "build-product-entry",
+              "storage-governance-report",
+              "delivery-authority-backfill-apply"
+            ]
+          }
+        },
+        "command_contracts": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": ["command", "required_fields", "optional_fields"]
+          }
+        }
+      }
+    },
+    "userInteractionContract": {
+      "type": "object",
+      "required": [
+        "surface_kind",
+        "entry_owner",
+        "user_interaction_mode",
+        "user_commands_required",
+        "command_surfaces_for_agent_consumption_only",
+        "shared_downstream_entry",
+        "shared_handoff_envelope"
+      ],
+      "properties": {
+        "surface_kind": {
+          "const": "user_interaction_contract"
+        },
+        "entry_owner": {
+          "type": "string"
+        },
+        "user_interaction_mode": {
+          "type": "string"
+        },
+        "user_commands_required": {
+          "type": "boolean"
+        },
+        "command_surfaces_for_agent_consumption_only": {
+          "type": "boolean"
+        },
+        "shared_downstream_entry": {
+          "type": "string"
+        },
+        "shared_handoff_envelope": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        }
+      }
+    }
+  }
+}

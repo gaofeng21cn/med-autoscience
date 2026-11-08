@@ -1,0 +1,32 @@
+{
+  "surface_kind": "mas_foundry_owner_gate_policy",
+  "version": "mas-foundry-owner-gate-policy.v1",
+  "policy_ref": "policy:mas/foundry-owner-gate/v1",
+  "owner": "med-autoscience",
+  "target": {
+    "target_agent_id": "mas",
+    "target_domain_id": "medautoscience"
+  },
+  "allowed_authority_refs": [
+    "target-agent-owner:med-autoscience"
+  ],
+  "allowed_actions": {
+    "authorize_improve": "approve",
+    "approve_canary": "approve",
+    "approve_active": "approve"
+  },
+  "receipt_store": {
+    "kind": "owner_issued_content_addressed_files",
+    "root_source": "explicit_process_argument",
+    "filename_scheme": "sha256_hex_json",
+    "physical_non_symlink_required": true,
+    "canonical_json_bytes_required": true
+  },
+  "authority_boundary": {
+    "verifier_can_issue_receipt": false,
+    "verifier_can_auto_approve": false,
+    "verifier_can_write_foundry_state": false,
+    "verifier_can_write_domain_truth": false,
+    "unknown_or_mismatched_receipt": "fail_closed"
+  }
+}

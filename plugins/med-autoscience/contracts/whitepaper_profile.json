@@ -1,0 +1,12 @@
+{
+  "sourceMarkdown": "docs/whitepapers/mas-whitepaper.md",
+  "outputName": "mas-whitepaper",
+  "status": "whitepaper_artifact_verified",
+  "owner": "MedAutoScience",
+  "coverLine": "Med Auto Science / Research Line / Evidence Chain / Manuscript Delivery",
+  "headerTitle": "MAS Whitepaper",
+  "minPdfPages": 6,
+  "maxPdfPages": 9,
+  "publicHtmlUrl": "https://gaofeng21cn.github.io/one-person-lab/latest/whitepapers/mas-whitepaper.html",
+  "publicPdfUrl": "https://gaofeng21cn.github.io/one-person-lab/latest/whitepapers/mas-whitepaper.pdf"
+}

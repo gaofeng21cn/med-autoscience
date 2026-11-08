@@ -1,0 +1,420 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://opl.onepersonlab/contracts/mas-research-trajectory-snapshot-v2.schema.json",
+  "title": "MAS research trajectory snapshot v2",
+  "description": "Lightweight MAS-authored current research route for reader reference and map rendering. It is not an acceptance or publication-quality receipt.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "surface_kind",
+    "version",
+    "study_id",
+    "study_ref",
+    "revision",
+    "status",
+    "summary",
+    "current_focus",
+    "active_branch",
+    "current_focus_node_refs",
+    "active_branch_node_refs",
+    "nodes",
+    "edges",
+    "medical_narrative",
+    "source_refs",
+    "conditions"
+  ],
+  "properties": {
+    "surface_kind": {
+      "const": "mas_research_trajectory_snapshot"
+    },
+    "version": {
+      "const": "mas-research-trajectory-snapshot.v2"
+    },
+    "study_id": {
+      "$ref": "#/$defs/stable_id"
+    },
+    "study_ref": {
+      "$ref": "#/$defs/study_ref",
+      "description": "Machine-only canonical study binding; never rendered as medical prose."
+    },
+    "revision": {
+      "type": "integer",
+      "minimum": 1,
+      "maximum": 9007199254740991,
+      "description": "Incremented once for each meaningful scientific update written to both trajectory artifacts."
+    },
+    "status": {
+      "enum": [
+        "active",
+        "awaiting_evidence",
+        "route_reconsideration",
+        "human_review_required",
+        "stopped",
+        "completed"
+      ]
+    },
+    "summary": {
+      "$ref": "#/$defs/map_summary"
+    },
+    "current_focus": {
+      "$ref": "#/$defs/current_focus"
+    },
+    "active_branch": {
+      "$ref": "#/$defs/active_branch"
+    },
+    "current_focus_node_refs": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "$ref": "#/$defs/stable_id"
+      },
+      "uniqueItems": true
+    },
+    "active_branch_node_refs": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "$ref": "#/$defs/stable_id"
+      },
+      "uniqueItems": true
+    },
+    "nodes": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "$ref": "#/$defs/map_node"
+      },
+      "uniqueItems": true
+    },
+    "edges": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/map_edge"
+      },
+      "uniqueItems": true
+    },
+    "medical_narrative": {
+      "$ref": "mas-medical-narrative.schema.json"
+    },
+    "source_refs": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "$ref": "#/$defs/typed_ref"
+      },
+      "uniqueItems": true
+    },
+    "conditions": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/research_condition"
+      },
+      "uniqueItems": true
+    }
+  },
+  "$defs": {
+    "study_ref": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "kind",
+        "ref"
+      ],
+      "properties": {
+        "kind": {
+          "const": "mas_study"
+        },
+        "ref": {
+          "type": "string",
+          "minLength": 11,
+          "maxLength": 210,
+          "pattern": "^mas-study:[A-Za-z0-9][A-Za-z0-9._:-]*$"
+        }
+      },
+      "description": "The Framework additionally verifies ref equals mas-study:{study_id} and study_id equals the selected work item id."
+    },
+    "stable_id": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 200,
+      "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]*$"
+    },
+    "typed_ref": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "kind",
+        "ref"
+      ],
+      "properties": {
+        "kind": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 100
+        },
+        "ref": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 2000
+        }
+      }
+    },
+    "nullable_display_text": {
+      "oneOf": [
+        {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 3000
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "map_summary": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "primary_hypothesis",
+        "latest_finding",
+        "current_judgment",
+        "next_research_step",
+        "updated_at"
+      ],
+      "properties": {
+        "primary_hypothesis": {
+          "$ref": "#/$defs/nullable_display_text"
+        },
+        "latest_finding": {
+          "$ref": "#/$defs/nullable_display_text"
+        },
+        "current_judgment": {
+          "$ref": "#/$defs/nullable_display_text"
+        },
+        "next_research_step": {
+          "$ref": "#/$defs/nullable_display_text"
+        },
+        "updated_at": {
+          "type": "string",
+          "format": "date-time"
+        }
+      }
+    },
+    "current_focus": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "node_id",
+        "primary_hypothesis"
+      ],
+      "properties": {
+        "node_id": {
+          "$ref": "#/$defs/stable_id"
+        },
+        "primary_hypothesis": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 3000
+        }
+      }
+    },
+    "active_branch": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "branch_id",
+        "label"
+      ],
+      "properties": {
+        "branch_id": {
+          "$ref": "#/$defs/stable_id"
+        },
+        "label": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 500
+        }
+      }
+    },
+    "map_node": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "kind",
+        "label",
+        "status",
+        "summary",
+        "branch_id",
+        "occurred_at",
+        "details",
+        "source_refs"
+      ],
+      "properties": {
+        "id": {
+          "$ref": "#/$defs/stable_id"
+        },
+        "kind": {
+          "enum": [
+            "hypothesis",
+            "test",
+            "finding",
+            "decision",
+            "route",
+            "artifact",
+            "human_gate"
+          ]
+        },
+        "label": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 500
+        },
+        "status": {
+          "enum": [
+            "proposed",
+            "planned",
+            "active",
+            "completed",
+            "execution_failed",
+            "not_assessed",
+            "supported",
+            "does_not_support",
+            "inconclusive",
+            "design_invalid",
+            "refined",
+            "superseded",
+            "continued",
+            "narrowed",
+            "pivoted",
+            "stopped",
+            "human_review_required",
+            "produced"
+          ]
+        },
+        "summary": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 3000
+        },
+        "branch_id": {
+          "$ref": "#/$defs/stable_id"
+        },
+        "occurred_at": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "details": {
+          "$ref": "mas-medical-narrative.schema.json"
+        },
+        "source_refs": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "$ref": "#/$defs/typed_ref"
+          },
+          "uniqueItems": true
+        }
+      }
+    },
+    "map_edge": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "source",
+        "target",
+        "kind",
+        "label",
+        "status",
+        "source_refs"
+      ],
+      "properties": {
+        "id": {
+          "$ref": "#/$defs/stable_id"
+        },
+        "source": {
+          "$ref": "#/$defs/stable_id"
+        },
+        "target": {
+          "$ref": "#/$defs/stable_id"
+        },
+        "kind": {
+          "enum": [
+            "tests",
+            "supports",
+            "does_not_support",
+            "inconclusive",
+            "revises",
+            "supersedes",
+            "routes_to",
+            "requires",
+            "produces"
+          ]
+        },
+        "label": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 1000
+        },
+        "status": {
+          "enum": [
+            "active",
+            "historical",
+            "blocked"
+          ]
+        },
+        "source_refs": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "$ref": "#/$defs/typed_ref"
+          },
+          "uniqueItems": true
+        }
+      }
+    },
+    "research_condition": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "type",
+        "status",
+        "reason",
+        "message",
+        "source_refs"
+      ],
+      "properties": {
+        "type": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 100
+        },
+        "status": {
+          "enum": [
+            "True",
+            "False",
+            "Unknown"
+          ]
+        },
+        "reason": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 1000
+        },
+        "message": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 3000
+        },
+        "source_refs": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/typed_ref"
+          },
+          "uniqueItems": true
+        }
+      }
+    }
+  }
+}

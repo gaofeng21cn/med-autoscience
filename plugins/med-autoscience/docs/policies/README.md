@@ -1,0 +1,26 @@
+# Policies
+
+Status: `active policy index`
+Owner: `MedAutoScience`
+Purpose: `Index stable MAS policy documents and route policy readers to the canonical policy owner.`
+State: `active_policy_index`
+Machine boundary: Human-readable policy index only; machine truth remains in contracts, source, tests, CLI/read-model output, runtime artifacts, and receipts.
+
+Policies are stable internal rules. They define boundaries that maintainers and
+agents must follow; one-off checklists, closeout notes, and program boards
+belong in `docs/active/`, `docs/references/`, or `docs/history/`.
+
+| directory | purpose |
+| --- | --- |
+| [quality](./quality/) | Publication gate, AI-first quality, reviewer calibration, evidence review, and manuscript quality rules. |
+| [study-workflow](./study-workflow/README.md) | Stage-led research autonomy, publication route memory, study archetypes, data asset, submission revision, and workspace workflow rules. |
+| [runtime-governance](./runtime-governance/) | Runtime operating model, external runtime dependency gate, MAS/MDS owner boundary, and runtime stabilization rules. |
+| [repo-ops](./repo-ops/) | Mainline integration, merge/cutover gates, and repository preflight rules. |
+
+## Rule
+
+Policies may be referenced by code, tests, or manifests only through stable
+semantic IDs or explicit policy paths. They must not become active backlog or
+runtime truth.
+
+Natural-language domain memory follows [Domain Memory Markdown-First Policy](./domain_memory_markdown_first_policy.md): Markdown is the canonical human/Codex-readable body; JSON is allowed only for indexes, generated workspace packs, receipts, provenance, tests, runtime truth, or body-free projections.

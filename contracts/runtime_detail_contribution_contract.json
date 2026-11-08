@@ -9,7 +9,7 @@
   "data_ref": "mas.runtime-detail.v1#current",
   "producer": {
     "abi": "opl-package-app-contribution-cli.v1",
-    "command": "plugins/med-autoscience/bin/mas-app-contribution",
+    "command": "bin/mas-app-contribution",
     "transport": "stdin_json_stdout_json",
     "workspace_source": "OPL_PROFILE_WORKSPACE",
     "workspace_index_ref": "workspace_index.json",

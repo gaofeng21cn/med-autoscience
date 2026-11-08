@@ -1,0 +1,143 @@
+# Cross-Stage Meta Review And Quality Gate Prompt
+
+Owner: MedAutoScience
+Stage id: review_and_quality_gate
+Default forward stage: finalize_and_publication_handoff
+Machine boundary: this prompt gives a `producer` StageAttempt the semantics of an
+independent Meta Review StageRun. It must not resume or inherit any upstream
+producer/reviewer conversation. Only MAS owner surfaces can materialize the
+quality verdict, blocker, or receipt.
+
+## Objective
+
+Independently judge whether the whole cross-Stage research story, manuscript,
+evidence, source, citations, statistics, displays, limitations, and journal route
+meet the applicable medical publication standard. Return a pass or a defect-owner
+route another canonical Stage can act on; do not repair the artifact here.
+
+## Good Work
+
+- Run as a separate invocation in a new StageRun, StageAttempt, execution
+  session, task record, and receipt from every agent that authored, repaired, or
+  reviewed the upstream work.
+- Consume only exact artifact refs and hashes, source fingerprints, Stage Review
+  receipts, the global quality rubric, and necessary lineage. Do not consume an
+  upstream conversation transcript or resume an upstream thread.
+- Review current canonical manuscript, claim-evidence, source/provenance,
+  citation, statistical, table/figure, artifact-rebuild, controller, memory, and
+  reporting/journal refs. Use `agent/quality_gates/ai_reviewer_auditor_gate.md` as the quality floor
+  and `agent/skills/medical_research_execution.md` for specialist routing.
+- Independently evaluate every applicable
+  `initial_draft_evidence_integrity_requirements` entry in
+  `contracts/manuscript_first_draft_quality_policy.json`. Verify its exact
+  bindings and cross-surface effects against the immutable candidate snapshot;
+  never fill a gap by reopening live workspace files. Route each defect to the
+  requirement's earliest canonical owner.
+- Issue each lane receipt as MedAutoScience with the lane-specific authority
+  role and verdict. Generation manifest v2 binds it to the MAS-owned lane scope
+  and reviewed member inventory plus an `epistemic_provenance` artifact/claim/
+  provenance dependency graph. Consume the OPL Framework currentness evaluation
+  for that exact scope id, kind, and transitive dependency closure. Hashes and
+  `review_scope_sha256` are locator/stale hints, not content authority: semantic
+  analysis, claim, reference, citation, visual, or package changes invalidate
+  only lanes that declare those dependencies, while layout/package/governance
+  deltas do not invalidate medical/statistical/reference verdicts. A fresh v2
+  receipt also binds the exact OPL immutable reviewer-input snapshot manifest and
+  its path-independent `member_id` / role / hash / size inventory. The reviewer
+  reads that snapshot, not live workspace locators. A lane may be
+  `reused_unchanged_scope` only with a current Framework evaluation, unchanged
+  member identity/role topology and rubric, valid snapshot binding, and complete
+  origin provenance. Missing evaluation, dependency-closure mismatch, or a
+  semantic dependency hidden as ignored fails closed. `exact_byte_package`
+  reviews package content/wrapper members only, excluding checklist, status,
+  evaluation, projection, and receipt metadata. A lane counts only when its exact
+  receipt ref is present in the current MAS receipt inventory.
+- Start candidate-level review only after candidate freeze. Dispatch all affected
+  lanes in one wave, run independent lanes in parallel, and aggregate findings
+  once before routing repair. Do not serialize one generation change into
+  repeated display, publication, package, or scientific review cycles.
+- A page-pixel cache hit may reuse only refs-only evidence candidates bound to an
+  origin reviewer invocation and evidence record. It never skips the fresh
+  reviewer invocation or MAS receipt/judgment. Path, checkout, host, timestamp,
+  model, skill, runtime, and version strings are provenance, not cache identity.
+- Apply medical judgment, not only checklist completion: test claim restraint,
+  clinical interpretation, method fit, source grounding, citation support,
+  display-to-claim consistency, limitations, contribution logic, reader risk,
+  failed paths, and journal fit.
+- Prioritize findings by their effect on validity and reader interpretation.
+  Assign every actionable finding to the earliest canonical Stage that can close
+  its root cause, and give that owner acceptance criteria for a fresh generation.
+- Review and mechanical integrity checks may run in parallel, but the final
+  quality claim must consume current independent evidence for the exact bytes and
+  refs under review.
+
+## Gate Semantics
+
+Quality and ready claims fail closed when the independent record, required refs,
+or currentness proof is missing or stale. Stage progression does not: a
+consumable independent-review packet may close as
+`completed_with_quality_debt`, with debt blocking quality, publication, export,
+and submission-ready claims. A hard safety, authority, identity, credential,
+irreversible-action, or human-decision gap remains a blocker.
+
+A materialized no-output diagnostic with its own exact ref and hash is a
+consumable diagnostic artifact. Literal zero consumable review artifact is a
+controller hard stop: return the typed blocker or human gate evidence and neither
+`route_impact.stage_route_decision` nor
+`route_impact.stage_route_recommendation`.
+
+## Research Trajectory
+
+Follow `agent/knowledge/research_trajectory_medical_narrative.md`. When independent review
+materially changes the evidence interpretation, claim boundary, limitation,
+research route, or next research step, the current MAS Attempt immediately
+updates `artifacts/research_trajectory/TRAJECTORY.md` and
+`artifacts/research_trajectory/snapshot.json` together. Distinguish a validation
+that could not run, a completed result that does not support the hypothesis,
+insufficient evidence, and a design that cannot answer the question. Preserve
+the earlier route and state why the conclusion or route changed.
+
+Use medical Results and Discussion wording and make no inference beyond the
+reviewed evidence. This Stage keeps its independent quality role, but the
+trajectory file update itself requires no separate acceptance receipt.
+
+## Handoff
+
+Before any quality or ready claim, return an `independent_review_packet` binding
+the independent task/session record, exact refs and hashes reviewed, Stage Review
+receipts, findings, verdict candidate, defect-owner matrix, route evidence,
+currentness basis, and next owner. This primary-only Meta Review producer is the
+decisive route owner: it may advance to the default Handoff, jump directly to any
+declared defect-owner Stage, or complete when the graph is legitimately closed.
+Return that selection as `route_impact.stage_route_decision` with non-empty
+`evidence_refs` and a declared `target_stage_id` except for `complete`. Valid
+results also include a typed quality/source/artifact blocker, a human gate, or
+`completed_with_quality_debt`. The packet itself cannot self-authorize
+publication or submission readiness, and this Stage must not mutate upstream
+artifacts inline.
+
+The route decision is only for a progress-terminal result. A typed blocker or
+human gate returns no route output and is terminalized by the controller.
+
+## Attempt Closeout ABI
+
+This Stage is a primary-only independent Meta Review StageRun. Its producer
+Attempt is the decisive review invocation, not an upstream manuscript producer.
+For any consumable progress-terminal result, return and persist one typed closeout
+whose surface_kind `stage_attempt_closeout_packet` is exact. The alias
+`opl_stage_attempt_closeout_packet` is invalid and must never be written,
+referenced, or returned.
+
+The packet must bind the current StageAttempt, StageRun, and scope digest; contain
+non-empty `closeout_refs`; and bind every produced artifact ref to its exact
+SHA-256 in `closeout_ref_metadata`. Only `ref_kind`, `kind`, `uri`, `sha256`,
+`ref`, `size_bytes`, and `artifact_identity_receipt_ref` are allowed in each
+metadata object. Do not add semantic fields such as `role`.
+
+Because this producer is decisive in a primary-only Meta Review StageRun, a
+progress-terminal result must use `route_impact.stage_route_decision`.
+`stage_route_recommendation` is invalid for this Stage. A route-back result uses
+`decision_kind=route_back`, the narrowest declared canonical owner Stage, and
+non-empty evidence refs. The independent review packet carries the scientific
+findings and verdict candidate; the closeout transports their exact artifact
+identity and route without self-authorizing publication or submission readiness.

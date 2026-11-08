@@ -18,4 +18,3 @@ _SCOPE_RANK = {
     "manuscript_generation": 1,
     "publication_generation": 2,
 }
-

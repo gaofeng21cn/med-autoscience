@@ -1,0 +1,257 @@
+{
+  "surface_kind": "opl_stage_run_controlled_canary_evidence",
+  "version": "stage-run-controlled-canary.v1",
+  "domain_id": "medautoscience",
+  "owner": "MedAutoScience",
+  "state": "active_controlled_fixture",
+  "canary_id": "mas_stage_run_controlled_canary_ai_reviewer_publication_eval_rebuild",
+  "stage_id": "ai_reviewer_publication_eval_rebuild",
+  "evidence_scope": "controlled_fixture_not_live_domain_progress",
+  "stage_run_ref": {
+    "ref": "stage-run://controlled-canary/med-autoscience/ai_reviewer_publication_eval_rebuild#run-001",
+    "role": "controlled_stage_run_ref",
+    "body_included": false
+  },
+  "stage_manifest_ref": {
+    "ref": "contracts/stage_run_canary_evidence.json#/controlled_stage_folder/stage_manifest",
+    "role": "controlled_stage_manifest_ref",
+    "body_included": false
+  },
+  "current_pointer_ref": {
+    "ref": "contracts/stage_run_canary_evidence.json#/controlled_stage_folder/current_pointer",
+    "role": "controlled_current_pointer_ref",
+    "body_included": false
+  },
+  "controlled_stage_folder": {
+    "stage_manifest": {
+      "stage_id": "ai_reviewer_publication_eval_rebuild",
+      "stage_run_ref": "stage-run://controlled-canary/med-autoscience/ai_reviewer_publication_eval_rebuild#run-001",
+      "required_role_artifacts": [
+        "candidate_pool_ref",
+        "reflection_review_ref",
+        "ranking_selection_ref",
+        "revision_lineage_ref",
+        "strategy_retrospective_ref",
+        "independent_gate_ref"
+      ],
+      "closeout_requires": "owner_receipt_or_typed_blocker",
+      "body_included": false
+    },
+    "current_pointer": {
+      "stage_run_ref": "stage-run://controlled-canary/med-autoscience/ai_reviewer_publication_eval_rebuild#run-001",
+      "status": "TypedBlocked",
+      "terminal_outcome_ref": "mas://controlled-canary/stage-run/ai-reviewer-publication-eval-rebuild/stable-typed-blocker",
+      "projection_only": true,
+      "body_included": false
+    }
+  },
+  "strategy_trace": {
+    "candidate_generation": {
+      "refs": [
+        {
+          "ref": "mas://controlled-canary/stage-run/ai-reviewer-publication-eval-rebuild/candidate-pool",
+          "role": "candidate_pool_ref",
+          "body_included": false
+        }
+      ],
+      "authority": "advisory_within_stage_only",
+      "can_closeout": false
+    },
+    "grounded_reflection": {
+      "refs": [
+        {
+          "ref": "mas://controlled-canary/stage-run/ai-reviewer-publication-eval-rebuild/reflection-review",
+          "role": "reflection_review_ref",
+          "body_included": false
+        }
+      ],
+      "authority": "advisory_within_stage_only",
+      "can_closeout": false
+    },
+    "comparative_selection": {
+      "refs": [
+        {
+          "ref": "mas://controlled-canary/stage-run/ai-reviewer-publication-eval-rebuild/ranking-selection",
+          "role": "ranking_selection_ref",
+          "body_included": false
+        }
+      ],
+      "authority": "advisory_within_stage_only",
+      "can_closeout": false
+    },
+    "evolution_and_revision": {
+      "refs": [
+        {
+          "ref": "mas://controlled-canary/stage-run/ai-reviewer-publication-eval-rebuild/revision-lineage",
+          "role": "revision_lineage_ref",
+          "body_included": false
+        }
+      ],
+      "authority": "advisory_within_stage_only",
+      "can_closeout": false
+    },
+    "strategy_retrospective": {
+      "refs": [
+        {
+          "ref": "mas://controlled-canary/stage-run/ai-reviewer-publication-eval-rebuild/strategy-retrospective",
+          "role": "strategy_retrospective_ref",
+          "body_included": false
+        }
+      ],
+      "authority": "advisory_within_stage_only",
+      "can_closeout": false
+    },
+    "independent_quality_gate": {
+      "refs": [
+        {
+          "ref": "mas://controlled-canary/stage-run/ai-reviewer-publication-eval-rebuild/independent-gate",
+          "role": "independent_gate_ref",
+          "body_included": false
+        }
+      ],
+      "authority": "independent_reviewer_or_publication_gate_ref_only",
+      "can_closeout": false
+    }
+  },
+  "role_artifact_refs": {
+    "candidate_pool_ref": {
+      "ref": "mas://controlled-canary/stage-run/ai-reviewer-publication-eval-rebuild/candidate-pool",
+      "role": "candidate_pool_ref",
+      "body_included": false
+    },
+    "reflection_review_ref": {
+      "ref": "mas://controlled-canary/stage-run/ai-reviewer-publication-eval-rebuild/reflection-review",
+      "role": "reflection_review_ref",
+      "body_included": false
+    },
+    "ranking_selection_ref": {
+      "ref": "mas://controlled-canary/stage-run/ai-reviewer-publication-eval-rebuild/ranking-selection",
+      "role": "ranking_selection_ref",
+      "body_included": false
+    },
+    "revision_lineage_ref": {
+      "ref": "mas://controlled-canary/stage-run/ai-reviewer-publication-eval-rebuild/revision-lineage",
+      "role": "revision_lineage_ref",
+      "body_included": false
+    },
+    "strategy_retrospective_ref": {
+      "ref": "mas://controlled-canary/stage-run/ai-reviewer-publication-eval-rebuild/strategy-retrospective",
+      "role": "strategy_retrospective_ref",
+      "body_included": false
+    },
+    "independent_gate_ref": {
+      "ref": "mas://controlled-canary/stage-run/ai-reviewer-publication-eval-rebuild/independent-gate",
+      "role": "independent_gate_ref",
+      "body_included": false
+    }
+  },
+  "closeout": {
+    "terminal_outcome": "typed_blocker",
+    "typed_blocker_ref": {
+      "ref": "mas://controlled-canary/stage-run/ai-reviewer-publication-eval-rebuild/stable-typed-blocker",
+      "role": "typed_blocker_ref",
+      "body_included": false
+    },
+    "same_attempt_self_review": false
+  },
+  "authority_boundary": {
+    "refs_only": true,
+    "controlled_canary_claims_live_domain_progress": false,
+    "provider_completion_counts_as_closeout": false,
+    "file_presence_counts_as_closeout": false,
+    "read_model_counts_as_closeout": false,
+    "conformance_pass_counts_as_closeout": false,
+    "opl_can_write_domain_truth": false,
+    "opl_can_mutate_artifact_body": false,
+    "opl_can_sign_owner_receipt": false,
+    "opl_can_create_typed_blocker": false,
+    "opl_can_authorize_quality_or_export": false
+  },
+  "claim_boundary": {
+    "claims_live_domain_progress": false,
+    "claims_paper_closure": false,
+    "claims_publication_ready": false,
+    "claims_artifact_mutation_authorized": false,
+    "claims_current_package_updated": false
+  },
+  "overclaim_boundary": {
+    "boundary_kind": "controlled_canary_operator_overclaim_boundary",
+    "allowed_operator_claims": [
+      "controlled_stage_run_fixture_shape_verified",
+      "refs_only_stage_strategy_trace_present",
+      "stable_typed_blocker_ref_present"
+    ],
+    "forbidden_operator_claims": [
+      "live_dm002_dm003_domain_progress",
+      "paper_closure",
+      "publication_ready",
+      "artifact_mutation_authorized",
+      "current_package_updated",
+      "quality_or_export_authorized",
+      "legacy_runtime_residue_authorizes_semantic_route"
+    ],
+    "must_classify_as": "platform_repair_controlled_fixture",
+    "overclaim_guard_fails_closed": true
+  },
+  "legacy_runtime_residue_guard": {
+    "guard_kind": "legacy_runtime_residue_no_semantic_route_authority_guard",
+    "retired_surfaces": [
+      "generic_scheduler",
+      "generic_runner",
+      "generic_session_store",
+      "generic_status_shell",
+      "generic_workbench_wrapper",
+      "generic_lifecycle_wrapper",
+      "generic_attempt_ledger",
+      "generic_queue"
+    ],
+    "allowed_roles": [
+      "migration_input",
+      "diagnostic_projection",
+      "provenance_tombstone"
+    ],
+    "forbidden_authority": [
+      "semantic_stage_route_selection",
+      "domain_closeout",
+      "publication_quality_verdict",
+      "artifact_mutation_authorization",
+      "owner_receipt_signature",
+      "typed_blocker_replacement"
+    ],
+    "residue_presence_counts_as_stage_progress": false,
+    "residue_presence_counts_as_closeout": false,
+    "operator_summary_must_not_promote_residue": true
+  },
+  "controlled_canary_operator_summary": {
+    "summary_kind": "controlled_canary_operator_summary",
+    "scope": "operator_read_model_summary_not_domain_truth",
+    "completion_classification": "platform_repair_controlled_fixture",
+    "stage_run_ref": "stage-run://controlled-canary/med-autoscience/ai_reviewer_publication_eval_rebuild#run-001",
+    "current_status": "TypedBlocked",
+    "current_operator_action": "keep_dm002_dm003_queue_hold_until_human_release_then_require_fresh_owner_receipt_or_stable_typed_blocker",
+    "operator_claims": [
+      "controlled_stage_run_fixture_shape_verified",
+      "refs_only_stage_strategy_trace_present",
+      "stable_typed_blocker_ref_present"
+    ],
+    "forbidden_operator_claims": [
+      "live_dm002_dm003_domain_progress",
+      "paper_closure",
+      "publication_ready",
+      "artifact_mutation_authorized",
+      "current_package_updated",
+      "quality_or_export_authorized",
+      "legacy_runtime_residue_authorizes_semantic_route"
+    ],
+    "overclaim_boundary_ref": "contracts/stage_run_canary_evidence.json#/overclaim_boundary",
+    "legacy_runtime_residue_guard_ref": "contracts/stage_run_canary_evidence.json#/legacy_runtime_residue_guard",
+    "body_included": false
+  },
+  "verification_refs": [
+    {
+      "ref": "tests/test_standard_agent_conformance_profile.py",
+      "role": "focused_controlled_canary_contract_test",
+      "body_included": false
+    }
+  ]
+}

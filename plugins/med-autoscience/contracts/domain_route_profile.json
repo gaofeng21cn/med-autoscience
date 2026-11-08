@@ -1,0 +1,63 @@
+{
+  "surface_kind": "opl_domain_route_profile",
+  "version": "domain-route-profile.v2",
+  "schema_version": 2,
+  "profile_id": "mas.domain_route.v2",
+  "profile_role": "declarative_stage_route_registration",
+  "agent_id": "mas",
+  "domain_id": "medautoscience",
+  "domain_truth_owner": "MedAutoScience",
+  "runtime_owner": "one-person-lab",
+  "stage_manifest_ref": "agent/stages/manifest.json",
+  "semantic_route_decision_owner": "decisive_codex_attempt",
+  "stage_transition_materialization_owner": "opl_stage_run_controller",
+  "decisive_attempt_policy": {
+    "primary_only_stage_run": "producer",
+    "formal_review_stage_run": [
+      "terminal_reviewer",
+      "terminal_re_reviewer"
+    ],
+    "non_decisive_roles": [
+      "repairer",
+      "nonterminal_reviewer",
+      "nonterminal_re_reviewer"
+    ]
+  },
+  "supported_route_kinds": [
+    "advance",
+    "skip",
+    "repeat",
+    "reverse",
+    "route_back",
+    "wait_for_human",
+    "stop_with_typed_blocker",
+    "complete_mission"
+  ],
+  "required_route_fields": [
+    "stage_run_id",
+    "decisive_attempt_ref",
+    "target_stage_id",
+    "route_reason_ref",
+    "evidence_refs"
+  ],
+  "receipt_labels": [
+    "owner_receipt_ref",
+    "typed_blocker_ref",
+    "human_gate_ref",
+    "route_back_ref",
+    "quality_gate_receipt_ref"
+  ],
+  "authority_boundary": {
+    "opl_can_interpret_medical_route_semantics": false,
+    "opl_can_rewrite_decisive_route": false,
+    "opl_can_materialize_validated_transition": true,
+    "provider_completion_is_route_decision": false,
+    "read_model_is_route_decision": false,
+    "domain_repo_can_materialize_stage_transition": false,
+    "writes_domain_truth": false,
+    "writes_artifact_body": false,
+    "writes_owner_receipt": false,
+    "writes_typed_blocker": false,
+    "writes_human_gate": false
+  }
+}

@@ -1,0 +1,86 @@
+{
+  "surface_kind": "opl_stage_artifact_kernel_adoption",
+  "version": "opl-stage-artifact-kernel-adoption.v1",
+  "owner": "med-autoscience",
+  "domain_id": "medautoscience",
+  "kernel_contract_ref": "contracts/opl-framework/stage-artifact-runtime-contract.json",
+  "stage_folder_unit": [
+    "Stage Folder",
+    "Manifest",
+    "Receipt",
+    "current pointer"
+  ],
+  "terminal_states": [
+    "success",
+    "blocked",
+    "skipped",
+    "deferred"
+  ],
+  "required_ref_fields": [
+    "stage_folder_contract_ref",
+    "stage_json_ref",
+    "attempt_json_ref",
+    "manifest_ref",
+    "receipt_ref",
+    "current_pointer_ref",
+    "canonical_artifact_ref",
+    "export_ref",
+    "lineage_ref",
+    "retention_ref"
+  ],
+  "kernel_refs": {
+    "physical_stage_folder_source_of_truth": true,
+    "derived_index_rebuildable": true,
+    "manifest_receipt_hash_required": true
+  },
+  "execution_scope_binding": {
+    "binding_contract_ref": "contracts/domain_descriptor.json#/work_item_scope_binding",
+    "snapshot_schema_ref": "contracts/opl-framework/execution-scope-snapshot.schema.json",
+    "scope_snapshot_owner": "one-person-lab",
+    "binding_mode": "exact_same_scope_digest",
+    "host_binding_required_before_domain_consumption": true,
+    "bound_surface_families": [
+      "stage_folder",
+      "stage_run",
+      "stage_attempt",
+      "manifest",
+      "receipt",
+      "current_pointer",
+      "artifact_ref",
+      "typed_blocker",
+      "human_gate"
+    ],
+    "artifact_path_must_descend_from_canonical_work_item_root": true,
+    "cross_work_item_consumption_requires_explicit_import_edge": true,
+    "workspace_latest_file_inference_allowed": false,
+    "legacy_unscoped_ref_state": "identity_unresolved",
+    "legacy_unscoped_ref_can_be_current_or_resumed_or_closed_out": false,
+    "mas_payload_carries_opaque_scope_ids": false
+  },
+  "domain_pack_binding": {
+    "accepted_source_refs": [
+      "agent/stages/manifest.json",
+      "contracts/stage_run_kernel_profile.json",
+      "contracts/research_trajectory_contract.json"
+    ],
+    "domain_output_roles_are_interface": true,
+    "file_name_is_not_interface": true
+  },
+  "projection_boundary": {
+    "derived_projection_refs": [
+      "opl_current_control_state_handoff",
+      "family_runtime_stage_attempt_query",
+      "stage_run_current_owner_delta",
+      "scientific_reasoning_map"
+    ],
+    "file_presence_only_counts_as": "orphan_or_historical",
+    "provider_completion_counts_as_progress": false
+  },
+  "authority_boundary": {
+    "opl_can_create_domain_owner_receipt": false,
+    "opl_can_write_domain_truth": false,
+    "opl_can_write_memory_body": false,
+    "opl_can_mutate_domain_artifact_body": false,
+    "opl_can_authorize_quality_or_export": false
+  }
+}

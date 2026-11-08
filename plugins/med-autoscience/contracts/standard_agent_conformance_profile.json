@@ -1,0 +1,124 @@
+{
+  "surface_kind": "opl_standard_agent_conformance_profile",
+  "version": "opl.standard-agent-conformance-profile.v1",
+  "profile_id": "med-autoscience.standard-agent-conformance.v1",
+  "target_domain_id": "medautoscience",
+  "golden_path": {
+    "required_stage_ids": [
+      "direction_and_route_selection",
+      "baseline_and_evidence_setup",
+      "bounded_analysis_campaign",
+      "manuscript_authoring",
+      "review_and_quality_gate",
+      "finalize_and_publication_handoff"
+    ],
+    "allowed_stage_ids": [
+      "direction_and_route_selection",
+      "baseline_and_evidence_setup",
+      "bounded_analysis_campaign",
+      "manuscript_authoring",
+      "review_and_quality_gate",
+      "finalize_and_publication_handoff"
+    ],
+    "default_stage_id": "direction_and_route_selection",
+    "forbidden_owner_tokens": []
+  },
+  "quality_governance": {
+    "profile_ref": "contracts/stage_quality_cycle_policy.json",
+    "required_for_all_canonical_stages": true,
+    "formal_review_requires_independent_attempt": true,
+    "formal_review_requires_new_execution_session": true,
+    "no_context_inheritance_required": true,
+    "same_thread_checking_is_in_thread_refinement_only": true,
+    "default_max_quality_revision_rounds": 3,
+    "meta_review_stage_id": "review_and_quality_gate"
+  },
+  "canonical_stage_mapping": {
+    "source_ref": "contracts/stage_quality_cycle_policy.json#/canonical_to_physical_stage_mapping",
+    "canonical_stage_count": 6,
+    "physical_stage_count": 8,
+    "legacy_routes_are_runtime_inputs_not_canonical_stages": true
+  },
+  "physical_morphology": {
+    "scan_roots": [
+      "agent/",
+      "contracts/",
+      "src/med_autoscience/",
+      "runtime/authority_functions/"
+    ],
+    "allowed_residue_prefixes": [
+      "contracts/",
+      "docs/history/",
+      "tests/"
+    ],
+    "required_surface_ids": [
+      "medical_research_semantic_pack",
+      "domain_handler_targets",
+      "generated_surface_refs",
+      "medical_authority_functions",
+      "quality_and_artifact_authority",
+      "backend_audit_and_historical_provenance"
+    ],
+    "surface_classifications": [
+      {
+        "surface_id": "medical_research_semantic_pack",
+        "classification": "declarative_domain_pack",
+        "source_refs": ["agent/"]
+      },
+      {
+        "surface_id": "domain_handler_targets",
+        "classification": "domain_handler_target",
+        "source_refs": ["contracts/action_catalog.json", "contracts/pack_compiler_input.json"]
+      },
+      {
+        "surface_id": "generated_surface_refs",
+        "classification": "refs_only_adapter",
+        "source_refs": [
+          "contracts/generated_surface_handoff.json",
+          "contracts/durable_knowledge_catalog.json",
+          "contracts/artifact_locator_contract.json"
+        ]
+      },
+      {
+        "surface_id": "medical_authority_functions",
+        "classification": "minimal_authority_function",
+        "source_refs": [
+          "runtime/authority_functions/README.md",
+          "src/med_autoscience/authority_handlers/_generation_manifest.py",
+          "src/med_autoscience/authority_handlers/_record_validation.py",
+          "src/med_autoscience/authority_handlers/_stage_attempt_review_snapshot.py",
+          "src/med_autoscience/authority_handlers/build_dependency_currentness.py",
+          "src/med_autoscience/authority_handlers/candidate_admission.py",
+          "src/med_autoscience/authority_handlers/foundry_owner_gate.py",
+          "src/med_autoscience/authority_handlers/paper_mission.py",
+          "src/med_autoscience/authority_handlers/qualification_work_item_provisioning.py",
+          "src/med_autoscience/authority_handlers/self_evolution_closeout.py",
+          "src/med_autoscience/authority_handlers/study_initialization.py",
+          "src/med_autoscience/authority_handlers/study_lifecycle_reactivation.py",
+          "contracts/domain_handler_registry.json"
+        ]
+      },
+      {
+        "surface_id": "quality_and_artifact_authority",
+        "classification": "domain_owned_truth_and_verdict",
+        "source_refs": [
+          "agent/quality_gates/",
+          "contracts/stage_quality_cycle_policy.json",
+          "contracts/artifact_locator_contract.json",
+          "contracts/owner_receipt_contract.json"
+        ]
+      },
+      {
+        "surface_id": "backend_audit_and_historical_provenance",
+        "classification": "provenance_or_fixture",
+        "source_refs": ["docs/history/"]
+      }
+    ],
+    "forbidden_name_tokens": [],
+    "required_parity_gates": [
+      "opl_generated_surface_default_caller",
+      "old_supervisor_scheduler_names_absent_from_active_source",
+      "medical_truth_quality_artifact_and_owner_receipt_remain_mas_owned"
+    ]
+  }
+}

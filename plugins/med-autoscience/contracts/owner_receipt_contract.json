@@ -1,0 +1,34 @@
+{
+  "allowed_receipt_classes": [
+    "owner_receipt",
+    "typed_blocker",
+    "no_regression_evidence",
+    "memory_writeback_receipt",
+    "artifact_lifecycle_receipt",
+    "agent_capability_evolution_receipt"
+  ],
+  "domain_id": "medautoscience",
+  "execution_scope_binding": {
+    "binding_contract_ref": "contracts/domain_descriptor.json#/work_item_scope_binding",
+    "snapshot_schema_ref": "contracts/opl-framework/execution-scope-snapshot.schema.json",
+    "scope_snapshot_owner": "one-person-lab",
+    "binding_mode": "exact_same_scope_digest",
+    "host_binding_required_before_closeout": true,
+    "receipt_and_evidence_scope_mismatch_effect": "reject_closeout",
+    "cross_work_item_receipt_consumption_requires_explicit_import_edge": true,
+    "legacy_unscoped_receipt_state": "identity_unresolved",
+    "legacy_unscoped_receipt_can_authorize_current_or_closeout": false,
+    "mas_payload_carries_opaque_scope_ids": false,
+    "mas_can_issue_execution_scope_snapshot": false
+  },
+  "forbidden_claims": [
+    "opl_authorized_domain_ready",
+    "opl_authorized_quality_or_export_verdict",
+    "opl_wrote_domain_truth",
+    "opl_wrote_memory_body",
+    "opl_meta_agent_wrote_study_truth",
+    "opl_meta_agent_authorized_publication_quality"
+  ],
+  "schema_version": 1,
+  "surface_kind": "owner_receipt_contract"
+}

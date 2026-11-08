@@ -1,0 +1,327 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://one-person-lab.local/med-autoscience/mas-qualification-work-item-provisioning-authority.input.schema.json",
+  "title": "MAS qualification work item provisioning authority input",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "surface_kind",
+    "schema_version",
+    "authority_context",
+    "qualification_authority",
+    "current_workspace_index"
+  ],
+  "properties": {
+    "surface_kind": {
+      "const": "mas_qualification_work_item_provisioning_authority_request"
+    },
+    "schema_version": {
+      "const": 1
+    },
+    "authority_context": {
+      "$ref": "#/$defs/authority_context"
+    },
+    "qualification_authority": {
+      "$ref": "#/$defs/qualification_authority"
+    },
+    "current_workspace_index": {
+      "$ref": "#/$defs/current_workspace_index"
+    }
+  },
+  "$defs": {
+    "text": {
+      "type": "string",
+      "minLength": 1,
+      "pattern": ".*\\S.*"
+    },
+    "raw_sha256": {
+      "type": "string",
+      "pattern": "^[a-f0-9]{64}$"
+    },
+    "canonical_workspace_root": {
+      "type": "string",
+      "pattern": "^/(?!$)(?!.*//)(?!.*(?:^|/)\\.{1,2}(?:/|$))[^\\\\]+$"
+    },
+    "authority_context": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "action_id",
+        "handler_call_ref",
+        "owner_ledger_ref"
+      ],
+      "properties": {
+        "action_id": {
+          "const": "qualification_work_item_provisioning_authority_evaluate"
+        },
+        "handler_call_ref": {
+          "$ref": "#/$defs/text"
+        },
+        "owner_ledger_ref": {
+          "$ref": "#/$defs/text"
+        }
+      }
+    },
+    "qualification_authority": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "authority_sha256",
+        "authority_bytes_base64",
+        "authority_byte_size",
+        "record"
+      ],
+      "properties": {
+        "authority_sha256": {
+          "$ref": "#/$defs/raw_sha256"
+        },
+        "authority_bytes_base64": {
+          "type": "string",
+          "minLength": 1,
+          "contentEncoding": "base64"
+        },
+        "authority_byte_size": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "record": {
+          "$ref": "#/$defs/qualification_authority_record"
+        }
+      }
+    },
+    "qualification_authority_record": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "surface_kind",
+        "schema_version",
+        "authority_ref",
+        "domain_owner",
+        "domain_id",
+        "canonical_workspace_root",
+        "qualification_scope",
+        "issued_at",
+        "single_use",
+        "qualification_only",
+        "provisions_work_item",
+        "authorizes_stage_body",
+        "authorizes_business_action",
+        "authorizes_publication",
+        "authorizes_submission",
+        "provider_completion_is_domain_completion"
+      ],
+      "properties": {
+        "surface_kind": {
+          "const": "mas_qualification_work_item_provisioning_authority"
+        },
+        "schema_version": {
+          "const": 1
+        },
+        "authority_ref": {
+          "$ref": "#/$defs/text"
+        },
+        "domain_owner": {
+          "const": "MedAutoScience"
+        },
+        "domain_id": {
+          "const": "medautoscience"
+        },
+        "canonical_workspace_root": {
+          "$ref": "#/$defs/canonical_workspace_root"
+        },
+        "qualification_scope": {
+          "const": "standard_agent_full_vm_qualification"
+        },
+        "issued_at": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "single_use": {
+          "const": true
+        },
+        "qualification_only": {
+          "const": true
+        },
+        "provisions_work_item": {
+          "const": true
+        },
+        "authorizes_stage_body": {
+          "const": false
+        },
+        "authorizes_business_action": {
+          "const": false
+        },
+        "authorizes_publication": {
+          "const": false
+        },
+        "authorizes_submission": {
+          "const": false
+        },
+        "provider_completion_is_domain_completion": {
+          "const": false
+        }
+      }
+    },
+    "current_workspace_index": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "exists",
+        "workspace_index_ref",
+        "workspace_index_sha256",
+        "workspace_index_bytes_base64",
+        "workspace_index_byte_size",
+        "record"
+      ],
+      "properties": {
+        "exists": {
+          "type": "boolean"
+        },
+        "workspace_index_ref": {
+          "const": "workspace_index.json"
+        },
+        "workspace_index_sha256": {
+          "oneOf": [
+            {
+              "$ref": "#/$defs/raw_sha256"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "workspace_index_bytes_base64": {
+          "oneOf": [
+            {
+              "type": "string",
+              "minLength": 1,
+              "contentEncoding": "base64"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "workspace_index_byte_size": {
+          "oneOf": [
+            {
+              "type": "integer",
+              "minimum": 1
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "record": {
+          "oneOf": [
+            {
+              "$ref": "#/$defs/workspace_index_record"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      },
+      "allOf": [
+        {
+          "if": {
+            "properties": {
+              "exists": {
+                "const": false
+              }
+            }
+          },
+          "then": {
+            "properties": {
+              "workspace_index_sha256": {
+                "type": "null"
+              },
+              "workspace_index_bytes_base64": {
+                "type": "null"
+              },
+              "workspace_index_byte_size": {
+                "type": "null"
+              },
+              "record": {
+                "type": "null"
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "exists": {
+                "const": true
+              }
+            }
+          },
+          "then": {
+            "properties": {
+              "workspace_index_sha256": {
+                "$ref": "#/$defs/raw_sha256"
+              },
+              "workspace_index_bytes_base64": {
+                "type": "string",
+                "minLength": 1,
+                "contentEncoding": "base64"
+              },
+              "workspace_index_byte_size": {
+                "type": "integer",
+                "minimum": 1
+              },
+              "record": {
+                "$ref": "#/$defs/workspace_index_record"
+              }
+            }
+          }
+        }
+      ]
+    },
+    "workspace_index_record": {
+      "type": "object",
+      "additionalProperties": true,
+      "required": [
+        "surface_kind",
+        "schema_version",
+        "studies"
+      ],
+      "properties": {
+        "surface_kind": {
+          "const": "workspace_index"
+        },
+        "schema_version": {
+          "const": "mas.workspace_index.v1"
+        },
+        "canonical_workspace_root": {
+          "$ref": "#/$defs/canonical_workspace_root"
+        },
+        "studies": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": true,
+            "required": [
+              "study_id",
+              "canonical_study_root"
+            ],
+            "properties": {
+              "study_id": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 128,
+                "pattern": "^[a-z0-9]+(?:[._-][a-z0-9]+)*$"
+              },
+              "canonical_study_root": {
+                "type": "string",
+                "pattern": "^studies/[a-z0-9]+(?:[._-][a-z0-9]+)*$"
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}
