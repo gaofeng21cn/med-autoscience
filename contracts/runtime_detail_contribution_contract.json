@@ -62,6 +62,8 @@
     "identity": "echo_selected_resolved_work_item_identity_for_the_existing_hosted_action",
     "revision": "sha256_of_canonical_selected_study_row_and_complete_trajectory",
     "source_refs": "workspace_relative_source_refs_and_sha256_of_the_exact_bytes_read",
+    "artifact_refs": "workspace_relative_file_refs_in_source_refs_order_for_Framework_pre_dispatch_validation",
+    "artifact_hashes": "one_sha256_per_artifact_ref_in_the_same_order",
     "trajectory_revision": "owner_trajectory_revision_or_null_when_not_available",
     "artifacts": "complete_owner_artifact_nodes_with_artifact_id_and_title_aliases",
     "continuation": "existing_Framework_work_item_action_with_review_context_in_its_payload",

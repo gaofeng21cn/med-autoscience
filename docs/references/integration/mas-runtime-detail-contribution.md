@@ -41,6 +41,9 @@ Missing evidence stays missing; execution completion does not imply support.
 
 `review_context` carries the selected resolved work-item identity, the owner
 trajectory revision, the full artifact projection and exact SHA-256 source refs.
+The same sources are exposed as paired `artifact_refs` and `artifact_hashes`
+arrays for Framework's common pre-dispatch file validation; refs are relative to
+the registered workspace and hashes are in the same order.
 Its `revision` binds the selected study row and full trajectory; a change to a
 different study does not invalidate this review. Source hashes record the bytes
 observed and do not grant scientific acceptance. The producer reads only the

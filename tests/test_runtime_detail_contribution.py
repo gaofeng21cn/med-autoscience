@@ -264,6 +264,9 @@ def test_review_context_reopens_the_same_study_and_exact_observed_sources(tmp_pa
     assert first["trajectory_revision"] == 3
     for source in first["source_refs"]:
         assert source["sha256"] == "sha256:" + hashlib.sha256((root / source["ref"]).read_bytes()).hexdigest()
+    assert list(zip(first["artifact_refs"], first["artifact_hashes"])) == [
+        (source["ref"], source["sha256"]) for source in first["source_refs"]
+    ]
     assert first["artifacts"] == []
 
 
@@ -294,6 +297,8 @@ def test_review_context_is_available_without_trajectory_and_tracks_pending_decis
     before = json.loads(_run(root, _identity()).stdout)["result"]
     assert before["review_context"]["trajectory_revision"] is None
     assert len(before["review_context"]["source_refs"]) == 1
+    assert before["review_context"]["artifact_refs"] == ["workspace_index.json"]
+    assert len(before["review_context"]["artifact_hashes"]) == 1
     index_path = root / "workspace_index.json"
     index = json.loads(index_path.read_text())
     index["studies"][0]["next_action"]["status"] = "completed"

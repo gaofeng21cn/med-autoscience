@@ -203,6 +203,7 @@ def _result(identity: dict[str, str]) -> dict[str, Any]:
         {"study": study, "trajectory": trajectory},
         sort_keys=True, ensure_ascii=False, separators=(",", ":"),
     ).encode("utf-8")).hexdigest()
+    review_sources = [index_source, *([trajectory_source] if trajectory_source else [])]
     return {
         "surface_kind": "mas_runtime_detail_contribution",
         "version": "mas-runtime-detail-contribution.v1",
@@ -235,7 +236,9 @@ def _result(identity: dict[str, str]) -> dict[str, Any]:
             "work_item_identity": identity,
             "revision": revision,
             "trajectory_revision": (trajectory or {}).get("revision"),
-            "source_refs": [index_source, *([trajectory_source] if trajectory_source else [])],
+            "source_refs": review_sources,
+            "artifact_refs": [source["ref"] for source in review_sources],
+            "artifact_hashes": [source["sha256"] for source in review_sources],
             "artifacts": artifacts,
         },
         "roadmap": {
