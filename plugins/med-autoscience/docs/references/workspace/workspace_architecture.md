@@ -11,7 +11,10 @@ Machine boundary: Workspace locator、quest/StageRun lifecycle、StateIndex、re
 workspace
   data/datasets              domain data assets
   studies/<study_id>         canonical study/paper artifacts
-  memory/portfolio           MAS-authorized reusable memory
+  shared/memory              local owner/topic bodies when no external knowledge source is bound
+  studies/<study_id>/memory  study-specific canonical knowledge when maintained locally
+  studies/<study_id>/state   dated study facts when maintained locally
+  memory/portfolio/data_assets  rebuildable data-asset governance projections
   refs                       source/reference materials
   artifacts                  shared domain artifacts
 
@@ -19,11 +22,16 @@ OPL state root
   package locks/receipts
   workspace and quest bindings
   StageRun/Attempt ledgers
+  immutable consumed-knowledge snapshots
   StateIndex/restore/retention refs
   hosted status/workbench projections
 ```
 
 OPL state root不是 MAS truth source；MAS workspace也不是 generic runtime state root。两者通过 explicit locator、content digest、lineage ref与 receipt连接。
+
+上述知识目录是无外部资料库时的默认落位，不能定义知识归属或授权范围。用户已有 Obsidian 或其他 Markdown 资料库时，个人、团队和病种主题正文直接绑定原处；项目正文可继续在 Study 工程目录。一个知识对象保留一个主源，Framework 按任务选择并冻结实际使用的版本，不要求先复制到工作区。产品、用户/团队、主题、项目是作用域；方法、政策、时点现状、决策是独立内容性质。完整规则见[知识政策](../../policies/domain_memory_markdown_first_policy.md)。
+
+`memory/portfolio/data_assets/` 是数据资产合同的派生治理面，保留现有实际定位，不充当个人知识库。原始数据、文献、论文与接受决策属于业务资产，清理执行缓存或快照须遵守各自保留要求。
 
 ## Identity
 

@@ -68,17 +68,36 @@ Choose the earliest unresolved owning Stage action from the installed OPL-genera
 
 ## Durable Knowledge And Workspace Memory
 
-Use OPL knowledge recall with --repo <agent-root> --domain <domain-id>
---stage <stage-id> and the authorized --workspace and --project roots.
-The hosted StageRun binds this selection once for producer, reviewer and
-repair roles. Read selected bodies and cite knowledge IDs, layers and digests.
-Agent knowledge lives in agent/knowledge/, indexed by
-contracts/durable_knowledge_catalog.json. Owner/team constraints and accepted
-cross-project lessons live in shared/memory/; project decisions and lessons
-live in the authorized project's memory/; dated facts live in its state/.
-Each workspace layer uses opl_durable_knowledge_catalog.json.
-Review freshness and keep superseded entries out of active recall. A project
-result is a candidate lesson until its domain or project owner accepts the
-evidence and scope. Private project content is never automatically promoted
-into the distributable Agent package. OPL owns validation, scoped recall and
-receipts; domain owners retain semantic acceptance.
+Use `opl knowledge prepare` with `--repo <agent-root> --domain medautoscience`
+`--stage <stage-id> --output <new-binding.json>`, the current action as
+`--task-intent`, and the authorized `--workspace` and `--project` roots. Then
+call `opl knowledge read-context --binding <new-binding.json>`. Hosted StageRuns
+bind the same frozen selection for producer, reviewer and repair roles. Cite consumed knowledge IDs, scopes,
+content kinds and digests; do not re-read mutable bodies between roles.
+
+Product methods live in `agent/knowledge/`, indexed by
+`contracts/durable_knowledge_catalog.json`. Owner/team policies, disease-topic
+lessons and Study decisions retain one canonical body in their authorized
+Obsidian, Markdown or project source. Without an external library, existing
+workspace `shared/memory/` and Study `memory/` or `state/` directories can hold
+those bodies. Source bindings belong to the Profile/Workspace, not the Agent
+package. Do not copy a second editable body or require an intermediate full
+Markdown projection. `scope` identifies product, owner, topic or project;
+`content_kind` independently identifies mechanism, policy, state or decision.
+
+Exclude expired, revoked, superseded or changed-but-unreviewed sources from
+current use. Preserve their historical context only when explicitly allowed.
+Missing optional topic lessons do not block independent research work;
+missing required study evidence or policies block the dependent judgment.
+Run `opl knowledge revalidate --binding <new-binding.json> --for-action` before
+the corresponding research mutation or external action to check critical
+constraints and authorization again. A snapshot cannot renew revoked access.
+
+A research result becomes reusable knowledge only after the appropriate owner
+accepts its evidence and scope. An update proposal contains `source_refs`,
+`target_scope: {kind, id}`, `content_kind`, `proposed_rule_or_mechanism`,
+`evidence_class` and `review_requirement`. Use the common owner-reviewed
+writeback path to the original body; a concurrent edit requires reconciliation.
+Private content is not automatically promoted into the Agent package. OPL
+owns binding, version checks, snapshots and mechanical application of accepted
+changes; MAS and knowledge owners retain semantic acceptance.

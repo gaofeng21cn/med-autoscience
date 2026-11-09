@@ -1,20 +1,25 @@
 {
   "surface_kind": "opl_durable_knowledge_catalog",
-  "version": "durable-knowledge-catalog.v1",
+  "version": "durable-knowledge-catalog.v2",
   "owner": "one-person-lab",
   "domain_id": "medautoscience",
   "items": [
     {
       "surface_kind": "opl_durable_knowledge_item",
-      "version": "durable-knowledge-item.v1",
+      "version": "durable-knowledge-item.v2",
       "knowledge_id": "medautoscience.medical_research_truth",
       "title": "Medical Research Truth",
-      "layer": "agent_pack",
+      "scope": {
+        "kind": "product",
+        "id": "MedAutoScience"
+      },
+      "content_kind": "policy",
+      "requirement": "required",
       "owner": "MedAutoScience",
       "body_ref": {
         "kind": "repo_path",
         "ref": "agent/knowledge/medical_research_truth.md",
-        "sha256": "sha256:0ed04babe5d612fa8be4c941befb2a59b1c5978c185cc924883059b78492f1bf"
+        "sha256": "sha256:961f20082ecc3a6a433af958c89138974a042acf49a2044e8346e82e681d2644"
       },
       "applicability": {
         "domains": [
@@ -30,8 +35,8 @@
         ]
       },
       "status": "active",
-      "reviewed_at": "2026-11-06T00:00:00+08:00",
-      "next_review_at": "2027-05-06T00:00:00+08:00",
+      "reviewed_at": "2026-11-09T00:00:00+08:00",
+      "next_review_at": "2027-05-09T00:00:00+08:00",
       "freshness_policy": "review_when_sources_or_applicability_change; exclude_after_next_review_at",
       "authority_boundary": {
         "semantic_body_owner": "MedAutoScience",
@@ -40,10 +45,14 @@
     },
     {
       "surface_kind": "opl_durable_knowledge_item",
-      "version": "durable-knowledge-item.v1",
+      "version": "durable-knowledge-item.v2",
       "knowledge_id": "medautoscience.hypothesis_portfolio_evidence_pack",
       "title": "Hypothesis Portfolio Evidence Pack",
-      "layer": "agent_pack",
+      "scope": {
+        "kind": "product",
+        "id": "MedAutoScience"
+      },
+      "content_kind": "policy",
       "owner": "MedAutoScience",
       "body_ref": {
         "kind": "repo_path",
@@ -60,8 +69,8 @@
         ]
       },
       "status": "active",
-      "reviewed_at": "2026-11-06T00:00:00+08:00",
-      "next_review_at": "2027-05-06T00:00:00+08:00",
+      "reviewed_at": "2026-11-09T00:00:00+08:00",
+      "next_review_at": "2027-05-09T00:00:00+08:00",
       "freshness_policy": "review_when_sources_or_applicability_change; exclude_after_next_review_at",
       "authority_boundary": {
         "semantic_body_owner": "MedAutoScience",
@@ -70,15 +79,19 @@
     },
     {
       "surface_kind": "opl_durable_knowledge_item",
-      "version": "durable-knowledge-item.v1",
+      "version": "durable-knowledge-item.v2",
       "knowledge_id": "medautoscience.publication_route_memory",
       "title": "Publication Route Memory",
-      "layer": "agent_pack",
+      "scope": {
+        "kind": "product",
+        "id": "MedAutoScience"
+      },
+      "content_kind": "policy",
       "owner": "MedAutoScience",
       "body_ref": {
         "kind": "repo_path",
         "ref": "agent/knowledge/publication_route_memory.md",
-        "sha256": "sha256:1ca2cc6827a9d01fa0c5edf00d7d6ab062bc6607e1939d0277c47b4312cc13a8"
+        "sha256": "sha256:1ed316bdfdbe57bce29bbb87b443ae666f64969d0a8a3120fe5a015f2135d7af"
       },
       "applicability": {
         "domains": [
@@ -92,8 +105,8 @@
         ]
       },
       "status": "active",
-      "reviewed_at": "2026-11-06T00:00:00+08:00",
-      "next_review_at": "2027-05-06T00:00:00+08:00",
+      "reviewed_at": "2026-11-09T00:00:00+08:00",
+      "next_review_at": "2027-05-09T00:00:00+08:00",
       "freshness_policy": "review_when_sources_or_applicability_change; exclude_after_next_review_at",
       "authority_boundary": {
         "semantic_body_owner": "MedAutoScience",
@@ -102,10 +115,14 @@
     },
     {
       "surface_kind": "opl_durable_knowledge_item",
-      "version": "durable-knowledge-item.v1",
+      "version": "durable-knowledge-item.v2",
       "knowledge_id": "medautoscience.research_trajectory_medical_narrative",
       "title": "Research Trajectory Medical Narrative",
-      "layer": "agent_pack",
+      "scope": {
+        "kind": "product",
+        "id": "MedAutoScience"
+      },
+      "content_kind": "policy",
       "owner": "MedAutoScience",
       "body_ref": {
         "kind": "repo_path",
@@ -126,8 +143,8 @@
         ]
       },
       "status": "active",
-      "reviewed_at": "2026-11-06T00:00:00+08:00",
-      "next_review_at": "2027-05-06T00:00:00+08:00",
+      "reviewed_at": "2026-11-09T00:00:00+08:00",
+      "next_review_at": "2027-05-09T00:00:00+08:00",
       "freshness_policy": "review_when_sources_or_applicability_change; exclude_after_next_review_at",
       "authority_boundary": {
         "semantic_body_owner": "MedAutoScience",
@@ -136,10 +153,15 @@
     },
     {
       "surface_kind": "opl_durable_knowledge_item",
-      "version": "durable-knowledge-item.v1",
+      "version": "durable-knowledge-item.v2",
       "knowledge_id": "medautoscience.source_readiness_and_artifact_authority",
       "title": "Source Readiness And Artifact Authority",
-      "layer": "agent_pack",
+      "scope": {
+        "kind": "product",
+        "id": "MedAutoScience"
+      },
+      "content_kind": "policy",
+      "requirement": "required",
       "owner": "MedAutoScience",
       "body_ref": {
         "kind": "repo_path",
@@ -159,8 +181,8 @@
         ]
       },
       "status": "active",
-      "reviewed_at": "2026-11-06T00:00:00+08:00",
-      "next_review_at": "2027-05-06T00:00:00+08:00",
+      "reviewed_at": "2026-11-09T00:00:00+08:00",
+      "next_review_at": "2027-05-09T00:00:00+08:00",
       "freshness_policy": "review_when_sources_or_applicability_change; exclude_after_next_review_at",
       "authority_boundary": {
         "semantic_body_owner": "MedAutoScience",
@@ -169,10 +191,14 @@
     },
     {
       "surface_kind": "opl_durable_knowledge_item",
-      "version": "durable-knowledge-item.v1",
+      "version": "durable-knowledge-item.v2",
       "knowledge_id": "medautoscience.publication-strategy-library",
       "title": "Publication strategy patterns",
-      "layer": "agent_pack",
+      "scope": {
+        "kind": "product",
+        "id": "MedAutoScience"
+      },
+      "content_kind": "mechanism",
       "owner": "MedAutoScience",
       "body_ref": {
         "kind": "repo_path",
@@ -191,8 +217,8 @@
         ]
       },
       "status": "active",
-      "reviewed_at": "2026-11-06T00:00:00+08:00",
-      "next_review_at": "2027-05-06T00:00:00+08:00",
+      "reviewed_at": "2026-11-09T00:00:00+08:00",
+      "next_review_at": "2027-05-09T00:00:00+08:00",
       "freshness_policy": "review_when_sources_or_applicability_change; exclude_after_next_review_at",
       "authority_boundary": {
         "semantic_body_owner": "MedAutoScience",
