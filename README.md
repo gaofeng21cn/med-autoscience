@@ -119,6 +119,8 @@ Medical papers do not finish in one generation. The system can keep multiple cla
 
 ## Current Position And Boundary
 
+Research knowledge stays with its owner. MAS can use a team's existing Obsidian or Markdown library alongside Study-specific project files. Without an external library, the workspace holds the canonical notes. Team policies, disease-topic lessons and individual Study decisions remain distinct; each task consumes an exact version, and accepted updates return to the original source. Data, literature and manuscript artifacts retain their project ownership. See the [knowledge policy](./docs/policies/domain_memory_markdown_first_policy.md).
+
 - `Med Auto Science` is the medical research Foundry Agent for turning disease data, study questions, evidence, and manuscript work into one governed research line.
 - In the OPL family, MAS is an `OPL Package(kind=agent)`: MAS retains medical-domain authority, while OPL owns generic runtime and hosted surfaces. Package identity, capabilities, dependencies, research work items, and typed views remain independent of any one carrier or executor.
 - It can be used as the Research Foundry inside One Person Lab, and it can also be called directly by Codex or another agent through stable capability entries.

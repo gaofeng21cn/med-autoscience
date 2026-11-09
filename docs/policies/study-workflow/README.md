@@ -16,7 +16,7 @@ Machine boundary: 本页仅导航，研究状态由 canonical workspace 与 owne
 | 出版策略记忆治理 | [Memory Policy](./publication_route_memory_policy.md) |
 | 可复用策略正文 | [Memory Library](../../../agent/knowledge/publication_strategy_library.md) |
 | 研究路线分类 | [Study Archetypes](./study_archetypes.md) |
-| 种子 identity 与 locator | [Seed Index](../../../contracts/durable_knowledge_catalog.json) |
+| 产品知识 identity 与 locator | [Product Knowledge Catalog](../../../contracts/durable_knowledge_catalog.json) |
 
-工作区 memory locator 的机器来源是 `contracts/durable_knowledge_catalog.json`。
+产品知识 locator 的机器来源是 `contracts/durable_knowledge_catalog.json`；用户、主题和项目知识由 Profile/Workspace 的 Framework 来源登记与绑定定位，正文继续在其唯一主源维护。
 本页不重复 card 库存、真实 workspace 快照、初始化说明或未来工作清单。

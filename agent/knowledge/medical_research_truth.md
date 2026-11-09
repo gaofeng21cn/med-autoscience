@@ -8,7 +8,7 @@ Machine boundary: this file describes how Codex should reason over truth refs. I
 
 MAS owns study truth, route decisions, medical evidence interpretation, source readiness verdicts, AI reviewer/auditor quality records, publication verdicts, publication-route memory body acceptance, artifact authority, package authority, typed blockers, and owner receipts.
 
-OPL generated or hosted surfaces may index refs, project status, dispatch allowlisted tasks, and display workbench cards. They do not write MAS truth bodies, memory bodies, publication verdicts, source bodies, artifact authority, `current_package`, or submission readiness.
+OPL generated or hosted surfaces may index refs, project status, dispatch allowlisted tasks, and display workbench cards. They cannot author or accept MAS truth, memory, publication verdicts, source evidence, artifact authority, `current_package`, or submission readiness. For knowledge updates, the Framework may mechanically apply the exact owner-accepted proposal to its authorized canonical source after checking versions; acceptance and interpretation remain with the knowledge owner.
 
 ## Durable Truth Refs
 
@@ -35,6 +35,8 @@ Treat these as the normal truth-bearing surfaces to inspect before making a stag
 - Changing any of those fields requires route decision authority or a human gate.
 - Weak, negative, or failed analyses remain truth. They should drive claim narrowing, stop-loss, route-back, or explicit limitation text.
 - Literature and publication-route memory can shape interpretation, but evidence claims require current study evidence refs.
+- Product methods, owner/team policies, disease-topic lessons and Study decisions have separate scopes; state and decision records retain their own observation times. A source in Obsidian or a local project is read through the same authorized binding, without a second editable body.
+- A derived summary must cite the accepted source version and respect its validity and permissions. An old snapshot can explain a historical decision; it cannot renew revoked access or supersede changed critical study constraints before a new action.
 
 ## Codex Use
 

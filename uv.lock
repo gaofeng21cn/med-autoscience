@@ -62,7 +62,7 @@ wheels = [
 
 [[package]]
 name = "med-autoscience"
-version = "0.2.32"
+version = "0.3.0"
 source = { editable = "." }
 
 [package.dev-dependencies]

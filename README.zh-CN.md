@@ -117,6 +117,8 @@ AI 可以协助整理数据、执行分析、组织证据和汇报进度；临�
 
 ## 当前定位与边界
 
+研究知识由其长期所有者维护。MAS 可以同时使用团队已有的 Obsidian／Markdown 资料库和 Study 项目文件；没有独立资料库时，就在工作目录维护唯一正文。团队政策、病种主题经验和单个研究决策分别归属；任务使用确定版本，接受后的修订回到原处。数据、文献和论文成果继续由项目工程维护。具体见[知识政策](./docs/policies/domain_memory_markdown_first_policy.md)。
+
 - `Med Auto Science` 是医学研究 Foundry Agent，负责把专病数据、研究问题、证据和论文工作收在同一条可治理研究线上。
 - 在 OPL family 中，MAS 是 `OPL Package(kind=agent)`：MAS 保留医学领域 authority，OPL 持有通用 runtime 与 hosted surface。Package identity、capabilities、依赖、科研 Work Item 与 typed views 不绑定单一 carrier 或 executor。
 - 它可以作为 One Person Lab 里的研究工坊使用，也可以由 Codex 或其他 Agent 直接调用稳定能力入口。

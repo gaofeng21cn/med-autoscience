@@ -9,7 +9,7 @@ Machine boundary: 本文是人读约束；机器事实以 contracts、source、r
 
 - canonical agent/package id 是 `mas`；machine `domain_id` / `target_domain_id` 是 `medautoscience`；repo/package/plugin locator 是 `med-autoscience`。
 - MAS 是 `Declarative Medical Research Pack + minimal registry-bound authority functions`；OPL 持有 generated/hosted platform surfaces。
-- OPL 不得写 MAS study truth、quality/publication verdict、canonical artifact body、memory body 或 owner receipt。
+- MAS study truth、quality/publication verdict、canonical artifact body、memory 语义接受与 owner receipt 归领域或知识 owner。OPL 不得自行撰写或接受这些事实；知识写回可使用 Framework 通用机械能力，只应用精确、已接受且通过版本核验的内容。
 - MAS 不得重新拥有 generic runtime、queue、attempt ledger、StateIndex、lifecycle/storage、observability、installer、CLI/MCP transport 或 workbench shell。
 - MAS 只输出 typed runtime request / route handoff并消费 OPL host 注入的 canonical payload；不得解析 OPL binary、spawn CLI、主动 probe runtime 或把缺失 host receipt 解释为 submission success。
 

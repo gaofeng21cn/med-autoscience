@@ -39,6 +39,20 @@ identity；不启动私有 runtime、解析 OPL binary 或自行发起 provider 
 Framework Python helper 来自 `OPL_FRAMEWORK_PYTHON_ROOT` 指向的 Framework
 `python/`，本仓不 vendoring 或锁定 Framework implementation。
 
+## 知识来源与项目资产
+
+MAS 产品知识由 `contracts/durable_knowledge_catalog.json` 登记，采用 OPL 的
+`scope` 与 `content_kind` 合同。团队政策、病种主题经验和单个 Study 的知识分别
+归用户/团队、主题与项目；方法、政策、时点现状和决策是独立内容性质。
+已有 Obsidian 或 Markdown 资料库可直接成为正文来源；无独立资料库时，业务工作区
+保留可编辑正文。每个对象只有一个主源，Profile/Workspace 保存授权绑定，
+Framework 从来源选择已接受版本并冻结，MAS 消费同一阶段快照并提出语义修订。
+
+研究原始数据、文献、论文与分析结果继续由业务工程维护；Framework 状态目录保存
+执行快照与恢复记录。`memory/portfolio/data_assets/` 是数据资产治理投影，不能
+被当作个人长期知识正文或随运行缓存一并清理。读取、来源变更和写回边界见
+[知识政策](./policies/domain_memory_markdown_first_policy.md)。
+
 ## 执行与领域函数
 
 公开能力由六个 canonical Stage action 承载；六个 host-only authority action 和独立
