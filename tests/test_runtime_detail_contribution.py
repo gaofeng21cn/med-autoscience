@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import hashlib
 import json
 import os
 import subprocess
@@ -236,6 +237,7 @@ def test_artifacts_preserve_owner_evidence_without_claiming_acceptance(tmp_path:
         "label": "Manuscript draft",
         "status": "produced",
         "summary": "Draft available for review",
+        "revision": 7,
         "details": {"evidence_judgment": "Not assessed"},
         "source_refs": [{"kind": "manuscript", "ref": "manuscript/draft.md"}],
     }
@@ -245,8 +247,69 @@ def test_artifacts_preserve_owner_evidence_without_claiming_acceptance(tmp_path:
     assert result.returncode == 0, result.stdout
     detail = json.loads(result.stdout)["result"]
     assert detail["artifacts"] == [{
+        **artifact,
         "artifact_id": artifact["id"], "title": artifact["label"],
         "status": "produced", "summary": artifact["summary"],
         "details": artifact["details"], "source_refs": artifact["source_refs"],
     }]
     assert detail["trajectory"] == snapshot
+
+
+def test_review_context_reopens_the_same_study_and_exact_observed_sources(tmp_path: Path) -> None:
+    root = _workspace(tmp_path)
+    first = json.loads(_run(root, _identity()).stdout)["result"]["review_context"]
+    reopened = json.loads(_run(root, _identity()).stdout)["result"]["review_context"]
+    assert reopened == first
+    assert first["work_item_identity"] == _identity()
+    assert first["trajectory_revision"] == 3
+    for source in first["source_refs"]:
+        assert source["sha256"] == "sha256:" + hashlib.sha256((root / source["ref"]).read_bytes()).hexdigest()
+    assert first["artifacts"] == []
+
+
+def test_review_revision_changes_for_selected_evidence_but_not_other_studies(tmp_path: Path) -> None:
+    root = _workspace(tmp_path)
+    first = json.loads(_run(root, _identity()).stdout)["result"]["review_context"]
+    index_path = root / "workspace_index.json"
+    index = json.loads(index_path.read_text())
+    index["studies"].append({"study_id": "unrelated-study", "status": "running"})
+    index_path.write_text(json.dumps(index))
+    other = json.loads(_run(root, _identity()).stdout)["result"]["review_context"]
+    assert other["revision"] == first["revision"]
+    assert other["source_refs"][0]["sha256"] != first["source_refs"][0]["sha256"]
+    trajectory_path = root / first["source_refs"][1]["ref"]
+    trajectory = json.loads(trajectory_path.read_text())
+    trajectory["revision"] = 4
+    trajectory["nodes"][0]["summary"] = "New contrary evidence changes the proposed route"
+    trajectory_path.write_text(json.dumps(trajectory))
+    changed = json.loads(_run(root, _identity()).stdout)["result"]["review_context"]
+    assert changed["revision"] != first["revision"]
+    assert changed["trajectory_revision"] == 4
+
+
+def test_review_context_is_available_without_trajectory_and_tracks_pending_decision(tmp_path: Path) -> None:
+    root = _workspace(tmp_path)
+    trajectory = root / "studies" / _identity()["work_item_id"] / "artifacts/research_trajectory/snapshot.json"
+    trajectory.unlink()
+    before = json.loads(_run(root, _identity()).stdout)["result"]
+    assert before["review_context"]["trajectory_revision"] is None
+    assert len(before["review_context"]["source_refs"]) == 1
+    index_path = root / "workspace_index.json"
+    index = json.loads(index_path.read_text())
+    index["studies"][0]["next_action"]["status"] = "completed"
+    index_path.write_text(json.dumps(index))
+    after = json.loads(_run(root, _identity()).stdout)["result"]
+    assert after["review_context"]["revision"] != before["review_context"]["revision"]
+    assert after["work"]["pending"] == []
+    assert after["phase"]["business_status"] == "delivered_paused"
+
+
+def test_review_source_cannot_escape_registered_workspace(tmp_path: Path) -> None:
+    root = _workspace(tmp_path)
+    trajectory = root / "studies" / _identity()["work_item_id"] / "artifacts/research_trajectory/snapshot.json"
+    outside = tmp_path / "outside.json"
+    trajectory.rename(outside)
+    trajectory.symlink_to(outside)
+    result = _run(root, _identity())
+    assert result.returncode == 2
+    assert "escapes" in json.loads(result.stdout)["error"]["message"]

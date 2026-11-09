@@ -33,7 +33,7 @@
       "identity_state"
     ],
     "binding": "agent_id_mas_and_domain_id_medautoscience_and_resolved_work_item_id_exact_domain_work_item_id_exact_study_id",
-    "opaque_work_item_scope_id_is_validated_as_present_but_not_echoed_by_mas": true
+    "opaque_work_item_scope_id_is_host_bound_and_only_echoed_in_review_context": true
   },
   "result_fields": [
     "identity",
@@ -48,6 +48,7 @@
     "trajectory",
     "trajectory_status",
     "artifacts",
+    "review_context",
     "source_refs",
     "authority_boundary"
   ],
@@ -56,6 +57,16 @@
     "active_and_queued_work": "workspace_index.json current stage and next action",
     "hypotheses_and_roadmap": "MAS research trajectory snapshot selected by exact study identity",
     "app_or_studio_may_write_or_infer_state": false
+  },
+  "review_context": {
+    "identity": "echo_selected_resolved_work_item_identity_for_the_existing_hosted_action",
+    "revision": "sha256_of_canonical_selected_study_row_and_complete_trajectory",
+    "source_refs": "workspace_relative_source_refs_and_sha256_of_the_exact_bytes_read",
+    "trajectory_revision": "owner_trajectory_revision_or_null_when_not_available",
+    "artifacts": "complete_owner_artifact_nodes_with_artifact_id_and_title_aliases",
+    "continuation": "existing_Framework_work_item_action_with_review_context_in_its_payload",
+    "revision_is_quality_or_publication_authority": false,
+    "creates_a_task_or_feedback_store": false
   },
   "current_consumer_blocker": {
     "status": "shared_mcp_app_fixture_rendering_verified_installation_pending",

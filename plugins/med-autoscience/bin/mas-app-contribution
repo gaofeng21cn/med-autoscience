@@ -3,6 +3,7 @@
 
 from __future__ import annotations
 
+import hashlib
 import json
 import os
 import re
@@ -33,12 +34,19 @@ def _text(value: Any, field: str) -> str:
     return value.strip()
 
 
-def _load_json(path: Path, field: str) -> dict[str, Any]:
+def _source(root: Path, relative: Path) -> tuple[dict[str, Any], dict[str, str]]:
+    path = (root / relative).resolve()
+    if not path.is_relative_to(root):
+        raise ContributionError(f"{relative} escapes the selected workspace")
     try:
-        value = json.loads(path.read_text(encoding="utf-8"))
+        data = path.read_bytes()
+        value = _record(json.loads(data), str(relative))
     except (OSError, UnicodeError, json.JSONDecodeError) as error:
-        raise ContributionError(f"{field} is unavailable or invalid") from error
-    return _record(value, field)
+        raise ContributionError(f"{relative} is unavailable or invalid") from error
+    return value, {
+        "ref": relative.as_posix(),
+        "sha256": f"sha256:{hashlib.sha256(data).hexdigest()}",
+    }
 
 
 def _workspace_root() -> Path:
@@ -151,16 +159,16 @@ def _hypotheses(trajectory: dict[str, Any]) -> list[dict[str, Any]]:
 
 def _result(identity: dict[str, str]) -> dict[str, Any]:
     root = _workspace_root()
-    index = _load_json(root / "workspace_index.json", "workspace_index.json")
+    index, index_source = _source(root, Path("workspace_index.json"))
     study = _study(index, identity["work_item_id"])
     trajectory_ref = (
         Path(str(study["canonical_study_root"]))
         / "artifacts/research_trajectory/snapshot.json"
     )
     trajectory_path = root / trajectory_ref
-    trajectory = (
-        _load_json(trajectory_path, str(trajectory_ref))
-        if trajectory_path.exists() else None
+    trajectory, trajectory_source = (
+        _source(root, trajectory_ref)
+        if trajectory_path.exists() else (None, None)
     )
     if trajectory is not None and trajectory.get("study_id") != identity["work_item_id"]:
         raise ContributionError("research trajectory study_id does not match work_item_id")
@@ -176,6 +184,25 @@ def _result(identity: dict[str, str]) -> dict[str, Any]:
         _record(trajectory.get("summary"), "research trajectory summary")
         if trajectory is not None else {}
     )
+    artifacts = [
+        {
+            **node,
+            "artifact_id": node["id"],
+            "title": node.get("label"),
+            "status": node.get("status"),
+            "summary": node.get("summary"),
+            "details": node.get("details", {}),
+            "source_refs": node.get("source_refs", []),
+        }
+        for node in (trajectory or {}).get("nodes", [])
+        if isinstance(node, dict) and node.get("kind") == "artifact" and node.get("id")
+    ]
+    # Bind the reviewed study, rather than changes to unrelated workspace rows.
+    # Source digests also retain the exact bytes observed for later owner audit.
+    revision = "sha256:" + hashlib.sha256(json.dumps(
+        {"study": study, "trajectory": trajectory},
+        sort_keys=True, ensure_ascii=False, separators=(",", ":"),
+    ).encode("utf-8")).hexdigest()
     return {
         "surface_kind": "mas_runtime_detail_contribution",
         "version": "mas-runtime-detail-contribution.v1",
@@ -203,18 +230,14 @@ def _result(identity: dict[str, str]) -> dict[str, Any]:
         "hypotheses": _hypotheses(trajectory) if trajectory is not None else [],
         "trajectory": trajectory,
         "trajectory_status": "available" if trajectory is not None else "not_available",
-        "artifacts": [
-            {
-                "artifact_id": node["id"],
-                "title": node.get("label"),
-                "status": node.get("status"),
-                "summary": node.get("summary"),
-                "details": node.get("details", {}),
-                "source_refs": node.get("source_refs", []),
-            }
-            for node in (trajectory or {}).get("nodes", [])
-            if isinstance(node, dict) and node.get("kind") == "artifact" and node.get("id")
-        ],
+        "artifacts": artifacts,
+        "review_context": {
+            "work_item_identity": identity,
+            "revision": revision,
+            "trajectory_revision": (trajectory or {}).get("revision"),
+            "source_refs": [index_source, *([trajectory_source] if trajectory_source else [])],
+            "artifacts": artifacts,
+        },
         "roadmap": {
             "trajectory_revision": (trajectory or {}).get("revision"),
             "trajectory_status": (trajectory or {}).get("status"),
