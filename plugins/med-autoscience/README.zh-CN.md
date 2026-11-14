@@ -1,10 +1,10 @@
 <p align="center">
-  <img src="assets/branding/medautoscience-logo.png" alt="Med Auto Science Logo" width="132" />
+  <img src="assets/branding/medautoscience-logo.png" alt="Med Auto Science logo" width="132" />
 </p>
 
-<p align="center">
-  <a href="./README.md">English</a> | <a href="./README.zh-CN.md"><strong>中文</strong></a>
-</p>
+<p align="center"><a href="./README.md">English</a> | <strong>中文</strong></p>
+
+<h1 align="center">Med Auto Science</h1>
 
 <!--
 Owner: MedAutoScience
@@ -12,8 +12,6 @@ Purpose: public repository entry
 State: current_public_entry
 Machine boundary: Human-readable public entry only. Machine truth remains in agent/, contracts, MAS domain-handler/authority results, OPL generated/readback surfaces, study workspace artifacts, and owner receipts.
 -->
-
-<h1 align="center">Med Auto Science 医学自动科研平台</h1>
 
 <p align="center"><strong>面向真实医学研究的 AI 科研助手 —— 把数据、证据和写作持续推进到论文交付</strong></p>
 <p align="center">专病研究 · 证据整理 · 分析推进 · 论文交付</p>

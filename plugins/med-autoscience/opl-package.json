@@ -32,10 +32,11 @@
           "codex_visible_entry": "med-autoscience"
         }
       }
-    ]
+    ],
+    "icon_ref": "assets/branding/medautoscience-logo.png"
   },
   "publisher": "one-person-lab",
-  "version": "0.3.0",
+  "version": "0.3.1",
   "source": "first_party_repo_local",
   "carrier_source_role": "codex_plugin_default_carrier_not_package_truth",
   "domain_descriptor_ref": "contracts/domain_descriptor.json",

@@ -2,9 +2,9 @@
   <img src="assets/branding/medautoscience-logo.png" alt="Med Auto Science logo" width="132" />
 </p>
 
-<p align="center">
-  <a href="./README.md"><strong>English</strong></a> | <a href="./README.zh-CN.md">中文</a>
-</p>
+<p align="center"><strong>English</strong> | <a href="./README.zh-CN.md">中文</a></p>
+
+<h1 align="center">Med Auto Science</h1>
 
 <!--
 Owner: MedAutoScience
@@ -12,8 +12,6 @@ Purpose: public repository entry
 State: current_public_entry
 Machine boundary: Human-readable public entry only. Machine truth remains in agent/, contracts, MAS domain-handler/authority results, OPL generated/readback surfaces, study workspace artifacts, and owner receipts.
 -->
-
-<h1 align="center">Med Auto Science</h1>
 
 <p align="center"><strong>An AI research agent for real medical studies, built to turn data, evidence, and drafts into manuscript-ready work</strong></p>
 <p align="center">Disease Studies · Evidence Building · Analysis Support · Manuscript Delivery</p>

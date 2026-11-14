@@ -168,6 +168,7 @@ def test_package_manifest_owns_home_presentation_bytes() -> None:
     )
 
     assert package["presentation"] == {
+        "icon_ref": "assets/branding/medautoscience-logo.png",
         "display_name_i18n": {
             "zh-CN": "Med Auto Science",
             "en-US": "Med Auto Science",

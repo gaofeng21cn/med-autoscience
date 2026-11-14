@@ -1,7 +1,7 @@
 {
   "$schema": "https://agent-plugins.org/schemas/1.0.0/plugin.schema.json",
   "name": "med-autoscience",
-  "version": "0.3.0",
+  "version": "0.3.1",
   "description": "Medical research planning, literature review, data analysis, manuscript writing, peer review, revision, and submission.",
   "author": {
     "name": "Gao Feng",
@@ -29,8 +29,8 @@
           "Write"
         ],
         "websiteURL": "https://github.com/gaofeng21cn/med-autoscience",
-        "composerIcon": "./assets/icon.png",
-        "logo": "./assets/icon.png",
+        "composerIcon": "./assets/branding/medautoscience-logo.png",
+        "logo": "./assets/branding/medautoscience-logo.png",
         "defaultPrompt": [
           "Select the MAS Stage action for this research question.",
           "Review the available evidence and return the next owner route.",
