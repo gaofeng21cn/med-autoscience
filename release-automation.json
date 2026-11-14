@@ -1,0 +1,16 @@
+{
+  "strategy": "daily_patch",
+  "prepare": [
+    [
+      "python3",
+      "scripts/materialize_plugin_carrier.py"
+    ]
+  ],
+  "verify": [],
+  "version_files": [
+    {
+      "path": "pyproject.toml",
+      "kind": "toml_project"
+    }
+  ]
+}
