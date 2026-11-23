@@ -7,6 +7,7 @@
 - `agent/primary_skill/SKILL.md` 是主路由，专业能力映射以 `contracts/capability_map.json` 为准；carrier mirror 不取得 MAS identity 或领域 authority。
 - 当前事实以 contracts、源码、runtime artifacts 和验证输出为准；README 负责使用入口，架构解释 owner 边界，开放差距只进入 active plan。
 - 默认验证运行 `scripts/verify.sh`；仅在任务需要完整重验证时使用其 full lane。
+- 模块拆分以职责内聚和调用清晰为准，在日常开发与 PR 阶段维护，不靠机械行数阈值或周期拆文件脚本：既避免把不相关职责堆成巨石文件，也禁止制造嵌套 `*_parts/*_parts`、过薄胶水切片或大段回调参数转运；重构优先消除重复与化简调用链，来源不明或储备能力默认保留（无静态调用者只作调查信号）。
 
 ## 文档生命周期
 
