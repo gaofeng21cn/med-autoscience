@@ -2,28 +2,32 @@
 
 from __future__ import annotations
 
-from collections.abc import Mapping
 from typing import Any
 
 from .._record_validation import (
+    NonEmptyStr,
+    NonNegativeInt,
     RequestShapeError,
-    canonical_json_bytes,
+    Sha256Text,
+    StrictRecordModel,
     enum_text,
-    exact_ref as _exact_ref,
-    exact_ref_list as _exact_ref_list,
-    exact_keys,
-    fingerprint,
-    integer,
-    mapping,
-    optional_text,
-    sequence,
-    sha256,
     text,
-    text_list,
-    typed_ref as _typed_ref,
-    typed_ref_list as _typed_ref_list,
+    validate_record_dict,
+)
+from .._record_validation import (
+    exact_ref as _exact_ref,
 )
 
+
+class _ArtifactRecordV1Model(StrictRecordModel):
+    role: NonEmptyStr
+    ref: NonEmptyStr
+    size_bytes: NonNegativeInt
+    sha256: Sha256Text
+
+
+class _ArtifactRecordV2Model(_ArtifactRecordV1Model):
+    member_id: NonEmptyStr
 
 
 def _manifest_artifact_ref(
@@ -56,19 +60,13 @@ def _normalize_artifact(
     allowed_roles: frozenset[str],
     schema_version: int = 1,
 ) -> dict[str, Any]:
-    payload = mapping(value, field)
-    keys = {"role", "ref", "size_bytes", "sha256"}
-    if schema_version == 2:
-        keys.add("member_id")
-    exact_keys(payload, keys, field)
-    normalized = {
-        "role": enum_text(payload.get("role"), f"{field}.role", set(allowed_roles)),
-        "ref": text(payload.get("ref"), f"{field}.ref"),
-        "size_bytes": integer(payload.get("size_bytes"), f"{field}.size_bytes"),
-        "sha256": sha256(payload.get("sha256"), f"{field}.sha256"),
-    }
-    if schema_version == 2:
-        normalized["member_id"] = text(payload.get("member_id"), f"{field}.member_id")
+    model_cls = _ArtifactRecordV2Model if schema_version == 2 else _ArtifactRecordV1Model
+    normalized = validate_record_dict(model_cls, value, field)
+    normalized["role"] = enum_text(
+        normalized["role"],
+        f"{field}.role",
+        set(allowed_roles),
+    )
     return normalized
 
 

@@ -27,8 +27,8 @@
       "Write"
     ],
     "websiteURL": "https://github.com/gaofeng21cn/med-autoscience",
-    "composerIcon": "./assets/branding/medautoscience-logo.png",
-    "logo": "./assets/branding/medautoscience-logo.png",
+    "composerIcon": "./assets/icon.png",
+    "logo": "./assets/icon.png",
     "defaultPrompt": [
       "Select the MAS Stage action for this research question.",
       "Review the available evidence and return the next owner route.",

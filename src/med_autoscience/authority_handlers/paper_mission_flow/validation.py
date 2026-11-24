@@ -6,45 +6,17 @@ from collections.abc import Mapping
 from typing import Any
 
 from .._generation_manifest import (
-    EPISTEMIC_AUTHORITY_BOUNDARY,
-    FIRST_DRAFT_QUALITY_ROUTE_PRIORITY,
-    PROFESSIONAL_MANUSCRIPT_SKILL_INPUT_ROLES,
-    PROFESSIONAL_MANUSCRIPT_SKILL_ROLES,
     REVIEW_LANE_ORDER,
     REVIEW_LANES_BY_SCOPE,
     epistemic_review_dependency_refs,
-    first_draft_applicable_ref_fields,
-    normalize_generation_manifest,
-    require_stage_scope,
     review_scope_member_projection,
     source_input_digest,
 )
-from .._record_validation import (
-    RequestShapeError,
-    canonical_json_bytes,
-    dedupe,
-    enum_text,
-    exact_ref as _exact_ref,
-    exact_ref_list as _exact_ref_list,
-    exact_keys,
-    fingerprint,
-    integer,
-    mapping,
-    optional_sha256,
-    optional_text,
-    optional_typed_ref as _optional_typed_ref,
-    sequence,
-    sha256,
-    text,
-    text_list,
-    typed_ref as _typed_ref,
-    typed_ref_list as _typed_ref_list,
-)
-from ..candidate_admission import normalize_candidate_admission_receipt
-
+from .._record_validation import RequestShapeError
 from .constants import (
     _EPISTEMIC_CHANGE_CLASS_BY_NODE_ROLE,
 )
+
 
 def _validate_review_currentness_receipt_ref(request: Mapping[str, Any]) -> None:
     authority = request["review_authority"]
@@ -564,15 +536,6 @@ def _review_currentness_issue_v2(
                 for item in receipt["accepted_candidate_receipt_refs"]
             }
             reuse_provenance = lane_state["reuse_provenance"]
-            if lane_issue is not None:
-                affected_review_lanes.append(
-                    {
-                        "review_lane": lane,
-                        "reason_code": lane_issue[0],
-                        "resume_condition": lane_issue[1],
-                    }
-                )
-                continue
             if lane_state["currentness_status"] == "fresh":
                 if any(
                     (
@@ -657,12 +620,13 @@ def _epistemic_evaluation_matches_scope(
         *evaluation["ignored_changes"],
     ]:
         node = nodes_by_ref.get(change["node_ref"])
-        if node is not None and change["change_class"] != "locator_only":
-            if (
-                _EPISTEMIC_CHANGE_CLASS_BY_NODE_ROLE.get(node["role"])
-                != change["change_class"]
-            ):
-                return False
+        if (
+            node is not None
+            and change["change_class"] != "locator_only"
+            and _EPISTEMIC_CHANGE_CLASS_BY_NODE_ROLE.get(node["role"])
+            != change["change_class"]
+        ):
+            return False
     if any(
         change["node_ref"] not in dependency_refs
         for change in evaluation["invalidating_changes"]
@@ -717,8 +681,10 @@ def _revision_consumption_issue(
     if current_revision_refs is None:
         return (
             "revision_currentness_inventory_required",
-            "bind the current accepted or active workspace revision-intake refs before "
-            "claiming revision currentness",
+            (
+                "bind the current accepted or active workspace revision-intake refs before "
+                "claiming revision currentness"
+            ),
         )
     receipt = binding["consumption_receipt"]
     current_revision_identities = {
@@ -732,16 +698,20 @@ def _revision_consumption_issue(
     if not current_revision_identities.issubset(consumed_revision_identities):
         return (
             "latest_accepted_or_active_revision_not_consumed",
-            "consume every current accepted or active workspace revision intake in this "
-            "generation before finalize or publication handoff",
+            (
+                "consume every current accepted or active workspace revision intake in this "
+                "generation before finalize or publication handoff"
+            ),
         )
     if receipt["applicability"] == "revision_consumed" and any(
         item["status"] != "closed" for item in receipt["finding_closures"]
     ):
         return (
             "revision_finding_closure_incomplete",
-            "close or explicitly carry forward every consumed OPL finding before "
-            "quality acceptance",
+            (
+                "close or explicitly carry forward every consumed OPL finding before "
+                "quality acceptance"
+            ),
         )
     return None
 

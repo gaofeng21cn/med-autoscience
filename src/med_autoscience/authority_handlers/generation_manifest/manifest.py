@@ -2,28 +2,25 @@
 
 from __future__ import annotations
 
-from collections.abc import Mapping
 from typing import Any
 
 from .._record_validation import (
+    NonEmptyStr,
     RequestShapeError,
+    Sha256Text,
+    StrictRecordModel,
     canonical_json_bytes,
+    enum_field,
     enum_text,
-    exact_ref as _exact_ref,
-    exact_ref_list as _exact_ref_list,
-    exact_keys,
+    exact_int_field,
+    exact_str_field,
     fingerprint,
     integer,
     mapping,
-    optional_text,
     sequence,
-    sha256,
     text,
-    text_list,
-    typed_ref as _typed_ref,
-    typed_ref_list as _typed_ref_list,
+    validate_record_model,
 )
-
 from .constants import (
     ALLOWED_ROLES_BY_SCOPE,
     PUBLICATION_SINGLETON_ROLES,
@@ -55,6 +52,33 @@ from .review_scope import (
     build_review_scopes,
 )
 
+
+class _GenerationManifestV1Model(StrictRecordModel):
+    surface_kind: exact_str_field("mas_evidence_generation_manifest")
+    schema_version: exact_int_field(1)
+    generation_id: NonEmptyStr
+    manifest_scope: enum_field(REQUIRED_ROLES_BY_SCOPE)
+    generation_manifest_sha256: Sha256Text
+    artifacts: Any
+    independent_review_receipts: Any
+
+
+class _GenerationManifestV2Model(StrictRecordModel):
+    surface_kind: exact_str_field("mas_evidence_generation_manifest")
+    schema_version: exact_int_field(2)
+    generation_id: NonEmptyStr
+    manifest_scope: enum_field(REQUIRED_ROLES_BY_SCOPE)
+    generation_manifest_sha256: Sha256Text
+    artifacts: Any
+    review_scopes: Any
+    independent_review_receipts: Any
+    professional_skill_invocations: Any = None
+    first_draft_quality_application: Any = None
+    clinical_analysis_identity_admission: Any = None
+    selected_build_binding: Any = None
+    reviewer_response_sync: Any = None
+
+
 def normalize_generation_manifest(
     value: Any,
     field: str = "generation_manifest",
@@ -65,40 +89,16 @@ def normalize_generation_manifest(
     schema_version = integer(payload.get("schema_version"), f"{field}.schema_version")
     if schema_version not in {1, 2}:
         raise RequestShapeError(f"{field}.schema_version must be integer 1 or 2")
-    keys = {
-        "surface_kind",
-        "schema_version",
-        "generation_id",
-        "manifest_scope",
-        "generation_manifest_sha256",
-        "artifacts",
-        "independent_review_receipts",
-    }
-    if schema_version == 2:
-        keys.add("review_scopes")
-        if "professional_skill_invocations" in payload:
-            keys.add("professional_skill_invocations")
-        if "first_draft_quality_application" in payload:
-            keys.add("first_draft_quality_application")
-        if "clinical_analysis_identity_admission" in payload:
-            keys.add("clinical_analysis_identity_admission")
-        if "selected_build_binding" in payload:
-            keys.add("selected_build_binding")
-        if "reviewer_response_sync" in payload:
-            keys.add("reviewer_response_sync")
-    exact_keys(payload, keys, field)
-    if payload.get("surface_kind") != "mas_evidence_generation_manifest":
-        raise RequestShapeError(
-            f"{field}.surface_kind must be mas_evidence_generation_manifest"
-        )
-    generation_id = text(payload.get("generation_id"), f"{field}.generation_id")
-    scope = enum_text(
-        payload.get("manifest_scope"),
-        f"{field}.manifest_scope",
-        set(REQUIRED_ROLES_BY_SCOPE),
+
+    model_cls = (
+        _GenerationManifestV2Model if schema_version == 2 else _GenerationManifestV1Model
     )
+    envelope = validate_record_model(model_cls, payload, field)
+    present_fields = envelope.model_fields_set
+    generation_id = envelope.generation_id
+    scope = envelope.manifest_scope
     artifacts = _normalize_generation_artifact_inventory(
-        payload.get("artifacts"),
+        envelope.artifacts,
         f"{field}.artifacts",
         manifest_scope=scope,
         schema_version=schema_version,
@@ -113,6 +113,7 @@ def normalize_generation_manifest(
     }
     review_scopes: list[dict[str, Any]] = []
     if schema_version == 2:
+        assert isinstance(envelope, _GenerationManifestV2Model)
         supplied_scopes = [
             _normalize_review_scope(
                 item,
@@ -120,7 +121,7 @@ def normalize_generation_manifest(
                 artifacts=artifacts,
             )
             for index, item in enumerate(
-                sequence(payload.get("review_scopes"), f"{field}.review_scopes")
+                sequence(envelope.review_scopes, f"{field}.review_scopes")
             )
         ]
         scope_lanes = [item["review_lane"] for item in supplied_scopes]
@@ -134,15 +135,15 @@ def normalize_generation_manifest(
             )
         review_scopes = sorted(supplied_scopes, key=lambda item: item["review_lane"])
         manifest_core["review_scopes"] = review_scopes
-        if "professional_skill_invocations" in payload:
+        if "professional_skill_invocations" in present_fields:
             manifest_core["professional_skill_invocations"] = (
                 _normalize_professional_skill_invocations(
-                    payload.get("professional_skill_invocations"),
+                    envelope.professional_skill_invocations,
                     f"{field}.professional_skill_invocations",
                     artifacts=artifacts,
                 )
             )
-        if "first_draft_quality_application" in payload:
+        if "first_draft_quality_application" in present_fields:
             if scope == "analysis_generation":
                 raise RequestShapeError(
                     f"{field}.first_draft_quality_application is not allowed for "
@@ -150,15 +151,15 @@ def normalize_generation_manifest(
                 )
             manifest_core["first_draft_quality_application"] = (
                 _normalize_first_draft_quality_application(
-                    payload.get("first_draft_quality_application"),
+                    envelope.first_draft_quality_application,
                     f"{field}.first_draft_quality_application",
                     artifacts=artifacts,
                     require_scholar_v2_semantics=(
-                        "selected_build_binding" in payload
+                        "selected_build_binding" in present_fields
                     ),
                 )
             )
-        if "clinical_analysis_identity_admission" in payload:
+        if "clinical_analysis_identity_admission" in present_fields:
             if scope != "analysis_generation":
                 raise RequestShapeError(
                     f"{field}.clinical_analysis_identity_admission is allowed only "
@@ -166,30 +167,30 @@ def normalize_generation_manifest(
                 )
             manifest_core["clinical_analysis_identity_admission"] = (
                 _normalize_clinical_analysis_identity_admission(
-                    payload.get("clinical_analysis_identity_admission"),
+                    envelope.clinical_analysis_identity_admission,
                     f"{field}.clinical_analysis_identity_admission",
                     artifacts=artifacts,
                 )
             )
-        if "selected_build_binding" in payload:
+        if "selected_build_binding" in present_fields:
             if scope == "analysis_generation":
                 raise RequestShapeError(
                     f"{field}.selected_build_binding is not allowed for "
                     "analysis_generation"
                 )
             manifest_core["selected_build_binding"] = _normalize_selected_build_binding(
-                payload.get("selected_build_binding"),
+                envelope.selected_build_binding,
                 f"{field}.selected_build_binding",
                 artifacts=artifacts,
             )
-        if "reviewer_response_sync" in payload:
+        if "reviewer_response_sync" in present_fields:
             if scope == "analysis_generation":
                 raise RequestShapeError(
                     f"{field}.reviewer_response_sync is not allowed for "
                     "analysis_generation"
                 )
             manifest_core["reviewer_response_sync"] = _normalize_reviewer_response_sync(
-                payload.get("reviewer_response_sync"),
+                envelope.reviewer_response_sync,
                 f"{field}.reviewer_response_sync",
                 artifacts=artifacts,
             )
@@ -198,12 +199,9 @@ def normalize_generation_manifest(
                 manifest_core,
                 f"{field}.first_draft_quality_application",
             )
+
     expected_fingerprint = fingerprint(manifest_core)
-    supplied_fingerprint = sha256(
-        payload.get("generation_manifest_sha256"),
-        f"{field}.generation_manifest_sha256",
-    )
-    if supplied_fingerprint != expected_fingerprint:
+    if envelope.generation_manifest_sha256 != expected_fingerprint:
         raise RequestShapeError(
             f"{field}.generation_manifest_sha256 does not match canonical members"
         )
@@ -220,7 +218,7 @@ def normalize_generation_manifest(
         )
         for index, item in enumerate(
             sequence(
-                payload.get("independent_review_receipts"),
+                envelope.independent_review_receipts,
                 f"{field}.independent_review_receipts",
             )
         )
@@ -237,13 +235,12 @@ def normalize_generation_manifest(
             reviews,
             f"{field}.reviewer_response_sync",
         )
-    normalized = {
+    return {
         **manifest_core,
         "generation_manifest_sha256": expected_fingerprint,
         "generation_manifest_size_bytes": len(canonical_json_bytes(manifest_core)),
         "independent_review_receipts": reviews,
     }
-    return normalized
 
 
 def _normalize_generation_artifact_inventory(
@@ -306,7 +303,7 @@ def build_generation_manifest_v2(
         manifest_scope=normalized_scope,
         schema_version=2,
     )
-    core = {
+    core: dict[str, Any] = {
         "surface_kind": "mas_evidence_generation_manifest",
         "schema_version": 2,
         "generation_id": text(generation_id, "generation_manifest.generation_id"),

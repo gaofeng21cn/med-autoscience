@@ -4,7 +4,6 @@ import json
 import runpy
 from pathlib import Path
 
-
 ROOT = Path(__file__).resolve().parents[1]
 PROFILE = ROOT / "contracts" / "standard_agent_conformance_profile.json"
 STAGE_MANIFEST = ROOT / "agent" / "stages" / "manifest.json"
@@ -124,7 +123,7 @@ def test_repo_hygiene_delegates_shared_byproducts_to_opl() -> None:
     assert "uv run --frozen python scripts/repo_hygiene_audit.py" not in verify_script
     assert "import subprocess" not in hygiene_script
     makefile = (ROOT / "Makefile").read_text(encoding="utf-8")
-    assert "uv export --quiet --frozen --only-group dev --no-emit-project" in makefile
+    assert "uv export --quiet --frozen --group dev --no-emit-project" in makefile
     assert '--output-file "$$requirements_file"' in makefile
     assert "uv run --isolated --no-project --with-requirements" in makefile
     assert set(hygiene_globals["MAS_POLICY_DIRECTORY_NAMES"]) == {

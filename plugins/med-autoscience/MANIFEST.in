@@ -1,2 +1,0 @@
-include agent/stages/stage_route_contract.yaml
-global-exclude __pycache__ *.py[cod] .DS_Store

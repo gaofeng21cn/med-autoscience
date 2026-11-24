@@ -9,7 +9,7 @@ Machine boundary: [contracts](../contracts/README.md)、源码、action catalog�
 
 MAS 是声明式医学研究 Package：`agent/` 提供 Stage、专业知识、提示词和质量规则；`contracts/` 提供公开接口、Schema、环境需求与 handler bindings；`src/med_autoscience/` 提供必须在医学 owner 内完成的 authority 判断。Framework 编译并托管通用接口，Stage executor 消费这些声明和 ScholarSkills 能力，独立 reviewer 判断质量，MAS owner 消费与研究 identity 绑定的结果。
 
-canonical agent/package id 是 `mas`，machine domain id 是 `medautoscience`，`med-autoscience` 是仓库与 plugin locator。Package、carrier 和 executor 各自独立：Codex Plugin 是分发投影，Codex CLI 是当前正式 executor，二者不定义医学身份或安装真相。
+canonical agent/package id 是 `mas`，machine domain id 是 `medautoscience`，`med-autoscience` 是仓库与 plugin locator。Package、carrier 和 executor 各自独立：Codex Plugin 是分发投影，Codex CLI 是当前正式 executor，二者不定义医学身份或安装真相。仓库采用单源布局（`agent/`、`contracts/`、`src/`、`runtime/` 仅在仓根维护一份权威源码，`plugins/med-autoscience/` 在 Git 中只保留薄载体壳，完整镜像载体按需由 `scripts/materialize_plugin_carrier.py` 在构建期物化到 gitignored 路径）。
 
 ## Owner 边界与 OPL 合同映射
 
