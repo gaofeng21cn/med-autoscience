@@ -27,7 +27,7 @@ from ._record_validation import (
 )
 
 
-from .qualification_provisioning_parts.values import (
+from .qualification_provisioning.values import (
     REQUEST_KIND,
     RESULT_KIND,
     RECEIPT_KIND,
@@ -49,7 +49,7 @@ from .qualification_provisioning_parts.values import (
     _bytes_sha256,
     _fingerprint,
 )
-from .qualification_provisioning_parts.request import (
+from .qualification_provisioning.request import (
     _normalize_request,
     _normalize_authority_context,
     _normalize_qualification_authority,
@@ -57,7 +57,7 @@ from .qualification_provisioning_parts.request import (
     _supported_workspace_index_envelope,
     _normalize_existing_studies,
 )
-from .qualification_provisioning_parts.records import (
+from .qualification_provisioning.records import (
     _study_identity,
     _workspace_index_row,
     _lifecycle_record,
@@ -66,7 +66,7 @@ from .qualification_provisioning_parts.records import (
     _operation,
     _cas_authorization,
 )
-from .qualification_provisioning_parts.result import (
+from .qualification_provisioning.result import (
     _typed_blocker,
     _invalid_host_input,
     _finalize,

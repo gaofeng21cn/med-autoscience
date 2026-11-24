@@ -15,7 +15,7 @@ from med_autoscience.authority_handlers.study_initialization import (
     ACTION_ID,
     evaluate_study_initialization_authority,
 )
-from med_autoscience.authority_handlers.study_lifecycle_reactivation_parts.request import (
+from med_autoscience.authority_handlers.study_lifecycle.request import (
     _normalize_lifecycle_record,
 )
 

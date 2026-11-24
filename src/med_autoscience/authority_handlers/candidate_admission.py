@@ -35,7 +35,7 @@ from ._record_validation import (
 from ._record_validation import (
     typed_ref_list as _typed_ref_list,
 )
-from .candidate_admission_parts.adjudicator import (
+from .candidate_admission_flow.adjudicator import (
     _adjudicator_refs,
     _normalize_adjudicator_context,
     _normalize_adjudicator_receipt,
@@ -43,7 +43,7 @@ from .candidate_admission_parts.adjudicator import (
     _normalize_waiver,
     _validate_adjudicator_receipt,
 )
-from .candidate_admission_parts.candidate import (
+from .candidate_admission_flow.candidate import (
     _candidate_exact_ref,
     _normalize_candidate,
     _normalize_claim_scope,
@@ -51,12 +51,12 @@ from .candidate_admission_parts.candidate import (
     _normalize_mission,
     _validate_manifest_membership,
 )
-from .candidate_admission_parts.currentness import (
+from .candidate_admission_flow.currentness import (
     _currentness_issue,
     _normalize_currentness_receipt,
     _validate_currentness_receipt_ref,
 )
-from .candidate_admission_parts.policy import (
+from .candidate_admission_flow.policy import (
     _ACCEPT_CODES,
     _ALL_DECISION_CODES,
     _AUTHORITY_BOUNDARY,
@@ -70,12 +70,12 @@ from .candidate_admission_parts.policy import (
     RESULT_KIND,
     SCHEMA_VERSION,
 )
-from .candidate_admission_parts.receipt import (
+from .candidate_admission_flow.receipt import (
     normalize_candidate_admission_receipt as _normalize_candidate_admission_receipt,
 )
-from .candidate_admission_parts.receipt_integrity import _validate_embedded_receipt
-from .candidate_admission_parts.request import _normalize_hard_gate, _normalize_request
-from .candidate_admission_parts.result import (
+from .candidate_admission_flow.receipt_integrity import _validate_embedded_receipt
+from .candidate_admission_flow.request import _normalize_hard_gate, _normalize_request
+from .candidate_admission_flow.result import (
     _clinical_identity_admission_result,
     _disposition_receipt,
     _finalize,

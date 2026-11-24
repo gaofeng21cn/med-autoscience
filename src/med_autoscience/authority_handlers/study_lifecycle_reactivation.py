@@ -11,7 +11,7 @@ from opl_framework.cas_materialization import (
 )
 
 from ._record_validation import RequestShapeError
-from .study_lifecycle_reactivation_parts.constants import (
+from .study_lifecycle.constants import (
     HOST_CAPABILITY_ID,
     REQUEST_KIND,
     RESULT_KIND,
@@ -25,7 +25,7 @@ from .study_lifecycle_reactivation_parts.constants import (
     _SAFE_SEGMENT,
     _TARGET_ROLE_ORDER,
 )
-from .study_lifecycle_reactivation_parts.materialization import (
+from .study_lifecycle.materialization import (
     ProjectionCurrentnessError,
     _absent_relative_path_preconditions,
     _active_lifecycle_record,
@@ -33,9 +33,9 @@ from .study_lifecycle_reactivation_parts.materialization import (
     _materialization_operations,
     _reactivation_receipt,
 )
-from .study_lifecycle_reactivation_parts.primitives import _json_fingerprint
-from .study_lifecycle_reactivation_parts.request import _normalize_request
-from .study_lifecycle_reactivation_parts.result import (
+from .study_lifecycle.primitives import _json_fingerprint
+from .study_lifecycle.request import _normalize_request
+from .study_lifecycle.result import (
     _finalize,
     _invalid_host_input,
     _typed_blocker,
