@@ -11,6 +11,15 @@ import sys
 from pathlib import Path
 from typing import Any
 
+from opl_framework.app_contribution import (
+    AppContributionError,
+    read_contained_file,
+    read_stdin_json,
+    resolve_workspace_root,
+    sha256_bytes,
+    verify_work_item_identity,
+)
+
 
 REQUEST_SCHEMA = "opl-package-app-contribution-request.v1"
 RESPONSE_SCHEMA = "opl-package-app-contribution-response.v1"
@@ -35,17 +44,19 @@ def _text(value: Any, field: str) -> str:
 
 
 def _source(root: Path, relative: Path) -> tuple[dict[str, Any], dict[str, str]]:
-    path = (root / relative).resolve()
-    if not path.is_relative_to(root):
-        raise ContributionError(f"{relative} escapes the selected workspace")
     try:
+        path = read_contained_file(root, root, relative.as_posix())
         data = path.read_bytes()
         value = _record(json.loads(data), str(relative))
+    except AppContributionError as error:
+        if "escapes" in str(error).lower():
+            raise ContributionError(f"{relative} escapes the selected workspace") from error
+        raise ContributionError(f"{relative} is unavailable or invalid") from error
     except (OSError, UnicodeError, json.JSONDecodeError) as error:
         raise ContributionError(f"{relative} is unavailable or invalid") from error
     return value, {
         "ref": relative.as_posix(),
-        "sha256": f"sha256:{hashlib.sha256(data).hexdigest()}",
+        "sha256": sha256_bytes(data),
     }
 
 
@@ -53,39 +64,41 @@ def _workspace_root() -> Path:
     raw = os.environ.get("OPL_PROFILE_WORKSPACE", "")
     if not raw.strip():
         raise ContributionError("OPL_PROFILE_WORKSPACE is required")
-    root = Path(raw).expanduser().resolve()
-    if not root.is_dir():
+    try:
+        root = resolve_workspace_root()
+    except OSError as error:
+        raise ContributionError("OPL_PROFILE_WORKSPACE must resolve to a directory") from error
+    if root is None or not root.is_dir():
         raise ContributionError("OPL_PROFILE_WORKSPACE must resolve to a directory")
     return root
 
 
 def _identity(request: dict[str, Any]) -> dict[str, str]:
+    request_input = _record(request.get("input"), "input")
     identity = _record(
-        _record(request.get("input"), "input").get("work_item_identity"),
-        "input.work_item_identity",
+        request_input.get("work_item_identity"), "input.work_item_identity"
     )
-    expected = {
-        "agent_id": "mas",
-        "domain_id": "medautoscience",
-        "identity_state": "resolved",
-    }
-    for field, value in expected.items():
-        if identity.get(field) != value:
-            raise ContributionError(
-                f"input.work_item_identity.{field} must equal {value}"
-            )
+    try:
+        verified, _ = verify_work_item_identity(
+            request_input,
+            expected_agent_ids=("mas",),
+            expected_domain_ids=("medautoscience",),
+            require_resolved=True,
+        )
+    except AppContributionError as error:
+        raise ContributionError(str(error)) from error
     work_item_id = _text(
         identity.get("work_item_id"),
         "input.work_item_identity.work_item_id",
     )
     if not STUDY_ID_PATTERN.fullmatch(work_item_id):
         raise ContributionError("input.work_item_identity.work_item_id is invalid")
-    if identity.get("domain_work_item_id") != work_item_id:
+    if verified.get("domain_work_item_id") != work_item_id:
         raise ContributionError(
             "input.work_item_identity.domain_work_item_id must equal work_item_id"
         )
     scope_id = _text(
-        identity.get("work_item_scope_id"),
+        verified.get("work_item_scope_id"),
         "input.work_item_identity.work_item_scope_id",
     )
     return {
@@ -265,7 +278,7 @@ def _result(identity: dict[str, str]) -> dict[str, Any]:
 def main() -> int:
     request: dict[str, Any] = {}
     try:
-        request = _record(json.load(sys.stdin), "request")
+        request = read_stdin_json()
         if request.get("schema_version") != REQUEST_SCHEMA:
             raise ContributionError("request schema_version is unsupported")
         if request.get("operation") != "read":
@@ -281,7 +294,7 @@ def main() -> int:
         }
         print(json.dumps(response, ensure_ascii=False, separators=(",", ":")))
         return 0
-    except (ContributionError, json.JSONDecodeError) as error:
+    except (AppContributionError, ContributionError, json.JSONDecodeError) as error:
         print(
             json.dumps(
                 {

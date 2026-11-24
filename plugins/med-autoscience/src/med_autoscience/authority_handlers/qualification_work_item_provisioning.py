@@ -12,6 +12,12 @@ import posixpath
 import re
 from typing import Any
 
+from opl_framework.cas_materialization import (
+    build_cas_materialization_request,
+    collect_absent_precondition_paths,
+    compute_cas_operation_digests,
+)
+
 from ._record_validation import (
     RequestShapeError,
     exact_json_object,
@@ -150,17 +156,13 @@ def evaluate_qualification_work_item_provisioning_authority(
         lifecycle_bytes=lifecycle_bytes,
         receipt_bytes=receipt_bytes,
     )
-    absent_paths = sorted(
-        operation["target_relative_path"]
-        for operation in operations
-        if operation["precondition"]["kind"] == "absent"
-    )
-    operations_sha256 = _fingerprint(operations)
-    materialization_scope_sha256 = _fingerprint(
-        {
-            "operations": operations,
-            "absent_relative_path_preconditions": absent_paths,
-        }
+    absent_paths = collect_absent_precondition_paths(operations)
+    operations_sha256, materialization_scope_sha256, absent_paths = (
+        compute_cas_operation_digests(
+            operations,
+            absent_relative_path_preconditions=absent_paths,
+            ensure_ascii=True,
+        )
     )
     request_id = (
         "mas-qualification-provisioning-cas-request:"
@@ -176,18 +178,16 @@ def evaluate_qualification_work_item_provisioning_authority(
         receipt=receipt,
         receipt_content=receipt_content,
     )
-    host_request = {
-        "surface_kind": "opl_domain_artifact_cas_materialization_request",
-        "version": "opl-domain-artifact-cas-materialization.v1",
-        "capability_id": HOST_CAPABILITY_ID,
-        "request_id": request_id,
-        "domain_id": DOMAIN_ID,
-        "authorization_ref": authorization["authorization_ref"],
-        "operations_sha256": operations_sha256,
-        "materialization_scope_sha256": materialization_scope_sha256,
-        "absent_relative_path_preconditions": absent_paths,
-        "operations": operations,
-    }
+    host_request = build_cas_materialization_request(
+        capability_id=HOST_CAPABILITY_ID,
+        domain_id=DOMAIN_ID,
+        request_id=request_id,
+        authorization_ref=authorization["authorization_ref"],
+        operations=operations,
+        operations_sha256=operations_sha256,
+        materialization_scope_sha256=materialization_scope_sha256,
+        absent_relative_path_preconditions=absent_paths,
+    )
     return _finalize(
         status="authorized",
         study_identity=identity,

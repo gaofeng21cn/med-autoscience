@@ -2,16 +2,18 @@
 
 from __future__ import annotations
 
-import os
 from collections.abc import Mapping
-from copy import deepcopy
 from pathlib import Path
 from typing import Any
-from urllib.parse import unquote, urlparse
 
-from opl_framework.artifact_inspection import (
-    ContainedFileReadError,
-    fingerprint_contained_regular_file,
+from opl_framework.stage_attempt_snapshot import (
+    ATTEMPT_BINDING_ENV_KEYS as _ATTEMPT_BINDING_ENV_KEYS,
+    StageAttemptSnapshotError,
+    fingerprint_workspace_source_file,
+    inject_snapshot_materialization_into_closeout,
+    read_stage_attempt_environment,
+    resolve_workspace_source_path,
+    verify_workspace_member_source_refs,
 )
 
 from ._generation_manifest import (
@@ -20,74 +22,25 @@ from ._generation_manifest import (
 )
 from ._record_validation import (
     RequestShapeError,
-    mapping,
-    sequence,
-    text,
 )
 
 
 BOUNDED_ANALYSIS_STAGE_ID = "bounded_analysis_campaign"
 BOUNDED_ANALYSIS_REVIEW_LANE = "statistical"
-_ATTEMPT_BINDING_ENV_KEYS = (
-    "OPL_STAGE_ATTEMPT_REF",
-    "OPL_EXECUTION_CONTENT_BINDING_SHA256",
-    "OPL_PACKAGE_USE_BOUNDARY_ID",
-    "OPL_ROOT_PACKAGE_ID",
-    "OPL_ROOT_PACKAGE_CONTENT_DIGEST",
-)
 
 
 def _attempt_environment(
     environ: Mapping[str, str] | None,
 ) -> tuple[Path, dict[str, str]]:
-    source = os.environ if environ is None else environ
-    stage_id = text(source.get("OPL_STAGE_ID"), "environment.OPL_STAGE_ID")
-    if stage_id != BOUNDED_ANALYSIS_STAGE_ID:
-        raise RequestShapeError(
-            "environment.OPL_STAGE_ID must be bounded_analysis_campaign"
-        )
     try:
-        workspace_root = Path(
-            text(source.get("OPL_WORKSPACE_ROOT"), "environment.OPL_WORKSPACE_ROOT")
-        ).resolve(strict=True)
-    except OSError as error:
-        raise RequestShapeError(
-            "environment.OPL_WORKSPACE_ROOT must be readable"
-        ) from error
-    if not workspace_root.is_dir():
-        raise RequestShapeError("environment.OPL_WORKSPACE_ROOT must be a directory")
-
-    values = {
-        key: text(source.get(key), f"environment.{key}")
-        for key in _ATTEMPT_BINDING_ENV_KEYS
-    }
-    attempt_ref = values["OPL_STAGE_ATTEMPT_REF"]
-    if not attempt_ref.startswith("opl://stage_attempts/") or not attempt_ref.removeprefix(
-        "opl://stage_attempts/"
-    ):
-        raise RequestShapeError(
-            "environment.OPL_STAGE_ATTEMPT_REF must reference one OPL Stage Attempt"
+        return read_stage_attempt_environment(
+            expected_stage_id=BOUNDED_ANALYSIS_STAGE_ID,
+            agent_id="mas",
+            domain_id="medautoscience",
+            environ=environ,
         )
-    attempt_id = source.get("OPL_STAGE_ATTEMPT_ID")
-    if attempt_id is not None and text(
-        attempt_id, "environment.OPL_STAGE_ATTEMPT_ID"
-    ) != attempt_ref.removeprefix("opl://stage_attempts/"):
-        raise RequestShapeError("OPL Stage Attempt id/ref bindings do not match")
-
-    authority_issuer = {
-        "agent_id": "mas",
-        "domain_id": "medautoscience",
-        "package_id": values["OPL_ROOT_PACKAGE_ID"],
-        "stage_attempt_ref": attempt_ref,
-        "execution_content_binding_sha256": values[
-            "OPL_EXECUTION_CONTENT_BINDING_SHA256"
-        ],
-        "package_use_boundary_id": values["OPL_PACKAGE_USE_BOUNDARY_ID"],
-        "root_package_content_digest": values[
-            "OPL_ROOT_PACKAGE_CONTENT_DIGEST"
-        ],
-    }
-    return workspace_root, authority_issuer
+    except StageAttemptSnapshotError as error:
+        raise RequestShapeError(str(error)) from error
 
 
 def _workspace_source_path(
@@ -95,23 +48,10 @@ def _workspace_source_path(
     source_ref: str,
     field: str,
 ) -> Path:
-    normalized_ref = text(source_ref, field)
-    parsed = urlparse(normalized_ref)
-    if parsed.scheme == "file":
-        if parsed.netloc not in {"", "localhost"} or parsed.query or parsed.fragment:
-            raise RequestShapeError(f"{field} must use a local file URI")
-        candidate = Path(unquote(parsed.path))
-    elif parsed.scheme:
-        raise RequestShapeError(f"{field} must be a workspace path or file URI")
-    else:
-        candidate = Path(normalized_ref)
-        if not candidate.is_absolute():
-            candidate = workspace_root / candidate
-
-    absolute_candidate = Path(os.path.abspath(candidate))
-    if not absolute_candidate.is_relative_to(workspace_root):
-        raise RequestShapeError(f"{field} escapes OPL_WORKSPACE_ROOT")
-    return absolute_candidate
+    try:
+        return resolve_workspace_source_path(workspace_root, source_ref, field)
+    except StageAttemptSnapshotError as error:
+        raise RequestShapeError(str(error)) from error
 
 
 def _file_identity(
@@ -120,21 +60,9 @@ def _file_identity(
     field: str,
 ) -> tuple[int, str]:
     try:
-        relative = path.relative_to(workspace_root)
-    except ValueError as error:
-        raise RequestShapeError(f"{field} escapes OPL_WORKSPACE_ROOT") from error
-    try:
-        return fingerprint_contained_regular_file(workspace_root, relative)
-    except ContainedFileReadError as error:
-        detail = {
-            "safe_open_unsupported": "cannot be inspected without no-follow support",
-            "ref_not_contained": "must use a normalized workspace path",
-            "ref_symlink": "must not reference a symlink",
-            "ref_not_directory": "must reference a regular file",
-            "not_regular_file": "must reference a regular file",
-            "root_not_directory": "OPL_WORKSPACE_ROOT must be a physical directory",
-        }.get(error.code, "changed while its bytes were inspected")
-        raise RequestShapeError(f"{field} {detail}") from error
+        return fingerprint_workspace_source_file(workspace_root, path, field)
+    except StageAttemptSnapshotError as error:
+        raise RequestShapeError(str(error)) from error
 
 
 def _statistical_source_refs(
@@ -148,47 +76,16 @@ def _statistical_source_refs(
         for item in generation_manifest["review_scopes"]
         if item["review_lane"] == BOUNDED_ANALYSIS_REVIEW_LANE
     )
-    supplied = mapping(source_refs_by_member_id, "source_refs_by_member_id")
-    normalized: dict[str, str] = {}
-    for index, (member_id_value, source_ref_value) in enumerate(supplied.items()):
-        member_id = text(member_id_value, f"source_refs_by_member_id key[{index}]")
-        if member_id in normalized:
-            raise RequestShapeError(
-                "source_refs_by_member_id contains duplicate normalized member_id values"
-            )
-        normalized[member_id] = text(
-            source_ref_value,
-            f"source_refs_by_member_id.{member_id}",
+    try:
+        return verify_workspace_member_source_refs(
+            expected_members=scope["reviewed_members"],
+            workspace_root=workspace_root,
+            source_refs_by_member_id=source_refs_by_member_id,
+            scope_label="statistical review scope",
+            artifact_owner_label="MAS",
         )
-
-    expected_members = {
-        item["member_id"]: item for item in scope["reviewed_members"]
-    }
-    if set(normalized) != set(expected_members):
-        missing = sorted(set(expected_members) - set(normalized))
-        extra = sorted(set(normalized) - set(expected_members))
-        details = []
-        if missing:
-            details.append("missing: " + ", ".join(missing))
-        if extra:
-            details.append("extra: " + ", ".join(extra))
-        raise RequestShapeError(
-            "source_refs_by_member_id must exactly match the statistical review scope; "
-            + "; ".join(details)
-        )
-
-    for member_id, member in expected_members.items():
-        field = f"source_refs_by_member_id.{member_id}"
-        path = _workspace_source_path(workspace_root, normalized[member_id], field)
-        observed_size, observed_sha256 = _file_identity(workspace_root, path, field)
-        if (
-            observed_size != member["size_bytes"]
-            or observed_sha256 != member["sha256"]
-        ):
-            raise RequestShapeError(
-                f"{field} bytes do not match the frozen MAS artifact identity"
-            )
-    return normalized
+    except StageAttemptSnapshotError as error:
+        raise RequestShapeError(str(error)) from error
 
 
 def _inject_snapshot_bundle(
@@ -197,81 +94,15 @@ def _inject_snapshot_bundle(
     *,
     producer_attempt_ref: str,
 ) -> dict[str, Any]:
-    closeout = deepcopy(mapping(closeout_packet, "closeout_packet"))
-    if closeout.get("surface_kind") != "stage_attempt_closeout_packet":
-        raise RequestShapeError(
-            "closeout_packet.surface_kind must be stage_attempt_closeout_packet"
+    try:
+        return inject_snapshot_materialization_into_closeout(
+            closeout_packet,
+            request=bundle["review_input_snapshot_materialization_request"],
+            owner_authority_ref=bundle["required_closeout_ref_metadata"][0],
+            producer_attempt_ref=producer_attempt_ref,
         )
-    attempt_id = producer_attempt_ref.removeprefix("opl://stage_attempts/")
-    if text(
-        closeout.get("stage_attempt_id"), "closeout_packet.stage_attempt_id"
-    ) != attempt_id:
-        raise RequestShapeError(
-            "closeout_packet.stage_attempt_id must match OPL_STAGE_ATTEMPT_REF"
-        )
-
-    route_impact = mapping(
-        closeout.get("route_impact", {}),
-        "closeout_packet.route_impact",
-    )
-    quality_cycle = mapping(
-        route_impact.get("stage_quality_cycle", {}),
-        "closeout_packet.route_impact.stage_quality_cycle",
-    )
-    for field, value in (
-        ("hard_stop_class", route_impact.get("hard_stop_class")),
-        ("blocked_reason", route_impact.get("blocked_reason")),
-        ("typed_blocker_refs", route_impact.get("typed_blocker_refs")),
-        ("human_gate_refs", route_impact.get("human_gate_refs")),
-        ("stage_quality_cycle.hard_stop_class", quality_cycle.get("hard_stop_class")),
-        ("stage_quality_cycle.blocked_reason", quality_cycle.get("blocked_reason")),
-        (
-            "stage_quality_cycle.typed_blocker_refs",
-            quality_cycle.get("typed_blocker_refs"),
-        ),
-        ("stage_quality_cycle.human_gate_refs", quality_cycle.get("human_gate_refs")),
-    ):
-        if value not in (None, "", [], {}):
-            raise RequestShapeError(
-                "hard-stop closeout cannot carry a review input snapshot "
-                f"materialization request ({field})"
-            )
-    outcome = quality_cycle.get("outcome")
-    if outcome in {"blocked", "human_gate"}:
-        raise RequestShapeError(
-            "hard-stop closeout cannot carry a review input snapshot "
-            f"materialization request (stage_quality_cycle.outcome={outcome})"
-        )
-    request = bundle["review_input_snapshot_materialization_request"]
-    existing_request = quality_cycle.get(
-        "review_input_snapshot_materialization_request"
-    )
-    if existing_request is not None and existing_request != request:
-        raise RequestShapeError(
-            "closeout_packet contains a conflicting snapshot materialization request"
-        )
-    quality_cycle["review_input_snapshot_materialization_request"] = request
-    route_impact["stage_quality_cycle"] = quality_cycle
-    closeout["route_impact"] = route_impact
-
-    metadata = sequence(
-        closeout.get("closeout_ref_metadata", []),
-        "closeout_packet.closeout_ref_metadata",
-    )
-    owner_authority_ref = bundle["required_closeout_ref_metadata"][0]
-    for index, value in enumerate(metadata):
-        item = mapping(value, f"closeout_packet.closeout_ref_metadata[{index}]")
-        if item.get("ref") != owner_authority_ref["ref"]:
-            continue
-        if item != owner_authority_ref:
-            raise RequestShapeError(
-                "closeout_packet contains conflicting owner authority metadata"
-            )
-        break
-    else:
-        metadata.append(dict(owner_authority_ref))
-    closeout["closeout_ref_metadata"] = metadata
-    return closeout
+    except StageAttemptSnapshotError as error:
+        raise RequestShapeError(str(error)) from error
 
 
 def finalize_bounded_analysis_producer_snapshot_closeout(

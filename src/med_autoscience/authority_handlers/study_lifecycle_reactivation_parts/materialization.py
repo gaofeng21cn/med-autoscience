@@ -4,8 +4,12 @@ from __future__ import annotations
 
 from collections.abc import Mapping
 from copy import deepcopy
-import base64
 from typing import Any
+
+from opl_framework.cas_materialization import (
+    build_cas_create_operation,
+    build_cas_replace_operation,
+)
 
 from .._record_validation import (
     RequestShapeError,
@@ -641,30 +645,24 @@ def _updated_status_counts(value: Any, old_state: str) -> dict[str, int]:
 def _replace_operation(
     target: Mapping[str, Any], after_json: Mapping[str, Any]
 ) -> dict[str, Any]:
-    after_bytes = _strict_canonical_json_bytes(after_json)
-    return {
-        "target_relative_path": target["relative_path"],
-        "precondition": {
-            "kind": "existing_exact",
-            "sha256": target["current_sha256"],
-            "byte_size": target["current_byte_size"],
-        },
-        "replacement_bytes_base64": base64.b64encode(after_bytes).decode("ascii"),
-        "replacement_sha256": _raw_bytes_sha256(after_bytes),
-        "replacement_byte_size": len(after_bytes),
-    }
+    return build_cas_replace_operation(
+        target["relative_path"],
+        current_sha256=target["current_sha256"],
+        current_byte_size=target["current_byte_size"],
+        after_json=after_json,
+        ensure_ascii=True,
+        sha256_prefix=False,
+    )
 
 
 def _create_operation(path: str, after_json: Mapping[str, Any]) -> dict[str, Any]:
     normalized_path = _relative_path(path, "history target path")
-    after_bytes = _strict_canonical_json_bytes(after_json)
-    return {
-        "target_relative_path": normalized_path,
-        "precondition": {"kind": "absent"},
-        "replacement_bytes_base64": base64.b64encode(after_bytes).decode("ascii"),
-        "replacement_sha256": _raw_bytes_sha256(after_bytes),
-        "replacement_byte_size": len(after_bytes),
-    }
+    return build_cas_create_operation(
+        normalized_path,
+        after_json=after_json,
+        ensure_ascii=True,
+        sha256_prefix=False,
+    )
 
 
 def _cas_authorization(

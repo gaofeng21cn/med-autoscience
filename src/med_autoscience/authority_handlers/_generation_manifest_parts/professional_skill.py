@@ -5,6 +5,11 @@ from __future__ import annotations
 from collections.abc import Mapping
 from typing import Any
 
+from opl_framework.capability_binding import (
+    CapabilityBindingError,
+    validate_refs_only_skill_invocation_envelope,
+)
+
 from .._record_validation import (
     RequestShapeError,
     canonical_json_bytes,
@@ -36,15 +41,21 @@ def _normalize_professional_skill_invocation(
     schema_version = integer(payload.get("schema_version"), f"{field}.schema_version")
     if schema_version not in {1, 2}:
         raise RequestShapeError(f"{field}.schema_version must be integer 1 or 2")
-    skill_id = enum_text(
-        payload.get("skill_id"),
-        f"{field}.skill_id",
-        {
-            "medical-figure-design",
-            "medical-figure-style",
-            "medical-figure-composer",
-        },
-    )
+    try:
+        skill_id, consumed_rule_refs = validate_refs_only_skill_invocation_envelope(
+            payload,
+            field=field,
+            expected_surface_kind="mas_professional_figure_skill_invocation_candidate",
+            expected_provider_package_id="mas-scholar-skills",
+            allowed_skill_ids={
+                "medical-figure-design",
+                "medical-figure-style",
+                "medical-figure-composer",
+            },
+            forbidden_false_flags=("authority", "publication_ready"),
+        )
+    except CapabilityBindingError as error:
+        raise RequestShapeError(str(error)) from error
     keys = {
         "surface_kind",
         "schema_version",
@@ -74,28 +85,6 @@ def _normalize_professional_skill_invocation(
     if skill_id == "medical-figure-design":
         keys.update({"template_usage", "figure_text_policy"})
     exact_keys(payload, keys, field)
-    if (
-        payload.get("surface_kind")
-        != "mas_professional_figure_skill_invocation_candidate"
-    ):
-        raise RequestShapeError(
-            f"{field}.surface_kind must be "
-            "mas_professional_figure_skill_invocation_candidate"
-        )
-    if payload.get("package_id") != "mas-scholar-skills":
-        raise RequestShapeError(f"{field}.package_id must be mas-scholar-skills")
-    if payload.get("status") != "completed":
-        raise RequestShapeError(f"{field}.status must be completed")
-    if payload.get("refs_only") is not True:
-        raise RequestShapeError(f"{field}.refs_only must be true")
-    for key in ("authority", "publication_ready"):
-        if payload.get(key) is not False:
-            raise RequestShapeError(f"{field}.{key} must be false")
-    consumed_rule_refs = text_list(
-        payload.get("consumed_rule_refs"), f"{field}.consumed_rule_refs"
-    )
-    if not consumed_rule_refs:
-        raise RequestShapeError(f"{field}.consumed_rule_refs must not be empty")
     output_bindings = [
         _normalize_professional_skill_artifact_binding(
             item,

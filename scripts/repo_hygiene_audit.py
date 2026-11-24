@@ -67,6 +67,7 @@ ACTIVE_PATH_DENYLIST = (
 EXPECTED_STANDARD_AGENT_SOURCE_FILES = frozenset(
     {
         "src/med_autoscience/__init__.py",
+        "src/med_autoscience/_status_narration_labels.py",
         "src/med_autoscience/authority_handlers/_generation_manifest.py",
         "src/med_autoscience/authority_handlers/_record_validation.py",
         "src/med_autoscience/authority_handlers/build_dependency_currentness.py",

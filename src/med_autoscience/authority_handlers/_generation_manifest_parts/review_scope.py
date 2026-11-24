@@ -5,23 +5,17 @@ from __future__ import annotations
 from collections.abc import Mapping
 from typing import Any
 
+from opl_framework.epistemic_review_scope import (
+    EpistemicReviewScopeError,
+    build_epistemic_review_scope as _build_epistemic_review_scope,
+    epistemic_review_dependency_refs as _epistemic_review_dependency_refs,
+    epistemic_review_scope_identity as _epistemic_review_scope_identity,
+    epistemic_review_scope_sha256 as _epistemic_review_scope_sha256,
+    project_review_scope_members as _project_review_scope_members,
+)
+
 from .._record_validation import (
     RequestShapeError,
-    canonical_json_bytes,
-    enum_text,
-    exact_ref as _exact_ref,
-    exact_ref_list as _exact_ref_list,
-    exact_keys,
-    fingerprint,
-    integer,
-    mapping,
-    optional_text,
-    sequence,
-    sha256,
-    text,
-    text_list,
-    typed_ref as _typed_ref,
-    typed_ref_list as _typed_ref_list,
 )
 
 from .constants import (
@@ -90,117 +84,34 @@ def build_epistemic_review_scope(
 
     if lane not in EPISTEMIC_SCOPE_KIND_BY_LANE:
         raise RequestShapeError(f"unsupported review lane: {lane}")
-    _require_unique_member_ids(members, f"epistemic review scope {lane} members")
-    role_map = EPISTEMIC_NODE_ROLE_BY_LANE[lane]
-    if any(item["role"] not in role_map for item in members):
-        raise RequestShapeError(
-            f"epistemic review scope {lane} contains undeclared artifact roles"
+    try:
+        return _build_epistemic_review_scope(
+            scope_id=f"mas:{lane}",
+            scope_kind=EPISTEMIC_SCOPE_KIND_BY_LANE[lane],
+            members=members,
+            role_map=EPISTEMIC_NODE_ROLE_BY_LANE[lane],
+            edge_rules=EPISTEMIC_EDGE_RULES_BY_LANE[lane],
+            reviewed_roles=EPISTEMIC_REVIEWED_ARTIFACT_ROLES_BY_LANE[lane],
+            evidence_profile=EPISTEMIC_EVIDENCE_PROFILE,
+            trust_model=EPISTEMIC_TRUST_MODEL,
+            authority_boundary=EPISTEMIC_AUTHORITY_BOUNDARY,
+            version=EPISTEMIC_REVIEW_SCOPE_VERSION,
+            label=f"epistemic review scope {lane}",
         )
-    nodes = [
-        {
-            "node_ref": item["member_id"],
-            "node_kind": role_map[item["role"]][0],
-            "role": role_map[item["role"]][1],
-            "locator": {"ref": item["ref"], "sha256": item["sha256"]},
-        }
-        for item in members
-    ]
-    nodes.sort(key=lambda item: item["node_ref"])
-    members_by_role: dict[str, list[dict[str, Any]]] = {}
-    for item in members:
-        members_by_role.setdefault(item["role"], []).append(item)
-    edges: list[dict[str, str]] = []
-    for source_roles, dependent_roles, relation in EPISTEMIC_EDGE_RULES_BY_LANE[lane]:
-        sources = [
-            item
-            for role in sorted(source_roles)
-            for item in members_by_role.get(role, [])
-        ]
-        dependents = [
-            item
-            for role in sorted(dependent_roles)
-            for item in members_by_role.get(role, [])
-        ]
-        edges.extend(
-            {
-                "source_ref": source["member_id"],
-                "dependent_ref": dependent["member_id"],
-                "relation": relation,
-            }
-            for source in sources
-            for dependent in dependents
-            if source["member_id"] != dependent["member_id"]
-        )
-    edges.sort(
-        key=lambda item: (
-            item["source_ref"],
-            item["dependent_ref"],
-            item["relation"],
-        )
-    )
-    reviewed_roles = EPISTEMIC_REVIEWED_ARTIFACT_ROLES_BY_LANE[lane]
-    reviewed_node_refs = sorted(
-        item["member_id"] for item in members if item["role"] in reviewed_roles
-    )
-    if not reviewed_node_refs:
-        raise RequestShapeError(
-            f"epistemic review scope {lane} has no reviewed domain nodes"
-        )
-    return {
-        "surface_kind": "opl_epistemic_review_scope",
-        "version": EPISTEMIC_REVIEW_SCOPE_VERSION,
-        "scope_id": f"mas:{lane}",
-        "scope_kind": EPISTEMIC_SCOPE_KIND_BY_LANE[lane],
-        "evidence_profile": EPISTEMIC_EVIDENCE_PROFILE,
-        "trust_model": EPISTEMIC_TRUST_MODEL,
-        "reviewed_node_refs": reviewed_node_refs,
-        "nodes": nodes,
-        "dependency_edges": edges,
-        "authority_boundary": dict(EPISTEMIC_AUTHORITY_BOUNDARY),
-    }
+    except EpistemicReviewScopeError as error:
+        raise RequestShapeError(str(error)) from error
 
 
 def epistemic_review_scope_identity(scope: Mapping[str, Any]) -> dict[str, Any]:
     """Project scope topology without promoting locator hashes to content truth."""
 
-    return {
-        "surface_kind": scope["surface_kind"],
-        "version": scope["version"],
-        "scope_id": scope["scope_id"],
-        "scope_kind": scope["scope_kind"],
-        "evidence_profile": scope["evidence_profile"],
-        "trust_model": scope["trust_model"],
-        "reviewed_node_refs": list(scope["reviewed_node_refs"]),
-        "nodes": [
-            {
-                "node_ref": item["node_ref"],
-                "node_kind": item["node_kind"],
-                "role": item["role"],
-            }
-            for item in scope["nodes"]
-        ],
-        "dependency_edges": [dict(item) for item in scope["dependency_edges"]],
-        "authority_boundary": dict(scope["authority_boundary"]),
-    }
+    return _epistemic_review_scope_identity(scope)
 
 
 def epistemic_review_dependency_refs(scope: Mapping[str, Any]) -> list[str]:
     """Return the declared dependency closure for Framework-evaluation binding."""
 
-    sources_by_dependent: dict[str, list[str]] = {}
-    for edge in scope["dependency_edges"]:
-        sources_by_dependent.setdefault(edge["dependent_ref"], []).append(
-            edge["source_ref"]
-        )
-    closure = set(scope["reviewed_node_refs"])
-    pending = list(scope["reviewed_node_refs"])
-    while pending:
-        dependent = pending.pop()
-        for source in sources_by_dependent.get(dependent, []):
-            if source not in closure:
-                closure.add(source)
-                pending.append(source)
-    return sorted(closure)
+    return _epistemic_review_dependency_refs(scope)
 
 
 def review_scope_sha256(lane: str, members: list[dict[str, Any]]) -> str:
@@ -209,7 +120,7 @@ def review_scope_sha256(lane: str, members: list[dict[str, Any]]) -> str:
     if lane not in REVIEW_AUTHORITY_ROLE_BY_LANE:
         raise RequestShapeError(f"unsupported review lane: {lane}")
     scope = build_epistemic_review_scope(lane, members)
-    return fingerprint(epistemic_review_scope_identity(scope))
+    return _epistemic_review_scope_sha256(scope)
 
 
 def review_scope_member_projection(
@@ -217,24 +128,7 @@ def review_scope_member_projection(
 ) -> list[dict[str, Any]]:
     """Project MAS review members onto the domain currentness identity."""
 
-    projected = [
-        {
-            "member_id": item["member_id"],
-            "role": item["role"],
-            "sha256": item["sha256"],
-            "size_bytes": item["size_bytes"],
-        }
-        for item in members
-    ]
-    projected.sort(
-        key=lambda item: (
-            item["role"],
-            item["member_id"],
-            item["sha256"],
-            item["size_bytes"],
-        )
-    )
-    return projected
+    return _project_review_scope_members(members)
 
 
 def build_review_scopes(

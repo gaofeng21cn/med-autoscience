@@ -5,6 +5,11 @@ from __future__ import annotations
 from collections.abc import Mapping
 from typing import Any
 
+from opl_framework.cas_materialization import (
+    build_cas_materialization_request,
+    compute_cas_operation_digests,
+)
+
 from ._record_validation import RequestShapeError
 from .study_lifecycle_reactivation_parts.constants import (
     HOST_CAPABILITY_ID,
@@ -102,14 +107,10 @@ def evaluate_study_lifecycle_reactivation_authority(
     absent_relative_path_preconditions = _absent_relative_path_preconditions(
         normalized
     )
-    operations_sha256 = _json_fingerprint(operations)
-    materialization_scope_sha256 = _json_fingerprint(
-        {
-            "operations": operations,
-            "absent_relative_path_preconditions": (
-                absent_relative_path_preconditions
-            ),
-        }
+    operations_sha256, materialization_scope_sha256, _ = compute_cas_operation_digests(
+        operations,
+        absent_relative_path_preconditions=absent_relative_path_preconditions,
+        ensure_ascii=True,
     )
     request_id = (
         "mas-lifecycle-cas-request:"
@@ -123,20 +124,16 @@ def evaluate_study_lifecycle_reactivation_authority(
         authority_receipt_ref=receipt["receipt_ref"],
         satisfied_gate_ids=receipt["satisfied_gate_ids"],
     )
-    host_request = {
-        "surface_kind": "opl_domain_artifact_cas_materialization_request",
-        "version": "opl-domain-artifact-cas-materialization.v1",
-        "capability_id": HOST_CAPABILITY_ID,
-        "request_id": request_id,
-        "domain_id": "medautoscience",
-        "authorization_ref": authorization["authorization_ref"],
-        "operations_sha256": operations_sha256,
-        "materialization_scope_sha256": materialization_scope_sha256,
-        "absent_relative_path_preconditions": (
-            absent_relative_path_preconditions
-        ),
-        "operations": operations,
-    }
+    host_request = build_cas_materialization_request(
+        capability_id=HOST_CAPABILITY_ID,
+        domain_id="medautoscience",
+        request_id=request_id,
+        authorization_ref=authorization["authorization_ref"],
+        operations=operations,
+        operations_sha256=operations_sha256,
+        materialization_scope_sha256=materialization_scope_sha256,
+        absent_relative_path_preconditions=absent_relative_path_preconditions,
+    )
     return _finalize(
         normalized,
         status="authorized",
