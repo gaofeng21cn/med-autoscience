@@ -23,16 +23,16 @@ from ._record_validation import (
     mapping,
     text,
 )
-from .study_lifecycle_reactivation_parts.constants import (
+from .study_lifecycle.constants import (
     HOST_CAPABILITY_ID,
     _PUBLIC_STAGE_ACTION_IDS,
 )
-from .study_lifecycle_reactivation_parts.materialization import (
+from .study_lifecycle.materialization import (
     _cas_authorization,
     _create_operation,
     _replace_operation,
 )
-from .study_lifecycle_reactivation_parts.primitives import (
+from .study_lifecycle.primitives import (
     _digest_text,
     _file_ref,
     _relative_path,

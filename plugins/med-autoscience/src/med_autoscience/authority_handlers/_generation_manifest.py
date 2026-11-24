@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from ._generation_manifest_parts.constants import (
+from .generation_manifest.constants import (
     ALLOWED_ROLES_BY_SCOPE,
     ANALYSIS_GENERATION_ROLES,
     EPISTEMIC_AUTHORITY_BOUNDARY,
@@ -44,17 +44,17 @@ from ._generation_manifest_parts.constants import (
     STAGE_MINIMUM_SCOPE,
     _SCOPE_RANK,
 )
-from ._generation_manifest_parts.manifest import (
+from .generation_manifest.manifest import (
     _normalize_generation_artifact_inventory,
     build_generation_manifest_v2,
     normalize_generation_manifest,
 )
-from ._generation_manifest_parts.records import (
+from .generation_manifest.records import (
     _manifest_artifact_ref,
     _normalize_artifact,
     _require_unique_member_ids,
 )
-from ._generation_manifest_parts.currentness import (
+from .generation_manifest.currentness import (
     _normalize_affected_artifact_binding,
     _normalize_clinical_analysis_identity_admission,
     _normalize_dependency_currentness_receipt,
@@ -64,22 +64,22 @@ from ._generation_manifest_parts.currentness import (
     _normalize_selected_build_binding,
     _validate_reviewer_response_evidence_refs,
 )
-from ._generation_manifest_parts.first_draft import (
+from .generation_manifest.first_draft import (
     _normalize_first_draft_candidate_disposition,
     _normalize_first_draft_quality_application,
     _normalize_scholar_v2_semantic_policy_bindings,
     _validate_scholar_v2_semantic_policy_invocations,
     first_draft_applicable_ref_fields,
 )
-from ._generation_manifest_parts.professional_manuscript import (
+from .generation_manifest.professional_manuscript import (
     _normalize_professional_manuscript_skill_invocation,
     _normalize_professional_skill_invocations,
 )
-from ._generation_manifest_parts.professional_table import (
+from .generation_manifest.professional_table import (
     _normalize_main_table_quality_assessment,
     _normalize_table_quality_application,
 )
-from ._generation_manifest_parts.professional_skill import (
+from .generation_manifest.professional_skill import (
     _normalize_figure_template_usage,
     _normalize_figure_text_policy,
     _normalize_professional_invocation_ref,
@@ -87,7 +87,7 @@ from ._generation_manifest_parts.professional_skill import (
     _normalize_professional_skill_input_bindings,
     _normalize_professional_skill_invocation,
 )
-from ._generation_manifest_parts.review_scope import (
+from .generation_manifest.review_scope import (
     build_epistemic_review_scope,
     build_review_scopes,
     epistemic_review_dependency_refs,
@@ -98,14 +98,14 @@ from ._generation_manifest_parts.review_scope import (
     review_scope_sha256,
     source_input_digest,
 )
-from ._generation_manifest_parts.review_snapshot import (
+from .generation_manifest.review_snapshot import (
     _normalize_review_input_snapshot_authority_issuer,
     _review_input_snapshot_authority_record,
     _review_input_snapshot_authority_record_ref,
     build_review_input_snapshot_materialization_request,
     build_stage_review_input_snapshot_bundle,
 )
-from ._generation_manifest_parts.review_receipts import (
+from .generation_manifest.review_receipts import (
     _normalize_review_input_snapshot_binding,
     _normalize_review_receipt,
     _normalize_review_receipt_v1,

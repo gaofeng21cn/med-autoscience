@@ -22,7 +22,7 @@
       "handler_id": "mas.paper-mission-authority-evaluate",
       "binding": {
         "kind": "python_callable",
-        "module": "med_autoscience.authority_handlers.paper_mission_parts.orchestration",
+        "module": "med_autoscience.authority_handlers.paper_mission_flow.orchestration",
         "callable": "evaluate_paper_mission_authority"
       }
     },
