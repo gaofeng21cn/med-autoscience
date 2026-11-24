@@ -48,7 +48,7 @@
     ],
     "allowed_residue_prefixes": [
       "contracts/",
-      "docs/history/",
+      "docs/decisions.md",
       "tests/"
     ],
     "required_surface_ids": [
@@ -111,7 +111,7 @@
       {
         "surface_id": "backend_audit_and_historical_provenance",
         "classification": "provenance_or_fixture",
-        "source_refs": ["docs/history/"]
+        "source_refs": ["docs/decisions.md"]
       }
     ],
     "forbidden_name_tokens": [],

@@ -26,6 +26,6 @@ Med Auto Science 帮医生和医学研究团队把手里的专病队列、临床
 
 ## 开始使用
 
-在 OPL 软件中心安装 **Med Auto Science**。新建或打开一个课题，告诉 MAS 病种、手头数据和这次希望推进到哪里。期刊投稿由研究者决定并监督。[产品入口](docs/product/README.md) · [当前状态](docs/status.md)
+在 OPL 软件中心安装 **Med Auto Science**。新建或打开一个课题，告诉 MAS 病种、手头数据和这次希望推进到哪里。期刊投稿由研究者决定并监督。[产品边界](docs/architecture.md#产品与-workbench-边界) · [当前状态](docs/status.md)
 
 [MAS 白皮书](https://gaofeng21cn.github.io/one-person-lab/latest/whitepapers/mas-whitepaper.html) · [文档索引](docs/README.md) · [架构](docs/architecture.md)

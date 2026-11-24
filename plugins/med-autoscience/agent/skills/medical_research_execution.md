@@ -130,7 +130,7 @@ Keep a single analysis phase's data loading, calculation, and plotting in one
 script where dependencies allow, so heavy libraries are not imported repeatedly.
 For multiple independent figures in the same task and prepared environment,
 default to the qualified Scholar renderer's `--batch <request.json>` route. The
-[environment boundary](../../docs/delivery/medical-display/contracts/display_dependency_environment_os_target.md)
+[environment boundary](../../docs/delivery/medical_display_boundary.md#依赖与环境边界)
 records its ten-figure consistency and performance qualification. Resolve the
 installed provider's batch entry before use; an older provider without that entry
 keeps the single-figure path until updated. If renderer or runtime changes invalidate

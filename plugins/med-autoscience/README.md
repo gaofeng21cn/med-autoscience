@@ -26,6 +26,6 @@ Return to the same study to add analyses, revise claims, or respond to reviewers
 
 ## Get started
 
-Install **Med Auto Science** from the OPL Software Center. Create or open a study and tell MAS the disease area, the data you have, and what you want to accomplish this time. Researchers decide when to submit to a journal and supervise the submission. [Product guide](docs/product/README.md) · [Current status](docs/status.md)
+Install **Med Auto Science** from the OPL Software Center. Create or open a study and tell MAS the disease area, the data you have, and what you want to accomplish this time. Researchers decide when to submit to a journal and supervise the submission. [Product boundaries](docs/architecture.md#产品与-workbench-边界) · [Current status](docs/status.md)
 
 [MAS whitepaper](https://gaofeng21cn.github.io/one-person-lab/latest/whitepapers/mas-whitepaper.html) · [Documentation](docs/README.md) · [Architecture](docs/architecture.md)

@@ -1,69 +1,36 @@
-# Codex Plugin 接入
+# Codex Plugin Carrier 与 OPL Handoff
 
 Owner: `MedAutoScience`
-Purpose: `Support MAS integration and OPL handoff understanding.`
+Purpose: `codex_plugin_carrier_and_opl_handoff_reference`
 State: `support_reference`
-Machine boundary: Human-readable integration reference only; callable and generated-surface truth remains in `agent/`, manifests, contracts, source, tests, OPL handoff contracts, and read-model output.
+Machine boundary: 可调用面、generated-surface 与 carrier 边界的机器真相归 `agent/`、`contracts/action_catalog.json`、`contracts/domain_handler_registry.json`、`contracts/generated_surface_handoff.json`、`contracts/domain_descriptor.json`、`contracts/pack_compiler_input.json`、`contracts/carrier_projection.json`、`contracts/capability_map.json`、`plugins/med-autoscience/.codex-plugin/plugin.json`、源码、测试及 OPL read-model 输出。
 
-## 当前结论
+## Primary Skill 与 Plugin Carrier 单源边界
 
-`plugins/med-autoscience/` 是 Codex plugin carrier projection，不是 MAS Package identity、完整 installed Package、CLI、MCP server、installer 或 runtime。Codex CLI 是当前默认 executor；Package identity、capabilities、dependency identity、business work item 与 typed views 保持 executor-neutral。
+| Surface | 职责 | 不承担 |
+| --- | --- | --- |
+| `agent/primary_skill/SKILL.md` | MAS 标准 OPL primary skill canonical source（`capability_map.json` 声明 `canonical_source`） | 不直接写 study truth、paper body、owner receipt、typed blocker、publication verdict、current package 或 runtime queue |
+| `plugins/med-autoscience/skills/med-autoscience/SKILL.md` | Codex plugin install carrier 的 materialized full skill copy（满足 Codex plugin 安装对真实 `SKILL.md` 的要求） | 不定义第二套 MAS 业务能力，不持有 agent membership/status 权威，不覆盖 canonical source 或写领域真相 |
 
-当前仓库只保留：
+`plugins/med-autoscience/` 只是 Codex plugin carrier projection，不是 MAS Package identity、完整 installed Package、CLI、MCP server、installer 或 runtime。Codex CLI 是当前默认 executor，Package identity、capabilities、dependency identity、business work item 与 typed views 保持 executor-neutral。仓库只保留 `.codex-plugin/plugin.json`、受控 full-skill carrier mirror、`plugins/med-autoscience/` 资源投影与只读 `bin/mas-app-contribution` producer（根 `bin/mas-app-contribution` 仅作源码仓转发）；repo-local CLI/MCP JSON-RPC、专用 installer 与旧 wrapper 已退役，不得恢复为执行或 proof lane。
 
-- `.codex-plugin/plugin.json`：plugin metadata；
-- `skills/med-autoscience/SKILL.md`：`agent/primary_skill/SKILL.md` 的受控 full-skill carrier mirror；
-- plugin assets 与只读 `bin/mas-app-contribution` producer。
+修改 canonical 资源后运行 `python3 scripts/materialize_plugin_carrier.py`（依据 `contracts/carrier_projection.json` 从 Git 跟踪的 `agent/`、`contracts/`、`src/`、`docs/`、`profiles/`、`runtime/`、`assets/`、`bootstrap/` 与包元数据生成同路径副本并同步版本与移除已删源残留；`--check` 核对字节与权限，测试、`docs/site/` 与本地数据不进入载荷）。Framework 从版本提交读取受控文件生成唯一发布 content lock。
 
-`plugins/med-autoscience/bin/medautosci-mcp`、repo-local MCP JSON-RPC transport、`medautosci` parser、专用 installer 和 home-local wrapper 已退役。不要把这些旧路径写成 direct/proof lane，也不要要求它们出现在 `PATH`。
+## Generated Surface 与 OPL Handoff 路径
 
-## 可调用面从哪里来
+MAS 不再维护 repo-local product-entry builder、status/workbench shell、CLI parser 或 MCP transport。OPL 从 MAS pack 输入编译/托管 CLI、MCP、Skill、product-entry、status 与 workbench：
 
-OPL 从下面的 MAS pack 输入生成或托管 CLI、MCP、Skill、product-entry、status 和 workbench surface：
+- **六个公开 Stage action**：`direction_and_route_selection`、`baseline_and_evidence_setup`、`bounded_analysis_campaign`、`manuscript_authoring`、`review_and_quality_gate`、`finalize_and_publication_handoff`，统一通过 `execution_binding` 指向 `agent/stages/manifest.json#<canonical_stage_id>`。
+- **六个 host-only authority action 与七个 closed-registry callable**：qualification work-item provisioning、study initialization、study lifecycle reactivation、candidate admission、build-dependency currentness 与 paper mission 仅供 host 内部通过 `contracts/domain_handler_registry.json` 调用（无 CLI/MCP/Skill/product/OpenAI/AI SDK 用户面）；registry 另绑定 `mas.agent-lab-self-evolution-closeout`。非 V2 catalog 成员的旧命令与旧内部名仅作退役 provenance，不得通过文档或兼容层恢复为可执行入口。
+- **两条共享集成路径**：Direct MAS app skill（`User/Agent -> MAS primary skill -> OPL generated Stage action -> OPL Stage runtime -> MAS owner surface`）与 OPL stage handoff（`User/Agent -> OPL stage runtime -> StageRun/receipt/projection -> MAS owner surface`）共享相同的 Stage action、V2 closed schemas、study semantics 与 forbidden-write 边界。
 
-- `contracts/domain_descriptor.json`
-- `contracts/pack_compiler_input.json`
-- `contracts/action_catalog.json`
-- `contracts/schemas/v2/mas-stage-action.input.schema.json`
-- `contracts/schemas/v2/mas-stage-action.output.schema.json`
-- `contracts/schemas/v2/mas-paper-mission-authority.input.schema.json`
-- `contracts/schemas/v2/mas-paper-mission-authority.output.schema.json`
-- `contracts/generated_surface_handoff.json`
-- `agent/`
+使用时序：1) 从 OPL generated/hosted surface 获取 `workspace_root`、`study_id` 与当前 refs；2) 根据研究目标选择六个 Stage action 之一（`requires` 是质量上下文而非固定顺序门）；3) OPL 持有 StageRun/attempt 并在 Tool Affordance Boundary 内调度 ScholarSkills/Connect/Runway/Workspace；4) MAS 纯函数只消费 refs 并返回医学 gate input/result；5) 仅在写范围、authority 与 human gate 同时成立时写入 MAS-owned surface（新 workspace 默认 no root Git / no quest Git）。
 
-`contracts/action_catalog.json` 是当前 action identity 列表。六个公开 action 都使用 Stage binding：
+## 安装、分发与运行 Owner
 
-```text
-direction_and_route_selection
-baseline_and_evidence_setup
-bounded_analysis_campaign
-manuscript_authoring
-review_and_quality_gate
-finalize_and_publication_handoff
-  -> agent/stages/manifest.json
-```
+仓库存在 plugin carrier 不等于本机已加载或完整 MAS Package 已安装。完整 Package bytes 由 MAS owner 独立发布至自身 GHCR `latest-stable`；Python package 按标准 packaging/`uv sync` 或 OPL workspace override 安装，运行环境由 OPL 依据 `contracts/runtime_environment_requirements.json` 准备。
 
-OPL generated/hosted surface 可以把这些 Stage action 映射为 CLI/MCP/tool UI，但 MAS 不维护第二份 parser、transport 或 command template。catalog 内六个非 Stage action 是 host-only qualification work-item provisioning、study initialization、study lifecycle reactivation、candidate admission、build-dependency currentness 与 paper mission evaluation；它们通过 `contracts/domain_handler_registry.json` 的 closed bindings 指向纯 authority callables，没有 CLI/MCP/Skill/product/OpenAI/AI SDK user surface。registry 另绑定 `mas.agent-lab-self-evolution-closeout`，因此当前精确边界是六个公开 Stage actions、六个 host-only actions 与七个 closed-registry authority callables。
-
-catalog 中没有的 `study_progress`、`launch_study`、`submit_study_task`、`paper_mission`、`study_state_matrix`、`domain_handler_export`、`domain_handler_dispatch`、`scientific_capability_registry`、`display_pack_*`、`init_workspace`、`doctor report/profile/backend-upgrade`、`runtime domain-diagnostic-report` 和 `runtime overlay-status` 只属于 internal residue/provenance 语境，不是当前可执行入口。workspace lifecycle、profile binding、environment preparation、runtime supervision 和 operator shell 归 OPL owner surface。
-
-## Agent 使用顺序
-
-1. 通过 OPL generated/hosted workspace surface 获得 `workspace_root`、`study_id` 与当前 refs。
-2. Codex 根据当前研究目标选择六个 Stage action 之一；Stage manifest 中的 `requires` 是质量上下文，不是固定启动门，允许 advance/skip/repeat/reverse/route-back。
-3. OPL 创建并持有 StageRun/attempt；Stage executor 通过 Tool Affordance Boundary 选择 ScholarSkills、Connect、Runway、Workspace 等能力。
-4. MAS pure authority functions 只消费 refs、生成医学 gate input/authority result；OPL transport 或 provider completion不能替代 MAS owner receipt。
-5. 只有 Stage action 的写范围、authority boundary 和 human gate 同时成立时，才允许写 MAS-owned surface；用户不直接调用 host-only authority action。
-
-调用方不得直接修改 registry、runtime ledger、publication truth、artifact authority 或 `current_package`。新 workspace 默认 no root Git / no quest Git；Git history、Git diff/log、workspace root Git 和 quest `.git` 都不是 current runtime truth。
-
-## 安装与分发边界
-
-仓库里存在 plugin carrier，不等于本机 Codex 已加载它，也不等于完整 MAS Package 已安装。目标态由 MAS owner 将完整 Package bytes 独立发布到自身 GHCR `latest-stable`；package discovery、plugin materialization、cache refresh 和 generated interface currentness 由 OPL 安装/启动维护面负责。MAS 不提供私有 installer 或系统级 skill copy 命令；原生 Codex marketplace 仅分发 plugin carrier，具体步骤见下文。
-
-Python package 只按标准 packaging/`uv sync` 或 OPL workspace override 安装。运行环境由 OPL 根据 `contracts/runtime_environment_requirements.json` 准备；MAS import、plugin load 或 domain handler 不安装/修复 Python、R、Bioconductor 或系统依赖。
-
-另一台机器的用户生命周期入口只有：
+跨机器生命周期唯一用户入口为：
 
 ```bash
 opl packages install mas
@@ -71,41 +38,7 @@ opl packages update mas
 opl packages uninstall mas
 ```
 
-OPL 在这些 lifecycle 操作中维护 MAS 与 required dependency 的 identity presence、capability callability、完整 Package 和实际 carrier fresh readback，并物化当前 Codex generated interface/carrier。`mas-scholar-skills` 缺失、禁用或所需能力不可调用时，仅 MAS readiness fail-closed 并进入托管安装/修复；它不阻断无关 Package，也不能降级为 optional。普通 readiness 不以跨包版本范围、ABI、lock、payload、digest、原子 closure 或共享 Release Set 为门。
-
-不要恢复 `.agents/plugins/marketplace.json`、`plugins/mas`、`medautosci-mcp`、`uv tool install .` 作为 MAS plugin 安装合同，或把 package import success 当作 runtime ready。
-
-## Native Codex Carrier
-
-This repository includes a Codex Plugin marketplace for the existing
-`med-autoscience` carrier. From a clone of this repository, add the marketplace,
-inspect the available entry, install it, and verify the installed snapshot:
-
-```bash
-repo_root="$(git rev-parse --show-toplevel)"
-codex plugin marketplace add "${repo_root}"
-codex plugin marketplace list
-codex plugin list --marketplace med-autoscience --available --json
-codex plugin add med-autoscience@med-autoscience
-codex plugin list --marketplace med-autoscience --json
-```
-
-In the Codex App, open **Plugins**, select **Med Auto Science**, and install it.
-Start a new task after installation so the App or CLI loads the installed plugin
-snapshot. To remove the carrier and its marketplace configuration:
-
-```bash
-codex plugin remove med-autoscience@med-autoscience
-codex plugin marketplace remove med-autoscience
-```
-
-These commands prove only that Codex can discover, install, and load the Plugin
-carrier. The OPL Package id remains `mas`; the Codex Plugin id remains
-`med-autoscience`. A carrier install does not prove that the complete OPL
-Package, managed runtime, study workspace, or publication surface is ready, and
-it does not make the required `mas-scholar-skills` dependency optional.
-
-Use OPL-owned readbacks for the complete Package and hosted work-item state:
+`mas-scholar-skills` 缺失、禁用或所需能力不可调用时，仅 MAS readiness fail-closed 并进入托管安装/修复，不阻断无关 Package，也不以跨包版本范围/ABI/lock/payload/digest/共享 Release Set 为普通 readiness 门。从源码克隆调试原生 Codex Plugin Carrier 时，可通过 `codex plugin marketplace add "${repo_root}"` 与 `codex plugin add med-autoscience@med-autoscience` 安装验证（或通过 `codex plugin remove` / `marketplace remove` 移除），并通过以下 OPL 入口回读完整 Package 与 hosted work-item 状态：
 
 ```bash
 opl packages status --package-id mas --json
@@ -113,16 +46,4 @@ opl packages status --package-id mas --scope workspace --target-workspace <absol
 opl workspace work-item readback --workspace <absolute_path> --work-item <id> --agent mas --profile full
 ```
 
-Those readbacks report current Package, required-dependency, carrier, runtime,
-and hosted work-item evidence. They do not create a MAS owner receipt, accept a
-medical claim, authorize publication, or turn legacy transaction/receipt fields
-into current MAS authority.
-
-## 运行 owner
-
-若已有同 identity 的受管 StageAttempt，先读取其 durable 状态与 owner，
-再使用 Framework 的公开 pause/resume/stop/takeover 入口。
-不得前台并行写入同一研究 source 或创建第二 runner。
-
-Plugin/interface parity 只证明结构与 binding，真实运行和研究结论必须读取
-Framework Attempt、MAS owner receipt 与对应 artifact。
+若已有同 identity 的受管 StageAttempt，须先读取其 durable 状态与 owner 再通过 Framework 公开入口操作，禁止并行写入同一研究 source 或创建第二 runner。Generated interface parity、scaffold/schema valid 或 carrier install 均只证明结构与发现，不证明 runtime live、paper progress 或 publication ready。

@@ -70,15 +70,12 @@
   "schema": "opl_native_profile.v1",
   "taxonomy_dirs": [
     "docs/active",
-    "docs/public",
-    "docs/product",
     "docs/runtime",
     "docs/delivery",
     "docs/source",
     "docs/policies",
-    "docs/specs",
     "docs/references",
-    "docs/history"
+    "docs/whitepapers"
   ],
   "verification_commands": [
     "scripts/verify.sh",

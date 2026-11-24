@@ -12,7 +12,7 @@ Registry handlers consume exact host inputs and return domain results or authori
 CAS requests; Framework performs the generic transport and lifecycle operation.
 
 The current handler map and private attempt-local snapshot adapter are documented
-once in [Agent Runtime Interface](../../docs/runtime/contracts/agent_runtime_interface.md).
+once in [Runtime Boundary](../../docs/runtime/runtime_boundary.md#公开与内部入口).
 The executable App contribution is a separate read-only producer, not a registry handler.
 
 This directory is not a runner, scheduler, queue, session ledger, cache or artifact store.

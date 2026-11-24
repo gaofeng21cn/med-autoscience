@@ -166,40 +166,40 @@
       "surface_id": "mas_private_cli_mcp_product_wrappers",
       "replacement_ref": "opl_generated:standard_agent_interfaces",
       "provenance_refs": [
-        "docs/history/standard-agent-private-control-plane-retirement.md"
+        "docs/decisions.md"
       ]
     },
     {
       "surface_id": "mas_private_runtime_lifecycle_and_workbench",
       "replacement_ref": "opl_hosted:stage_run_controller_and_generated_workbench",
       "provenance_refs": [
-        "docs/history/standard-agent-private-control-plane-retirement.md"
+        "docs/decisions.md"
       ]
     },
     {
       "surface_id": "mas_private_provider_and_package_transport",
       "replacement_ref": "opl_hosted:connect_and_pack_receipts",
       "provenance_refs": [
-        "docs/history/standard-agent-private-control-plane-retirement.md"
+        "docs/decisions.md"
       ]
     },
     {
       "surface_id": "mas_private_quality_validators",
       "replacement_ref": "opl_hosted:independent_reviewer_and_re_reviewer_attempts",
       "provenance_refs": [
-        "docs/history/standard-agent-private-control-plane-retirement.md"
+        "docs/decisions.md"
       ]
     }
   ],
   "bridge_exit_gate": {
     "physical_delete_authorization_refs": [
-      "docs/history/standard-agent-private-control-plane-retirement.md"
+      "docs/decisions.md"
     ],
     "no_forbidden_write_refs": [
       "contracts/standard_agent_conformance_profile.json#/physical_morphology/required_parity_gates"
     ],
     "provenance_refs": [
-      "docs/history/standard-agent-private-control-plane-retirement.md"
+      "docs/decisions.md"
     ]
   },
   "forbidden_generic_owner_roles": [

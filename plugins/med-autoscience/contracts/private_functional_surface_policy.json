@@ -73,7 +73,7 @@
     "active_caller_alone_retains_surface": false,
     "compatibility_shim_allowed": false,
     "history_or_provenance_can_restore_runtime": false,
-    "retired_surface_provenance_ref": "docs/history/standard-agent-private-control-plane-retirement.md"
+    "retired_surface_provenance_ref": "docs/decisions.md"
   },
   "authority_boundary": {
     "policy_can_write_domain_truth": false,

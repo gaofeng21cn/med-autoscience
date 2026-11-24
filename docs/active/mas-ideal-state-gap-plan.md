@@ -1,6 +1,6 @@
 # MAS 开放证据差距
 
-本文只持有尚需实际验收的差距。产品目标见 [理想态](../references/positioning/mas_ideal_state.md)，实现职责见 [架构](../architecture.md)，当前状态的读取方法见 [状态](../status.md)。
+本文只持有尚需实际验收的差距。产品目标见 [理想态](../project.md#长期研究目标)，实现职责见 [架构](../architecture.md)，当前状态的读取方法见 [状态](../status.md)。
 
 ## 当前需证明的结果
 
@@ -13,6 +13,6 @@
 | 当前修订交付 | revision intake 被当前 generation 消费、完整 submission tree 的 receipt 与当前 manifest | MAS publication + OPL artifact transport |
 | 生产无越权写入 | 真实 owner/provenance、受权写集和目标侧 readback | 各运行与领域 owner |
 
-这些是验收条件，不是声称所有实例均有故障的任务表。重新立项时须补充当前目标、可复现缺口、负责人及关闭条件；没有新鲜实例证据，不复制旧 DM002/DM003 状态或历史 worklist。
+这些是验收条件，不是声称所有实例均有故障的任务表。重新立项时须补充当前目标、可复现缺口、负责人及关闭条件；没有新鲜实例证据，不复制历史状态或 worklist。
 
 闭合项退出本计划；证据留在其运行账本、产物、owner receipt 或提交中。稳定约束折回对应 policy/contract 说明，不追加完成清单或下一轮 Agent 提示词。

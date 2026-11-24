@@ -97,7 +97,7 @@ ordinary_progress_handoff_policy:
   # are never fatal; preserve their lineage and advance, repeat, reverse, skip,
   # or route back with a diagnostic or CarryForwardRiskReceipt.
   # CarryForwardRiskReceipt fields and MAS/OPL authority boundary are specified
-  # in docs/runtime/control/progress_first_quality_loop.md. This comment is
+  # in docs/runtime/progress_first_quality_loop.md. This comment is
   # intentionally non-payload to avoid changing packaged contract mirrors while
   # this docs lane cannot update src/** resources.
   artifact_tier_policy:

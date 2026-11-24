@@ -36,5 +36,18 @@ pytest 和 source hygiene 证明当前源码行为与边界；真实研究、pro
 结果必须读取对应 runtime、artifact 与 owner receipt。保留这一分离可以清楚表达
 尚缺什么证据，避免恢复已经退役的私有控制面来制造 readiness 投影。
 
-实现图见 [架构](./architecture.md)，禁止边界见 [约束](./invariants.md)，
-文档处理规则见 [生命周期](./docs_portfolio_consolidation.md)。
+## 私有控制面退役边界与 Provenance
+
+旧私有 CLI/MCP、product wrapper、scheduler、runner、queue、session store、lifecycle/SQLite、StateIndex、status/workbench、provider transport、package/environment provisioner、NextAction、PaperRecovery、stage terminalizer 与 callable validator 已从 active source 与 machine contracts 物理删除，逐文件历史由 Git history 持有。不得以兼容、诊断或测试名义恢复已退役的私有控制面实现或绕过 `contracts/functional_privatization_audit.json` 与 `contracts/private_functional_surface_policy.json` 边界：
+
+| 退役面 | 唯一替代 owner |
+| --- | --- |
+| CLI / MCP / Skill / product-entry / status / workbench | OPL generated/hosted surfaces |
+| StageRun / Attempt / session / Temporal lifecycle / retry | OPL Runway / Ledger |
+| StateIndex / storage / lifecycle / observability | OPL Framework |
+| provider invocation / credentials / retry / receipt transport | OPL Connect |
+| package、environment 与 submission resource materialization | OPL Pack / environment substrate |
+| 语义 route decision 与 transition materialization | decisive Codex Attempt / OPL StageRun controller |
+| 医学 truth、quality、artifact、publication 与 owner answer | MAS declarative policy + independent Review + closed-registry authority functions |
+
+实现图见 [架构](./architecture.md)，禁止边界见 [约束](./invariants.md)，文档维护规则见 [文档索引](./README.md#文档生命周期)。

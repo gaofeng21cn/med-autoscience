@@ -84,4 +84,4 @@ Review 不在自身会话内修正文稿；缺陷回到 authoring 或更早的 e
 变化后的 source 重新完成相应 Stage Review 与 Meta Review。
 Final Handoff 的 exact bytes、generation 和 publication acceptance 由
 [Stage Standard](../../runtime/stage_route_handoff_standard.md) 与
-[Canonical Artifact](../../runtime/contracts/canonical_artifact_contract.md) 持有。
+[Submission Revision](../study-workflow/submission_revision_operating_contract.md) 持有。

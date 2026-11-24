@@ -47,7 +47,7 @@ Machine boundary: 本目录是 machine-readable contracts。本文只做索引�
 - 普通 interface 从 V2 Stage action metadata/schema 生成；内部 authority callable 只从 closed registry 解析，不在 contracts 中复制 CLI/MCP/workbench implementation。
 - MAS contract 只声明 domain requirement、authority、handler target、refs 与 forbidden writes。
 - OPL-owned runtime、StateIndex、environment、lifecycle、observability 和 hosted surface通过 stable handoff/ref 引用，不在 MAS 复制实现合同。
-- 旧私有控制面只保留在 `docs/history/` 与 Git provenance；active contracts 不保留其路径、validator、wrapper 或 compatibility shape。
+- 旧私有控制面退役边界见 [关键决策](../docs/decisions.md#私有控制面退役边界与-provenance) 与 Git provenance；active contracts 不保留其路径、validator、wrapper 或 compatibility shape。
 - 叙述性 docs 不是机器接口；机器消费者不得解析 Markdown 文案或章节。
 
 ## Ready 边界

@@ -49,7 +49,7 @@
     },
     "source_or_science": {
       "rebuild_scope": "all_reachable_components_from_changed_semantic_inputs",
-      "review_scope_policy_ref": "docs/runtime/control/progress_first_quality_loop.md#review-scope-currentness"
+      "review_scope_policy_ref": "docs/runtime/progress_first_quality_loop.md#review-scope-currentness"
     },
     "package_metadata_only": {
       "rebuild_scope": "manifest_archive_and_projection_components_only",
@@ -106,7 +106,7 @@
     "governance_checklist_status_or_receipt_members_are_package_content": false
   },
   "review_dispatch": {
-    "currentness_policy_ref": "docs/runtime/control/progress_first_quality_loop.md#review-scope-currentness",
+    "currentness_policy_ref": "docs/runtime/progress_first_quality_loop.md#review-scope-currentness",
     "unchanged_lane_status": "reused_unchanged_scope",
     "reuse_requires_mas_owned_currentness_receipt": true,
     "reuse_requires_identical_scope_policy_and_professional_rubric": true,

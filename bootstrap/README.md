@@ -108,4 +108,4 @@ Study workspace lifecycle、locator、StateIndex、retention/restore 与 hosted 
 - [Project](../docs/project.md)
 - [Architecture](../docs/architecture.md)
 - [Contracts](../contracts/README.md)
-- [Runtime boundary](../docs/runtime/contracts/runtime_boundary.md)
+- [Runtime boundary](../docs/runtime/runtime_boundary.md)

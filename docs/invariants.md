@@ -41,11 +41,10 @@ Machine boundary: 本文是人读约束；机器事实以 contracts、source、r
 
 ## 退役与兼容
 
-本节持有 MAS 已退役 surface 的通用 no-resurrection 清单。主题文档（plugin carrier、workspace 接入、runtime 边界等）可以保留本主题实际需要的旧名称与禁止动作，但不复制这份通用清单。
+本节持有 MAS 已退役 surface 的通用 no-resurrection 边界；逐文件 provenance 由 [关键决策](./decisions.md#私有控制面退役边界与-provenance) 与 Git history 持有。
 
-- 已被 OPL 或标准工具替代的 MAS-local wrapper、facade、installer、workspace initializer、bootstrap shell、runtime shell/supervision、workbench shell 和旧 next-action producer 直接退役；不新增 compatibility shim、alias 或聚合测试。
-- repo-local CLI 与 MCP transport（`medautosci`、`medautosci-mcp`、MCP `init_workspace`、CLI `init-workspace`/`workspace init|bootstrap`、`ops/medautoscience/bin/*`、`storage-audit` wrapper）不再是执行入口，只保留旧 workspace 的 provenance/retirement 说明。
-- 旧 provider admission、current work unit、PaperRecovery、domain-action request、domain-entry dispatch、direct file-edit command，以及旧 physical route、domain-transition、NextAction、owner-route wrapper 与 queue hydration 只允许 tombstone/provenance/no-resurrection guard；不得恢复 current caller，也不形成第二 Stage graph。
+- 已被 OPL 或标准工具替代的 MAS-local wrapper、facade、installer、workspace initializer、bootstrap shell、runtime shell/supervision、workbench shell、私有 CLI/MCP transport 与旧 next-action producer 直接退役；不新增 compatibility shim、alias 或聚合测试。
+- 历史私有 admission、current work unit、PaperRecovery、domain-entry dispatch、direct file-edit、queue hydration 与旧 behavior-equivalence 文件不得恢复为 active caller 或形成第二 Stage graph。
 - MDS/DeepScientist 只作 provenance、explicit archive import、backend audit、upstream learning 与 parity oracle。
 - 已退役 executor 只保留来源记录；新增 executor 必须通过当前 Framework adapter 合同和独立验证，不恢复历史 proof lane。
 
@@ -58,8 +57,9 @@ Machine boundary: 本文是人读约束；机器事实以 contracts、source、r
 
 ## External learning
 
-- 外部框架默认是 pattern source/provenance。只有进入 MAS owner surface 或 OPL callable/generated surface并有 allowed/forbidden authority evidence，才可写成 landed。
-- Scientific Capability Registry 与 advisory workers 是 refs-only/fail-open support，不是 admission layer、第二 route table、quality owner、artifact authority 或 publication gate。
+- 外部框架默认仅提供 pattern、source provenance、candidate refs 与专业 Skill 线索。MAS 不为外部框架维护 repo-local worker、sidecar、scheduler、projection builder、runtime adapter、selector 或第二 capability catalog，也禁止用 audit allowlist 把私有通用行为伪装成 minimal authority function。
+- Landing 分类边界：`declarative_ref_landed`（仅进入 MAS Stage/knowledge/quality/capability mapping）、`professional_skill_landed`（仅由 MAS ScholarSkills 提供并由 OPL materialize）、`opl_hosted_surface_landed`（仅 Framework 提供原语）、`owner_consumed`（MAS owner 消费 exact refs 并签出 receipt/blocker/human gate/route-back）、`history_only`（不可声明 current landed）、`reject`（不进入 active surface）。
+- Scientific Capability Registry 与 advisory workers 是 refs-only/fail-open support，不是 admission layer、第二 route table、quality owner、artifact authority 或 publication gate；缺少 optional advisory 不阻断普通 Stage，命中 source/data/authority/safety/human hard gate 必须由当前 Stage/owner fail closed。
 
 ## Evidence
 
