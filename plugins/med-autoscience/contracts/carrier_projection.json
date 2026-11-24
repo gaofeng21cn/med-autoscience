@@ -1,0 +1,74 @@
+{
+  "schema_version": "opl_carrier_projection.v1",
+  "owner": "mas",
+  "carrier_root": "plugins/med-autoscience",
+  "resource_source_mode": "git_tracked",
+  "preserve_exec_mode": true,
+  "resource_roots": [
+    "agent",
+    "contracts",
+    "src",
+    "docs",
+    "profiles",
+    "runtime",
+    "assets",
+    "bootstrap"
+  ],
+  "exclude_prefixes": [
+    "docs/history/",
+    "docs/site/"
+  ],
+  "extra_files": [
+    "LICENSE",
+    "README.md",
+    "README.zh-CN.md",
+    "pyproject.toml",
+    "uv.lock",
+    "MANIFEST.in",
+    ".python-version"
+  ],
+  "preserve_carrier_files": [
+    "assets/icon.png",
+    "assets/icon.svg"
+  ],
+  "file_aliases": [
+    {
+      "from": "agent/primary_skill/SKILL.md",
+      "to": "skills/med-autoscience/SKILL.md"
+    },
+    {
+      "from": "app-contribution-adapter.json",
+      "to": "app-contribution-adapter.json"
+    }
+  ],
+  "version_sync_checks": {
+    "manifest_path": "contracts/opl_agent_package_manifest.json",
+    "pyproject_toml": "pyproject.toml",
+    "uv_lock": "uv.lock"
+  },
+  "package_manifest_projection": {
+    "mode": "strip_keys",
+    "strip_keys": [
+      "schema_ref",
+      "machine_boundary"
+    ],
+    "sync_root_opl_package": {
+      "source": "contracts/opl_agent_package_manifest.json",
+      "target": "opl-package.json"
+    }
+  },
+  "plugin_manifests": [
+    {
+      "path": ".codex-plugin/plugin.json",
+      "sync_version": true
+    },
+    {
+      "path": "plugins/med-autoscience/.codex-plugin/plugin.json",
+      "sync_version": true
+    },
+    {
+      "path": "plugins/med-autoscience/plugin.json",
+      "sync_version": true
+    }
+  ]
+}

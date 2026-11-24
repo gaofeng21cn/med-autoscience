@@ -2,9 +2,10 @@
 
 from __future__ import annotations
 
-import base64
-from collections.abc import Mapping, Sequence
+from collections.abc import Mapping
 from typing import Any
+
+from opl_framework.cas_materialization import build_cas_operation
 from .values import (
     DOMAIN_ID,
     DOMAIN_OWNER,
@@ -201,15 +202,11 @@ def _operation(
     precondition: Mapping[str, Any],
 ) -> dict[str, Any]:
     _workspace_relative_path(relative_path, "target_relative_path")
-    return {
-        "target_relative_path": relative_path,
-        "precondition": dict(precondition),
-        "replacement_bytes_base64": base64.b64encode(replacement_bytes).decode(
-            "ascii"
-        ),
-        "replacement_sha256": _bytes_sha256(replacement_bytes),
-        "replacement_byte_size": len(replacement_bytes),
-    }
+    return build_cas_operation(
+        relative_path,
+        precondition=precondition,
+        after_bytes=replacement_bytes,
+    )
 
 
 def _cas_authorization(

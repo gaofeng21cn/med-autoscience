@@ -5,6 +5,8 @@ from __future__ import annotations
 from collections.abc import Mapping, Sequence
 from copy import deepcopy
 from typing import Any
+
+from opl_framework.cas_materialization import is_opl_workspace_index_envelope
 from .._record_validation import (
     RequestShapeError,
     exact_json_object,
@@ -254,10 +256,9 @@ def _supported_workspace_index_envelope(record: Mapping[str, Any]) -> bool:
         record.get("surface_kind") == "workspace_index"
         and record.get("schema_version") == "mas.workspace_index.v1"
         and "version" not in record
-    ) or (
-        record.get("surface_kind") == "opl_workspace_index"
-        and record.get("version") == "workspace-index.v1"
-        and "schema_version" not in record
+    ) or is_opl_workspace_index_envelope(
+        record,
+        require_absent_schema_version=True,
     )
 
 

@@ -5,23 +5,19 @@ from __future__ import annotations
 from collections.abc import Mapping
 from typing import Any
 
+from opl_framework.stage_attempt_snapshot import (
+    StageAttemptSnapshotError,
+    build_reviewer_input_snapshot_materialization_request as _build_snapshot_request,
+    normalize_member_source_refs as _normalize_member_source_refs,
+    normalize_snapshot_authority_issuer as _normalize_authority_issuer,
+)
+
 from .._record_validation import (
     RequestShapeError,
     canonical_json_bytes,
     enum_text,
-    exact_ref as _exact_ref,
-    exact_ref_list as _exact_ref_list,
-    exact_keys,
     fingerprint,
-    integer,
-    mapping,
-    optional_text,
-    sequence,
-    sha256,
     text,
-    text_list,
-    typed_ref as _typed_ref,
-    typed_ref_list as _typed_ref_list,
 )
 
 from .constants import (
@@ -44,49 +40,16 @@ def _normalize_review_input_snapshot_authority_issuer(
     value: Any,
     field: str = "authority_issuer",
 ) -> dict[str, Any]:
-    payload = mapping(value, field)
-    keys = {
-        "agent_id",
-        "domain_id",
-        "package_id",
-        "stage_attempt_ref",
-        "execution_content_binding_sha256",
-        "package_use_boundary_id",
-        "root_package_content_digest",
-    }
-    exact_keys(payload, keys, field)
-    if payload.get("agent_id") != "mas":
-        raise RequestShapeError(f"{field}.agent_id must be mas")
-    if payload.get("domain_id") != "medautoscience":
-        raise RequestShapeError(f"{field}.domain_id must be medautoscience")
-    if payload.get("package_id") != "mas":
-        raise RequestShapeError(f"{field}.package_id must be mas")
-    stage_attempt_ref = text(
-        payload.get("stage_attempt_ref"),
-        f"{field}.stage_attempt_ref",
-    )
-    if not stage_attempt_ref.startswith("opl://stage_attempts/"):
-        raise RequestShapeError(
-            f"{field}.stage_attempt_ref must reference one OPL Stage Attempt"
+    try:
+        return _normalize_authority_issuer(
+            value,
+            expected_agent_id="mas",
+            expected_domain_id="medautoscience",
+            expected_package_id="mas",
+            field=field,
         )
-    return {
-        "agent_id": "mas",
-        "domain_id": "medautoscience",
-        "package_id": "mas",
-        "stage_attempt_ref": stage_attempt_ref,
-        "execution_content_binding_sha256": sha256(
-            payload.get("execution_content_binding_sha256"),
-            f"{field}.execution_content_binding_sha256",
-        ),
-        "package_use_boundary_id": text(
-            payload.get("package_use_boundary_id"),
-            f"{field}.package_use_boundary_id",
-        ),
-        "root_package_content_digest": sha256(
-            payload.get("root_package_content_digest"),
-            f"{field}.root_package_content_digest",
-        ),
-    }
+    except StageAttemptSnapshotError as error:
+        raise RequestShapeError(str(error)) from error
 
 
 def _review_input_snapshot_authority_record(
@@ -167,52 +130,7 @@ def build_review_input_snapshot_materialization_request(
             f"review_lane {lane} is not declared by generation_manifest.review_scopes"
         )
 
-    supplied_source_refs = mapping(
-        source_refs_by_member_id,
-        "source_refs_by_member_id",
-    )
-    normalized_source_refs: dict[str, str] = {}
-    for index, (member_id_value, source_ref_value) in enumerate(
-        supplied_source_refs.items()
-    ):
-        member_id = text(
-            member_id_value,
-            f"source_refs_by_member_id key[{index}]",
-        )
-        if member_id in normalized_source_refs:
-            raise RequestShapeError(
-                "source_refs_by_member_id contains duplicate normalized member_id values"
-            )
-        normalized_source_refs[member_id] = text(
-            source_ref_value,
-            f"source_refs_by_member_id.{member_id}",
-        )
-
     reviewed_members = review_scope_member_projection(scope["reviewed_members"])
-    expected_member_ids = {item["member_id"] for item in reviewed_members}
-    supplied_member_ids = set(normalized_source_refs)
-    missing_member_ids = sorted(expected_member_ids - supplied_member_ids)
-    extra_member_ids = sorted(supplied_member_ids - expected_member_ids)
-    if missing_member_ids or extra_member_ids:
-        mismatch_parts = []
-        if missing_member_ids:
-            mismatch_parts.append("missing: " + ", ".join(missing_member_ids))
-        if extra_member_ids:
-            mismatch_parts.append("extra: " + ", ".join(extra_member_ids))
-        raise RequestShapeError(
-            "source_refs_by_member_id must exactly match the MAS-owned review scope; "
-            + "; ".join(mismatch_parts)
-        )
-
-    members = [
-        {
-            "member_id": item["member_id"],
-            "source_ref": normalized_source_refs[item["member_id"]],
-            "sha256": item["sha256"],
-            "size_bytes": item["size_bytes"],
-        }
-        for item in reviewed_members
-    ]
     normalized_generation_ref = text(generation_ref, "generation_ref")
     normalized_authority_issuer = _normalize_review_input_snapshot_authority_issuer(
         authority_issuer
@@ -233,20 +151,20 @@ def build_review_input_snapshot_materialization_request(
         ],
         authority_issuer=normalized_authority_issuer,
     )
-    return {
-        "surface_kind": "opl_reviewer_input_snapshot_materialization_request",
-        "schema_version": 2,
-        "review_lane": lane,
-        "owner_authority_ref": _review_input_snapshot_authority_record_ref(
-            authority_record
-        ),
-        "producer_attempt_ref": normalized_authority_issuer["stage_attempt_ref"],
-        "execution_content_binding_sha256": normalized_authority_issuer[
-            "execution_content_binding_sha256"
-        ],
-        "workspace_root": text(workspace_root, "workspace_root"),
-        "members": members,
-    }
+    try:
+        return _build_snapshot_request(
+            review_lane=lane,
+            owner_authority_ref=_review_input_snapshot_authority_record_ref(
+                authority_record
+            ),
+            authority_issuer=normalized_authority_issuer,
+            workspace_root=workspace_root,
+            reviewed_members=reviewed_members,
+            source_refs_by_member_id=source_refs_by_member_id,
+            scope_label="MAS-owned review scope",
+        )
+    except StageAttemptSnapshotError as error:
+        raise RequestShapeError(str(error)) from error
 
 
 def build_stage_review_input_snapshot_bundle(

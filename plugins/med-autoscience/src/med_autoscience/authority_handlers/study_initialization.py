@@ -9,6 +9,12 @@ import re
 from typing import Any
 from urllib.parse import unquote, urlsplit
 
+from opl_framework.cas_materialization import (
+    build_cas_materialization_request,
+    compute_cas_operation_digests,
+    is_opl_workspace_index_envelope,
+)
+
 from ._record_validation import (
     RequestShapeError,
     exact_json_object,
@@ -137,10 +143,11 @@ def evaluate_study_initialization_authority(
         _create_operation(lifecycle_path, lifecycle),
         _create_operation(receipt_path, receipt),
     ]
-    operations_sha256 = _strict_fingerprint(operations)
-    materialization_scope_sha256 = _strict_fingerprint({
-        "operations": operations, "absent_relative_path_preconditions": [],
-    })
+    operations_sha256, materialization_scope_sha256, _ = compute_cas_operation_digests(
+        operations,
+        absent_relative_path_preconditions=[],
+        ensure_ascii=True,
+    )
     request_id = f"mas-study-initialization-cas:{materialization_scope_sha256.removeprefix('sha256:')}"
     authorization = _cas_authorization(
         request_id=request_id,
@@ -150,18 +157,16 @@ def evaluate_study_initialization_authority(
         authority_receipt_ref=receipt["receipt_ref"],
         satisfied_gate_ids=[],
     )
-    host_request = {
-        "surface_kind": "opl_domain_artifact_cas_materialization_request",
-        "version": "opl-domain-artifact-cas-materialization.v1",
-        "capability_id": HOST_CAPABILITY_ID,
-        "request_id": request_id,
-        "domain_id": "medautoscience",
-        "authorization_ref": authorization["authorization_ref"],
-        "operations_sha256": operations_sha256,
-        "materialization_scope_sha256": materialization_scope_sha256,
-        "absent_relative_path_preconditions": [],
-        "operations": operations,
-    }
+    host_request = build_cas_materialization_request(
+        capability_id=HOST_CAPABILITY_ID,
+        domain_id="medautoscience",
+        request_id=request_id,
+        authorization_ref=authorization["authorization_ref"],
+        operations=operations,
+        operations_sha256=operations_sha256,
+        materialization_scope_sha256=materialization_scope_sha256,
+        absent_relative_path_preconditions=[],
+    )
     return _result(
         "authorized", initialization_receipt=receipt,
         mas_lifecycle_cas_mutation_authorization=authorization,
@@ -228,11 +233,11 @@ def _normalize_request(request: Mapping[str, Any]) -> dict[str, Any]:
         supplied_record=inventory["record"],
         field="current_inventory",
     )
-    envelope = (record.get("surface_kind"), record.get("schema_version"), record.get("version"))
-    if envelope not in {
-        ("workspace_index", "mas.workspace_index.v1", None),
-        ("opl_workspace_index", None, "workspace-index.v1"),
-    }:
+    if (
+        (record.get("surface_kind"), record.get("schema_version"), record.get("version"))
+        != ("workspace_index", "mas.workspace_index.v1", None)
+        and not is_opl_workspace_index_envelope(record)
+    ):
         raise RequestShapeError("current_inventory has an unsupported workspace envelope")
     studies = record.get("studies")
     if not isinstance(studies, list):
