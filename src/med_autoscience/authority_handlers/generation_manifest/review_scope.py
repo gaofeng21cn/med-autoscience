@@ -7,24 +7,32 @@ from typing import Any
 
 from opl_framework.epistemic_review_scope import (
     EpistemicReviewScopeError,
+)
+from opl_framework.epistemic_review_scope import (
     build_epistemic_review_scope as _build_epistemic_review_scope,
+)
+from opl_framework.epistemic_review_scope import (
     epistemic_review_dependency_refs as _epistemic_review_dependency_refs,
+)
+from opl_framework.epistemic_review_scope import (
     epistemic_review_scope_identity as _epistemic_review_scope_identity,
+)
+from opl_framework.epistemic_review_scope import (
     epistemic_review_scope_sha256 as _epistemic_review_scope_sha256,
+)
+from opl_framework.epistemic_review_scope import (
     project_review_scope_members as _project_review_scope_members,
 )
 
-from .._record_validation import (
-    RequestShapeError,
-)
-
+from .._record_validation import RequestShapeError
 from .constants import (
+    _SCOPE_RANK,
     EPISTEMIC_AUTHORITY_BOUNDARY,
     EPISTEMIC_EDGE_RULES_BY_LANE,
     EPISTEMIC_EVIDENCE_PROFILE,
     EPISTEMIC_NODE_ROLE_BY_LANE,
-    EPISTEMIC_REVIEWED_ARTIFACT_ROLES_BY_LANE,
     EPISTEMIC_REVIEW_SCOPE_VERSION,
+    EPISTEMIC_REVIEWED_ARTIFACT_ROLES_BY_LANE,
     EPISTEMIC_SCOPE_KIND_BY_LANE,
     EPISTEMIC_TRUST_MODEL,
     REVIEW_AUTHORITY_ROLE_BY_LANE,
@@ -33,11 +41,9 @@ from .constants import (
     REVIEW_SCOPE_POLICY_VERSION,
     REVIEW_SCOPE_ROLES_BY_LANE,
     STAGE_MINIMUM_SCOPE,
-    _SCOPE_RANK,
 )
-from .records import (
-    _require_unique_member_ids,
-)
+from .records import _require_unique_member_ids
+
 
 def require_stage_scope(stage_id: str, manifest_scope: str) -> None:
     minimum = STAGE_MINIMUM_SCOPE.get(stage_id)

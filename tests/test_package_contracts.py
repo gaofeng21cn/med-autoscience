@@ -2,11 +2,12 @@ from __future__ import annotations
 
 import ast
 import importlib
-from importlib.metadata import PackageNotFoundError, version
 import json
-from pathlib import Path
 import re
+import subprocess
 import tomllib
+from importlib.metadata import PackageNotFoundError, version
+from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
 
@@ -400,8 +401,7 @@ def test_nested_native_carrier_keeps_hosted_runtime_owned_by_the_repo() -> None:
         if action["execution_binding"]["kind"] == "handler_ref"
     }
     assert handler_refs <= handlers.keys()
-    for handler_id in handlers:
-        binding = handlers[handler_id]
+    for binding in handlers.values():
         module_path = ROOT / "src" / Path(*binding["module"].split("."))
         source_path = module_path.with_suffix(".py")
         if not source_path.is_file():
@@ -663,3 +663,48 @@ def test_submission_resources_are_host_or_package_provisioned_without_fallback()
     }
     bundled = requirements["resources"]["frontiers_harvard_csl"]["package_path"]
     assert (ROOT / bundled).is_file()
+
+
+def test_plugin_carrier_tracks_only_thin_shell_without_source_mirrors() -> None:
+    proc = subprocess.run(
+        ["git", "-C", str(ROOT), "ls-files", "-z", "--", "plugins/med-autoscience"],
+        capture_output=True,
+        check=True,
+    )
+    tracked = sorted(
+        item.decode("utf-8", errors="surrogateescape")
+        for item in proc.stdout.split(b"\0")
+        if item
+    )
+    expected_thin_shell = sorted(
+        [
+            "plugins/med-autoscience/.codex-plugin/plugin.json",
+            "plugins/med-autoscience/app-contribution-adapter.json",
+            "plugins/med-autoscience/assets/icon.png",
+            "plugins/med-autoscience/assets/icon.svg",
+            "plugins/med-autoscience/bin/mas-app-contribution",
+            "plugins/med-autoscience/opl-package.json",
+            "plugins/med-autoscience/plugin.json",
+            "plugins/med-autoscience/skills/med-autoscience/SKILL.md",
+            "plugins/med-autoscience/skills/med-autoscience/agents/openai.yaml",
+        ]
+    )
+    assert tracked == expected_thin_shell
+    forbidden_mirror_prefixes = (
+        "plugins/med-autoscience/src/",
+        "plugins/med-autoscience/contracts/",
+        "plugins/med-autoscience/agent/",
+        "plugins/med-autoscience/docs/",
+        "plugins/med-autoscience/runtime/",
+        "plugins/med-autoscience/profiles/",
+        "plugins/med-autoscience/bootstrap/",
+        "plugins/med-autoscience/assets/branding/",
+    )
+    assert not any(path.startswith(forbidden_mirror_prefixes) for path in tracked)
+    assert not any(
+        path.startswith("plugins/med-autoscience/src/") and path.endswith(".py")
+        for path in tracked
+    )
+    assert (ROOT / "plugins/med-autoscience/skills/med-autoscience/SKILL.md").read_bytes() == (
+        ROOT / "agent/primary_skill/SKILL.md"
+    ).read_bytes()

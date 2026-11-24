@@ -33,6 +33,7 @@ if [[ ! -f "${OPL_FRAMEWORK_PYTHON_ROOT}/opl_framework/exact_refs.py" ]]; then
 fi
 export PYTHONPATH="${repo_root}/src:${OPL_FRAMEWORK_PYTHON_ROOT}"
 if [[ -n "${opl_bin}" && -x "${opl_bin}" ]]; then
+  OPL_BIN="${opl_bin}" python3 scripts/materialize_plugin_carrier.py
   OPL_BIN="${opl_bin}" python3 scripts/materialize_plugin_carrier.py --check
 elif [[ "${lane}" == "full" ]]; then
   echo "verify.sh: Framework CLI is unavailable for carrier projection check: ${opl_bin:-unset}" >&2

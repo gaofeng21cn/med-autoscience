@@ -5,25 +5,28 @@ from __future__ import annotations
 from collections.abc import Mapping
 from typing import Any
 
+from pydantic import StrictBool, ValidationInfo, model_validator
+
 from .._record_validation import (
+    NonEmptyStr,
+    OptionalNonEmptyStr,
     RequestShapeError,
-    canonical_json_bytes,
-    enum_text,
-    exact_ref as _exact_ref,
-    exact_ref_list as _exact_ref_list,
+    StrictRecordModel,
+    UniqueNonEmptyStrList,
+    enum_field,
+    exact_int_field,
     exact_keys,
-    fingerprint,
+    exact_ref_field,
+    exact_str_field,
     integer,
     mapping,
-    optional_text,
     sequence,
-    sha256,
-    text,
-    text_list,
-    typed_ref as _typed_ref,
-    typed_ref_list as _typed_ref_list,
+    validate_record_dict,
+    validate_record_model,
 )
-
+from .._record_validation import (
+    exact_ref as _exact_ref,
+)
 from .constants import (
     FIRST_DRAFT_QUALITY_DISPOSITION_STATUSES,
     FIRST_DRAFT_QUALITY_ROLE_BY_REF_FIELD,
@@ -32,6 +35,176 @@ from .constants import (
     LEGACY_FIRST_DRAFT_QUALITY_ROLE_BY_REF_FIELD,
     SCHOLAR_V2_SEMANTIC_POLICY_BY_SKILL,
 )
+
+
+class _FirstDraftTriggersV1Model(StrictRecordModel):
+    reports_fixed_horizon_risk: StrictBool
+    competing_risk_relevant: StrictBool
+    reports_decision_curve_analysis: StrictBool
+    includes_table_one: StrictBool
+    requires_reader_pdf: StrictBool
+
+
+class _FirstDraftTriggersV2Model(_FirstDraftTriggersV1Model):
+    uses_clinical_or_registry_data: StrictBool
+
+
+class _FirstDraftApplicationBaseModel(StrictRecordModel):
+    surface_kind: exact_str_field(
+        "mas_first_draft_quality_application_candidate",
+        message="__FIELD__ is invalid",
+    )
+    paper_type: enum_field({"prediction_model", "other"})
+    validation_design: enum_field(FIRST_DRAFT_VALIDATION_DESIGNS)
+    candidate_refs: Any
+
+    @model_validator(mode="after")
+    def _validate_design_pairing(self, info: ValidationInfo) -> _FirstDraftApplicationBaseModel:
+        root_field = (info.context or {}).get("root_field", "first_draft_quality_application")
+        if self.paper_type == "prediction_model" and self.validation_design == "not_applicable":
+            raise RequestShapeError(
+                f"{root_field}.validation_design must classify prediction-model validation"
+            )
+        if self.paper_type == "other" and self.validation_design != "not_applicable":
+            raise RequestShapeError(
+                f"{root_field}.validation_design must be not_applicable for other paper types"
+            )
+        return self
+
+
+class _FirstDraftApplicationV1Model(_FirstDraftApplicationBaseModel):
+    schema_version: exact_int_field(1)
+    triggers: _FirstDraftTriggersV1Model
+
+
+class _FirstDraftApplicationV2Model(_FirstDraftApplicationBaseModel):
+    schema_version: exact_int_field(2)
+    triggers: _FirstDraftTriggersV2Model
+    candidate_dispositions: Any
+
+    @model_validator(mode="after")
+    def _validate_prediction_model_clinical_data(
+        self, info: ValidationInfo
+    ) -> _FirstDraftApplicationV2Model:
+        root_field = (info.context or {}).get("root_field", "first_draft_quality_application")
+        if self.paper_type == "prediction_model" and not self.triggers.uses_clinical_or_registry_data:
+            raise RequestShapeError(
+                f"{root_field}.triggers.uses_clinical_or_registry_data must be true for "
+                "prediction-model manuscripts"
+            )
+        return self
+
+
+class _FirstDraftApplicationV2ScholarModel(_FirstDraftApplicationV2Model):
+    scholar_v2_semantic_policy_bindings: Any
+
+
+class _ScholarV2SemanticPolicyBindingModel(StrictRecordModel):
+    skill_id: enum_field(SCHOLAR_V2_SEMANTIC_POLICY_BY_SKILL)
+    semantic_policy_id: NonEmptyStr
+    validator_id: NonEmptyStr
+    semantic_policy_ref: exact_ref_field("scholarskills_semantic_policy")
+    candidate_ref_field: NonEmptyStr
+    candidate_surface_kind: NonEmptyStr
+    candidate_ref: exact_ref_field("mas_artifact")
+    invocation_ref: exact_ref_field("mas_professional_skill_invocation")
+    receipt_ref: exact_ref_field("scholarskills_professional_skill_receipt")
+
+    @model_validator(mode="after")
+    def _validate_policy_binding(
+        self, info: ValidationInfo
+    ) -> _ScholarV2SemanticPolicyBindingModel:
+        item_field = (info.context or {}).get("root_field", "binding")
+        policy = SCHOLAR_V2_SEMANTIC_POLICY_BY_SKILL[self.skill_id]
+        if self.semantic_policy_id != policy["policy_id"]:
+            raise RequestShapeError(
+                f"{item_field}.semantic_policy_id must bind the current Scholar policy"
+            )
+        if self.validator_id != policy["validator_id"]:
+            raise RequestShapeError(
+                f"{item_field}.validator_id must bind the current Scholar validator"
+            )
+        if self.candidate_ref_field != policy["candidate_ref_field"]:
+            raise RequestShapeError(
+                f"{item_field}.candidate_ref_field is not the current first-draft gate"
+            )
+        if self.candidate_surface_kind != policy["candidate_surface_kind"]:
+            raise RequestShapeError(
+                f"{item_field}.candidate_surface_kind is not the Scholar candidate family"
+            )
+        return self
+
+
+class _FirstDraftCandidateDispositionModel(StrictRecordModel):
+    status: enum_field(FIRST_DRAFT_QUALITY_DISPOSITION_STATUSES)
+    earliest_route_back_owner: OptionalNonEmptyStr
+    reason_codes: UniqueNonEmptyStrList
+    unresolved_items: UniqueNonEmptyStrList
+    not_applicable_reason: OptionalNonEmptyStr
+
+    @model_validator(mode="after")
+    def _validate_disposition(
+        self, info: ValidationInfo
+    ) -> _FirstDraftCandidateDispositionModel:
+        ctx = info.context or {}
+        field = ctx.get("root_field", "disposition")
+        candidate_ref = ctx.get("candidate_ref")
+        if (
+            self.earliest_route_back_owner is not None
+            and self.earliest_route_back_owner not in FIRST_DRAFT_QUALITY_ROUTE_PRIORITY
+        ):
+            raise RequestShapeError(
+                f"{field}.earliest_route_back_owner must be a canonical first-draft Stage"
+            )
+        if self.status == "satisfied":
+            if candidate_ref is None:
+                raise RequestShapeError(
+                    f"{field} satisfied status requires its exact candidate ref"
+                )
+            if (
+                self.earliest_route_back_owner is not None
+                or self.reason_codes
+                or self.unresolved_items
+                or self.not_applicable_reason
+            ):
+                raise RequestShapeError(f"{field} satisfied status is contradictory")
+        elif self.status == "route_back_required":
+            if candidate_ref is None:
+                raise RequestShapeError(
+                    f"{field} route_back_required status requires its exact candidate ref"
+                )
+            if (
+                self.earliest_route_back_owner is None
+                or not self.reason_codes
+                or not self.unresolved_items
+            ):
+                raise RequestShapeError(
+                    f"{field} route_back_required status requires owner, reason codes, "
+                    "and unresolved items"
+                )
+            if self.not_applicable_reason is not None:
+                raise RequestShapeError(
+                    f"{field} route_back_required status cannot carry a not-applicable reason"
+                )
+        else:
+            if candidate_ref is not None:
+                raise RequestShapeError(
+                    f"{field} not_applicable_with_reason status cannot carry a candidate ref"
+                )
+            if (
+                self.earliest_route_back_owner is not None
+                or self.reason_codes
+                or self.unresolved_items
+            ):
+                raise RequestShapeError(
+                    f"{field} not_applicable_with_reason status is contradictory"
+                )
+            if self.not_applicable_reason is None:
+                raise RequestShapeError(
+                    f"{field} not_applicable_with_reason status requires a reason"
+                )
+        return self
+
 
 def _normalize_first_draft_quality_application(
     value: Any,
@@ -47,72 +220,19 @@ def _normalize_first_draft_quality_application(
     require_scholar_v2_semantics = (
         require_scholar_v2_semantics and schema_version == 2
     )
-    keys = {
-        "surface_kind",
-        "schema_version",
-        "paper_type",
-        "validation_design",
-        "triggers",
-        "candidate_refs",
-    }
-    if schema_version == 2:
-        keys.add("candidate_dispositions")
-        if require_scholar_v2_semantics:
-            keys.add("scholar_v2_semantic_policy_bindings")
-    exact_keys(
-        payload,
-        keys,
-        field,
-    )
-    if payload.get("surface_kind") != "mas_first_draft_quality_application_candidate":
-        raise RequestShapeError(f"{field}.surface_kind is invalid")
-    paper_type = enum_text(
-        payload.get("paper_type"),
-        f"{field}.paper_type",
-        {"prediction_model", "other"},
-    )
-    validation_design = enum_text(
-        payload.get("validation_design"),
-        f"{field}.validation_design",
-        set(FIRST_DRAFT_VALIDATION_DESIGNS),
-    )
-    if paper_type == "prediction_model" and validation_design == "not_applicable":
-        raise RequestShapeError(
-            f"{field}.validation_design must classify prediction-model validation"
-        )
-    if paper_type == "other" and validation_design != "not_applicable":
-        raise RequestShapeError(
-            f"{field}.validation_design must be not_applicable for other paper types"
-        )
+    if schema_version == 1:
+        model_cls: type[StrictRecordModel] = _FirstDraftApplicationV1Model
+    elif require_scholar_v2_semantics:
+        model_cls = _FirstDraftApplicationV2ScholarModel
+    else:
+        model_cls = _FirstDraftApplicationV2Model
 
-    triggers_field = f"{field}.triggers"
-    trigger_payload = mapping(payload.get("triggers"), triggers_field)
-    trigger_keys = {
-        "reports_fixed_horizon_risk",
-        "competing_risk_relevant",
-        "reports_decision_curve_analysis",
-        "includes_table_one",
-        "requires_reader_pdf",
-    }
-    if schema_version == 2:
-        trigger_keys.add("uses_clinical_or_registry_data")
-    exact_keys(trigger_payload, trigger_keys, triggers_field)
-    triggers: dict[str, bool] = {}
-    for key in sorted(trigger_keys):
-        trigger = trigger_payload.get(key)
-        if not isinstance(trigger, bool):
-            raise RequestShapeError(f"{triggers_field}.{key} must be boolean")
-        triggers[key] = trigger
-    if schema_version == 2 and paper_type == "prediction_model" and not triggers[
-        "uses_clinical_or_registry_data"
-    ]:
-        raise RequestShapeError(
-            f"{triggers_field}.uses_clinical_or_registry_data must be true for "
-            "prediction-model manuscripts"
-        )
+    envelope = validate_record_model(model_cls, payload, field)
+    assert isinstance(envelope, _FirstDraftApplicationBaseModel)
+    triggers = dict(sorted(envelope.triggers.model_dump().items()))
 
     refs_field = f"{field}.candidate_refs"
-    refs_payload = mapping(payload.get("candidate_refs"), refs_field)
+    refs_payload = mapping(envelope.candidate_refs, refs_field)
     role_by_ref_field = (
         FIRST_DRAFT_QUALITY_ROLE_BY_REF_FIELD
         if require_scholar_v2_semantics
@@ -145,25 +265,27 @@ def _normalize_first_draft_quality_application(
                 f"{refs_field}.{ref_field} must bind the exact {role} artifact"
             )
         candidate_refs[ref_field] = candidate_ref
-    if validation_design != "external_validation" and candidate_refs[
-        "external_transportability_ref"
-    ] is not None:
+    if (
+        envelope.validation_design != "external_validation"
+        and candidate_refs["external_transportability_ref"] is not None
+    ):
         raise RequestShapeError(
             f"{refs_field}.external_transportability_ref is external-validation-only"
         )
 
-    normalized = {
+    normalized: dict[str, Any] = {
         "surface_kind": "mas_first_draft_quality_application_candidate",
         "schema_version": schema_version,
-        "paper_type": paper_type,
-        "validation_design": validation_design,
+        "paper_type": envelope.paper_type,
+        "validation_design": envelope.validation_design,
         "triggers": triggers,
         "candidate_refs": candidate_refs,
     }
     if schema_version == 2:
+        assert isinstance(envelope, _FirstDraftApplicationV2Model)
         dispositions_field = f"{field}.candidate_dispositions"
         dispositions_payload = mapping(
-            payload.get("candidate_dispositions"), dispositions_field
+            envelope.candidate_dispositions, dispositions_field
         )
         exact_keys(
             dispositions_payload,
@@ -195,9 +317,10 @@ def _normalize_first_draft_quality_application(
             dispositions[ref_field] = disposition
         normalized["candidate_dispositions"] = dispositions
         if require_scholar_v2_semantics:
+            assert isinstance(envelope, _FirstDraftApplicationV2ScholarModel)
             normalized["scholar_v2_semantic_policy_bindings"] = (
                 _normalize_scholar_v2_semantic_policy_bindings(
-                    payload.get("scholar_v2_semantic_policy_bindings"),
+                    envelope.scholar_v2_semantic_policy_bindings,
                     f"{field}.scholar_v2_semantic_policy_bindings",
                     required_skill_ids={
                         skill_id
@@ -207,9 +330,10 @@ def _normalize_first_draft_quality_application(
                 )
             )
             for binding in normalized["scholar_v2_semantic_policy_bindings"]:
-                if candidate_refs[binding["candidate_ref_field"]] != binding[
-                    "candidate_ref"
-                ]:
+                if (
+                    candidate_refs[binding["candidate_ref_field"]]
+                    != binding["candidate_ref"]
+                ):
                     raise RequestShapeError(
                         f"{field}.scholar_v2_semantic_policy_bindings must bind the "
                         "current first-draft candidate artifact bytes"
@@ -223,76 +347,14 @@ def _normalize_scholar_v2_semantic_policy_bindings(
     *,
     required_skill_ids: set[str],
 ) -> list[dict[str, Any]]:
-    bindings: list[dict[str, Any]] = []
-    for index, raw in enumerate(sequence(value, field)):
-        item_field = f"{field}[{index}]"
-        payload = mapping(raw, item_field)
-        exact_keys(
-            payload,
-            {
-                "skill_id",
-                "semantic_policy_id",
-                "validator_id",
-                "semantic_policy_ref",
-                "candidate_ref_field",
-                "candidate_surface_kind",
-                "candidate_ref",
-                "invocation_ref",
-                "receipt_ref",
-            },
-            item_field,
+    bindings = [
+        validate_record_dict(
+            _ScholarV2SemanticPolicyBindingModel,
+            raw,
+            f"{field}[{index}]",
         )
-        skill_id = enum_text(
-            payload.get("skill_id"),
-            f"{item_field}.skill_id",
-            set(SCHOLAR_V2_SEMANTIC_POLICY_BY_SKILL),
-        )
-        policy = SCHOLAR_V2_SEMANTIC_POLICY_BY_SKILL[skill_id]
-        if payload.get("semantic_policy_id") != policy["policy_id"]:
-            raise RequestShapeError(
-                f"{item_field}.semantic_policy_id must bind the current Scholar policy"
-            )
-        if payload.get("validator_id") != policy["validator_id"]:
-            raise RequestShapeError(
-                f"{item_field}.validator_id must bind the current Scholar validator"
-            )
-        if payload.get("candidate_ref_field") != policy["candidate_ref_field"]:
-            raise RequestShapeError(
-                f"{item_field}.candidate_ref_field is not the current first-draft gate"
-            )
-        if payload.get("candidate_surface_kind") != policy["candidate_surface_kind"]:
-            raise RequestShapeError(
-                f"{item_field}.candidate_surface_kind is not the Scholar candidate family"
-            )
-        bindings.append(
-            {
-                "skill_id": skill_id,
-                "semantic_policy_id": policy["policy_id"],
-                "validator_id": policy["validator_id"],
-                "candidate_ref_field": policy["candidate_ref_field"],
-                "candidate_surface_kind": policy["candidate_surface_kind"],
-                "semantic_policy_ref": _exact_ref(
-                    payload.get("semantic_policy_ref"),
-                    f"{item_field}.semantic_policy_ref",
-                    "scholarskills_semantic_policy",
-                ),
-                "candidate_ref": _exact_ref(
-                    payload.get("candidate_ref"),
-                    f"{item_field}.candidate_ref",
-                    "mas_artifact",
-                ),
-                "invocation_ref": _exact_ref(
-                    payload.get("invocation_ref"),
-                    f"{item_field}.invocation_ref",
-                    "mas_professional_skill_invocation",
-                ),
-                "receipt_ref": _exact_ref(
-                    payload.get("receipt_ref"),
-                    f"{item_field}.receipt_ref",
-                    "scholarskills_professional_skill_receipt",
-                ),
-            }
-        )
+        for index, raw in enumerate(sequence(value, field))
+    ]
     skills = [item["skill_id"] for item in bindings]
     if set(skills) != required_skill_ids or len(skills) != len(set(skills)):
         raise RequestShapeError(
@@ -327,11 +389,9 @@ def _validate_scholar_v2_semantic_policy_invocations(
         if (
             invocation.get("invocation_ref") != binding["invocation_ref"]
             or invocation.get("receipt_ref") != binding["receipt_ref"]
-            or invocation.get("semantic_policy_id")
-            != binding["semantic_policy_id"]
+            or invocation.get("semantic_policy_id") != binding["semantic_policy_id"]
             or invocation.get("semantic_validator_id") != binding["validator_id"]
-            or invocation.get("semantic_policy_ref")
-            != binding["semantic_policy_ref"]
+            or invocation.get("semantic_policy_ref") != binding["semantic_policy_ref"]
             or invocation.get("semantic_candidate_ref") != binding["candidate_ref"]
         ):
             raise RequestShapeError(
@@ -397,77 +457,9 @@ def _normalize_first_draft_candidate_disposition(
     *,
     candidate_ref: Mapping[str, Any] | None,
 ) -> dict[str, Any]:
-    payload = mapping(value, field)
-    exact_keys(
-        payload,
-        {
-            "status",
-            "earliest_route_back_owner",
-            "reason_codes",
-            "unresolved_items",
-            "not_applicable_reason",
-        },
+    return validate_record_dict(
+        _FirstDraftCandidateDispositionModel,
+        value,
         field,
+        context={"candidate_ref": candidate_ref},
     )
-    status = enum_text(
-        payload.get("status"),
-        f"{field}.status",
-        set(FIRST_DRAFT_QUALITY_DISPOSITION_STATUSES),
-    )
-    owner = optional_text(
-        payload.get("earliest_route_back_owner"),
-        f"{field}.earliest_route_back_owner",
-    )
-    if owner is not None and owner not in FIRST_DRAFT_QUALITY_ROUTE_PRIORITY:
-        raise RequestShapeError(
-            f"{field}.earliest_route_back_owner must be a canonical first-draft Stage"
-        )
-    reason_codes = text_list(payload.get("reason_codes"), f"{field}.reason_codes")
-    unresolved_items = text_list(
-        payload.get("unresolved_items"), f"{field}.unresolved_items"
-    )
-    not_applicable_reason = optional_text(
-        payload.get("not_applicable_reason"),
-        f"{field}.not_applicable_reason",
-    )
-
-    if status == "satisfied":
-        if candidate_ref is None:
-            raise RequestShapeError(f"{field} satisfied status requires its exact candidate ref")
-        if owner is not None or reason_codes or unresolved_items or not_applicable_reason:
-            raise RequestShapeError(f"{field} satisfied status is contradictory")
-    elif status == "route_back_required":
-        if candidate_ref is None:
-            raise RequestShapeError(
-                f"{field} route_back_required status requires its exact candidate ref"
-            )
-        if owner is None or not reason_codes or not unresolved_items:
-            raise RequestShapeError(
-                f"{field} route_back_required status requires owner, reason codes, "
-                "and unresolved items"
-            )
-        if not_applicable_reason is not None:
-            raise RequestShapeError(
-                f"{field} route_back_required status cannot carry a not-applicable reason"
-            )
-    else:
-        if candidate_ref is not None:
-            raise RequestShapeError(
-                f"{field} not_applicable_with_reason status cannot carry a candidate ref"
-            )
-        if owner is not None or reason_codes or unresolved_items:
-            raise RequestShapeError(
-                f"{field} not_applicable_with_reason status is contradictory"
-            )
-        if not_applicable_reason is None:
-            raise RequestShapeError(
-                f"{field} not_applicable_with_reason status requires a reason"
-            )
-
-    return {
-        "status": status,
-        "earliest_route_back_owner": owner,
-        "reason_codes": reason_codes,
-        "unresolved_items": unresolved_items,
-        "not_applicable_reason": not_applicable_reason,
-    }
