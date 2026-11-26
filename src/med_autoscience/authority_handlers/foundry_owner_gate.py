@@ -5,7 +5,7 @@ from __future__ import annotations
 from pathlib import Path
 from typing import Any
 
-from opl_framework.foundry_owner_gate import (
+from ._opl_helpers.foundry_owner_gate import (
     CONTEXT_SURFACE,
     CONTEXT_VERSION,
     DEFAULT_ALLOWED_ACTIONS,

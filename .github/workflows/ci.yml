@@ -20,12 +20,12 @@ jobs:
         with:
           persist-credentials: false
 
-      - name: Checkout Framework Python ABI
+      - name: Checkout OPL Python Client SDK
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           repository: gaofeng21cn/one-person-lab
           path: framework
-          sparse-checkout: python
+          sparse-checkout: sdks/python-client
           persist-credentials: false
 
       - name: Set up Python 3.12
@@ -43,5 +43,5 @@ jobs:
 
       - name: Run source verification
         env:
-          OPL_FRAMEWORK_PYTHON_ROOT: ${{ github.workspace }}/framework/python
+          OPL_PYTHON_CLIENT_DIR: ${{ github.workspace }}/framework/sdks/python-client
         run: scripts/verify.sh source

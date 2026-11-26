@@ -43,4 +43,4 @@ Machine boundary: 文档导航与维护约定不生成机器状态、医学结�
 
 - **单一职责与引用同步**：每个主题只有一个当前正文 owner，上层文档只导航或保留独特上下文，不复制阶段状态、合同字段或能力库存。代码、合同、调用者或验证入口变化时，同一次修改更新对应正文及全部入链。
 - **退役与清理**：已完成计划、过时模块、旧接口兼容叙事和重复流水直接删除并修复入链，不留重定向页、空目录索引或覆盖台账，历史交由 Git 保存；只有仍解释当前边界或机器 provenance 的内容才保留在 [关键决策](./decisions.md) 或显式元数据（如 [MDS 来源记录](./references/med-deepscientist/source_provenance.json)）。
-- **验证边界**：纯文档改动检查语义准确性、相对链接/锚点、资源存在性与 `git diff --check`；涉及合同、源码、carrier 或测试时重跑 `python3 scripts/materialize_plugin_carrier.py` 与 `scripts/verify.sh`。不使用关键词、标题数量或静态快照证明文档正确，文档通过也不能替代真实论文、安装或运行证据。
+- **验证边界**：纯文档改动检查语义准确性、相对链接/锚点、资源存在性与 `git diff --check`；涉及合同、源码、清单或测试时重跑 `scripts/verify.sh`（full lane 含 `opl pack inspect`）。不使用关键词、标题数量或静态快照证明文档正确，文档通过也不能替代真实论文、安装或运行证据。

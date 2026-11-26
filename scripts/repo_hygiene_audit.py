@@ -135,6 +135,15 @@ EXPECTED_STANDARD_AGENT_INTERNAL_SOURCE_FILES = frozenset(
         "src/med_autoscience/authority_handlers/study_lifecycle/primitives.py",
         "src/med_autoscience/authority_handlers/study_lifecycle/request.py",
         "src/med_autoscience/authority_handlers/study_lifecycle/result.py",
+        "src/med_autoscience/authority_handlers/_opl_helpers/__init__.py",
+        "src/med_autoscience/authority_handlers/_opl_helpers/agent_lab_closeout.py",
+        "src/med_autoscience/authority_handlers/_opl_helpers/artifact_inspection.py",
+        "src/med_autoscience/authority_handlers/_opl_helpers/capability_binding.py",
+        "src/med_autoscience/authority_handlers/_opl_helpers/cas_materialization.py",
+        "src/med_autoscience/authority_handlers/_opl_helpers/epistemic_review_scope.py",
+        "src/med_autoscience/authority_handlers/_opl_helpers/exact_refs.py",
+        "src/med_autoscience/authority_handlers/_opl_helpers/foundry_owner_gate.py",
+        "src/med_autoscience/authority_handlers/_opl_helpers/stage_attempt_snapshot.py",
     }
 )
 

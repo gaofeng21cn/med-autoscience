@@ -15,32 +15,25 @@ if [[ -z "${opl_bin}" ]]; then
     opl_bin="${OPL_FRAMEWORK_ROOT}/bin/opl"
   elif [[ -x "${repo_root}/../one-person-lab/bin/opl" ]]; then
     opl_bin="${repo_root}/../one-person-lab/bin/opl"
+  elif [[ -x "${repo_root}/../.worktrees/opl-v2/bin/opl" ]]; then
+    opl_bin="${repo_root}/../.worktrees/opl-v2/bin/opl"
   else
     opl_bin="$(command -v opl || true)"
   fi
 fi
-if [[ -z "${OPL_FRAMEWORK_PYTHON_ROOT:-}" ]]; then
-  if [[ -n "${OPL_FRAMEWORK_ROOT:-}" && -d "${OPL_FRAMEWORK_ROOT}/python" ]]; then
-    export OPL_FRAMEWORK_PYTHON_ROOT="${OPL_FRAMEWORK_ROOT}/python"
-  elif [[ -n "${opl_bin}" ]]; then
-    framework_root="$(cd "$(dirname "${opl_bin}")/.." && pwd)"
-    export OPL_FRAMEWORK_PYTHON_ROOT="${framework_root}/python"
-  fi
+
+sdk_src=""
+if [[ -n "${OPL_PYTHON_CLIENT_DIR:-}" && -d "${OPL_PYTHON_CLIENT_DIR}/src/opl_client" ]]; then
+  sdk_src="${OPL_PYTHON_CLIENT_DIR}/src"
+elif [[ -n "${OPL_FRAMEWORK_ROOT:-}" && -d "${OPL_FRAMEWORK_ROOT}/sdks/python-client/src/opl_client" ]]; then
+  sdk_src="${OPL_FRAMEWORK_ROOT}/sdks/python-client/src"
+elif [[ -d "${repo_root}/../one-person-lab/sdks/python-client/src/opl_client" ]]; then
+  sdk_src="${repo_root}/../one-person-lab/sdks/python-client/src"
+elif [[ -d "${repo_root}/../.worktrees/opl-v2/sdks/python-client/src/opl_client" ]]; then
+  sdk_src="${repo_root}/../.worktrees/opl-v2/sdks/python-client/src"
 fi
-if [[ ! -f "${OPL_FRAMEWORK_PYTHON_ROOT}/opl_framework/exact_refs.py" ]]; then
-  echo "verify.sh: Framework Python authority is unavailable: ${OPL_FRAMEWORK_PYTHON_ROOT}" >&2
-  exit 1
-fi
-export PYTHONPATH="${repo_root}/src:${OPL_FRAMEWORK_PYTHON_ROOT}"
-if [[ -n "${opl_bin}" && -x "${opl_bin}" ]]; then
-  OPL_BIN="${opl_bin}" python3 scripts/materialize_plugin_carrier.py
-  OPL_BIN="${opl_bin}" python3 scripts/materialize_plugin_carrier.py --check
-elif [[ "${lane}" == "full" ]]; then
-  echo "verify.sh: Framework CLI is unavailable for carrier projection check: ${opl_bin:-unset}" >&2
-  exit 1
-else
-  echo "verify.sh: skipping CLI carrier projection check in source lane (Framework CLI unavailable)" >&2
-fi
+export PYTHONPATH="${repo_root}/src${sdk_src:+:${sdk_src}}${PYTHONPATH:+:${PYTHONPATH}}"
+
 git ls-files -z | python3 scripts/repo_hygiene_audit.py
 
 if git grep -n -I -E '^(<<<<<<< |=======|>>>>>>> |\|\|\|\|\|\|\| )' -- .; then
@@ -56,18 +49,9 @@ if [[ "${lane}" != "full" || "$#" -gt 1 ]]; then
   exit 2
 fi
 
-if [[ -z "${opl_bin}" ]]; then
-  if [[ -n "${OPL_FRAMEWORK_ROOT:-}" && -x "${OPL_FRAMEWORK_ROOT}/bin/opl" ]]; then
-    opl_bin="${OPL_FRAMEWORK_ROOT}/bin/opl"
-  elif [[ -x "${repo_root}/../one-person-lab/bin/opl" ]]; then
-    opl_bin="${repo_root}/../one-person-lab/bin/opl"
-  else
-    opl_bin="$(command -v opl || true)"
-  fi
-fi
 if [[ -z "${opl_bin}" || ! -x "${opl_bin}" ]]; then
-  echo "verify.sh: Framework CLI is unavailable: ${opl_bin:-unset}" >&2
+  echo "verify.sh: OPL CLI is unavailable: ${opl_bin:-unset}" >&2
   exit 1
 fi
-"${opl_bin}" workspace source-hygiene --source-root "${repo_root}" --json
+"${opl_bin}" pack inspect "${repo_root}" --json
 make test

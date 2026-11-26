@@ -6,7 +6,7 @@ from collections.abc import Mapping
 from copy import deepcopy
 from typing import Any
 
-from opl_framework.cas_materialization import (
+from .._opl_helpers.cas_materialization import (
     build_cas_create_operation,
     build_cas_replace_operation,
 )

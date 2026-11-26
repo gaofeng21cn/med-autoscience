@@ -126,22 +126,15 @@ def test_paper_study_stage_catalog_declares_stable_localized_display_names() -> 
 
 
 def test_package_manifest_routes_interface_to_the_configured_native_carrier() -> None:
-    manifest = _read_contract("opl_agent_package_manifest")
+    manifest = json.loads((REPO_ROOT / "opl-package.json").read_text(encoding="utf-8"))
 
-    assert manifest["agent_id"] == "mas"
-    assert manifest["package_id"] == "mas"
-    assert manifest["codex_surface"]["plugin_id"] == "med-autoscience"
-    assert manifest["domain_descriptor_ref"] == "contracts/domain_descriptor.json"
-    assert manifest["codex_surface"]["configured_codex_plugin_carrier"] == {
-        "kind": "codex_plugin_manager",
-        "plugin_selector": "med-autoscience@med-autoscience",
-        "executor_route": "codex_cli",
-        "marketplace_source": "gaofeng21cn/med-autoscience",
-        "publication_ref": (
-            "ghcr.io/gaofeng21cn/one-person-lab-packages/mas:latest-stable"
-        ),
-    }
-    dependency = manifest["capability_dependencies"][0]
+    assert manifest["schema_version"] == "opl.package.v2"
+    assert manifest["identity"]["id"] == "mas"
+    assert manifest["identity"]["intent"] == "agent"
+    assert manifest["host_hints"]["codex"]["plugin_name"] == "med-autoscience"
+    assert manifest["distribution"]["oci"] == "ghcr.io/gaofeng21cn/one-person-lab-packages/mas"
+    dependency = manifest["dependencies"]["packages"][0]
+    assert dependency["id"] == "mas-scholar-skills"
     assert "status_command_templates" not in dependency
     assert "repair_command_templates" not in dependency
     assert "activation_materialization" not in dependency
@@ -364,9 +357,9 @@ def test_machine_identity_fields_match_the_framework_registry_semantics() -> Non
     assert _read_contract("domain_route_profile")["agent_id"] == "mas"
     assert _read_contract("domain_projection_profile")["agent_id"] == "mas"
     assert _read_contract("state_index_kernel_adoption")["agent_id"] == "mas"
-    assert _read_contract("opl_agent_package_manifest")["codex_surface"]["plugin_id"] == (
-        "med-autoscience"
-    )
+    assert json.loads((REPO_ROOT / "opl-package.json").read_text(encoding="utf-8"))[
+        "host_hints"
+    ]["codex"]["plugin_name"] == "med-autoscience"
     semantic_pack = (REPO_ROOT / "agent/stages/stage_native_semantic_pack.yaml").read_text(
         encoding="utf-8"
     )

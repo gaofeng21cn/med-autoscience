@@ -234,21 +234,21 @@
       "runtime_projection_refs": [
         {
           "ref_kind": "repo_path",
-          "ref": "plugins/med-autoscience/skills/med-autoscience/SKILL.md",
-          "role": "codex_plugin_carrier_compat_mirror"
+          "ref": "skills/med-autoscience/SKILL.md",
+          "role": "v2_package_skill_entrypoint"
         },
         {
           "ref_kind": "contract_ref",
-          "ref": "contracts/opl_agent_package_manifest.json",
-          "role": "plugin_carrier_boundary"
+          "ref": "opl-package.json",
+          "role": "v2_package_manifest"
         }
       ],
-      "sync_policy": "repo_local_standard_primary_skill_with_plugin_carrier_compat",
-      "externalization_reason": "Rich app skill is a required standard OPL primary skill source; plugin skill remains a Codex carrier mirror and does not own MAS truth.",
+      "sync_policy": "repo_local_standard_primary_skill_with_codex_sync",
+      "externalization_reason": "Rich app skill is a required standard OPL primary skill source; Codex sync projects skills/med-autoscience via zero-copy symlinks and does not own MAS truth.",
       "carrier_projection_contract": {
         "canonical_source": "agent/primary_skill/SKILL.md",
-        "carrier_skill_ref": "plugins/med-autoscience/skills/med-autoscience/SKILL.md",
-        "carrier_materialization": "materialized_full_skill_copy",
+        "package_skill_ref": "skills/med-autoscience/SKILL.md",
+        "carrier_materialization": "opl_pack_codex_sync_symlink",
         "codex_install_requires_real_skill_md": true,
         "plugin_skill_must_remain_real_file": true,
         "carrier_role": "transport_install_detail_not_agent_membership_or_status",
@@ -270,12 +270,12 @@
       ],
       "canonical_paths": [
         "agent/primary_skill/SKILL.md",
-        "plugins/med-autoscience/skills/med-autoscience/SKILL.md",
+        "skills/med-autoscience/SKILL.md",
         "contracts/capability_map.json"
       ],
       "target_repo_file_hints": [
         "agent/primary_skill/SKILL.md",
-        "plugins/med-autoscience/skills/med-autoscience/SKILL.md",
+        "skills/med-autoscience/SKILL.md",
         "contracts/capability_map.json"
       ],
       "authority_boundary": {

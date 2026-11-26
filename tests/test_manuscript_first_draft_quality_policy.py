@@ -635,9 +635,9 @@ def test_four_stages_consume_only_their_declared_integrity_responsibilities() ->
 
 def test_primary_skill_mirror_is_exact_and_routes_initial_draft_integrity() -> None:
     primary = _read("agent/primary_skill/SKILL.md")
-    plugin_mirror = _read("plugins/med-autoscience/skills/med-autoscience/SKILL.md")
+    package_skill = _read("skills/med-autoscience/SKILL.md")
 
-    assert primary == plugin_mirror
+    assert primary == package_skill
     assert "For every initial draft" in primary
     assert "initial_draft_evidence_integrity_requirements" in primary
     assert "at their declared earliest Stage owners" in primary

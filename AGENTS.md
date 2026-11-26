@@ -1,6 +1,6 @@
 # Med Auto Science
 
-本仓是医学研究 domain agent；`contracts/opl_agent_package_manifest.json` 定义 `agent_id/package_id=mas`，`contracts/domain_descriptor.json` 与 `contracts/capability_map.json` 定义领域身份和能力边界。
+本仓是医学研究 domain agent；根目录 `opl-package.json`（`opl.package.v2`）定义 `identity.id=mas`，`contracts/domain_descriptor.json` 与 `contracts/capability_map.json` 定义领域身份和能力边界。
 
 - MAS 持有 study、publication、medical quality、artifact 和 owner receipt authority；OPL Framework 只持有通用 runtime、attempt lifecycle、transport 与 generated interfaces。
 - `mas-scholar-skills` 是 MAS 的 required dependency；缺失或不可调用只阻断 MAS，不得 fail-open，也不得阻断无关 Package。

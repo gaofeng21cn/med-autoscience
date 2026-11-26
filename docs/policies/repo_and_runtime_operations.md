@@ -12,7 +12,7 @@ scripts/verify.sh
 scripts/verify.sh full
 ```
 
-- **Lane 分工**：默认 `source` lane 执行 Git tracked-path hygiene（`scripts/repo_hygiene_audit.py`，校验精确 `src/med_autoscience/` 文件集与 retired path 拦截，不扫描或删除 ignored `.venv`/cache）、冲突标记检查与 `make test`（经 `uv export --frozen --only-group dev` 与隔离运行全量 `pytest tests -q`，Framework Python 由 `OPL_FRAMEWORK_PYTHON_ROOT` 提供）；`full` 额外调用 OPL `workspace source-hygiene` 与 carrier `--check`。
+- **Lane 分工**：默认 `source` lane 执行 Git tracked-path hygiene（`scripts/repo_hygiene_audit.py`，校验精确 `src/med_autoscience/` 文件集与 retired path 拦截，不扫描或删除 ignored `.venv`/cache）、冲突标记检查与 `make test`（经 `uv export --frozen --only-group dev` 与隔离运行全量 `pytest tests -q`，`opl_client` SDK 由 `OPL_PYTHON_CLIENT_DIR` 提供）；`full` 额外调用 `opl pack inspect` 校验 v2 `opl-package.json`。
 - **CI Topology**：`ci.yml`（Ubuntu PR/main push/手动 `source`）、`qualification.yml`（周度/手动 macOS `full`、Framework hosted interface readback 与 wheel/sdist build）、`codeql.yml`（安全分析）、`whitepaper.yml`（手动复用 Framework 白皮书构建，`publish: false`）。定位回归可直接跑 pytest path，不新增私有 lane manifest 或 wrapper；结构 drilldown 使用 OPL `quality details`。
 - **证据边界**：CI/test green 只证明对应 repo lane，不证明 OPL runtime ready、provider running、paper progress、quality/publication ready、artifact mutation authorization 或 production ready。
 

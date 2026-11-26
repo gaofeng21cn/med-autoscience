@@ -9,7 +9,7 @@ Machine boundary: [contracts](../contracts/README.md)、源码、action catalog�
 
 MAS 是声明式医学研究 Package：`agent/` 提供 Stage、专业知识、提示词和质量规则；`contracts/` 提供公开接口、Schema、环境需求与 handler bindings；`src/med_autoscience/` 提供必须在医学 owner 内完成的 authority 判断。Framework 编译并托管通用接口，Stage executor 消费这些声明和 ScholarSkills 能力，独立 reviewer 判断质量，MAS owner 消费与研究 identity 绑定的结果。
 
-canonical agent/package id 是 `mas`，machine domain id 是 `medautoscience`，`med-autoscience` 是仓库与 plugin locator。Package、carrier 和 executor 各自独立：Codex Plugin 是分发投影，Codex CLI 是当前正式 executor，二者不定义医学身份或安装真相。仓库采用单源布局（`agent/`、`contracts/`、`src/`、`runtime/` 仅在仓根维护一份权威源码，`plugins/med-autoscience/` 在 Git 中只保留薄载体壳，完整镜像载体按需由 `scripts/materialize_plugin_carrier.py` 在构建期物化到 gitignored 路径）。
+canonical agent/package id 是 `mas`，machine domain id 是 `medautoscience`，`med-autoscience` 是仓库与 plugin locator。Package、carrier 和 executor 各自独立：Codex Plugin 是安装期的 zero-copy 分发投影（`carriers/codex-sync`），Codex CLI 是当前正式 executor，二者不定义医学身份或安装真相。仓库采用单根清单布局（根目录唯一 `opl-package.json` v2 与 `skills/med-autoscience/`，仓内不保留 `plugins/med-autoscience/` 源码镜像）。
 
 ## Owner 边界与 OPL 合同映射
 
@@ -33,7 +33,7 @@ canonical agent/package id 是 `mas`，machine domain id 是 `medautoscience`，
 
 `contracts/runtime_environment_requirements.json` 的 `runtime_profile_sources.display` 声明 ScholarSkills 中的 renderer dependency Profile。普通 `opl env prepare --domain mas --profile display` 由 Framework 解析这份领域声明；医学绘图依赖的包内位置不再写在通用 CLI 中。
 
-MAS 只消费 host 注入的 runtime/provider payload，校验 study、route、Attempt 与 authority identity；不启动私有 runtime、解析 OPL binary 或自行发起 provider transport。Framework Python helper 来自 `OPL_FRAMEWORK_PYTHON_ROOT` 指向的 Framework `python/`，本仓不 vendoring 或锁定 Framework implementation。
+MAS 只消费 host 注入的 runtime/provider payload，校验 study、route、Attempt 与 authority identity；不启动私有 runtime、解析 OPL binary 或自行发起 provider transport。OPL Python SDK (`opl_client`) 由 `OPL_PYTHON_CLIENT_DIR` 指向的 Framework `sdks/python-client` 提供，本仓不 vendoring 或锁定 Framework implementation。
 
 ## 产品与 Workbench 边界
 
@@ -43,7 +43,7 @@ MAS 不维护 repo-local product shell、cockpit、Portal、HTML/Markdown render
 - **Host-only 内部动作**：qualification work-item provisioning、study initialization、study lifecycle reactivation、candidate admission、build-dependency currentness 与 paper mission 六个 catalog action 及 `self_evolution_closeout` 只通过 closed handler registry 托管，不构成用户命令。
 - **Workbench 与 Inspection Package 边界**：OPL hosted workbench 可显示 stage/mission refs、owner receipt、typed blocker、human gate、evidence/artifact refs、runtime diagnostics 与 currentness，但不得写 study truth、publication eval、controller decision、canonical paper、artifact body、memory body 或 submission package；不得从 queue、attempt、provider 或 UI 文案推断 current owner 或 readiness。Inspection package 仅作人类审阅材料，不能授权 publication/submission 或清除 quality gate。
 
-`plugins/med-autoscience/bin/mas-app-contribution` 产生只读 App contribution（不构成第二套 workbench 或状态 owner），具体输入与渲染边界见 [Runtime Detail Contribution](./references/integration/mas-runtime-detail-contribution.md)。
+`bin/mas-app-contribution` 产生只读 App contribution（不构成第二套 workbench 或状态 owner），具体输入与渲染边界见 [Runtime Detail Contribution](./references/integration/mas-runtime-detail-contribution.md)。
 
 ## 知识来源与执行边界
 

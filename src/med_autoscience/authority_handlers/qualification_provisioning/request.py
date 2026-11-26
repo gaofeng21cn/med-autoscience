@@ -6,7 +6,7 @@ from collections.abc import Mapping, Sequence
 from copy import deepcopy
 from typing import Any
 
-from opl_framework.cas_materialization import is_opl_workspace_index_envelope
+from .._opl_helpers.cas_materialization import is_opl_workspace_index_envelope
 from .._record_validation import (
     RequestShapeError,
     exact_json_object,

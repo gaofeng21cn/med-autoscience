@@ -47,24 +47,15 @@ jobs:
             uv.lock
             pyproject.toml
 
-      - name: Link current OPL Framework package lifecycle
-        run: |
-          "$OPL_BIN" packages link-framework --agent-root "$GITHUB_WORKSPACE" --json
-
       - name: Run MAS repository verification
+        env:
+          OPL_PYTHON_CLIENT_DIR: ${{ github.workspace }}/../one-person-lab/sdks/python-client
         run: scripts/verify.sh full
 
-      - name: Compile standard Agent pack and hosted interfaces
+      - name: Validate v2 package manifest and deterministic build
         run: |
-          family_root="$(mktemp -d "${RUNNER_TEMP}/mas-family.XXXXXX")"
-          trap 'rm -rf "$family_root"' EXIT
-          ln -s "$GITHUB_WORKSPACE" "$family_root/med-autoscience"
-          OPL_FAMILY_WORKSPACE_ROOT="$family_root" "$OPL_BIN" agents pack-compiler --family-defaults --json
-          "$OPL_BIN" agents interfaces --repo-dir "$GITHUB_WORKSPACE" --json
-          "$OPL_BIN" agents conformance --agent "mas=$GITHUB_WORKSPACE" --json
-          "$OPL_BIN" agents default-callers --agent "mas=$GITHUB_WORKSPACE" --json
-          "$OPL_BIN" agents source-closure --agent "mas=$GITHUB_WORKSPACE" --json
-          "$OPL_BIN" agents residue-decisions --agent "mas=$GITHUB_WORKSPACE" --json
+          "$OPL_BIN" pack inspect "$GITHUB_WORKSPACE" --json
+          "$OPL_BIN" pack build "$GITHUB_WORKSPACE" --no-write-lock --json
 
       - name: Build sdist and wheel
         run: uv build --out-dir "${RUNNER_TEMP}/mas-dist"

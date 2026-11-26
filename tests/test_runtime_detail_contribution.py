@@ -8,7 +8,7 @@ from pathlib import Path
 
 
 ROOT = Path(__file__).resolve().parents[1]
-PRODUCER = ROOT / "plugins/med-autoscience/bin/mas-app-contribution"
+PRODUCER = ROOT / "bin/mas-app-contribution"
 REQUEST_PREFIX = {
     "schema_version": "opl-package-app-contribution-request.v1",
     "operation": "read",
@@ -162,33 +162,22 @@ def test_runtime_detail_rejects_unresolved_or_mismatched_identity(tmp_path: Path
 
 
 def test_owner_and_carrier_manifest_declare_one_runtime_detail_surface() -> None:
-    owner = json.loads(
-        (ROOT / "contracts/opl_agent_package_manifest.json").read_text(encoding="utf-8")
-    )
-    carrier = json.loads(
-        (ROOT / "plugins/med-autoscience/opl-package.json").read_text(encoding="utf-8")
-    )
-    assert owner["app_contributions"] == carrier["app_contributions"]
-    assert owner["codex_surface"]["app_contribution_abi"] == carrier["codex_surface"]["app_contribution_abi"]
-    assert owner["codex_surface"]["app_contribution_adapter"] == carrier["codex_surface"]["app_contribution_adapter"]
-    adapter = json.loads((ROOT / "app-contribution-adapter.json").read_text(encoding="utf-8"))
-    carrier_adapter = json.loads(
-        (ROOT / "plugins/med-autoscience/app-contribution-adapter.json").read_text(encoding="utf-8")
-    )
-    assert adapter == carrier_adapter
-    assert set(adapter["reads"]) == {"mas.runtime-detail.v1#current"}
-    assert adapter["reads"]["mas.runtime-detail.v1#current"]["stdin"] == "request_json"
-    assert adapter["reads"]["mas.runtime-detail.v1#current"]["passthrough"] is True
-    assert owner["app_contributions"]["ui"][0] == {
-        "contribution_id": "mas.runtime-detail",
-        "slot": "runtime.detail",
-        "contribution_kind": "view",
-        "trust_tier": "declarative",
-        "scope": "work_item",
-        "sort_order": 100,
-        "view_id": "mas.runtime-detail",
+    manifest = json.loads((ROOT / "opl-package.json").read_text(encoding="utf-8"))
+    assert manifest["schema_version"] == "opl.package.v2"
+    assert manifest["provides"]["contribution_handler"] == {
+        "kind": "cli",
+        "argv": ["./bin/mas-app-contribution"],
+        "transport": "stdin_json_stdout_json",
     }
-    assert owner["app_contributions"]["views"][0]["view_type"] == "activity_log"
+    views = manifest["ui"]["declarative"]["views"]
+    assert len(views) == 1
+    assert views[0]["id"] == "mas.runtime-detail"
+    assert views[0]["slot"] == "runtime.detail"
+    assert views[0]["view_type"] == "activity_log"
+    assert views[0]["data_ref"] == "mas.runtime-detail.v1#current"
+    assert (ROOT / "bin/mas-app-contribution").is_file()
+    assert not (ROOT / "plugins").exists()
+    assert not (ROOT / "app-contribution-adapter.json").exists()
 
 
 def test_contribution_preserves_full_owner_trajectory(tmp_path: Path) -> None:
@@ -318,3 +307,55 @@ def test_review_source_cannot_escape_registered_workspace(tmp_path: Path) -> Non
     result = _run(root, _identity())
     assert result.returncode == 2
     assert "escapes" in json.loads(result.stdout)["error"]["message"]
+
+
+def test_producer_prefers_opl_client_helpers_from_env(tmp_path: Path) -> None:
+    root = _workspace(tmp_path)
+    fake_sdk = tmp_path / "fake-sdk"
+    pkg = fake_sdk / "src" / "opl_client"
+    pkg.mkdir(parents=True)
+    marker = tmp_path / "used_opl_client.txt"
+    (pkg / "__init__.py").write_text("", encoding="utf-8")
+    (pkg / "helpers.py").write_text(
+        f"""import hashlib, json, sys
+from pathlib import Path
+Path({str(marker)!r}).write_text("loaded", encoding="utf-8")
+def read_stdin_json():
+    raw = sys.stdin.read().strip()
+    return json.loads(raw) if raw else {{}}
+def sha256_bytes(data: bytes) -> str:
+    return "sha256:" + hashlib.sha256(data).hexdigest()
+""",
+        encoding="utf-8",
+    )
+    payload = {**REQUEST_PREFIX, "input": {"work_item_identity": _identity()}}
+    clean_env = {
+        k: v
+        for k, v in os.environ.items()
+        if k not in {"PYTHONPATH", "OPL_PYTHON_CLIENT_DIR", "OPL_FRAMEWORK_ROOT", "OPL_BIN"}
+    }
+    clean_env["OPL_PROFILE_WORKSPACE"] = str(root)
+    clean_env["OPL_PYTHON_CLIENT_DIR"] = str(fake_sdk)
+    sdk_run = subprocess.run(
+        [str(PRODUCER)],
+        input=json.dumps(payload),
+        text=True,
+        capture_output=True,
+        env=clean_env,
+        check=False,
+    )
+    assert sdk_run.returncode == 0, sdk_run.stderr
+    assert marker.read_text(encoding="utf-8") == "loaded"
+    assert json.loads(sdk_run.stdout)["ok"] is True
+
+    clean_env["OPL_PYTHON_CLIENT_DIR"] = str(tmp_path / "missing-sdk")
+    normal_fallback = subprocess.run(
+        [str(PRODUCER)],
+        input=json.dumps(payload),
+        text=True,
+        capture_output=True,
+        env=clean_env,
+        check=False,
+    )
+    assert normal_fallback.returncode == 0, normal_fallback.stderr
+    assert json.loads(normal_fallback.stdout)["ok"] is True

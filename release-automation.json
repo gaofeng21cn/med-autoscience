@@ -1,11 +1,6 @@
 {
   "strategy": "daily_patch",
-  "prepare": [
-    [
-      "python3",
-      "scripts/materialize_plugin_carrier.py"
-    ]
-  ],
+  "prepare": [],
   "verify": [],
   "version_files": [
     {

@@ -118,7 +118,7 @@ def test_repo_hygiene_delegates_shared_byproducts_to_opl() -> None:
     )
     hygiene_globals = runpy.run_path(str(ROOT / "scripts" / "repo_hygiene_audit.py"))
 
-    assert 'workspace source-hygiene --source-root "${repo_root}" --json' in verify_script
+    assert 'pack inspect "${repo_root}" --json' in verify_script
     assert "git ls-files -z | python3 scripts/repo_hygiene_audit.py" in verify_script
     assert "uv run --frozen python scripts/repo_hygiene_audit.py" not in verify_script
     assert "import subprocess" not in hygiene_script

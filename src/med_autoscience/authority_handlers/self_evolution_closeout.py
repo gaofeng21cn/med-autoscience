@@ -6,7 +6,7 @@ from collections.abc import Mapping
 from pathlib import Path
 from typing import Any
 
-from opl_framework.agent_lab_closeout import (
+from ._opl_helpers.agent_lab_closeout import (
     TARGET_DOMAIN_OWNER_CLOSEOUT_SURFACE as SURFACE_KIND,
     evaluate_agent_lab_self_evolution_closeout as _evaluate_closeout,
     run_agent_lab_closeout_cli,

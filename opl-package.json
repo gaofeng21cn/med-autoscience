@@ -1,158 +1,159 @@
 {
-  "surface_kind": "opl_agent_package_manifest.v1",
-  "kind": "agent",
-  "agent_id": "mas",
-  "package_id": "mas",
-  "display_name": "Med Auto Science",
-  "presentation": {
-    "display_name_i18n": {
+  "schema_version": "opl.package.v2",
+  "identity": {
+    "id": "mas",
+    "version": "0.3.3",
+    "intent": "agent",
+    "name": {
       "zh-CN": "Med Auto Science",
       "en-US": "Med Auto Science"
     },
-    "description_i18n": {
+    "summary": {
       "zh-CN": "医学研究选题、文献分析、数据分析、论文写作、审稿、返修与投稿。",
       "en-US": "Medical research planning, literature review, data analysis, manuscript writing, peer review, revision, and submission."
     },
-    "session_routing_summary_i18n": {
+    "description": {
+      "zh-CN": "Installs the complete MedAutoScience domain pack; OPL hosts generated interfaces while MAS keeps medical research policy and authority.",
+      "en-US": "Installs the complete MedAutoScience domain pack; OPL hosts generated interfaces while MAS keeps medical research policy and authority."
+    },
+    "publisher": "one-person-lab",
+    "license": "Apache-2.0",
+    "icon": "assets/branding/medautoscience-logo.png",
+    "repository": "https://github.com/gaofeng21cn/med-autoscience",
+    "homepage": "https://github.com/gaofeng21cn/med-autoscience",
+    "keywords": [
+      "medical-research",
+      "deepscientist",
+      "codex",
+      "domain-agent"
+    ],
+    "routing_summary": {
       "zh-CN": "科研、论文、数据分析、审稿、返修和投稿",
       "en-US": "research, papers, data analysis, peer review, revision, and submission"
     },
+    "default_prompts": [
+      "Select the MAS Stage action for this research question.",
+      "Review the available evidence and return the next owner route.",
+      "Prepare a publication handoff with explicit quality debt and blockers."
+    ],
     "home_shortcuts": [
       {
-        "shortcut_id": "research",
-        "label_i18n": {
+        "id": "research",
+        "label": {
           "zh-CN": "开展科研工作",
           "en-US": "Research"
         },
         "default_visible": true,
-        "user_configurable": true,
-        "route": {
-          "route_kind": "agent_package_shortcut",
-          "executor": "codex_cli",
-          "codex_visible_entry": "med-autoscience"
+        "target": {
+          "kind": "agent",
+          "ref": "mas"
         }
-      }
-    ],
-    "icon_ref": "assets/branding/medautoscience-logo.png"
-  },
-  "publisher": "one-person-lab",
-  "version": "0.3.3",
-  "source": "first_party_repo_local",
-  "carrier_source_role": "codex_plugin_default_carrier_not_package_truth",
-  "schema_ref": "one-person-lab/contracts/opl-framework/agent-package-manifest.schema.json",
-  "domain_descriptor_ref": "contracts/domain_descriptor.json",
-  "task_provider_ref": "contracts/domain_descriptor.json#/task_provider",
-  "action_catalog_ref": "contracts/action_catalog.json",
-  "view_refs": [
-    "contracts/domain_descriptor.json#/task_provider/views/0"
-  ],
-  "requires": [
-    {
-      "package_id": "mas-scholar-skills",
-      "presence": "required"
-    }
-  ],
-  "machine_boundary": "This repo-local sidecar declares the MAS Package identity, Agent producer surfaces, and required Package presence. The configured carrier owns physical lifecycle; Framework aggregates fresh presence, callability, status, and actions; MAS retains business task, typed-view, artifact, and domain authority.",
-  "codex_surface": {
-    "plugin_id": "med-autoscience",
-    "standalone_distribution": "repo_carrier_source",
-    "configured_codex_plugin_carrier": {
-      "kind": "codex_plugin_manager",
-      "plugin_selector": "med-autoscience@med-autoscience",
-      "executor_route": "codex_cli",
-      "marketplace_source": "gaofeng21cn/med-autoscience",
-      "publication_ref": "ghcr.io/gaofeng21cn/one-person-lab-packages/mas:latest-stable"
-    },
-    "required_skill_ids": [
-      "med-autoscience"
-    ],
-    "required_capability_package_ids": [
-      "mas-scholar-skills"
-    ],
-    "user_install_action_count": 1,
-    "app_contribution_abi": {
-      "schema_version": "opl-package-app-contribution-cli.v1",
-      "transport": "stdin_json_stdout_json",
-      "argv": [
-        "opl",
-        "app",
-        "contribution",
-        "adapter",
-        "--stdin"
-      ],
-      "request_schema": "opl-package-app-contribution-request.v1",
-      "response_schema": "opl-package-app-contribution-response.v1"
-    },
-    "app_contribution_adapter": {
-      "manifest": "app-contribution-adapter.json"
-    }
-  },
-  "app_contributions": {
-    "schema_version": "opl-app-contributions.v1",
-    "views": [
-      {
-        "view_id": "mas.runtime-detail",
-        "view_type": "activity_log",
-        "title_i18n": {
-          "zh-CN": "论文任务详情",
-          "en-US": "Paper mission detail"
-        },
-        "data_ref": "mas.runtime-detail.v1#current",
-        "empty_state_i18n": {
-          "zh-CN": "当前论文任务没有可投影的 MAS 状态",
-          "en-US": "No MAS state is available for the selected paper mission"
-        }
-      }
-    ],
-    "ui": [
-      {
-        "contribution_id": "mas.runtime-detail",
-        "slot": "runtime.detail",
-        "contribution_kind": "view",
-        "trust_tier": "declarative",
-        "scope": "work_item",
-        "sort_order": 100,
-        "view_id": "mas.runtime-detail"
       }
     ]
   },
-  "capability_dependencies": [
-    {
-      "module_id": "scholarskills",
-      "package_id": "mas-scholar-skills",
-      "required": true,
-      "capability_abi": "mas-scholar-skills.v1",
-      "required_export_ids": [
-        "mas-scholar-skills",
-        "medical-manuscript-writing",
-        "medical-manuscript-review",
-        "medical-figure-design",
-        "medical-figure-style",
-        "medical-figure-composer",
-        "medical-research-lit",
-        "medical-statistical-review",
-        "medical-table-design",
-        "medical-submission-prep",
-        "medical-data-governance"
-      ],
-      "required_module_ids": [
-        "mas-scholar-skills.display",
-        "mas-scholar-skills.tables",
-        "mas-scholar-skills.stats",
-        "mas-scholar-skills.lit",
-        "mas-scholar-skills.write",
-        "mas-scholar-skills.review",
-        "mas-scholar-skills.submit",
-        "mas-scholar-skills.data",
-        "mas-scholar-skills.reference-provider-adapters",
-        "mas-scholar-skills.scientific-search-adapters"
-      ],
-      "authority_boundary": {
-        "can_write_domain_truth": false,
-        "can_sign_owner_receipt": false,
-        "can_create_typed_blocker": false,
-        "can_write_runtime_queue": false
+  "dependencies": {
+    "opl_base": "^2.0.0",
+    "packages": [
+      {
+        "id": "mas-scholar-skills",
+        "optional": false,
+        "required_capabilities": [
+          "mas-scholar-skills",
+          "medical-manuscript-writing",
+          "medical-manuscript-review",
+          "medical-figure-design",
+          "medical-figure-style",
+          "medical-figure-composer",
+          "medical-research-lit",
+          "medical-statistical-review",
+          "medical-table-design",
+          "medical-submission-prep",
+          "medical-data-governance"
+        ]
       }
+    ],
+    "runtimes": [
+      {
+        "name": "python",
+        "version": ">=3.12"
+      }
+    ]
+  },
+  "permissions": {
+    "workspace": {
+      "access": "read_write",
+      "reason": {
+        "zh-CN": "读取研究数据并写入分析脚本、图表与论文手稿",
+        "en-US": "Read study data and write scripts, figures, and manuscripts"
+      }
+    },
+    "knowledge": [
+      {
+        "scope": "long_term_topic",
+        "access": "read",
+        "required": false,
+        "reason": {
+          "zh-CN": "按需引用个人文献笔记与科研规范",
+          "en-US": "Reference personal literature notes and lab standards on demand"
+        }
+      }
+    ],
+    "network": "outbound_api",
+    "execution_mode": "local_subprocess"
+  },
+  "provides": {
+    "agent": {
+      "stages_ref": "agent/stages/manifest.json"
+    },
+    "skills": [
+      {
+        "id": "med-autoscience",
+        "path": "./skills/med-autoscience",
+        "exposure": "default"
+      }
+    ],
+    "contribution_handler": {
+      "kind": "cli",
+      "argv": [
+        "./bin/mas-app-contribution"
+      ],
+      "transport": "stdin_json_stdout_json"
     }
-  ]
+  },
+  "ui": {
+    "declarative": {
+      "views": [
+        {
+          "id": "mas.runtime-detail",
+          "view_type": "activity_log",
+          "slot": "runtime.detail",
+          "title": {
+            "zh-CN": "论文任务详情",
+            "en-US": "Paper mission detail"
+          },
+          "data_ref": "mas.runtime-detail.v1#current",
+          "empty_state": {
+            "zh-CN": "当前论文任务没有可投影的 MAS 状态",
+            "en-US": "No MAS state is available for the selected paper mission"
+          }
+        }
+      ]
+    }
+  },
+  "distribution": {
+    "oci": "ghcr.io/gaofeng21cn/one-person-lab-packages/mas",
+    "visibility": "public"
+  },
+  "host_hints": {
+    "codex": {
+      "sync_enabled": true,
+      "plugin_name": "med-autoscience",
+      "category": "Research",
+      "brand_color": "#1F7A8C",
+      "capabilities": [
+        "Interactive",
+        "Write"
+      ]
+    }
+  }
 }
