@@ -3,18 +3,16 @@
 Owner: `MedAutoScience`
 Purpose: `codex_plugin_carrier_and_opl_handoff_reference`
 State: `support_reference`
-Machine boundary: 可调用面、generated-surface 与 carrier 边界的机器真相归 `agent/`、`contracts/action_catalog.json`、`contracts/domain_handler_registry.json`、`contracts/generated_surface_handoff.json`、`contracts/domain_descriptor.json`、`contracts/pack_compiler_input.json`、`contracts/carrier_projection.json`、`contracts/capability_map.json`、`plugins/med-autoscience/.codex-plugin/plugin.json`、源码、测试及 OPL read-model 输出。
+Machine boundary: 可调用面、generated-surface 与 carrier 边界的机器真相归 `opl-package.json`（`opl.package.v2`）、`agent/`、`skills/med-autoscience/`、`contracts/action_catalog.json`、`contracts/domain_handler_registry.json`、`contracts/generated_surface_handoff.json`、`contracts/domain_descriptor.json`、`contracts/pack_compiler_input.json`、`contracts/capability_map.json`、源码、测试及 OPL read-model 输出。
 
-## Primary Skill 与 Plugin Carrier 单源边界
+## Primary Skill 与 Codex Sync 边界
 
 | Surface | 职责 | 不承担 |
 | --- | --- | --- |
 | `agent/primary_skill/SKILL.md` | MAS 标准 OPL primary skill canonical source（`capability_map.json` 声明 `canonical_source`） | 不直接写 study truth、paper body、owner receipt、typed blocker、publication verdict、current package 或 runtime queue |
-| `plugins/med-autoscience/skills/med-autoscience/SKILL.md` | Codex plugin install carrier 的 materialized full skill copy（满足 Codex plugin 安装对真实 `SKILL.md` 的要求） | 不定义第二套 MAS 业务能力，不持有 agent membership/status 权威，不覆盖 canonical source 或写领域真相 |
+| `skills/med-autoscience/SKILL.md` | v2 包内 `provides.skills` 指向的 skill 入口（由 `opl pack link` / `carriers/codex-sync` 零拷贝 symlink 投影至 Codex marketplace） | 不定义第二套 MAS 业务能力，不持有 agent membership/status 权威，不覆盖 canonical source 或写领域真相 |
 
-`plugins/med-autoscience/` 只是 Codex plugin carrier projection，不是 MAS Package identity、完整 installed Package、CLI、MCP server、installer 或 runtime。Codex CLI 是当前默认 executor，Package identity、capabilities、dependency identity、business work item 与 typed views 保持 executor-neutral。仓库采用**单源布局 + 构建期载体物化**：Git 仅在仓根跟踪唯一的 `agent/`、`contracts/`、`src/`、`docs/`、`profiles/`、`runtime/`、`assets/`、`bootstrap/`，而在 `plugins/med-autoscience/` 下只跟踪薄载体壳（`plugin.json`、`.codex-plugin/plugin.json`、`opl-package.json`、`app-contribution-adapter.json`、`bin/mas-app-contribution`、`assets/icon.{png,svg}` 与 `skills/med-autoscience/{SKILL.md,agents/openai.yaml}`；根 `bin/mas-app-contribution` 仅作源码仓转发），不向 Git 提交任何镜像源码/合同/文档副本；repo-local CLI/MCP JSON-RPC、专用 installer 与旧 wrapper 已退役，不得恢复为执行或 proof lane。
-
-需要构建完整的自包含本地载体载荷时，运行 `python3 scripts/materialize_plugin_carrier.py`（调用 `opl pack project-carrier` 依据 `contracts/carrier_projection.json` 将仓根受控资源按需物化至 `plugins/med-autoscience/` 下被 `.gitignore` 忽略的构建期镜像路径，同时保持受控载体元数据与 `SKILL.md` 版本/字节同步；测试、`docs/site/` 与本地数据不进入载荷）。验证阶段先按需物化再运行 `python3 scripts/materialize_plugin_carrier.py --check` 校验字节与权限，同时由 `tests/test_package_contracts.py` 守护 Git 中零镜像副本与薄载体单源一致。Framework 从版本提交读取受控文件生成唯一发布 content lock。
+Codex CLI 是当前默认 executor，Package identity、capabilities、dependency identity、business work item 与 typed views 保持 executor-neutral。仓库采用**单根清单布局**：仅在根目录维护唯一 `opl-package.json`（`opl.package.v2`），不再在仓内维护 `plugins/med-autoscience/` 源码镜像、`.codex-plugin/plugin.json` 或 `contracts/carrier_projection.json`；安装或 `opl pack link` 时由 `packages/pack` 的 `carriers/codex-sync` 自动生成 Codex marketplace 投影并通过 `plugin/list` 回读验证。发布时通过 `opl pack build` 生成确定性 `opl-release.lock.json`。
 
 ## Generated Surface 与 OPL Handoff 路径
 

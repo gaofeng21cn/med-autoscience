@@ -5,7 +5,7 @@ from __future__ import annotations
 from collections.abc import Mapping
 from typing import Any
 
-from opl_framework.stage_attempt_snapshot import (
+from .._opl_helpers.stage_attempt_snapshot import (
     StageAttemptSnapshotError,
     build_reviewer_input_snapshot_materialization_request as _build_snapshot_request,
     normalize_member_source_refs as _normalize_member_source_refs,

@@ -1,7 +1,7 @@
 # MAS runtime detail contribution
 
 MAS declares one `runtime.detail` contribution for a selected paper work item.
-The executable producer is `plugins/med-autoscience/bin/mas-app-contribution`;
+The executable producer is `bin/mas-app-contribution`;
 `contracts/runtime_detail_contribution_contract.json` declares its machine contract.
 It reads `workspace_index.json` and MAS research trajectory bytes without keeping
 a second App or Studio state store.

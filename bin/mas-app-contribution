@@ -1,4 +1,423 @@
-#!/usr/bin/env bash
-set -euo pipefail
+#!/usr/bin/env python3
+"""Serve read-only MAS App contributions from the selected study workspace."""
 
-exec "$(dirname "$0")/../plugins/med-autoscience/bin/mas-app-contribution"
+from __future__ import annotations
+
+import hashlib
+import json
+import os
+import re
+import shutil
+import sys
+from pathlib import Path
+from typing import Any
+
+
+def _bootstrap_opl_client() -> None:
+    try:
+        import opl_client  # noqa: F401
+        return
+    except ImportError:
+        pass
+    candidates: list[Path] = []
+    env_client = os.environ.get("OPL_PYTHON_CLIENT_DIR", "").strip()
+    if env_client:
+        candidates.append(Path(env_client) / "src")
+        candidates.append(Path(env_client))
+    env_fw = os.environ.get("OPL_FRAMEWORK_ROOT", "").strip()
+    if env_fw:
+        candidates.append(Path(env_fw) / "sdks" / "python-client" / "src")
+    opl_bin = os.environ.get("OPL_BIN", "").strip() or shutil.which("opl")
+    if opl_bin:
+        try:
+            candidates.append(Path(opl_bin).resolve().parents[1] / "sdks" / "python-client" / "src")
+        except OSError:
+            pass
+    repo_root = Path(__file__).resolve().parents[1]
+    candidates.append(repo_root.parent / "one-person-lab" / "sdks" / "python-client" / "src")
+    candidates.append(repo_root.parent / ".worktrees" / "opl-v2" / "sdks" / "python-client" / "src")
+    for candidate in candidates:
+        if (candidate / "opl_client" / "__init__.py").is_file():
+            sys.path.insert(0, str(candidate))
+            return
+
+
+_bootstrap_opl_client()
+
+try:
+    from opl_client.helpers import read_stdin_json as _sdk_read_stdin_json
+    from opl_client.helpers import sha256_bytes
+except ImportError:  # pragma: no cover - standalone fallback when opl_client is absent
+    def _sdk_read_stdin_json() -> dict[str, Any]:
+        raw = sys.stdin.read().strip()
+        if not raw:
+            return {}
+        parsed = json.loads(raw)
+        if not isinstance(parsed, dict):
+            raise ValueError("Expected JSON object on stdin")
+        return parsed
+
+    def sha256_bytes(data: bytes) -> str:
+        return f"sha256:{hashlib.sha256(data).hexdigest()}"
+
+
+class AppContributionError(ValueError):
+    """Contribution validation or boundary error."""
+
+
+def read_stdin_json() -> dict[str, Any]:
+    try:
+        payload = _sdk_read_stdin_json()
+    except ValueError as exc:
+        raise AppContributionError("App contribution input must be a JSON object.") from exc
+    if not isinstance(payload, dict):
+        raise AppContributionError("App contribution input must be a JSON object.")
+    return payload
+
+
+def resolve_workspace_root(
+    workspace: str | None = None, *, env_var: str = "OPL_PROFILE_WORKSPACE"
+) -> Path | None:
+    selected = workspace if workspace is not None else os.environ.get(env_var, "")
+    if not selected or not Path(selected).is_absolute():
+        return None
+    return Path(selected).resolve(strict=True)
+
+
+def read_contained_file(root: Path, container_dir: Path, ref: str) -> Path:
+    if not isinstance(ref, str) or not ref.strip():
+        raise AppContributionError("A file reference is required.")
+    candidate = Path(ref)
+    if candidate.is_absolute():
+        raise AppContributionError(f"Reference escapes container: {ref}")
+    resolved_container = container_dir.resolve(strict=True)
+    target = root / candidate
+    if not target.exists() and not target.is_symlink():
+        raise AppContributionError(f"Reference does not exist: {ref}")
+    resolved = target.resolve(strict=True)
+    if not resolved.is_relative_to(resolved_container):
+        raise AppContributionError(f"Reference escapes container: {ref}")
+    if not resolved.is_file():
+        raise AppContributionError(f"Reference is not a regular file: {ref}")
+    return resolved
+
+
+def verify_work_item_identity(
+    input_value: dict[str, Any],
+    *,
+    expected_agent_ids: tuple[str, ...] = (),
+    expected_domain_ids: tuple[str, ...] = (),
+    require_resolved: bool = True,
+) -> tuple[dict[str, Any], str | None]:
+    identity = input_value.get("work_item_identity") or {}
+    if not isinstance(identity, dict):
+        raise AppContributionError("work_item_identity must be an object.")
+    if not identity:
+        return {}, None
+    if require_resolved and identity.get("identity_state") != "resolved":
+        raise AppContributionError("work_item_identity must have identity_state 'resolved'.")
+    if expected_agent_ids and identity.get("agent_id") not in expected_agent_ids:
+        raise AppContributionError("work_item_identity agent_id does not match the selected package.")
+    if expected_domain_ids and identity.get("domain_id") not in expected_domain_ids:
+        raise AppContributionError("work_item_identity domain_id does not match the selected package.")
+    work_item_id = identity.get("domain_work_item_id") or identity.get("work_item_id")
+    return identity, str(work_item_id) if isinstance(work_item_id, str) and work_item_id else None
+
+
+REQUEST_SCHEMA = "opl-package-app-contribution-request.v1"
+RESPONSE_SCHEMA = "opl-package-app-contribution-response.v1"
+DATA_REF = "mas.runtime-detail.v1#current"
+STUDY_ID_PATTERN = re.compile(r"^[a-z0-9]+(?:[._-][a-z0-9]+)*$")
+
+
+class ContributionError(ValueError):
+    """Fail-closed request or source error."""
+
+
+def _record(value: Any, field: str) -> dict[str, Any]:
+    if not isinstance(value, dict):
+        raise ContributionError(f"{field} must be an object")
+    return value
+
+
+def _text(value: Any, field: str) -> str:
+    if not isinstance(value, str) or not value.strip():
+        raise ContributionError(f"{field} must be a non-empty string")
+    return value.strip()
+
+
+def _source(root: Path, relative: Path) -> tuple[dict[str, Any], dict[str, str]]:
+    try:
+        path = read_contained_file(root, root, relative.as_posix())
+        data = path.read_bytes()
+        value = _record(json.loads(data), str(relative))
+    except AppContributionError as error:
+        if "escapes" in str(error).lower():
+            raise ContributionError(f"{relative} escapes the selected workspace") from error
+        raise ContributionError(f"{relative} is unavailable or invalid") from error
+    except (OSError, UnicodeError, json.JSONDecodeError) as error:
+        raise ContributionError(f"{relative} is unavailable or invalid") from error
+    return value, {
+        "ref": relative.as_posix(),
+        "sha256": sha256_bytes(data),
+    }
+
+
+def _workspace_root() -> Path:
+    raw = os.environ.get("OPL_PROFILE_WORKSPACE", "")
+    if not raw.strip():
+        raise ContributionError("OPL_PROFILE_WORKSPACE is required")
+    try:
+        root = resolve_workspace_root()
+    except OSError as error:
+        raise ContributionError("OPL_PROFILE_WORKSPACE must resolve to a directory") from error
+    if root is None or not root.is_dir():
+        raise ContributionError("OPL_PROFILE_WORKSPACE must resolve to a directory")
+    return root
+
+
+def _identity(request: dict[str, Any]) -> dict[str, str]:
+    request_input = _record(request.get("input"), "input")
+    identity = _record(
+        request_input.get("work_item_identity"), "input.work_item_identity"
+    )
+    try:
+        verified, _ = verify_work_item_identity(
+            request_input,
+            expected_agent_ids=("mas",),
+            expected_domain_ids=("medautoscience",),
+            require_resolved=True,
+        )
+    except AppContributionError as error:
+        raise ContributionError(str(error)) from error
+    work_item_id = _text(
+        identity.get("work_item_id"),
+        "input.work_item_identity.work_item_id",
+    )
+    if not STUDY_ID_PATTERN.fullmatch(work_item_id):
+        raise ContributionError("input.work_item_identity.work_item_id is invalid")
+    if verified.get("domain_work_item_id") != work_item_id:
+        raise ContributionError(
+            "input.work_item_identity.domain_work_item_id must equal work_item_id"
+        )
+    scope_id = _text(
+        verified.get("work_item_scope_id"),
+        "input.work_item_identity.work_item_scope_id",
+    )
+    return {
+        "agent_id": "mas",
+        "domain_id": "medautoscience",
+        "work_item_id": work_item_id,
+        "domain_work_item_id": work_item_id,
+        "work_item_scope_id": scope_id,
+        "identity_state": "resolved",
+    }
+
+
+def _study(index: dict[str, Any], work_item_id: str) -> dict[str, Any]:
+    studies = index.get("studies")
+    if not isinstance(studies, list):
+        raise ContributionError("workspace_index.json studies must be an array")
+    matches = [
+        item
+        for item in studies
+        if isinstance(item, dict) and item.get("study_id") == work_item_id
+    ]
+    if len(matches) != 1:
+        raise ContributionError("work_item_id must match exactly one workspace study")
+    study = matches[0]
+    expected_root = f"studies/{work_item_id}"
+    if study.get("canonical_study_root") != expected_root:
+        raise ContributionError("workspace study root does not match work_item_id")
+    return study
+
+
+def _work(study: dict[str, Any]) -> dict[str, Any]:
+    current_stage_id = study.get("current_stage_id")
+    current_stage_status = study.get("current_stage_status")
+    next_action = study.get("next_action")
+    active = []
+    if isinstance(current_stage_id, str) and current_stage_id.strip():
+        active.append(
+            {
+                "stage_id": current_stage_id,
+                "status": current_stage_status,
+            }
+        )
+    queued = []
+    pending = []
+    if isinstance(next_action, dict):
+        status = next_action.get("status")
+        if status == "queued":
+            queued.append(next_action)
+        elif status not in {None, "completed"}:
+            pending.append(next_action)
+    return {"active": active, "queued": queued, "pending": pending}
+
+
+def _hypotheses(trajectory: dict[str, Any]) -> list[dict[str, Any]]:
+    nodes = trajectory.get("nodes")
+    if not isinstance(nodes, list):
+        raise ContributionError("research trajectory nodes must be an array")
+    return [
+        {
+            "hypothesis_id": node.get("id"),
+            "status": node.get("status"),
+            "label": node.get("label"),
+            "summary": node.get("summary"),
+            "details": node.get("details", {}),
+            "source_refs": node.get("source_refs", []),
+        }
+        for node in nodes
+        if isinstance(node, dict) and node.get("kind") == "hypothesis"
+    ]
+
+
+def _result(identity: dict[str, str]) -> dict[str, Any]:
+    root = _workspace_root()
+    index, index_source = _source(root, Path("workspace_index.json"))
+    study = _study(index, identity["work_item_id"])
+    trajectory_ref = (
+        Path(str(study["canonical_study_root"]))
+        / "artifacts/research_trajectory/snapshot.json"
+    )
+    trajectory_path = root / trajectory_ref
+    trajectory, trajectory_source = (
+        _source(root, trajectory_ref)
+        if trajectory_path.exists() else (None, None)
+    )
+    if trajectory is not None and trajectory.get("study_id") != identity["work_item_id"]:
+        raise ContributionError("research trajectory study_id does not match work_item_id")
+    if trajectory is not None and trajectory.get("study_ref") != {
+        "kind": "mas_study",
+        "ref": f"mas-study:{identity['work_item_id']}",
+    }:
+        raise ContributionError("research trajectory study_ref does not match work_item_id")
+
+    next_action = study.get("next_action")
+    current_owner = next_action.get("owner") if isinstance(next_action, dict) else None
+    summary = (
+        _record(trajectory.get("summary"), "research trajectory summary")
+        if trajectory is not None else {}
+    )
+    artifacts = [
+        {
+            **node,
+            "artifact_id": node["id"],
+            "title": node.get("label"),
+            "status": node.get("status"),
+            "summary": node.get("summary"),
+            "details": node.get("details", {}),
+            "source_refs": node.get("source_refs", []),
+        }
+        for node in (trajectory or {}).get("nodes", [])
+        if isinstance(node, dict) and node.get("kind") == "artifact" and node.get("id")
+    ]
+    # Bind the reviewed study, rather than changes to unrelated workspace rows.
+    # Source digests also retain the exact bytes observed for later owner audit.
+    revision = "sha256:" + hashlib.sha256(json.dumps(
+        {"study": study, "trajectory": trajectory},
+        sort_keys=True, ensure_ascii=False, separators=(",", ":"),
+    ).encode("utf-8")).hexdigest()
+    review_sources = [index_source, *([trajectory_source] if trajectory_source else [])]
+    return {
+        "surface_kind": "mas_runtime_detail_contribution",
+        "version": "mas-runtime-detail-contribution.v1",
+        "identity": {
+            "agent_id": identity["agent_id"],
+            "domain_id": identity["domain_id"],
+            "work_item_id": identity["work_item_id"],
+            "study_id": identity["domain_work_item_id"],
+            "identity_state": identity["identity_state"],
+            "scope_binding": "work_item_id_exact_study_id",
+        },
+        "agent": {
+            "agent_id": "mas",
+            "display_name": "Med Auto Science",
+            "authority_owner": "MedAutoScience",
+        },
+        "current_owner": current_owner,
+        "phase": {
+            "business_status": study.get("business_status", study.get("status")),
+            "lifecycle_state": study.get("lifecycle_state", study.get("status")),
+            "stage_id": study.get("current_stage_id"),
+            "stage_status": study.get("current_stage_status"),
+        },
+        "work": _work(study),
+        "hypotheses": _hypotheses(trajectory) if trajectory is not None else [],
+        "trajectory": trajectory,
+        "trajectory_status": "available" if trajectory is not None else "not_available",
+        "artifacts": artifacts,
+        "review_context": {
+            "work_item_identity": identity,
+            "revision": revision,
+            "trajectory_revision": (trajectory or {}).get("revision"),
+            "source_refs": review_sources,
+            "artifact_refs": [source["ref"] for source in review_sources],
+            "artifact_hashes": [source["sha256"] for source in review_sources],
+            "artifacts": artifacts,
+        },
+        "roadmap": {
+            "trajectory_revision": (trajectory or {}).get("revision"),
+            "trajectory_status": (trajectory or {}).get("status"),
+            "current_focus": (trajectory or {}).get("current_focus"),
+            "active_branch": (trajectory or {}).get("active_branch"),
+            "current_judgment": summary.get("current_judgment"),
+            "next_research_step": summary.get("next_research_step"),
+        },
+        "source_refs": [
+            "workspace_index.json",
+            *([trajectory_ref.as_posix()] if trajectory is not None else []),
+        ],
+        "authority_boundary": {
+            "projection_only": True,
+            "writes_domain_truth": False,
+            "writes_runtime_state": False,
+            "provider_completion_is_progress": False,
+        },
+    }
+
+
+def main() -> int:
+    request: dict[str, Any] = {}
+    try:
+        request = read_stdin_json()
+        if request.get("schema_version") != REQUEST_SCHEMA:
+            raise ContributionError("request schema_version is unsupported")
+        if request.get("operation") != "read":
+            raise ContributionError("only read is supported")
+        if request.get("ref") != DATA_REF:
+            raise ContributionError("contribution ref is unsupported")
+        response = {
+            "schema_version": RESPONSE_SCHEMA,
+            "ok": True,
+            "ref": DATA_REF,
+            "operation": "read",
+            "result": _result(_identity(request)),
+        }
+        print(json.dumps(response, ensure_ascii=False, separators=(",", ":")))
+        return 0
+    except (AppContributionError, ContributionError, json.JSONDecodeError) as error:
+        print(
+            json.dumps(
+                {
+                    "schema_version": RESPONSE_SCHEMA,
+                    "ok": False,
+                    "ref": request.get("ref") if isinstance(request, dict) else None,
+                    "operation": request.get("operation")
+                    if isinstance(request, dict)
+                    else None,
+                    "error": {
+                        "code": "mas_runtime_detail_contribution_invalid",
+                        "message": str(error),
+                    },
+                },
+                ensure_ascii=False,
+                separators=(",", ":"),
+            )
+        )
+        return 2
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())

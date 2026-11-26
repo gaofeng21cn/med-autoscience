@@ -8,7 +8,7 @@ import json
 import re
 from typing import Any
 
-from opl_framework.exact_refs import json_deep_equal as _json_deep_equal
+from .._opl_helpers.exact_refs import json_deep_equal as _json_deep_equal
 
 from .._record_validation import RequestShapeError, text
 

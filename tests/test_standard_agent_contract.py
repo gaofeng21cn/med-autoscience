@@ -12,34 +12,23 @@ def _read(relative_path: str) -> dict[str, object]:
 
 
 def test_mas_declares_a_presence_only_dynamic_agent_task_provider() -> None:
-    package = _read("contracts/opl_agent_package_manifest.json")
+    package = _read("opl-package.json")
     descriptor = _read("contracts/domain_descriptor.json")
 
-    assert package["kind"] == descriptor["kind"] == "agent"
-    assert package["agent_id"] == descriptor["agent_id"] == "mas"
-    assert package["package_id"] == descriptor["package_id"] == "mas"
-    assert package["domain_descriptor_ref"] == "contracts/domain_descriptor.json"
-    assert package["task_provider_ref"] == (
-        "contracts/domain_descriptor.json#/task_provider"
-    )
-    assert package["action_catalog_ref"] == descriptor["action_catalog_ref"] == (
-        "contracts/action_catalog.json"
-    )
-    assert package["view_refs"] == [
-        "contracts/domain_descriptor.json#/task_provider/views/0"
-    ]
-    assert package["requires"] == [
-        {"package_id": "mas-scholar-skills", "presence": "required"}
-    ]
+    assert package["schema_version"] == "opl.package.v2"
+    assert package["identity"]["intent"] == descriptor["kind"] == "agent"
+    assert package["identity"]["id"] == descriptor["agent_id"] == descriptor["package_id"] == "mas"
+    assert package["provides"]["agent"]["stages_ref"] == "agent/stages/manifest.json"
+    assert package["dependencies"]["packages"][0]["id"] == "mas-scholar-skills"
+    assert package["dependencies"]["packages"][0]["optional"] is False
     assert not {
-        "version",
         "version_requirement",
         "abi",
         "capability_abi",
         "digest",
         "lock",
         "receipt",
-    }.intersection(package["requires"][0])
+    }.intersection(package["dependencies"]["packages"][0])
 
 
 def test_mas_view_envelope_keeps_medical_schema_and_task_binding_owner_side() -> None:
@@ -76,12 +65,11 @@ def test_mas_view_envelope_keeps_medical_schema_and_task_binding_owner_side() ->
 
 
 def test_package_boundary_does_not_restore_the_retired_framework_manager() -> None:
-    package = _read("contracts/opl_agent_package_manifest.json")
-    boundary = str(package["machine_boundary"])
+    package = _read("opl-package.json")
+    serialized = json.dumps(package)
 
-    assert "configured carrier owns physical lifecycle" in boundary
-    assert "Framework aggregates fresh presence" in boundary
-    assert "dependency resolution" not in boundary
-    assert "lifecycle receipt" not in boundary
-    assert "atomic update" not in boundary
-    assert "rollback" not in boundary
+    assert package["schema_version"] == "opl.package.v2"
+    assert "dependency_resolution" not in serialized
+    assert "lifecycle_receipt" not in serialized
+    assert "rollback" not in serialized
+    assert "codex_surface" not in package

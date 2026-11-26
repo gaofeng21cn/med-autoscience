@@ -5,7 +5,7 @@ from __future__ import annotations
 from collections.abc import Mapping
 from typing import Any
 
-from opl_framework.capability_binding import (
+from .._opl_helpers.capability_binding import (
     CapabilityBindingError,
     validate_refs_only_skill_invocation_envelope,
 )

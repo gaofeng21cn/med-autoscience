@@ -5,7 +5,7 @@ from __future__ import annotations
 from collections.abc import Mapping
 from typing import Any
 
-from opl_framework.cas_materialization import build_cas_operation
+from .._opl_helpers.cas_materialization import build_cas_operation
 from .values import (
     DOMAIN_ID,
     DOMAIN_OWNER,

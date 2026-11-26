@@ -5,22 +5,22 @@ from __future__ import annotations
 from collections.abc import Mapping
 from typing import Any
 
-from opl_framework.epistemic_review_scope import (
+from .._opl_helpers.epistemic_review_scope import (
     EpistemicReviewScopeError,
 )
-from opl_framework.epistemic_review_scope import (
+from .._opl_helpers.epistemic_review_scope import (
     build_epistemic_review_scope as _build_epistemic_review_scope,
 )
-from opl_framework.epistemic_review_scope import (
+from .._opl_helpers.epistemic_review_scope import (
     epistemic_review_dependency_refs as _epistemic_review_dependency_refs,
 )
-from opl_framework.epistemic_review_scope import (
+from .._opl_helpers.epistemic_review_scope import (
     epistemic_review_scope_identity as _epistemic_review_scope_identity,
 )
-from opl_framework.epistemic_review_scope import (
+from .._opl_helpers.epistemic_review_scope import (
     epistemic_review_scope_sha256 as _epistemic_review_scope_sha256,
 )
-from opl_framework.epistemic_review_scope import (
+from .._opl_helpers.epistemic_review_scope import (
     project_review_scope_members as _project_review_scope_members,
 )
 

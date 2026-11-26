@@ -6,7 +6,7 @@ from collections.abc import Mapping
 from pathlib import Path
 from typing import Any
 
-from opl_framework.stage_attempt_snapshot import (
+from ._opl_helpers.stage_attempt_snapshot import (
     ATTEMPT_BINDING_ENV_KEYS as _ATTEMPT_BINDING_ENV_KEYS,
     StageAttemptSnapshotError,
     fingerprint_workspace_source_file,

@@ -73,19 +73,15 @@ def test_layout_resolution_is_fail_open_for_authoring_but_not_compliance() -> No
 
 
 def test_package_and_stage_surfaces_consume_the_single_layout_policy() -> None:
-    package = read_json("contracts/opl_agent_package_manifest.json")
+    package = read_json("opl-package.json")
     pack_input = read_json("contracts/pack_compiler_input.json")
     capability_map = read_json("contracts/capability_map.json")
-    dependency = package["capability_dependencies"][0]
+    dependency = package["dependencies"]["packages"][0]
 
-    assert package["requires"] == [
-        {"package_id": "mas-scholar-skills", "presence": "required"}
-    ]
-    assert dependency["package_id"] == "mas-scholar-skills"
-    assert dependency["required"] is True
-    assert dependency["capability_abi"] == "mas-scholar-skills.v1"
-    assert "medical-submission-prep" in dependency["required_export_ids"]
-    assert "mas-scholar-skills.submit" in dependency["required_module_ids"]
+    assert dependency["id"] == "mas-scholar-skills"
+    assert dependency["optional"] is False
+    assert "mas-scholar-skills" in dependency["required_capabilities"]
+    assert "medical-submission-prep" in dependency["required_capabilities"]
     assert pack_input["required_domain_pack_paths"].count(POLICY_REF) == 1
     assert pack_input["source_refs"]["publication_layout_policy_ref"] == POLICY_REF
     assert pack_input["source_refs"]["required_domain_pack_paths"].count(POLICY_REF) == 1

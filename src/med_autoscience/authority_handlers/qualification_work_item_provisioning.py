@@ -12,7 +12,7 @@ import posixpath
 import re
 from typing import Any
 
-from opl_framework.cas_materialization import (
+from ._opl_helpers.cas_materialization import (
     build_cas_materialization_request,
     collect_absent_precondition_paths,
     compute_cas_operation_digests,

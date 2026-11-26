@@ -6,7 +6,7 @@ from collections.abc import Iterable, Mapping, Sequence
 from typing import Annotated, Any
 
 from jsonschema import Draft202012Validator
-from opl_framework.exact_refs import (
+from ._opl_helpers.exact_refs import (
     canonical_json_bytes_v1,
     fingerprint_v1,
     normalize_exact_json_object,

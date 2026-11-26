@@ -216,11 +216,9 @@ def test_generated_surfaces_are_opl_owned_and_private_surfaces_are_forbidden() -
 
 def test_direct_skill_and_plugin_carrier_are_byte_identical() -> None:
     primary = ROOT / "agent/primary_skill/SKILL.md"
-    carrier = (
-        ROOT
-        / "plugins/med-autoscience/skills/med-autoscience/SKILL.md"
-    )
-    assert primary.read_bytes() == carrier.read_bytes()
+    package_skill = ROOT / "skills/med-autoscience/SKILL.md"
+    assert primary.read_bytes() == package_skill.read_bytes()
+    assert not (ROOT / "plugins").exists()
 
 
 def test_primary_skill_routes_research_intent_before_lifecycle_and_excludes_clinical_care() -> None:

@@ -3,6 +3,7 @@ from __future__ import annotations
 import ast
 import importlib
 import json
+import os
 import re
 import subprocess
 import tomllib
@@ -12,100 +13,39 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[1]
 
 
-def test_native_carrier_descriptor_projects_owner_identity_without_lifecycle_authority() -> None:
-    owner_manifest_path = ROOT / "contracts/opl_agent_package_manifest.json"
+def test_v2_manifest_projects_owner_identity_without_legacy_carrier_mirrors() -> None:
     root_manifest_path = ROOT / "opl-package.json"
-    assert root_manifest_path.read_bytes() == owner_manifest_path.read_bytes()
+    descriptor = json.loads((ROOT / "contracts/domain_descriptor.json").read_text(encoding="utf-8"))
+    manifest = json.loads(root_manifest_path.read_text(encoding="utf-8"))
 
-    owner_descriptor = json.loads(owner_manifest_path.read_text(encoding="utf-8"))
-    root_descriptor = json.loads(root_manifest_path.read_text(encoding="utf-8"))
-    carrier_descriptor = json.loads(
-        (ROOT / "plugins/med-autoscience/opl-package.json").read_text(
-            encoding="utf-8"
-        )
-    )
-    nested_plugin = json.loads(
-        (ROOT / "plugins/med-autoscience/.codex-plugin/plugin.json").read_text(
-            encoding="utf-8"
-        )
-    )
-    portable_plugin = json.loads(
-        (ROOT / "plugins/med-autoscience/plugin.json").read_text(encoding="utf-8")
-    )
-    root_plugin = json.loads(
-        (ROOT / ".codex-plugin/plugin.json").read_text(encoding="utf-8")
-    )
-
-    assert root_descriptor == owner_descriptor
-
-    projected_owner_fields = {
-        "surface_kind",
-        "kind",
-        "agent_id",
-        "package_id",
-        "display_name",
-        "publisher",
-        "version",
-        "source",
-        "carrier_source_role",
-        "domain_descriptor_ref",
-        "task_provider_ref",
-        "action_catalog_ref",
-        "view_refs",
-        "requires",
-        "presentation",
-        "app_contributions",
-    }
-    assert set(carrier_descriptor) == projected_owner_fields | {
-        "capability_dependencies",
-        "codex_surface",
-    }
-    for field in projected_owner_fields:
-        assert carrier_descriptor[field] == owner_descriptor[field]
-
-    projected_codex_fields = {
-        "configured_codex_plugin_carrier",
-        "plugin_id",
-        "required_capability_package_ids",
-        "required_skill_ids",
-        "standalone_distribution",
-        "user_install_action_count",
-        "app_contribution_abi",
-        "app_contribution_adapter",
-    }
-    assert set(carrier_descriptor["codex_surface"]) == projected_codex_fields
-    for field in projected_codex_fields:
-        assert (
-            carrier_descriptor["codex_surface"][field]
-            == owner_descriptor["codex_surface"][field]
-        )
-
-    assert (
-        carrier_descriptor["capability_dependencies"]
-        == owner_descriptor["capability_dependencies"]
-    )
-    assert carrier_descriptor["requires"] == [
-        {"package_id": "mas-scholar-skills", "presence": "required"}
+    assert manifest["schema_version"] == "opl.package.v2"
+    assert manifest["identity"]["id"] == descriptor["agent_id"] == descriptor["package_id"] == "mas"
+    assert manifest["identity"]["intent"] == descriptor["kind"] == "agent"
+    assert manifest["provides"]["agent"] == {"stages_ref": "agent/stages/manifest.json"}
+    assert manifest["provides"]["skills"] == [
+        {
+            "id": "med-autoscience",
+            "path": "./skills/med-autoscience",
+            "exposure": "default",
+        }
     ]
-    assert carrier_descriptor["agent_id"] == carrier_descriptor["package_id"] == "mas"
-    assert carrier_descriptor["carrier_source_role"] == (
-        "codex_plugin_default_carrier_not_package_truth"
-    )
-    assert (
-        carrier_descriptor["codex_surface"]["plugin_id"]
-        == root_plugin["name"]
-        == nested_plugin["name"]
-        == portable_plugin["name"]
-    )
-    assert (
-        carrier_descriptor["version"]
-        == root_plugin["version"]
-        == nested_plugin["version"]
-        == portable_plugin["version"]
-    )
-    assert carrier_descriptor["codex_surface"]["configured_codex_plugin_carrier"] == (
-        root_descriptor["codex_surface"]["configured_codex_plugin_carrier"]
-    )
+    assert manifest["provides"]["contribution_handler"] == {
+        "kind": "cli",
+        "argv": ["./bin/mas-app-contribution"],
+        "transport": "stdin_json_stdout_json",
+    }
+    assert manifest["host_hints"]["codex"]["plugin_name"] == "med-autoscience"
+
+    for retired_path in (
+        ROOT / "contracts/opl_agent_package_manifest.json",
+        ROOT / "contracts/carrier_projection.json",
+        ROOT / ".codex-plugin",
+        ROOT / ".agents",
+        ROOT / "app-contribution-adapter.json",
+        ROOT / "plugins",
+        ROOT / "scripts/materialize_plugin_carrier.py",
+    ):
+        assert not retired_path.exists(), f"Retired v1 artifact still exists: {retired_path}"
 
     def nested_keys(value: object) -> set[str]:
         if isinstance(value, dict):
@@ -116,263 +56,155 @@ def test_native_carrier_descriptor_projects_owner_identity_without_lifecycle_aut
             return {key for nested in value for key in nested_keys(nested)}
         return set()
 
-    legacy_authority_keys = {
-        "activation_materialization",
-        "consumer_profile_id",
-        "dependency_kind",
-        "install_owner",
-        "install_update_source",
-        "last_known_good",
-        "lifecycle",
-        "lock",
-        "opl_managed_surface",
-        "package_core",
-        "receipt",
-        "release_set_receipt_ref",
-        "repair_command_templates",
-        "resolver",
-        "rollback_ref",
-        "status_command_templates",
-        "sync_command_refs",
-        "version_requirement",
-    }
-    assert nested_keys(carrier_descriptor).isdisjoint(legacy_authority_keys)
-
     forbidden_owner_lifecycle_keys = {
         "activation_materialization",
         "carrier_source_commit",
         "codex_distribution",
+        "codex_surface",
         "consumer_profile_id",
         "dependency_kind",
         "developer_distribution",
         "install_owner",
         "install_update_source",
+        "last_known_good",
+        "lifecycle",
+        "lock",
         "missing_or_incompatible_policy",
         "opl_distribution",
+        "opl_managed_surface",
+        "package_core",
         "provider_manifest_ref",
+        "receipt",
         "release_set_receipt_ref",
         "repair_command_templates",
         "required_for",
+        "resolver",
+        "rollback_ref",
         "status_command_templates",
         "sync_command_refs",
         "sync_scopes",
         "version_requirement",
     }
-    assert nested_keys(owner_descriptor).isdisjoint(forbidden_owner_lifecycle_keys)
+    assert nested_keys(manifest).isdisjoint(forbidden_owner_lifecycle_keys)
 
 
 def test_package_manifest_owns_home_presentation_bytes() -> None:
-    package = json.loads(
-        (ROOT / "contracts/opl_agent_package_manifest.json").read_text(
-            encoding="utf-8"
-        )
-    )
+    package = json.loads((ROOT / "opl-package.json").read_text(encoding="utf-8"))
+    identity = package["identity"]
 
-    assert package["presentation"] == {
-        "icon_ref": "assets/branding/medautoscience-logo.png",
-        "display_name_i18n": {
-            "zh-CN": "Med Auto Science",
-            "en-US": "Med Auto Science",
-        },
-        "description_i18n": {
-            "zh-CN": (
-                "医学研究选题、文献分析、数据分析、论文写作、审稿、返修与投稿。"
-            ),
-            "en-US": (
-                "Medical research planning, literature review, data analysis, manuscript "
-                "writing, peer review, revision, and submission."
-            ),
-        },
-        "session_routing_summary_i18n": {
-            "zh-CN": "科研、论文、数据分析、审稿、返修和投稿",
-            "en-US": (
-                "research, papers, data analysis, peer review, revision, and "
-                "submission"
-            ),
-        },
-        "home_shortcuts": [
-            {
-                "shortcut_id": "research",
-                "label_i18n": {
-                    "zh-CN": "开展科研工作",
-                    "en-US": "Research",
-                },
-                "default_visible": True,
-                "user_configurable": True,
-                "route": {
-                    "route_kind": "agent_package_shortcut",
-                    "executor": "codex_cli",
-                    "codex_visible_entry": package["codex_surface"]["plugin_id"],
-                },
-            }
-        ],
+    assert identity["icon"] == "assets/branding/medautoscience-logo.png"
+    assert (ROOT / identity["icon"]).is_file()
+    assert identity["name"] == {
+        "zh-CN": "Med Auto Science",
+        "en-US": "Med Auto Science",
     }
+    assert identity["summary"] == {
+        "zh-CN": "医学研究选题、文献分析、数据分析、论文写作、审稿、返修与投稿。",
+        "en-US": (
+            "Medical research planning, literature review, data analysis, manuscript "
+            "writing, peer review, revision, and submission."
+        ),
+    }
+    assert identity["routing_summary"] == {
+        "zh-CN": "科研、论文、数据分析、审稿、返修和投稿",
+        "en-US": (
+            "research, papers, data analysis, peer review, revision, and submission"
+        ),
+    }
+    assert identity["home_shortcuts"] == [
+        {
+            "id": "research",
+            "label": {
+                "zh-CN": "开展科研工作",
+                "en-US": "Research",
+            },
+            "default_visible": True,
+            "target": {
+                "kind": "agent",
+                "ref": "mas",
+            },
+        }
+    ]
 
 
 def test_package_plugin_and_python_versions_are_one_semver() -> None:
     pyproject = tomllib.loads((ROOT / "pyproject.toml").read_text(encoding="utf-8"))
-    package = json.loads(
-        (ROOT / "contracts/opl_agent_package_manifest.json").read_text(
-            encoding="utf-8"
-        )
-    )
-    root_plugin = json.loads(
-        (ROOT / ".codex-plugin/plugin.json").read_text(encoding="utf-8")
-    )
-    nested_plugin = json.loads(
-        (
-            ROOT
-            / "plugins/med-autoscience/.codex-plugin/plugin.json"
-        ).read_text(encoding="utf-8")
-    )
-    portable_plugin = json.loads(
-        (ROOT / "plugins/med-autoscience/plugin.json").read_text(encoding="utf-8")
-    )
+    package = json.loads((ROOT / "opl-package.json").read_text(encoding="utf-8"))
+    identity = package["identity"]
+    codex_hint = package["host_hints"]["codex"]
 
-    assert (
-        package["version"]
-        == pyproject["project"]["version"]
-        == root_plugin["version"]
-        == nested_plugin["version"]
-        == portable_plugin["version"]
-    )
-    assert re.fullmatch(r"(0|[1-9]\d*)\.(0|[1-9]\d*)\.(0|[1-9]\d*)", package["version"])
+    assert identity["version"] == pyproject["project"]["version"]
+    assert re.fullmatch(r"(0|[1-9]\d*)\.(0|[1-9]\d*)\.(0|[1-9]\d*)", identity["version"])
     assert "distribution_payload" not in package
-    assert package["agent_id"] == package["package_id"] == "mas"
-    assert package["codex_surface"]["plugin_id"] == "med-autoscience"
-    assert package["codex_surface"]["configured_codex_plugin_carrier"] == {
-        "kind": "codex_plugin_manager",
-        "plugin_selector": "med-autoscience@med-autoscience",
-        "executor_route": "codex_cli",
-        "marketplace_source": "gaofeng21cn/med-autoscience",
-        "publication_ref": (
-            "ghcr.io/gaofeng21cn/one-person-lab-packages/mas:latest-stable"
-        ),
+    assert identity["id"] == "mas"
+    assert codex_hint["plugin_name"] == "med-autoscience"
+    assert codex_hint["sync_enabled"] is True
+    assert package["distribution"] == {
+        "oci": "ghcr.io/gaofeng21cn/one-person-lab-packages/mas",
+        "visibility": "public",
     }
     assert pyproject["project"]["scripts"] == {
         "mas-foundry-owner-gate": (
             "med_autoscience.authority_handlers.foundry_owner_gate:main"
         )
     }
-    assert root_plugin["name"] == nested_plugin["name"] == "med-autoscience"
-    assert root_plugin["repository"] == nested_plugin["repository"] == (
-        "https://github.com/gaofeng21cn/med-autoscience"
-    )
-    assert root_plugin["skills"] == "./plugins/med-autoscience/skills/"
-    assert nested_plugin["skills"] == "./skills/"
-    assert portable_plugin["$schema"] == (
-        "https://agent-plugins.org/schemas/1.0.0/plugin.schema.json"
-    )
-    assert set(portable_plugin) <= {
-        "$schema",
-        "name",
-        "version",
-        "description",
-        "author",
-        "homepage",
-        "repository",
-        "license",
-        "keywords",
-        "extensions",
-    }
-    assert portable_plugin["extensions"]["com.openai"]["interface"] == (
-        nested_plugin["interface"]
-    )
-    assert not (ROOT / "plugins/med-autoscience/mcp.json").exists()
-    for plugin_root, plugin in (
-        (ROOT, root_plugin),
-        (ROOT / "plugins/med-autoscience", nested_plugin),
-    ):
-        assert "mcpServers" not in plugin
-        assert plugin["interface"]["displayName"] == "Med Auto Science"
-        assert plugin["interface"]["composerIcon"] == plugin["interface"]["logo"]
-        assert (plugin_root / plugin["interface"]["composerIcon"]).is_file()
-        prompt_text = json.dumps(plugin["interface"]["defaultPrompt"]).lower()
-        assert "doctor" not in prompt_text
-        assert "controller" not in prompt_text
+    assert identity["repository"] == "https://github.com/gaofeng21cn/med-autoscience"
+    assert (ROOT / identity["icon"]).is_file()
+    prompt_text = json.dumps(identity["default_prompts"]).lower()
+    assert "doctor" not in prompt_text
+    assert "controller" not in prompt_text
 
-    nested_plugin_root = ROOT / "plugins/med-autoscience"
-    assert (nested_plugin_root / "skills/med-autoscience/agents/openai.yaml").is_file()
-    assert not (nested_plugin_root / "bin/medautosci-mcp").exists()
-    assert not (ROOT / "plugins/mas").exists()
+    assert (ROOT / "skills/med-autoscience/SKILL.md").is_file()
+    assert (ROOT / "skills/med-autoscience/agents/openai.yaml").is_file()
     assert not any((ROOT / "src/med_autoscience/cli").glob("*.py"))
     assert not (ROOT / "scripts/install-codex-plugin.sh").exists()
+    assert not (ROOT / "plugins").exists()
 
 
-def test_repo_marketplace_exposes_only_the_codex_plugin_carrier() -> None:
-    package = json.loads(
-        (ROOT / "contracts/opl_agent_package_manifest.json").read_text(
-            encoding="utf-8"
-        )
-    )
-    plugin = json.loads(
-        (ROOT / ".codex-plugin/plugin.json").read_text(encoding="utf-8")
-    )
-    marketplace = json.loads(
-        (ROOT / ".agents/plugins/marketplace.json").read_text(encoding="utf-8")
-    )
+def test_codex_host_hints_and_zero_static_marketplace_files() -> None:
+    package = json.loads((ROOT / "opl-package.json").read_text(encoding="utf-8"))
+    codex_hint = package["host_hints"]["codex"]
 
-    assert marketplace["name"] == "med-autoscience"
-    assert marketplace["interface"] == {"displayName": "Med Auto Science"}
-    assert marketplace["plugins"] == [
-        {
-            "name": "med-autoscience",
-            "source": {
-                "source": "local",
-                "path": "./plugins/med-autoscience",
-            },
-            "policy": {
-                "installation": "AVAILABLE",
-                "authentication": "ON_INSTALL",
-            },
-            "category": "Research",
-        }
-    ]
-
-    entry = marketplace["plugins"][0]
-    plugin_root = ROOT / entry["source"]["path"]
-    assert (plugin_root / "plugin.json").is_file()
-    assert (plugin_root / ".codex-plugin/plugin.json").is_file()
-    assert entry["name"] == plugin["name"] == package["codex_surface"]["plugin_id"]
-    assert entry["category"] == plugin["interface"]["category"]
-    assert package["package_id"] == "mas"
-    assert "products" not in entry["policy"]
-
-
-def test_nested_native_carrier_keeps_hosted_runtime_owned_by_the_repo() -> None:
-    package_path = ROOT / "opl-package.json"
-    owner_manifest_path = ROOT / "contracts/opl_agent_package_manifest.json"
-    package = json.loads(package_path.read_text(encoding="utf-8"))
-    plugin = json.loads(
-        (ROOT / "plugins/med-autoscience/.codex-plugin/plugin.json").read_text(
-            encoding="utf-8"
-        )
-    )
-    marketplace = json.loads(
-        (ROOT / ".agents/plugins/marketplace.json").read_text(encoding="utf-8")
-    )
-
-    assert package_path.read_bytes() == owner_manifest_path.read_bytes()
-    assert marketplace["plugins"][0]["source"] == {
-        "source": "local",
-        "path": "./plugins/med-autoscience",
+    assert codex_hint == {
+        "sync_enabled": True,
+        "plugin_name": "med-autoscience",
+        "category": "Research",
+        "brand_color": "#1F7A8C",
+        "capabilities": ["Interactive", "Write"],
     }
-    assert plugin["skills"] == "./skills/"
+    assert package["permissions"]["workspace"]["access"] == "read_write"
+    assert package["dependencies"]["runtimes"] == [
+        {"name": "python", "version": ">=3.12"}
+    ]
+    assert not (ROOT / ".agents/plugins/marketplace.json").exists()
+    assert not (ROOT / ".codex-plugin/plugin.json").exists()
+
+
+def test_v2_package_keeps_hosted_runtime_owned_by_the_repo() -> None:
+    package = json.loads((ROOT / "opl-package.json").read_text(encoding="utf-8"))
+    descriptor = json.loads(
+        (ROOT / "contracts/domain_descriptor.json").read_text(encoding="utf-8")
+    )
+
+    assert package["schema_version"] == "opl.package.v2"
+    assert package["provides"]["agent"]["stages_ref"] == "agent/stages/manifest.json"
 
     for relative_path in (
-        package["domain_descriptor_ref"],
-        package["action_catalog_ref"],
+        "contracts/domain_descriptor.json",
+        descriptor["action_catalog_ref"],
         "contracts/domain_handler_registry.json",
-        "agent/stages/manifest.json",
+        package["provides"]["agent"]["stages_ref"],
+        "skills/med-autoscience/SKILL.md",
+        "bin/mas-app-contribution",
         "src/med_autoscience/__init__.py",
     ):
-        assert (ROOT / relative_path.split("#", 1)[0]).is_file(), relative_path
+        assert (ROOT / relative_path).is_file(), relative_path
 
     action_catalog = json.loads(
-        (ROOT / package["action_catalog_ref"]).read_text(encoding="utf-8")
+        (ROOT / descriptor["action_catalog_ref"]).read_text(encoding="utf-8")
     )
     stage_manifest = json.loads(
-        (ROOT / "agent/stages/manifest.json").read_text(encoding="utf-8")
+        (ROOT / package["provides"]["agent"]["stages_ref"]).read_text(encoding="utf-8")
     )
     stage_actions = {
         action["action_id"]
@@ -462,9 +294,7 @@ def test_package_import_and_hosted_entry_sources_resolve() -> None:
 
 
 def test_historical_validator_release_set_stays_out_of_package_currentness() -> None:
-    package = json.loads(
-        (ROOT / "contracts/opl_agent_package_manifest.json").read_text(encoding="utf-8")
-    )
+    package = json.loads((ROOT / "opl-package.json").read_text(encoding="utf-8"))
     release = json.loads(
         (ROOT / "contracts/mas_validator_release_set_receipt.json").read_text(
             encoding="utf-8"
@@ -474,7 +304,7 @@ def test_historical_validator_release_set_stays_out_of_package_currentness() -> 
         (ROOT / "contracts/action_catalog.json").read_text(encoding="utf-8")
     )
 
-    assert package["version"] != release["package_version"]
+    assert package["identity"]["version"] != release["package_version"]
     assert "release_set_receipt_ref" not in package
     assert release["release_set_id"] == "mas-validator-0.2.24"
     assert release["package_version"] == "0.2.24"
@@ -566,55 +396,27 @@ def test_stage_route_contract_has_one_canonical_package_source() -> None:
 
 
 def test_scholarskills_is_required_presence_and_callability_not_a_sixth_agent() -> None:
-    package = json.loads(
-        (ROOT / "contracts/opl_agent_package_manifest.json").read_text(
-            encoding="utf-8"
-        )
-    )
-    dependencies = package["capability_dependencies"]
+    package = json.loads((ROOT / "opl-package.json").read_text(encoding="utf-8"))
+    dependencies = package["dependencies"]["packages"]
 
-    assert [item["package_id"] for item in dependencies] == [
-        "mas-scholar-skills"
-    ]
+    assert [item["id"] for item in dependencies] == ["mas-scholar-skills"]
     dependency = dependencies[0]
-    assert dependency["package_id"] == "mas-scholar-skills"
-    assert dependency["required"] is True
-    assert dependency["capability_abi"] == "mas-scholar-skills.v1"
-    assert set(dependency) == {
-        "module_id",
-        "package_id",
-        "required",
-        "capability_abi",
-        "required_export_ids",
-        "required_module_ids",
-        "authority_boundary",
-    }
-    assert package["codex_surface"]["standalone_distribution"] == (
-        "repo_carrier_source"
-    )
-
-    assert dependency["required_module_ids"] == [
-        "mas-scholar-skills.display",
-        "mas-scholar-skills.tables",
-        "mas-scholar-skills.stats",
-        "mas-scholar-skills.lit",
-        "mas-scholar-skills.write",
-        "mas-scholar-skills.review",
-        "mas-scholar-skills.submit",
-        "mas-scholar-skills.data",
-        "mas-scholar-skills.reference-provider-adapters",
-        "mas-scholar-skills.scientific-search-adapters",
+    assert dependency["id"] == "mas-scholar-skills"
+    assert dependency["optional"] is False
+    assert set(dependency) == {"id", "optional", "required_capabilities"}
+    assert dependency["required_capabilities"] == [
+        "mas-scholar-skills",
+        "medical-manuscript-writing",
+        "medical-manuscript-review",
+        "medical-figure-design",
+        "medical-figure-style",
+        "medical-figure-composer",
+        "medical-research-lit",
+        "medical-statistical-review",
+        "medical-table-design",
+        "medical-submission-prep",
+        "medical-data-governance",
     ]
-    assert package["codex_surface"]["user_install_action_count"] == 1
-    assert package["codex_surface"]["required_capability_package_ids"] == [
-        "mas-scholar-skills"
-    ]
-    assert dependency["authority_boundary"] == {
-        "can_write_domain_truth": False,
-        "can_sign_owner_receipt": False,
-        "can_create_typed_blocker": False,
-        "can_write_runtime_queue": False,
-    }
 
 
 def test_submission_resources_are_host_or_package_provisioned_without_fallback() -> None:
@@ -665,46 +467,33 @@ def test_submission_resources_are_host_or_package_provisioned_without_fallback()
     assert (ROOT / bundled).is_file()
 
 
-def test_plugin_carrier_tracks_only_thin_shell_without_source_mirrors() -> None:
+def test_v2_package_tracks_skills_and_bin_without_plugins_mirror() -> None:
     proc = subprocess.run(
-        ["git", "-C", str(ROOT), "ls-files", "-z", "--", "plugins/med-autoscience"],
+        [
+            "git",
+            "-C",
+            str(ROOT),
+            "ls-files",
+            "-z",
+            "--",
+            "plugins",
+            ".codex-plugin",
+            ".agents",
+        ],
         capture_output=True,
         check=True,
     )
-    tracked = sorted(
+    existing_legacy = [
         item.decode("utf-8", errors="surrogateescape")
         for item in proc.stdout.split(b"\0")
-        if item
-    )
-    expected_thin_shell = sorted(
-        [
-            "plugins/med-autoscience/.codex-plugin/plugin.json",
-            "plugins/med-autoscience/app-contribution-adapter.json",
-            "plugins/med-autoscience/assets/icon.png",
-            "plugins/med-autoscience/assets/icon.svg",
-            "plugins/med-autoscience/bin/mas-app-contribution",
-            "plugins/med-autoscience/opl-package.json",
-            "plugins/med-autoscience/plugin.json",
-            "plugins/med-autoscience/skills/med-autoscience/SKILL.md",
-            "plugins/med-autoscience/skills/med-autoscience/agents/openai.yaml",
-        ]
-    )
-    assert tracked == expected_thin_shell
-    forbidden_mirror_prefixes = (
-        "plugins/med-autoscience/src/",
-        "plugins/med-autoscience/contracts/",
-        "plugins/med-autoscience/agent/",
-        "plugins/med-autoscience/docs/",
-        "plugins/med-autoscience/runtime/",
-        "plugins/med-autoscience/profiles/",
-        "plugins/med-autoscience/bootstrap/",
-        "plugins/med-autoscience/assets/branding/",
-    )
-    assert not any(path.startswith(forbidden_mirror_prefixes) for path in tracked)
-    assert not any(
-        path.startswith("plugins/med-autoscience/src/") and path.endswith(".py")
-        for path in tracked
-    )
-    assert (ROOT / "plugins/med-autoscience/skills/med-autoscience/SKILL.md").read_bytes() == (
+        if item and (ROOT / item.decode("utf-8", errors="surrogateescape")).exists()
+    ]
+    assert existing_legacy == []
+    assert not (ROOT / "plugins").exists()
+    assert not (ROOT / ".codex-plugin").exists()
+    assert not (ROOT / ".agents").exists()
+    assert (ROOT / "skills/med-autoscience/SKILL.md").read_bytes() == (
         ROOT / "agent/primary_skill/SKILL.md"
     ).read_bytes()
+    assert (ROOT / "skills/med-autoscience/agents/openai.yaml").is_file()
+    assert os.access(ROOT / "bin/mas-app-contribution", os.X_OK)
