@@ -2,7 +2,7 @@
   "schema_version": "opl.package.v2",
   "identity": {
     "id": "mas",
-    "version": "0.3.3",
+    "version": "0.3.4",
     "intent": "agent",
     "name": {
       "zh-CN": "Med Auto Science",
