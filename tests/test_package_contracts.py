@@ -403,7 +403,7 @@ def test_scholarskills_is_required_presence_and_callability_not_a_sixth_agent() 
     dependency = dependencies[0]
     assert dependency["id"] == "mas-scholar-skills"
     assert dependency["optional"] is False
-    assert set(dependency) == {"id", "optional", "required_capabilities"}
+    assert set(dependency) == {"id", "optional", "required_capabilities", "required_module_ids"}
     assert dependency["required_capabilities"] == [
         "mas-scholar-skills",
         "medical-manuscript-writing",
@@ -416,6 +416,18 @@ def test_scholarskills_is_required_presence_and_callability_not_a_sixth_agent() 
         "medical-table-design",
         "medical-submission-prep",
         "medical-data-governance",
+    ]
+    assert dependency["required_module_ids"] == [
+        "mas-scholar-skills.display",
+        "mas-scholar-skills.tables",
+        "mas-scholar-skills.stats",
+        "mas-scholar-skills.lit",
+        "mas-scholar-skills.write",
+        "mas-scholar-skills.review",
+        "mas-scholar-skills.submit",
+        "mas-scholar-skills.data",
+        "mas-scholar-skills.reference-provider-adapters",
+        "mas-scholar-skills.scientific-search-adapters",
     ]
 
 

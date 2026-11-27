@@ -69,6 +69,18 @@
           "medical-table-design",
           "medical-submission-prep",
           "medical-data-governance"
+        ],
+        "required_module_ids": [
+          "mas-scholar-skills.display",
+          "mas-scholar-skills.tables",
+          "mas-scholar-skills.stats",
+          "mas-scholar-skills.lit",
+          "mas-scholar-skills.write",
+          "mas-scholar-skills.review",
+          "mas-scholar-skills.submit",
+          "mas-scholar-skills.data",
+          "mas-scholar-skills.reference-provider-adapters",
+          "mas-scholar-skills.scientific-search-adapters"
         ]
       }
     ],
