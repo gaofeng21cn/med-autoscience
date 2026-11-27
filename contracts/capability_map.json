@@ -1865,7 +1865,7 @@
       },
       "verification_refs": [
         "scripts/verify.sh",
-        "opl agents check --repo <repo-dir> --json"
+        "opl pack inspect <repo-dir> --json"
       ],
       "forbidden_surfaces": [
         "domain_truth",

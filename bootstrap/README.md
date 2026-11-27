@@ -37,10 +37,10 @@ canonical agent/package id 是 `mas`，machine domain id 是 `medautoscience`。
 用户与 operator 只使用 OPL Package lifecycle：
 
 ```bash
-opl packages install mas --json
-opl packages update mas --json
-opl packages status --package-id mas --json
-opl packages repair mas --json
+opl pack install mas --json
+opl pack update mas --json
+opl pack list --json
+opl pack inspect mas --json
 ```
 
 `required=true` 的 `mas-scholar-skills` 是 MAS 的 hard runtime dependency。carrier 对

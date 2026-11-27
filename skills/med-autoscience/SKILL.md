@@ -68,11 +68,11 @@ Choose the earliest unresolved owning Stage action from the installed OPL-genera
 
 ## Durable Knowledge And Workspace Memory
 
-Use `opl knowledge prepare` with `--repo <agent-root> --domain medautoscience`
-`--stage <stage-id> --output <new-binding.json>`, the current action as
-`--task-intent`, and the authorized `--workspace` and `--project` roots. Then
-call `opl knowledge read-context --binding <new-binding.json>`. Hosted StageRuns
-bind the same frozen selection for producer, reviewer and repair roles. Cite consumed knowledge IDs, scopes,
+Inspect authorized workspace knowledge sources via `opl workspace sources list`
+and capture a frozen snapshot via `opl workspace snapshot --workspace <wsId>
+--stage-run <srId> [--source <srcId>]` (or via `opld` `workspace.sources.*` /
+`workspace.snapshot`). Hosted StageRuns bind the same frozen selection for
+producer, reviewer and repair roles. Cite consumed knowledge IDs, scopes,
 content kinds and digests; do not re-read mutable bodies between roles.
 
 Product methods live in `agent/knowledge/`, indexed by
@@ -89,9 +89,11 @@ Exclude expired, revoked, superseded or changed-but-unreviewed sources from
 current use. Preserve their historical context only when explicitly allowed.
 Missing optional topic lessons do not block independent research work;
 missing required study evidence or policies block the dependent judgment.
-Run `opl knowledge revalidate --binding <new-binding.json> --for-action` before
-the corresponding research mutation or external action to check critical
-constraints and authorization again. A snapshot cannot renew revoked access.
+Re-check authorized workspace sources (`opl workspace sources list`) and refresh
+or re-inspect the snapshot (`opl workspace snapshot --workspace <wsId>
+--stage-run <srId>`) before the corresponding research mutation or external
+action to check critical constraints and authorization again. A snapshot cannot
+renew revoked access.
 
 A research result becomes reusable knowledge only after the appropriate owner
 accepts its evidence and scope. An update proposal contains `source_refs`,
