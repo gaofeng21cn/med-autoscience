@@ -31,17 +31,17 @@ MAS 不再维护 repo-local product-entry builder、status/workbench shell、CLI
 跨机器生命周期唯一用户入口为：
 
 ```bash
-opl packages install mas
-opl packages update mas
-opl packages uninstall mas
+opl pack install mas
+opl pack update mas
+opl pack uninstall mas
 ```
 
-`mas-scholar-skills` 缺失、禁用或所需能力不可调用时，仅 MAS readiness fail-closed 并进入托管安装/修复，不阻断无关 Package，也不以跨包版本范围/ABI/lock/payload/digest/共享 Release Set 为普通 readiness 门。从源码克隆调试原生 Codex Plugin Carrier 时，可通过 `codex plugin marketplace add "${repo_root}"` 与 `codex plugin add med-autoscience@med-autoscience` 安装验证（或通过 `codex plugin remove` / `marketplace remove` 移除），并通过以下 OPL 入口回读完整 Package 与 hosted work-item 状态：
+`mas-scholar-skills` 缺失、禁用或所需能力不可调用时，仅 MAS readiness fail-closed 并进入托管安装/修复，不阻断无关 Package，也不以跨包版本范围/ABI/lock/payload/digest/共享 Release Set 为普通 readiness 门。从源码克隆调试原生 Codex Plugin Carrier 时，可通过 `opl pack link "${repo_root}"` 安装并同步投影（或通过 `opl pack unlink mas` 移除），并通过以下 OPL 入口回读完整 Package 与工作区状态：
 
 ```bash
-opl packages status --package-id mas --json
-opl packages status --package-id mas --scope workspace --target-workspace <absolute_path> --json
-opl workspace work-item readback --workspace <absolute_path> --work-item <id> --agent mas --profile full
+opl pack list --json
+opl pack inspect mas --json
+opl workspace inspect <workspace_id> --json
 ```
 
 若已有同 identity 的受管 StageAttempt，须先读取其 durable 状态与 owner 再通过 Framework 公开入口操作，禁止并行写入同一研究 source 或创建第二 runner。Generated interface parity、scaffold/schema valid 或 carrier install 均只证明结构与发现，不证明 runtime live、paper progress 或 publication ready。

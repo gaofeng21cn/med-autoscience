@@ -6,7 +6,7 @@ MAS 遵循 [OPL 知识来源与记忆政策](https://github.com/gaofeng21cn/one-
 
 团队已经使用 Obsidian 或其他 Markdown 资料库时，个人和主题知识继续在原处维护，通过 Framework 的来源绑定直接读取已接受版本。课题设计、数据、文献与论文正文可以留在项目目录；允许混合来源。没有独立资料库时，使用工作区 `shared/memory/` 和项目 `memory/`、`state/` 等既有目录作为正文来源；不得把私人路径放进产品包。一个知识对象只有一个当前主源，不要求先复制一套 Markdown 投影，也不建立 MAS 私有索引、同步服务、hydration payload builder 或种子应用器。
 
-阶段执行通过 OPL 选择权限允许、适用且未过期的知识，直接从来源冻结正文及哈希；同一轮生成、评审和返修读取同一快照（不能从 quest-local cache 反推共享来源，也不能把空 working set 解释为所有文献缺失）。直接使用 Skill 时先 `opl knowledge prepare`，再以返回的 binding 调用 `opl knowledge read-context`，不在角色间重新读取可变原文。MAS 负责判断知识与当前临床问题、队列、终点和证据是否匹配；召回命中不能替代医学证据或投稿判断（文献采用与引用核验边界见 [Research Integrity Layer](../runtime/research_integrity_layer.md)）。
+阶段执行通过 OPL 选择权限允许、适用且未过期的知识，直接从来源冻结正文及哈希；同一轮生成、评审和返修读取同一快照（不能从 quest-local cache 反推共享来源，也不能把空 working set 解释为所有文献缺失）。直接使用 Skill 时通过 `opl workspace sources list` 与 `opl workspace snapshot --workspace <wsId> --stage-run <srId>` 获取并核对冻结快照，不在角色间重新读取可变原文。MAS 负责判断知识与当前临床问题、队列、终点和证据是否匹配；召回命中不能替代医学证据或投稿判断（文献采用与引用核验边界见 [Research Integrity Layer](../runtime/research_integrity_layer.md)）。
 
 用户直接编辑原文后，按已有维护授权复核变更并接受新版本，不让用户手工维护哈希。来源失效、权限撤回或与已接受版本不一致时，相关条目退出当前使用；可选的病种经验缺失不阻断独立研究工作，研究设计、必要来源和关键政策缺失则阻断依赖它们的判断。派生摘要随来源版本和授权变化重审，历史快照不延续被撤回的读取或行动权限。
 
