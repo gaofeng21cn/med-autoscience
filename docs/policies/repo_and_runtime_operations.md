@@ -33,7 +33,7 @@ MAS 已退役 repo-local CLI/MCP/installer/workbench wrapper（[约束](../invar
 | Public Stage execution | `contracts/action_catalog.json` 六个 Stage action | action/schema/Stage manifest 绑定、workspace/study identity、StageRun receipt | runtime live、paper progress、quality verdict |
 | Stage tool use | Stage Tool Affordance Boundary | capability refs、permission/write scope、forbidden authority、tool result refs | tool success 等于 stage completion |
 | Authority evaluation | host-only closed-registry callables | `contracts/domain_handler_registry.json` 纯函数绑定、无 user surface、output shape | public command、provider attempt、publication verdict |
-| Environment & Runtime | OPL `env prepare/run` 与 current-control/Attempt readback | requirement profile、execution receipt、same-identity live attempt、lease、liveness | MAS domain ready、paper delta |
+| Environment & Runtime | 领域受管环境与 Runway/Attempt readback | requirement profile、execution receipt、same-identity live attempt、lease、liveness | MAS domain ready、paper delta |
 | Publication / Quality | MAS `publication_eval/latest.json`、quality gate/owner receipt | current study identity、source/artifact refs、owner authority | submission completed unless separately receipted |
 
 ## 外部运行依赖与 MDS 来源边界

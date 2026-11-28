@@ -47,7 +47,7 @@ Cookbook 规则：每条路线必须声明医学问题并绑定数据输入、cl
 
 ## 依赖与环境边界
 
-MAS 的 `analysis-display` 默认只绑定 Rscript；具体分析显式声明外部包。ScholarSkills 持有专业模板的 `requirement_profile_ids` 与依赖配置，MAS 读取选中模板配置的完整并集交给 OPL `env prepare/run`（普通图不连带安装热图、降维等专用包；MAS 不维护安装器或 renderer transport）。
+MAS 的 `analysis-display` 默认只绑定 Rscript；具体分析显式声明外部包。ScholarSkills 持有专业模板的 `requirement_profile_ids` 与依赖配置，MAS 读取选中模板配置的完整并集并在领域受管 R/uv 环境中解析准备（普通图不连带安装热图、降维等专用包；MAS 不维护安装器或 renderer transport）。
 
 任务内脚本合并、批量绘图一致性准入、结果绑定及失败边界由 [执行策略](../../agent/skills/medical_research_execution.md#task-environment-routing) 定义：对于同任务、已准备环境下的多张独立图，当已安装 ScholarSkills provider 暴露 `--batch <request.json>` 且经其 `packs/medical-display-core/tests/benchmark_render_batch.py` 验证一致性、失败隔离、状态恢复及较逐图渲染至少 20% 总耗时收益时，默认采用批量入口；若实现或运行时变化使资格失效，回退单图路径直至重新验证通过。批量执行不改变单图医学与视觉审阅义务。
 

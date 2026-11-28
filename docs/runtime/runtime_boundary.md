@@ -12,7 +12,7 @@ MAS 不是 runtime platform。Runtime 分工、公开与内部 handler 接口、
 | 职责域 | Owner | 禁止越权边界 |
 | --- | --- | --- |
 | scheduler / queue / attempt ledger / retry / dead-letter / resume / StageRun | OPL | 不得写 study truth、publication eval、controller decision、授权 canonical artifact mutation、接受/拒绝 memory body 或签 MAS owner receipt |
-| StateIndex / workspace locator / lifecycle / storage / observability / env prepare & run | OPL | 不得把 queue/attempt/provider/UI/projection 状态解释成 paper progress 或 quality verdict |
+| StateIndex / workspace locator / lifecycle / storage / observability / artifact retention | OPL | 不得把 queue/attempt/provider/UI/projection 状态解释成 paper progress 或 quality verdict |
 | hosted CLI / MCP / Skill / product-entry / status / workbench | OPL | 仅投影 body-free refs 与 owner answer；不得自造 MAS verdict |
 | 医学 policy / study truth / source readiness / AI reviewer & publication quality / artifact & memory authority / owner receipt / typed blocker / human gate | MAS | 不得建立通用 scheduler、runner、queue、attempt ledger、StateIndex、lifecycle store、手写 CLI/MCP transport 或私有环境安装器 |
 
@@ -25,7 +25,7 @@ MAS 不是 runtime platform。Runtime 分工、公开与内部 handler 接口、
 - **六个公开 Stage action**：direction、baseline、analysis、manuscript、review、handoff 的完整 action id 与 schema 由 `contracts/action_catalog.json` 定义，binding 指向 `agent/stages/manifest.json`；CLI/MCP/Skill/product spelling 由 OPL 生成。
 - **六个 host-only authority action 与七个 closed-registry callable**：catalog 中的 qualification work-item provisioning、study initialization、study lifecycle reactivation、candidate admission、build-dependency currentness 与 paper mission 仅供 host 调用（用户 surfaces 为 `null`）；`contracts/domain_handler_registry.json` 绑定上述六项与 Agent Lab `self_evolution_closeout`，共七个 callable（另包含 attempts 级只读 `bounded_analysis` snapshot adapter 与独立只读 `mas-app-contribution` producer）。
 - **Handler 调用与回读**：Host 在创建 StageRun/Attempt 前解析 workspace/study identity 并执行 lifecycle admission（`contracts/study_initialization_contract.json`、`contracts/study_lifecycle_reactivation_contract.json`）；handler 只消费 host 提供的身份、exact refs、authority context 与当前证据，返回领域 result 或受限 CAS/materialization 授权，不执行文件、网络、进程、session、runtime lifecycle 或 Stage transition；Host 物化后必须回传 receipt。Attempt 协议见 [Stage / Route / Handoff](./stage_route_handoff_standard.md)。
-- **Environment 与依赖**：MAS 在 `contracts/runtime_environment_requirements.json` 声明要求，OPL 负责 `env prepare/run`；Package 使用 `opl pack` 公开入口，ScholarSkills 缺失或所需能力不可调用只阻断 MAS（selected build 还须核对所需 validator 符号）。
+- **Environment 与依赖**：MAS 在 `contracts/runtime_environment_requirements.json` 声明要求，并在领域受管 `uv` / `renv` 环境中解析复用；Package 使用 `opl pack` 公开入口，ScholarSkills 缺失或所需能力不可调用只阻断 MAS（selected build 还须核对所需 validator 符号）。
 
 ## Artifact 保留操作与 StateIndex 边界
 
