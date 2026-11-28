@@ -1,6 +1,6 @@
 # MAS 知识与记忆
 
-MAS 遵循 [OPL 知识来源与记忆政策](https://github.com/gaofeng21cn/one-person-lab/blob/main/docs/policies/knowledge-source-and-memory-policy.md)及其[生命周期合同](https://github.com/gaofeng21cn/one-person-lab/blob/main/contracts/opl-framework/durable-knowledge-lifecycle-contract.json)。知识正文归用户、团队或对应业务主题，MAS 按研究任务使用；Framework 保存来源绑定、版本、运行快照与回执。Markdown 是可编辑正文，机器元数据不进入正文。
+MAS 遵循 [OPL 知识来源与记忆政策](https://github.com/gaofeng21cn/one-person-lab/blob/main/docs/policies/knowledge-source-and-memory-policy.md)及其[工作区与知识来源规范](https://github.com/gaofeng21cn/one-person-lab/blob/main/docs/specs/knowledge-sources.md)。知识正文归用户、团队或对应业务主题，MAS 按研究任务使用；Framework 保存来源绑定、版本、运行快照与回执。Markdown 是可编辑正文，机器元数据不进入正文。
 
 归属与内容性质分开：产品知识包括通用研究方法和投稿策略，正文在 `agent/knowledge/`，登记到 `contracts/durable_knowledge_catalog.json`；用户或团队知识包括协作偏好和研究政策；主题知识包括跨 Study 的病种经验；项目知识包括一个 Study 的研究设计、失败路径与决策（StageAttempt 仅消费显式 refs、当前工作副本、closeout 与 writeback proposal，OPL 控制与执行记录只保存绑定、locator、冻结快照与回执）。各范围都可以有方法、政策、时点现状和决策记录，不能根据目录或文件日期推断其有效性。
 
